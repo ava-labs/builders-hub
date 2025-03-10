@@ -81,6 +81,12 @@ export const linkItems: LinkItemType[] = [
     text: 'Builder Kit',
     url: '/builderkit',
     active: 'nested-url',
+  },
+  {
+    icon: <LayoutTemplate />,
+    text: 'Ambasssador DAO',
+    url: '/ambassador-dao',
+    active: 'nested-url',
   }
 ];
 
