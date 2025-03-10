@@ -1,7 +1,12 @@
 import { redirect } from 'next/navigation'
 
-const AmbasssadorDaoPage = () => {
-  return redirect('/ambassador-dao/jobs')
+const AmbasssadorDao = () => {
+  return (
+    <div>Gigs Page
+
+    
+    </div>
+  )
 }
 
-export default AmbasssadorDaoPage
+export default AmbasssadorDao
