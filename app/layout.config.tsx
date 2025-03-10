@@ -25,6 +25,7 @@ import {
   Ticket,
   Earth,
   ArrowLeftRight,
+  LayoutTemplate,
 } from 'lucide-react';
 import Image from 'next/image';
 import { SiGithub } from '@icons-pack/react-simple-icons';
@@ -96,9 +97,28 @@ export const integrationsMenu: LinkItemType = {
       },
     },
 
+    {
+      icon: <Cog />,
+      text: 'Hackathon',
+      url: '/hackathon',
+      active: 'nested-url',
+    },
+    {
+      icon: <LayoutTemplate />, 
+      text: 'Builder Kit',
+      url: '/builderkit',
+      active: 'nested-url',
+    }, 
+    {
+      icon: <LayoutTemplate />,
+      text: 'Ambasssador DAO',
+      url: '/ambassador-dao',
+      active: 'nested-url',
+    }
+
   ],
 };
-
+  
 export const docsMenu: LinkItemType = {
   type: 'menu',
   text: 'Documentation',
