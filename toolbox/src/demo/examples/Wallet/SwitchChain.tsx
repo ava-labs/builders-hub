@@ -1,3 +1,5 @@
+"use client";
+
 import { useExampleStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useEffect } from "react";
@@ -5,7 +7,7 @@ import { Button, Input, Select } from "../../ui";
 import { createWalletClient, createPublicClient, custom, http, AddEthereumChainParameter } from 'viem';
 
 
-export const SwitchChain = () => {
+export default function SwitchChain() {
     const { showBoundary } = useErrorBoundary();
     const [isSwitching, setIsSwitching] = useState(false);
     const [targetChainId, setTargetChainId] = useState<number>(0);

@@ -1,3 +1,5 @@
+"use client";
+
 import { useExampleStore } from "../../utils/store";
 import { Input, Button, Select } from "../../ui";
 import { useState, useEffect, useRef } from "react";
@@ -331,10 +333,10 @@ export default function PerformanceMonitor() {
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="time" />
                             <YAxis
-                                tickFormatter={(value) => `${(value / 1_000_000).toFixed(1)}M`}
+                                tickFormatter={(value: number) => `${(value / 1_000_000).toFixed(1)}M`}
                             />
                             <Tooltip
-                                formatter={(value) => [`${(Number(value) / 1_000_000).toFixed(2)}M`, 'Gas']}
+                                formatter={(value: number) => [`${(Number(value) / 1_000_000).toFixed(2)}M`, 'Gas']}
                             />
                             <Legend />
                             <Line

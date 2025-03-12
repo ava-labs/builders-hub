@@ -1,3 +1,5 @@
+"use client";
+
 import { useExampleStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
 import { useEffect, useState } from "react";
@@ -7,7 +9,7 @@ import { createWalletClient, custom, createPublicClient, AbiEvent } from 'viem';
 import ValidatorManagerABI from "../../../../contracts/icm-contracts/compiled/ValidatorManager.json";
 import { utils } from "@avalabs/avalanchejs";
 
-export const Initialize = () => {
+export default function Initialize() {
     const { showBoundary } = useErrorBoundary();
     const { subnetID, walletChainId, proxyAddress, setProxyAddress, setSubnetID, walletEVMAddress } = useExampleStore();
     const [isChecking, setIsChecking] = useState(false);

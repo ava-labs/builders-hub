@@ -1,3 +1,5 @@
+"use client";
+
 import { getRPCEndpoint } from "../../utils/rpcEndpoint";
 import { useExampleStore } from "../../utils/store";
 import { useState } from "react";
@@ -5,7 +7,7 @@ import { utils, pvm, Context, L1Validator, pvmSerial, PChainOwner } from "@avala
 import { Button, Input, InputArray } from "../../ui";
 import { Success } from "../../ui/Success";
 
-export const ConvertToL1 = () => {
+export default function ConvertToL1() {
     const {
         networkID,
         getPChainAddress,

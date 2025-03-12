@@ -267,7 +267,7 @@ export default function HackathonPage() {
           </div>
         </div>
           <div className="flex items-center max-w-xl p-4 mx-auto mt-4 text-sm rounded-lg group" style={{ justifyContent: "center" }}>
-            <Link href="https://lu.ma/avalanchesummitlondonhackathon" className={buttonVariants({ size: 'lg', variant: 'default' })}>
+            <Link href="https://lu.ma/avalanchesummitlondonhackathon?utm_source=builder_hub" className={buttonVariants({ size: 'lg', variant: 'default' })}>
               Register Here! →
             </Link>
           </div>

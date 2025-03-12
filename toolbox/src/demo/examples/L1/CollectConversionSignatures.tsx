@@ -1,3 +1,5 @@
+"use client";
+
 import { useExampleStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
@@ -8,7 +10,7 @@ import { Success } from "../../ui/Success";
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
 import { useEffect } from "react";
 import { CodeHighlighter } from "../../ui/CodeHighlighter";
-export const CollectConversionSignatures = () => {
+export default function CollectConversionSignatures() {
     const { showBoundary } = useErrorBoundary();
     const {
         networkID,

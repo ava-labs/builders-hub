@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from 'react';
 import { useExampleStore } from "../../utils/store";
 import { createWalletClient, custom, createPublicClient, hexToBytes, decodeErrorResult, Abi } from 'viem';
