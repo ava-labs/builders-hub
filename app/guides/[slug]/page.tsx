@@ -176,7 +176,7 @@ export async function generateMetadata(props: {
     title: page.data.title,
     description,
     openGraph: {
-      url: `/docs/${page.slugs.join('/')}`,
+      url: `/guides/${page.slugs.join('/')}`,
       images: image,
     },
     twitter: {

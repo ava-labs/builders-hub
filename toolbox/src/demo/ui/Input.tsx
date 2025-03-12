@@ -13,6 +13,7 @@ export type InputProps = {
     error?: string | null;
     notes?: string | null;
     button?: React.ReactNode;
+    validator?: (value: string) => string | undefined;
     step?: number;
     min?: number;
     max?: number;
@@ -24,7 +25,7 @@ export type TextareaProps = InputProps & {
 
 
 export function Input(props: InputProps | TextareaProps) {
-    const { label, type, className, onChange, disabled, value, placeholder, error, notes, button, step, min, max } = props;
+    const { label, type, className, onChange, disabled, value, placeholder, error, notes, button, step, min, max, validator } = props;
 
     React.useEffect(() => {
         if (step !== undefined && type !== 'number') {
@@ -36,11 +37,21 @@ export function Input(props: InputProps | TextareaProps) {
         onChange?.(e.target.value);
     };
 
+    let validationError: string | undefined;
+    if (validator) {
+        try {
+            validationError = validator(value ?? "");
+        } catch (err) {
+            validationError = err instanceof Error ? err.message : "Validation error";
+        }
+    }
+
     const sharedClassNames = clsx(
         "flex w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm",
         "transition-colors placeholder:text-muted-foreground focus-visible:outline-none",
         "focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-        button && "rounded-r-none border-r-0"
+        button && "rounded-r-none border-r-0",
+        validationError && "border-red-500"
     )
 
     return (
@@ -48,6 +59,7 @@ export function Input(props: InputProps | TextareaProps) {
             {label && (
                 <label className="text-sm font-medium leading-none mb-2 block">
                     {label}
+                    {validationError && <span className="text-red-500 ml-1">*</span>}
                 </label>
             )}
             <div className="flex">
@@ -88,8 +100,8 @@ export function Input(props: InputProps | TextareaProps) {
                     </div>
                 )}
             </div>
-            {error && (
-                <p className="text-red-500 text-xs mt-1">{error}</p>
+            {(error || validationError) && (
+                <p className="text-red-500 text-xs mt-1">{error || validationError}</p>
             )}
             {notes && (
                 <p className=" text-xs mt-1">{notes}</p>

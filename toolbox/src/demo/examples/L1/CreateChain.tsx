@@ -1,3 +1,5 @@
+"use client";
+
 import { utils, Context } from "@avalabs/avalanchejs";
 import { pvm } from "@avalabs/avalanchejs";
 import { getRPCEndpoint } from "../../utils/rpcEndpoint";
@@ -8,7 +10,7 @@ import { Button, Input } from "../../ui";
 import { Success } from "../../ui/Success";
 import { quickAndDirtyGenesisBuilder } from "./GenesisBuilder";
 
-export const CreateChain = () => {
+export default function CreateChain() {
     const { showBoundary } = useErrorBoundary();
     const {
         networkID,
@@ -134,6 +136,9 @@ export const CreateChain = () => {
                     notes={`Auto-generated for address ${walletEVMAddress}`}
                     rows={20}
                 />
+                <div>
+                    Open the <a href="#genesisBuilder" className="text-blue-500 hover:text-blue-600 underline" >Genesis Builder tool</a> to generate custom genesis data.
+                </div>
                 <Button
                     type="primary"
                     onClick={handleCreateChain}
@@ -146,6 +151,6 @@ export const CreateChain = () => {
                 label="Chain ID"
                 value={chainID}
             />
-        </div>
+        </div >
     );
 };

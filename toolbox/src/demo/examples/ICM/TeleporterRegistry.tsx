@@ -1,3 +1,5 @@
+"use client";
+
 import { useExampleStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
@@ -7,6 +9,7 @@ import { createWalletClient, custom, createPublicClient } from 'viem';
 import TeleporterRegistryBytecode from '../../../../contracts/icm-contracts-releases/v1.0.0/TeleporterRegistry_Bytecode_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '../../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import TeleporterRegistryManualyCompiled from '../../../../contracts/icm-contracts/compiled/TeleporterRegistry.json';
+import KnownChainIDWarning from "../../ui/KnownChainIDWarning";
 
 export default function TeleporterRegistry() {
     const { showBoundary } = useErrorBoundary();
@@ -73,11 +76,7 @@ export default function TeleporterRegistry() {
                     This will deploy the <code>TeleporterRegistry</code> contract to the currently connected EVM network <code>{walletChainId}</code>.
                     The contract will be initialized with the Teleporter Messenger address <code>{TeleporterMessengerAddress.content.trim()}</code>.
                 </div>
-                {knownNetworks[walletChainId] && (
-                    <div className="mb-4">
-                        ⚠️ Warning: You are connected to {knownNetworks[walletChainId]}, not to your L1.
-                    </div>
-                )}
+                <KnownChainIDWarning walletChainId={walletChainId} />
                 <Button
                     type="primary"
                     onClick={handleDeploy}
@@ -94,9 +93,3 @@ export default function TeleporterRegistry() {
         </div>
     );
 }
-
-const knownNetworks: Record<number, string> = {
-    43114: "Avalanche Mainnet",
-    43113: "Avalanche Fuji Testnet",
-    43117: "Avalanche Devnet",
-};

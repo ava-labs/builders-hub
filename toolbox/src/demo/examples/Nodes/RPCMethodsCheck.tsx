@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { Button, Input } from "../../ui";
 import { createPublicClient, http } from 'viem';
@@ -233,7 +235,7 @@ const isInExtBcFormat = (rpcUrl: string) => {
     return regex.test(rpcUrl);
 };
 
-export const RPCMethodsCheck = () => {
+export default function RPCMethodsCheck() {
     const {
         evmChainRpcUrl,
         setEvmChainRpcUrl,

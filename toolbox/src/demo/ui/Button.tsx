@@ -28,7 +28,7 @@ export const Button = ({
         <button
             onClick={onClick}
             disabled={disabled || loading}
-            className={`py-2 px-4 text-sm font-medium rounded-md transition-all flex items-center justify-center space-x-2 ${disabled || loading ? 'bg-gray-100 border border-gray-200  cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:' : buttonStyles[type]
+            className={`py-2 px-4 text-sm font-medium rounded-md transition-all flex items-center justify-center space-x-2 ${disabled || loading ? 'bg-gray-100 border border-gray-200 cursor-not-allowed opacity-50 dark:bg-gray-800 dark:border-gray-700 dark:' : buttonStyles[type]
                 } ${className}`}
         >
             {icon}
