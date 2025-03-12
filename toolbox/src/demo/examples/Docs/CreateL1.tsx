@@ -1,3 +1,5 @@
+"use client";
+
 export default function CreateL1() {
     return (
         <div className="space-y-6">
@@ -35,9 +37,6 @@ export default function CreateL1() {
                         </li>
                         <li>
                             <a className="text-blue-500 hover:underline" href="#avalanchegoDocker">Launch RPC node (set Node Type to RPC, enable Debug&Trace, enter your IP)</a>
-                        </li>
-                        <li>
-                            <a className="text-blue-500 hover:underline" href="#rpcUrlForChain">Build RPC URL using https://[yourIP].nip.io as domain</a>
                         </li>
                         <li>
                             <a className="text-blue-500 hover:underline" href="#switchChain">Connect to your new L1 chain using the RPC URL</a>

@@ -1,3 +1,5 @@
+"use client";
+
 import { useExampleStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
@@ -13,7 +15,7 @@ function calculateLibraryHash(libraryPath: string) {
     return hash.slice(0, 34);
 }
 
-export const DeployValidatorManager = () => {
+export default function DeployValidatorManager() {
     const { showBoundary } = useErrorBoundary();
     const { validatorMessagesLibAddress, walletChainId, validatorManagerAddress, setValidatorManagerAddress } = useExampleStore();
     const [isDeploying, setIsDeploying] = useState(false);

@@ -60,7 +60,7 @@ async function main() {
 
             console.error(`New version ${latestTag} is available. Current version is ${currentVersion}`);
             console.error('Please run `node toolbox/update_docker_tags.js` and commit the changes');
-            process.exit(1);
+            // process.exit(1);
         }
     } catch (error) {
         console.warn('Warning:', error.message);

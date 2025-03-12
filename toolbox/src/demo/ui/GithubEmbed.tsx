@@ -10,7 +10,7 @@ interface GithubEmbedProps {
     maxHeight?: number;
 }
 
-export function GithubEmbed({ filePath, user, repo, branch = "main", maxHeight }: GithubEmbedProps) {
+export function GithubEmbed({ filePath, user, repo, maxHeight, branch }: GithubEmbedProps) {
     const [code, setCode] = useState<string>('');
     const [error, setError] = useState<string>('');
 

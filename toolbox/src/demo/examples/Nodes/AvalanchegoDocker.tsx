@@ -1,3 +1,5 @@
+"use client";
+
 import { useExampleStore } from "../../utils/store";
 import { Input, Select } from "../../ui";
 import { useState, useEffect } from "react";
@@ -118,8 +120,9 @@ ${domain}/ext/bc/${chainID}/rpc`
     }
 }
 
-export const AvalanchegoDocker = () => {
-    const { subnetID, setSubnetID, networkID, setNetworkID, chainID, setChainID } = useExampleStore();
+
+export default function AvalanchegoDocker() {
+    const { subnetID, setSubnetID, networkID, setNetworkID, chainID, setChainID, setEvmChainRpcUrl } = useExampleStore();
     const [isRPC, setIsRPC] = useState<"true" | "false">("false");
     const [rpcCommand, setRpcCommand] = useState("");
     const [domain, setDomain] = useState("");
@@ -132,6 +135,19 @@ export const AvalanchegoDocker = () => {
             setRpcCommand((error as Error).message);
         }
     }, [subnetID, isRPC, networkID]);
+
+
+    useEffect(() => {
+        if (domain && chainID && isRPC === "true") {
+            setEvmChainRpcUrl("https://" + nipify(domain) + "/ext/bc/" + chainID + "/rpc");
+        }
+    }, [domain, chainID, isRPC]);
+
+    useEffect(() => {
+        if (isRPC === "false") {
+            setDomain("");
+        }
+    }, [isRPC]);
 
     return (
         <div className="space-y-4">

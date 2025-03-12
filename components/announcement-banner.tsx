@@ -17,7 +17,7 @@ export function AnnouncementBanner() {
           <p className="flex-grow">
             Applications for{" "}
             <Link
-              href="https://lu.ma/avalanchesummitlondonhackathon"
+              href="https://lu.ma/avalanchesummitlondonhackathon?utm_source=builder_hub"
               target="_blank"
               rel="noopener noreferrer"
               className="underline hover:text-red-600 transition-colors"

@@ -124,7 +124,7 @@ export async function generateMetadata(props: {
 
     const image = {
         alt: 'Banner',
-        url: `/api/og/guides/${params.slug}?${imageParams.toString()}`,
+        url: `/api/og/integrations/${params.slug}?${imageParams.toString()}`,
         width: 1200,
         height: 630,
     };
@@ -133,7 +133,7 @@ export async function generateMetadata(props: {
         title: page.data.title,
         description,
         openGraph: {
-            url: `/docs/${page.slugs.join('/')}`,
+            url: `/integrations/${page.slugs.join('/')}`,
             images: image,
         },
         twitter: {

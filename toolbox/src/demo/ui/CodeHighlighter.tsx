@@ -4,6 +4,7 @@ import ts from 'react-syntax-highlighter/dist/esm/languages/prism/typescript';
 import tsx from 'react-syntax-highlighter/dist/esm/languages/prism/tsx';
 import bash from 'react-syntax-highlighter/dist/esm/languages/prism/bash';
 import json from 'react-syntax-highlighter/dist/esm/languages/prism/json';
+import solidity from 'react-syntax-highlighter/dist/esm/languages/prism/solidity';
 import { oneLight, vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Copy, Check } from 'lucide-react';
 
@@ -12,12 +13,14 @@ import { Copy, Check } from 'lucide-react';
 const DARK_THEME = vscDarkPlus;
 const LIGHT_THEME = oneLight;
 
-const availableLanguages = ['ts', 'tsx', 'bash', 'json'];
+const availableLanguages = ['ts', 'tsx', 'sh', 'bash', 'json', 'sol'];
 
 SyntaxHighlighter.registerLanguage('ts', ts);
 SyntaxHighlighter.registerLanguage('tsx', tsx);
+SyntaxHighlighter.registerLanguage('sh', bash);
 SyntaxHighlighter.registerLanguage('bash', bash);
 SyntaxHighlighter.registerLanguage('json', json);
+SyntaxHighlighter.registerLanguage('sol', solidity);
 
 interface CodeHighlighterProps {
     code: string;

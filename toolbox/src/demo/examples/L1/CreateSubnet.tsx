@@ -1,3 +1,5 @@
+"use client";
+
 import { utils, Context } from "@avalabs/avalanchejs";
 import { pvm } from "@avalabs/avalanchejs";
 import { getRPCEndpoint } from "../../utils/rpcEndpoint";
@@ -8,7 +10,7 @@ import { useState } from "react";
 import { Success } from "../../ui/Success";
 
 
-export const CreateSubnet = () => {
+export default function CreateSubnet() {
   const { showBoundary } = useErrorBoundary();
   const { networkID, getPChainAddress, setSubnetID, subnetID } = useExampleStore(state => state);
   const [isCreating, setIsCreating] = useState(false);

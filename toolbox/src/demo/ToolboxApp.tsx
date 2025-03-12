@@ -1,32 +1,13 @@
 import { Button, GithubEmbed, ConnectWallet } from "./ui";
 import { ErrorBoundary } from "react-error-boundary";
-import { CreateSubnet } from './examples/L1/CreateSubnet';
 import { useExampleStore } from './utils/store';
-import { CreateChain } from './examples/L1/CreateChain';
-import { ConvertToL1 } from './examples/L1/ConvertToL1';
-import { GetPChainAddress } from './examples/Wallet/GetPChainAddress';
-import { CollectConversionSignatures } from './examples/L1/CollectConversionSignatures';
 import { RefreshCw } from 'lucide-react';
-import { DeployValidatorMessages } from './examples/ValidatorManager/DeployValidatorMessages';
-import { SwitchChain } from "./examples/Wallet/SwitchChain";
-import { DeployValidatorManager } from "./examples/ValidatorManager/DeployValidatorManager";
-import InitValidatorSet from "./examples/InitializePoA/InitValidatorSet";
-import { Initialize } from "./examples/InitializePoA/Initialize";
-import { UpgradeProxy } from "./examples/ValidatorManager/UpgradeProxy";
-import { ReadContract } from "./examples/ValidatorManager/ReadContract";
-import { GenesisBuilder } from "./examples/L1/GenesisBuilder";
-import { RPCMethodsCheck } from "./examples/Nodes/RPCMethodsCheck";
-import { useState, useEffect, ReactElement } from "react";
-import { AvalanchegoDocker } from "./examples/Nodes/AvalanchegoDocker";
-import TeleporterMessenger from "./examples/ICM/TeleporterMessenger";
-import RPCUrlForChain from "./examples/Nodes/RPCUrlForChain";
-import CreateL1 from "./examples/Docs/CreateL1";
-import TeleporterRegistry from "./examples/ICM/TeleporterRegistry";
-import PerformanceMonitor from "./examples/Nodes/PerformanceMonitor";
+import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
+
 type ComponentType = {
     id: string;
     label: string;
-    component: () => ReactElement;
+    component: React.LazyExoticComponent<() => ReactElement>;
     fileNames: string[];
     skipWalletConnection?: boolean;
 }
@@ -36,13 +17,13 @@ const componentGroups: Record<string, ComponentType[]> = {
         {
             id: 'getPChainAddress',
             label: "Get P-chain Address",
-            component: GetPChainAddress,
+            component: lazy(() => import('./examples/Wallet/GetPChainAddress')),
             fileNames: ["toolbox/src/demo/examples/Wallet/pChainAddrFromPubKey.ts", "toolbox/src/demo/examples/Wallet/GetPChainAddress.tsx"]
         },
         {
             id: 'switchChain',
             label: "Switch Chain",
-            component: SwitchChain,
+            component: lazy(() => import('./examples/Wallet/SwitchChain')),
             fileNames: ["toolbox/src/demo/examples/Wallet/SwitchChain.tsx"]
         }
     ],
@@ -50,31 +31,31 @@ const componentGroups: Record<string, ComponentType[]> = {
         {
             id: 'createSubnet',
             label: "Create Subnet",
-            component: CreateSubnet,
+            component: lazy(() => import('./examples/L1/CreateSubnet')),
             fileNames: ["toolbox/src/demo/examples/L1/CreateSubnet.tsx"]
         },
         {
             id: 'createChain',
             label: "Create Chain",
-            component: CreateChain,
+            component: lazy(() => import('./examples/L1/CreateChain')),
             fileNames: ["toolbox/src/demo/examples/L1/CreateChain.tsx"]
         },
         {
             id: 'convertToL1',
             label: "Convert to L1",
-            component: ConvertToL1,
+            component: lazy(() => import('./examples/L1/ConvertToL1')),
             fileNames: ["toolbox/src/demo/examples/L1/ConvertToL1.tsx"]
         },
         {
             id: 'collectConversionSignatures',
             label: "Collect conversion signatures",
-            component: CollectConversionSignatures,
+            component: lazy(() => import('./examples/L1/CollectConversionSignatures')),
             fileNames: ["toolbox/src/demo/examples/L1/CollectConversionSignatures.tsx", "toolbox/src/demo/examples/L1/convertWarp.ts"]
         },
         {
             id: 'genesisBuilder',
             label: "Genesis Builder",
-            component: GenesisBuilder,
+            component: lazy(() => import('./examples/L1/GenesisBuilder')),
             fileNames: ["toolbox/src/demo/examples/L1/GenesisBuilder.tsx"]
         }
     ],
@@ -82,25 +63,25 @@ const componentGroups: Record<string, ComponentType[]> = {
         {
             id: "deployValidatorMessages",
             label: "Validator Messages Library",
-            component: DeployValidatorMessages,
+            component: lazy(() => import('./examples/ValidatorManager/DeployValidatorMessages')),
             fileNames: ["toolbox/src/demo/examples/ValidatorManager/DeployValidatorMessages.tsx"]
         },
         {
             id: "deployValidatorManager",
             label: "Deploy Validator Manager",
-            component: DeployValidatorManager,
+            component: lazy(() => import('./examples/ValidatorManager/DeployValidatorManager')),
             fileNames: ["toolbox/src/demo/examples/ValidatorManager/DeployValidatorManager.tsx"]
         },
         {
             id: "readContract",
             label: "Read Contract",
-            component: ReadContract,
+            component: lazy(() => import('./examples/ValidatorManager/ReadContract')),
             fileNames: ["toolbox/src/demo/examples/ValidatorManager/ReadContract.tsx"]
         },
         {
             id: "upgradeProxy",
             label: "Upgrade Proxy",
-            component: UpgradeProxy,
+            component: lazy(() => import('./examples/ValidatorManager/UpgradeProxy')),
             fileNames: ["toolbox/src/demo/examples/ValidatorManager/UpgradeProxy.tsx"]
         }
     ],
@@ -108,13 +89,13 @@ const componentGroups: Record<string, ComponentType[]> = {
         {
             id: "initialize",
             label: "Initialize",
-            component: Initialize,
+            component: lazy(() => import('./examples/InitializePoA/Initialize')),
             fileNames: ["toolbox/src/demo/examples/InitializePoA/Initialize.tsx"]
         },
         {
             id: "initValidatorSet",
             label: "Initialize Validator Set",
-            component: InitValidatorSet,
+            component: lazy(() => import('./examples/InitializePoA/InitValidatorSet')),
             fileNames: ["toolbox/src/demo/examples/InitializePoA/InitValidatorSet.tsx"]
         }
     ],
@@ -122,28 +103,21 @@ const componentGroups: Record<string, ComponentType[]> = {
         {
             id: "rpcMethodsCheck",
             label: "RPC Methods Check",
-            component: RPCMethodsCheck,
+            component: lazy(() => import('./examples/Nodes/RPCMethodsCheck')),
             fileNames: ["toolbox/src/demo/examples/Nodes/RPCMethodsCheck.tsx"],
             skipWalletConnection: true,
         },
         {
             id: "avalanchegoDocker",
             label: "Avalanchego in Docker",
-            component: AvalanchegoDocker,
+            component: lazy(() => import('./examples/Nodes/AvalanchegoDocker')),
             fileNames: ["toolbox/src/demo/examples/Nodes/AvalanchegoDocker.tsx"],
-            skipWalletConnection: true,
-        },
-        {
-            id: "rpcUrlForChain",
-            label: "RPC URL Builder",
-            component: RPCUrlForChain,
-            fileNames: ["toolbox/src/demo/examples/Nodes/RPCUrlForChain.tsx"],
             skipWalletConnection: true,
         },
         {
             id: "performanceMonitor",
             label: "Performance Monitor",
-            component: PerformanceMonitor,
+            component: lazy(() => import('./examples/Nodes/PerformanceMonitor')),
             fileNames: ["toolbox/src/demo/examples/Nodes/PerformanceMonitor.tsx"],
             skipWalletConnection: true,
         }
@@ -152,26 +126,49 @@ const componentGroups: Record<string, ComponentType[]> = {
         {
             id: "teleporterMessenger",
             label: "Teleporter Messenger",
-            component: TeleporterMessenger,
+            component: lazy(() => import('./examples/ICM/TeleporterMessenger')),
             fileNames: ["toolbox/src/demo/examples/ICM/TeleporterMessenger.tsx"]
         },
         {
             id: "teleporterRegistry",
             label: "Teleporter Registry",
-            component: TeleporterRegistry,
+            component: lazy(() => import('./examples/ICM/TeleporterRegistry')),
             fileNames: ["toolbox/src/demo/examples/ICM/TeleporterRegistry.tsx"]
+        },
+        {
+            id: "icmRelayer",
+            label: "ICM Relayer",
+            component: lazy(() => import('./examples/ICM/ICMRelayer')),
+            fileNames: ["toolbox/src/demo/examples/ICM/ICMRelayer.tsx"]
+        },
+        {
+            id: "receiverOnSubnet",
+            label: "ReceiverOnSubnet",
+            component: lazy(() => import('./examples/ICM/ReceiverOnSubnet')),
+            fileNames: [
+                "toolbox/src/demo/examples/ICM/ReceiverOnSubnet.tsx",
+                "toolbox/contracts/example-contracts/contracts/receiverOnSubnet.sol",
+            ]
+        },
+        {
+            id: "sendICMMessage",
+            label: "Send ICM Message",
+            component: lazy(() => import('./examples/ICM/SendICMMessage')),
+            fileNames: [
+                "toolbox/src/demo/examples/ICM/SendICMMessage.tsx",
+                "toolbox/contracts/example-contracts/contracts/senderOnCChain.sol",
+            ]
         }
     ],
     "Docs": [
         {
             id: 'createL1Guide',
             label: "Create L1",
-            component: CreateL1,
-            fileNames: ["toolbox/src/demo/examples/Docs/CreateL1.tsx"],
+            component: lazy(() => import('./examples/Docs/CreateL1')),
+            fileNames: [],
             skipWalletConnection: true,
         }
     ],
-
 };
 
 const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) => {
@@ -194,14 +191,17 @@ const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error, resetError
     );
 };
 
-export default function ToolboxApp() {
-    const [, setIsWalletConnected] = useState(false);
-    // Remove store-based selectedTool and use setSelectedTool
-    // const { selectedTool, setSelectedTool } = useExampleStore();
+// Loading component for Suspense
+const ComponentLoader = () => (
+    <div className="flex justify-center items-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+    </div>
+);
 
+export default function ToolboxApp() {
     const defaultTool = Object.values(componentGroups).flat()[0].id;
 
-    // Use state from URL hash. Default to "getPChainAddress" if hash is empty.
+    // Use state from URL hash. Default to first tool if hash is empty.
     const [selectedTool, setSelectedTool] = useState(
         window.location.hash ? window.location.hash.substring(1) : defaultTool
     );
@@ -216,9 +216,9 @@ export default function ToolboxApp() {
     }, []);
 
     const handleComponentClick = (toolId: string) => {
-        // Instead of updating the store, update the URL hash.
+        // Update the URL hash
         window.location.hash = toolId;
-        // Optionally update local state immediately (hashchange event will also trigger)
+        // Optionally update local state immediately
         setSelectedTool(toolId);
     };
 
@@ -228,16 +228,21 @@ export default function ToolboxApp() {
         if (!comp) {
             return <div>Component not found</div>;
         }
-        return <>
+
+        const Component = comp.component;
+
+        return (
             <ErrorBoundary
                 FallbackComponent={ErrorFallback}
                 onReset={() => {
                     window.location.reload();
                 }}
             >
-                <ConnectWallet onConnect={setIsWalletConnected} required={!comp.skipWalletConnection}>
+                <ConnectWallet required={!comp.skipWalletConnection}>
                     <div className="space-y-4">
-                        <comp.component />
+                        <Suspense fallback={<ComponentLoader />}>
+                            <Component />
+                        </Suspense>
                     </div>
                     <div className="overflow-x-hidden">
                         {comp.fileNames.map((fileName, index) => (
@@ -245,7 +250,7 @@ export default function ToolboxApp() {
                                 key={index}
                                 user="ava-labs"
                                 repo="avalanche-docs"
-                                branch="master" // TODO: set automatically or at least change to main
+                                branch={import.meta.env?.VITE_GIT_BRANCH_NAME || "master"}
                                 filePath={fileName}
                                 maxHeight={600}
                             />
@@ -253,7 +258,7 @@ export default function ToolboxApp() {
                     </div>
                 </ConnectWallet>
             </ErrorBoundary>
-        </>
+        );
     };
 
     return (
@@ -262,19 +267,20 @@ export default function ToolboxApp() {
                 <ul className="space-y-6">
                     {Object.entries(componentGroups).map(([groupName, components]) => (
                         <li key={groupName}>
-                            <h3 className="text-sm font-semibold  uppercase tracking-wide mb-3">{groupName}</h3>
+                            <h3 className="text-sm font-semibold uppercase tracking-wide mb-3">{groupName}</h3>
                             <ul className="space-y-1">
                                 {components.map(({ id, label }) => (
                                     <li key={id}>
-                                        <div
+                                        <a
+                                            href={`#${id}`}
                                             onClick={() => handleComponentClick(id)}
-                                            className={`cursor-pointer w-full text-left px-3 py-2 text-sm rounded-md transition-all ${selectedTool === id
+                                            className={`block cursor-pointer w-full text-left px-3 py-2 text-sm rounded-md transition-all ${selectedTool === id
                                                 ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-medium'
                                                 : ' dark: hover:bg-gray-50 dark:hover:bg-gray-800'
                                                 }`}
                                         >
                                             {label}
-                                        </div>
+                                        </a>
                                     </li>
                                 ))}
                             </ul>

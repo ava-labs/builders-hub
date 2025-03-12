@@ -1,9 +1,7 @@
-import React from 'react'
+import { redirect } from 'next/navigation'
 
-const AmbasssadorDaoJobsPage = () => {
-  return (
-    <div>AmbasssadorDaoJobsPage</div>
-  )
+const AmbasssadorDaoAllJobsPage = () => {
+  redirect('/ambassador-dao?type=jobs')
 }
 
-export default AmbasssadorDaoJobsPage
+export default AmbasssadorDaoAllJobsPage

@@ -1,3 +1,5 @@
+"use client";
+
 // FIXME: This is a quick implementation and will be replaced with a genesis builder component later on.
 
 import TransparentUpgradableProxy from "../../../../contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json"
@@ -89,7 +91,7 @@ import { Input } from "../../ui";
 import { useExampleStore } from "../../utils/store";
 import { CodeHighlighter } from "../../ui/CodeHighlighter";
 
-export const GenesisBuilder = () => {
+export default function GenesisBuilder() {
     const {
         walletEVMAddress,
         evmChainId,
