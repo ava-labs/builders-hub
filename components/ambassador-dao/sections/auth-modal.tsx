@@ -5,15 +5,15 @@ import React, { useState } from "react";
 import { VerificationInput } from "../verification-code";
 import { DialogTitle } from "@radix-ui/react-dialog";
 
-interface ISignupModalProps {
+interface IAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type SignupStep = "options" | "email" | "verification" | "error";
+type AuthStep = "options" | "email" | "verification" | "error";
 
-export const SignupModal = ({ isOpen, onClose }: ISignupModalProps) => {
-  const [currentStep, setCurrentStep] = useState<SignupStep>("options");
+export const AuthModal = ({ isOpen, onClose }: IAuthModalProps) => {
+  const [currentStep, setCurrentStep] = useState<AuthStep>("options");
   const [email, setEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
 
@@ -65,7 +65,7 @@ export const SignupModal = ({ isOpen, onClose }: ISignupModalProps) => {
 };
 
 interface OptionsStepProps {
-  setCurrentStep: React.Dispatch<React.SetStateAction<SignupStep>>;
+  setCurrentStep: React.Dispatch<React.SetStateAction<AuthStep>>;
 }
 
 const OptionsStep = ({ setCurrentStep }: OptionsStepProps) => (
@@ -109,7 +109,7 @@ const OptionsStep = ({ setCurrentStep }: OptionsStepProps) => (
 );
 
 interface EmailStepProps {
-  setCurrentStep: React.Dispatch<React.SetStateAction<SignupStep>>;
+  setCurrentStep: React.Dispatch<React.SetStateAction<AuthStep>>;
   setEmail: (email: string) => void;
   email: string;
 }

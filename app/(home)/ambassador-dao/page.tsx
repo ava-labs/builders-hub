@@ -18,7 +18,7 @@ import {
   Search,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { SignupModal } from "@/components/ambassador-dao/sections/signup-modal";
+import { AuthModal } from "@/components/ambassador-dao/sections/auth-modal";
 
 interface FilterDropdownProps {
   label: string;
@@ -675,7 +675,7 @@ const AmbasssadorDao = () => {
           </div>
         </main>
       </div>
-      <SignupModal isOpen={signupModal} onClose={() => setSignupModal(false)} />
+      <AuthModal isOpen={signupModal} onClose={() => setSignupModal(false)} />
     </>
   );
 };
