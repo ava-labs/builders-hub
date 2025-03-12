@@ -55,7 +55,7 @@
     "@radix-ui/react-toast": "^1.2.6",
     "@radix-ui/react-toggle": "^1.1.2",
     "@radix-ui/react-toggle-group": "^1.1.2",
-    "@radix-ui/react-tooltip": "^1.2.7",
+    "@radix-ui/react-tooltip": "^1.2.7", 
     "@rainbow-me/rainbowkit": "^2.2.2",
     "@safe-global/api-kit": "^2.5.3",
     "@sendgrid/mail": "^8.1.4",
