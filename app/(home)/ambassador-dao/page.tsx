@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Team1 from "@/public/ambassador-dao-images/Avalanche-team1.png";
 
 import React from "react";
@@ -617,12 +617,12 @@ const GoBackButton = () => {
   );
 };
 
-const AmbasssadorDao = () => {
+
+const MainContent = () => {
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
 
   const renderContent = () => {
-    // If no type is specified, show both sections
     if (!type) {
       return (
         <>
@@ -632,7 +632,6 @@ const AmbasssadorDao = () => {
       );
     }
 
-    // Show only the section that matches the type
     if (type === "jobs") {
       return <JobsSection />;
     }
@@ -640,25 +639,28 @@ const AmbasssadorDao = () => {
     if (type === "bounties") {
       return <BountiesSection />;
     }
+  }
 
-    // Fallback if an invalid type is provided
     return (
       <>
-        <JobsSection />
-        <BountiesSection />
-      </>
-    );
-  };
-
-  return (
-    <div className="bg-black text-white min-h-screen">
-      <WelcomeSection />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 xl:px-8 py-12">
         <GoBackButton />
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           <div className="lg:col-span-3">{renderContent()}</div>
           <SideContent />
         </div>
+      </>
+    );
+  };
+
+const AmbasssadorDao = () => {
+
+  return (
+    <div className="bg-black text-white min-h-screen">
+      <WelcomeSection />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 xl:px-8 py-12">
+        <Suspense fallback={<div>Loading...</div>}>
+         <MainContent />
+        </Suspense>
       </main>
     </div>
   );
