@@ -1,9 +1,7 @@
-import { redirect } from 'next/navigation'
+import { redirect } from "next/navigation";
 
 const AmbasssadorDaoAllBountyPage = () => {
-  return (
-    <div>All Bounty Page</div>
-  )
-}
+  redirect("/ambassador-dao?type=jobs");
+};
 
-export default AmbasssadorDaoAllBountyPage
+export default AmbasssadorDaoAllBountyPage;
