@@ -30,13 +30,13 @@ interface FilterDropdownProps {
 // WelcomeSection
 const WelcomeSection = () => {
   return (
-    <div className="relative bg-gradient-to-r from-[#000] to-[#FF394A40] overflow-hidden backdrop-blur-[200px] h-[384px]">
+    <div className="relative bg-gradient-to-r from-[#000] to-[#FF394A40] overflow-hidden backdrop-blur-[200px]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
         <div className="relative z-10">
-          <h1 className="text-4xl font-bold text-red-500 mb-2">
+          <h1 className="text-2xl sm:text-4xl font-bold text-red-500 mb-2">
             Welcome back, John
           </h1>
-          <p className="text-xl text-white">
+          <p className="text-sm sm:text-xl text-white">
             We're so glad to have you on Earn
           </p>
         </div>
