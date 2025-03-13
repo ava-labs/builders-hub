@@ -107,7 +107,7 @@ const JobsSection = () => {
     <section className="mb-12 border border-[#27272A] rounded-md py-14 px-8">
       <h2 className="text-3xl font-bold mb-6">ALL JOBS</h2>
 
-      <div className="flex gap-4 mb-6">
+      <div className="flex gap-4 mb-6 flex-wrap">
         <FilterDropdown
           label="Industry"
           options={["Technology", "Finance", "Marketing"]}
@@ -129,9 +129,9 @@ const JobsSection = () => {
           <input
             type="text"
             placeholder="Search"
-            className="bg-gray-800 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+            className="text-xs sm:text-sm lg:text-base bg-gray-800 rounded-md px-4 py-2 focus:outline-none"
           />
-          <button className="absolute right-3 top-2">
+          <button className="absolute right-3 top-3">
             <Search color="#9F9FA9" className="w-3 h-3 mr-1" />
           </button>
         </div>
@@ -234,7 +234,7 @@ const BountiesSection = () => {
   return (
     <section className="border border-[#27272A] rounded-md py-14 px-8">
       <h2 className="text-3xl font-bold mb-6">ALL BOUNTIES</h2>
-      <div className="flex gap-4 mb-6">
+      <div className="flex gap-4 mb-6 flex-wrap">
         <FilterDropdown
           label="Industry"
           options={["Technology", "Finance", "Marketing"]}
@@ -255,9 +255,9 @@ const BountiesSection = () => {
           <input
             type="text"
             placeholder="Search"
-            className="bg-gray-800 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+            className="bg-gray-800 rounded-md px-4 py-2 focus:outline-none"
           />
-          <button className="absolute right-3 top-2">
+          <button className="absolute right-3 top-3">
             <Search color="#9F9FA9" className="w-3 h-3 mr-1" />
           </button>
         </div>
@@ -283,7 +283,7 @@ const FilterDropdown = ({
   return (
     <Select.Root onValueChange={onValueChange} value={value}>
       <Select.Trigger
-        className="flex items-center justify-between bg-gray-800 text-white rounded-md h-10 px-2 w-full outline-none focus:ring-2 focus:ring-red-500 data-[placeholder]:text-gray-400"
+        className="text-xs sm:text-sm lg:text-base focus:outline-none h-8 sm:h-10 w-max flex items-center justify-between bg-gray-800 text-white rounded-md px-2 outline-none data-[placeholder]:text-gray-400"
         aria-label={label}
       >
         <Select.Value placeholder={label} />
