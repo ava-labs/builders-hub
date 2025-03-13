@@ -18,6 +18,8 @@ import {
   Search,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { AuthModal } from "@/components/ambassador-dao/sections/auth-modal";
+import { Outline } from "@/components/ambassador-dao/ui/Outline";
 
 interface FilterDropdownProps {
   label: string;
@@ -254,7 +256,7 @@ const BountiesSection = () => {
           <input
             type="text"
             placeholder="Search"
-            className="bg-gray-800 rounded-md px-4 py-2 focus:outline-none"
+            className="text-xs sm:text-sm lg:text-base bg-gray-800 rounded-md px-4 py-2 focus:outline-none"
           />
           <button className="absolute right-3 top-3">
             <Search color="#9F9FA9" className="w-3 h-3 mr-1" />
@@ -426,15 +428,12 @@ const JobCard = ({
       </div>
 
       <div className="mt-4 grid grid-cols-8 gap-2">
-        {Array(8)
+        {Array(5)
           .fill(0)
           .map((_, index) => (
-            <span
-              key={index}
-              className="text-xs bg-gray-800 px-2 py-1 rounded text-center"
-            >
-              Outline
-            </span>
+            <div key={index}>
+            <Outline label="Outline" />
+          </div>
           ))}
       </div>
     </div>
@@ -503,15 +502,12 @@ const BountyCard = ({
       </div>
 
       <div className="mt-4 grid grid-cols-7 gap-2">
-        {Array(7)
+        {Array(5)
           .fill(0)
           .map((_, index) => (
-            <span
-              key={index}
-              className="text-xs bg-gray-800 px-2 py-1 rounded text-center"
-            >
-              Outline
-            </span>
+            <div key={index}>
+              <Outline label="Outline" />
+            </div>
           ))}
       </div>
     </div>
