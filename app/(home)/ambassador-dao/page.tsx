@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Team1 from "@/public/ambassador-dao-images/Avalanche-team1.png";
 
 import React from "react";
@@ -18,6 +18,7 @@ import {
   Search,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { AuthModal } from "@/components/ambassador-dao/sections/auth-modal";
 
 interface FilterDropdownProps {
   label: string;
@@ -547,9 +548,16 @@ const UserProfileCard = () => {
 };
 
 // AmbassadorCard
-const AmbassadorCard = () => {
+const AmbassadorCard = ({
+  setOpenAuthModal,
+}: {
+  setOpenAuthModal: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
   return (
-    <div className="bg-gradient-to-r from-blue-900 to-blue-700 rounded-lg p-4 mb-4 relative overflow-hidden">
+    <div
+      className="bg-gradient-to-r from-blue-900 to-blue-700 rounded-lg p-4 mb-4 relative overflow-hidden cursor-pointer"
+      onClick={() => setOpenAuthModal(true)}
+    >
       <div className="relative z-10">
         <h3 className="font-medium mb-1">Become a Ambassador</h3>
         <p className="text-xs opacity-80">
@@ -586,10 +594,14 @@ const PreferenceSection = () => {
   );
 };
 
-const SideContent = () => {
+const SideContent = ({
+  setOpenAuthModal,
+}: {
+  setOpenAuthModal: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
   return (
     <div className="lg:col-span-1">
-      <AmbassadorCard />
+      <AmbassadorCard setOpenAuthModal={setOpenAuthModal} />
       <UserProfileCard />
       <PreferenceSection />
     </div>
@@ -617,12 +629,12 @@ const GoBackButton = () => {
   );
 };
 
-const AmbasssadorDao = () => {
+const MainContent = () => {
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
+  const [openAuthModal, setOpenAuthModal] = useState(false);
 
   const renderContent = () => {
-    // If no type is specified, show both sections
     if (!type) {
       return (
         <>
@@ -632,7 +644,6 @@ const AmbasssadorDao = () => {
       );
     }
 
-    // Show only the section that matches the type
     if (type === "jobs") {
       return <JobsSection />;
     }
@@ -640,25 +651,31 @@ const AmbasssadorDao = () => {
     if (type === "bounties") {
       return <BountiesSection />;
     }
-
-    // Fallback if an invalid type is provided
-    return (
-      <>
-        <JobsSection />
-        <BountiesSection />
-      </>
-    );
   };
 
+  return (
+    <>
+      <GoBackButton />
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <div className="lg:col-span-3">{renderContent()}</div>
+        <SideContent setOpenAuthModal={setOpenAuthModal} />
+      </div>
+      <AuthModal
+        isOpen={openAuthModal}
+        onClose={() => setOpenAuthModal(false)}
+      />
+    </>
+  );
+};
+
+const AmbasssadorDao = () => {
   return (
     <div className="bg-black text-white min-h-screen">
       <WelcomeSection />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 xl:px-8 py-12">
-        <GoBackButton />
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          <div className="lg:col-span-3">{renderContent()}</div>
-          <SideContent />
-        </div>
+        <Suspense fallback={<div>Loading...</div>}>
+          <MainContent />
+        </Suspense>
       </main>
     </div>
   );
