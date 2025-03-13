@@ -18,6 +18,7 @@ import {
   Search,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { AuthModal } from "@/components/ambassador-dao/sections/auth-modal";
 
 interface FilterDropdownProps {
   label: string;
@@ -547,9 +548,16 @@ const UserProfileCard = () => {
 };
 
 // AmbassadorCard
-const AmbassadorCard = () => {
+const AmbassadorCard = ({
+  setOpenAuthModal,
+}: {
+  setOpenAuthModal: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
   return (
-    <div className="bg-gradient-to-r from-blue-900 to-blue-700 rounded-lg p-4 mb-4 relative overflow-hidden">
+    <div
+      className="bg-gradient-to-r from-blue-900 to-blue-700 rounded-lg p-4 mb-4 relative overflow-hidden cursor-pointer"
+      onClick={() => setOpenAuthModal(true)}
+    >
       <div className="relative z-10">
         <h3 className="font-medium mb-1">Become a Ambassador</h3>
         <p className="text-xs opacity-80">
@@ -586,10 +594,14 @@ const PreferenceSection = () => {
   );
 };
 
-const SideContent = () => {
+const SideContent = ({
+  setOpenAuthModal,
+}: {
+  setOpenAuthModal: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
   return (
     <div className="lg:col-span-1">
-      <AmbassadorCard />
+      <AmbassadorCard setOpenAuthModal={setOpenAuthModal} />
       <UserProfileCard />
       <PreferenceSection />
     </div>
@@ -617,10 +629,10 @@ const GoBackButton = () => {
   );
 };
 
-
 const MainContent = () => {
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
+  const [openAuthModal, setOpenAuthModal] = useState(false);
 
   const renderContent = () => {
     if (!type) {
@@ -647,22 +659,24 @@ const MainContent = () => {
         <div className="grid grid-cols-1 xl:grid-cols-9 xl:gap-x-8 gap-y-8">
           <div className="lg:col-span-6 order-2 xl:order-1">{renderContent()}</div>
           <div className="order-1 xl:order-2 col-span-3">
-          <SideContent />
-
+        <SideContent setOpenAuthModal={setOpenAuthModal} />
           </div>
         </div>
+        <AuthModal
+        isOpen={openAuthModal}
+        onClose={() => setOpenAuthModal(false)}
+      />
       </>
     );
   };
 
 const AmbasssadorDao = () => {
-
   return (
     <div className="bg-black text-white min-h-screen">
       <WelcomeSection />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 xl:px-8 py-12">
         <Suspense fallback={<div>Loading...</div>}>
-         <MainContent />
+          <MainContent />
         </Suspense>
       </main>
     </div>
