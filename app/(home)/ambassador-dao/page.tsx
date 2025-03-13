@@ -282,7 +282,7 @@ const FilterDropdown = ({
   return (
     <Select.Root onValueChange={onValueChange} value={value}>
       <Select.Trigger
-        className="flex items-center justify-between bg-gray-800 text-white rounded-md px-4 py-2 w-full outline-none focus:ring-2 focus:ring-red-500 data-[placeholder]:text-gray-400"
+        className="flex items-center justify-between bg-gray-800 text-white rounded-md h-10 px-2 w-full outline-none focus:ring-2 focus:ring-red-500 data-[placeholder]:text-gray-400"
         aria-label={label}
       >
         <Select.Value placeholder={label} />
@@ -644,9 +644,12 @@ const MainContent = () => {
     return (
       <>
         <GoBackButton />
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          <div className="lg:col-span-3">{renderContent()}</div>
+        <div className="grid grid-cols-1 xl:grid-cols-9 xl:gap-x-8 gap-y-8">
+          <div className="lg:col-span-6 order-2 xl:order-1">{renderContent()}</div>
+          <div className="order-1 xl:order-2 col-span-3">
           <SideContent />
+
+          </div>
         </div>
       </>
     );
