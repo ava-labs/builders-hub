@@ -1,6 +1,7 @@
 export interface IUserDetails {
-  first_name: string;
-  last_name: string;
-  email: string;
-  user_role: string;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
+  profile_image: string | null;
+  role: string | null;
 }

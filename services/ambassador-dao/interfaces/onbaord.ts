@@ -16,7 +16,7 @@ export interface IUpdateSponsorProfileBody {
 export interface IUpdateTalentProfileBody {
   first_name: string;
   last_name: string;
-  username: String;
+  username: string;
   profile_image: string;
   location: string;
   skills_ids: string[];

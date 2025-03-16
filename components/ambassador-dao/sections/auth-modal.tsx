@@ -15,6 +15,7 @@ import {
 } from "@/services/ambassador-dao/requests/auth";
 import { useRouter } from "next/navigation";
 import CustomButton from "../custom-button";
+import CustomInput from "../input";
 
 interface IAuthModalProps {
   isOpen: boolean;
@@ -34,7 +35,7 @@ export const AuthModal = ({ isOpen, onClose }: IAuthModalProps) => {
     const code = searchParams.get("code");
     if (code) {
       googleCallbackMutation(code);
-    } 
+    }
   }, [searchParams, googleCallbackMutation]);
 
   const onCloseModal = () => {
@@ -95,7 +96,7 @@ const OptionsStep = ({ setCurrentStep }: OptionsStepProps) => {
 
       <div className='flex flex-col gap-8 w-full'>
         <CustomButton onClick={() => setCurrentStep("email")}>
-          <Mail size={16} />
+          <Mail size={16} color='#09090B' />
           <p>Login with email</p>
         </CustomButton>
 
@@ -162,12 +163,14 @@ const EmailStep = ({ setCurrentStep, setEmail }: EmailStepProps) => {
       <div className='w-full'>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className='mb-4'>
-            <input
+            <CustomInput
               type='email'
               placeholder='name@example.com'
+              id='email'
               className={`bg-transparent border ${
                 errors.email ? "border-red-500" : "border-[#27272A]"
-              } rounded-md w-full h-10 px-3 text-[#FAFAFA] text-sm`}
+              } rounded-md w-full h-10 px-3 text-[#FAFAFA] text-sm focus:outline-none`}
+              required
               {...register("email", {
                 required: "Email is required",
                 pattern: {
@@ -176,6 +179,7 @@ const EmailStep = ({ setCurrentStep, setEmail }: EmailStepProps) => {
                 },
               })}
             />
+
             {errors.email && (
               <p className='text-red-500 text-xs mt-1'>
                 {errors.email.message}
@@ -208,7 +212,7 @@ interface VerificationStepProps {
 }
 
 const VerificationStep = ({ email, onClose }: VerificationStepProps) => {
-    const router = useRouter();
+  const router = useRouter();
   const [code, setCode] = useState("");
   const {
     register,
