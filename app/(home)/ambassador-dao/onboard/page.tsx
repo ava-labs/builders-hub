@@ -1,11 +1,14 @@
 "use client";
-import { Check, Crown, X, Upload, ChevronDown } from "lucide-react";
-import React, { useState } from "react";
+import { Check, Crown, X, Upload, Plus, Minus, AlertCircle, Loader2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Avalance3d from "@/public/images/avalance3d.svg";
-import { Input } from "@/components/ui/input";
 import CustomInput from "@/components/ambassador-dao/input";
 import CustomSelect from "@/components/ambassador-dao/select";
+import { useCheckUsernameAvailabilityMutation, useFetchAllSkills, useSelectRoleMutation, useUpdateTalentProfileMutation } from '@/services/ambassador-dao/requests/onboard';
+import { useRouter } from 'next/router';
+import CustomButton from '@/components/ambassador-dao/custom-button';
+import { useForm } from 'react-hook-form';
 
 const userTypes = [
   {
@@ -36,9 +39,16 @@ const AmbasssadorDaoOnboardPage = () => {
     "account_option" | "account_form"
   >("account_option");
 
+  const { mutate: selectRole, isPending: isSelectingRole } = useSelectRoleMutation();
+  const router = useRouter();
+
   const handleContinue = (type: "talent" | "sponsor") => {
     setUserType(type);
-    setShowSelectionStep("account_form");
+    selectRole(type, {
+        onSuccess: () => {
+          setShowSelectionStep("account_form");
+        }
+      });
   };
 
   const handleClose = () => {
@@ -101,13 +111,15 @@ const AmbasssadorDaoOnboardPage = () => {
               <hr className="my-6 border-[#27272A]" />
 
               <div className="flex justify-center">
-                <button
-                  type="button"
-                  className="bg-[#FB2C36] rounded-md text-[#FAFAFA] px-6 h-10 text-sm font-medium"
+              <CustomButton
+                  variant="danger"
+                  isFullWidth={false}
+                  isLoading={isSelectingRole && userType === type.name.toLowerCase()}
                   onClick={() => handleContinue(type.name.toLowerCase() as any)}
+                  className='px-6 h-10 text-sm font-medium'
                 >
                   Continue as <span className="capitalize">{type.name}</span>
-                </button>
+                </CustomButton>
               </div>
             </div>
           ))}
@@ -126,6 +138,86 @@ const AmbasssadorDaoOnboardPage = () => {
 export default AmbasssadorDaoOnboardPage;
 
 const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
+    const router = useRouter();
+  const { register, handleSubmit, control, formState: { errors }, setValue, watch } = useForm<{
+    first_name: string;
+    last_name: string;
+    username: string;
+    profile_image: string;
+    location: string;
+    skills_ids: string[];
+    social_links: string[];
+  }>();
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [socialLinks, setSocialLinks] = useState<string[]>([]);
+  const [currentSocialLink, setCurrentSocialLink] = useState('');
+  const [usernameStatus, setUsernameStatus] = useState<'checking' | 'available' | 'unavailable' | null>(null);
+
+  const username = watch('username');
+  
+  const { mutate: updateTalentProfile, isPending: isUpdatingProfile } = useUpdateTalentProfileMutation();
+  const { mutate: checkUsername, isPending: isCheckingUsername } = useCheckUsernameAvailabilityMutation();
+  const { isPending: isFetchingSkills, data: skills   } = useFetchAllSkills();
+
+  useEffect(() => {
+    if (username && username.length > 3) {
+      setUsernameStatus('checking');
+      const timer = setTimeout(() => {
+        checkUsername(username, {
+          onSuccess: (data) => {
+            setUsernameStatus(data.available ? 'available' : 'unavailable');
+          },
+          onError: () => {
+            setUsernameStatus('unavailable');
+          }
+        });
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setUsernameStatus(null);
+    }
+  }, [username, checkUsername]);
+
+  const addSkill = (skill: string) => {
+    if (!selectedSkills.includes(skill) && skill) {
+      setSelectedSkills([...selectedSkills, skill]);
+      setValue('skills_ids', [...selectedSkills, skill]);
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    const updated = selectedSkills.filter(s => s !== skill);
+    setSelectedSkills(updated);
+    setValue('skills_ids', updated);
+  };
+
+  const addSocialLink = () => {
+    if (currentSocialLink && !socialLinks.includes(currentSocialLink)) {
+      const updatedLinks = [...socialLinks, currentSocialLink];
+      setSocialLinks(updatedLinks);
+      setValue('social_links', updatedLinks);
+      setCurrentSocialLink('');
+    }
+  };
+
+  const removeSocialLink = (link: string) => {
+    const updated = socialLinks.filter(l => l !== link);
+    setSocialLinks(updated);
+    setValue('social_links', updated);
+  };
+
+  const onSubmit = (data: any) => {
+    updateTalentProfile({
+      ...data,
+      skills_ids: selectedSkills,
+      social_links: socialLinks,
+      profile_image: data.profile_image || ''
+    }, {
+      onSuccess: () => {
+        router.push('/ambassador-dao/jobs');
+      }
+    });
+  };
   return (
     <div>
       <div className="flex justify-between items-center">
@@ -145,32 +237,48 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
 
       <hr className="border-[#27272A] my-6" />
 
-      <form className="text-[#FAFAFA] text-sm mt-6 md:mt-10 flex flex-col gap-4">
+      <form onSubmit={handleSubmit(onSubmit)}  className="text-[#FAFAFA] text-sm mt-6 md:mt-10 flex flex-col gap-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <CustomInput
             id="firstName"
             label="First Name"
             placeholder="First Name"
             required
+            {...register('first_name')}
           />
           <CustomInput
             id="lastName"
             label="Last Name"
             placeholder="Last Name"
             required
+            {...register('last_name')}
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <CustomInput
+            <div className="relative">
+            <CustomInput
             id="userName"
             label="User Name"
             placeholder="User Name"
             required
+            {...register('username')}
           />
-          <CustomSelect id="location" label="Location" required>
-            <option value="1">Location 1</option>
-            <option value="2">Location 2</option>
-            <option value="3">Location 3</option>
+            {usernameStatus === 'checking' && (
+                    <Loader2 className="absolute right-3 top-9 animate-spin" size={20} color="#9F9FA9" />
+                  )}
+                  {usernameStatus === 'available' && (
+                    <Check className="absolute right-3 top-9" size={20} color="#10B981" />
+                  )}
+                  {usernameStatus === 'unavailable' && (
+                    <AlertCircle className="absolute right-3 top-9" size={20} color="#FB2C36" />
+                  )}
+            </div>
+         
+          <CustomSelect id="location" label="Location" required {...register('location')}>
+          <option value="">Select location</option>
+            <option value="1">Nigeria</option>
+            <option value="2">Ibadan</option>
+            <option value="3">India</option>
           </CustomSelect>
         </div>
         <div>
@@ -180,14 +288,28 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             placeholder="Badge"
             required
           />
+          <div className="w-full h-10 flex flex-wrap gap-2 px-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36]">
+              {selectedSkills && !!selectedSkills.length && selectedSkills.map((badge, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-2 bg-[#fff] text-[#18181B] rounded-full px-3 py-1 text-sm"
+                  onClick={() => removeSkill(badge)}
+                >
+                  {badge}
+                  <Minus size={16} color="#A1A1AA" />
+                </div>
+              ))}
+          </div>
           <div className="flex flex-wrap gap-2">
-            {["Badge", "Badge", "Badge", "Badge"].map((badge, idx) => (
+            {skills && !!skills.length && skills.map((badge, idx) => (
               <div
                 key={idx}
                 className="flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-sm"
+                onClick={() => addSkill(badge.id)}
               >
-                {badge}
-                <span className="text-[#A1A1AA]">+</span>
+                {badge.name}
+                <Plus size={16} color="#A1A1AA" />
+        
               </div>
             ))}
           </div>
@@ -197,17 +319,31 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             id="socials"
             label="Socials"
             placeholder="Socials"
-            required
+            value={currentSocialLink}
+            onChange={(e) => setCurrentSocialLink(e.target.value)}
           />
           <div className="flex justify-end">
             <button
               type="button"
               className="flex items-center text-sm text-[#A1A1AA]"
+              onClick={addSocialLink}
             >
-              <span>+</span> Add Link
+              <Plus size={14} color='#A1A1AA' /> Add Link
             </button>
           </div>
         </div>
+        <div className="flex flex-wrap gap-2 mt-2">
+            {socialLinks.map((link, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-sm"
+                onClick={() => removeSocialLink(link)}
+              >
+                {link}
+                <Minus size={16} color="#A1A1AA" />
+              </div>
+            ))}
+          </div>
 
         <hr className="border-[#27272A] my-6" />
         <div className="flex">
