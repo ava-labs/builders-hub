@@ -116,7 +116,7 @@ export const useFileUploadMutation = () => {
           "Content-Type": "multipart/form-data",
         },
       });
-      return res.data.url as string;
+      return res.data.data.url as string;
     },
     onError: (err) => errorMsg(err),
   });
