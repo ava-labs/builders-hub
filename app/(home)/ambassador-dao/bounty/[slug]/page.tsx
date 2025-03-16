@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { Outline } from "@/components/ambassador-dao/ui/Outline";
+import { BountySubmissionModal } from "@/components/ambassador-dao/bounty/BountySubmissionModal";
 
 const GoBackButton = () => {
   const router = useRouter();
@@ -237,6 +238,7 @@ const CommentsSection = ({ comments }: any) => {
 };
 
 const BountySidebar = ({ bounty }: any) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   return (
     <div className="bg-[#111] p-4 rounded-md border border-gray-800 sticky top-6">
       <div className="flex items-center justify-between mb-4">
@@ -284,9 +286,16 @@ const BountySidebar = ({ bounty }: any) => {
         </div>
       </div>
 
-      <button className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 rounded-md transition">
-        APPLY
+      <button className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 rounded-md transition"
+      onClick={()=>setIsModalOpen(true)}
+      >
+        Participate
       </button>
+
+
+      {isModalOpen && (
+        <BountySubmissionModal isOpen={isModalOpen} onClose={()=>setIsModalOpen(false)} />
+      )}
     </div>
   );
 };
