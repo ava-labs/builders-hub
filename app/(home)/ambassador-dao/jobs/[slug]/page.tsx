@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { Outline } from "@/components/ambassador-dao/ui/Outline";
+import JobApplicationModal from "@/components/ambassador-dao/jobs/JobApplicationModal";
 
 const GoBackButton = () => {
   const router = useRouter();
@@ -238,6 +239,8 @@ const CommentsSection = ({ comments }: any) => {
 };
 
 const JobSidebar = ({ job }: any) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
     <div className="bg-[#111] p-4 rounded-md border border-gray-800 sticky top-6">
       <div className="flex items-center justify-between mb-4">
@@ -286,9 +289,16 @@ const JobSidebar = ({ job }: any) => {
         </div>
       </div>
 
-      <button className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 rounded-md transition">
+      <button className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 rounded-md transition"
+      onClick={()=>setIsModalOpen(true)}
+      >
         APPLY
       </button>
+
+
+      {isModalOpen && (
+        <JobApplicationModal isOpen={isModalOpen} onClose={()=>setIsModalOpen(false)} />
+      )}
     </div>
   );
 };
