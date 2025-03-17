@@ -98,8 +98,6 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
               inputRefs.current[index] = el;
             }}
             type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
             maxLength={1}
             value={code[index] || ""}
             onChange={(e) => handleChange(e, index)}

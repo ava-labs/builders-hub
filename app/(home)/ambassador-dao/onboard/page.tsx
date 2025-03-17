@@ -30,6 +30,7 @@ import {
   IUpdateSponsorProfileBody,
   IUpdateTalentProfileBody,
 } from "@/services/ambassador-dao/interfaces/onbaord";
+import toast from "react-hot-toast";
 
 const userTypes = [
   {
@@ -208,7 +209,6 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
   const addSkill = (skill: string) => {
     if (!selectedSkills.includes(skill) && skill) {
       setSelectedSkills([...selectedSkills, skill]);
-      setValue("skills_ids", [...selectedSkills, skill]);
     }
   };
 
@@ -222,8 +222,9 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
     if (currentSocialLink && !socialLinks.includes(currentSocialLink)) {
       const updatedLinks = [...socialLinks, currentSocialLink];
       setSocialLinks(updatedLinks);
-      setValue("social_links", updatedLinks);
       setCurrentSocialLink("");
+    } else {
+      toast.error("Social link already exists");
     }
   };
 
@@ -239,7 +240,6 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
         ...data,
         skills_ids: selectedSkills,
         social_links: socialLinks,
-        profile_image: data.profile_image || "",
       },
       {
         onSuccess: () => {
@@ -433,8 +433,6 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
   const [companyUsernameStatus, setCompanyUsernameStatus] = useState<
     "checking" | "available" | "unavailable" | null
   >(null);
-  const [profileImage, setProfileImage] = useState<File | null>(null);
-  const [companyLogo, setCompanyLogo] = useState<File | null>(null);
 
   const username = watch("username");
   const company_username = watch("company_user_name");
@@ -615,7 +613,6 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                 id='profileImage'
                 onChange={(e) => {
                   if (e.target.files && e.target.files[0]) {
-                    setProfileImage(e.target.files[0]);
                     handleProfileImageUpload(e.target.files[0]);
                   }
                 }}
@@ -713,7 +710,6 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                   id='companyLogo'
                   onChange={(e) => {
                     if (e.target.files && e.target.files[0]) {
-                      setCompanyLogo(e.target.files[0]);
                       handleCompanyLogoUpload(e.target.files[0]);
                     }
                   }}
