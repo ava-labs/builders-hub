@@ -18,8 +18,7 @@ export const timeAgo = (timestamp: string) => {
   return `${diffInDays} day${diffInDays > 1 ? "s" : ""} ago`;
 };
 
-
-export const getTimeLeft =(expiryTimestamp: string)=> {
+export const getTimeLeft = (expiryTimestamp: string) => {
   const now = new Date();
   const expiryDate = new Date(expiryTimestamp);
   const diff = expiryDate.getTime() - now.getTime(); // Difference in milliseconds
@@ -42,9 +41,7 @@ export const getTimeLeft =(expiryTimestamp: string)=> {
   } else {
     return `${seconds} second${seconds > 1 ? "s" : ""}`;
   }
-}
-
-
+};
 
 export const formatTimeDifference = (timestamp: string) => {
   const now = dayjs();
@@ -60,14 +57,9 @@ export const formatTimeDifference = (timestamp: string) => {
   return `${diffInDays} day${diffInDays > 1 ? "s" : ""}`;
 };
 
-export const dateFromNow = (timestamp: string) => {
-  return dayjs(timestamp).fromNow();
-};
-
 export const formatDate = (timestamp: string) => {
   if (!timestamp || timestamp === "—") return "—";
-  
-  const formattedDate = dayjs(timestamp).format('DD/MM/YYYY');
-  return formattedDate === "Invalid Date" ? "-" : formattedDate;
 
-}
+  const formattedDate = dayjs(timestamp).format("DD/MM/YYYY");
+  return formattedDate === "Invalid Date" ? "-" : formattedDate;
+};
