@@ -82,24 +82,35 @@ export function RegisterForm({
   const router = useRouter(); 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      name: currentUser?.name || "",
-      email: currentUser?.email || "",
-      company_name: "",
-      role: "",
-      city: "",
-      dietary: "",
-      interests: [],
-      web3_proficiency: "",
-      tools: [],
-      roles: [],
-      languages: [],
-      hackathon_participation: "",
-      github_portfolio: "",
-      terms_event_conditions: false,
-      newsletter_subscription: false,
-      prohibited_items: false,
-    },
+    defaultValues: (() => {
+      const savedData = localStorage.getItem("formData");
+      if (savedData) {
+        try {
+          const parsedData: RegisterFormValues = JSON.parse(savedData);
+          return parsedData;
+        } catch (err) {
+          console.error("API Error:", err);
+        }
+      }
+      return {
+        name: currentUser?.name || "",
+        email: currentUser?.email || "",
+        company_name: "",
+        role: "",
+        city: "Mata",
+        dietary: "",
+        interests: [],
+        web3_proficiency: "",
+        tools: [],
+        roles: [],
+        languages: [],
+        hackathon_participation: "",
+        github_portfolio: "",
+        terms_event_conditions: false,
+        newsletter_subscription: false,
+        prohibited_items: false,
+      };
+    })(),
   });
 
   async function getHackathon() {
