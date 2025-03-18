@@ -66,7 +66,7 @@ export const ComponentShowcase = () => {
               ))}
             </div>
           </div>
-          <div className="bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-xl border border-black/10 dark:border-white/10 overflow-hidden">
+          <div className="bg-white/20 dark:bg-black/20 backdrop-blur-xs rounded-xl border border-black/10 dark:border-white/10 overflow-hidden">
             <div className="border-b border-black/10 dark:border-white/10">
               <div className="flex">
                 <TabButton
@@ -93,8 +93,8 @@ export const ComponentShowcase = () => {
                     </div>
                   ) : (
                     <div className="relative group">
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-gradient-to-b from-white/20 dark:from-black/20 to-transparent h-8" />
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-gradient-to-t dark:from-black/20 to-transparent h-8 bottom-0" />
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-linear-to-b from-white/20 dark:from-black/20 to-transparent h-8" />
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-linear-to-t dark:from-black/20 to-transparent h-8 bottom-0" />
                       <div className="p-4 h-[300px] overflow-y-auto scrollbar-thin bg-black no-scrollbar">
                         <CodeSnippet code={components[activeComponent].code} />
                       </div>

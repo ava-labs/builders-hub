@@ -4,50 +4,48 @@ import {
   DocsBody,
   DocsTitle,
   DocsDescription,
-  DocsCategory
+  DocsCategory,
 } from 'fumadocs-ui/page';
-import { Card, Cards } from 'fumadocs-ui/components/card';
-import { Popup, PopupContent, PopupTrigger } from 'fumadocs-twoslash/ui';
 import { notFound } from 'next/navigation';
-import { createMetadata } from '@/utils/metadata';
-import { getDocsPage, getDocsPages, type Page, loaderOutput } from '@/utils/content-loader/docs-loader';
-import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
-import { Step, Steps } from "fumadocs-ui/components/steps";
-import { Callout } from "fumadocs-ui/components/callout";
-import { Tab, Tabs } from "fumadocs-ui/components/tabs";
-import { TypeTable } from "fumadocs-ui/components/type-table";
-import { AutoTypeTable } from '@/components/content-design/type-table';
-import { Heading } from 'fumadocs-ui/components/heading';
-import YouTube from "@/components/content-design/youtube";
-import Gallery from "@/components/content-design/gallery";
-import { BackToTop } from '@/components/ui/back-to-top';
-import { cn } from "@/utils/cn";
 import {
-  CodeBlock,
-  type CodeBlockProps,
-  Pre,
-} from "fumadocs-ui/components/codeblock";
-import { BadgeCheck } from "lucide-react";
+  type ComponentProps,
+  type FC,
+  type ReactElement,
+} from 'react';
+import defaultComponents from 'fumadocs-ui/mdx';
+import { Popup, PopupContent, PopupTrigger } from 'fumadocs-twoslash/ui';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { createMetadata } from '@/utils/metadata';
+import { documentation } from '@/lib/source';
+import { AutoTypeTable } from '@/components/content-design/type-table';
+import { BackToTop } from '@/components/ui/back-to-top';
+import { File, Folder, Files } from 'fumadocs-ui/components/files';
 import Mermaid from "@/components/content-design/mermaid";
-import EditOnGithubButton from "@/components/ui/edit-on-github-button";
-import ReportIssueButton from "@/components/ui/report-issue-button";
+import type { MDXComponents } from 'mdx/types';
+import YouTube from '@/components/content-design/youtube';
+import { Feedback } from '@/components/ui/feedback';
+import posthog from 'posthog-js';
 
 export const dynamicParams = false;
+export const revalidate = false;
 
 export default async function Page(props: {
-  params: Promise<{ slug?: string[] }>;
-}) {
+  params: Promise<{ slug: string[] }>;
+}): Promise<ReactElement> {
   const params = await props.params;
-  const page = getDocsPage(params.slug);
+  const page = documentation.getPage(params.slug);
   if (!page) notFound();
 
+  const { body: MDX, toc } = await page.data.load();
   const path = `content/docs/${page.file.path}`;
-  const { body: MDX, toc, lastModified } = await page.data.load();
 
   return (
-    <DocsPage 
+    <DocsPage
       toc={toc}
-      lastUpdate={lastModified}
       full={page.data.full}
       tableOfContent={{
         style: 'clerk',
@@ -58,39 +56,53 @@ export default async function Page(props: {
       }}
       article={{
         className: 'max-sm:pb-16',
-      }}>
+      }}
+    >
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody className="text-fd-foreground/80">
-        <MDX components={{
-          h1: (props) => <Heading as="h1" {...props} />,
-          h2: (props) => <Heading as="h2" {...props} />,
-          h3: (props) => <Heading as="h3" {...props} />,
-          h4: (props) => <Heading as="h4" {...props} />,
-          h5: (props) => <Heading as="h5" {...props} />,
-          h6: (props) => <Heading as="h6" {...props} />,
-          BadgeCheck, Cards, Card, Callout, Accordion, Accordions, AutoTypeTable, Gallery, Mermaid, Popup, PopupContent, PopupTrigger, Step, Steps, Tab, Tabs, TypeTable, YouTube, 
-          pre: ({ title, className, icon, allowCopy, ...props }: CodeBlockProps) => (
-            <CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
-              <Pre className={cn("max-h-[1200px]", className)} {...props} />
-            </CodeBlock>
-          ),
-        }}/>
-        <div className="flex gap-6 mt-8">
-          <EditOnGithubButton path={path} />
-          <ReportIssueButton 
-            title={page.data.title}
-            pagePath={`/docs/${page.slugs.join('/')}`}
-          />
-        </div>
-        {page.data.index ? <DocsCategory page={page} from={loaderOutput} /> : null}
+        <MDX
+          components={{
+            ...defaultComponents,
+            ...((await import('lucide-react')) as unknown as MDXComponents),
+
+            Popup,
+            PopupContent,
+            PopupTrigger,
+            Tabs,
+            Tab,
+            Step,
+            Steps,
+            YouTube,
+            Mermaid,
+            TypeTable,
+            AutoTypeTable,
+            Accordion,
+            Accordions,
+            File,
+            Folder,
+            Files,
+            blockquote: Callout as unknown as FC<ComponentProps<'blockquote'>>,
+            DocsCategory: () => <DocsCategory page={page} from={documentation} />,
+          }}
+        />
+        {page.data.index ? <DocsCategory page={page} from={documentation} /> : null}
       </DocsBody>
+      <Feedback
+        path={path}
+        title={page.data.title}
+        pagePath={`/docs/${page.slugs.join('/')}`}
+        onRateAction={async (url, feedback) => {
+          'use server';
+          await posthog.capture('on_rate_document', feedback);
+        }}
+      />
     </DocsPage>
   );
 }
 
 export async function generateStaticParams() {
-  return getDocsPages().map((page) => ({
+  return documentation.getPages().map((page) => ({
     slug: page.slugs,
   }));
 }
@@ -99,7 +111,7 @@ export async function generateMetadata(props: {
   params: Promise<{ slug: string[] }>;
 }): Promise<Metadata> {
   const params = await props.params;
-  const page = getDocsPage(params.slug);
+  const page = documentation.getPage(params.slug);
 
   if (!page) notFound();
 

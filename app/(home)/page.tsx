@@ -3,8 +3,6 @@ import Features from '@/components/landing/features';
 import Development from '@/components/landing/development';
 import Ecosystem from '@/components/landing/ecosystem';
 import Support from '@/components/landing/support';
-import { Banner } from "fumadocs-ui/components/banner";
-import Link from "next/link";
 
 export default function HomePage(): React.ReactElement {
   return (

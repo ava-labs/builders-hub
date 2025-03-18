@@ -22,7 +22,7 @@ const RequestUpdateButton: React.FC<RequestUpdateButtonProps> = ({
 }) => {
   const issueUrl = newGithubIssueUrl({
     user: 'ava-labs',
-    repo: 'avalanche-docs',
+    repo: 'builders-hub',
     title: title || `Outdated Information on ${pagePath || 'this page'}`,
     body: `It appears that the information on this page might be outdated. Please review and update as needed.
 

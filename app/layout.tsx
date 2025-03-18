@@ -1,17 +1,17 @@
 import './global.css';
 import 'katex/dist/katex.css';
-import { RootProvider } from 'fumadocs-ui/provider';
 import { PHProvider } from './providers'
 import type { Viewport } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import type { ReactNode } from 'react';
 import { baseUrl, createMetadata } from '@/utils/metadata';
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from "@vercel/speed-insights/next"
 import Chatbot from "@/components/ui/chatbot"
 import { PrivacyPolicyBox } from "@/components/privacy-policy"
 import { ClientProvider } from './layout.client';
+import { SearchRootProvider } from './searchRootProvider';
+import { Banner } from "fumadocs-ui/components/banner";
+import Link from "next/link"
 
 export const metadata = createMetadata({
   title: {
@@ -34,15 +34,16 @@ export default function Layout({ children }: { children: ReactNode }) {
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <PHProvider>
         <ClientProvider>
-            <body className="flex min-h-screen flex-col">
-            <RootProvider>{children}</RootProvider>
-            <Analytics />
-            <SpeedInsights />
-            <Chatbot />
-            <div id="privacy-banner-root" className="relative">
-                <PrivacyPolicyBox />
-            </div>
-            </body>
+        <Banner id="banner" className="border-b border-border"><div className='max-w-10/12'><span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">NEW</span> Register for the <a href="https://lu.ma/avalanchesummitlondonhackathon?utm_source=builder_hub" target="_blank" rel="noopener noreferrer" className="underline hover:text-red-600 transition-colors">London Hackathon</a>!</div></Banner>
+        <body className="flex min-h-screen flex-col">
+          <SearchRootProvider>
+            {children}
+          </SearchRootProvider>
+          <Chatbot />
+          <div id="privacy-banner-root" className="relative">
+            <PrivacyPolicyBox />
+          </div>
+        </body>
         </ClientProvider>
       </PHProvider>
     </html>

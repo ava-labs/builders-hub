@@ -7,7 +7,7 @@ import {
 } from 'fumadocs-ui/page';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { notFound } from 'next/navigation';
-import { getCoursePage, getCoursePages, type Page } from '@/utils/content-loader/course-loader';
+import { academy } from '@/lib/source';
 import { createMetadata } from '@/utils/metadata';
 import IndexedDBComponent from '@/components/tracker'
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -32,8 +32,8 @@ import {
   Pre,
 } from "fumadocs-ui/components/codeblock";
 import Mermaid from "@/components/content-design/mermaid";
-import EditOnGithubButton from '@/components/ui/edit-on-github-button';
-import ReportIssueButton from "@/components/ui/report-issue-button";
+import { Feedback } from '@/components/ui/feedback';
+import posthog from 'posthog-js';
 
 export const dynamicParams = false;
 
@@ -41,17 +41,16 @@ export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
 }) {
   const params = await props.params;
-  const page = getCoursePage(params.slug);
+  const page = academy.getPage(params.slug);
   if (!page) notFound();
 
   const path = `content/academy/${page.file.path}`;
-  const { body: MDX, toc, lastModified } = await page.data.load();
+  const MDX = page.data.body;
   const course = COURSES.official.find(c => c.slug === page.slugs[0]);
 
   return (
     <DocsPage
-      toc={toc}
-      lastUpdate={lastModified}
+      toc={page.data.toc}
       tableOfContent={{
         style: 'clerk',
         single: false,
@@ -87,36 +86,17 @@ export default async function Page(props: {
             </CodeBlock>
           ),
         }}/>
-        <div className="flex gap-6 mt-8">
-          <EditOnGithubButton path={path} />
-          <ReportIssueButton 
-            title={page.data.title}
-            pagePath={`/academy/${page.slugs.join('/')}`}
-          />
-        </div>
       </DocsBody>
+      <Feedback
+        path={path}
+        title={page.data.title}
+        pagePath={`/docs/${page.slugs.join('/')}`}
+        onRateAction={async (url, feedback) => {
+          'use server';
+          await posthog.capture('on_rate_document', feedback);
+        }}
+      />
     </DocsPage>
-  );
-}
-
-function Category({ page }: { page: Page }): React.ReactElement {
-  const filtered = getCoursePages()
-    .filter(
-      (item) =>
-        item.file.dirname === page.file.dirname && item.file.name !== 'index',
-    );
-
-  return (
-    <Cards>
-      {filtered.map((item) => (
-        <Card
-          key={item.url}
-          title={item.data.title}
-          description={item.data.description ?? 'No Description'}
-          href={item.url}
-        />
-      ))}
-    </Cards>
   );
 }
 
@@ -124,7 +104,7 @@ export async function generateMetadata(props: {
   params: Promise<{ slug: string[] }>;
 }): Promise<Metadata> {
   const params = await props.params;
-  const page = getCoursePage(params.slug);
+  const page = academy.getPage(params.slug);
 
   if (!page) notFound();
 
@@ -156,7 +136,7 @@ export async function generateMetadata(props: {
 }
 
 export async function generateStaticParams() {
-  return getCoursePages().map((page) => ({
+  return academy.getPages().map((page) => ({
     slug: page.slugs,
   }));
 }

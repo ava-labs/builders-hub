@@ -13,7 +13,6 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
     const env: Record<string, string> = {
         AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true",
         AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
-        AVAGO_PLUGIN_DIR: "/avalanchego/build/plugins/",
         AVAGO_HTTP_HOST: "0.0.0.0",
     };
 

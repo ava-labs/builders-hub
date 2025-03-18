@@ -127,7 +127,7 @@ const PartnerTrackCard: React.FC<{ track: PartnerTrack }> = ({ track }) => {
             className="transform transition-transform duration-300 ease-in-out group-hover:translate-x-1 group-hover:-translate-y-1"
           />
         </div>
-        <div className="p-6 flex-grow">
+        <div className="p-6 grow">
           <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">{track.name}</h3>
           <Badge className="mb-4 bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100">{track.prize}</Badge>
           <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">{track.description}</p>

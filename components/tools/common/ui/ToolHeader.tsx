@@ -31,7 +31,7 @@ const ToolHeader: React.FC<ToolHeaderProps> = ({
                 <span>{duration}</span>
             </div>
             <div className="sm:ml-auto flex items-center gap-2">
-              <Link href={`https://github.com/ava-labs/avalanche-docs/blob/master/components/tools/${githubDir}`} target="_blank" rel="noopener noreferrer" >
+              <Link href={`https://github.com/ava-labs/builders-hub/blob/master/components/tools/${githubDir}`} target="_blank" rel="noopener noreferrer" >
                     <Button variant="outline" size="sm">
                     <GithubIcon className="w-4 h-4" />
                     </Button>

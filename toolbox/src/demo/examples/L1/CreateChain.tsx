@@ -6,8 +6,7 @@ import { getRPCEndpoint } from "../../utils/rpcEndpoint";
 import { initialState, useExampleStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
 import { useEffect, useState } from "react";
-import { Button, Input } from "../../ui";
-import { Success } from "../../ui/Success";
+import { Button, Input, Container, GenesisInput, ResultField } from "../../../components";
 import { quickAndDirtyGenesisBuilder } from "./GenesisBuilder";
 
 export default function CreateChain() {
@@ -98,59 +97,55 @@ export default function CreateChain() {
     }
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold ">Create Chain</h2>
-            <div className="space-y-4">
-                <Input
-                    label="Your P-Chain Address"
-                    value={getPChainAddress()}
-                    disabled={true}
-                    type="text"
-                />
-                <Input
-                    label="Chain Name"
-                    value={chainName}
-                    onChange={setChainName}
-                    placeholder="Enter chain name"
-                />
-                <Input
-                    label="Subnet ID"
-                    value={subnetID}
-                    type="text"
-                    onChange={setSubnetID}
-                    placeholder="Create a subnet to generate a subnet ID"
-                />
-                <Input
-                    label="VM ID"
-                    value={vmId}
-                    onChange={setVmId}
-                    placeholder="Enter VM ID"
-                    notes={`Default is ${initialState.vmId}`}
-                />
-                <Input
-                    label="Genesis Data (JSON)"
-                    value={genesisData}
-                    onChange={setGenesisData}
-                    type="textarea"
-                    placeholder="Enter genesis data in JSON format"
-                    notes={`Auto-generated for address ${walletEVMAddress}`}
-                    rows={20}
-                />
-                <div>
-                    Open the <a href="#genesisBuilder" className="text-blue-500 hover:text-blue-600 underline" >Genesis Builder tool</a> to generate custom genesis data.
-                </div>
-                <Button
-                    type="primary"
-                    onClick={handleCreateChain}
-                    loading={isCreating}
-                >
-                    Create Chain
-                </Button>
-            </div>
-            <Success
-                label="Chain ID"
-                value={chainID}
-            />
-        </div >
+         <Container
+         title="Create Chain"
+         description="Create a new blockchain on your subnet with custom parameters and genesis data."
+       >
+         <Input label="Your P-Chain Address" value={getPChainAddress()} disabled />
+   
+         <Input
+           label="Chain Name"
+           value={chainName}
+           onChange={setChainName}
+           placeholder="Enter chain name"
+         />
+   
+         <Input
+           label="Subnet ID"
+           value={subnetID}
+           type="text"
+           onChange={setSubnetID}
+           placeholder="Create a subnet to generate a subnet ID"
+         />
+   
+         <Input
+           label="VM ID"
+           value={vmId}
+           onChange={setVmId}
+           placeholder="Enter VM ID"
+           helperText={`Default is ${initialState.vmId}`}
+         />
+   
+         <GenesisInput label="Genesis Data (JSON)" value={genesisData} onChange={setGenesisData} rows={10} />
+   
+         <div className="text-sm text-zinc-600 dark:text-zinc-400">
+           Auto-generated for address 0xC8EA6E24567310104a5d3b5d9ab6Ca414987885
+         </div>
+   
+         <div className="text-sm text-zinc-600 dark:text-zinc-400">
+           Open the{" "}
+           <a href="https://build.avax.network/tools/l1-toolbox#genesisBuilder" className="text-primary hover:text-primary/80 dark:text-primary/90 dark:hover:text-primary/70">
+             Genesis Builder tool
+           </a>{" "}
+           to generate custom genesis data.
+         </div>
+   
+         <Button onClick={handleCreateChain}
+                    loading={isCreating} loadingText="Creating Chain...">
+           Create Chain
+         </Button>
+   
+         {chainID && <ResultField label="Chain ID:" value={chainID} showCheck />}
+       </Container>
     );
 };

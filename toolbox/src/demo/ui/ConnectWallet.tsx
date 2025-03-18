@@ -144,7 +144,7 @@ export const ConnectWallet = ({ children, required }: { children: React.ReactNod
 
     return (
         <div className={`space-y-4 transition`}>
-            {walletEVMAddress && <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 shadow-sm rounded-lg p-3 flex items-center justify-between">
+            {walletEVMAddress && <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md rounded-xl p-3 flex items-center justify-between">
                 <div className="flex items-center space-x-3 flex-4 min-w-0">
                     <div className="p-2 rounded-full">
                         <Wallet className="w-6 h-8 text-blue-600 dark:text-blue-400" />

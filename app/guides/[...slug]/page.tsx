@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { type ReactElement } from 'react';
 import Link from 'next/link';
-import { getGuidePage, getGuidePages } from '@/utils/content-loader/guide-loader';
+import { guide } from '@/lib/source';
 import { createMetadata } from '@/utils/metadata';
 import { buttonVariants } from '@/components/ui/button';
-import { ArrowUpRightIcon, MessagesSquare, AlertCircle } from 'lucide-react';
-import { SiX } from '@icons-pack/react-simple-icons';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Popup, PopupContent, PopupTrigger } from 'fumadocs-twoslash/ui';
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
@@ -25,19 +24,19 @@ import {
 } from "fumadocs-ui/components/codeblock";
 import { BadgeCheck } from "lucide-react";
 import Mermaid from "@/components/content-design/mermaid";
-import Comments from '@/components/ui/comments';
-import newGithubIssueUrl from 'new-github-issue-url';
+import { Feedback } from '@/components/ui/feedback';
+import posthog from 'posthog-js';
 
 export const dynamicParams = false;
 
 export default async function Page(props: {
-  params: Promise<{ slug: string }>;
-}) {
+  params: Promise<{ slug: string[] }>;
+}): Promise<ReactElement> {
     const params = await props.params;
-    const page = getGuidePage([params.slug]);
+    const page = guide.getPage(params.slug);
     if (!page) notFound();
 
-    const { body: MDX } = await page.data.load();
+    const MDX = page.data.body;
     const path = `content/guides/${page.file.path}`;
 
     return (
@@ -81,9 +80,15 @@ export default async function Page(props: {
                     </CodeBlock>
                 ),
                 }}/>
-                    {page.data.comments && (
-                        <Callout title="" icon={<MessagesSquare stroke="#3752ac"/>}><Comments/></Callout>
-                    )}
+                <Feedback
+                    path={path}
+                    title={page.data.title}
+                    pagePath={`/docs/${page.slugs.join('/')}`}
+                    onRateAction={async (url, feedback) => {
+                    'use server';
+                    await posthog.capture('on_rate_document', feedback);
+                    }}
+                />
                 </div>
                 <div className="flex flex-col gap-4 border-l p-4 text-sm">
                     <div>
@@ -96,8 +101,7 @@ export default async function Page(props: {
                                     target='_blank'
                                     className="text-foreground transition-colors flex flex-row items-center gap-2 group"
                                 >
-                                    <SiX size={12} />
-                                    <span className="flex-grow truncate">{author}</span>
+                                    <span className="grow truncate">{author}</span>
                                 </Link>
                             ))}
                         </div>
@@ -121,45 +125,28 @@ export default async function Page(props: {
                             ))}
                         </div>
                     </div>
-
-                    <a
-                        href={`https://github.com/ava-labs/avalanche-docs/blob/master/${path}`}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                    >
-                        <ArrowUpRightIcon className="size-5" /> Edit on Github
-                    </a>
-                    <a
-                        href={newGithubIssueUrl({
-                            user: 'ava-labs',
-                            repo: 'avalanche-docs',
-                            title: `Update Guide ${page.data.title} information`,
-                            body: `It appears that the information on this page might be outdated. Please review and update as needed.\n\nPage: /guides/${params.slug}\n\n[Provide more details here...]`,
-                            labels: ['outdated', 'documentation'],
-                        })}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                    >
-                        <AlertCircle className="size-5" /> Report Issue
-                    </a>
                 </div>
             </article>
         </>
     );
 }
 
+export async function generateStaticParams() {
+  return guide.getPages().map((page) => ({
+    slug: page.slugs,
+  }));
+}
+
 export async function generateMetadata(props: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string[] }>;
 }): Promise<Metadata> {
   const params = await props.params;
-  const page = getGuidePage([params.slug]);
+  const page = guide.getPage(params.slug);
 
   if (!page) notFound();
 
   const description =
-    page.data.description ?? 'Learn how to build on Avalanche blockchain with Academy';
+    page.data.description ?? 'Developer documentation for everything related to the Avalanche ecosystem.';
 
   const imageParams = new URLSearchParams();
   imageParams.set('title', page.data.title);
@@ -167,7 +154,7 @@ export async function generateMetadata(props: {
 
   const image = {
     alt: 'Banner',
-    url: `/api/og/guides/${params.slug[0]}?${imageParams.toString()}`,
+    url: `/api/og/docs/${params.slug[0]}?${imageParams.toString()}`,
     width: 1200,
     height: 630,
   };
@@ -176,18 +163,11 @@ export async function generateMetadata(props: {
     title: page.data.title,
     description,
     openGraph: {
-      url: `/guides/${page.slugs.join('/')}`,
+      url: `/docs/${page.slugs.join('/')}`,
       images: image,
     },
     twitter: {
       images: image,
     },
   });
-}
-
-
-export function generateStaticParams(): { slug: string }[] {
-    return getGuidePages().map((page) => ({
-        slug: page.slugs[0],
-    }));
 }

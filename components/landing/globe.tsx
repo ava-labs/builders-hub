@@ -18,7 +18,7 @@ export const Sponsors = () => {
 								<AvalancheLogo className="size-10" fill="currentColor"/>
 							</Link>
 						</TooltipTrigger>
-						<TooltipContent className="bg-black rounded-lg border-0 text-center z-[200] text-white font-semibold">
+						<TooltipContent className="bg-black rounded-lg border-0 text-center z-200 text-white font-semibold">
 							Avalanche
 						</TooltipContent>
 					</Tooltip>

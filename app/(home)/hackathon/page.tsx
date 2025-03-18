@@ -1,8 +1,7 @@
 "use client"
 import React, { useState, ReactNode } from "react";
 import Link from 'next/link';
-import { ArrowUpRight, Code, Link as Zap, Link2, Lightbulb, X, Book, Users, SquareTerminal, Box, Mail, Network } from 'lucide-react';
-//import PartnerTracks from './partners';
+import { ArrowUpRight, Code, Link as Zap, X, Book, Users, SquareTerminal, Box, Network } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 
 const Card = ({ children, className = "", onClick = () => {} }: { children: ReactNode; className?: string; onClick?: () => void }) => (
@@ -139,7 +138,7 @@ const TrackCard: React.FC<{ track: Track }> = ({ track }) => {
         <div className="absolute top-3 right-3 text-gray-400 transition-all duration-300 ease-in-out group-hover:text-blue-600">
           <ArrowUpRight size={28} className="transform transition-transform duration-300 ease-in-out group-hover:translate-x-1 group-hover:-translate-y-1"/>
         </div>
-        <div className="p-6 flex-grow">
+        <div className="p-6 grow">
           <div className="flex items-center mb-4">
             <div className={`p-2 rounded-full ${track.color} bg-opacity-20 mr-3`}>
               {track.icon}
@@ -276,7 +275,7 @@ export default function HackathonPage() {
 
       <div className="py-6 sm:py-6">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <Card className="bg-gradient-to-r from-yellow-100 to-yellow-200 dark:from-yellow-800 dark:to-yellow-900">
+          <Card className="bg-linear-to-r from-yellow-100 to-yellow-200 dark:from-yellow-800 dark:to-yellow-900">
             <div className="p-8 text-center">
               <h3 className="text-3xl font-bold mb-4 flex justify-center items-center gap-2 text-yellow-600 dark:text-yellow-300">
                 <span>🏆</span> Prizes

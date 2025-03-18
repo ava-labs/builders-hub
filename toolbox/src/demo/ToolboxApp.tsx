@@ -249,7 +249,7 @@ export default function ToolboxApp() {
                             <GithubEmbed
                                 key={index}
                                 user="ava-labs"
-                                repo="avalanche-docs"
+                                repo="builders-hub"
                                 branch={import.meta.env?.VITE_GIT_BRANCH_NAME || "master"}
                                 filePath={fileName}
                                 maxHeight={600}

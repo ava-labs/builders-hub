@@ -1,54 +1,23 @@
 import * as Base from 'fumadocs-ui/components/codeblock';
-import type { HTMLAttributes } from 'react';
-import { useMemo } from 'react';
-import { getHighlighter } from 'shiki';
+import { highlight } from 'fumadocs-core/highlight';
 
-const highlighter = await getHighlighter({
-  langs: ['bash', 'ts', 'tsx'],
-  themes: ['github-light', 'github-dark'],
-});
-
-export type CodeBlockProps = HTMLAttributes<HTMLPreElement> & {
+export interface CodeBlockProps {
   code: string;
   wrapper?: Base.CodeBlockProps;
-  lang: 'bash' | 'ts' | 'tsx';
-};
+  lang: string;
+}
 
-export function CodeBlock({
-  code,
-  lang,
-  wrapper,
-  ...props
-}: CodeBlockProps): React.ReactElement {
-  const html = useMemo(
-    () =>
-      highlighter.codeToHtml(code, {
-        lang,
-        defaultColor: false,
-        themes: {
-          light: 'github-light',
-          dark: 'github-dark',
-        },
-        transformers: [
-          {
-            name: 'remove-pre',
-            root: (root) => {
-              if (root.children[0].type !== 'element') return;
+export async function CodeBlock({ code, lang, wrapper }: CodeBlockProps) {
+  const rendered = await highlight(code, {
+    lang,
+    themes: {
+      light: 'github-light',
+      dark: 'vesper',
+    },
+    components: {
+      pre: Base.Pre,
+    },
+  });
 
-              return {
-                type: 'root',
-                children: root.children[0].children,
-              };
-            },
-          },
-        ],
-      }),
-    [code, lang],
-  );
-
-  return (
-    <Base.CodeBlock {...wrapper}>
-      <Base.Pre {...props} dangerouslySetInnerHTML={{ __html: html }} />
-    </Base.CodeBlock>
-  );
+  return <Base.CodeBlock {...wrapper}>{rendered}</Base.CodeBlock>;
 }

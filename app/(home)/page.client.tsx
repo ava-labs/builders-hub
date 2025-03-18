@@ -89,7 +89,7 @@ export function DeployBlockchainAnimation(): React.ReactElement {
           <div className="grow" />
           <div className="size-2 rounded-full bg-green-400" />
         </div>
-        <div className="min-h-[200px] bg-gradient-to-b from-fd-secondary [mask-image:linear-gradient(to_bottom,white)]">
+        <div className="min-h-[200px] bg-linear-to-b from-fd-secondary [mask-image:linear-gradient(to_bottom,white)]">
           <code className="grid p-4">{lines}</code>
         </div>
       </pre>

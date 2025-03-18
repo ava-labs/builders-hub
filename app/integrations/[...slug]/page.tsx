@@ -1,19 +1,19 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getIntegrationPage, getIntegrationPages } from '@/utils/content-loader/integrations-loader';
+import { integration } from '@/lib/source';
 import { createMetadata } from '@/utils/metadata';
 import { buttonVariants } from '@/components/ui/button';
 import { Pill, Pills } from '@/components/ui/pills';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
-import EditOnGithubButton from '@/components/ui/edit-on-github-button';
-import ReportIssueButton from '@/components/ui/report-issue-button';
+import { Feedback } from '@/components/ui/feedback';
+import posthog from 'posthog-js';
 
 export default async function Page(props: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string[] }>;
 }) {
     const params = await props.params;
-    const page = getIntegrationPage([params.slug]);
+    const page = integration.getPage(params.slug);
     if (!page) notFound();
 
     // Dynamically build the issue title based on the page title.
@@ -63,13 +63,15 @@ export default async function Page(props: {
             <article className="container grid grid-cols-1 px-0 py-8 lg:grid-cols-[2fr_1fr] lg:px-4">
                 <div className="prose p-4">
                     <MDX components={defaultMdxComponents}/>
-                    <div className="flex gap-6 mt-8">
-                        <EditOnGithubButton path={path} />
-                        <ReportIssueButton 
-                            title={page.data.title}
-                            pagePath={`/integrations/${params.slug}`}
-                        />
-                    </div>
+                    <Feedback
+                        path={path}
+                        title={page.data.title}
+                        pagePath={`/docs/${page.slugs.join('/')}`}
+                        onRateAction={async (url, feedback) => {
+                        'use server';
+                        await posthog.capture('on_rate_document', feedback);
+                        }}
+                    />
                 </div>
                 <div className="flex flex-col gap-4 border-l p-4 text-sm">
                     <div>
@@ -110,41 +112,43 @@ export default async function Page(props: {
     );
 }
 
-export async function generateMetadata(props: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-    const params = await props.params;
-    const page = getIntegrationPage([params.slug]);
-    if (!page) notFound();
-
-    const description = page.data.description ?? 'Learn how to build on Avalanche blockchain with Academy';
-    const imageParams = new URLSearchParams();
-    imageParams.set('title', page.data.title);
-    imageParams.set('description', description);
-
-    const image = {
-        alt: 'Banner',
-        url: `/api/og/integrations/${params.slug}?${imageParams.toString()}`,
-        width: 1200,
-        height: 630,
-    };
-
-    return createMetadata({
-        title: page.data.title,
-        description,
-        openGraph: {
-            url: `/integrations/${page.slugs.join('/')}`,
-            images: image,
-        },
-        twitter: {
-            images: image,
-        },
-    });
+export async function generateStaticParams() {
+  return integration.getPages().map((page) => ({
+    slug: page.slugs,
+  }));
 }
 
+export async function generateMetadata(props: {
+  params: Promise<{ slug: string[] }>;
+}): Promise<Metadata> {
+  const params = await props.params;
+  const page = integration.getPage(params.slug);
 
-export function generateStaticParams(): { slug: string }[] {
-    return getIntegrationPages().map((page) => ({
-        slug: page.slugs[0],
-    }));
+  if (!page) notFound();
+
+  const description =
+    page.data.description ?? 'Developer documentation for everything related to the Avalanche ecosystem.';
+
+  const imageParams = new URLSearchParams();
+  imageParams.set('title', page.data.title);
+  imageParams.set('description', description);
+
+  const image = {
+    alt: 'Banner',
+    url: `/api/og/docs/${params.slug[0]}?${imageParams.toString()}`,
+    width: 1200,
+    height: 630,
+  };
+
+  return createMetadata({
+    title: page.data.title,
+    description,
+    openGraph: {
+      url: `/docs/${page.slugs.join('/')}`,
+      images: image,
+    },
+    twitter: {
+      images: image,
+    },
+  });
 }

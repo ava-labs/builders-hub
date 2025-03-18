@@ -1,44 +1,31 @@
-import { DocsLayout, type DocsLayoutProps } from 'fumadocs-ui/layouts/docs';
+import { DocsLayout, type DocsLayoutProps } from 'fumadocs-ui/layouts/notebook';
 import type { ReactNode } from 'react';
-import { baseOptions } from '@/app/layout.config';
-import { coursePageTree } from '@/utils/content-loader/course-loader';
+import { baseOptions, docsMenu, toolsMenu, integrationsMenu } from '@/app/layout.config';
+import { academy } from '@/lib/source';
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
-import { ArrowUpRight } from 'lucide-react';
 
-const docsOptions: DocsLayoutProps = {
+const academyOptions : DocsLayoutProps = {
   ...baseOptions,
   nav: {
+    mode: "top" as const,
     title: (
       <>
-        { <AvalancheLogo className="size-7" fill="currentColor"/> }
+        {<AvalancheLogo className="size-7" fill="currentColor" />}
         <span style={{ fontSize: "large" }}>Academy</span>
       </>
-    ),
-    transparentMode: 'top',
+    )
   },
-  tree: coursePageTree,
+  tree: academy.pageTree,
   links: [
-    {
-      text: 'Documentation',
-      url: '/docs',
-      icon: <ArrowUpRight />
-    },
-    {
-      text: 'Guides',
-      url: '/guides',
-      icon: <ArrowUpRight />
-    },
-    {
-      text: 'Integrations',
-      url: '/integrations',
-      icon: <ArrowUpRight />
-    },
+    docsMenu,
+    toolsMenu,
+    integrationsMenu
   ],
 };
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <DocsLayout {...docsOptions}>
+    <DocsLayout {...academyOptions}>
       <span
         className="absolute inset-0 z-[-1] h-[64rem] max-h-screen overflow-hidden"
         style={{

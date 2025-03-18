@@ -1,6 +1,115 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+ 
+@source '../node_modules/fumadocs-ui/dist/**/*.js';
+@plugin 'tailwindcss-animate';
+
+@layer base {
+  :root {
+    /* Light mode variables */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 5%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5%;
+    --primary: 0 0% 10%;
+    --primary-foreground: 0 0% 99%;
+    --secondary: 0 0% 93%;
+    --secondary-foreground: 0 0% 12%;
+    --muted: 0 0% 93%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 0 0% 93%;
+    --accent-foreground: 0 0% 12%;
+    --border: 0 0% 86%;
+    --input: 0 0% 86%;
+    --ring: 0 0% 10%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark mode variables */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 4%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 0 0% 90%;
+    --primary-foreground: 0 0% 5%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 90%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 100%;
+    --border: 0 0% 14%;
+    --input: 0 0% 14%;
+    --ring: 0 0% 80%;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-radial {
+    background-image: radial-gradient(circle, var(--tw-gradient-stops));
+  }
+  .bg-repeat-gradient-to-r {
+    background-image: repeating-linear-gradient(to right, var(--tw-gradient-stops));
+  }
+  .bg-repeat-gradient-to-br {
+    background-image: repeating-linear-gradient(to bottom right, var(--tw-gradient-stops));
+  }
+}
+
+@layer utilities {
+  @keyframes stroke {
+    from {
+      stroke-dasharray: 1000;
+    }
+    to {
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 2000;
+    }
+  }
+  .animate-stroke {
+    animation: stroke 5s linear infinite;
+  }
+}
+
+@layer base {
+  :root {
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
+  }
+  button {
+    cursor: pointer;
+  }
+}
+
+@layer utilities {
+  .border-opacity-[amount] {
+    border-color: color-mix(in srgb, currentColor, transparent calc(100% - var(--amount)));
+  }
+}
+
+@layer utilities {
+  .text-opacity-[amount] {
+    color: color-mix(in srgb, currentColor, transparent calc(100% - var(--amount)));
+  }
+}
+
+@layer utilities {
+  .text-shadow-[shadow] {
+    text-shadow: var(--shadow);
+  }
+}
+
+@media (min-width: 768px) {
+  #nd-sidebar > div:first-child {
+    padding-top: calc(var(--spacing)* 3.5);
+  }
+}
 
 .prose :where(ul > li):not(:where([class~="not-prose"],[class~="not-prose"] *))::marker {
   color: #E84142;

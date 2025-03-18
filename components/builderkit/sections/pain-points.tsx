@@ -55,7 +55,7 @@ export const PainPoints = () => {
 
   return (
     <section className="py-32 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-white/0 dark:from-black/0 via-[#EB4C50]/5 to-white/0 dark:to-black/0" />
+      <div className="absolute inset-0 bg-linear-to-b from-white/0 dark:from-black/0 via-[#EB4C50]/5 to-white/0 dark:to-black/0" />
       
       <div className="max-w-7xl mx-auto px-4 relative">
         <ScrollAnimation>
@@ -104,10 +104,10 @@ const PainPointCard = ({ point, theme }: { point: typeof painPoints[0], theme: s
     transition={{ type: "spring", stiffness: 400, damping: 25 }}
   >
     <div 
-      className="absolute inset-0 rounded-2xl bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-all duration-500 blur-xl"
+      className="absolute inset-0 rounded-2xl bg-linear-to-br opacity-0 group-hover:opacity-100 transition-all duration-500 blur-xl"
     />
     <motion.div 
-      className="relative h-full p-8 rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-white/20 dark:bg-black/20 backdrop-blur-sm overflow-hidden"
+      className="relative h-full p-8 rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-white/20 dark:bg-black/20 backdrop-blur-xs overflow-hidden"
       whileHover={{ 
         borderColor: `${theme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'}`,
         backgroundColor: `${theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)'}`
@@ -117,7 +117,7 @@ const PainPointCard = ({ point, theme }: { point: typeof painPoints[0], theme: s
     >
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
         <div 
-          className="absolute inset-0 bg-gradient-to-br opacity-10"
+          className="absolute inset-0 bg-linear-to-br opacity-10"
           style={{
             background: `linear-gradient(to bottom right, ${point.gradient.split(' ')[1]}, ${point.gradient.split(' ')[3]})`
           }}
