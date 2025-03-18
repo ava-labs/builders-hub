@@ -80,6 +80,7 @@ export const guide = defineCollections({
 });
 
 export default defineConfig({
+  lastModifiedTime: 'git',
   mdxOptions: {
     rehypeCodeOptions: {
       lazy: true,

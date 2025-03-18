@@ -8,7 +8,6 @@ import { useErrorBoundary } from "react-error-boundary";
 import { useEffect, useState } from "react";
 import { Button, Input, Container, GenesisInput, ResultField } from "../../../components";
 import { quickAndDirtyGenesisBuilder } from "./GenesisBuilder";
-import Link from "next/link";
 
 export default function CreateChain() {
     const { showBoundary } = useErrorBoundary();
@@ -135,9 +134,9 @@ export default function CreateChain() {
    
          <div className="text-sm text-zinc-600 dark:text-zinc-400">
            Open the{" "}
-           <Link href="#" className="text-primary hover:text-primary/80 dark:text-primary/90 dark:hover:text-primary/70">
+           <a href="https://build.avax.network/tools/l1-toolbox#genesisBuilder" className="text-primary hover:text-primary/80 dark:text-primary/90 dark:hover:text-primary/70">
              Genesis Builder tool
-           </Link>{" "}
+           </a>{" "}
            to generate custom genesis data.
          </div>
    

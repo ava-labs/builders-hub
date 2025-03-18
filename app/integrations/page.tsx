@@ -16,7 +16,7 @@ export default function Page(): React.ReactElement {
                     </p>
                     <div className="inline-flex items-center gap-3">
                         <Link className={cn(buttonVariants())} href={`#Featured`}>Discover Integrations</Link>
-                        <Link className={cn(buttonVariants({ variant: 'outline' }))} href="https://github.com/ava-labs/avalanche-docs/blob/master/content/integrations" target='_blank'>Add your Integration</Link>
+                        <Link className={cn(buttonVariants({ variant: 'outline' }))} href="https://github.com/ava-labs/builders-hub/blob/master/content/integrations" target='_blank'>Add your Integration</Link>
                     </div>
                 </div>
                 <Integrations list={JSON.parse(JSON.stringify(list))}></Integrations>

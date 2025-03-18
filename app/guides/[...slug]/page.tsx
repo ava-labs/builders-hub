@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { guide } from '@/lib/source';
 import { createMetadata } from '@/utils/metadata';
 import { buttonVariants } from '@/components/ui/button';
-import { ArrowUpRightIcon, MessagesSquare, AlertCircle } from 'lucide-react';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Popup, PopupContent, PopupTrigger } from 'fumadocs-twoslash/ui';
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
@@ -25,8 +24,8 @@ import {
 } from "fumadocs-ui/components/codeblock";
 import { BadgeCheck } from "lucide-react";
 import Mermaid from "@/components/content-design/mermaid";
-import Comments from '@/components/ui/comments';
-import newGithubIssueUrl from 'new-github-issue-url';
+import { Feedback } from '@/components/ui/feedback';
+import posthog from 'posthog-js';
 
 export const dynamicParams = false;
 
@@ -81,9 +80,15 @@ export default async function Page(props: {
                     </CodeBlock>
                 ),
                 }}/>
-                    {page.data.comments && (
-                        <Callout title="" icon={<MessagesSquare stroke="#3752ac"/>}><Comments/></Callout>
-                    )}
+                <Feedback
+                    path={path}
+                    title={page.data.title}
+                    pagePath={`/docs/${page.slugs.join('/')}`}
+                    onRateAction={async (url, feedback) => {
+                    'use server';
+                    await posthog.capture('on_rate_document', feedback);
+                    }}
+                />
                 </div>
                 <div className="flex flex-col gap-4 border-l p-4 text-sm">
                     <div>
@@ -120,29 +125,6 @@ export default async function Page(props: {
                             ))}
                         </div>
                     </div>
-
-                    <a
-                        href={`https://github.com/ava-labs/avalanche-docs/blob/master/${path}`}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                    >
-                        <ArrowUpRightIcon className="size-5" /> Edit on Github
-                    </a>
-                    <a
-                        href={newGithubIssueUrl({
-                            user: 'ava-labs',
-                            repo: 'avalanche-docs',
-                            title: `Update Guide ${page.data.title} information`,
-                            body: `It appears that the information on this page might be outdated. Please review and update as needed.\n\nPage: /guides/${params.slug}\n\n[Provide more details here...]`,
-                            labels: ['outdated', 'documentation'],
-                        })}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                    >
-                        <AlertCircle className="size-5" /> Report Issue
-                    </a>
                 </div>
             </article>
         </>

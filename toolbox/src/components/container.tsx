@@ -1,7 +1,6 @@
 "use client"
 
 import type { ReactNode } from "react"
-import Link from "next/link"
 import { cn } from "../../lib/utils"
 
 interface ContainerProps {
@@ -9,20 +8,12 @@ interface ContainerProps {
   children: ReactNode
   description?: string
   showConfetti?: boolean
-  footerLink?: {
-    href: string
-    text: string
-  }
 }
 
 export function Container({
   title,
   children,
   description,
-  footerLink = {
-    href: "https://docs.avax.network/tooling",
-    text: "Avalanche Builder Tooling",
-  },
 }: ContainerProps) {
   return (
     <div
@@ -50,12 +41,13 @@ export function Container({
         <div className="pt-4 mt-6 border-t border-zinc-200 dark:border-zinc-800 text-center">
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Explore more{" "}
-            <Link
-              href={footerLink.href}
+            <a
+              href="https://build.avax.network/tools/l1-toolbox"
+              target="_blank"
               className="text-blue-600 hover:text-blue-700 dark:text-blue-500 dark:hover:text-blue-400 font-medium"
             >
-              {footerLink.text}
-            </Link>
+               Avalanche Builder Tooling
+            </a>
           </p>
         </div>
       </div>

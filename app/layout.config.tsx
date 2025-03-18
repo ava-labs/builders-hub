@@ -411,7 +411,7 @@ export const eventsMenu: LinkItemType = {
 };
 
 export const baseOptions: BaseLayoutProps = {
-  githubUrl: 'https://github.com/ava-labs/avalanche-docs',
+  githubUrl: 'https://github.com/ava-labs/builders-hub',
   nav: {
     title: (
       <>
