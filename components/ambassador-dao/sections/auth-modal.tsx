@@ -1,5 +1,4 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { SiGoogle } from "@icons-pack/react-simple-icons";
 import { Mail } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { VerificationInput } from "../verification-code";
@@ -117,7 +116,6 @@ const OptionsStep = ({ setCurrentStep }: OptionsStepProps) => {
           isLoading={isLoadingGoogleUrl}
           variant='outlined'
         >
-          <SiGoogle size={16} />
           <p>Google</p>
         </CustomButton>
       </div>
@@ -276,7 +274,6 @@ const VerificationStep = ({ email, onClose }: VerificationStepProps) => {
         passcode: code,
       });
       onClose();
-      router.push("/ambassador-dao/onboard");
     } catch (error) {
       // Error handling is done in the mutation
     }
