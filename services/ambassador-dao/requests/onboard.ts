@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { errorMsg } from "@/utils/error-mapping";
@@ -91,17 +91,13 @@ export const useCheckCompanyUsernameAvailabilityMutation = () => {
 };
 
 export const useFetchAllSkills = () => {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationKey: ["skills"],
-    mutationFn: async () => {
+  return useQuery({
+    queryKey: ["skills"],
+    queryFn: async () => {
       const res = await axios.get(`${API_DEV}/users/skills`);
       return res.data.data as ISkillsResponse[];
     },
-    onSuccess: (data) => {},
-    onError: (err) => errorMsg(err),
+    staleTime: Infinity,
   });
 };
 
