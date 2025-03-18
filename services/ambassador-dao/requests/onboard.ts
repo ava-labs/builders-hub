@@ -94,7 +94,7 @@ export const useFetchAllSkills = () => {
   return useQuery({
     queryKey: ["skills"],
     queryFn: async () => {
-      const res = await axios.get(`${API_DEV}/users/skills`);
+      const res = await axios.get(`${API_DEV}/skill`);
       return res.data.data as ISkillsResponse[];
     },
     staleTime: Infinity,

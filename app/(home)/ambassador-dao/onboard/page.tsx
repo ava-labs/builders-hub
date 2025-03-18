@@ -32,6 +32,7 @@ import {
 } from "@/services/ambassador-dao/interfaces/onbaord";
 import toast from "react-hot-toast";
 import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
+import { countries } from "@/services/ambassador-dao/data/locations";
 
 const userTypes = [
   {
@@ -332,9 +333,11 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             {...register("location")}
           >
             <option value=''>Select location</option>
-            <option value='1'>Nigeria</option>
-            <option value='2'>Ibadan</option>
-            <option value='3'>India</option>
+            {countries.map((country, idx) => (
+              <option value={country.name} key={idx} className='capitalize'>
+                {country.name}
+              </option>
+            ))}
           </CustomSelect>
         </div>
         <div>
@@ -344,27 +347,27 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
               <span className='text-[#FB2C36]'>*</span>
             </label>
           </div>
-          <div className='w-full h-10 flex flex-wrap gap-2 px-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36]'>
+          <div className='w-full h-12 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
             {selectedSkills &&
               !!selectedSkills.length &&
               selectedSkills.map((badge, idx) => (
                 <div
                   key={idx}
-                  className='flex items-center gap-2 bg-[#fff] text-[#18181B] rounded-full px-3 py-1 text-sm'
+                  className='flex items-center gap-2 bg-[#fff] text-[#18181B] rounded-full px-2 text-sm cursor-pointer capitalize'
                   onClick={() => removeSkill(badge)}
                 >
-                  {badge}
-                  <Minus size={16} color='#A1A1AA' />
+                  {skills?.find((skill) => skill.id === badge)?.name}
+                  <Minus size={16} color='#18181B' />
                 </div>
               ))}
           </div>
-          <div className='flex flex-wrap gap-2'>
+          <div className='flex flex-wrap gap-2 mt-4'>
             {skills &&
               !!skills.length &&
               skills.map((badge, idx) => (
                 <div
                   key={idx}
-                  className='flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-sm'
+                  className='flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-sm cursor-pointer capitalize'
                   onClick={() => addSkill(badge.id)}
                 >
                   {badge.name}
@@ -399,7 +402,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             </button>
           </div>
         </div>
-        <div className='flex flex-wrap gap-2 mt-2'>
+        <div className='flex flex-wrap gap-2 mt-1'>
           {socialLinks.map((link, idx) => (
             <div
               key={idx}
@@ -526,7 +529,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
       },
       {
         onSuccess: () => {
-          router.push("/ambassador-dao/jobs");
+          router.push("/ambassador-dao/sponsor");
         },
       }
     );
@@ -617,9 +620,11 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
             {...register("location")}
           >
             <option value=''>Select location</option>
-            <option value='1'>Nigeria</option>
-            <option value='2'>Ibadan</option>
-            <option value='3'>India</option>
+            {countries.map((country, idx) => (
+              <option value={country.name} key={idx} className='capitalize'>
+                {country.name}
+              </option>
+            ))}
           </CustomSelect>
         </div>
         <div className='mb-6'>
