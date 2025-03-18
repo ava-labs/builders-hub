@@ -68,7 +68,9 @@ export const useCheckUsernameAvailabilityMutation = () => {
           username,
         }
       );
-      return res.data;
+      return res.data.data as {
+        is_available: boolean;
+      };
     },
     onError: (err) => errorMsg(err),
   });
@@ -84,7 +86,9 @@ export const useCheckCompanyUsernameAvailabilityMutation = () => {
           username,
         }
       );
-      return res.data;
+      return res.data.data as {
+        is_available: boolean;
+      };
     },
     onError: (err) => errorMsg(err),
   });

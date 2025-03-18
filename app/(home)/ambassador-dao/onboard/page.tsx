@@ -194,7 +194,11 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
       const timer = setTimeout(() => {
         checkUsername(username, {
           onSuccess: (data) => {
-            setUsernameStatus("available");
+            if (data.is_available) {
+              setUsernameStatus("available");
+            } else {
+              setUsernameStatus("unavailable");
+            }
           },
           onError: () => {
             setUsernameStatus("unavailable");
@@ -478,7 +482,11 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
       const timer = setTimeout(() => {
         checkUsername(username, {
           onSuccess: (data) => {
-            setUsernameStatus("available");
+            if (data.is_available) {
+              setUsernameStatus("available");
+            } else {
+              setUsernameStatus("unavailable");
+            }
           },
           onError: () => {
             setUsernameStatus("unavailable");
@@ -497,7 +505,11 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
       const timer = setTimeout(() => {
         checkCompanyUsername(company_username, {
           onSuccess: (data) => {
-            setCompanyUsernameStatus("available");
+            if (data.is_available) {
+              setCompanyUsernameStatus("available");
+            } else {
+              setCompanyUsernameStatus("unavailable");
+            }
           },
           onError: () => {
             setCompanyUsernameStatus("unavailable");
