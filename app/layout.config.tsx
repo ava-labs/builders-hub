@@ -410,6 +410,11 @@ export const eventsMenu: LinkItemType = {
   ],
 };
 
+export const ambassadorMenu: LinkItemType = {
+  text: 'Ambassador DAO',
+  url: '/ambassador-dao'
+}
+
 export const baseOptions: BaseLayoutProps = {
   githubUrl: 'https://github.com/ava-labs/builders-hub',
   nav: {
@@ -427,5 +432,6 @@ export const baseOptions: BaseLayoutProps = {
     grantsMenu,
     eventsMenu,
     integrationsMenu,
+    ambassadorMenu,
   ],
 };
