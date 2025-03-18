@@ -5,3 +5,12 @@ export interface IUserDetails {
   profile_image: string | null;
   role: string | null;
 }
+
+export interface IVerifiedDetails {
+  user: IUserDetails;
+  token: {
+    access_token: string;
+    refresh_token: string;
+  };
+  is_new_user: boolean;
+}

@@ -74,10 +74,14 @@ interface OptionsStepProps {
 }
 
 const OptionsStep = ({ setCurrentStep }: OptionsStepProps) => {
-  const { data: googleAuthUrl, isLoading: isLoadingGoogleUrl } =
-    useGoogleAuthUrl();
+  const {
+    data: googleAuthUrl,
+    isLoading: isLoadingGoogleUrl,
+    refetch,
+  } = useGoogleAuthUrl();
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
+    await refetch();
     if (googleAuthUrl) {
       window.location.href = googleAuthUrl;
     } else {

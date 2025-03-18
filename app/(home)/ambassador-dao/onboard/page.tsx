@@ -31,6 +31,7 @@ import {
   IUpdateTalentProfileBody,
 } from "@/services/ambassador-dao/interfaces/onbaord";
 import toast from "react-hot-toast";
+import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 
 const userTypes = [
   {
@@ -56,16 +57,16 @@ const userTypes = [
 ];
 
 const AmbasssadorDaoOnboardPage = () => {
-  const [userType, setUserType] = useState<"talent" | "sponsor">("talent");
+  const { data: userData } = useFetchUserDataQuery();
+  const [userType, setUserType] = useState<"TALENT" | "SPONSOR">("TALENT");
   const [selectionStep, setShowSelectionStep] = useState<
     "account_option" | "account_form"
-  >("account_option");
+  >(userData?.role ? "account_form" : "account_option");
 
   const { mutate: selectRole, isPending: isSelectingRole } =
     useSelectRoleMutation();
-  const router = useRouter();
 
-  const handleContinue = (type: "talent" | "sponsor") => {
+  const handleContinue = (type: "TALENT" | "SPONSOR") => {
     setUserType(type);
     selectRole(type, {
       onSuccess: () => {
@@ -87,12 +88,12 @@ const AmbasssadorDaoOnboardPage = () => {
               key={idx}
               className={`rounded-xl border border-[#27272A] bg-[#09090B] p-6 flex-1 cursor-pointer
                   ${
-                    userType === type.name.toLowerCase()
+                    userType === type.name.toUpperCase()
                       ? "border-[#FB2C36]"
                       : ""
                   }
                 `}
-              onClick={() => setUserType(type.name.toLowerCase() as any)}
+              onClick={() => setUserType(type.name.toUpperCase() as any)}
             >
               <div className='flex items-center gap-6'>
                 <div className='w-10 md:w-14 h-10 md:h-14 shrink-0 flex items-center justify-center bg-[#FB2C36] rounded-full p-2'>
@@ -138,9 +139,9 @@ const AmbasssadorDaoOnboardPage = () => {
                   variant='danger'
                   isFullWidth={false}
                   isLoading={
-                    isSelectingRole && userType === type.name.toLowerCase()
+                    isSelectingRole && userType === type.name.toUpperCase()
                   }
-                  onClick={() => handleContinue(type.name.toLowerCase() as any)}
+                  onClick={() => handleContinue(type.name.toUpperCase() as any)}
                   className='px-6 h-10 text-sm font-medium'
                 >
                   Continue as <span className='capitalize'>{type.name}</span>
@@ -152,8 +153,8 @@ const AmbasssadorDaoOnboardPage = () => {
       )}
       {selectionStep === "account_form" && (
         <div className='bg-[#09090B] rounded-xl border border-[#27272A] p-6 py-10'>
-          {userType === "talent" && <TalentForm handleClose={handleClose} />}
-          {userType === "sponsor" && <SponsorForm handleClose={handleClose} />}
+          {userType === "TALENT" && <TalentForm handleClose={handleClose} />}
+          {userType === "SPONSOR" && <SponsorForm handleClose={handleClose} />}
         </div>
       )}
     </div>
@@ -183,9 +184,8 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
 
   const { mutate: updateTalentProfile, isPending: isUpdatingProfile } =
     useUpdateTalentProfileMutation();
-  const { mutate: checkUsername, isPending: isCheckingUsername } =
-    useCheckUsernameAvailabilityMutation();
-  const { isPending: isFetchingSkills, data: skills } = useFetchAllSkills();
+  const { mutate: checkUsername } = useCheckUsernameAvailabilityMutation();
+  const { data: skills } = useFetchAllSkills();
 
   useEffect(() => {
     if (username && username.length > 3) {
@@ -295,28 +295,34 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
               placeholder='User Name'
               required
               {...register("username")}
+              className='relative'
+              icon={
+                <>
+                  {" "}
+                  {usernameStatus === "checking" && (
+                    <Loader2
+                      className='absolute right-2 animate-spin'
+                      size={20}
+                      color='#9F9FA9'
+                    />
+                  )}
+                  {usernameStatus === "available" && (
+                    <Check
+                      className='absolute right-2'
+                      size={20}
+                      color='#10B981'
+                    />
+                  )}
+                  {usernameStatus === "unavailable" && (
+                    <AlertCircle
+                      className='absolute right-2'
+                      size={20}
+                      color='#FB2C36'
+                    />
+                  )}
+                </>
+              }
             />
-            {usernameStatus === "checking" && (
-              <Loader2
-                className='absolute right-3 top-9 animate-spin'
-                size={20}
-                color='#9F9FA9'
-              />
-            )}
-            {usernameStatus === "available" && (
-              <Check
-                className='absolute right-3 top-9'
-                size={20}
-                color='#10B981'
-              />
-            )}
-            {usernameStatus === "unavailable" && (
-              <AlertCircle
-                className='absolute right-3 top-9'
-                size={20}
-                color='#FB2C36'
-              />
-            )}
           </div>
 
           <CustomSelect
@@ -332,12 +338,12 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
           </CustomSelect>
         </div>
         <div>
-          <CustomInput
-            id='skills'
-            label='Your Skills'
-            placeholder='Badge'
-            required
-          />
+          <div className='my-2'>
+            <label className='block text-sm mb-2'>
+              Your skills
+              <span className='text-[#FB2C36]'>*</span>
+            </label>
+          </div>
           <div className='w-full h-10 flex flex-wrap gap-2 px-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36]'>
             {selectedSkills &&
               !!selectedSkills.length &&
@@ -365,6 +371,14 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
                   <Plus size={16} color='#A1A1AA' />
                 </div>
               ))}
+
+            {!skills?.length && (
+              <>
+                <p className='text-center mt-1 text-sm font-thin'>
+                  No skills available
+                </p>
+              </>
+            )}
           </div>
         </div>
         <div>
@@ -389,7 +403,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
           {socialLinks.map((link, idx) => (
             <div
               key={idx}
-              className='flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-sm'
+              className='flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-sm cursor-pointer'
               onClick={() => removeSocialLink(link)}
             >
               {link}
@@ -406,7 +420,11 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             type='submit'
             isFullWidth={false}
             className='px-6'
-            disabled={usernameStatus !== "available"}
+            disabled={
+              usernameStatus !== "available" ||
+              !socialLinks.length ||
+              !selectedSkills.length
+            }
           >
             Create Profile
           </CustomButton>
@@ -424,6 +442,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
     control,
     formState: { errors },
     setValue,
+    getValues,
     watch,
   } = useForm<IUpdateSponsorProfileBody>();
 
@@ -436,6 +455,8 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
 
   const username = watch("username");
   const company_username = watch("company_user_name");
+  const profile_image = watch("profile_image");
+  const logo = watch("logo");
 
   const { mutateAsync: updateSponsorProfile, isPending: isUpdatingProfile } =
     useUpdateSponsorProfileMutation();
@@ -469,9 +490,9 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
 
   useEffect(() => {
     if (company_username && company_username.length > 3) {
-      setUsernameStatus("checking");
+      setCompanyUsernameStatus("checking");
       const timer = setTimeout(() => {
-        checkUsername(company_username, {
+        checkCompanyUsername(company_username, {
           onSuccess: (data) => {
             setCompanyUsernameStatus("available");
           },
@@ -559,28 +580,34 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
               placeholder='User Name'
               required
               {...register("username")}
+              className='relative'
+              icon={
+                <>
+                  {" "}
+                  {usernameStatus === "checking" && (
+                    <Loader2
+                      className='absolute right-2 animate-spin'
+                      size={20}
+                      color='#9F9FA9'
+                    />
+                  )}
+                  {usernameStatus === "available" && (
+                    <Check
+                      className='absolute right-2'
+                      size={20}
+                      color='#10B981'
+                    />
+                  )}
+                  {usernameStatus === "unavailable" && (
+                    <AlertCircle
+                      className='absolute right-2'
+                      size={20}
+                      color='#FB2C36'
+                    />
+                  )}
+                </>
+              }
             />
-            {usernameStatus === "checking" && (
-              <Loader2
-                className='absolute right-3 top-9 animate-spin'
-                size={20}
-                color='#9F9FA9'
-              />
-            )}
-            {usernameStatus === "available" && (
-              <Check
-                className='absolute right-3 top-9'
-                size={20}
-                color='#10B981'
-              />
-            )}
-            {usernameStatus === "unavailable" && (
-              <AlertCircle
-                className='absolute right-3 top-9'
-                size={20}
-                color='#FB2C36'
-              />
-            )}
           </div>
 
           <CustomSelect
@@ -603,31 +630,59 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
           <p className='text-xs text-[#A1A1AA] mb-2'>
             Add the image here. Recommended size: 512 x 512px (square format)
           </p>
-          <div className='border border-dashed border-[#27272A] rounded-md p-6 flex flex-col items-center justify-center h-32'>
-            <Upload size={24} className='text-[#A1A1AA] mb-2' color='white' />
-            <p className='text-sm text-[#A1A1AA]'>
-              Drag your file(s) or{" "}
-              <input
-                type='file'
-                className='hidden'
-                id='profileImage'
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    handleProfileImageUpload(e.target.files[0]);
-                  }
+          {profile_image ? (
+            <div className='rounded-md my-2 flex justify-between items-center border border-[#27272A] p-3 text-sm'>
+              ...{profile_image.slice(-24)}
+              <X
+                onClick={() => {
+                  setValue("profile_image", "");
+                  getValues("profile_image");
                 }}
+                className='cursor-pointer'
+                color='white'
+                size={16}
               />
-              <label
-                htmlFor='profileImage'
-                className='text-[#FAFAFA] underline cursor-pointer'
-              >
-                browse
-              </label>
-            </p>
-            <p className='text-xs text-[#A1A1AA] mt-1'>
-              Max 1 MB files are allowed
-            </p>
-          </div>
+            </div>
+          ) : (
+            <div className='border border-dashed border-[#27272A] rounded-md p-6 flex flex-col items-center justify-center h-32'>
+              {isUploading ? (
+                <>
+                  <Loader2 className='animate-spin' color='white' size={24} />
+                </>
+              ) : (
+                <>
+                  {" "}
+                  <Upload
+                    size={24}
+                    className='text-[#A1A1AA] mb-2'
+                    color='white'
+                  />
+                  <p className='text-sm text-[#A1A1AA]'>
+                    Drag your file(s) or{" "}
+                    <input
+                      type='file'
+                      className='hidden'
+                      id='profileImage'
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleProfileImageUpload(e.target.files[0]);
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor='profileImage'
+                      className='text-[#FAFAFA] underline cursor-pointer'
+                    >
+                      browse
+                    </label>
+                  </p>
+                  <p className='text-xs text-[#A1A1AA] mt-1'>
+                    Max 1 MB files are allowed
+                  </p>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <hr />
@@ -654,28 +709,34 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                 placeholder='Company User Name'
                 required
                 {...register("company_user_name")}
+                className='relative'
+                icon={
+                  <>
+                    {" "}
+                    {companyUsernameStatus === "checking" && (
+                      <Loader2
+                        className='absolute right-2 animate-spin'
+                        size={20}
+                        color='#9F9FA9'
+                      />
+                    )}
+                    {companyUsernameStatus === "available" && (
+                      <Check
+                        className='absolute right-2'
+                        size={20}
+                        color='#10B981'
+                      />
+                    )}
+                    {companyUsernameStatus === "unavailable" && (
+                      <AlertCircle
+                        className='absolute right-2'
+                        size={20}
+                        color='#FB2C36'
+                      />
+                    )}
+                  </>
+                }
               />
-              {companyUsernameStatus === "checking" && (
-                <Loader2
-                  className='absolute right-3 top-9 animate-spin'
-                  size={20}
-                  color='#9F9FA9'
-                />
-              )}
-              {companyUsernameStatus === "available" && (
-                <Check
-                  className='absolute right-3 top-9'
-                  size={20}
-                  color='#10B981'
-                />
-              )}
-              {companyUsernameStatus === "unavailable" && (
-                <AlertCircle
-                  className='absolute right-3 top-9'
-                  size={20}
-                  color='#FB2C36'
-                />
-              )}
             </div>
           </div>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
@@ -700,31 +761,58 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
             <p className='text-xs text-[#A1A1AA] mb-2'>
               Add the image here. Recommended size: 512 x 512px (square format)
             </p>
-            <div className='border border-dashed border-[#27272A] rounded-md p-6 flex flex-col items-center justify-center h-32'>
-              <Upload size={24} className='text-[#A1A1AA] mb-2' color='white' />
-              <p className='text-sm text-[#A1A1AA]'>
-                Drag your file(s) or{" "}
-                <input
-                  type='file'
-                  className='hidden'
-                  id='companyLogo'
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      handleCompanyLogoUpload(e.target.files[0]);
-                    }
+            {logo ? (
+              <div className='rounded-md my-2 flex justify-between items-center border border-[#27272A] p-3 text-sm'>
+                ...{logo.slice(-24)}
+                <X
+                  onClick={() => {
+                    setValue("logo", "");
                   }}
+                  className='cursor-pointer'
+                  color='white'
+                  size={16}
                 />
-                <label
-                  htmlFor='companyLogo'
-                  className='text-[#FAFAFA] underline cursor-pointer'
-                >
-                  browse
-                </label>
-              </p>
-              <p className='text-xs text-[#A1A1AA] mt-1'>
-                Max 1 MB files are allowed
-              </p>
-            </div>
+              </div>
+            ) : (
+              <div className='border border-dashed border-[#27272A] rounded-md p-6 flex flex-col items-center justify-center h-32'>
+                {isUploading ? (
+                  <>
+                    <Loader2 className='animate-spin' color='white' size={24} />
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    <Upload
+                      size={24}
+                      className='text-[#A1A1AA] mb-2'
+                      color='white'
+                    />
+                    <p className='text-sm text-[#A1A1AA]'>
+                      Drag your file(s) or{" "}
+                      <input
+                        type='file'
+                        className='hidden'
+                        id='profileImage'
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleCompanyLogoUpload(e.target.files[0]);
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor='profileImage'
+                        className='text-[#FAFAFA] underline cursor-pointer'
+                      >
+                        browse
+                      </label>
+                    </p>
+                    <p className='text-xs text-[#A1A1AA] mt-1'>
+                      Max 1 MB files are allowed
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
           </div>
           <CustomInput
             id='industry'
