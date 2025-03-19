@@ -346,10 +346,10 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
         </div>
         <div>
           <div className='my-2'>
-            <label className='block text-sm mb-2'>
+            <p className='block text-sm mb-2'>
               Your skills
               <span className='text-[#FB2C36]'>*</span>
-            </label>
+            </p>
           </div>
           <div className='w-full h-12 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
             {selectedSkills &&
