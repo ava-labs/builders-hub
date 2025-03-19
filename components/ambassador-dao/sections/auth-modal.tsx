@@ -15,6 +15,7 @@ import {
 import { useRouter } from "next/navigation";
 import CustomButton from "../custom-button";
 import CustomInput from "../input";
+import { API_DEV } from "@/services/ambassador-dao/data/constants";
 
 interface IAuthModalProps {
   isOpen: boolean;
@@ -73,19 +74,12 @@ interface OptionsStepProps {
 }
 
 const OptionsStep = ({ setCurrentStep }: OptionsStepProps) => {
-  const {
-    data: googleAuthUrl,
-    isLoading: isLoadingGoogleUrl,
-    refetch,
-  } = useGoogleAuthUrl();
 
+    
+  const googleAuthUrl = `${API_DEV}/auth/google`;
   const handleGoogleLogin = async () => {
-    await refetch();
-    if (googleAuthUrl) {
-      window.location.href = googleAuthUrl;
-    } else {
-      toast.error("Unable to initiate Google login. Please try again.");
-    }
+    window.open(googleAuthUrl, "_blank");
+
   };
 
   return (
@@ -111,11 +105,7 @@ const OptionsStep = ({ setCurrentStep }: OptionsStepProps) => {
           <hr className='w-full' />
         </div>
 
-        <CustomButton
-          onClick={handleGoogleLogin}
-          isLoading={isLoadingGoogleUrl}
-          variant='outlined'
-        >
+        <CustomButton onClick={handleGoogleLogin} variant='outlined'>
           <p>Google</p>
         </CustomButton>
       </div>
