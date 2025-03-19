@@ -37,7 +37,11 @@ export const useVerifyPasscodeMutation = () => {
       if (!data.user.role && !data.user.first_name) {
         router.push("/ambassador-dao/onboard");
       } else {
-        router.push("/ambassador-dao/jobs");
+        if (data.user.role === "SPONSOR") {
+          router.push("/ambassador-dao/sponsor");
+        } else {
+          router.push("/ambassador-dao/jobs");
+        }
       }
     },
     onError: (err) => errorMsg(err),
@@ -66,12 +70,20 @@ export const useHandleGoogleCallback = () => {
       const res = await axios.get(
         `${API_DEV}/auth/google/callback?code=${code}`
       );
-      return res.data.data as IUserDetails;
+      return res.data.data as IVerifiedDetails;
     },
     onSuccess: (data) => {
       toast.success("Google authentication successful");
       queryClient.setQueryData(["fetchUserProfile"], data);
-      router.push("/ambassador-dao/onboard"); // Redirect to dashboard or appropriate page after login
+      if (!data.user.role && !data.user.first_name) {
+        router.push("/ambassador-dao/onboard");
+      } else {
+        if (data.user.role === "SPONSOR") {
+          router.push("/ambassador-dao/sponsor");
+        } else {
+          router.push("/ambassador-dao/jobs");
+        }
+      }
     },
     onError: (err) => errorMsg(err),
   });
