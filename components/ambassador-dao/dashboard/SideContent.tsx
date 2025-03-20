@@ -1,5 +1,4 @@
 import { ArrowUpRight } from "lucide-react";
-import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 
 const UserProfileCard = ({userData}: any) => {
     return (
@@ -56,8 +55,6 @@ const SideContent = ({
     user: any,
     setOpenAuthModal: React.Dispatch<React.SetStateAction<boolean>>;
   }) => {
-
-//   const { data: user } = useFetchUserDataQuery();
 
 
     return (

@@ -105,18 +105,19 @@ export const useFetchAllSkills = () => {
   });
 };
 
-export const useFileUploadMutation = () => {
+export const useFileUploadMutation = (type?: string) => {
   return useMutation({
     mutationKey: ["fileUpload"],
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await axios.post(`${API_DEV}/file-upload`, formData, {
+      type && formData.append("type", type);
+      const res = await axios.post(`${API_DEV}/file-upload?type=${type}`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      return res.data.data.url as string;
+      return res.data.data;
     },
     onError: (err) => errorMsg(err),
   });

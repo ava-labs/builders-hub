@@ -1,32 +1,57 @@
 "use client";
 
-import { useState } from 'react';
-import Modal from '../ui/Modal';
+import React from "react";
+import Modal from "../ui/Modal";
+import { useSubmitBountySubmissions } from "@/services/ambassador-dao/requests/opportunity";
+import { useForm } from "react-hook-form";
 
 interface BountySubmissionModalProps {
   isOpen: boolean;
   onClose: () => void;
   bountyTitle?: string;
+  id: string;
+}
+
+interface FormData {
+  submissionLink: string;
+  tweetLink: string;
+  content: string;
 }
 
 const BountySubmissionModal: React.FC<BountySubmissionModalProps> = ({
   isOpen,
   onClose,
-  bountyTitle = "Bounty"
+  bountyTitle = "Bounty",
+  id,
 }) => {
-  const [submissionLink, setSubmissionLink] = useState('');
-  const [tweetLink, setTweetLink] = useState('');
-  const [additionalInfo, setAdditionalInfo] = useState('');
-  const [isAdditionalInfoOpen, setIsAdditionalInfoOpen] = useState(false);
+  const { mutateAsync: submitBounty, isPending: isSubmitting } =
+    useSubmitBountySubmissions(id);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!submissionLink) return; // Basic validation
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<FormData>({
+    defaultValues: {
+      submissionLink: "",
+      tweetLink: "",
+      content: "",
+    },
+  });
 
-    // Reset form
-    setSubmissionLink('');
-    setTweetLink('');
-    setAdditionalInfo('');
+  const onSubmit = async (data: FormData) => {
+    try {
+      await submitBounty({
+        submission_link: data.submissionLink,
+        tweet_link: data.tweetLink || undefined,
+        content: data.content || undefined,
+      });
+      reset();
+      onClose();
+    } catch (error) {
+      console.error("Error submitting bounty:", error);
+    }
   };
 
   return (
@@ -37,7 +62,7 @@ const BountySubmissionModal: React.FC<BountySubmissionModalProps> = ({
       description="We can't wait to see what you've created!"
     >
       <div className="p-6">
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-6">
             <div className="space-y-2">
               <label className="block text-white">
@@ -46,53 +71,64 @@ const BountySubmissionModal: React.FC<BountySubmissionModalProps> = ({
               </label>
               <input
                 type="url"
-                value={submissionLink}
-                onChange={(e) => setSubmissionLink(e.target.value)}
                 placeholder="Add a link"
-                required
-                className="w-full bg-black border border-gray-700 rounded-md p-3 text-white placeholder-gray-500 focus:outline-none"
+                className={`w-full bg-black border ${
+                  errors.submissionLink ? "border-red-500" : "border-gray-700"
+                } rounded-md p-3 text-white placeholder-gray-500 focus:outline-none`}
+                {...register("submissionLink", {
+                  required: "Submission link is required",
+                  pattern: {
+                    value: /^(http|https):\/\/[^ "]+$/,
+                    message: "Please enter a valid URL",
+                  },
+                })}
               />
+              {errors.submissionLink && (
+                <p className="mt-1 text-red-500 text-sm">
+                  {errors.submissionLink.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <label className="block text-white">
-                Tweet Link
-              </label>
+              <label className="block text-white">Tweet Link</label>
               <input
                 type="url"
-                value={tweetLink}
-                onChange={(e) => setTweetLink(e.target.value)}
                 placeholder="Add a tweet's link"
-                className="w-full bg-black border border-gray-700 rounded-md p-3 text-white placeholder-gray-500 focus:outline-none"
+                className={`w-full bg-black border ${
+                  errors.tweetLink ? "border-red-500" : "border-gray-700"
+                } rounded-md p-3 text-white placeholder-gray-500 focus:outline-none`}
+                {...register("tweetLink", {
+                  pattern: {
+                    value: /^(http|https):\/\/[^ "]+$/,
+                    message: "Please enter a valid URL",
+                  },
+                })}
               />
+              {errors.tweetLink && (
+                <p className="mt-1 text-red-500 text-sm">
+                  {errors.tweetLink.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <div 
-                className="flex justify-between items-center cursor-pointer"
-                onClick={() => setIsAdditionalInfoOpen(!isAdditionalInfoOpen)}
-              >
-                <label className="block text-white cursor-pointer">
-                  Anything Else?
-                </label>
-                <svg 
-                  className={`w-5 h-5 text-gray-400 transform ${isAdditionalInfoOpen ? 'rotate-180' : ''} transition-transform`}
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
+              <label className="block text-white cursor-pointer">
+                Anything Else?
+              </label>
 
-              {isAdditionalInfoOpen && (
-                <textarea
-                  value={additionalInfo}
-                  onChange={(e) => setAdditionalInfo(e.target.value)}
-                  placeholder="If you have any other links or information you'd like to share with us, please add them here!"
-                  rows={4}
-                  className="w-full bg-black border border-gray-700 rounded-md p-3 text-white placeholder-gray-500 focus:outline-none"
-                />
+              <textarea
+                placeholder="If you have any other links or information you'd like to share with us, please add them here!"
+                rows={4}
+                className={`w-full bg-black border ${
+                  errors.content ? "border-red-500" : "border-gray-700"
+                } rounded-md p-3 text-white placeholder-gray-500 focus:outline-none`}
+                {...register("content")}
+              />
+              {errors.content && (
+                <p className="mt-1 text-red-500 text-sm">
+                  {errors.content.message}
+                </p>
               )}
             </div>
           </div>
@@ -101,9 +137,10 @@ const BountySubmissionModal: React.FC<BountySubmissionModalProps> = ({
 
           <button
             type="submit"
-            className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-md transition"
+            disabled={isSubmitting}
+            className="px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-800 disabled:cursor-not-allowed text-white font-medium rounded-md transition flex items-center justify-center"
           >
-            Submit
+            {isSubmitting ? "Submitting..." : "Submit"}
           </button>
         </form>
       </div>

@@ -21,7 +21,7 @@ export const timeAgo = (timestamp: string) => {
 export const getTimeLeft = (expiryTimestamp: string) => {
   const now = new Date();
   const expiryDate = new Date(expiryTimestamp);
-  const diff = expiryDate.getTime() - now.getTime(); // Difference in milliseconds
+  const diff = expiryDate.getTime() - now.getTime();
 
   if (diff <= 0) {
     return "Expired";

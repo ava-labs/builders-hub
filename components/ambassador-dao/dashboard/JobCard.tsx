@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { IJobDataType } from "@/services/ambassador-dao/interfaces/opportunity";
 import { Outline } from "../ui/Outline";
 import { getTimeLeft } from "@/utils/timeFormatting";
-import { useCountdown } from "../hooks/useCountdown";
+import Token from "@/public/ambassador-dao-images/token.png";
+
 
 
 export const JobCard = ({ job }: IJobDataType) => {
@@ -16,14 +17,10 @@ export const JobCard = ({ job }: IJobDataType) => {
       total_budget,
       end_date,
       proposals,
-      currency,
       skills,
     } = job;
   
     const router = useRouter();
-
-
-    const timeLeft = useCountdown(end_date);
   
     const goToDetailsPage = () => {
       router.push(`/ambassador-dao/jobs/${id}`);
@@ -37,11 +34,11 @@ export const JobCard = ({ job }: IJobDataType) => {
         <div>
           <div className="flex justify-between mb-4">
             <div>
-              <div className="flex items-center gap-5">
+              <div className="flex items-center gap-2 md:gap-5">
                 <Image
                   src={Team1}
                   alt=""
-                  className="h-full object-cover rounded-full"
+                  className="w-6 h-6 md:w-16 md:h-16  object-cover rounded-full"
                   width={60}
                   height={60}
                 />
@@ -60,7 +57,7 @@ export const JobCard = ({ job }: IJobDataType) => {
                     </div>
                     <div className="flex items-center text-sm text-gray-400">
                       <Hourglass color="#9F9FA9" className="w-3 h-3 mr-1" />
-                      Due in {timeLeft}
+                      Due in {getTimeLeft(end_date)}
                     </div>
                     <div className="flex items-center text-sm text-gray-400">
                       <FileText color="#9F9FA9" className="w-3 h-3 mr-1" />
@@ -71,10 +68,9 @@ export const JobCard = ({ job }: IJobDataType) => {
               </div>
             </div>
             <div className="flex items-center">
-              <div className="bg-blue-500 rounded-full w-6 h-6 flex items-center justify-center mr-2">
-                <span className="text-xs">{currency}A</span>
-              </div>
-              <span className="text-white">{total_budget}</span>
+              <span className="text-white flex items-center gap-1">
+                <Image src={Token} alt="$"  />
+                {total_budget}</span>
             </div>
           </div>
         </div>
