@@ -115,5 +115,6 @@ export const useFetchUserDataQuery = () => {
     },
     queryKey: ["fetchUserProfile"],
     staleTime: Infinity,
+    refetchOnWindowFocus: false
   });
 };

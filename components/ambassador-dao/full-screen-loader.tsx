@@ -16,3 +16,4 @@ const FullScreenLoader = () => {
 };
 
 export default FullScreenLoader;
+
