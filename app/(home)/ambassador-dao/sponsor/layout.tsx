@@ -1,4 +1,5 @@
-"use client";
+"use client"
+
 import CustomButton from "@/components/ambassador-dao/custom-button";
 import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
 import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";

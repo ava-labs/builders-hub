@@ -4,6 +4,16 @@ const withMDX = createMDX();
 
 /** @type {import('next').NextConfig} */
 const config = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.s3.amazonaws.com',
+        port: '',
+        pathname: '/**',
+      },
+    ]
+  },
   reactStrictMode: true,
   serverExternalPackages: [
     'ts-morph',
