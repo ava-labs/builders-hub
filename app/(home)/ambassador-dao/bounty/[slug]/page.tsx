@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import {
+  useState,
+  Suspense,
+  Key,
+} from "react";
 import {
   ArrowLeft,
-  Clock,
-  Briefcase,
   FileText,
   Hourglass,
   MessagesSquare,
@@ -14,10 +16,20 @@ import {
 import { useRouter, useParams } from "next/navigation";
 import { Outline } from "@/components/ambassador-dao/ui/Outline";
 import { BountySubmissionModal } from "@/components/ambassador-dao/bounty/BountySubmissionModal";
+import {
+  useFetchOpportunityComment,
+  useFetchOpportunityDetails,
+} from "@/services/ambassador-dao/requests/opportunity";
+import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
+import { getTimeLeft } from "../../../../../utils/timeFormatting";
+import { useCountdown } from "@/components/ambassador-dao/hooks/useCountdown";
+import { getOrdinalPosition } from "../../../../../utils/getOrdinalPosition";
+import Image from "next/image";
+import Token from "@/public/ambassador-dao-images/token.png";
+
 
 const GoBackButton = () => {
   const router = useRouter();
-
   const handleGoBack = () => {
     router.push("/ambassador-dao?type=bounties");
   };
@@ -37,35 +49,51 @@ const BountyHeader = ({ bounty }: any) => {
   return (
     <div className="border border-[#27272A] p-4 mb-6 rounded-lg">
       <div className="flex items-center gap-5">
-        <CircleUser color="#9F9FA9" size={56} />
+        {bounty.companyLogo ? (
+          <img
+            src={bounty.companyLogo}
+            alt={bounty.companyName}
+            className="w-14 h-14 rounded-full object-cover"
+          />
+        ) : (
+          <CircleUser color="#9F9FA9" size={56} />
+        )}
         <div className="mb-6">
-          <h1 className="text-base font-bold text-red-500 mb-2">{bounty.title}</h1>
+          <h1 className="text-base font-bold text-red-500 mb-2">
+            {bounty.title}
+          </h1>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className="text-gray-300 text-sm">{bounty.company}</span>
+              <span className="text-gray-300 text-sm">
+                {bounty.companyName}
+              </span>
             </div>
           </div>
           <div className="flex flex-wrap gap-4 rounded-md">
             <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
-              <Briefcase size={16} color="#9F9FA9" />
-              <span>Bounty</span>
+              <BriefcaseBusiness size={16} color="#9F9FA9" />
+              <span className="capitalize">{bounty.type?.toLowerCase()}</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
               <Hourglass size={16} color="#9F9FA9" />
-              <span>{bounty.duration}</span>
+              <span>Due in: {getTimeLeft(bounty?.deadline)}</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
               <FileText size={16} color="#9F9FA9" />
-              <span>{bounty.proposals} Proposals</span>
+              <span>{bounty.proposalsCount} Proposals</span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {["Outline", "Outline", "Outline", "Outline", "Outline"].map(
-              (outline, index) => (
-                <div key={index}>
-                  <Outline label="Outline" />
-                </div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {bounty.skills.length > 0 ? (
+              bounty.skills.map(
+                (skill: { name: any }, index: Key | null | undefined) => (
+                  <div key={index}>
+                    <Outline label={skill.name || skill} />
+                  </div>
+                )
               )
+            ) : (
+              <span className="text-gray-400 text-sm">No skills specified</span>
             )}
           </div>
         </div>
@@ -73,75 +101,22 @@ const BountyHeader = ({ bounty }: any) => {
     </div>
   );
 };
+interface BountyDescriptionProps {
+  data: {
+    title: string;
+    content: string[];
+  };
+}
 
-
-const BountyDescription = () => {
+const BountyDescription: React.FC<BountyDescriptionProps> = ({ data }) => {
   return (
     <div className="mb-6 text-gray-300">
-      <h2 className="text-xl font-semibold mb-2 text-white">
-        Write a Twitter thread on MuAbout the Job
-      </h2>
+      <h2 className="text-xl font-semibold mb-2 text-white">{data.title}</h2>
       <div className="space-y-4">
-        <p>
-          Create an engaging post on X that drives awareness of Musk.it - a
-          $MUSKIT token & community-oriented based project on Solana, backed by
-          Erol Musk ( Elon Musk father ) and Musk family members. We are on a
-          mission to unite, build and innovate the space.
-        </p>
-        <p>
-          Your post can focus on any aspect of Musk.it, from highlighting our
-          token and art narrative to showcasing our cooperation with Erol Musk
-          and Musk Institute plans. The goal is to inspire users to explore
-          Musk.it and drive curiosity by spreading the word.
-        </p>
-        <p>
-          Participants have the freedom to get creative with their content as
-          long as it drives users to check what Musk It is all about!
-        </p>
+        {data?.content?.map((paragraph, index) => (
+          <p key={index}>{paragraph}</p>
+        ))}
       </div>
-    </div>
-  );
-};
-
-const BountyRequirements = () => {
-  const requirements = [
-    "Publish your post on Twitter/X and tag @JustMuskit in your post",
-    "English Language: Submissions must be in English, written fluently, without major grammatical or spelling mistakes.",
-    "Media Details: The content should take no more than 5 minutes to consume but all media types are welcome (threads, long posts, articles, videos, etc).",
-    "Originality: Only original content is accepted (AI visuals are allowed, but the text must original and authored by you).",
-  ];
-
-  return (
-    <div className="mb-6">
-      <h2 className="text-lg font-semibold mb-3 text-white">
-        Submission Requirements:
-      </h2>
-      <ul className="list-disc pl-5 text-gray-300 space-y-2">
-        {requirements.map((req, index) => (
-          <li key={index}>{req}</li>
-        ))}
-      </ul>
-    </div>
-  );
-};
-
-const BountyRewards = () => {
-  const rewards = [
-    "1st Place: 400USDC",
-    "2nd Place: 200 USDC",
-    "3rd Place: 100 USDC",
-    "4th Place: 50 USDC",
-    "5th Place: 25 USDC",
-  ];
-
-  return (
-    <div className="mb-6">
-      <h2 className="text-lg font-semibold mb-3 text-white">Rewards</h2>
-      <ul className="list-disc pl-5 text-gray-300 space-y-2">
-        {rewards.map((reward, index) => (
-          <li key={index}>{reward}</li>
-        ))}
-      </ul>
     </div>
   );
 };
@@ -206,8 +181,6 @@ const CommentsSection = ({ comments }: any) => {
 
   const handleSubmitComment = (e: any) => {
     e.preventDefault();
-    // Handle comment submission here
-    console.log("Comment submitted:", newComment);
     setNewComment("");
   };
 
@@ -239,20 +212,28 @@ const CommentsSection = ({ comments }: any) => {
 
 const BountySidebar = ({ bounty }: any) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const timeLeft = useCountdown(bounty?.deadline);
   return (
     <div className="bg-[#111] p-4 rounded-md border border-gray-800 sticky top-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="bg-blue-500 rounded-full w-6 h-6 flex items-center justify-center">
-            <span className="text-xs">A</span>
+          <div className="text-white flex items-center gap-2">
+          <Image src={Token} alt="$"  />
+          {bounty?.total_budget} USDC <span className="text-[#9F9FA9]">Total Prizes</span>
           </div>
-          <span className="text-white">
-            {bounty.reward} {bounty.currency}
-          </span>
         </div>
       </div>
+      {bounty?.prize_distribution &&
+        bounty?.prize_distribution?.map(
+          (prize: { amount: string | number | bigint; position: number }, index:number) => (
+            <div key={index} className="flex items-center gap-2 my-2">
+            <Image src={Token} alt="$"  />
+              {prize.amount} USDC <span className="text-[#9F9FA9]">{getOrdinalPosition(prize.position)}</span>
+            </div>
+          )
+        )}
 
-      <div className="flex gap-4 items-center mb-6">
+      <div className="flex gap-4 items-center my-6">
         <div className="flex flex-col">
           <span className="text-white flex items-center">
             <BriefcaseBusiness
@@ -267,68 +248,117 @@ const BountySidebar = ({ bounty }: any) => {
         <div className="flex flex-col justify-center">
           <span className="text-white flex items-center">
             <Hourglass size={16} className="inline mr-1" color="#9F9FA9" />
-            <span>3h:30m:2s</span>
+            <span>{timeLeft}</span>
           </span>
           <span className="text-gray-400 text-sm">Remaining</span>
         </div>
       </div>
 
       <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-3 text-white">SKILL NEEDED</h2>
-        <div className="flex flex-wrap gap-2">
-          {["Secondary", "Secondary", "Secondary", "Secondary"].map(
-            (skill, index) => (
-              <div key={index}>
-                <Outline label="Secondary" />
-              </div>
-            )
-          )}
-        </div>
+        <h2 className="text-lg font-medium mb-3 text-white">SKILL NEEDED</h2>
+        {bounty?.skills?.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {bounty?.skills?.map(
+              (skill: any, index: Key | null | undefined) => (
+                <div key={index}>
+                  <Outline label={skill.name} />
+                </div>
+              )
+            )}
+          </div>
+        ) : (
+          <div>No skills available</div>
+        )}
       </div>
 
-      <button className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 rounded-md transition"
-      onClick={()=>setIsModalOpen(true)}
+      <button
+        className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 rounded-md transition"
+        onClick={() => setIsModalOpen(true)}
       >
         Participate
       </button>
 
-
       {isModalOpen && (
-        <BountySubmissionModal isOpen={isModalOpen} onClose={()=>setIsModalOpen(false)} />
+        <BountySubmissionModal
+          id={bounty.id}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
       )}
     </div>
   );
 };
 
-
-
 const AmbasssadorDaoSingleBountyPage = () => {
   const params = useParams<{ slug: string }>();
 
-  const bountyData = {
-    id: params.slug,
-    title: "Write a Twitter thread on Musk.it project & $MUSKIT token",
-    company: "Company Name",
-    duration: "Due in 24h",
-    proposals: 60,
-    reward: 1000,
-    currency: "USDC",
+  const { data, isLoading } = useFetchOpportunityDetails(params?.slug);
+  // const { data: comments, isLoading: isLoadingComments } = useFetchOpportunityComment(params?.slug);
+
+  const headerData = {
+    id: data?.id,
+    title: data?.title,
+    companyName: data?.created_by?.company_profile?.name || "Unknown",
+    companyLogo: data?.created_by?.company_profile?.logo,
+    createdBy: `${data?.created_by?.first_name} ${data?.created_by?.last_name}`,
+    type: data?.type,
+    deadline: data?.end_date,
+    proposalsCount: data?.max_winners || 0,
+    skills: data?.skills || [],
   };
+
+  const extractDescriptionData = (apiResponse: { description: string }) => {
+    const descriptionParagraphs = apiResponse.description
+      ? apiResponse.description
+          .split("\n\n")
+          .filter((para) => para.trim() !== "")
+      : [];
+
+    const titleParagraph =
+      descriptionParagraphs.length > 0
+        ? descriptionParagraphs[0]
+        : "About the Bounty";
+
+    const contentParagraphs = descriptionParagraphs.slice(1);
+
+    return {
+      title: titleParagraph,
+      content: contentParagraphs,
+    };
+  };
+
+  const sidebarData = {
+    id: data?.id,
+    total_budget: data?.total_budget,
+    deadline: data?.end_date,
+    proposalsCount: data?.max_winners || 0,
+    skills: data?.skills || [],
+    prize_distribution: data?.prize_distribution,
+  };
+
+  if (isLoading) {
+    return <FullScreenLoader />;
+  }
 
   return (
     <div className="text-white min-h-screen">
       <div className="max-w-7xl mx-auto px-4 py-8 border border-[#27272A] rounded-lg shadow-sm my-6">
         <GoBackButton />
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            <BountyHeader bounty={bountyData} />
-            <BountyDescription />
-            <BountyRequirements />
-            <BountyRewards />
+          <div className="md:col-span-2 flex flex-col">
+            <BountyHeader bounty={headerData} />
+
+            <div className="block md:hidden my-6">
+              <BountySidebar bounty={sidebarData} />
+            </div>
+
+            <BountyDescription data={extractDescriptionData(data)} />
             <CommentsSection comments={mockComments} />
           </div>
-          <div className="md:col-span-1">
-            <BountySidebar bounty={bountyData} />
+
+          <div className="hidden md:block md:col-span-1">
+            <BountySidebar bounty={sidebarData} />
           </div>
         </div>
       </div>
@@ -336,12 +366,11 @@ const AmbasssadorDaoSingleBountyPage = () => {
   );
 };
 
-
-const BountyDetailsWithSuspense=()=> {
+const BountyDetailsWithSuspense = () => {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <AmbasssadorDaoSingleBountyPage />
     </Suspense>
   );
-}
+};
 export default BountyDetailsWithSuspense;

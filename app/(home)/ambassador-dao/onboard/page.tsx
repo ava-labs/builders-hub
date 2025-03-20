@@ -524,12 +524,12 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
 
   const handleProfileImageUpload = async (file: File) => {
     const url = await uploadFile(file);
-    setValue("profile_image", url);
+    setValue("profile_image", url.url);
   };
 
   const handleCompanyLogoUpload = async (file: File) => {
     const url = await uploadFile(file);
-    setValue("logo", url);
+    setValue("logo", url.url);
   };
 
   const onSubmit = (data: any) => {

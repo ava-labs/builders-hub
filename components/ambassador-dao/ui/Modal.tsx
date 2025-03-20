@@ -29,7 +29,6 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Handle ESC key press
   useEffect(() => {
     const handleEscKey = (e: KeyboardEvent) => {
       if (closeOnEsc && e.key === 'Escape' && isOpen) {
@@ -48,17 +47,14 @@ const Modal: React.FC<ModalProps> = ({
     };
   }, [isOpen, onClose, closeOnEsc]);
 
-  // Handle outside clicks
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (closeOnOutsideClick && modalRef.current && !modalRef.current.contains(e.target as Node)) {
       onClose();
     }
   };
 
-  // If modal is closed, don't render anything
   if (!isOpen) return null;
 
-  // Use createPortal to render the modal at the end of the document body
   return createPortal(
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
