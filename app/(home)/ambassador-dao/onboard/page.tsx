@@ -474,7 +474,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
     isPending: isCheckingCompanyUsername,
   } = useCheckCompanyUsernameAvailabilityMutation();
   const { mutateAsync: uploadFile, isPending: isUploading } =
-    useFileUploadMutation();
+    useFileUploadMutation("image");
 
   useEffect(() => {
     if (username && username.length > 3) {
