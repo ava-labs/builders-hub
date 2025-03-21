@@ -15,3 +15,9 @@ export const minBudget = [
     {id: "1-5000", label: "1-5000"},
     {id: "5001-10000", label: "5001-10000"},
 ]
+
+
+export const categories = [
+    {id: "JOB", label: "Job"},
+    {id: "BOUNTY", label: "Bounty"},
+]
