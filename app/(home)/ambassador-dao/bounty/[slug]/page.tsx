@@ -4,6 +4,8 @@ import {
   useState,
   Suspense,
   Key,
+  useEffect,
+  useRef,
 } from "react";
 import {
   ArrowLeft,
@@ -12,14 +14,21 @@ import {
   MessagesSquare,
   CircleUser,
   BriefcaseBusiness,
+  MoreVertical,
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { Outline } from "@/components/ambassador-dao/ui/Outline";
 import { BountySubmissionModal } from "@/components/ambassador-dao/bounty/BountySubmissionModal";
 import {
+  useDeleteOpportunityComment,
+  useEditOpportunityComment,
   useFetchOpportunityComment,
-  useFetchOpportunityDetails,
+  useReplyOpportunityComment,
+  useSubmitOpportunityComment,
+  useFetchOpportunityCommentReplies,
+  useFetchOpportunityDetails
 } from "@/services/ambassador-dao/requests/opportunity";
+import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
 import { getTimeLeft } from "../../../../../utils/timeFormatting";
 import { useCountdown } from "@/components/ambassador-dao/hooks/useCountdown";
@@ -121,94 +130,315 @@ const BountyDescription: React.FC<BountyDescriptionProps> = ({ data }) => {
   );
 };
 
-const mockComments = [
-  {
-    id: 1,
-    author: "Age Krupa",
-    text: "Hello I have create a promo video for send it and sded it on twitter and youtube alike https://x.com/a/ejdacjfdau. https://youtu.be/UHTTOQUR.",
-  },
-  {
-    id: 2,
-    author: "Age Krupa",
-    text: "Hello I have create a promo video for send it and sded it on twitter and youtube alike https://x.com/a/ejdacjfdau. https://youtu.be/UHTTOQUR.",
-  },
-  {
-    id: 3,
-    author: "Age Krupa",
-    text: "Hello I have create a promo video for send it and sded it on twitter and youtube alike https://x.com/a/ejdacjfdau. https://youtu.be/UHTTOQUR.",
-  },
-  {
-    id: 4,
-    author: "Age Krupa",
-    text: "Hello I have create a promo video for send it and sded it on twitter and youtube alike https://x.com/a/ejdacjfdau. https://youtu.be/UHTTOQUR.",
-  },
-];
 
-const Comment = ({ comment }: any) => {
+interface CommentProps {
+  comment: {
+    id: string;
+    author: {
+      id: string;
+      first_name: string;
+      last_name: string;
+    };
+    content: string;
+  };
+}
+
+const Comment: React.FC<CommentProps> = ({ comment }) => {
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [showOptions, setShowOptions] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(comment.content);
+  const optionsRef = useRef(null);
+
+  const { mutateAsync: editComment } = useEditOpportunityComment(comment.id);
+  const { mutateAsync: replyComment } = useReplyOpportunityComment(comment.id);
+  const { mutateAsync: deleteComment } = useDeleteOpportunityComment(comment.id);
+  const { data } = useFetchUserDataQuery();
+  const { data: commentReplies } = useFetchOpportunityCommentReplies(comment.id);
+
+  const isEditable = data?.id === comment?.author?.id;
+
+  const handleReplySubmit = (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    console.log(`Reply to comment ${comment.id}: ${replyText}`);
+    setReplyText("");
+    setIsReplying(false);
+    replyComment({
+      content: replyText,
+      parent_id: comment.id
+    });
+  };
+
+  const handleCancelReply = () => {
+    setReplyText("");
+    setIsReplying(false);
+  };
+
+  const handleEditSubmit = (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    console.log(`Edit comment ${comment.id}: ${editText}`);
+    setIsEditing(false);
+    editComment({
+      content: editText,
+    });
+  };
+
+  const handleDeleteComment = () => {
+    console.log(`Delete comment ${comment.id}`);
+    setShowOptions(false);
+    deleteComment();
+  };
+
+  const toggleOptions = () => {
+    setShowOptions(!showOptions);
+  };
+
+  const handleClickOutside = (e: MouseEvent) => {
+    if (
+      optionsRef.current &&
+      !(e.target as Node).contains(optionsRef.current as Node) &&
+      !(optionsRef.current as HTMLElement).contains(e.target as Node)
+    ) {
+      setShowOptions(false);
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
-    <div className="p-4 border border-gray-800 rounded-lg my-2">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex gap-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center">
-            <span className="text-white text-sm">
-              {comment.author.substring(0, 2).toUpperCase()}
-            </span>
-          </div>
-          <div className="flex-1">
-            <div className="flex justify-between items-start mb-1">
-              <h3 className="font-medium text-[#FB2C36]">{comment.author}</h3>
+    <>
+      <div className="p-4 border border-gray-800 rounded-lg my-2 relative group">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex gap-3 w-full">
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center">
+              <span className="text-white text-sm">
+                {comment?.author?.first_name?.substring(0, 2).toUpperCase()}
+              </span>
             </div>
-            <p className="text-gray-300 text-sm">{comment.text}</p>
+            <div className="flex-1">
+              <div className="flex justify-between items-start mb-1 w-full">
+                <h3 className="font-medium text-[#FB2C36]">
+                  {comment?.author?.first_name} {comment?.author?.last_name}
+                </h3>
+                {isEditable && (
+                  <button
+                    className="p-1 text-gray-400 hover:text-white focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={toggleOptions}
+                    aria-label="Comment options"
+                  >
+                    <MoreVertical size={16} color="#fff" />
+                  </button>
+                )}
+
+                {showOptions && isEditable && (
+                  <div
+                    ref={optionsRef}
+                    className="absolute right-4 top-12 bg-gray-800 rounded-md shadow-lg z-10 py-1 min-w-[100px]"
+                  >
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700"
+                      onClick={() => {
+                        setIsEditing(true);
+                        setShowOptions(false);
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-700"
+                      onClick={handleDeleteComment}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {isEditing ? (
+                <form onSubmit={handleEditSubmit} className="mt-2">
+                  <textarea
+                    className="w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900"
+                    placeholder="Edit your comment"
+                    rows={2}
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    autoFocus
+                  ></textarea>
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditText(comment?.content);
+                        setIsEditing(false);
+                      }}
+                      className="px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm transition"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <p className="text-gray-300 text-sm">{comment?.content}</p>
+              )}
+            </div>
           </div>
+
+          {!isEditing && (
+            <div>
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsReplying(!isReplying)}
+                  className="hover:text-white text-gray-400 px-4 rounded-md text-sm transition"
+                >
+                  Reply
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-        <div>
-          <div className="flex justify-end mt-2">
-            <button
-              type="submit"
-              className="hover:border-white text-white px-4 rounded-md text-sm transition"
-            >
-              Reply
-            </button>
+
+        {/* Reply form */}
+        {isReplying && (
+          <div className="ml-12 mt-4">
+            <form onSubmit={handleReplySubmit}>
+              <textarea
+                className="w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900"
+                placeholder="Write a reply..."
+                rows={1}
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                autoFocus
+              ></textarea>
+
+              {replyText.trim() !== "" && replyText.trim().length > 0 && (
+                <div className="flex justify-end gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={handleCancelReply}
+                    className="px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition"
+                  >
+                    Reply
+                  </button>
+                </div>
+              )}
+            </form>
           </div>
-        </div>
+        )}
       </div>
-    </div>
+      
+      {/* Display replies if there are any */}
+      {commentReplies && commentReplies.length > 0 && (
+        <div className="ml-12 space-y-2">
+          {commentReplies.map((reply: any, idx: any) => (
+            <Comment key={`${reply.id}-${idx}`} comment={reply} />
+          ))}
+        </div>
+      )}
+    </>
   );
 };
 
-const CommentsSection = ({ comments }: any) => {
+const CommentsSection = ({ comments, id }: { comments: any[]; id: string }) => {
   const [newComment, setNewComment] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
 
-  const handleSubmitComment = (e: any) => {
+  const { mutateAsync: submitComment, isPending: isSubmitting } =
+    useSubmitOpportunityComment(id);
+
+  const handleSubmitComment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (newComment.trim() !== "") {
+      console.log("New comment:", newComment);
+      await submitComment({
+        content: newComment,
+        parent_id: "",
+      });
+      setNewComment("");
+      setIsFocused(false);
+    }
+  };
+
+  const handleCancelComment = () => {
     setNewComment("");
+    setIsFocused(false);
   };
 
   return (
     <div className="mt-8 border-t border-gray-800 pt-6">
       <div className="flex items-center gap-2 mb-4">
         <MessagesSquare size={16} color="#9F9FA9" />
-        <h2 className="text-lg font-semibold">{comments.length} Comments</h2>
+        <h2 className="text-lg font-semibold">{comments?.length} Comments</h2>
       </div>
 
-      <form onSubmit={handleSubmitComment} className="mt-6">
+      <form onSubmit={handleSubmitComment} className="mt-6 relative">
         <textarea
-          className="w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none"
+          className="w-full border border-gray-800 bg-gray-900 rounded-md p-3 text-white resize-none focus:outline-none"
           placeholder="Write Comments"
           rows={1}
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
+          onFocus={() => setIsFocused(true)}
         ></textarea>
+
+        {newComment.trim() !== "" && newComment.length > 0 && (
+          <>
+            <div className="text-gray-400 text-xs flex justify-end">
+              {`${280 - newComment.trim().length} characters left`}
+            </div>
+            <div className="flex justify-end gap-2 mt-2">
+              <button
+                type="button"
+                onClick={handleCancelComment}
+                className="px-4 py-2 text-gray-300 hover:text-white rounded-md text-sm transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className={`px-4 py-2 bg-indigo-600 text-white rounded-md text-sm transition ${
+                  newComment.trim() === ""
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:bg-indigo-700"
+                }`}
+                disabled={newComment.trim() === "" || isSubmitting}
+              >
+                {isSubmitting ? "Submitting..." : "Comment"}
+              </button>
+            </div>
+          </>
+        )}
       </form>
 
-      <div className="space-y-4">
-        {comments.map((comment: any, index: any) => (
-          <Comment key={index} comment={comment} />
+      <div className="space-y-4 mt-6">
+        {comments?.map((comment, index) => (
+          <div key={comment.id || index} className="group">
+            <Comment comment={comment} />
+          </div>
         ))}
       </div>
     </div>
   );
 };
+
 
 const BountySidebar = ({ bounty }: any) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -293,7 +523,7 @@ const AmbasssadorDaoSingleBountyPage = () => {
   const params = useParams<{ slug: string }>();
 
   const { data, isLoading } = useFetchOpportunityDetails(params?.slug);
-  // const { data: comments, isLoading: isLoadingComments } = useFetchOpportunityComment(params?.slug);
+  const { data: comments } = useFetchOpportunityComment(params?.slug);
 
   const headerData = {
     id: data?.id,
@@ -354,7 +584,7 @@ const AmbasssadorDaoSingleBountyPage = () => {
             </div>
 
             <BountyDescription data={extractDescriptionData(data)} />
-            <CommentsSection comments={mockComments} />
+            <CommentsSection id={params?.slug} comments={comments} />
           </div>
 
           <div className="hidden md:block md:col-span-1">

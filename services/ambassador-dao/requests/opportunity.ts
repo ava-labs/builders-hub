@@ -31,9 +31,96 @@ export const useFetchOpportunityDetails = (opportunity_id: string) => {
 };
 
 
+
+
+export const useSubmitOpportunityComment = (opportunity_id: string) => {
+  const queryclient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["newComment"],
+    mutationFn: async (args: any) => {
+      const res = await axios.post(`${API_DEV}/opportunity/${opportunity_id}/comments`, args);
+      return res.data as any;
+    },
+    onSuccess: (data) => {
+      toast.success(data?.message);
+      queryclient.invalidateQueries({ queryKey: ["opportunity-comments"] });
+    },
+    onError: (err) => errorMsg(err),
+  });
+};
+
+
+export const useEditOpportunityComment = (comment_id: string) => {
+  const queryclient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["editComment"],
+    mutationFn: async (args: any) => {
+      const res = await axios.post(`${API_DEV}/opportunity/comments/${comment_id}`, args);
+      return res.data as any;
+    },
+    onSuccess: (data) => {
+      toast.success(data?.message);
+      queryclient.invalidateQueries({ queryKey: ["opportunity-comments"] });
+    },
+    onError: (err) => errorMsg(err),
+  });
+};
+
+
+
+export const useReplyOpportunityComment = (comment_id: string) => {
+  const queryclient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["replyComment"],
+    mutationFn: async (args: any) => {
+      const res = await axios.post(`${API_DEV}/opportunity/comments/${comment_id}`, args);
+      return res.data as any;
+    },
+    onSuccess: (data) => {
+      toast.success(data?.message);
+      queryclient.invalidateQueries({ queryKey: ["opportunity-comments-replies"] });
+    },
+    onError: (err) => errorMsg(err),
+  });
+};
+
+export const useFetchOpportunityCommentReplies = (comment_id: string) => {
+  return useQuery({
+    queryKey: ["opportunity-comments-replies"],
+    queryFn: async () => {
+      const res = await axios.get(`${API_DEV}/opportunity/comments/${comment_id}/replies`);
+      return res.data.data;
+    },
+    staleTime: Infinity,
+  });
+};
+
+
+
+export const useDeleteOpportunityComment = (comment_id: string) => {
+  const queryclient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["deleteComment"],
+    mutationFn: async () => {
+      const res = await axios.delete(`${API_DEV}/opportunity/comments/${comment_id}`);
+      return res.data as any;
+    },
+    onSuccess: (data) => {
+      toast.success(data?.message);
+      queryclient.invalidateQueries({ queryKey: ["opportunity-comments"] });
+    },
+    onError: (err) => errorMsg(err),
+  });
+};
+
+
 export const useFetchOpportunityComment = (opportunity_id: string) => {
   return useQuery({
-    queryKey: ["opportunity-comments"],
+    queryKey: ["opportunity-comments", opportunity_id],
     queryFn: async () => {
       const res = await axios.get(`${API_DEV}/opportunity/${opportunity_id}/comments`);
       return res.data.data;
@@ -41,6 +128,9 @@ export const useFetchOpportunityComment = (opportunity_id: string) => {
     staleTime: Infinity,
   });
 };
+
+
+
 
 
 
