@@ -22,18 +22,10 @@ export const useCountdown = (expiryTimestamp: string) => {
       let timeString = "";
       
       if (days > 0) {
-        timeString += `${days}d : `;
+        timeString = `${days}d : ${hours}h : ${minutes}m`;
+      } else {
+        timeString = `${hours}h : ${minutes}m : ${seconds}s`;
       }
-      
-      if (hours > 0 || days > 0) {
-        timeString += `${hours}h : `;
-      }
-      
-      if (minutes > 0 || hours > 0 || days > 0) {
-        timeString += `${minutes}m : `;
-      }
-      
-      timeString += `${seconds}s`;
       
       setTimeLeft(timeString);
     };
