@@ -21,16 +21,16 @@ export const timeAgo = (timestamp: string) => {
 export const getTimeLeft = (expiryTimestamp: string) => {
   const now = new Date();
   const expiryDate = new Date(expiryTimestamp);
-  const diff = expiryDate.getTime() - now.getTime(); // Difference in milliseconds
+  const diff = expiryDate.getTime() - now.getTime();
 
   if (diff <= 0) {
     return "Expired";
   }
 
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor(diff / (1000 * 60));
-  const seconds = Math.floor(diff / 1000);
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
   if (days > 0) {
     return `${days} day${days > 1 ? "s" : ""}`;
@@ -41,6 +41,29 @@ export const getTimeLeft = (expiryTimestamp: string) => {
   } else {
     return `${seconds} second${seconds > 1 ? "s" : ""}`;
   }
+};
+
+export const getDetailedTimeLeft = (expiryTimestamp: string) => {
+  const now = new Date();
+  const expiryDate = new Date(expiryTimestamp);
+  const diff = expiryDate.getTime() - now.getTime();
+
+  if (diff <= 0) {
+    return "Expired";
+  }
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  let result = "";
+  if (days > 0) result += `${days} day${days > 1 ? "s" : ""} `;
+  if (hours > 0) result += `${hours} hour${hours > 1 ? "s" : ""} `;
+  if (minutes > 0) result += `${minutes} minute${minutes > 1 ? "s" : ""} `;
+  if (seconds > 0) result += `${seconds} second${seconds > 1 ? "s" : ""}`;
+
+  return result.trim();
 };
 
 export const formatTimeDifference = (timestamp: string) => {

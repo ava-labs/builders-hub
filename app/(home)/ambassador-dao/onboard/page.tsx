@@ -81,7 +81,7 @@ const AmbasssadorDaoOnboardPage = () => {
   };
 
   return (
-    <div className='bg-black max-w-7xl mx-auto p-4 sm:p-8 md:p-16 lg:p-24'>
+    <div className='max-w-7xl mx-auto p-4 sm:p-8 md:p-16 lg:p-24'>
       {selectionStep === "account_option" && (
         <div className='w-full flex flex-col md:flex-row gap-8 md:gap-6'>
           {userTypes.map((type, idx) => (
@@ -474,7 +474,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
     isPending: isCheckingCompanyUsername,
   } = useCheckCompanyUsernameAvailabilityMutation();
   const { mutateAsync: uploadFile, isPending: isUploading } =
-    useFileUploadMutation();
+    useFileUploadMutation("image");
 
   useEffect(() => {
     if (username && username.length > 3) {
@@ -524,12 +524,12 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
 
   const handleProfileImageUpload = async (file: File) => {
     const url = await uploadFile(file);
-    setValue("profile_image", url);
+    setValue("profile_image", url.url);
   };
 
   const handleCompanyLogoUpload = async (file: File) => {
     const url = await uploadFile(file);
-    setValue("logo", url);
+    setValue("logo", url.url);
   };
 
   const onSubmit = (data: any) => {

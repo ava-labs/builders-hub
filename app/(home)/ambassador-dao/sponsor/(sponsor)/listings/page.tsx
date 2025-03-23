@@ -211,7 +211,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
         <hr className='border-[#27272A] my-6' />
 
         {/* Listings Table */}
-        <div className='w-full overflow-auto'>
+        <div className='w-full'>
           <div className='max-w-lg mx-auto p-2 my-6'>
             <Image src={Avalance3d} objectFit='contain' alt='avalance icon' />
 
@@ -225,83 +225,108 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
             </div>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow className='border-[#27272A] hover:bg-transparent whitespace-nowrap p-3 text-[#9F9FA9]'>
-                <TableHead>Listing Name</TableHead>
-                <TableHead>Submissions</TableHead>
-                <TableHead>Deadline</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className='text-right'>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockListings.map((listing) => (
-                <TableRow
-                  key={listing.id}
-                  className='border-gray-800 hover:bg-[#27272A]/50 whitespace-nowrap p-3 text-white'
-                >
-                  <TableCell className='font-medium'>{listing.name}</TableCell>
-                  <TableCell>{listing.submissions}</TableCell>
-                  <TableCell>{listing.deadline}</TableCell>
-                  <TableCell>{listing.price}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={listing.status} />
-                  </TableCell>
-                  <TableCell className='text-right'>
-                    {/* Desktop actions */}
-                    <div className='hidden sm:flex justify-end space-x-2'>
-                      <Button variant='ghost' size='sm' className='p-1 h-auto'>
-                        <PenLine className='h-4 w-4' color='#9F9FA9' />
-                      </Button>
-                      <Button variant='ghost' size='sm' className='p-1 h-auto'>
-                        <Trash2 className='h-4 w-4' color='#9F9FA9' />
-                      </Button>
-                      <Button variant='ghost' size='sm' className='p-1 h-auto'>
-                        <Link className='h-4 w-4' color='#9F9FA9' />
-                      </Button>
-                      <Button variant='ghost' size='sm' className='p-1 h-auto'>
-                        <Pause className='h-4 w-4' color='#9F9FA9' />
-                      </Button>
-                    </div>
-
-                    {/* Mobile dropdown */}
-                    <div className='sm:hidden'>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant='ghost'
-                            size='sm'
-                            className='p-1 h-auto'
-                          >
-                            <MoreHorizontal className='h-4 w-4' />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align='end'
-                          className='bg-gray-800 border-[#27272A]'
-                        >
-                          <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
-                            <PenLine className='h-4 w-4 mr-2' color='#9F9FA9' />{" "}
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
-                            <Trash2 className='h-4 w-4 mr-2' color='#9F9FA9' />{" "}
-                            Delete
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
-                            <Link className='h-4 w-4 mr-2' color='#9F9FA9' />{" "}
-                            Copy Link
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TableCell>
+          <div className='overflow-x-auto'>
+            <Table>
+              <TableHeader>
+                <TableRow className='border-[#27272A] hover:bg-transparent whitespace-nowrap p-3 text-[#9F9FA9]'>
+                  <TableHead>Listing Name</TableHead>
+                  <TableHead>Submissions</TableHead>
+                  <TableHead>Deadline</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className='text-right'>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {mockListings.map((listing) => (
+                  <TableRow
+                    key={listing.id}
+                    className='border-gray-800 hover:bg-[#27272A]/50 whitespace-nowrap p-3 text-white'
+                  >
+                    <TableCell className='font-medium'>
+                      {listing.name}
+                    </TableCell>
+                    <TableCell>{listing.submissions}</TableCell>
+                    <TableCell>{listing.deadline}</TableCell>
+                    <TableCell>{listing.price}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={listing.status} />
+                    </TableCell>
+                    <TableCell className='text-right'>
+                      {/* Desktop actions */}
+                      <div className='hidden sm:flex justify-end space-x-2'>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          className='p-1 h-auto'
+                        >
+                          <PenLine className='h-4 w-4' color='#9F9FA9' />
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          className='p-1 h-auto'
+                        >
+                          <Trash2 className='h-4 w-4' color='#9F9FA9' />
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          className='p-1 h-auto'
+                        >
+                          <Link className='h-4 w-4' color='#9F9FA9' />
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          className='p-1 h-auto'
+                        >
+                          <Pause className='h-4 w-4' color='#9F9FA9' />
+                        </Button>
+                      </div>
+                      {/* Mobile dropdown */}
+                      <div className='sm:hidden'>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='p-1 h-auto'
+                            >
+                              <MoreHorizontal className='h-4 w-4' />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align='end'
+                            className='bg-gray-800 border-[#27272A]'
+                          >
+                            <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
+                              <PenLine
+                                className='h-4 w-4 mr-2'
+                                color='#9F9FA9'
+                              />{" "}
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
+                              <Trash2
+                                className='h-4 w-4 mr-2'
+                                color='#9F9FA9'
+                              />{" "}
+                              Delete
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
+                              <Link className='h-4 w-4 mr-2' color='#9F9FA9' />{" "}
+                              Copy Link
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
         {/* Pagination */}

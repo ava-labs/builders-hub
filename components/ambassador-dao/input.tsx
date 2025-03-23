@@ -15,14 +15,14 @@ const CustomInput: React.FC<CustomInputProps> = ({
   ...props
 }) => {
   return (
-    <div className='my-2'>
+    <div className='my-2 w-full'>
       {label && (
         <label htmlFor={props.id} className='block text-sm mb-2'>
           {label}
           {props.required && <span className='text-[#FB2C36]'>*</span>}
         </label>
       )}
-      <div className='relative'>
+      <div className='relative w-full'>
         <input
           {...props}
           className={`w-full h-10 px-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36] ${props.className}`}

@@ -1,12 +1,13 @@
 "use client";
 import CustomButton from "@/components/ambassador-dao/custom-button";
 import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
+import { CreateListingModal } from "@/components/ambassador-dao/sections/create-listing-modal";
 import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 import { cn } from "@/utils/cn";
 import { History, Hourglass, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
 const AmbasssadorDaoSponsorsLayout = ({
   children,
@@ -16,6 +17,7 @@ const AmbasssadorDaoSponsorsLayout = ({
   const router = useRouter();
   const { data: user, isLoading } = useFetchUserDataQuery();
 
+  const [openCreateListingModal, setOpenCreateListingModal] = useState(false);
   useEffect(() => {
     if (!isLoading && !user) {
       router.push("/ambassador-dao");
@@ -32,8 +34,8 @@ const AmbasssadorDaoSponsorsLayout = ({
       {user && (
         <div className='flex flex-col md:flex-row min-h-screen bg-[#09090B] rounded-md text-white m-4 md:m-6 border border-[#27272A] p-3 md:p-6 lg:p-8'>
           {/* Sidebar */}
-          <aside className='w-full md:w-64 p-3 border-r border-[#27272A]'>
-            <div className='flex flex-row md:flex-col md:space-y-4 overflow-x-auto whitespace-nowrap space-x-4 md:space-x-0'>
+          <aside className='w-full md:w-56 lg:w-64 p-3 md:border-r border-[#27272A]'>
+            <div className='flex flex-row justify-center md:justify-normal md:flex-col md:space-y-4 overflow-x-auto whitespace-nowrap space-x-4 md:space-x-0'>
               <SidebarItem
                 href='/ambassador-dao/sponsor/listings'
                 icon={<LayoutGrid className='h-5 w-5' />}
@@ -52,22 +54,38 @@ const AmbasssadorDaoSponsorsLayout = ({
                 label='Get Help'
               />
 
-              <CustomButton variant='danger' className='px-3 hidden md:block'>
+              <CustomButton
+                variant='danger'
+                className='px-3 hidden md:block'
+                onClick={() => setOpenCreateListingModal(true)}
+              >
                 Create new listing
               </CustomButton>
             </div>
           </aside>
 
           <div className='md:hidden flex justify-end my-2'>
-            <CustomButton variant='danger' className='px-3' isFullWidth={false}>
+            <CustomButton
+              variant='danger'
+              className='px-3'
+              isFullWidth={false}
+              onClick={() => setOpenCreateListingModal(true)}
+            >
               Create new listing
             </CustomButton>
           </div>
 
           {/* Main content */}
-          <main className='flex-1 p-6'>{children}</main>
+          <main className='flex-1 p-4 sm:p-6'>{children}</main>
         </div>
       )}
+
+      <CreateListingModal
+        isOpen={openCreateListingModal}
+        onClose={() => {
+          setOpenCreateListingModal(false);
+        }}
+      />
     </>
   );
 };
