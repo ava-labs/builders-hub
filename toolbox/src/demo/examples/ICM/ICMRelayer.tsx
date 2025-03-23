@@ -1,33 +1,31 @@
 "use client";
 
-import { createPublicClient, createWalletClient, custom, formatEther, parseEther } from 'viem'
+import { formatEther, parseEther } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { useExampleStore } from '../../utils/store';
+import { useToolboxStore, useViemChainStore, useWalletStore } from '../../utils/store';
 import { Input, Button } from '../../ui';
 import { CodeHighlighter } from '../../ui/CodeHighlighter';
 import { useState, useEffect } from 'react';
 import { useErrorBoundary } from "react-error-boundary";
-import KnownChainIDWarning from '../../ui/KnownChainIDWarning';
+import { RequireChainL1 } from '../../ui/RequireChain';
 const randomPrivateKey = generatePrivateKey()
 const MINIMUM_BALANCE = parseEther('100')
 
 export default function ICMRelayer() {
-    const { chainID, setChainID, subnetID, setSubnetID, evmChainRpcUrl, setEvmChainRpcUrl, walletChainId } = useExampleStore();
+    const { chainID, setChainID, subnetID, setSubnetID, evmChainRpcUrl, setEvmChainRpcUrl } = useToolboxStore();
+    const { coreWalletClient, publicClient } = useWalletStore();
     const [balance, setBalance] = useState<bigint>(BigInt(0));
     const [isCheckingBalance, setIsCheckingBalance] = useState(true);
     const [isSending, setIsSending] = useState(false);
     const { showBoundary } = useErrorBoundary();
     const relayerAddress = privateKeyToAccount(randomPrivateKey).address;
+    const viemChain = useViemChainStore();
 
     const checkBalance = async () => {
         if (!evmChainRpcUrl) return;
 
         setIsCheckingBalance(true);
         try {
-            const publicClient = createPublicClient({
-                transport: custom(window.avalanche!)
-            });
-
             const balance = await publicClient.getBalance({
                 address: relayerAddress
             });
@@ -47,32 +45,10 @@ export default function ICMRelayer() {
     const handleFund = async () => {
         setIsSending(true);
         try {
-            const walletClient = createWalletClient({
-                transport: custom(window.avalanche!)
-            });
-
-            const [address] = await walletClient.requestAddresses();
-
-            const hash = await walletClient.sendTransaction({
+            const hash = await coreWalletClient.sendTransaction({
                 to: relayerAddress,
                 value: MINIMUM_BALANCE - balance,
-                account: address,
-                chain: {
-                    id: walletChainId,
-                    name: "Chain",
-                    rpcUrls: {
-                        default: { http: [] }
-                    },
-                    nativeCurrency: {
-                        name: "COIN",
-                        symbol: "COIN",
-                        decimals: 18
-                    }
-                }
-            });
-
-            const publicClient = createPublicClient({
-                transport: custom(window.avalanche!)
+                chain: viemChain
             });
 
             await publicClient.waitForTransactionReceipt({ hash });
@@ -86,86 +62,87 @@ export default function ICMRelayer() {
 
     const hasEnoughBalance = balance >= MINIMUM_BALANCE;
 
-    return <div className="space-y-4">
-        <div className="text-lg font-bold">Relayer Configuration</div>
-        <Input
-            label="Destination Subnet ID"
-            value={subnetID}
-            onChange={setSubnetID}
-        />
-        <Input
-            label="Destination Chain ID"
-            value={chainID}
-            onChange={setChainID}
-        />
-        <Input
-            label="Destination RPC"
-            value={evmChainRpcUrl}
-            onChange={setEvmChainRpcUrl}
-        />
-        <div className="space-y-2">
+    return <RequireChainL1>
+        <div className="space-y-4">
+            <div className="text-lg font-bold">Relayer Configuration</div>
             <Input
-                label="Relayer EVM Address"
-                value={relayerAddress}
-                disabled
+                label="Destination Subnet ID"
+                value={subnetID}
+                onChange={setSubnetID}
             />
-            <div>
-                <p className="font-semibold">Relayer Balance:</p>
-                {isCheckingBalance ? (
-                    <p>Checking balance...</p>
-                ) : (
-                    <div className="flex items-center gap-2">
-                        <p>{formatEther(balance)} coins {hasEnoughBalance ? '✅' : '❌'}</p>
-                        <span
-                            onClick={checkBalance}
-                            className="text-blue-500 hover:underline cursor-pointer"
-                        >
-                            Recheck
-                        </span>
+            <Input
+                label="Destination Chain ID"
+                value={chainID}
+                onChange={setChainID}
+            />
+            <Input
+                label="Destination RPC"
+                value={evmChainRpcUrl}
+                onChange={setEvmChainRpcUrl}
+            />
+            <div className="space-y-2">
+                <Input
+                    label="Relayer EVM Address"
+                    value={relayerAddress}
+                    disabled
+                />
+                <div>
+                    <p className="font-semibold">Relayer Balance:</p>
+                    {isCheckingBalance ? (
+                        <p>Checking balance...</p>
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <p>{formatEther(balance)} coins {hasEnoughBalance ? '✅' : '❌'}</p>
+                            <span
+                                onClick={checkBalance}
+                                className="text-blue-500 hover:underline cursor-pointer"
+                            >
+                                Recheck
+                            </span>
+                        </div>
+                    )}
+                    <div className="pb-2 text-xs">
+                        Should be at least {formatEther(MINIMUM_BALANCE)} native coins
                     </div>
-                )}
-                <div className="pb-2 text-xs">
-                    Should be at least {formatEther(MINIMUM_BALANCE)} native coins
+                    {!hasEnoughBalance && (
+                        <Button
+                            type="primary"
+                            onClick={handleFund}
+                            loading={isSending}
+                            disabled={isSending}
+                        >
+                            Fund Relayer
+                        </Button>
+                    )}
                 </div>
-                {!hasEnoughBalance && (
-                    <Button
-                        type="primary"
-                        onClick={handleFund}
-                        loading={isSending}
-                        disabled={isSending}
-                    >
-                        Fund Relayer
-                    </Button>
-                )}
             </div>
+            {hasEnoughBalance && (
+                <>
+                    <div className="text-sm">
+                        ⚠️ The private key is randomly generated on every page load and only available in your browser until you refresh the page.
+                        Please save the address above as you will need to fund it later.
+                    </div>
+                    <div className="text-lg font-bold">Write the relayer config file</div>
+                    <CodeHighlighter
+                        code={genConfigCommand(subnetID, chainID, evmChainRpcUrl, randomPrivateKey)}
+                        lang="sh"
+                    />
+                    <div className="text-lg font-bold">Run the relayer</div>
+                    <CodeHighlighter
+                        code={relayerDockerCommand()}
+                        lang="sh"
+                    />
+                </>
+            )}
+            {!hasEnoughBalance && (
+                <>
+                    <div className="text-lg font-bold">
+                        You need to fund the relayer with at least {formatEther(MINIMUM_BALANCE)} native coins to start relaying messages.
+                    </div>
+                </>
+            )}
         </div>
-        {hasEnoughBalance && (
-            <>
-                <div className="text-sm">
-                    ⚠️ The private key is randomly generated on every page load and only available in your browser until you refresh the page.
-                    Please save the address above as you will need to fund it later.
-                </div>
-                <div className="text-lg font-bold">Write the relayer config file</div>
-                <CodeHighlighter
-                    code={genConfigCommand(subnetID, chainID, evmChainRpcUrl, randomPrivateKey)}
-                    lang="sh"
-                />
-                <div className="text-lg font-bold">Run the relayer</div>
-                <CodeHighlighter
-                    code={relayerDockerCommand()}
-                    lang="sh"
-                />
-            </>
-        )}
-        {!hasEnoughBalance && (
-            <>
-                <KnownChainIDWarning walletChainId={walletChainId} />
-                <div className="text-lg font-bold">
-                    You need to fund the relayer with at least {formatEther(MINIMUM_BALANCE)} native coins to start relaying messages.
-                </div>
-            </>
-        )}
-    </div>
+    </RequireChainL1>
 }
 
 const genConfigCommand = (destinationSubnetID: string, destinationBlockchainID: string, destinationRPC: string, privateKeyhex: string) => {

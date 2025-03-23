@@ -1,41 +1,34 @@
 "use client";
 
 import { useState } from 'react';
-import { useExampleStore } from "../../utils/store";
-import { createWalletClient, custom, createPublicClient, hexToBytes, decodeErrorResult, Abi } from 'viem';
+import { useToolboxStore, useViemChainStore, useWalletStore } from "../../utils/store";
+import { hexToBytes, decodeErrorResult, Abi } from 'viem';
 import { packWarpIntoAccessList } from './packWarp';
 import ValidatorManagerABI from "../../../../contracts/icm-contracts/compiled/ValidatorManager.json";
-import { Button, Input, InputArray } from "../../ui";
+import { Button, Input } from "../../ui";
 import { Success } from "../../ui/Success";
-import { utils } from '@avalabs/avalanchejs';
-
+import { networkIDs, utils } from '@avalabs/avalanchejs';
+import { RequireChainL1 } from '../../ui/RequireChain';
+import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
+import { CodeHighlighter } from '../../ui/CodeHighlighter';
 
 const cb58ToHex = (cb58: string) => utils.bufferToHex(utils.base58check.decode(cb58));
 const add0x = (hex: string): `0x${string}` => hex.startsWith('0x') ? hex as `0x${string}` : `0x${hex}`;
 export default function InitValidatorSet() {
     const {
-        subnetID,
-        setSubnetID,
-        chainID,
-        setChainID,
-        walletChainId,
-        nodePopJsons,
-        setNodePopJsons,
-        L1ConversionSignature,
+        L1ID,
+        setL1ID,
         setL1ConversionSignature,
         proxyAddress,
-        setProxyAddress,
-        evmChainRpcUrl,
-        setEvmChainRpcUrl,
-        walletEVMAddress,
-        validatorWeights,
-        setValidatorWeights
-    } = useExampleStore();
-
+        evmChainRpcUrl } = useToolboxStore();
+    const viemChain = useViemChainStore();
+    const { coreWalletClient, publicClient } = useWalletStore();
     const [isInitializing, setIsInitializing] = useState(false);
     const [txHash, setTxHash] = useState<string | null>(null);
     const [simulationWentThrough, setSimulationWentThrough] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [collectedData, setCollectedData] = useState<Record<string, any>>({});
+    const [showDebugData, setShowDebugData] = useState(false);
 
     const onInitialize = async (debug: boolean = false) => {
         if (!evmChainRpcUrl && debug) {
@@ -50,38 +43,46 @@ export default function InitValidatorSet() {
         setIsInitializing(true);
         setError(null);
         try {
+            if (!coreWalletClient) throw new Error('Core wallet client not found');
+
+            const { validators, message, justification, signingSubnetId, networkId, chainId, managerAddress } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: L1ID });
+
+
+            const { signedMessage } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
+                network: networkId === networkIDs.FujiID ? "fuji" : "mainnet",
+                signatureAggregatorRequest: {
+                    message: message,
+                    justification: justification,
+                    signingSubnetId: signingSubnetId,
+                    quorumPercentage: 67, // Default threshold for subnet validation
+                },
+            });
+
+            setL1ConversionSignature(signedMessage);
+
+
             // Prepare transaction arguments
             const txArgs = [{
-                subnetID: cb58ToHex(subnetID),
-                validatorManagerBlockchainID: cb58ToHex(chainID),
-                validatorManagerAddress: proxyAddress as `0x${string}`,
-                initialValidators: nodePopJsons
-                    .map((json, index) => {
-                        const node = JSON.parse(json).result;
+                subnetID: cb58ToHex(signingSubnetId),
+                validatorManagerBlockchainID: cb58ToHex(chainId),
+                validatorManagerAddress: managerAddress as `0x${string}`,
+                initialValidators: validators
+                    .map(({ nodeID, weight, signer }) => {
                         return {
-                            nodeID: cb58ToHex(node.nodeID.split('-')[1]),
-                            blsPublicKey: node.nodePOP.publicKey,
-                            weight: validatorWeights[index]
+                            nodeID: nodeID,
+                            blsPublicKey: signer.publicKey,
+                            weight: weight
                         };
                     })
             }, 0];
 
-            // Debug log the transaction arguments
-            console.log('Transaction Arguments:', txArgs);
+
+            setCollectedData({ ...txArgs[0] as any, signedMessage })
+
 
             // Convert signature to bytes and pack into access list
-            const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
+            const signatureBytes = hexToBytes(add0x(signedMessage));
             const accessList = packWarpIntoAccessList(signatureBytes);
-
-
-            const walletClient = createWalletClient({
-                transport: custom(window.avalanche)
-            });
-            const from = walletEVMAddress as `0x${string}`
-
-            const publicClient = createPublicClient({
-                transport: custom(window.avalanche)
-            });
 
             const sim = await publicClient.simulateContract({
                 address: proxyAddress as `0x${string}`,
@@ -89,27 +90,16 @@ export default function InitValidatorSet() {
                 functionName: 'initializeValidatorSet',
                 args: txArgs,
                 accessList,
-                account: from,
                 gas: BigInt(1_000_000),
-                chain: {
-                    id: walletChainId,
-                    name: "My L1",
-                    rpcUrls: {
-                        default: { http: [] },
-                    },
-                    nativeCurrency: {
-                        name: "COIN",
-                        symbol: "COIN",
-                        decimals: 18,
-                    },
-                },
+                // @ts-ignore TODO: after redefining simulateContract, should be gone
+                chain: viemChain,
             });
 
             console.log("Simulated transaction:", sim);
             setSimulationWentThrough(true);
 
             // Send transaction
-            const hash = await walletClient.writeContract(sim.request);
+            const hash = await coreWalletClient.writeContract(sim.request);
 
             // Wait for transaction confirmation
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -130,94 +120,59 @@ export default function InitValidatorSet() {
     };
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold ">Initialize Validator Set</h2>
-
-            {error && (
-                <div className="p-4 text-red-700 bg-red-100 rounded-md">
-                    {error}
-                </div>
-            )}
-
-            {simulationWentThrough && !error && (
-                <div className="p-4 text-green-700 bg-green-100 rounded-md">
-                    Transaction simulation successful
-                </div>
-            )}
-
+        <RequireChainL1>
             <div className="space-y-4">
-                <Input
-                    label="Chain ID"
-                    value={chainID}
-                    onChange={setChainID}
-                    placeholder="Enter chain ID (CB58 format)"
-                />
-                <Input
-                    label="Subnet ID"
-                    value={subnetID}
-                    onChange={setSubnetID}
-                    placeholder="Enter subnet ID (CB58 format)"
-                />
-                <Input
-                    label="RPC Endpoint (optional for debugging)"
-                    value={evmChainRpcUrl}
-                    onChange={setEvmChainRpcUrl}
-                    placeholder="Enter RPC endpoint"
-                />
+                <h2 className="text-lg font-semibold ">Initialize Validator Set</h2>
 
-                <Input
-                    label="Proxy Address"
-                    value={proxyAddress}
-                    onChange={setProxyAddress}
-                    placeholder="0x..."
-                />
+                {error && (
+                    <div className="p-4 text-red-700 bg-red-100 rounded-md">
+                        {error}
+                    </div>
+                )}
 
-                <InputArray
-                    label="Info.getNodeID responses of the initial validators"
-                    values={nodePopJsons}
-                    onChange={setNodePopJsons}
-                    type="textarea"
-                    placeholder={'{"result":{"nodeID":"NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg","nodePOP":{"publicKey":"0x...","proofOfPossession":"0x..."}}}'}
-                    rows={4}
-                />
-                <div className="text-sm ">
-                    Type in terminal: <span className="font-mono block">{`curl -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' -H "content-type:application/json;" 127.0.0.1:9650/ext/info`}</span>
+                {simulationWentThrough && !error && (
+                    <div className="p-4 text-green-700 bg-green-100 rounded-md">
+                        Transaction simulation successful
+                    </div>
+                )}
+
+                <div className="space-y-4">
+                    <Input
+                        label="L1 ID"
+                        value={L1ID}
+                        onChange={setL1ID}
+                        placeholder="Enter L1 ID (CB58 format)"
+                    />
                 </div>
 
-                <InputArray
-                    label="Validator Weights"
-                    values={validatorWeights.map(weight => weight.toString()).slice(0, nodePopJsons.length)}
-                    onChange={(weightsStrings) => setValidatorWeights(weightsStrings.map(weight => parseInt(weight)))}
-                    type="number"
-                    disableAddRemove={true}
-                />
+                {
+                    Object.keys(collectedData).length > 0 && (
+                        <div className="space-y-2">
+                            <span onClick={() => setShowDebugData(!showDebugData)} className="cursor-pointer text-blue-500  hover:underline">{showDebugData ? "Hide" : "Show"} debug data</span>
+                            {showDebugData && (
+                                <CodeHighlighter code={JSON.stringify(collectedData, null, 2)} lang="json" />
+                            )}
+                        </div>
+                    )
+                }
 
-                <Input
-                    label="L1 Conversion Signature"
-                    value={L1ConversionSignature}
-                    onChange={setL1ConversionSignature}
-                    placeholder="Enter L1 conversion signature (hex)"
-                    type="textarea"
-                    rows={5}
-                />
+                {txHash && (
+                    <Success
+                        label="Transaction Successful"
+                        value={txHash}
+                    />
+                )}
+
+                <Button
+                    type="primary"
+                    onClick={() => onInitialize(false)}
+                    loading={isInitializing}
+                    disabled={!L1ID}
+                >
+                    Initialize Validator Set
+                </Button>
             </div>
-
-            {txHash && (
-                <Success
-                    label="Transaction Successful"
-                    value={txHash}
-                />
-            )}
-
-            <Button
-                type="primary"
-                onClick={() => onInitialize(false)}
-                loading={isInitializing}
-                disabled={!L1ConversionSignature || isInitializing || !proxyAddress || !chainID}
-            >
-                Initialize Validator Set
-            </Button>
-        </div>
+        </RequireChainL1>
     );
 }
 

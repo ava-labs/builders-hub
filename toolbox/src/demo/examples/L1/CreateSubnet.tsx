@@ -1,50 +1,24 @@
 "use client";
 
-import { utils, Context } from "@avalabs/avalanchejs";
-import { pvm } from "@avalabs/avalanchejs";
-import { getRPCEndpoint } from "../../utils/rpcEndpoint";
-import { useExampleStore } from "../../utils/store";
+import { useWalletStore, useToolboxStore } from "../../utils/store";
 import { Button, Input } from "../../ui";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Success } from "../../ui/Success";
 
-
 export default function CreateSubnet() {
   const { showBoundary } = useErrorBoundary();
-  const { networkID, getPChainAddress, setSubnetID, subnetID } = useExampleStore(state => state);
+  const { setSubnetID, subnetID } = useToolboxStore();
+  const { coreWalletClient, pChainAddress } = useWalletStore();
   const [isCreating, setIsCreating] = useState(false);
 
   async function handleCreateSubnet() {
     setSubnetID("");
     setIsCreating(true);
     try {
-      const pvmApi = new pvm.PVMApi(getRPCEndpoint(networkID));
-      const feeState = await pvmApi.getFeeState();
-      const context = await Context.getContextFromURI(getRPCEndpoint(networkID));
-
-      const addressBytes = utils.bech32ToBytes(getPChainAddress());
-
-      const { utxos } = await pvmApi.getUTXOs({
-        addresses: [getPChainAddress()]
+      const txID = await coreWalletClient.createSubnet({
+        subnetOwners: [pChainAddress]
       });
-
-      const tx = pvm.e.newCreateSubnetTx({
-        feeState,
-        fromAddressesBytes: [addressBytes],
-        utxos,
-        subnetOwners: [addressBytes],
-      }, context);
-
-
-      const txID = await window.avalanche!.request({
-        method: 'avalanche_sendTransaction',
-        params: {
-          transactionHex: utils.bufferToHex(tx.toBytes()),
-          chainAlias: 'P',
-        }
-      }) as string;
-
 
       setSubnetID(txID);
     } catch (error) {
@@ -60,7 +34,7 @@ export default function CreateSubnet() {
       <div className="space-y-4">
         <Input
           label="Your P-Chain Address"
-          value={getPChainAddress()}
+          value={pChainAddress}
           disabled={true}
           type="text"
         />

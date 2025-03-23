@@ -215,9 +215,9 @@ async function main(): Promise<void> {
     },
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/subnets/config.md",
-      outputPath: "content/docs/nodes/configure/subnet-configs.mdx",
-      title: "Subnet Configurations",
-      description: "This page describes the configuration options available for Subnets.",
+      outputPath: "content/docs/nodes/configure/avalanche-l1-configs.mdx",
+      title: "Avalanche L1 Configs",
+      description: "This page describes the configuration options available for Avalanche L1s.",
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/subnets/",
     },
     {

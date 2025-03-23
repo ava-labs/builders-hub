@@ -1,12 +1,13 @@
 "use client";
 
-import { useExampleStore } from "../../utils/store";
+import { useToolboxStore, useViemChainStore, useWalletStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Button } from "../../ui";
 import { Success } from "../../ui/Success";
-import { createWalletClient, custom, createPublicClient, keccak256 } from 'viem';
+import { keccak256 } from 'viem';
 import ValidatorManagerABI from "../../../../contracts/icm-contracts/compiled/ValidatorManager.json";
+import { RequireChainL1 } from "../../ui/RequireChain";
 
 function calculateLibraryHash(libraryPath: string) {
     const hash = keccak256(
@@ -17,8 +18,10 @@ function calculateLibraryHash(libraryPath: string) {
 
 export default function DeployValidatorManager() {
     const { showBoundary } = useErrorBoundary();
-    const { validatorMessagesLibAddress, walletChainId, validatorManagerAddress, setValidatorManagerAddress } = useExampleStore();
+    const { validatorMessagesLibAddress, setValidatorManagerAddress, validatorManagerAddress } = useToolboxStore();
+    const { walletChainId, coreWalletClient, publicClient } = useWalletStore();
     const [isDeploying, setIsDeploying] = useState(false);
+    const viemChain = useViemChainStore();
 
     const getLinkedBytecode = () => {
         if (!validatorMessagesLibAddress) {
@@ -44,33 +47,13 @@ export default function DeployValidatorManager() {
         setIsDeploying(true);
         setValidatorManagerAddress("");
         try {
-            const publicClient = createPublicClient({
-                transport: custom(window.avalanche!),
-            });
+            if (!viemChain) throw new Error("Viem chain not found");
 
-            const walletClient = createWalletClient({
-                transport: custom(window.avalanche!),
-            });
-
-            const [address] = await walletClient.requestAddresses();
-
-            const hash = await walletClient.deployContract({
+            const hash = await coreWalletClient.deployContract({
                 abi: ValidatorManagerABI.abi,
                 bytecode: getLinkedBytecode(),
-                account: address,
                 args: [0], // TODO: Not sure about this. Please check the source https://github.com/ava-labs/icm-contracts/blob/48fe4883914b46ec7e4385dc0edf5c2df31c99f4/contracts/validator-manager/ValidatorManager.sol#L136C21-L136C48
-                chain: {
-                    id: walletChainId,
-                    name: "My L1",
-                    rpcUrls: {
-                        default: { http: [] },
-                    },
-                    nativeCurrency: {
-                        name: "COIN",
-                        symbol: "COIN",
-                        decimals: 18,
-                    },
-                },
+                chain: viemChain,
             });
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -88,39 +71,30 @@ export default function DeployValidatorManager() {
     }
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold ">Deploy Validator Manager</h2>
+        <RequireChainL1>
             <div className="space-y-4">
-                <div className="mb-4">
-                    This will deploy the <code>ValidatorManager</code> contract to the currently connected EVM network <code>{walletChainId}</code>.
-                </div>
-                <div className="mb-4">
-                    The contract requires the <code>ValidatorMessages</code> library at address: <code>{validatorMessagesLibAddress || "Not deployed"}</code>
-                </div>
-                {knownNetwoks[walletChainId] && (
+                <h2 className="text-lg font-semibold ">Deploy Validator Manager</h2>
+                <div className="space-y-4">
                     <div className="mb-4">
-                        ⚠️ Warning: You are connected to {knownNetwoks[walletChainId]}, not to your L1.
+                        This will deploy the <code>ValidatorManager</code> contract to the currently connected EVM network <code>{walletChainId}</code>.
                     </div>
-                )}
-                <Button
-                    type="primary"
-                    onClick={handleDeploy}
-                    loading={isDeploying}
-                    disabled={isDeploying || !validatorMessagesLibAddress}
-                >
-                    Deploy Contract
-                </Button>
+                    <div className="mb-4">
+                        The contract requires the <code>ValidatorMessages</code> library at address: <code>{validatorMessagesLibAddress || "Not deployed"}</code>
+                    </div>
+                    <Button
+                        type="primary"
+                        onClick={handleDeploy}
+                        loading={isDeploying}
+                        disabled={isDeploying || !validatorMessagesLibAddress}
+                    >
+                        Deploy Contract
+                    </Button>
+                </div>
+                <Success
+                    label="ValidatorManager Address"
+                    value={validatorManagerAddress}
+                />
             </div>
-            <Success
-                label="ValidatorManager Address"
-                value={validatorManagerAddress}
-            />
-        </div>
+        </RequireChainL1>
     );
-};
-
-const knownNetwoks: Record<number, string> = {
-    43114: "Avalanche Mainnet",
-    43113: "Avalanche Fuji Testnet",
-    43117: "Avalanche Devnet",
 };

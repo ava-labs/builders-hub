@@ -1,11 +1,12 @@
 "use client";
 
-import { useExampleStore } from "../../utils/store";
+import { useToolboxStore, useWalletStore } from "../../utils/store";
 import { Input, Select } from "../../ui";
 import { useState, useEffect } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
 import versions from "../../../versions.json";
 import { CodeHighlighter } from "../../ui/CodeHighlighter";
+
 const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number) => {
     const httpPort = isRPC ? "8080" : "9650";
     const stakingPort = isRPC ? "9653" : "9651";
@@ -121,7 +122,9 @@ ${domain}/ext/bc/${chainID}/rpc`
 
 
 export default function AvalanchegoDocker() {
-    const { subnetID, setSubnetID, networkID, setNetworkID, chainID, setChainID, setEvmChainRpcUrl } = useExampleStore();
+    const { subnetID, setSubnetID, chainID, setChainID, setEvmChainRpcUrl } = useToolboxStore();
+    const { avalancheNetworkID } = useWalletStore();
+
     const [isRPC, setIsRPC] = useState<"true" | "false">("false");
     const [rpcCommand, setRpcCommand] = useState("");
     const [domain, setDomain] = useState("");
@@ -129,11 +132,11 @@ export default function AvalanchegoDocker() {
 
     useEffect(() => {
         try {
-            setRpcCommand(generateDockerCommand([subnetID], isRPC === "true", networkID));
+            setRpcCommand(generateDockerCommand([subnetID], isRPC === "true", avalancheNetworkID));
         } catch (error) {
             setRpcCommand((error as Error).message);
         }
-    }, [subnetID, isRPC, networkID]);
+    }, [subnetID, isRPC, avalancheNetworkID]);
 
 
     useEffect(() => {
@@ -161,16 +164,6 @@ export default function AvalanchegoDocker() {
                     value={subnetID}
                     onChange={setSubnetID}
                     placeholder="Create a subnet to generate a subnet ID"
-                />
-
-                <Select
-                    label="Select Network"
-                    value={networkID}
-                    onChange={(value) => setNetworkID(Number(value))}
-                    options={[
-                        { value: networkIDs.FujiID, label: "Fuji" },
-                        { value: networkIDs.MainnetID, label: "Mainnet" },
-                    ]}
                 />
 
                 <Select

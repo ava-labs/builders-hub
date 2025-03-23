@@ -1,17 +1,19 @@
 "use client";
 
-import { useExampleStore } from "../../utils/store";
+import { useToolboxStore, useViemChainStore, useWalletStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
 import { useEffect, useState } from "react";
 import { Button, Input } from "../../ui";
 import { Success } from "../../ui/Success";
-import { createWalletClient, custom, createPublicClient, AbiEvent } from 'viem';
+import { AbiEvent } from 'viem';
 import ValidatorManagerABI from "../../../../contracts/icm-contracts/compiled/ValidatorManager.json";
 import { utils } from "@avalabs/avalanchejs";
+import { RequireChainL1 } from "../../ui/RequireChain";
 
 export default function Initialize() {
     const { showBoundary } = useErrorBoundary();
-    const { subnetID, walletChainId, proxyAddress, setProxyAddress, setSubnetID, walletEVMAddress } = useExampleStore();
+    const { subnetID, proxyAddress, setProxyAddress, setSubnetID } = useToolboxStore();
+    const { walletEVMAddress, coreWalletClient, publicClient } = useWalletStore();
     const [isChecking, setIsChecking] = useState(false);
     const [isInitializing, setIsInitializing] = useState(false);
     const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
@@ -19,6 +21,7 @@ export default function Initialize() {
     const [churnPeriodSeconds, setChurnPeriodSeconds] = useState("0");
     const [maximumChurnPercentage, setMaximumChurnPercentage] = useState("20");
     const [adminAddress, setAdminAddress] = useState("");
+    const viemChain = useViemChainStore();
 
     useEffect(() => {
         if (walletEVMAddress && !adminAddress) {
@@ -44,10 +47,6 @@ export default function Initialize() {
 
         setIsChecking(true);
         try {
-            const publicClient = createPublicClient({
-                transport: custom(window.avalanche)
-            });
-
             const initializedEvent = ValidatorManagerABI.abi.find(
                 item => item.type === 'event' && item.name === 'Initialized'
             );
@@ -89,35 +88,14 @@ export default function Initialize() {
             };
 
 
-            const walletClient = createWalletClient({
-                transport: custom(window.avalanche)
-            });
-
-            const [address] = await walletClient.requestAddresses();
-
-            const hash = await walletClient.writeContract({
+            const hash = await coreWalletClient.writeContract({
                 address: proxyAddress as `0x${string}`,
                 abi: ValidatorManagerABI.abi,
                 functionName: 'initialize',
                 args: [settings],
-                account: address,
-                chain: {
-                    id: walletChainId,
-                    name: "My L1",
-                    rpcUrls: {
-                        default: { http: [] },
-                    },
-                    nativeCurrency: {
-                        name: "COIN",
-                        symbol: "COIN",
-                        decimals: 18,
-                    },
-                },
+                chain: viemChain,
             });
 
-            const publicClient = createPublicClient({
-                transport: custom(window.avalanche)
-            });
 
             await publicClient.waitForTransactionReceipt({ hash });
             await checkIfInitialized();
@@ -129,80 +107,82 @@ export default function Initialize() {
     }
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold ">Initialize Validator Manager</h2>
+        <RequireChainL1>
             <div className="space-y-4">
-                <Input
-                    label="Proxy address"
-                    value={proxyAddress}
-                    onChange={setProxyAddress}
-                    placeholder="Enter proxy address"
-                    button={
-                        <Button
-                            type="secondary"
-                            onClick={checkIfInitialized}
-                            loading={isChecking}
-                            disabled={!proxyAddress}
-                            className="h-9 rounded-l-none"
-                        >
-                            Check Status
-                        </Button>
-                    }
-                />
-
-                <Input
-                    label="Subnet ID"
-                    value={subnetID}
-                    onChange={setSubnetID}
-                />
-                <Input
-                    label={`Subnet ID (Hex), ${utils.hexToBuffer(subnetIDHex).length} bytes`}
-                    value={subnetIDHex}
-                    disabled
-                />
-
-
-
+                <h2 className="text-lg font-semibold ">Initialize Validator Manager</h2>
                 <div className="space-y-4">
                     <Input
-                        label="Churn Period (seconds)"
-                        type="number"
-                        value={churnPeriodSeconds}
-                        onChange={setChurnPeriodSeconds}
-                        placeholder="Enter churn period in seconds"
+                        label="Proxy address"
+                        value={proxyAddress}
+                        onChange={setProxyAddress}
+                        placeholder="Enter proxy address"
+                        button={
+                            <Button
+                                type="secondary"
+                                onClick={checkIfInitialized}
+                                loading={isChecking}
+                                disabled={!proxyAddress}
+                                className="h-9 rounded-l-none"
+                            >
+                                Check Status
+                            </Button>
+                        }
+                    />
+
+                    <Input
+                        label="Subnet ID"
+                        value={subnetID}
+                        onChange={setSubnetID}
                     />
                     <Input
-                        label="Maximum Churn Percentage"
-                        type="number"
-                        value={maximumChurnPercentage}
-                        onChange={setMaximumChurnPercentage}
-                        placeholder="Enter maximum churn percentage"
+                        label={`Subnet ID (Hex), ${utils.hexToBuffer(subnetIDHex).length} bytes`}
+                        value={subnetIDHex}
+                        disabled
                     />
-                    <Input
-                        label="Admin Address"
-                        value={adminAddress}
-                        onChange={setAdminAddress}
-                        placeholder="Enter admin address"
-                    />
-                    <Button
-                        type="primary"
-                        onClick={handleInitialize}
-                        loading={isInitializing}
-                        disabled={isInitializing}
-                    >
-                        Initialize Contract
-                    </Button>
+
+
+
+                    <div className="space-y-4">
+                        <Input
+                            label="Churn Period (seconds)"
+                            type="number"
+                            value={churnPeriodSeconds}
+                            onChange={setChurnPeriodSeconds}
+                            placeholder="Enter churn period in seconds"
+                        />
+                        <Input
+                            label="Maximum Churn Percentage"
+                            type="number"
+                            value={maximumChurnPercentage}
+                            onChange={setMaximumChurnPercentage}
+                            placeholder="Enter maximum churn percentage"
+                        />
+                        <Input
+                            label="Admin Address"
+                            value={adminAddress}
+                            onChange={setAdminAddress}
+                            placeholder="Enter admin address"
+                        />
+                        <Button
+                            type="primary"
+                            onClick={handleInitialize}
+                            loading={isInitializing}
+                            disabled={isInitializing}
+                        >
+                            Initialize Contract
+                        </Button>
+                    </div>
+
+
+                    {isInitialized === true && (
+                        <Success
+                            label="Already Initialized"
+                            value={jsonStringifyWithBigint(initEvent)}
+                        />
+                    )}
                 </div>
-
-
-                {isInitialized === true && (
-                    <Success
-                        label="Already Initialized"
-                        value={jsonStringifyWithBigint(initEvent)}
-                    />
-                )}
             </div>
-        </div>
+        </RequireChainL1>
     );
 };
 

@@ -1,13 +1,16 @@
 'use client'
 import dynamic from 'next/dynamic';
-import { default as L1Toolbox } from "@/toolbox/src/demo/ToolboxApp"
+
+// Import the component lazily with no SSR
+const L1Toolbox = dynamic(() => import("@/toolbox/src/demo/ToolboxApp"), {
+    ssr: false,
+    loading: () => <div>Loading...</div>
+});
 
 export default function L1LauncherPage() {
-    const NoSSRL1Toolbox = dynamic(() => Promise.resolve(L1Toolbox), { ssr: false });
-
     return (
         <div className="">
-            <NoSSRL1Toolbox />
+            <L1Toolbox />
         </div>
     );
 }

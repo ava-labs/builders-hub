@@ -1,12 +1,12 @@
 "use client";
 
-import { useExampleStore } from "../../utils/store";
+import { useToolboxStore, useWalletStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
-import { AbiEvent, createPublicClient, custom } from 'viem';
+import { AbiEvent } from 'viem';
 import { useEffect, useState } from "react";
 import ValidatorManagerABI from "../../../../contracts/icm-contracts/compiled/ValidatorManager.json";
 import { Button, Input } from "../../ui";
-
+import { RequireChainL1 } from "../../ui/RequireChain";
 type ViewData = {
     [key: string]: any;
 };
@@ -28,10 +28,11 @@ const serializeValue = (value: any): any => {
 
 export default function ReadContract() {
     const { showBoundary } = useErrorBoundary();
-    const { proxyAddress, setProxyAddress } = useExampleStore();
+    const { proxyAddress, setProxyAddress } = useToolboxStore();
     const [viewData, setViewData] = useState<ViewData>({});
     const [isReading, setIsReading] = useState(false);
     const [eventLogs, setEventLogs] = useState<Record<string, any[]>>({});
+    const { publicClient } = useWalletStore();
 
     async function readContractData() {
         if (!proxyAddress) {
@@ -43,10 +44,6 @@ export default function ReadContract() {
         if (!proxyAddress || !window.avalanche) return;
 
         try {
-            const publicClient = createPublicClient({
-                transport: custom(window.avalanche)
-            });
-
             // Read all view functions
             const viewFunctions = ValidatorManagerABI.abi.filter(
                 (item: any) => item.type === "function" &&
@@ -111,73 +108,75 @@ export default function ReadContract() {
     }, [proxyAddress]);
 
     return (
-        <div className="space-y-8">
-            <div className="space-y-4">
-                <h2 className="text-lg font-semibold ">Read Proxy Contract</h2>
-                <Input
-                    label="Proxy Address"
-                    value={proxyAddress || ""}
-                    placeholder="0x..."
-                    onChange={(value) => setProxyAddress(value)}
-                    button={
-                        <Button
-                            type="primary"
-                            onClick={readContractData}
-                            loading={isReading}
-                            className="h-9 rounded-l-none"
-                        >
-                            Refresh
-                        </Button>
-                    }
-                />
-            </div>
-
-            <div className="overflow-x-auto">
-                <table className="min-w-full border border-gray-500">
-                    <thead>
-                        <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider border-b border-gray-500">
-                                Function
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider border-b border-gray-500">
-                                Value
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {Object.entries(viewData).map(([key, value]) => (
-                            <tr key={key} className="hover:bg-gray-50/10">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium border-b border-gray-500">
-                                    {key}
-                                </td>
-                                <td className="px-6 py-4 text-sm border-b border-gray-500">
-                                    <pre className="whitespace-pre-wrap font-mono rounded border border-gray-500 p-2">
-                                        {typeof value === 'string'
-                                            ? value
-                                            : JSON.stringify(value, null, 2)}
-                                    </pre>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            {Object.keys(eventLogs).length > 0 && (
-                <div>
-                    <h3 className="text-lg font-semibold mb-4">Events</h3>
-                    <div className="space-y-4">
-                        {Object.entries(eventLogs).map(([eventName, logs]) => (
-                            <div key={eventName} className="p-4 rounded-lg border border-gray-500">
-                                <h4 className="font-medium mb-2">{eventName}</h4>
-                                <pre className="text-sm overflow-auto">
-                                    {JSON.stringify(logs, null, 2)}
-                                </pre>
-                            </div>
-                        ))}
-                    </div>
+        <RequireChainL1>
+            <div className="space-y-8">
+                <div className="space-y-4">
+                    <h2 className="text-lg font-semibold ">Read Proxy Contract</h2>
+                    <Input
+                        label="Proxy Address"
+                        value={proxyAddress || ""}
+                        placeholder="0x..."
+                        onChange={(value) => setProxyAddress(value)}
+                        button={
+                            <Button
+                                type="primary"
+                                onClick={readContractData}
+                                loading={isReading}
+                                className="h-9 rounded-l-none"
+                            >
+                                Refresh
+                            </Button>
+                        }
+                    />
                 </div>
-            )}
-        </div>
+
+                <div className="overflow-x-auto">
+                    <table className="min-w-full border border-gray-500">
+                        <thead>
+                            <tr>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider border-b border-gray-500">
+                                    Function
+                                </th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider border-b border-gray-500">
+                                    Value
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Object.entries(viewData).map(([key, value]) => (
+                                <tr key={key} className="hover:bg-gray-50/10">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium border-b border-gray-500">
+                                        {key}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm border-b border-gray-500">
+                                        <pre className="whitespace-pre-wrap font-mono rounded border border-gray-500 p-2">
+                                            {typeof value === 'string'
+                                                ? value
+                                                : JSON.stringify(value, null, 2)}
+                                        </pre>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {Object.keys(eventLogs).length > 0 && (
+                    <div>
+                        <h3 className="text-lg font-semibold mb-4">Events</h3>
+                        <div className="space-y-4">
+                            {Object.entries(eventLogs).map(([eventName, logs]) => (
+                                <div key={eventName} className="p-4 rounded-lg border border-gray-500">
+                                    <h4 className="font-medium mb-2">{eventName}</h4>
+                                    <pre className="text-sm overflow-auto">
+                                        {JSON.stringify(logs, null, 2)}
+                                    </pre>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </RequireChainL1>
     );
 };
