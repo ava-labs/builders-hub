@@ -361,7 +361,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
                   onClick={() => removeSkill(badge)}
                 >
                   {skills?.find((skill) => skill.id === badge)?.name}
-                  <Minus size={16} color='#18181B' />
+                  <X size={16} color='#18181B' />
                 </div>
               ))}
           </div>
