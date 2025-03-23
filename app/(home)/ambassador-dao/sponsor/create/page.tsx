@@ -1,11 +1,40 @@
-import AmbasssadorDaoSponsorsCreateListing from "@/components/ambassador-dao/sponsor/create-listing";
-
-AmbasssadorDaoSponsorsCreateListingPage;
-
-export const metadata = {
-  layout: null,
-};
+"use client";
+import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
+import AmbasssadorDaoSponsorsCreateListing from "@/components/ambassador-dao/sections/create-listing";
+import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import toast from "react-hot-toast";
 
 export default function AmbasssadorDaoSponsorsCreateListingPage() {
-  return <AmbasssadorDaoSponsorsCreateListing />;
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const type = searchParams.get("type");
+  if (!type) {
+    toast.error("Something went wrong, please try again.");
+    router.push("/ambassador-dao/sponsor/listings");
+    return;
+  }
+
+  const { data: user, isLoading } = useFetchUserDataQuery();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/ambassador-dao");
+    } else if (user && user.role !== "SPONSOR") {
+      router.push("/ambassador-dao/jobs");
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading) {
+    return <FullScreenLoader />;
+  }
+
+  return (
+    <>
+      {user && (
+        <AmbasssadorDaoSponsorsCreateListing type={type as "JOB" | "BOUNTY"} />
+      )}{" "}
+    </>
+  );
 }
