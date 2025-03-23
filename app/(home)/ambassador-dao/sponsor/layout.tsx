@@ -35,7 +35,7 @@ const AmbasssadorDaoSponsorsLayout = ({
           <aside className='w-full md:w-64 p-3 border-r border-[#27272A]'>
             <div className='flex flex-row md:flex-col md:space-y-4 overflow-x-auto whitespace-nowrap space-x-4 md:space-x-0'>
               <SidebarItem
-                href='/ambassador-dao/sponsor'
+                href='/ambassador-dao/sponsor/listings'
                 icon={<LayoutGrid className='h-5 w-5' />}
                 label='My Listing'
               />
