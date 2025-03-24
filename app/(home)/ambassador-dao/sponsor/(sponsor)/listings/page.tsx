@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MoreHorizontal, PenLine, Trash2, Link, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,12 @@ import {
 import CustomButton from "@/components/ambassador-dao/custom-button";
 import Image from "next/image";
 import { PaginationComponent } from "@/components/ambassador-dao/pagination";
+import { useFetchAllListings } from "@/services/ambassador-dao/requests/sponsor";
+import {
+  useFetchUserDataQuery,
+  useFetchUserStatsDataQuery,
+} from "@/services/ambassador-dao/requests/auth";
+import Loader from "@/components/ambassador-dao/ui/Loader";
 
 // Mock data
 const mockUser = {
@@ -44,68 +50,60 @@ const mockUser = {
   },
 };
 
-const mockListings = [
-  {
-    id: 1,
-    name: "Untitled Draft",
-    submissions: 0,
-    deadline: "03/07/26 4PM",
-    price: "0 usdc",
-    status: "Draft",
-  },
-  {
-    id: 2,
-    name: "Untitled Draft",
-    submissions: 0,
-    deadline: "03/07/26 4PM",
-    price: "0 usdc",
-    status: "Live Job",
-  },
-  {
-    id: 3,
-    name: "Untitled Draft",
-    submissions: 0,
-    deadline: "03/07/26 4PM",
-    price: "0 usdc",
-    status: "In Review",
-  },
-  {
-    id: 4,
-    name: "Untitled Draft",
-    submissions: 0,
-    deadline: "03/07/26 4PM",
-    price: "0 usdc",
-    status: "Payment Pending",
-  },
-  {
-    id: 5,
-    name: "Untitled Draft",
-    submissions: 0,
-    deadline: "03/07/26 4PM",
-    price: "0 usdc",
-    status: "Complete",
-  },
-  {
-    id: 6,
-    name: "Untitled Draft",
-    submissions: 0,
-    deadline: "03/07/26 4PM",
-    price: "0 usdc",
-    status: "Draft",
-  },
-];
-
-type TabType = "all" | "bounties" | "jobs";
+type TabType = "all" | "BOUNTY" | "JOB";
 
 export default function AmbasssadorDaoSponsorsListingsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tab = (searchParams.get("tab") as TabType) || "all";
+  const { data: user } = useFetchUserDataQuery();
+  const [username, setUsername] = useState(user?.username);
   const [currentPage, setCurrentPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [type, setType] = useState(tab);
+  const [status, setStatus] = useState("ALL");
+  const limit = 10;
 
   const handleTabChange = (newTab: TabType) => {
-    router.push(`/ambassador-dao/sponsor?tab=${newTab}`);
+    setType(newTab);
   };
+
+  const { data: listings, isLoading } = useFetchAllListings(
+    debouncedQuery,
+    type,
+    currentPage,
+    limit,
+    status
+  );
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [query]);
+
+  const { data: stats, refetch } = useFetchUserStatsDataQuery(username);
+
+  useEffect(() => {
+    if (!user) return;
+    setUsername(user.username ?? "");
+    refetch();
+  }, [user]);
+
+  useEffect(() => {
+    if (!username) return;
+    console.log(username);
+    refetch();
+  }, [username]);
 
   return (
     <div className='space-y-6'>
@@ -137,17 +135,17 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
         <div className='flex items-center space-x-4'>
           <div className='w-12 h-12 rounded-full bg-gray-700 overflow-hidden'>
             <img
-              src={mockUser.image}
-              alt={mockUser.name}
+              src={user?.profile_image ?? ""}
+              alt={user?.first_name ?? "Profile image"}
               className='w-full h-full object-cover'
             />
           </div>
           <div>
             <h2 className='text-lg font-medium text-[#F8FAFC]'>
-              {mockUser.name}
+              {user?.first_name} {user?.last_name}
             </h2>
             <p className='text-sm text-[#9F9FA9] font-light'>
-              Sponsor since {mockUser.since}
+              Sponsor since 2025
             </p>
           </div>
         </div>
@@ -165,23 +163,28 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
         <div className='flex justify-between items-center mb-6'>
           <h2 className='text-xl font-medium text-[#FAFAFA]'>My Listing</h2>
           <div className='flex space-x-2'>
-            <Select defaultValue='everything'>
+            <Select
+              defaultValue='ALL'
+              onValueChange={setStatus}
+              iconColor='#FAFAFA'
+            >
               <SelectTrigger className='w-36 bg-[#09090B] border-[#27272A]'>
                 <SelectValue placeholder='Everything' />
               </SelectTrigger>
               <SelectContent className='bg-[#27272A] border-[#27272A]'>
-                <SelectItem value='everything'>Everything</SelectItem>
-                <SelectItem value='draft'>Draft</SelectItem>
-                <SelectItem value='live'>Live</SelectItem>
-                <SelectItem value='in-review'>In Review</SelectItem>
-                <SelectItem value='recent'>Payment Pending</SelectItem>
-                <SelectItem value='complete'>Complete</SelectItem>
+                <SelectItem value='ALL'>Everything</SelectItem>
+                <SelectItem value='DRAFT'>Draft</SelectItem>
+                <SelectItem value='OPEN'>Open</SelectItem>
+                <SelectItem value='IN_REVIEW'>In Review</SelectItem>
+                <SelectItem value='in-COMPLETED'>Completed</SelectItem>
               </SelectContent>
             </Select>
 
             <Input
               placeholder='Search...'
               className='bg-[#09090B] border-[#27272A] focus:ring-[#27272A] hidden md:block'
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
             />
           </div>
         </div>
@@ -189,20 +192,20 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
         {/* Tabs */}
         <div className='flex gap-2 whitespace-nowrap overflow-x-auto'>
           <TabButton
-            active={tab === "all"}
+            active={type === "all"}
             onClick={() => handleTabChange("all")}
           >
             All
           </TabButton>
           <TabButton
-            active={tab === "bounties"}
-            onClick={() => handleTabChange("bounties")}
+            active={type === "BOUNTY"}
+            onClick={() => handleTabChange("BOUNTY")}
           >
             Bounties
           </TabButton>
           <TabButton
-            active={tab === "jobs"}
-            onClick={() => handleTabChange("jobs")}
+            active={type === "JOB"}
+            onClick={() => handleTabChange("JOB")}
           >
             Jobs
           </TabButton>
@@ -212,125 +215,153 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
 
         {/* Listings Table */}
         <div className='w-full'>
-          <div className='max-w-lg mx-auto p-2 my-6'>
-            <Image src={Avalance3d} objectFit='contain' alt='avalance icon' />
+          {isLoading ? (
+            <Loader />
+          ) : (
+            <>
+              {!!listings?.data?.length ? (
+                <div className='overflow-x-auto'>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className='border-[#27272A] hover:bg-transparent whitespace-nowrap p-3 text-[#9F9FA9]'>
+                        <TableHead>Listing Name</TableHead>
+                        <TableHead>Submissions</TableHead>
+                        <TableHead>Deadline</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className='text-right'>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {listings?.data.map((listing) => (
+                        <TableRow
+                          key={listing.id}
+                          className='border-gray-800 hover:bg-[#27272A]/50 whitespace-nowrap p-3 text-white cursor-pointer'
+                          onClick={() => {
+                            router.push(
+                              `/ambassador-dao/sponsor/listings/${listing.id}`
+                            );
+                          }}
+                        >
+                          <TableCell className='font-medium'>
+                            {listing.title}
+                          </TableCell>
+                          <TableCell>"Not Returned"</TableCell>
+                          <TableCell>
+                            {new Date(listing.end_date).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {listing.total_budget.toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={listing.status} />
+                          </TableCell>
+                          <TableCell className='text-right'>
+                            {/* Desktop actions */}
+                            <div className='hidden sm:flex justify-end space-x-2'>
+                              <Button
+                                variant='ghost'
+                                size='sm'
+                                className='p-1 h-auto'
+                              >
+                                <PenLine className='h-4 w-4' color='#9F9FA9' />
+                              </Button>
+                              <Button
+                                variant='ghost'
+                                size='sm'
+                                className='p-1 h-auto'
+                              >
+                                <Trash2 className='h-4 w-4' color='#9F9FA9' />
+                              </Button>
+                              <Button
+                                variant='ghost'
+                                size='sm'
+                                className='p-1 h-auto'
+                              >
+                                <Link className='h-4 w-4' color='#9F9FA9' />
+                              </Button>
+                              <Button
+                                variant='ghost'
+                                size='sm'
+                                className='p-1 h-auto'
+                              >
+                                <Pause className='h-4 w-4' color='#9F9FA9' />
+                              </Button>
+                            </div>
+                            {/* Mobile dropdown */}
+                            <div className='sm:hidden'>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='p-1 h-auto'
+                                  >
+                                    <MoreHorizontal className='h-4 w-4' />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align='end'
+                                  className='bg-gray-800 border-[#27272A]'
+                                >
+                                  <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
+                                    <PenLine
+                                      className='h-4 w-4 mr-2'
+                                      color='#9F9FA9'
+                                    />{" "}
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
+                                    <Trash2
+                                      className='h-4 w-4 mr-2'
+                                      color='#9F9FA9'
+                                    />{" "}
+                                    Delete
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
+                                    <Link
+                                      className='h-4 w-4 mr-2'
+                                      color='#9F9FA9'
+                                    />{" "}
+                                    Copy Link
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className='max-w-lg mx-auto p-2 my-6'>
+                  <Image
+                    src={Avalance3d}
+                    objectFit='contain'
+                    alt='avalance icon'
+                  />
 
-            <div className='my-2'>
-              <h2 className='text-white text-2xl text-center font-medium'>
-                Create your first listing
-              </h2>
-              <p className='text-[#9F9FA9] text-sm text-center'>
-                and start getting contributions
-              </p>
-            </div>
-          </div>
-
-          <div className='overflow-x-auto'>
-            <Table>
-              <TableHeader>
-                <TableRow className='border-[#27272A] hover:bg-transparent whitespace-nowrap p-3 text-[#9F9FA9]'>
-                  <TableHead>Listing Name</TableHead>
-                  <TableHead>Submissions</TableHead>
-                  <TableHead>Deadline</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className='text-right'>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mockListings.map((listing) => (
-                  <TableRow
-                    key={listing.id}
-                    className='border-gray-800 hover:bg-[#27272A]/50 whitespace-nowrap p-3 text-white'
-                  >
-                    <TableCell className='font-medium'>
-                      {listing.name}
-                    </TableCell>
-                    <TableCell>{listing.submissions}</TableCell>
-                    <TableCell>{listing.deadline}</TableCell>
-                    <TableCell>{listing.price}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={listing.status} />
-                    </TableCell>
-                    <TableCell className='text-right'>
-                      {/* Desktop actions */}
-                      <div className='hidden sm:flex justify-end space-x-2'>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          className='p-1 h-auto'
-                        >
-                          <PenLine className='h-4 w-4' color='#9F9FA9' />
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          className='p-1 h-auto'
-                        >
-                          <Trash2 className='h-4 w-4' color='#9F9FA9' />
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          className='p-1 h-auto'
-                        >
-                          <Link className='h-4 w-4' color='#9F9FA9' />
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          className='p-1 h-auto'
-                        >
-                          <Pause className='h-4 w-4' color='#9F9FA9' />
-                        </Button>
-                      </div>
-                      {/* Mobile dropdown */}
-                      <div className='sm:hidden'>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant='ghost'
-                              size='sm'
-                              className='p-1 h-auto'
-                            >
-                              <MoreHorizontal className='h-4 w-4' />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align='end'
-                            className='bg-gray-800 border-[#27272A]'
-                          >
-                            <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
-                              <PenLine
-                                className='h-4 w-4 mr-2'
-                                color='#9F9FA9'
-                              />{" "}
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
-                              <Trash2
-                                className='h-4 w-4 mr-2'
-                                color='#9F9FA9'
-                              />{" "}
-                              Delete
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
-                              <Link className='h-4 w-4 mr-2' color='#9F9FA9' />{" "}
-                              Copy Link
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                  <div className='my-2'>
+                    <h2 className='text-white text-2xl text-center font-medium'>
+                      Create your first listing
+                    </h2>
+                    <p className='text-[#9F9FA9] text-sm text-center'>
+                      and start getting contributions
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Pagination */}
-        <PaginationComponent />
+        <PaginationComponent
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+          totalPages={listings?.metadata.last_page ?? 1} // Replace with actual total pages from API
+        />
       </div>
     </div>
   );

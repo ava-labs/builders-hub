@@ -12,6 +12,12 @@ const config = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'ava.com',
+        port: '',
+        pathname: '/**',
+      },
     ]
   },
   reactStrictMode: true,
