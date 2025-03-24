@@ -2,7 +2,7 @@ import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { IUserDetails, IVerifiedDetails } from "../interfaces/user";
+import { IUserDetails, IUserStats, IVerifiedDetails } from "../interfaces/user";
 import { errorMsg } from "@/utils/error-mapping";
 import { API_DEV } from "../data/constants";
 import { IVerifyPasscodeBody } from "../interfaces/auth";
@@ -115,6 +115,21 @@ export const useFetchUserDataQuery = () => {
     },
     queryKey: ["fetchUserProfile"],
     staleTime: Infinity,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useFetchUserStatsDataQuery = (
+  username: string | undefined | null
+) => {
+  return useQuery({
+    queryFn: async () => {
+      const res = await axios.get(`${API_DEV}/users/stats/${username}`);
+      return res.data.data as IUserStats;
+    },
+    queryKey: ["fetchUserStats"],
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    enabled: false,
   });
 };

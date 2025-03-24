@@ -7,7 +7,7 @@ type ButtonProps = {
   onClick?: () => void;
   isLoading?: boolean;
   type?: ButtonHTMLAttributes<HTMLButtonElement>["type"];
-  variant?: "default" | "outlined" | "danger";
+  variant?: "default" | "outlined" | "danger" | "white";
   disabled?: boolean;
   isFullWidth?: boolean;
   className?: string;
@@ -30,6 +30,7 @@ const CustomButton: FC<ButtonProps> = ({
     default: "bg-[#FAFAFA] text-[#09090B]",
     outlined: "bg-transparent border border-[#27272A] text-[#FAFAFA]",
     danger: "bg-[#FB2C36] text-[#FAFAFA]",
+    white: "bg-[#F5F5F9] text-[#161617]",
   };
 
   return (

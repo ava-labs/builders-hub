@@ -15,3 +15,10 @@ export interface IVerifiedDetails {
   };
   is_new_user: boolean;
 }
+
+export interface IUserStats {
+  total_submissions: number;
+  total_applications: number;
+  total_bounties_won: number;
+  total_earnings: number;
+}

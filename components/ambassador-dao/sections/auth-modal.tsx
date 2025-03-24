@@ -7,7 +7,6 @@ import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { useSearchParams } from "next/navigation";
 import {
-  useGoogleAuthUrl,
   useHandleGoogleCallback,
   useRequestPasscodeMutation,
   useVerifyPasscodeMutation,
@@ -74,12 +73,9 @@ interface OptionsStepProps {
 }
 
 const OptionsStep = ({ setCurrentStep }: OptionsStepProps) => {
-
-    
   const googleAuthUrl = `${API_DEV}/auth/google`;
   const handleGoogleLogin = async () => {
     window.open(googleAuthUrl, "_blank");
-
   };
 
   return (
