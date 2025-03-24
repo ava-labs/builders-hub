@@ -14,16 +14,16 @@ const listingTypes = [
   {
     name: "Job",
     id: "JOB",
-    title: "Host a Work Competition",
+    title: "Hire a Freelancer",
     description:
-      "All participants complete your scope of work, and the best submission(s) are rewarded. Get multiple options to choose from.",
+      "Get applications based on a questionnaire set by you, and select one applicant to work with. Give a fixed budget, or ask for quotes.",
   },
   {
     name: "Bounty",
     id: "BOUNTY",
-    title: "Hire a Freelancer",
+    title: "Host a Work Competition",
     description:
-      "Get applications based on a questionnaire set by you, and select one applicant to work with. Give a fixed budget, or ask for quotes.",
+      "All participants complete your scope of work, and the best submission(s) are rewarded. Get multiple options to choose from.",
   },
 ];
 export const CreateListingModal = ({

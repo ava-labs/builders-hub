@@ -30,6 +30,7 @@ import Loader from "@/components/ambassador-dao/ui/Loader";
 import { getTimeLeft } from "@/utils/timeFormatting";
 import { PaginationComponent } from "@/components/ambassador-dao/pagination";
 import { StatusBadge } from "@/components/ambassador-dao/status-badge";
+import { opportunityStatusOptions } from "@/components/ambassador-dao/constants";
 
 const AmbasssadorDaoSponsorsListingsSubmissions = () => {
   const params = useParams<{ id: string }>();
@@ -169,12 +170,11 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
               <SelectValue placeholder='Everything' />
             </SelectTrigger>
             <SelectContent className='bg-[#27272A] border-[#27272A]'>
-              <SelectItem value='ALL'>Everything</SelectItem>
-              <SelectItem value='SUBMITTED'>Submitted</SelectItem>
-              <SelectItem value='IN_REVIEW'>In Review</SelectItem>
-              <SelectItem value='REJECTED'>Rejected</SelectItem>
-              <SelectItem value='ACCEPTED'>Accepted</SelectItem>
-              <SelectItem value='REWARDED'>Rewarded</SelectItem>
+              {opportunityStatusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -316,12 +316,11 @@ const BountyApplications = ({ listingId }: { listingId: string }) => {
               <SelectValue placeholder='Everything' />
             </SelectTrigger>
             <SelectContent className='bg-[#27272A] border-[#27272A]'>
-              <SelectItem value='ALL'>Everything</SelectItem>
-              <SelectItem value='SUBMITTED'>Submitted</SelectItem>
-              <SelectItem value='IN_REVIEW'>In Review</SelectItem>
-              <SelectItem value='REJECTED'>Rejected</SelectItem>
-              <SelectItem value='ACCEPTED'>Accepted</SelectItem>
-              <SelectItem value='REWARDED'>Rewarded</SelectItem>
+              {opportunityStatusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 

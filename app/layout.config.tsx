@@ -35,6 +35,7 @@ import SummitLondonBanner from "@/public/nav-banner/avalanche_summit_london.png"
 import HackathonLondonBanner from "@/public/nav-banner/hackathon_luma.png";
 import Team1Banner from "@/public/nav-banner/local_events_team1.jpg";
 import L1LauncherPreview from "@/public/nav-banner/l1-launcher-preview.png";
+import CustomButton from "@/components/ambassador-dao/custom-button";
 
 export const integrationsMenu: LinkItemType = {
   type: "menu",
@@ -478,5 +479,13 @@ export const baseOptions: BaseLayoutProps = {
     eventsMenu,
     integrationsMenu,
     ambassadorMenu,
+    {
+      type: "custom",
+      children: (
+        <CustomButton variant='danger' className='px-1 !h-8'>
+          Login
+        </CustomButton>
+      ),
+    },
   ],
 };
