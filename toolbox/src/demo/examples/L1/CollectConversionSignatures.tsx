@@ -81,7 +81,7 @@ export default function CollectConversionSignatures() {
                         <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-400">
                             <p className="font-medium mb-2">Failed to collect signatures. Please ensure:</p>
                             <ul className="list-disc pl-5">
-                                <li>All validators for this subnet are up and running</li>
+                                <li>All validators for this subnet are up and running. The initial P-Chain sync takes around 10 minutes.</li>
                                 <li>Every node has a static IP and port 9651 open to external traffic</li>
                             </ul>
                             <p className="mt-4">If you're running this on a device without a dedicated public IP (e.g., laptop), try:</p>

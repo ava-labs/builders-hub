@@ -19,6 +19,7 @@ export default function InitValidatorSet() {
         L1ID,
         setL1ID,
         setL1ConversionSignature,
+        L1ConversionSignature,
         proxyAddress,
         evmChainRpcUrl } = useToolboxStore();
     const viemChain = useViemChainStore();
@@ -45,21 +46,7 @@ export default function InitValidatorSet() {
         try {
             if (!coreWalletClient) throw new Error('Core wallet client not found');
 
-            const { validators, message, justification, signingSubnetId, networkId, chainId, managerAddress } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: L1ID });
-
-
-            const { signedMessage } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
-                network: networkId === networkIDs.FujiID ? "fuji" : "mainnet",
-                signatureAggregatorRequest: {
-                    message: message,
-                    justification: justification,
-                    signingSubnetId: signingSubnetId,
-                    quorumPercentage: 67, // Default threshold for subnet validation
-                },
-            });
-
-            setL1ConversionSignature(signedMessage);
-
+            const { validators, signingSubnetId, chainId, managerAddress } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: L1ID });
 
             // Prepare transaction arguments
             const txArgs = [{
@@ -77,11 +64,11 @@ export default function InitValidatorSet() {
             }, 0];
 
 
-            setCollectedData({ ...txArgs[0] as any, signedMessage })
+            setCollectedData({ ...txArgs[0] as any })
 
 
             // Convert signature to bytes and pack into access list
-            const signatureBytes = hexToBytes(add0x(signedMessage));
+            const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
             const accessList = packWarpIntoAccessList(signatureBytes);
 
             const sim = await publicClient.simulateContract({
@@ -143,6 +130,13 @@ export default function InitValidatorSet() {
                         onChange={setL1ID}
                         placeholder="Enter L1 ID (CB58 format)"
                     />
+                    <Input
+                        label="Aggregated Signature"
+                        value={L1ConversionSignature}
+                        onChange={setL1ConversionSignature}
+                        type="textarea"
+                        placeholder="0x...."
+                    />
                 </div>
 
                 {
@@ -167,7 +161,7 @@ export default function InitValidatorSet() {
                     type="primary"
                     onClick={() => onInitialize(false)}
                     loading={isInitializing}
-                    disabled={!L1ID}
+                    disabled={!L1ID || !L1ConversionSignature}
                 >
                     Initialize Validator Set
                 </Button>
