@@ -87,7 +87,7 @@ const JobsSection = ({
             placeholder="Search Jobs"
             value={searchInput || ""}
             onChange={handleSearchChange}
-            className="text-xs sm:text-sm lg:text-base h-8 sm:h-11 bg-gray-800 rounded-md px-4 py-2 focus:outline-none w-full"
+            className="text-xs sm:text-sm lg:text-base h-8 sm:h-11 border border[#27272A] rounded-md px-4 py-2 focus:outline-none w-full"
           />
           <button className="absolute right-3 top-1/2 transform -translate-y-1/2">
             <Search color="#9F9FA9" className="h-3 w-3 sm:w-5 sm:h-5" />
@@ -99,10 +99,10 @@ const JobsSection = ({
           filters.min_budget ||
           filters.status) && (
           <span
-            className="underline flex cursor-pointer text-red-500 ml-auto items-center"
+            className="flex cursor-pointer rounded-lg px-4 py-2 text-red-500 items-center border border-[#27272A] text-xs sm:text-sm lg:text-base"            
             onClick={clearAllFilters}
           >
-            Clear filters
+            Reset Filters
           </span>
         )}
       </div>

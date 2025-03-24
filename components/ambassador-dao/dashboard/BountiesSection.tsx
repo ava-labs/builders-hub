@@ -9,7 +9,6 @@ import { ViewAllButton } from "./ViewAllButton";
 import { FilterDropdown } from "./FilterDropdown";
 import { BountyCard } from "./BountyCard";
 
-
 interface BountiesSectionProps {
   data: any[];
   filters: {
@@ -34,7 +33,6 @@ const BountiesSection = ({
   handleSearchChange,
   updateFilters,
 }: BountiesSectionProps) => {
-
   const { data: skills } = useFetchAllSkills();
 
   const clearAllFilters = () => {
@@ -43,11 +41,11 @@ const BountiesSection = ({
       min_budget: "",
       skillSet: "",
       category: "",
-      status: ""
+      status: "",
     });
     if (handleSearchChange) {
       const resetEvent = {
-        target: { value: "" }
+        target: { value: "" },
       };
       handleSearchChange(resetEvent);
     }
@@ -83,7 +81,7 @@ const BountiesSection = ({
           options={statusOptions}
           value={filters.status}
           onValueChange={(value) => updateFilters({ status: value })}
-        />  
+        />
 
         {/* Search input */}
         <div className="relative min-w-[200px]">
@@ -92,18 +90,22 @@ const BountiesSection = ({
             placeholder="Search Bounties"
             value={searchInput}
             onChange={handleSearchChange}
-            className="text-xs sm:text-sm lg:text-base h-8 sm:h-11 bg-gray-800 rounded-md px-4 py-2 focus:outline-none w-full"
+            className="text-xs sm:text-sm lg:text-base h-8 sm:h-11 border border-[#27272A] rounded-md px-4 py-2 focus:outline-none w-full"
           />
           <button className="absolute right-3 top-1/2 transform -translate-y-1/2">
             <Search color="#9F9FA9" className="h-3 w-3 sm:w-5 sm:h-5" />
           </button>
         </div>
-        {(filters.query || filters.category || filters.skillSet || filters.min_budget || filters.status) && (
-          <span 
-            className="underline flex cursor-pointer text-red-500 ml-auto items-center" 
+        {(filters.query ||
+          filters.category ||
+          filters.skillSet ||
+          filters.min_budget ||
+          filters.status) && (
+          <span
+            className="flex cursor-pointer rounded-lg px-4 py-2 text-red-500 items-center border border-[#27272A] text-xs sm:text-sm lg:text-base"
             onClick={clearAllFilters}
           >
-            Clear filters
+            Reset Filters
           </span>
         )}
       </div>
