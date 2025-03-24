@@ -18,6 +18,12 @@ const config = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 's3.eu-west-2.amazonaws.com',
+        port: '',
+        pathname: '/**',
+      },
     ]
   },
   reactStrictMode: true,
