@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { API_DEV } from "../data/constants";
-import { useRouter } from "next/navigation";
 import { errorMsg } from "@/utils/error-mapping";
 import toast from "react-hot-toast";
 import { IBountySubmissionBody, IJobApplicationBody } from "../interfaces/opportunity";
@@ -43,7 +42,8 @@ export const useSubmitOpportunityComment = (opportunity_id: string) => {
       return res.data as any;
     },
     onSuccess: (data) => {
-      toast.success(data?.message);
+      console.log(data);
+      // toast.success(data?.message);
       queryclient.invalidateQueries({ queryKey: ["opportunity-comments"] });
     },
     onError: (err) => errorMsg(err),
@@ -61,7 +61,8 @@ export const useEditOpportunityComment = (comment_id: string) => {
       return res.data as any;
     },
     onSuccess: (data) => {
-      toast.success(data?.message);
+      // toast.success(data?.message);
+      console.log(data);
       queryclient.invalidateQueries({ queryKey: ["opportunity-comments"] });
     },
     onError: (err) => errorMsg(err),
@@ -70,31 +71,42 @@ export const useEditOpportunityComment = (comment_id: string) => {
 
 
 
-export const useReplyOpportunityComment = (comment_id: string) => {
+export const useReplyOpportunityComment = (opportunity_id: string) => {
   const queryclient = useQueryClient();
 
   return useMutation({
     mutationKey: ["replyComment"],
     mutationFn: async (args: any) => {
-      const res = await axios.post(`${API_DEV}/opportunity/comments/${comment_id}`, args);
+      const res = await axios.post(`${API_DEV}/opportunity/${opportunity_id}/comments/`, args);
       return res.data as any;
     },
     onSuccess: (data) => {
-      toast.success(data?.message);
-      queryclient.invalidateQueries({ queryKey: ["opportunity-comments-replies"] });
+      console.log(data);
+      queryclient.invalidateQueries({
+        queryKey: ["opportunity-comments-replies"],
+      });
+      queryclient.invalidateQueries({
+        queryKey: ["opportunity-comments"],
+      });
     },
     onError: (err) => errorMsg(err),
   });
 };
 
-export const useFetchOpportunityCommentReplies = (comment_id: string) => {
+export const useFetchOpportunityCommentReplies = (
+  comment_id: string
+) => {
   return useQuery({
     queryKey: ["opportunity-comments-replies"],
     queryFn: async () => {
-      const res = await axios.get(`${API_DEV}/opportunity/comments/${comment_id}/replies`);
+      const res = await axios.get(
+        `${API_DEV}/opportunity/comments/${comment_id}/replies`
+      );
       return res.data.data;
     },
     staleTime: Infinity,
+    refetchOnMount: false,
+    enabled: false
   });
 };
 
@@ -110,7 +122,8 @@ export const useDeleteOpportunityComment = (comment_id: string) => {
       return res.data as any;
     },
     onSuccess: (data) => {
-      toast.success(data?.message);
+      // toast.success(data?.message);
+      console.log(data);
       queryclient.invalidateQueries({ queryKey: ["opportunity-comments"] });
     },
     onError: (err) => errorMsg(err),
@@ -118,12 +131,25 @@ export const useDeleteOpportunityComment = (comment_id: string) => {
 };
 
 
-export const useFetchOpportunityComment = (opportunity_id: string) => {
+interface PaginationParams {
+  page?: number;
+  per_page?: number;
+}
+export const useFetchOpportunityComment = (opportunity_id: string,
+  paginationParams: PaginationParams = { page: 1, per_page: 10 }
+) => {
   return useQuery({
-    queryKey: ["opportunity-comments", opportunity_id],
+    queryKey: ["opportunity-comments", opportunity_id, paginationParams.page, paginationParams.per_page],
     queryFn: async () => {
-      const res = await axios.get(`${API_DEV}/opportunity/${opportunity_id}/comments`);
-      return res.data.data;
+      const res = await axios.get(`${API_DEV}/opportunity/${opportunity_id}/comments`,
+        { 
+          params: { 
+            page: paginationParams.page, 
+            per_page: paginationParams.per_page 
+          } 
+        }
+      );
+      return res.data;
     },
     staleTime: Infinity,
   });
