@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { StatusBadge } from "../page";
 import CustomButton from "@/components/ambassador-dao/custom-button";
 import {
   useFetchSingleListing,
@@ -30,6 +29,7 @@ import { useParams } from "next/navigation";
 import Loader from "@/components/ambassador-dao/ui/Loader";
 import { getTimeLeft } from "@/utils/timeFormatting";
 import { PaginationComponent } from "@/components/ambassador-dao/pagination";
+import { StatusBadge } from "@/components/ambassador-dao/status-badge";
 
 const AmbasssadorDaoSponsorsListingsSubmissions = () => {
   const params = useParams<{ id: string }>();
