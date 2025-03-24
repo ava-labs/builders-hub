@@ -169,7 +169,7 @@ const BountySidebar: React.FC<BountySidebarProps> = ({ bounty }) => {
         Participate
       </button>
 
-     {isModalOpen && (
+      {isModalOpen && (
         <BountySubmissionModal
           id={bounty.id}
           isOpen={isModalOpen}
@@ -212,10 +212,14 @@ const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
           <CircleUser color="#9F9FA9" size={56} />
         )}
         <div className="mb-6">
-          <h1 className="text-base font-bold text-red-500 mb-2">{bounty.title}</h1>
+          <h1 className="text-base font-bold text-red-500 mb-2">
+            {bounty.title}
+          </h1>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className="text-gray-300 text-sm">{bounty.companyName}</span>
+              <span className="text-gray-300 text-sm">
+                {bounty.companyName}
+              </span>
             </div>
           </div>
           <div className="flex flex-wrap gap-4 rounded-md">
@@ -234,13 +238,15 @@ const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
             {bounty.skills.length > 0 ? (
-              bounty.skills.map((skill: { name: string } | string, index: Key) => (
-                <div key={index}>
-                  <Outline
-                    label={typeof skill === "string" ? skill : skill.name}
-                  />
-                </div>
-              ))
+              bounty.skills.map(
+                (skill: { name: string } | string, index: Key) => (
+                  <div key={index}>
+                    <Outline
+                      label={typeof skill === "string" ? skill : skill.name}
+                    />
+                  </div>
+                )
+              )
             ) : (
               <span className="text-gray-400 text-sm">No skills specified</span>
             )}
@@ -251,7 +257,7 @@ const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
   );
 };
 
-const  BountyDescription: React.FC<BountyDescriptionProps> = ({ data }) => {
+const BountyDescription: React.FC<BountyDescriptionProps> = ({ data }) => {
   return (
     <div className="mb-6 text-gray-300">
       <h2 className="text-xl font-semibold mb-2 text-white">{data.title}</h2>
@@ -328,11 +334,13 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
           (reply) => reply.parent_id === commentId
         );
         setReplies(filteredReplies);
-        const confirmedReplyIds = new Set(
-          filteredReplies.map((r) => r.content)
+        const confirmedReplyKeys = new Set(
+          filteredReplies.map((r) => `${r.content}-${r.parent_id}`)
         );
         setOptimisticReplies((prev) =>
-          prev.filter((r) => !confirmedReplyIds.has(r.content))
+          prev.filter(
+            (r) => !confirmedReplyKeys.has(`${r.content}-${r.parent_id}`)
+          )
         );
       }
       setRepliesLoaded(true);
@@ -351,11 +359,12 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
   const { mutateAsync: replyComment } =
     useReplyOpportunityComment(opportunityId);
 
-  const handleReplySubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleReplySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (replyText.trim() !== "") {
+      const optimisticId = `optimistic-${Date.now()}`;
       const optimisticReply: CommentReply = {
-        id: `optimistic-${Date.now()}`,
+        id: optimisticId,
         content: replyText,
         parent_id: commentId,
         author: {
@@ -368,28 +377,30 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
 
       setOptimisticReplies((prev) => [...prev, optimisticReply]);
 
+      const replyContent = replyText;
       setReplyText("");
       setIsReplying(false);
 
-      if (!showReplies && repliesCount > 0) {
-        setShowReplies(true);
+      setShowReplies(true);
+      if (!repliesLoaded && repliesCount > 0) {
+        loadReplies();
       }
 
-      replyComment({
-        content: replyText,
-        parent_id: commentId,
-      })
-        .then(async () => {
-          if (repliesLoaded) {
-            loadReplies();
-          }
-        })
-        .catch((error) => {
-          console.error("Failed to post reply:", error);
-          setOptimisticReplies((prev) =>
-            prev.filter((r) => r.id !== optimisticReply.id)
-          );
+      try {
+        await replyComment({
+          content: replyContent,
+          parent_id: commentId,
         });
+
+        if (repliesLoaded) {
+          loadReplies();
+        }
+      } catch (error) {
+        console.error("Failed to post reply:", error);
+        setOptimisticReplies((prev) =>
+          prev.filter((r) => r.id !== optimisticId)
+        );
+      }
     }
   };
 
@@ -558,25 +569,33 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
   const isEditable = userData?.id === comment?.author?.id;
   const repliesCount = comment._count?.replies || 0;
 
-  const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (editText.trim() === "") return;
+
     const originalContent = comment.content;
 
     comment.content = editText;
     setIsEditing(false);
 
-    editComment({
-      content: editText,
-    }).catch((error) => {
+    try {
+      await editComment({
+        content: editText,
+      });
+    } catch (error) {
       console.error("Failed to edit comment:", error);
       comment.content = originalContent;
       setEditText(originalContent);
-    });
+    }
   };
 
-  const handleDeleteComment = () => {
-    deleteComment();
-    setShowOptions(false);
+  const handleDeleteComment = async () => {
+    try {
+      await deleteComment();
+      setShowOptions(false);
+    } catch (error) {
+      console.error("Failed to delete comment:", error);
+    }
   };
 
   const toggleOptions = () => {
@@ -728,13 +747,16 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
   useEffect(() => {
     if (commentsData) {
       if (commentsData.data && Array.isArray(commentsData.data)) {
-        setComments(commentsData.data);
-
-        const confirmedCommentIds = new Set(
-          commentsData.data.map((c: any) => c.content)
+        const sortedComments = [...commentsData.data];
+        setComments(sortedComments);
+        const confirmedCommentKeys = new Set(
+          sortedComments.map((c: any) => `${c.content}-${c.author.id}`)
         );
+
         setOptimisticComments((prev) =>
-          prev.filter((c) => !confirmedCommentIds.has(c.content))
+          prev.filter(
+            (c) => !confirmedCommentKeys.has(`${c.content}-${c.author.id}`)
+          )
         );
       }
 
@@ -744,12 +766,14 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
     }
   }, [commentsData]);
 
-  const displayComments = [...comments, ...optimisticComments];
-
+  const displayComments =
+    currentPage === 1 ? [...optimisticComments, ...comments] : [...comments];
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    setOptimisticComments([]);
+    if (page !== 1) {
+      setOptimisticComments([]);
+    }
   };
 
   const { mutateAsync: submitComment, isPending: isSubmitting } =
@@ -758,9 +782,12 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
   const handleSubmitComment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (newComment.trim() !== "") {
+      const optimisticId = `optimistic-${Date.now()}`;
+      const commentContent = newComment;
+
       const optimisticComment: Comment = {
-        id: `optimistic-${Date.now()}`,
-        content: newComment,
+        id: optimisticId,
+        content: commentContent,
         author: {
           id: userData?.id || "",
           first_name: userData?.first_name || "You",
@@ -772,14 +799,14 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
         },
       };
 
-      setOptimisticComments((prev) => [...prev, optimisticComment]);
-
       setNewComment("");
       setIsFocused(false);
 
+      setOptimisticComments((prev) => [optimisticComment, ...prev]);
+
       try {
         await submitComment({
-          content: newComment,
+          content: commentContent,
           parent_id: "",
         });
 
@@ -790,9 +817,8 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
         }
       } catch (error) {
         console.error("Failed to submit comment:", error);
-
         setOptimisticComments((prev) =>
-          prev.filter((c) => c.id !== optimisticComment.id)
+          prev.filter((c) => c.id !== optimisticId)
         );
       }
     }
@@ -808,7 +834,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
       <div className="flex items-center gap-2 mb-4">
         <MessagesSquare size={16} color="#9F9FA9" />
         <h2 className="text-lg font-semibold">
-          {metadata.total || 0} Comments
+          {(metadata.total || 0) + optimisticComments.length} Comments
         </h2>
       </div>
 
@@ -816,16 +842,17 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
         <textarea
           className="w-full border border-gray-800 bg-gray-900 rounded-md p-3 text-white resize-none focus:outline-none"
           placeholder="Write Comments"
-          rows={1}
+          rows={isFocused || newComment.length > 0 ? 2 : 1}
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           onFocus={() => setIsFocused(true)}
+          maxLength={280}
         ></textarea>
 
-        {newComment.trim() !== "" && newComment.length > 0 && (
+        {(isFocused || newComment.trim() !== "") && (
           <>
-            <div className="text-gray-400 text-xs flex justify-end">
-              {`${280 - newComment.trim().length} characters left`}
+            <div className="text-gray-400 text-xs flex justify-end mt-1">
+              {`${280 - newComment.length} characters left`}
             </div>
             <div className="flex justify-end gap-2 mt-2">
               <button
@@ -838,7 +865,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
               <button
                 type="submit"
                 className={`px-4 py-2 bg-red-500 text-white rounded-md text-sm transition ${
-                  newComment.trim() === ""
+                  newComment.trim() === "" || isSubmitting
                     ? "opacity-50 cursor-not-allowed"
                     : "hover:bg-red-600"
                 }`}
