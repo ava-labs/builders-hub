@@ -96,19 +96,6 @@ export const integrationsMenu: LinkItemType = {
         className: 'lg:col-start-3 lg:row-start-2',
       },
     },
-
-    {
-      icon: <Cog />,
-      text: 'Hackathon',
-      url: '/hackathon',
-      active: 'nested-url',
-    },
-    {
-      icon: <LayoutTemplate />, 
-      text: 'Builder Kit',
-      url: '/builderkit',
-      active: 'nested-url',
-    }, 
     {
       icon: <LayoutTemplate />,
       text: 'Ambasssador DAO',
