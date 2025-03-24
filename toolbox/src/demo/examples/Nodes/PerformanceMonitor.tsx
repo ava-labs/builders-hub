@@ -89,7 +89,7 @@ class BlockWatcher {
 
                 while (lastBlock === currentBlockNumber) {
                     console.log('Reached end of chain');
-                    await new Promise(resolve => setTimeout(resolve, 300));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                     lastBlock = await this.publicClient.getBlockNumber();
                 }
 
@@ -170,6 +170,7 @@ export default function PerformanceMonitor() {
         switch (timeRange) {
             case "60": // 1 minute
             case "300": // 5 minutes
+            case "1800": // 30 minutes
                 return { seconds: 1, label: "second" };
             case "3600": // 1 hour
             case "10800": // 3 hours
@@ -294,7 +295,7 @@ export default function PerformanceMonitor() {
             const lastBlock = Number(await publicClient.getBlockNumber());
 
             // Convert block history to number
-            const blockHistoryNum = parseInt(blockHistory.replace(/k/g, '000').replace(/m/g, '000000'));
+            const blockHistoryNum = parseInt(blockHistory);
 
             // Start from the latest block minus some offset (to be able to see data immediately)
             const startFromBlock = Math.max(lastBlock - 10, 1);
@@ -381,6 +382,7 @@ export default function PerformanceMonitor() {
                         options={[
                             { value: "60", label: "1 minute (1s buckets)" },
                             { value: "300", label: "5 minutes (1s buckets)" },
+                            { value: "1800", label: "30 minutes (1s buckets)" },
                             { value: "3600", label: "1 hour (1m buckets)" },
                             { value: "10800", label: "3 hours (1m buckets)" },
                             { value: "86400", label: "24 hours (1h buckets)" },
@@ -395,10 +397,17 @@ export default function PerformanceMonitor() {
                     <Select
                         options={[
                             { value: "100", label: "100 blocks" },
-                            { value: "1k", label: "1,000 blocks" },
-                            { value: "10k", label: "10,000 blocks" },
-                            { value: "100k", label: "100,000 blocks" },
-                            { value: "1m", label: "1,000,000 blocks" }
+                            { value: "250", label: "250 blocks" },
+                            { value: "1000", label: "1,000 blocks" },
+                            { value: "2500", label: "2,500 blocks" },
+                            { value: "5000", label: "5,000 blocks" },
+                            { value: "10000", label: "10,000 blocks" },
+                            { value: "25000", label: "25,000 blocks" },
+                            { value: "50000", label: "50,000 blocks" },
+                            { value: "100000", label: "100,000 blocks" },
+                            { value: "250000", label: "250,000 blocks" },
+                            { value: "500000", label: "500,000 blocks" },
+                            { value: "1000000", label: "1,000,000 blocks" }
                         ]}
                         value={blockHistory}
                         onChange={(value) => setBlockHistory(String(value))}
