@@ -60,7 +60,6 @@ const AmbasssadorDao = () => {
     return <FullScreenLoader />;
   }
 
-
   return (
     <div className="bg-black text-white min-h-screen">
       <WelcomeSection user={user} />
