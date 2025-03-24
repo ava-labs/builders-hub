@@ -4,7 +4,7 @@
 import { useToolboxStore, useViemChainStore, useWalletStore } from "../../utils/store";
 import { useState, useEffect } from "react";
 import { Button, Input, Select } from "../../ui";
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, http, webSocket } from 'viem';
 
 /*
 //From chainlist.org
@@ -63,7 +63,7 @@ export default function L1Form() {
         try {
             setLocalError(null);
             const publicClient = createPublicClient({
-                transport: http(evmChainRpcUrl)
+                transport: evmChainRpcUrl.startsWith("ws") ? webSocket(evmChainRpcUrl) : http(evmChainRpcUrl)
             });
 
             const chainId = await publicClient.getChainId();
