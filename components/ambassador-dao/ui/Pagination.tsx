@@ -86,7 +86,6 @@ interface PaginationProps {
           <span className="hidden sm:inline ml-1">Previous</span>
         </button>
   
-        {/* Page numbers */}
         <div className="hidden sm:flex gap-1">
           {getPageNumbers().map((pageNum, index) => (
             pageNum === -1 ? (

@@ -43,7 +43,6 @@ export const useSubmitOpportunityComment = (opportunity_id: string) => {
     },
     onSuccess: (data) => {
       console.log(data);
-      // toast.success(data?.message);
       queryclient.invalidateQueries({ queryKey: ["opportunity-comments"] });
     },
     onError: (err) => errorMsg(err),
@@ -61,7 +60,6 @@ export const useEditOpportunityComment = (comment_id: string) => {
       return res.data as any;
     },
     onSuccess: (data) => {
-      // toast.success(data?.message);
       console.log(data);
       queryclient.invalidateQueries({ queryKey: ["opportunity-comments"] });
     },
@@ -122,7 +120,6 @@ export const useDeleteOpportunityComment = (comment_id: string) => {
       return res.data as any;
     },
     onSuccess: (data) => {
-      // toast.success(data?.message);
       console.log(data);
       queryclient.invalidateQueries({ queryKey: ["opportunity-comments"] });
     },
