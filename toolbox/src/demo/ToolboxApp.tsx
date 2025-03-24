@@ -1,4 +1,4 @@
-import { Button, GithubEmbed, ConnectWallet } from "./ui";
+import { Button, GithubLink, ConnectWallet } from "./ui";
 import { ErrorBoundary } from "react-error-boundary";
 import { useToolboxStore } from './utils/store';
 import { RefreshCw } from 'lucide-react';
@@ -229,15 +229,14 @@ export default function ToolboxApp() {
                             <Component />
                         </Suspense>
                     </div>
-                    <div className="overflow-x-hidden">
+                    <div className="mt-4 space-y-1 border-t pt-3">
                         {comp.fileNames.map((fileName, index) => (
-                            <GithubEmbed
+                            <GithubLink
                                 key={index}
                                 user="ava-labs"
                                 repo="builders-hub"
                                 branch={import.meta.env?.VITE_GIT_BRANCH_NAME || "master"}
                                 filePath={fileName}
-                                maxHeight={600}
                             />
                         ))}
                     </div>
