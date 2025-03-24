@@ -19,7 +19,7 @@ export const FilterDropdown = ({
     return (
       <Select.Root onValueChange={onValueChange} value={value}>
         <Select.Trigger
-          className="text-xs sm:text-sm lg:text-base focus:outline-none h-8 sm:h-11 w-max flex items-center justify-between bg-gray-800 text-white rounded-md px-2 outline-none data-[placeholder]:text-gray-400"
+          className="text-xs sm:text-sm lg:text-base focus:outline-none h-8 sm:h-11 w-max flex items-center justify-between border border-[#27272A] text-white rounded-md px-2 outline-none data-[placeholder]:text-gray-400"
           aria-label={label}
         >
           <Select.Value placeholder={label} />

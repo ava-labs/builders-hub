@@ -74,7 +74,7 @@ export const BountyCard = ({ bounty }: IBountyDataType) => {
       <div className="mt-4 grid grid-cols-7 gap-2">
         {skills.map((skill, index) => (
           <div key={index}>
-            <Outline label={skill} />
+            <Outline label={skill.name} />
           </div>
         ))}
       </div>

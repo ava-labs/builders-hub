@@ -237,7 +237,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                     <div className='flex gap-2 items-center overflow-x-auto'>
                       {application.skills.map((skill, index) => (
                         <div key={index}>
-                          <Outline label={skill} />
+                          <Outline label={skill.name} />
                         </div>
                       ))}
                     </div>
@@ -383,7 +383,7 @@ const BountyApplications = ({ listingId }: { listingId: string }) => {
                     <div className='flex gap-2 items-center overflow-x-auto'>
                       {submission.skills.map((skill, index) => (
                         <div key={index}>
-                          <Outline label={skill} />
+                          <Outline label={skill.name} />
                         </div>
                       ))}
                     </div>
