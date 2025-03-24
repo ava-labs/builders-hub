@@ -355,3 +355,7 @@ nav a:not(:first-child) {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+.list-none a {
+    white-space: nowrap;
+}

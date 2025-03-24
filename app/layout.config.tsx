@@ -36,6 +36,7 @@ import HackathonLondonBanner from "@/public/nav-banner/hackathon_luma.png";
 import Team1Banner from "@/public/nav-banner/local_events_team1.jpg";
 import L1LauncherPreview from "@/public/nav-banner/l1-launcher-preview.png";
 import CustomButton from "@/components/ambassador-dao/custom-button";
+import { AuthButton } from '@/components/ambassador-dao/auth-button';
 
 export const integrationsMenu: LinkItemType = {
   type: "menu",
@@ -481,11 +482,7 @@ export const baseOptions: BaseLayoutProps = {
     ambassadorMenu,
     {
       type: "custom",
-      children: (
-        <CustomButton variant='danger' className='px-1 !h-8'>
-          Login
-        </CustomButton>
-      ),
+      children: <AuthButton />,
     },
   ],
 };
