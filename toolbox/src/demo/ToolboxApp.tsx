@@ -153,16 +153,7 @@ const componentGroups: Record<string, ComponentType[]> = {
                 "toolbox/contracts/example-contracts/contracts/senderOnCChain.sol",
             ]
         }
-    ],
-    "Docs": [
-        {
-            id: 'createL1Guide',
-            label: "Create L1",
-            component: lazy(() => import('./examples/Docs/CreateL1')),
-            fileNames: [],
-            skipWalletConnection: true,
-        }
-    ],
+    ]
 };
 
 const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) => {
