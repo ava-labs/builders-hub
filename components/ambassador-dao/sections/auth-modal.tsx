@@ -1,6 +1,6 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Mail } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { VerificationInput } from "../verification-code";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { useForm } from "react-hook-form";
@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import CustomButton from "../custom-button";
 import CustomInput from "../input";
 import { API_DEV } from "@/services/ambassador-dao/data/constants";
+import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
 
 interface IAuthModalProps {
   isOpen: boolean;
@@ -23,19 +24,29 @@ interface IAuthModalProps {
 
 type AuthStep = "options" | "email" | "verification";
 
-export const AuthModal = ({ isOpen, onClose }: IAuthModalProps) => {
-  const [currentStep, setCurrentStep] = useState<AuthStep>("options");
-  const [email, setEmail] = useState("");
+const SearchParamsHandler = ({
+  setCurrentStep,
+  setEmail,
+}: {
+  setCurrentStep: React.Dispatch<React.SetStateAction<AuthStep>>;
+  setEmail: React.Dispatch<React.SetStateAction<string>>;
+}) => {
   const searchParams = useSearchParams();
   const { mutate: googleCallbackMutation } = useHandleGoogleCallback();
 
-  // Handle Google OAuth callback
   useEffect(() => {
     const code = searchParams.get("code");
     if (code) {
       googleCallbackMutation(code);
     }
   }, [searchParams, googleCallbackMutation]);
+
+  return null;
+};
+
+export const AuthModal = ({ isOpen, onClose }: IAuthModalProps) => {
+  const [currentStep, setCurrentStep] = useState<AuthStep>("options");
+  const [email, setEmail] = useState("");
 
   const onCloseModal = () => {
     onClose();
@@ -62,6 +73,12 @@ export const AuthModal = ({ isOpen, onClose }: IAuthModalProps) => {
         showClose
       >
         <DialogTitle></DialogTitle>
+        <Suspense fallback={<FullScreenLoader />}>
+          <SearchParamsHandler
+            setCurrentStep={setCurrentStep}
+            setEmail={setEmail}
+          />
+        </Suspense>
         {renderStep()}
       </DialogContent>
     </Dialog>
