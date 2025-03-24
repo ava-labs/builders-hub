@@ -578,3 +578,7 @@ html body[data-scroll-locked] {
     display: none;
   }
 }
+
+.list-none a {
+    white-space: nowrap;
+}

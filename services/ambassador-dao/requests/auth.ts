@@ -95,10 +95,12 @@ export const useLogoutMutation = () => {
   return useMutation({
     mutationKey: ["logout"],
     mutationFn: async () => {
+      toast.loading("Logging you out");
       const res = await axios.post(`${API_DEV}/auth/logout`);
       return res.data;
     },
     onSuccess: () => {
+      toast.remove();
       queryClient.invalidateQueries();
       queryClient.clear();
       router.push("/");
