@@ -255,13 +255,6 @@ export default function PerformanceMonitor() {
             <h3 className="text-lg font-semibold mb-2">EVM Chain Performance Monitor</h3>
             <div className="mb-6">
                 <p className="mb-2">This tool monitors blockchain performance metrics in real-time, tracking transactions, gas usage, and block production. Data is aggregated by time buckets and normalized to per-second values to provide insights into network throughput and activity patterns.</p>
-                <div className="mt-4 text-sm text-gray-600">
-                    <p>If you don't have a RPC URL, try any of these:</p>
-                    <ul className="list-disc pl-5 space-y-1">
-                        <li><code>https://api.avax.network/ext/bc/C/rpc</code> (Avalanche C-Chain)</li>
-                        <li><code>https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc</code> (DeFi Kingdoms)</li>
-                    </ul>
-                </div>
             </div>
 
             <div className="flex flex-col gap-4 mb-4">
