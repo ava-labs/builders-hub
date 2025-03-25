@@ -2,7 +2,12 @@ import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { IUserDetails, IUserStats, IVerifiedDetails } from "../interfaces/user";
+import {
+  ISponsorStats,
+  IUserDetails,
+  IUserStats,
+  IVerifiedDetails,
+} from "../interfaces/user";
 import { errorMsg } from "@/utils/error-mapping";
 import { API_DEV } from "../data/constants";
 import { IVerifyPasscodeBody } from "../interfaces/auth";
@@ -25,6 +30,7 @@ export const useRequestPasscodeMutation = () => {
 };
 
 export const useVerifyPasscodeMutation = () => {
+  const queryclient = useQueryClient();
   const router = useRouter();
   return useMutation({
     mutationKey: ["verifyPasscode"],
@@ -33,7 +39,9 @@ export const useVerifyPasscodeMutation = () => {
       return res.data.data as IVerifiedDetails;
     },
     onSuccess: (data) => {
+      queryclient.invalidateQueries({ queryKey: ["fetchUserProfile"] });
       toast.success("Verification successful");
+
       if (!data.user.role && !data.user.first_name) {
         router.push("/ambassador-dao/onboard");
       } else {
@@ -133,5 +141,17 @@ export const useFetchUserStatsDataQuery = (
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     enabled: false,
+  });
+};
+
+export const useFetchSponsorStatsDataQuery = () => {
+  return useQuery({
+    queryFn: async () => {
+      const res = await axios.get(`${API_DEV}/users/sponsor/stats`);
+      return res.data.data as ISponsorStats;
+    },
+    queryKey: ["fetchSponsorStats"],
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 };
