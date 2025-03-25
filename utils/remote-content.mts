@@ -257,9 +257,9 @@ async function main(): Promise<void> {
     },
     { 
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/platformvm/config/config.md",
-      outputPath: "content/docs/nodes/configure/configs-flags.mdx",
-      title: "AvalancheGo Configs and Flags",
-      description: "This page is an overview of the configurations and flags supported by AvalancheGo.",
+      outputPath: "content/docs/nodes/chain-configs/p-chain.mdx",
+      title: "P-Chain",
+      description: "This page is an overview of the configurations and flags supported by P-Chain.",
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/config",
     }
   ];
