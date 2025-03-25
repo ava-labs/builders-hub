@@ -256,11 +256,11 @@ async function main(): Promise<void> {
       contentUrl: "https://github.com/ava-labs/icm-contracts/blob/main/contracts/ictt/",
     },
     { 
-      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/config/config.md",
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/platformvm/config/config.md",
       outputPath: "content/docs/nodes/configure/configs-flags.mdx",
       title: "AvalancheGo Configs and Flags",
       description: "This page is an overview of the configurations and flags supported by AvalancheGo.",
-      contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/config",
+      contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/config",
     }
   ];
 
