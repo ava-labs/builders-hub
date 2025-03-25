@@ -31,17 +31,31 @@ export type benchmarkChainInfo = {
     peerFlags: string[];
 }
 
+
+
 const countryFlagCache = new Map<string, Promise<string>>();
 async function getCountryFlag(ip: string): Promise<string> {
+    // Check in-memory cache first
     if (countryFlagCache.has(ip)) {
         return countryFlagCache.get(ip)!;
+    }
+
+    // Check localStorage
+    const storageKey = `flag-${ip}`;
+    const storedFlag = localStorage.getItem(storageKey);
+    if (storedFlag) {
+        return storedFlag;
     }
 
     const flagPromise = (async () => {
         try {
             const response = await fetch(`https://ipwho.is/${ip}`);
             const data = await response.json();
-            return data.flag.emoji;
+            const flag = data.flag.emoji;
+
+            // Store in localStorage only on success
+            localStorage.setItem(storageKey, flag);
+            return flag;
         } catch (error) {
             return '🌐';
         }
