@@ -19,8 +19,15 @@ export function cb58ToBytes(cb58: string): Uint8Array {
 }
 
 
-export function cb58ToHex(cb58: string, include0x: boolean = true): string {
-    const rawBytes = cb58ToBytes(cb58);
+export function cb58ToHex(cb58: string, include0x: boolean = true, checkSum: boolean = false): string {
+    let rawBytes = cb58ToBytes(cb58);
+    if (checkSum) {
+        const checksum = calculateChecksum(rawBytes);
+        const combined = new Uint8Array(rawBytes.length + CHECKSUM_LENGTH);
+        combined.set(rawBytes);
+        combined.set(checksum, rawBytes.length);
+        rawBytes = combined;
+    }
     return (include0x ? '0x' : '') + bytesToHex(rawBytes);
 }
 
@@ -32,7 +39,7 @@ export function hexToCB58(hex: string): string {
     const combined = new Uint8Array(bytes.length + CHECKSUM_LENGTH);
     combined.set(bytes);
     combined.set(checksum, bytes.length);
-
+    
     return base58.encode(combined);
 }
 
