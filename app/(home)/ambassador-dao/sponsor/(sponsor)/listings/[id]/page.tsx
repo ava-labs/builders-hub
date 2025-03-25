@@ -1,6 +1,7 @@
 "use client";
 import { Outline } from "@/components/ambassador-dao/ui/Outline";
 import Avalance3d from "@/public/ambassador-dao-images/3d.png";
+import DefaultAvatar from "@/public/ambassador-dao-images/Avatar.svg";
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -30,7 +31,10 @@ import Loader from "@/components/ambassador-dao/ui/Loader";
 import { getTimeLeft } from "@/utils/timeFormatting";
 import { PaginationComponent } from "@/components/ambassador-dao/pagination";
 import { StatusBadge } from "@/components/ambassador-dao/status-badge";
-import { opportunityStatusOptions } from "@/components/ambassador-dao/constants";
+import {
+  opportunityApplicationStatusOptions,
+  opportunitySubmissionStatusOptions,
+} from "@/components/ambassador-dao/constants";
 
 const AmbasssadorDaoSponsorsListingsSubmissions = () => {
   const params = useParams<{ id: string }>();
@@ -61,7 +65,7 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                       alt='logo'
                       width={60}
                       height={60}
-                      className='shrink-0'
+                      className='shrink-0 rounded-md'
                     />
                   </div>
                   <div>
@@ -118,7 +122,7 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
           {listing?.type === "JOB" ? (
             <JobApplications listingId={params.id} />
           ) : (
-            <BountyApplications listingId={params.id} />
+            <BountySubmissions listingId={params.id} />
           )}
         </>
       )}
@@ -170,7 +174,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
               <SelectValue placeholder='Everything' />
             </SelectTrigger>
             <SelectContent className='bg-[#27272A] border-[#27272A]'>
-              {opportunityStatusOptions.map((option) => (
+              {opportunityApplicationStatusOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -203,8 +207,10 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                     <div className='flex md:items-center gap-3'>
                       <div>
                         <Image
-                          src={USDCICON}
-                          alt='USDC'
+                          src={
+                            application.applicant.profile_image ?? DefaultAvatar
+                          }
+                          alt='user profile'
                           width={60}
                           height={60}
                           className='shrink-0'
@@ -212,9 +218,13 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                       </div>
                       <div>
                         <h3 className='text-lg font-medium text-white'>
-                          Applicant Name
+                          {application.applicant.first_name}{" "}
+                          {application.applicant.last_name}
                         </h3>
-                        <p className='text-gray-400 font-light text-sm'>Role</p>
+                        <p className='text-gray-400 font-light text-sm'>
+                          {" "}
+                          {application.applicant.role ?? "--"}
+                        </p>
                         <div className='flex items-center space-x-3 mt-2 overflow-x-auto'>
                           <div className='flex items-center text-sm text-gray-400'>
                             <Hourglass
@@ -230,17 +240,19 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                       </div>
                     </div>
 
-                    <StatusBadge status={application.status} />
+                    <StatusBadge
+                      status={application.status ?? "N/A"}
+                    />
                   </div>
 
-                  <div className='flex justify-between gap-3'>
-                    <div className='flex gap-2 items-center overflow-x-auto'>
+                  <div className='flex justify-end gap-3'>
+                    {/* <div className='flex gap-2 items-center overflow-x-auto'>
                       {application.skills.map((skill, index) => (
                         <div key={index}>
                           <Outline label={skill.name} />
                         </div>
                       ))}
-                    </div>
+                    </div> */}
 
                     <CustomButton className='px-3' isFullWidth={false}>
                       Details
@@ -253,7 +265,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
               <PaginationComponent
                 currentPage={currentPage}
                 onPageChange={handlePageChange}
-                totalPages={listingApplications?.metadata.last_page ?? 1} // Replace with actual total pages from API
+                totalPages={listingApplications?.metadata.last_page ?? 1}
               />
             </>
           ) : (
@@ -273,7 +285,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
   );
 };
 
-const BountyApplications = ({ listingId }: { listingId: string }) => {
+const BountySubmissions = ({ listingId }: { listingId: string }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -316,7 +328,7 @@ const BountyApplications = ({ listingId }: { listingId: string }) => {
               <SelectValue placeholder='Everything' />
             </SelectTrigger>
             <SelectContent className='bg-[#27272A] border-[#27272A]'>
-              {opportunityStatusOptions.map((option) => (
+              {opportunitySubmissionStatusOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -349,8 +361,10 @@ const BountyApplications = ({ listingId }: { listingId: string }) => {
                     <div className='flex md:items-center gap-3'>
                       <div>
                         <Image
-                          src={USDCICON}
-                          alt='USDC'
+                          src={
+                            submission.submitter.profile_image ?? DefaultAvatar
+                          }
+                          alt='user profile'
                           width={60}
                           height={60}
                           className='shrink-0'
@@ -358,9 +372,12 @@ const BountyApplications = ({ listingId }: { listingId: string }) => {
                       </div>
                       <div>
                         <h3 className='text-lg font-medium text-white'>
-                          Submitter Name
+                          {submission.submitter.first_name}{" "}
+                          {submission.submitter.last_name}
                         </h3>
-                        <p className='text-gray-400 font-light text-sm'>Role</p>
+                        <p className='text-gray-400 font-light text-sm'>
+                          {submission.submitter.role ?? "--"}
+                        </p>
                         <div className='flex items-center space-x-3 mt-2 overflow-x-auto'>
                           <div className='flex items-center text-sm text-gray-400'>
                             <Hourglass
@@ -376,17 +393,19 @@ const BountyApplications = ({ listingId }: { listingId: string }) => {
                       </div>
                     </div>
 
-                    <StatusBadge status={submission.status} />
+                    <StatusBadge
+                      status={submission.submitter.status ?? "N/A"}
+                    />
                   </div>
 
-                  <div className='flex justify-between gap-3'>
-                    <div className='flex gap-2 items-center overflow-x-auto'>
+                  <div className='flex justify-end gap-3'>
+                    {/* <div className='flex gap-2 items-center overflow-x-auto'>
                       {submission.skills.map((skill, index) => (
                         <div key={index}>
                           <Outline label={skill.name} />
                         </div>
                       ))}
-                    </div>
+                    </div> */}
 
                     <CustomButton className='px-3' isFullWidth={false}>
                       Details

@@ -43,13 +43,7 @@ const AmbasssadorDaoSponsorsLayout = ({
               />
 
               <SidebarItem
-                href='/ambassador-dao/sponsor/team-settings'
-                icon={<Hourglass className='h-5 w-5' />}
-                label='Team Setting'
-              />
-
-              <SidebarItem
-                href='/ambassador-dao/sponsor/help'
+                href='#'
                 icon={<History className='h-5 w-5' />}
                 label='Get Help'
               />
