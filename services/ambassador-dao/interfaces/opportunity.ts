@@ -21,6 +21,9 @@ export interface IJobDataType {
         name: string;
       }
     ];
+    _count:{
+      applications: number;
+    }
   };
 }
 
@@ -47,6 +50,9 @@ export interface IBountyDataType {
         name: string;
       }
     ];
+    _count:{
+      submissions: number
+    }
   };
 }
 
