@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { createPublicClient, http, webSocket } from 'viem';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { BlockWatcher, BlockInfo } from "./BlockWatcher";
-
+import { ChainInfo } from "./chainInfo";
 // Data structure for bucketed metrics
 interface BucketedData {
     transactions: number;
@@ -21,7 +21,10 @@ export default function PerformanceMonitor() {
         setNodeRpcUrl,
         chainID,
         setChainID,
+        subnetID,
+        setSubnetID
     } = useToolboxStore();
+
 
     const [evmChainRpcUrl, setEvmChainRpcUrl] = useState('');
     useEffect(() => {
@@ -33,6 +36,7 @@ export default function PerformanceMonitor() {
         }
         setEvmChainRpcUrl(newUrl);
     }, [nodeRpcUrl, chainID]);
+
 
     const [isMonitoring, setIsMonitoring] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -261,28 +265,35 @@ export default function PerformanceMonitor() {
             </div>
 
             <div className="flex flex-col gap-4 mb-4">
-                <Input
-                    type="text"
-                    label="RPC URL excluding /ext/bc/..."
-                    value={nodeRpcUrl}
-                    onChange={setNodeRpcUrl}
-                    disabled={isMonitoring}
-                />
-                <Input
-                    type="text"
-                    label="Chain ID"
-                    value={chainID}
-                    onChange={setChainID}
-                    disabled={isMonitoring}
-                />
-                <Input
-                    type="text"
-                    label="EVM Chain RPC URL"
-                    value={evmChainRpcUrl}
-                    disabled={true}
-                />
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                        type="text"
+                        label="RPC URL excluding /ext/bc/..."
+                        value={nodeRpcUrl}
+                        onChange={setNodeRpcUrl}
+                        disabled={isMonitoring}
+                    />
+                    <Input
+                        type="text"
+                        label="Chain ID"
+                        value={chainID}
+                        onChange={setChainID}
+                        disabled={isMonitoring}
+                    />
+                    <Input
+                        type="text"
+                        label="EVM Chain RPC URL"
+                        value={evmChainRpcUrl}
+                        disabled={true}
+                    />
+                    <Input
+                        type="text"
+                        label="Subnet ID"
+                        value={subnetID}
+                        onChange={setSubnetID}
+                        disabled={isMonitoring}
+                    />
+
                     <Select
                         options={[
                             { value: "60", label: "1 minute (1s buckets)" },
@@ -339,6 +350,8 @@ export default function PerformanceMonitor() {
                 </Button>
             </div>
 
+            <ChainInfo rpcUrl={nodeRpcUrl} subnetID={subnetID} chainID={chainID} />
+
             {error && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded">
                     <strong>Error:</strong> {error}
@@ -387,7 +400,7 @@ export default function PerformanceMonitor() {
                         </LineChart>
                     </ResponsiveContainer>
 
-                    <h4 className="font-medium mt-6 mb-2">Gas Usage per Second</h4>
+                    <h4 className="font-medium mt-2 mb-2">Gas Usage per Second</h4>
                     <ResponsiveContainer width="100%" height={200}>
                         <LineChart
                             data={chartData}
@@ -427,7 +440,7 @@ export default function PerformanceMonitor() {
                         </LineChart>
                     </ResponsiveContainer>
 
-                    <h4 className="font-medium mt-6 mb-2">Blocks per Second</h4>
+                    <h4 className="font-medium mt-2 mb-2">Blocks per Second</h4>
                     <ResponsiveContainer width="100%" height={200}>
                         <LineChart
                             data={chartData}
@@ -467,7 +480,7 @@ export default function PerformanceMonitor() {
                         </LineChart>
                     </ResponsiveContainer>
 
-                    <h4 className="font-medium mt-6 mb-2">Recent Blocks</h4>
+                    <h4 className="font-medium mt-2 mb-2">Recent Blocks</h4>
                     <div className="overflow-x-auto">
                         <table className="min-w-full bg-white border border-gray-200">
                             <thead>
