@@ -74,10 +74,6 @@ export default function AddL1s() {
     }
   }, [chains, searchTerm]);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-
   // Copy to clipboard function
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text).then(
@@ -392,6 +388,7 @@ export default function AddL1s() {
                   <Button
                     variant={Number(chain.chainId) === walletChainId ? "secondary" : "primary"}
                     loading={addingChainId === chain.chainId}
+                    onClick={() => handleAddToWallet(chain)}
                   >
                     {Number(chain.chainId) === walletChainId ? 'Connected' : 'Add to Wallet'}
                   </Button>
