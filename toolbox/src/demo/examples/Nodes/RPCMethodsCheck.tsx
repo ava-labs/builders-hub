@@ -6,6 +6,7 @@ import { createPublicClient, http } from 'viem';
 import { useErrorBoundary } from "react-error-boundary";
 import { useToolboxStore, useWalletStore } from "../../utils/store";
 import { pvm } from '@avalabs/avalanchejs';
+import { RPCURLInput } from "../../components/RPCURLInput";
 
 type TestResult = Record<string, { passed: boolean, message: string }>;
 async function runPChainTests(payload: { evmChainRpcUrl: string, baseURL: string, pChainAddress: string, ethAddress: string }): Promise<TestResult> {
@@ -316,13 +317,13 @@ export default function RPCMethodsCheck() {
         <div className="space-y-4">
             <h2 className="text-lg font-semibold">RPC Methods Check</h2>
             <div className="space-y-4">
-                <Input
+                <RPCURLInput
                     label="RPC URL"
                     value={evmChainRpcUrl}
                     onChange={setEvmChainRpcUrl}
                     placeholder="Enter RPC URL"
                 />
-                <Input
+                <RPCURLInput
                     label="Base URL to query P Chain, optional"
                     value={baseURL}
                     onChange={setBaseURL}

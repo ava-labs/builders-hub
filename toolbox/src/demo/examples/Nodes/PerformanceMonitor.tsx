@@ -7,6 +7,7 @@ import { createPublicClient, http, webSocket } from 'viem';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { BlockWatcher, BlockInfo } from "./BlockWatcher";
 import { ChainInfo } from "./chainInfo";
+import { RPCURLInput } from "../../components/RPCURLInput";
 // Data structure for bucketed metrics
 interface BucketedData {
     transactions: number;
@@ -259,8 +260,7 @@ export default function PerformanceMonitor() {
 
             <div className="flex flex-col gap-4 mb-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        type="text"
+                    <RPCURLInput
                         label="RPC URL excluding /ext/bc/..."
                         value={nodeRpcUrl}
                         onChange={setNodeRpcUrl}
