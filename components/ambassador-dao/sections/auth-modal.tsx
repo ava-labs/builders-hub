@@ -98,9 +98,9 @@ const OptionsStep = ({ setCurrentStep }: OptionsStepProps) => {
   return (
     <div className='flex flex-col items-center justify-center h-full p-4 md:p-6 max-w-md mx-auto'>
       <div className='mb-8 md:mb-12 text-center'>
-        <h1 className='text-[#FAFAFA] text-2xl font-medium'>Sign up</h1>
+        <h1 className='text-[#FAFAFA] text-2xl font-medium'>Log in</h1>
         <p className='text-[#9F9FA9] text-sm'>
-          Sign up with email or choose another method
+          Log in with email or choose another method
         </p>
       </div>
 
@@ -113,7 +113,7 @@ const OptionsStep = ({ setCurrentStep }: OptionsStepProps) => {
         <div className='w-full gap-4 flex items-center'>
           <hr className='w-full ' />
           <p className='whitespace-nowrap uppercase text-[#9F9FA9] text-xs'>
-            Or sign up with
+            Or sign in with
           </p>
           <hr className='w-full' />
         </div>
@@ -159,9 +159,9 @@ const EmailStep = ({ setCurrentStep, setEmail }: EmailStepProps) => {
   return (
     <div className='flex flex-col items-center justify-center h-full p-4 md:p-6 max-w-md mx-auto'>
       <div className='mb-8 text-center'>
-        <h1 className='text-[#FAFAFA] text-2xl font-medium'>Sign up</h1>
+        <h1 className='text-[#FAFAFA] text-2xl font-medium'>Log in</h1>
         <p className='text-[#9F9FA9] text-sm'>
-          Sign up with email or choose another method
+          Log in with email or choose another method
         </p>
       </div>
 

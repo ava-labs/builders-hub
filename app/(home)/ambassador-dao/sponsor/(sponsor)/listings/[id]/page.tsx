@@ -89,7 +89,10 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                       </div>
                       <div className='flex items-center text-sm text-gray-400'>
                         <FileText color='#9F9FA9' className='w-3 h-3 mr-1' />
-                        60 Proposals
+                        {listing.type === "JOB"
+                          ? listing._count.applications
+                          : listing._count.submissions}{" "}
+                        Proposals
                       </div>
                     </div>
                   </div>
@@ -240,9 +243,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                       </div>
                     </div>
 
-                    <StatusBadge
-                      status={application.status ?? "N/A"}
-                    />
+                    <StatusBadge status={application.status ?? "N/A"} />
                   </div>
 
                   <div className='flex justify-end gap-3'>
@@ -393,9 +394,7 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
                       </div>
                     </div>
 
-                    <StatusBadge
-                      status={submission.submitter.status ?? "N/A"}
-                    />
+                    <StatusBadge status={submission.status ?? "N/A"} />
                   </div>
 
                   <div className='flex justify-end gap-3'>
