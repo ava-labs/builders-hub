@@ -22,9 +22,14 @@ export function createCoreWalletClient(account: `0x${string}`) {
     if (!isClient) {
         return null as any; // Return null for SSR
     }
+
+    // Check if window.avalanche exists and is an object
+    if (!window.avalanche || typeof window.avalanche !== 'object') {
+        return null as any; // Return null if Core wallet is not found
+    }
     
     return createWalletClient({
-        transport: custom(window.avalanche!),
+        transport: custom(window.avalanche),
         account: account,
         rpcSchema: rpcSchema<CoreWalletRpcSchema>(),
     }).extend((client) => ({

@@ -32,26 +32,35 @@ export const ConnectWallet = ({ children, required }: { children: React.ReactNod
 
     async function init() {
       try {
-        //first, let's check if there is a wallet at all
-        if (window.avalanche) {
+        // Check if window.avalanche exists and is an object
+        if (typeof window.avalanche !== 'undefined' && window.avalanche !== null) {
           setHasWallet(true)
         } else {
           setHasWallet(false)
           return
         }
 
-        window.avalanche?.on("accountsChanged", handleAccountsChanged)
-        window.avalanche.on("chainChanged", onChainChanged)
+        // Safely add event listeners
+        if (window.avalanche?.on) {
+          window.avalanche.on("accountsChanged", handleAccountsChanged)
+          window.avalanche.on("chainChanged", onChainChanged)
+        }
 
         try {
-          const accounts = await window.avalanche?.request<string[]>({ method: "eth_accounts" })
-          if (accounts) {
-            handleAccountsChanged(accounts)
+          // Check if request method exists before calling it
+          if (window.avalanche?.request) {
+            const accounts = await window.avalanche.request<string[]>({ method: "eth_accounts" })
+            if (accounts) {
+              handleAccountsChanged(accounts)
+            }
           }
         } catch (error) {
-          //Ignore error, it's expected if the user has not connected their wallet yet
+          // Ignore error, it's expected if the user has not connected their wallet yet
+          console.debug("No accounts found:", error)
         }
       } catch (error) {
+        console.error("Error initializing wallet:", error)
+        setHasWallet(false)
         showBoundary(error)
       }
     }
@@ -62,11 +71,8 @@ export const ConnectWallet = ({ children, required }: { children: React.ReactNod
 
     // Clean up event listeners
     return () => {
-      // Since we're dealing with a type mismatch between the API's on() and removeListener() methods,
-      // we apply a type-safe workaround by using empty functions of the required signature
-      if (isBrowser && window.avalanche) {
+      if (isBrowser && window.avalanche?.removeListener) {
         try {
-          // Empty functions with matching signatures for removeListener
           window.avalanche.removeListener("accountsChanged", () => {})
           window.avalanche.removeListener("chainChanged", () => {})
         } catch (e) {
@@ -102,7 +108,13 @@ export const ConnectWallet = ({ children, required }: { children: React.ReactNod
     }
 
     //re-create wallet with new account
-    setCoreWalletClient(createCoreWalletClient(accounts[0] as `0x${string}`))
+    const newWalletClient = createCoreWalletClient(accounts[0] as `0x${string}`)
+    if (!newWalletClient) {
+      setHasWallet(false)
+      return
+    }
+    
+    setCoreWalletClient(newWalletClient)
     setWalletEVMAddress(accounts[0] as `0x${string}`)
 
     coreWalletClient.getPChainAddress().then(setPChainAddress).catch(showBoundary)
@@ -116,33 +128,46 @@ export const ConnectWallet = ({ children, required }: { children: React.ReactNod
     if (!isBrowser) return
 
     console.log("Connecting wallet")
-    window.avalanche
-      ?.request<string[]>({ method: "eth_requestAccounts" })
-      .catch((error) => {
-        showBoundary(error)
-      })
-      .then((accounts?: string[] | void) => {
-        if (accounts) {
-          // Use the same handler function as defined in useEffect
-          if (accounts.length === 0) {
-            setWalletEVMAddress("")
-            return
-          } else if (accounts.length > 1) {
-            showBoundary(new Error("Multiple accounts found, we don't support that yet"))
-            return
-          }
+    try {
+      if (!window.avalanche?.request) {
+        setHasWallet(false)
+        return
+      }
 
-          //re-create wallet with new account
-          setCoreWalletClient(createCoreWalletClient(accounts[0] as `0x${string}`))
-          setWalletEVMAddress(accounts[0] as `0x${string}`)
+      const accounts = await window.avalanche.request<string[]>({ method: "eth_requestAccounts" })
+      
+      if (!accounts) {
+        throw new Error("No accounts returned from wallet")
+      }
 
-          coreWalletClient.getPChainAddress().then(setPChainAddress).catch(showBoundary)
+      // Use the same handler function as defined in useEffect
+      if (accounts.length === 0) {
+        setWalletEVMAddress("")
+        return
+      } else if (accounts.length > 1) {
+        showBoundary(new Error("Multiple accounts found, we don't support that yet"))
+        return
+      }
 
-          if (walletChainId === 0) {
-            coreWalletClient.getChainId().then(onChainChanged).catch(showBoundary)
-          }
-        }
-      })
+      //re-create wallet with new account
+      const newWalletClient = createCoreWalletClient(accounts[0] as `0x${string}`)
+      if (!newWalletClient) {
+        setHasWallet(false)
+        return
+      }
+      
+      setCoreWalletClient(newWalletClient)
+      setWalletEVMAddress(accounts[0] as `0x${string}`)
+
+      coreWalletClient.getPChainAddress().then(setPChainAddress).catch(showBoundary)
+
+      if (walletChainId === 0) {
+        coreWalletClient.getChainId().then(onChainChanged).catch(showBoundary)
+      }
+    } catch (error) {
+      console.error("Error connecting wallet:", error)
+      showBoundary(error)
+    }
   }
 
   const copyToClipboard = (text: string) => {
@@ -190,8 +215,7 @@ export const ConnectWallet = ({ children, required }: { children: React.ReactNod
               rel="noopener noreferrer"
               className="block w-full"
             >
-              <Button className="w-full bg-[#e5484d] hover:bg-[#d13438] text-white font-medium py-4 px-5 rounded-xl shadow-lg hover:shadow-xl hover:translate-y-[-2px] active:translate-y-[1px] transition-all duration-200 flex items-center justify-center">
-                <ExternalLink className="w-5 h-5 mr-2.5 text-white" />
+              <Button className="w-full bg-[#e5484d] hover:bg-[#d13438] text-black font-medium py-4 px-5 rounded-xl shadow-lg hover:shadow-xl hover:translate-y-[-2px] active:translate-y-[1px] transition-all duration-200 flex items-center justify-center">
                 Download Core Wallet
               </Button>
             </a>
