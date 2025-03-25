@@ -13,7 +13,11 @@ export function RPCURLInput({ value, onChange, label = "RPC URL", placeholder, d
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (value.startsWith('http://')) {
+        const isProduction = !window.location.hostname.includes('localhost');
+        const isHttps = window.location.protocol === 'https:';
+        const isHttpUrl = value.startsWith('http://');
+
+        if (isProduction && isHttps && isHttpUrl) {
             setError('Warning: HTTP URLs are not secure and may not work due to browser security policies. Please use HTTPS or consider the following options:');
         } else {
             setError(null);
