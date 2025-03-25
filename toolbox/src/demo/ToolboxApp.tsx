@@ -19,6 +19,12 @@ const componentGroups: Record<string, ComponentType[]> = {
             label: "Switch Chain",
             component: lazy(() => import('./examples/Wallet/SwitchChain')),
             fileNames: ["toolbox/src/demo/examples/Wallet/SwitchChain.tsx"]
+        },
+        {
+            id: 'addL1s',
+            label: "Add L1s",
+            component: lazy(() => import('./examples/Wallet/AddL1s')),
+            fileNames: []
         }
     ],
     'Create an L1': [
