@@ -66,8 +66,9 @@ export default function PerformanceMonitor() {
         switch (timeRange) {
             case "60": // 1 minute
             case "300": // 5 minutes
-            case "1800": // 30 minutes
                 return { seconds: 1, label: "second" };
+            case "900": // 15 minutes
+            case "1800": // 30 minutes
             case "3600": // 1 hour
             case "10800": // 3 hours
                 return { seconds: 60, label: "minute" };
@@ -291,7 +292,8 @@ export default function PerformanceMonitor() {
                         options={[
                             { value: "60", label: "1 minute (1s buckets)" },
                             { value: "300", label: "5 minutes (1s buckets)" },
-                            { value: "1800", label: "30 minutes (1s buckets)" },
+                            { value: "900", label: "15 minutes (1m buckets)" },
+                            { value: "1800", label: "30 minutes (1m buckets)" },
                             { value: "3600", label: "1 hour (1m buckets)" },
                             { value: "10800", label: "3 hours (1m buckets)" },
                             { value: "86400", label: "24 hours (1h buckets)" },
