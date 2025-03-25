@@ -15,8 +15,21 @@ import { extractChainInfo, ExtractChainInfoParams } from './methods/extractChain
 export { type ConvertToL1Validator } from "./methods/convertToL1"
 
 export function createCoreWalletClient(account: `0x${string}`) {
+    // Check if we're in a browser environment
+    const isClient = typeof window !== 'undefined'
+    
+    // Only create a wallet client if we're in a browser
+    if (!isClient) {
+        return null as any; // Return null for SSR
+    }
+
+    // Check if window.avalanche exists and is an object
+    if (!window.avalanche || typeof window.avalanche !== 'object') {
+        return null as any; // Return null if Core wallet is not found
+    }
+    
     return createWalletClient({
-        transport: custom(window.avalanche!),
+        transport: custom(window.avalanche),
         account: account,
         rpcSchema: rpcSchema<CoreWalletRpcSchema>(),
     }).extend((client) => ({

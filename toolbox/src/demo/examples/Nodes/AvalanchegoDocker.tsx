@@ -1,12 +1,13 @@
 "use client";
 
 import { useToolboxStore, useWalletStore } from "../../utils/store";
-import { Input, Select } from "../../ui";
+import { Select } from "../../ui";
 import { useState, useEffect } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
 import versions from "../../../versions.json";
 import { CodeHighlighter } from "../../ui/CodeHighlighter";
-
+import { Container } from "../../../components/container";
+import { Input } from "../../../components/input";
 const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number) => {
     const httpPort = isRPC ? "8080" : "9650";
     const stakingPort = isRPC ? "9653" : "9651";
@@ -152,8 +153,10 @@ export default function AvalanchegoDocker() {
     }, [isRPC]);
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold ">Avalanchego in Docker</h2>
+        <Container
+            title="Avalanchego in Docker"
+            description="This will start a Docker container running an RPC or validator node that tracks your subnet."
+        >
             <div className="space-y-4">
                 <div className="mb-4">
                     This command will start a Docker container running an RPC or validator node that tracks your subnet.
@@ -205,7 +208,7 @@ export default function AvalanchegoDocker() {
                         value={domain}
                         onChange={setDomain}
                         placeholder="example.com  or 1.2.3.4"
-                        notes="`curl checkip.amazonaws.com` to get your public IP address. Make sure 443 is open on your firewall."
+                        helperText="`curl checkip.amazonaws.com` to get your public IP address. Make sure 443 is open on your firewall."
                     />
                 )}
                 {chainID && enableDebugTrace === "true" && isRPC === "true" && (
@@ -257,6 +260,6 @@ export default function AvalanchegoDocker() {
                     </div>
                 )}
             </div>
-        </div>
+        </Container>
     );
 };

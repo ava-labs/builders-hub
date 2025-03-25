@@ -43,7 +43,7 @@ export default function CreateChain() {
             fxIds: [],
             genesisData,
             subnetAuth: [0],
-        }).then(txID => {
+        }).then((txID: string) => {
             setChainID(txID);
             setIsCreating(false);
         }).catch(showBoundary);

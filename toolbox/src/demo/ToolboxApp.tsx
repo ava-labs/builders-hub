@@ -21,6 +21,22 @@ const componentGroups: Record<string, ComponentType[]> = {
             fileNames: ["toolbox/src/demo/examples/Wallet/SwitchChain.tsx"]
         }
     ],
+    'Conversion': [
+        {
+            id: 'formatConverter',
+            label: "Format Converter",
+            component: lazy(() => import('./examples/Conversion/FormatConverter')),
+            fileNames: [],
+            skipWalletConnection: true,
+        },
+        {
+            id: 'unitConverter',
+            label: "Unit Converter",
+            component: lazy(() => import('./examples/Conversion/UnitConverter')),
+            fileNames: [],
+            skipWalletConnection: true,
+        }
+    ],
     'Create an L1': [
         {
             id: 'createSubnet',

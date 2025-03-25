@@ -3,13 +3,14 @@
 import { useToolboxStore, useViemChainStore, useWalletStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
 import { useEffect, useState } from "react";
-import { Button, Input } from "../../ui";
-import { Success } from "../../ui/Success";
+import { Button } from "../../../components/button";
+import { Input } from "../../../components/input";
+import { ResultField } from "../../../components/result-field";
 import { AbiEvent } from 'viem';
 import ValidatorManagerABI from "../../../../contracts/icm-contracts/compiled/ValidatorManager.json";
 import { utils } from "@avalabs/avalanchejs";
 import { RequireChainL1 } from "../../ui/RequireChain";
-
+import { Container } from "../../../components/container";
 export default function Initialize() {
     const { showBoundary } = useErrorBoundary();
     const { subnetID, proxyAddress, setProxyAddress, setSubnetID } = useToolboxStore();
@@ -108,8 +109,10 @@ export default function Initialize() {
 
     return (
         <RequireChainL1>
-            <div className="space-y-4">
-                <h2 className="text-lg font-semibold ">Initialize Validator Manager</h2>
+            <Container
+                title="Initialize Validator Manager"
+                description="This will initialize the ValidatorManager contract."
+            >
                 <div className="space-y-4">
                     <Input
                         label="Proxy address"
@@ -118,11 +121,10 @@ export default function Initialize() {
                         placeholder="Enter proxy address"
                         button={
                             <Button
-                                type="secondary"
+                                variant="secondary"
                                 onClick={checkIfInitialized}
                                 loading={isChecking}
                                 disabled={!proxyAddress}
-                                className="h-9 rounded-l-none"
                             >
                                 Check Status
                             </Button>
@@ -164,7 +166,7 @@ export default function Initialize() {
                             placeholder="Enter admin address"
                         />
                         <Button
-                            type="primary"
+                            variant="primary"
                             onClick={handleInitialize}
                             loading={isInitializing}
                             disabled={isInitializing}
@@ -172,16 +174,15 @@ export default function Initialize() {
                             Initialize Contract
                         </Button>
                     </div>
-
-
                     {isInitialized === true && (
-                        <Success
-                            label="Already Initialized"
+                        <ResultField
+                            label="Initialization Event"
                             value={jsonStringifyWithBigint(initEvent)}
+                            showCheck={isInitialized}
                         />
                     )}
                 </div>
-            </div>
+            </Container>
         </RequireChainL1>
     );
 };

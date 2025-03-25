@@ -8,40 +8,48 @@ interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChan
   unit?: string
   onChange?: (newValue: string) => void
   helperText?: string
+  button?: React.ReactNode
 }
 
-export function Input({ label, unit, className, onChange, id, helperText, ...props }: InputProps) {
+export function Input({ label, unit, className, onChange, id, helperText, button, ...props }: InputProps) {
   return (
     <div className="space-y-2">
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-3">
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{label}</span>
-        </div>
-        <div className="relative">
+      <label htmlFor={id} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+        {label}
+      </label>
+
+      <div className="relative">
+        <div className="flex">
           <input
             id={id}
             onChange={(e) => onChange?.(e.target.value)}
             className={cn(
-              "w-full rounded p-3",
-              "bg-white dark:bg-zinc-800",
-              "border-none",
+              "w-full rounded-md px-3 py-2.5",
+              "bg-white dark:bg-zinc-900",
+              "border border-zinc-300 dark:border-zinc-700",
               "text-zinc-900 dark:text-zinc-100",
-              "shadow-sm focus:ring focus:ring-blue-500/30",
+              "placeholder:text-zinc-400 dark:placeholder:text-zinc-500",
+              "shadow-sm",
+              "transition-colors duration-200",
+              "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
               unit ? "pr-12" : "",
               "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-              props.disabled ? "bg-zinc-100 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400" : "",
+              props.disabled ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-not-allowed" : "",
+              button ? "rounded-r-none" : "",
               className,
             )}
             {...props}
           />
-          {unit && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 pointer-events-none">
-              {unit}
-            </span>
-          )}
+          {button}
         </div>
+        {unit && (
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+            <span className="text-sm text-zinc-500 dark:text-zinc-400 pointer-events-none">{unit}</span>
+          </div>
+        )}
       </div>
-      {helperText && <p className="text-sm text-zinc-500 dark:text-zinc-400 ml-1">{helperText}</p>}
+
+      {helperText && <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{helperText}</p>}
     </div>
   )
 }

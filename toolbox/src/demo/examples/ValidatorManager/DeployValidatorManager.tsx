@@ -3,12 +3,12 @@
 import { useToolboxStore, useViemChainStore, useWalletStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
-import { Button } from "../../ui";
-import { Success } from "../../ui/Success";
+import { Button } from "../../../components/button";
+import { ResultField } from "../../../components/result-field";
 import { keccak256 } from 'viem';
 import ValidatorManagerABI from "../../../../contracts/icm-contracts/compiled/ValidatorManager.json";
 import { RequireChainL1 } from "../../ui/RequireChain";
-
+import { Container } from "../../../components/container";
 function calculateLibraryHash(libraryPath: string) {
     const hash = keccak256(
         new TextEncoder().encode(libraryPath)
@@ -72,9 +72,12 @@ export default function DeployValidatorManager() {
 
     return (
         <RequireChainL1>
-            <div className="space-y-4">
-                <h2 className="text-lg font-semibold ">Deploy Validator Manager</h2>
+            <Container
+                title="Deploy Validator Manager"
+                description="This will deploy the ValidatorManager contract to the currently connected EVM network."
+            >
                 <div className="space-y-4">
+                    <div className="mb-4">
                     <div className="mb-4">
                         This will deploy the <code>ValidatorManager</code> contract to the currently connected EVM network <code>{walletChainId}</code>.
                     </div>
@@ -82,7 +85,7 @@ export default function DeployValidatorManager() {
                         The contract requires the <code>ValidatorMessages</code> library at address: <code>{validatorMessagesLibAddress || "Not deployed"}</code>
                     </div>
                     <Button
-                        type="primary"
+                        variant="primary"
                         onClick={handleDeploy}
                         loading={isDeploying}
                         disabled={isDeploying || !validatorMessagesLibAddress}
@@ -90,11 +93,15 @@ export default function DeployValidatorManager() {
                         Deploy Contract
                     </Button>
                 </div>
-                <Success
-                    label="ValidatorManager Address"
-                    value={validatorManagerAddress}
-                />
-            </div>
+                {validatorManagerAddress && (
+                    <ResultField
+                        label="ValidatorManager Address"
+                        value={validatorManagerAddress}
+                        showCheck={!!validatorManagerAddress}
+                    />
+                )}
+                </div>
+            </Container>
         </RequireChainL1>
     );
 };

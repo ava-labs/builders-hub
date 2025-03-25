@@ -1,0 +1,51 @@
+---
+title: Create a Blockchain
+description: Create a blockchain on the P-Chain.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: ReplaceAll
+---
+
+import ToolboxMdxWrapper from "../../../../toolbox/src/demo/ui/ToolboxMdxWrapper.tsx"
+import CreateChain from "../../../../toolbox/src/demo/examples/L1/CreateChain.tsx"
+
+
+## Creating a Blockchain on Avalanche
+
+Now that you have successfully created a `subnetID` and generated a `genesis.json` file, the next step is to create the blockchain.
+
+### Understanding the CreateChainTx Transaction
+
+The `CreateChainTx` transaction is a critical operation on the P-Chain that:
+
+- Establishes a new blockchain and associates it with your previously created `subnetID`
+- Uploads your `genesis.json` configuration to the network
+- Generates a unique `blockchainID` that permanently identifies your chain within the Avalanche ecosystem
+
+### Virtual Machine (VM) Configuration
+
+When creating your blockchain, you'll need to specify the appropriate Virtual Machine:
+
+- For standard `subnet-evm` chains, use the default VM ID: `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`
+- If you're deploying a custom VM (such as `subnet-evm` with custom precompiles or a `hypersdk`-based chain), you must specify the correct custom VM ID
+
+### Creating Your Blockchain
+
+Use the interactive tool below to complete the blockchain creation process:
+
+<ToolboxMdxWrapper>
+    <CreateChain />
+</ToolboxMdxWrapper>
+
+### Next Steps After Blockchain Creation
+
+Once the transaction is confirmed by the network, your blockchain will be live on the P-Chain. You can:
+
+1. **Quick Start**: Launch an `avalanchego` node in Docker and connect to your chain using the [L1 Toolbox](https://build.avax.network/tools/l1-toolbox#avalanchegoDocker)
+
+2. **Advanced Deployment**: For a more hands-on approach with detailed configuration options, refer to the [Node & Validator](/docs/nodes) documentation
+
+### Monitoring and Management
+
+After creation, your blockchain will be visible in explorers and can be managed through standard Avalanche APIs and tools. You'll use the `blockchainID` for all future operations involving your chain.
+

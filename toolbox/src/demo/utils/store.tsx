@@ -29,6 +29,8 @@ export const initialState = {
     gasLimit: 12000000,
     targetBlockRate: 2,
     icmReceiverAddress: "",
+    stakingManagerAddress: "",
+    rewardCalculatorAddress: "",
 }
 
 export const useToolboxStore = create(
@@ -41,6 +43,8 @@ export const useToolboxStore = create(
             setNodePopJsons: (nodePopJsons: string[]) => set({ nodePopJsons }),
             setValidatorWeights: (validatorWeights: number[]) => set({ validatorWeights }),
             setManagerAddress: (managerAddress: string) => set({ managerAddress }),
+            setStakingManagerAddress: (stakingManagerAddress: string) => set({ stakingManagerAddress }),
+            setRewardCalculatorAddress: (rewardCalculatorAddress: string) => set({ rewardCalculatorAddress }),
             setL1ID: (L1ID: string) => set({ L1ID }),
             setL1ConversionSignature: (L1ConversionSignature: string) => set({ L1ConversionSignature }),
             setValidatorMessagesLibAddress: (validatorMessagesLibAddress: string) => set({ validatorMessagesLibAddress }),
@@ -56,8 +60,10 @@ export const useToolboxStore = create(
             setGasLimit: (gasLimit: number) => set({ gasLimit }),
             setTargetBlockRate: (targetBlockRate: number) => set({ targetBlockRate }),
             reset: () => {
-                window.localStorage.removeItem('example-storage');
-                window.location.reload();
+                if (typeof window !== 'undefined') {
+                    window.localStorage.removeItem('example-storage');
+                    window.location.reload();
+                }
             },
             setEvmChainId: (evmChainId: number) => set({ evmChainId }),
             setTeleporterRegistryAddress: (address: string) => set({ teleporterRegistryAddress: address }),
@@ -65,19 +71,24 @@ export const useToolboxStore = create(
         })),
         {
             name: 'example-storage',
-            storage: createJSONStorage(() => localStorage),
+            storage: createJSONStorage(() => typeof window !== 'undefined' ? localStorage : {
+                getItem: () => null,
+                setItem: () => {},
+                removeItem: () => {}
+            }),
         },
     ),
 )
 
 
 import { avalancheFuji } from 'viem/chains';
+import { zeroAddress } from 'viem';
 
 export const useWalletStore = create(
     combine({
         coreWalletClient: createCoreWalletClient(zeroAddress) as ReturnType<typeof createCoreWalletClient>,
         publicClient: createPublicClient({
-            transport: window.avalanche ? custom(window.avalanche) : http(avalancheFuji.rpcUrls.default.http[0]),//just to calm typescript down
+            transport: typeof window !== 'undefined' && window.avalanche ? custom(window.avalanche) : http(avalancheFuji.rpcUrls.default.http[0]),
         }) as ReturnType<typeof createPublicClient>,
         walletChainId: 0,
         walletEVMAddress: "",
@@ -94,7 +105,6 @@ export const useWalletStore = create(
 
 
 import { useShallow } from 'zustand/react/shallow'
-import { zeroAddress } from 'viem';
 
 export function useViemChainStore() {
     // Use useShallow to select the primitive state values we need

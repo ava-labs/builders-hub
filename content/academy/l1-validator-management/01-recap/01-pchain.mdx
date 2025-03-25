@@ -1,0 +1,41 @@
+---
+title: P-Chain
+description: A review of the Platform Chain.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: TriangleDashed
+---
+
+## Platform Chain
+
+The Platform Chain (P-Chain) is the "root" of the Avalanche network. It is a registry of all validators in the Avalanche network (Primary, Subnets, L1s).
+
+This chain can create new subnets and later convert them into L1s. It is also responsible for managing the validator set.
+There is no smart contract platform on the P-Chain, it is a simple registry of validators and subnets.
+
+<img src="/course-images/l1-validator-management/pchain.png" alt="P-Chain Architecture" />
+
+
+## Validators
+
+Validators are the nodes that are responsible for validating a blockchain (Primary, Subnet, or L1). They are responsible for proposing new blocks and validating the state of the network.
+All validators are registered on the P-Chain with a unique node ID, public key, and weight, mapped to the blockchain they are validating.
+
+## Subnets
+
+Subnets are a way to partition the Avalanche network. They are a way to group together Avalanche Primary Network validators to form new blockchains.
+Each Primary Network validator can be a member of multiple subnets, and each subnet can have multiple validators.
+
+Each subnet validator stakes `2,000 AVAX` on the P-Chain. 
+
+<img src="/course-images/l1-validator-management/primary-network.png" alt="Primary Network Architecture" />
+
+## L1s
+
+L1s are sovereign validators that are registered on the P-Chain. They are not a part of the Avalanche Primary Network.
+L1s are created by converting a subnet on the P-Chain to an L1 with the `ConvertSubnetToL1` function.
+
+Each validator of an L1 pays a `1.33 AVAX` monthly fee to register on the P-Chain.
+
+<img src="/course-images/l1-validator-management/l1s.png" alt="L1 Creation" />
+

@@ -25,11 +25,15 @@ const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error, resetError
 };
 
 export default function ToolboxMdxWrapper({ children }: { children: React.ReactNode }) {
+    const handleReset = () => {
+        if (typeof window !== 'undefined') {
+            window.location.reload();
+        }
+    };
+
     return <ErrorBoundary
         FallbackComponent={ErrorFallback}
-        onReset={() => {
-            window.location.reload();
-        }}
+        onReset={handleReset}
     >
         <ConnectWallet required={true}>
             {children}

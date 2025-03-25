@@ -3,10 +3,11 @@
 import { useToolboxStore, useViemChainStore, useWalletStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
-import { Button } from "../../ui";
-import { Success } from "../../ui/Success";
+import { Button } from "../../../components/button";
+import { ResultField } from "../../../components/result-field";
 import ValidatorMessagesABI from "../../../../contracts/icm-contracts/compiled/ValidatorMessages.json";
 import { RequireChainL1 } from "../../ui/RequireChain";
+import { Container } from "../../../components/container";
 
 export default function DeployValidatorMessages() {
     const { showBoundary } = useErrorBoundary();
@@ -42,14 +43,16 @@ export default function DeployValidatorMessages() {
 
     return (
         <RequireChainL1>
-            <div className="space-y-4">
-                <h2 className="text-lg font-semibold ">Deploy Validator Messages Library</h2>
+            <Container
+                title="Deploy Validator Messages Library"
+                description="This will deploy the ValidatorMessages contract to the currently connected EVM network."
+            >
                 <div className="space-y-4">
                     <div className="mb-4">
                         This will deploy the <code>ValidatorMessages</code> contract to the currently connected EVM network <code>{walletChainId}</code>. <code>ValidatorMessages</code> is a library required by the <code>ValidatorManager</code> family of contracts.
                     </div>
                     <Button
-                        type="primary"
+                        variant="primary"
                         onClick={handleDeploy}
                         loading={isDeploying}
                         disabled={isDeploying}
@@ -57,11 +60,14 @@ export default function DeployValidatorMessages() {
                         Deploy Contract
                     </Button>
                 </div>
-                <Success
-                    label="Library Address"
-                    value={validatorMessagesLibAddress}
-                />
-            </div>
+                {validatorMessagesLibAddress && (
+                    <ResultField
+                        label="Library Address"
+                        value={validatorMessagesLibAddress}
+                        showCheck={!!validatorMessagesLibAddress}
+                    />
+                )}
+            </Container>
         </RequireChainL1>
     );
 };

@@ -1,0 +1,52 @@
+---
+title: Interchain Messaging
+description: A recap of Avalanche Interchain Messaging (ICM).
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: MessagesSquare
+---
+
+## Overview
+Interoperability is achieved by enabling blockchains to pass messages to one another. Each message originates from a source chain and is sent to one or more destination chains. These messages encode arbitrary data that can attest some event on the source chains, such as the deposit of an asset or the result of a vote.
+
+<div class="flex space-x-8">
+    <div class="flex-1">
+        ![](/common-images/teleporter/source.png)
+        # Source
+        - Origin of communication
+        - Sender calls contract
+    </div>
+    <div class="flex-1">
+        ![](/common-images/teleporter/message.png)
+        # Message
+        - Contains source, destination, and encoded data
+        - Signature guarantees  authenticity
+    </div>
+    <div class="flex-1">
+        ![](/common-images/teleporter/destination.png)
+        # Destination
+        - Submission of message as transaction
+        - Verifies signatures
+    </div>
+</div>
+
+At a high level, the flow looks like this:
+<img src="/course-images/l1-validator-management/overview.png" alt="Warp Overview" />
+- The developer is responsible for building on top of the ICM contract library to send messages to other chains.
+- A relayer is responsible for submitting messages to the destination chain.
+- The destination chain is responsible for verifying the message and processing it.
+
+### Signing a Message
+
+Once the contract has emitted a Warp message, the relayer will pick up the message and request signatures from the source chain's validators. Each validator will sign the message with their BLS public key and send it to the relayer. 
+
+The result is an aggregated BLS signature from the source chain's validators which can be verified by the destination chain.
+<img src="/course-images/l1-validator-management/signature.png" alt="Signature from Source Chain" />
+
+### Receiving a Message
+
+Once the destination chain has received the aggregated signature, it will verify the signature against the P-Chain's record of the source chain's validators then process the message.
+<img src="/course-images/l1-validator-management/verification.png" alt="Verification of Warp Message" />
+
+
+

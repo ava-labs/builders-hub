@@ -1,0 +1,70 @@
+---
+title: Query L1 Details
+description: Learn how to query L1 details on the P-Chain.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: SearchCheck
+---
+
+import SubnetDetails from "../../../../toolbox/src/demo/examples/ValidatorManager/SubnetDetails.tsx"
+import ToolboxMdxWrapper from "../../../../toolbox/src/demo/ui/ToolboxMdxWrapper.tsx"
+
+### Query the L1 Details
+
+<ToolboxMdxWrapper>
+    <SubnetDetails />
+</ToolboxMdxWrapper>
+
+To query the L1 details, you can use the [Data API from AvaCloud](https://developers.avacloud.io/data-api/primary-network/get-subnet-details-by-id).
+
+#### Using the Data API
+
+The Data API provides several ways to access subnet information:
+
+1. **REST API Endpoint**: 
+   ```bash
+   GET https://glacier-api.avax.network/v1/networks/{network}/subnets/{subnetId}
+   ```
+
+2. **Sample Request**:
+   ```bash
+   curl -X GET "https://glacier-api.avax.network/v1/networks/{network}/subnets/{subnetId}" \
+     -H "accept: application/json"
+   ```
+
+4. **Query Parameters**:
+   - `network`: Network name (e.g., `mainnet` or `fuji`)
+   - `subnetID`: The ID of your subnet
+
+The API will return comprehensive details about your L1 subnet in the following format:
+
+```json 
+{
+  "createBlockTimestamp": 123,
+  "createBlockIndex": "<string>",
+  "subnetId": "<string>",
+  "ownerAddresses": [
+    "<string>"
+  ],
+  "threshold": 123,
+  "locktime": 123,
+  "subnetOwnershipInfo": {
+    "locktime": 0,
+    "threshold": 1,
+    "addresses": [
+      "avax1qm2a25eytsrj235hxg6jc0mwk99tss64eqevsw"
+    ]
+  },
+  "isL1": true,
+  "l1ConversionTransactionHash": "<string>",
+  "l1ValidatorManagerDetails": {
+    "blockchainId": "<string>",
+    "contractAddress": "<string>"
+  },
+  "blockchains": [
+    {
+      "blockchainId": "<string>"
+    }
+  ]
+}
+```

@@ -1,0 +1,34 @@
+---
+title: Run AvalancheGo in Docker
+description: Learn how to run AvalancheGo in a Docker container.
+updated: 2025-03-19
+authors: [owenwahlgren]
+icon: Box
+---
+
+import AvalancheGoDocker from "../../../../toolbox/src/demo/examples/Nodes/AvalanchegoDocker.tsx"
+import PrepareValidators from "../../../../toolbox/src/demo/examples/Nodes/PrepareValidators.tsx"
+
+<PrepareValidators />
+<AvalancheGoDocker />
+
+
+### Follow Node Logs
+
+```bash
+docker logs -f avago
+```
+
+
+### Stop Node
+
+```bash
+docker stop avago
+```
+
+### Remove Node
+
+```bash
+docker rm avago
+```
+

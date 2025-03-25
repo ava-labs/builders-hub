@@ -7,7 +7,7 @@ import { Button, Input } from "../../ui";
 import { Success } from "../../ui/Success";
 import ProxyAdminABI from "../../../../contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
 import { RequireChainL1 } from "../../ui/RequireChain";
-
+import { Container } from "../../../components/container";
 export default function UpgradeProxy() {
     const { showBoundary } = useErrorBoundary();
     const {
@@ -87,9 +87,10 @@ export default function UpgradeProxy() {
 
     return (
         <RequireChainL1>
-            <div className="space-y-4">
-                <h2 className="text-lg font-semibold ">Upgrade Proxy Implementation</h2>
-                <div className="space-y-4">
+            <Container
+                title="Upgrade Proxy Implementation"
+                description="This will upgrade the proxy implementation to the desired implementation."
+            >
                     <Input
                         label="Proxy Address"
                         value={proxyAddress}
@@ -125,12 +126,11 @@ export default function UpgradeProxy() {
                             !isUpgradeNeeded ? "Already Up To Date" :
                                 "Upgrade Proxy"}
                     </Button>
-                </div>
                 {!isUpgradeNeeded && <Success
                     label="Current Implementation"
                     value={"No change needed"}
-                />}
-            </div>
+                    />}
+            </Container>
         </RequireChainL1>
     );
 };
