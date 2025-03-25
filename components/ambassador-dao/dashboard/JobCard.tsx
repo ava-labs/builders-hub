@@ -8,7 +8,7 @@ import { getTimeLeft } from "@/utils/timeFormatting";
 import Token from "@/public/ambassador-dao-images/token.png";
 
 export const JobCard = ({ job }: IJobDataType) => {
-  const { id, title, created_by, total_budget, end_date, proposals, skills } =
+  const { id, title, created_by, total_budget, end_date, proposals, skills, _count } =
     job;
 
   const router = useRouter();
@@ -52,7 +52,7 @@ export const JobCard = ({ job }: IJobDataType) => {
                   </div>
                   <div className='flex items-center text-sm text-gray-400'>
                     <FileText color='#9F9FA9' className='w-3 h-3 mr-1' />
-                    {proposals} Proposals
+                    {_count?.applications} Proposals
                   </div>
                 </div>
               </div>

@@ -68,8 +68,10 @@ interface BountyHeaderProps {
     createdBy: string;
     type?: string;
     deadline: string;
-    proposalsCount: number;
     skills: Array<{ name: string } | string>;
+    _count: {
+      submissions: number
+    }
   };
 }
 
@@ -244,7 +246,7 @@ const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
             </div>
             <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
               <FileText size={16} color="#9F9FA9" />
-              <span>{bounty.proposalsCount} Proposals</span>
+              <span>{bounty?._count?.submissions} Proposals</span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
@@ -940,6 +942,7 @@ const AmbasssadorDaoSingleBountyPage = () => {
     deadline: data?.end_date,
     proposalsCount: data?.max_winners || 0,
     skills: data?.skills || [],
+    _count: data?._count || 0
   };
 
   const extractDescriptionData = (apiResponse: { description: string }) => {

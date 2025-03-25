@@ -68,8 +68,10 @@ interface JobHeaderProps {
     createdBy: string;
     type?: string;
     deadline: string;
-    proposalsCount: number;
     skills: Array<{ name: string } | string>;
+    _count: {
+      applications: number
+    }
   };
 }
 
@@ -241,7 +243,7 @@ const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
             </div>
             <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
               <FileText size={16} color="#9F9FA9" />
-              <span>{job.proposalsCount} Proposals</span>
+              <span>{job._count?.applications} Proposals</span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
@@ -935,6 +937,7 @@ const AmbasssadorDaoSingleJobPage = () => {
     deadline: data?.end_date,
     proposalsCount: data?.max_winners || 0,
     skills: data?.skills || [],
+    _count: data?._count || 0
   };
 
   const extractDescriptionData = (apiResponse: { description: string }) => {
