@@ -255,6 +255,13 @@ async function main(): Promise<void> {
       description: "This page describes the Avalanche Interchain Token Transfer (ICTT)",
       contentUrl: "https://github.com/ava-labs/icm-contracts/blob/main/contracts/ictt/",
     },
+    { 
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/config/config.md",
+      outputPath: "content/docs/nodes/configure/configs-flags.mdx",
+      title: "AvalancheGo Configs and Flags",
+      description: "This page is an overview of the configurations and flags supported by AvalancheGo.",
+      contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/config",
+    }
   ];
 
   for (const fileConfig of fileConfigs) {
