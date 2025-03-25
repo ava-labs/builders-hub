@@ -1,5 +1,5 @@
 import { errorMsg } from "@/utils/error-mapping";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { API_DEV } from "../data/constants";
@@ -8,9 +8,11 @@ import {
   IOpportunityListing,
   IOppotunityApplicationsResponse,
   IOppotunityListingResponse,
+  IOppotunitySubmissionsResponse,
 } from "../interfaces/sponsor";
 
 export const useCreateOpportunityMutation = () => {
+  const queryclient = useQueryClient();
   return useMutation({
     mutationKey: ["createOpportunity"],
     mutationFn: async (args: ICreateOpportunityBody) => {
@@ -19,6 +21,7 @@ export const useCreateOpportunityMutation = () => {
     },
     onSuccess: (data) => {
       toast.success(data.message);
+      queryclient.invalidateQueries({ queryKey: ["allListings"] });
     },
     onError: (err) => errorMsg(err),
   });
@@ -51,7 +54,7 @@ export const useFetchAllListings = (
 
 export const useFetchSingleListing = (id: string) => {
   return useQuery({
-    queryKey: ["singleListings"],
+    queryKey: ["singleListings", id],
     queryFn: async () => {
       const res = await axios.get(`${API_DEV}/opportunity/${id}`);
       return res.data.data as IOpportunityListing;
@@ -68,7 +71,7 @@ export const useFetchSingleListingSubmissions = (
   status: string
 ) => {
   return useQuery({
-    queryKey: ["singleListingsSubmissions", query, page, limit, status],
+    queryKey: ["singleListingsSubmissions", query, page, limit, status, id],
     queryFn: async () => {
       const res = await axios.get(`${API_DEV}/opportunity/${id}/submissions`, {
         params: {
@@ -78,7 +81,7 @@ export const useFetchSingleListingSubmissions = (
           status: status === "ALL" ? undefined : status,
         },
       });
-      return res.data as IOppotunityApplicationsResponse;
+      return res.data as IOppotunitySubmissionsResponse;
     },
     staleTime: Infinity,
   });
@@ -92,7 +95,7 @@ export const useFetchSingleListingApplications = (
   status: string
 ) => {
   return useQuery({
-    queryKey: ["singleListingsApplications", query, page, limit, status],
+    queryKey: ["singleListingsApplications", query, page, limit, status, id],
     queryFn: async () => {
       const res = await axios.get(`${API_DEV}/opportunity/${id}/applications`, {
         params: {
