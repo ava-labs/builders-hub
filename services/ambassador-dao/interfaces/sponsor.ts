@@ -90,6 +90,7 @@ export enum OpportunityApplicationStatus {
   APPLIED = "APPLIED",
   IN_REVIEW = "IN_REVIEW",
   REJECTED = "REJECTED",
+  PUBLISHED = "PUBLISHED",
   APPROVED = "APPROVED",
   COMPLETED = "COMPLETED",
   WITHDRAWN = "WITHDRAWN",
@@ -98,6 +99,7 @@ export enum OpportunityApplicationStatus {
 export enum OpportunitySubmissionStatus {
   ALL = "ALL",
   SUBMITTED = "SUBMITTED",
+  PUBLISHED = "PUBLISHED",
   IN_REVIEW = "IN_REVIEW",
   REJECTED = "REJECTED",
   ACCEPTED = "ACCEPTED",

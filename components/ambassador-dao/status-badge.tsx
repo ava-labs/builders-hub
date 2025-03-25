@@ -1,18 +1,35 @@
 export const StatusBadge = ({ status }: { status: string }) => {
-  const getStatusStyles = () => {
+  const getStatusStyles = (status: string) => {
     switch (status) {
       case "Draft":
+      case "DRAFT":
         return "bg-[#6D6D6D]";
       case "Live Job":
-        return "bg-[#155DFC]";
+      case "OPEN":
+        return "bg-[#155DFC] text-white";
       case "In Review":
-        return "bg-[#00D492]";
+      case "IN_REVIEW":
       case "Payment Pending":
-        return "bg-[#F0B100]";
       case "Pending Reviews":
-        return "bg-[#F0B100]";
+        return "bg-[#00D492] text-white";
       case "Complete":
-        return "bg-[#E5E7EB] text-black";
+      case "COMPLETED":
+      case "SUBMITTED":
+      case "VERIFIED":
+      case "APPROVED":
+      case "ACCEPTED":
+      case "REWARDED":
+      case "PUBLISHED":
+        return "bg-[#00A63E] text-white";
+      case "PENDING":
+      case "APPLIED":
+        return "bg-[#6D6D6D] text-white"; // Same as "Payment Pending"
+      case "REJECTED":
+      case "WITHDRAWN":
+      case "SUSPENDED":
+        return "bg-red-600 text-white"; // Same as "Draft"
+      case "ALL":
+        return "bg-gray-700";
       default:
         return "bg-gray-700";
     }
@@ -20,7 +37,9 @@ export const StatusBadge = ({ status }: { status: string }) => {
 
   return (
     <span
-      className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusStyles()}`}
+      className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusStyles(
+        status
+      )}`}
     >
       {status}
     </span>

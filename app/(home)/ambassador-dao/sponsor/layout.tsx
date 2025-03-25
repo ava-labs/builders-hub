@@ -7,7 +7,8 @@ import { cn } from "@/utils/cn";
 import { History, Hourglass, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 const AmbasssadorDaoSponsorsLayout = ({
   children,
@@ -19,6 +20,7 @@ const AmbasssadorDaoSponsorsLayout = ({
 
   useEffect(() => {
     if (!isLoading && !user) {
+      toast.error("Error Authenticating");
       router.push("/ambassador-dao");
     } else if (user && user.role !== "SPONSOR") {
       router.push("/ambassador-dao/jobs");
@@ -53,8 +55,13 @@ const AmbasssadorDaoSponsorsLayout = ({
             </div>
           </aside>
 
-          <div className='md:hidden flex justify-end my-2'>
-            <CustomButton variant='danger' className='px-3' isFullWidth={false}>
+          <div className='md:hidden flex my-2'>
+            <CustomButton
+              variant='danger'
+              className='px-3'
+              isFullWidth={false}
+              onClick={() => setOpenCreateListingModal(true)}
+            >
               Create new listing
             </CustomButton>
           </div>
