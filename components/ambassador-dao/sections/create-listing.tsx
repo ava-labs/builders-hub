@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { format, addWeeks } from "date-fns";
 import {
@@ -24,16 +24,6 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import {
-  Bold,
-  Italic,
-  Underline,
-  Heading1,
-  Heading2,
-  Heading3,
-  Link,
-  Code,
-} from "lucide-react";
 import { Image as ImageIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -47,18 +37,11 @@ import { useFetchAllSkills } from "@/services/ambassador-dao/requests/onboard";
 import { useCreateOpportunityMutation } from "@/services/ambassador-dao/requests/sponsor";
 import { ICreateOpportunityBody } from "@/services/ambassador-dao/interfaces/sponsor";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
-
-const editorButtons = [
-  { icon: <Bold className='h-4 w-4' color='#FAFAFA' /> },
-  { icon: <Italic className='h-4 w-4' color='#FAFAFA' /> },
-  { icon: <Underline className='h-4 w-4' color='#FAFAFA' /> },
-  { icon: <Heading1 className='h-4 w-4' color='#FAFAFA' /> },
-  { icon: <Heading2 className='h-4 w-4' color='#FAFAFA' /> },
-  { icon: <Heading3 className='h-4 w-4' color='#FAFAFA' /> },
-  { icon: <Link className='h-4 w-4' color='#FAFAFA' /> },
-  { icon: <Code className='h-4 w-4' color='#FAFAFA' /> },
-  { icon: <ImageIcon className='h-4 w-4' color='#FAFAFA' /> },
-];
+import dynamic from "next/dynamic";
+const MarkdownEditor = dynamic(() => import("../markdown-editor"), {
+  ssr: false,
+});
+const markdown = `Hello **world**!`;
 
 export default function AmbasssadorDaoSponsorsCreateListing({
   type,
@@ -315,33 +298,9 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                   Description
                   <span className='text-red-500 ml-1'>*</span>
                 </label>
-                <div className='rounded-md bg-[#27272AB2] w-fit overflow-hidden'>
-                  <div className='flex border-gray-800'>
-                    {editorButtons.map((button, i) => (
-                      <Button
-                        key={i}
-                        variant='ghost'
-                        size='icon'
-                        className='h-8 w-8 md:h-10 md:w-10 hover:bg-gray-600'
-                        type='button'
-                      >
-                        {button.icon}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                <Controller
-                  name='description'
-                  control={control}
-                  rules={{ required: "Description is required" }}
-                  render={({ field }) => (
-                    <Textarea
-                      {...field}
-                      className='border border-[#27272A] bg-transparent resize-none min-h-64 mt-4'
-                      placeholder='Describe your project in detail. What does it do? Who is it for?'
-                    />
-                  )}
-                />
+                <Suspense fallback={null}>
+                  <MarkdownEditor markdown={markdown} setValue={setValue} />
+                </Suspense>
                 {errors.description && (
                   <p className='text-red-500 text-xs mt-1'>
                     {errors.description.message}
