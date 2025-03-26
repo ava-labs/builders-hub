@@ -14,7 +14,7 @@ export default function BlockVote({ project }: Props) {
           <h1 className="text-5xl font-extrabold">BlockVote</h1>
           {project.isWinner && (
             <div className="p-2 bg-red-500 rounded-full">
-              <Trophy size={30} color="white" />
+              <Trophy size={30} color="white" className="w-8 h-8" />
             </div>
           )}
         </div>

@@ -4,6 +4,7 @@ export type Project = {
   isWinner: boolean;
   bannerUrl: string;
   logoUrl: string;
+  videoUrl: string;
   shortDescription: string;
   description: string
   liveDemoUrl: string
@@ -11,10 +12,17 @@ export type Project = {
   event: ProjectEvent
   tracks: string[];
   gallery: string[]
+  prices: ProjectPrice[]
 };
 
 export type ProjectEvent = {
   name: string;
   location: string;
   year: number;
+}
+
+export type ProjectPrice = {
+  icon: string
+  title: string
+  description: string
 }
