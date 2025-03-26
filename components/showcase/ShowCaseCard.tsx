@@ -25,6 +25,7 @@ import {
 } from "../ui/pagination";
 import React from "react";
 import { ProjectCard } from "./ProjectCard";
+import Link from "next/link";
 
 const events = [
   { id: "id1", name: "Event 1" },
@@ -34,6 +35,7 @@ const events = [
 const tracks = ["Track 1", "Track 2", "Track 3"];
 export const projects: Project[] = [
   {
+    id: "1",
     name: "BlockVote",
     isWinner: true,
     bannerUrl: "/temp/project-banner.png",
@@ -47,6 +49,7 @@ export const projects: Project[] = [
     tracks: ["GAMING", "DEFI"],
   },
   {
+    id: "2",
     name: "MetaMed",
     isWinner: false,
     bannerUrl: "/temp/project-banner.png",
@@ -60,6 +63,7 @@ export const projects: Project[] = [
     tracks: ["HEALTHCARE", "EDTECH"],
   },
   {
+    id: "3",
     name: "GreenChain",
     isWinner: true,
     bannerUrl: "/temp/project-banner.png",
@@ -151,7 +155,9 @@ export default function ShowCaseCard() {
           {[...Array(20)]
             .flatMap(() => projects)
             .map((project, index) => (
-              <ProjectCard key={`${project.name}-${index}`} project={project} />
+              <Link href={`/showcase/${project.id}`} key={index}>
+                <ProjectCard project={project} />
+              </Link>
             ))}
         </div>
         <div className="w-full flex justify-end mt-8">

@@ -1,4 +1,5 @@
 export type Project = {
+  id: string
   name: string;
   isWinner: boolean;
   bannerUrl: string;
