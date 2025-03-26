@@ -6,6 +6,8 @@ import { Input } from "../../../components/input";
 import { Button } from "../../../components/button";
 import { useState } from "react";
 
+const NATIVE_MINTER_ADDRESS = "0x0300000000000000000000000000000000000000";
+
 export default function NativeMinter() {
     const { walletEVMAddress} = useWalletStore();
     const [amount, setAmount] = useState<number>(100);
