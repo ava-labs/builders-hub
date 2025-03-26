@@ -15,8 +15,8 @@ export const BountyCard = ({ bounty }: IBountyDataType) => {
     total_budget,
     end_date,
     proposals,
-    currency,
     skills,
+    _count
   } = bounty;
   const router = useRouter();
 
@@ -56,7 +56,7 @@ export const BountyCard = ({ bounty }: IBountyDataType) => {
                   </div>
                   <div className="flex items-center text-sm text-gray-400">
                     <FileText color="#9F9FA9" className="w-3 h-3 mr-1" />
-                    {proposals} Proposals
+                    {_count?.submissions} Proposals
                   </div>
                 </div>
               </div>

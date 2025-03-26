@@ -29,6 +29,28 @@ export const useFetchOpportunityDetails = (opportunity_id: string) => {
   });
 };
 
+export const useCheckJobStatus = (opportunity_id: string) => {
+  return useQuery({
+    queryKey: ["has-applied", opportunity_id],
+    queryFn: async () => {
+      const res = await axios.get(`${API_DEV}/opportunity/${opportunity_id}/has-applied`);
+      return res.data.data;
+    },
+    staleTime: Infinity,
+  });
+};
+
+export const useCheckBountyStatus = (opportunity_id: string) => {
+  return useQuery({
+    queryKey: ["has-submitted", opportunity_id],
+    queryFn: async () => {
+      const res = await axios.get(`${API_DEV}/opportunity/${opportunity_id}/has-submitted`);
+      return res.data.data;
+    },
+    staleTime: Infinity,
+  });
+};
+
 
 
 
@@ -169,6 +191,7 @@ export const useSubmitJobApplication = (opportunity_id: string) => {
     onSuccess: (data) => {
       toast.success(data?.message);
       queryclient.invalidateQueries({ queryKey: ["opportunity-details"] });
+      queryclient.invalidateQueries({ queryKey: ["has-applied"] });
     },
     onError: (err) => errorMsg(err),
   });
@@ -187,6 +210,8 @@ export const useSubmitBountySubmissions = (opportunity_id: string) => {
     onSuccess: (data) => {
       toast.success(data?.message);
       queryclient.invalidateQueries({ queryKey: ["opportunity-details"] });
+      queryclient.invalidateQueries({ queryKey: ["has-submitted"] });
+
     },
     onError: (err) => errorMsg(err),
   });

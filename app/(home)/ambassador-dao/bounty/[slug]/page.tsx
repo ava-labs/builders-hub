@@ -9,6 +9,7 @@ import {
   CircleUser,
   MoreVertical,
   BriefcaseBusiness,
+  Loader2,
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { Outline } from "@/components/ambassador-dao/ui/Outline";
@@ -20,6 +21,7 @@ import {
   useReplyOpportunityComment,
   useSubmitOpportunityComment,
   useFetchOpportunityCommentReplies,
+  useCheckBountyStatus,
 } from "@/services/ambassador-dao/requests/opportunity";
 import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
 import { getTimeLeft } from "@/utils/timeFormatting";
@@ -66,8 +68,10 @@ interface BountyHeaderProps {
     createdBy: string;
     type?: string;
     deadline: string;
-    proposalsCount: number;
     skills: Array<{ name: string } | string>;
+    _count: {
+      submissions: number
+    }
   };
 }
 
@@ -101,6 +105,8 @@ interface BountySidebarProps {
 const BountySidebar: React.FC<BountySidebarProps> = ({ bounty }) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const timeLeft = useCountdown(bounty?.deadline);
+
+  const { data, isLoading } = useCheckBountyStatus(bounty.id);
 
   return (
     <div className="bg-[#111] p-4 rounded-md border border-gray-800 sticky top-6">
@@ -163,10 +169,17 @@ const BountySidebar: React.FC<BountySidebarProps> = ({ bounty }) => {
       </div>
 
       <button
-        className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 rounded-md transition"
-        onClick={() => setIsModalOpen(true)}
+        disabled={data?.has_submitted}
+        className={`w-full font-medium py-3 rounded-md transition ${
+          data?.has_submitted
+            ? "bg-gray-400 text-white cursor-not-allowed"
+            : "bg-red-500 hover:bg-red-600 text-white"
+        }`}
+        onClick={() => !data?.has_submitted && setIsModalOpen(true)}
       >
-        Participate
+        {!isLoading && data?.has_submitted && "Already Submitted"}
+        {isLoading && <Loader2 color="#FFF" />}
+        {!isLoading && !data?.has_submitted && "Participate"}
       </button>
 
       {isModalOpen && (
@@ -233,7 +246,7 @@ const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
             </div>
             <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
               <FileText size={16} color="#9F9FA9" />
-              <span>{bounty.proposalsCount} Proposals</span>
+              <span>{bounty?._count?.submissions} Proposals</span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
@@ -929,6 +942,7 @@ const AmbasssadorDaoSingleBountyPage = () => {
     deadline: data?.end_date,
     proposalsCount: data?.max_winners || 0,
     skills: data?.skills || [],
+    _count: data?._count || 0
   };
 
   const extractDescriptionData = (apiResponse: { description: string }) => {

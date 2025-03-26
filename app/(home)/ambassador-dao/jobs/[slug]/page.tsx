@@ -9,6 +9,7 @@ import {
   CircleUser,
   MoreVertical,
   BriefcaseBusiness,
+  Loader2,
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { Outline } from "@/components/ambassador-dao/ui/Outline";
@@ -21,6 +22,7 @@ import {
   useReplyOpportunityComment,
   useSubmitOpportunityComment,
   useFetchOpportunityCommentReplies,
+  useCheckJobStatus,
 } from "@/services/ambassador-dao/requests/opportunity";
 import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
 import { getTimeLeft } from "@/utils/timeFormatting";
@@ -66,8 +68,10 @@ interface JobHeaderProps {
     createdBy: string;
     type?: string;
     deadline: string;
-    proposalsCount: number;
     skills: Array<{ name: string } | string>;
+    _count: {
+      applications: number
+    }
   };
 }
 
@@ -101,6 +105,8 @@ interface JobSidebarProps {
 const JobSidebar: React.FC<JobSidebarProps> = ({ job }) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const timeLeft = useCountdown(job?.deadline);
+
+  const { data, isLoading } = useCheckJobStatus(job.id);
 
   return (
     <div className="bg-[#111] p-4 rounded-md border border-gray-800 sticky top-6">
@@ -163,10 +169,17 @@ const JobSidebar: React.FC<JobSidebarProps> = ({ job }) => {
       </div>
 
       <button
-        className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 rounded-md transition"
-        onClick={() => setIsModalOpen(true)}
+        disabled={data?.has_applied}
+        className={`w-full font-medium py-3 rounded-md transition ${
+          data?.has_applied
+            ? "bg-gray-400 text-white cursor-not-allowed"
+            : "bg-red-500 hover:bg-red-600 text-white"
+        }`}
+        onClick={() => !data?.has_applied && setIsModalOpen(true)}
       >
-        APPLY
+        {!isLoading && data?.has_applied && "Already Applied"}
+        {isLoading && <Loader2 color="#FFF" />}
+        {!isLoading && !data?.has_applied && "APPLY"}
       </button>
 
       {isModalOpen && (
@@ -230,7 +243,7 @@ const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
             </div>
             <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
               <FileText size={16} color="#9F9FA9" />
-              <span>{job.proposalsCount} Proposals</span>
+              <span>{job._count?.applications} Proposals</span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
@@ -924,6 +937,7 @@ const AmbasssadorDaoSingleJobPage = () => {
     deadline: data?.end_date,
     proposalsCount: data?.max_winners || 0,
     skills: data?.skills || [],
+    _count: data?._count || 0
   };
 
   const extractDescriptionData = (apiResponse: { description: string }) => {
