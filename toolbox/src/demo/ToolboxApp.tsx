@@ -7,7 +7,7 @@ import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
 type ComponentType = {
     id: string;
     label: string;
-    component: React.LazyExoticComponent<() => ReactElement>;
+    component: React.LazyExoticComponent<React.ComponentType>;
     fileNames: string[];
     skipWalletConnection?: boolean;
 }
@@ -168,6 +168,14 @@ const componentGroups: Record<string, ComponentType[]> = {
                 "toolbox/src/demo/examples/ICM/SendICMMessage.tsx",
                 "toolbox/contracts/example-contracts/contracts/senderOnCChain.sol",
             ]
+        }
+    ],
+    "Precompiles": [
+        {
+            id: "nativeMinter",
+            label: "Native Minter",
+            component: lazy(() => import('./examples/Precompiles/NativeMinter')),
+            fileNames: ["toolbox/src/demo/examples/Precompiles/NativeMinter.tsx"]
         }
     ]
 };
