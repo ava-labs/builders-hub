@@ -168,26 +168,25 @@ export default function CrossChainTransfer() {
       } else {
         // P-Chain to C-Chain export
         const pvmApi = new pvm.PVMApi(platformEndpoint);
-        const feeState = await pvmApi.getFeeState();
         const utxoResponse = await pvmApi.getUTXOs({ addresses: [pChainAddress] });
         const utxos = utxoResponse.utxos;
 
         const corethAddress = await coreWalletClient?.getCorethAddress()
 
         // Create the P-Chain export transaction
-        const exportTx = pvm.newExportTx({
-          feeState: feeState,
-          fromAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
-          destinationChainId: context.cBlockchainID,
-          outputs: [
+        const exportTx = pvm.newExportTx(
+          context,
+          context.cBlockchainID,
+          [utils.bech32ToBytes(pChainAddress)],
+          utxos,
+          [
             TransferableOutput.fromNative(
               context.avaxAssetID,
               BigInt(Math.round(Number(amount) * 1e9)),
               [utils.bech32ToBytes(corethAddress)],
             ),
-          ],
-          utxos: utxos,
-        }, context);
+          ]
+        );
 
         const txBytes = exportTx.toBytes();
         const txHex = bytesToHex(txBytes);
@@ -230,16 +229,15 @@ export default function CrossChainTransfer() {
       if (destinationChain === "p-chain") {
         // Import to P-Chain
         const pvmApi = new pvm.PVMApi(platformEndpoint);
-        const feeState = await pvmApi.getFeeState();
         const { utxos } = await pvmApi.getUTXOs({ sourceChain: 'C', addresses: [pChainAddress] });
         
-        const importTx = pvm.newImportTx({
-            feeState: feeState,
-            fromAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
-            sourceChainId: context.cBlockchainID,
-            toAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
-            utxos: utxos,
-          }, context);
+        const importTx = pvm.newImportTx(
+          context,
+          context.cBlockchainID,
+          utxos,
+          [utils.bech32ToBytes(pChainAddress)],
+          [utils.bech32ToBytes(pChainAddress)],
+          );
         console.log(importTx)
 
         const importTxBytes = importTx.toBytes()
