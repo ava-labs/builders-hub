@@ -266,12 +266,12 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
         <h2 className='text-[#FAFAFA] text-xl md:text-2xl font-medium'>
           Finish Your Profile
         </h2>
-        <button
+        {/* <button
           onClick={handleClose}
           className='text-[#FAFAFA] hover:bg-[#27272A] p-1 rounded-md'
         >
           <X size={20} color='#9F9FA9' />
-        </button>
+        </button> */}
       </div>
       <p className='text-[#9F9FA9] text-sm'>
         It takes less than a minute to start earning in global standards.
@@ -567,12 +567,12 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
         <h2 className='text-[#FAFAFA] text-xl md:text-2xl font-medium'>
           Welcome to Ambassador DAO
         </h2>
-        <button
+        {/* <button
           onClick={handleClose}
           className='text-[#FAFAFA] hover:bg-[#27272A] p-1 rounded-md'
         >
           <X size={20} color='#9F9FA9' />
-        </button>
+        </button> */}
       </div>
       <p className='text-[#9F9FA9] text-sm mb-8'>
         It takes less than a minute to start earning in global standards.
