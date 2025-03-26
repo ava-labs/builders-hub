@@ -1,5 +1,6 @@
 import { networkIDs } from "@avalabs/avalanchejs";
 
+//FIXME: REMOVE THIS
 export const getRPCEndpoint = (networkID: number) => {
     if (networkID === networkIDs.FujiID) {
         return "https://api.avax-test.network";

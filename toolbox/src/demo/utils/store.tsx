@@ -1,11 +1,10 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage, combine } from 'zustand/middleware'
 import { networkIDs } from "@avalabs/avalanchejs";
-import { pChainAddrFromPubKey } from "../examples/Wallet/pChainAddrFromPubKey";
-
+import { createCoreWalletClient } from '../../coreViem';
+import { useMemo } from 'react';
+import { createPublicClient, custom, http } from 'viem';
 export const initialState = {
-    networkID: networkIDs.FujiID,
-    xpPublicKey: "",
     subnetID: "",
     chainName: "My Chain",
     vmId: "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy",
@@ -16,31 +15,27 @@ export const initialState = {
     L1ID: "",
     L1ConversionSignature: "",
     validatorMessagesLibAddress: "",
-    walletChainId: 0,
     evmChainName: "My L1",
     evmChainRpcUrl: "",
+    nodeRpcUrl: "",
     evmChainId: Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000,
     evmChainCoinName: "COIN",
+    evmChainIsTestnet: true,
     validatorManagerAddress: "",
     proxyAddress: "0xfacade0000000000000000000000000000000000",
     proxyAdminAddress: "0xdad0000000000000000000000000000000000000" as `0x${string}`,
-    walletEVMAddress: "",
     genesisData: "",
     teleporterRegistryAddress: "",
     gasLimit: 12000000,
     targetBlockRate: 2,
     icmReceiverAddress: "",
+    stakingManagerAddress: "",
+    rewardCalculatorAddress: "",
 }
 
-export const useExampleStore = create(
+export const useToolboxStore = create(
     persist(
-        combine(initialState, (set, get) => ({
-            getPChainAddress: () => {
-                const { xpPublicKey, networkID } = get();
-                return pChainAddrFromPubKey(xpPublicKey, networkID)
-            },
-            setNetworkID: (networkID: number) => set({ networkID }),
-            setXpPublicKey: (xpPublicKey: string) => set({ xpPublicKey }),
+        combine(initialState, (set) => ({
             setSubnetID: (subnetID: string) => set({ subnetID }),
             setChainName: (chainName: string) => set({ chainName }),
             setVmId: (vmId: string) => set({ vmId }),
@@ -48,23 +43,27 @@ export const useExampleStore = create(
             setNodePopJsons: (nodePopJsons: string[]) => set({ nodePopJsons }),
             setValidatorWeights: (validatorWeights: number[]) => set({ validatorWeights }),
             setManagerAddress: (managerAddress: string) => set({ managerAddress }),
+            setStakingManagerAddress: (stakingManagerAddress: string) => set({ stakingManagerAddress }),
+            setRewardCalculatorAddress: (rewardCalculatorAddress: string) => set({ rewardCalculatorAddress }),
             setL1ID: (L1ID: string) => set({ L1ID }),
             setL1ConversionSignature: (L1ConversionSignature: string) => set({ L1ConversionSignature }),
             setValidatorMessagesLibAddress: (validatorMessagesLibAddress: string) => set({ validatorMessagesLibAddress }),
-            setWalletChainId: (walletChainId: number) => set({ walletChainId }),
             setEvmChainName: (evmChainName: string) => set({ evmChainName }),
             setEvmChainRpcUrl: (evmChainRpcUrl: string) => set({ evmChainRpcUrl }),
+            setNodeRpcUrl: (nodeRpcUrl: string) => set({ nodeRpcUrl }),
             setEvmChainCoinName: (evmChainCoinName: string) => set({ evmChainCoinName }),
+            setEvmChainIsTestnet: (evmChainIsTestnet: boolean) => set({ evmChainIsTestnet }),
             setValidatorManagerAddress: (validatorManagerAddress: string) => set({ validatorManagerAddress }),
             setProxyAddress: (proxyAddress: string) => set({ proxyAddress }),
             setProxyAdminAddress: (proxyAdminAddress: `0x${string}`) => set({ proxyAdminAddress }),
-            setWalletEVMAddress: (walletEVMAddress: string) => set({ walletEVMAddress }),
             setGenesisData: (genesisData: string) => set({ genesisData }),
             setGasLimit: (gasLimit: number) => set({ gasLimit }),
             setTargetBlockRate: (targetBlockRate: number) => set({ targetBlockRate }),
             reset: () => {
-                window.localStorage.removeItem('example-storage');
-                window.location.reload();
+                if (typeof window !== 'undefined') {
+                    window.localStorage.removeItem('example-storage');
+                    window.location.reload();
+                }
             },
             setEvmChainId: (evmChainId: number) => set({ evmChainId }),
             setTeleporterRegistryAddress: (address: string) => set({ teleporterRegistryAddress: address }),
@@ -72,7 +71,76 @@ export const useExampleStore = create(
         })),
         {
             name: 'example-storage',
-            storage: createJSONStorage(() => localStorage),
+            storage: createJSONStorage(() => typeof window !== 'undefined' ? localStorage : {
+                getItem: () => null,
+                setItem: () => {},
+                removeItem: () => {}
+            }),
         },
     ),
 )
+
+
+import { avalancheFuji } from 'viem/chains';
+import { zeroAddress } from 'viem';
+
+export const useWalletStore = create(
+    combine({
+        coreWalletClient: createCoreWalletClient(zeroAddress) as ReturnType<typeof createCoreWalletClient>,
+        publicClient: createPublicClient({
+            transport: typeof window !== 'undefined' && window.avalanche ? custom(window.avalanche) : http(avalancheFuji.rpcUrls.default.http[0]),
+        }) as ReturnType<typeof createPublicClient>,
+        walletChainId: 0,
+        walletEVMAddress: "",
+        avalancheNetworkID: networkIDs.FujiID as typeof networkIDs.FujiID | typeof networkIDs.MainnetID,
+        pChainAddress: "",
+    }, set => ({
+        setCoreWalletClient: (coreWalletClient: ReturnType<typeof createCoreWalletClient>) => set({ coreWalletClient }),
+        setWalletChainId: (walletChainId: number) => set({ walletChainId }),
+        setWalletEVMAddress: (walletEVMAddress: string) => set({ walletEVMAddress }),
+        setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => set({ avalancheNetworkID }),
+        setPChainAddress: (pChainAddress: string) => set({ pChainAddress }),
+    })),
+)
+
+
+import { useShallow } from 'zustand/react/shallow'
+
+export function useViemChainStore() {
+    // Use useShallow to select the primitive state values we need
+    const chainData = useToolboxStore(
+        useShallow((state) => ({
+            evmChainId: state.evmChainId,
+            evmChainName: state.evmChainName,
+            evmChainRpcUrl: state.evmChainRpcUrl,
+            evmChainCoinName: state.evmChainCoinName,
+            evmChainIsTestnet: state.evmChainIsTestnet
+        }))
+    );
+
+    // Create the viemChain object with useMemo to prevent unnecessary recreation
+    const viemChain = useMemo(() => {
+        const { evmChainId, evmChainName, evmChainRpcUrl, evmChainCoinName, evmChainIsTestnet } = chainData;
+
+        if (!evmChainId || !evmChainRpcUrl) {
+            return null;
+        }
+
+        return {
+            id: evmChainId,
+            name: evmChainName || `Chain #${evmChainId}`,
+            rpcUrls: {
+                default: { http: [evmChainRpcUrl] },
+            },
+            nativeCurrency: {
+                name: evmChainCoinName || evmChainName + " Coin",
+                symbol: evmChainCoinName || evmChainName + " Coin",
+                decimals: 18
+            },
+            isTestnet: evmChainIsTestnet,
+        };
+    }, [chainData]);
+
+    return viemChain;
+}
+

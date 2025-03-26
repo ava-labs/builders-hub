@@ -12,7 +12,7 @@ import { usePathname } from 'next/navigation';
 import newGithubIssueUrl from 'new-github-issue-url';
  
 const rateButtonVariants = cva(
-  'inline-flex items-center gap-2 px-3 py-2 rounded-full font-medium border text-sm [&_svg]:size-4 disabled:cursor-not-allowed',
+  'inline-flex items-center gap-2 px-3 py-2 rounded-full font-medium border text-sm [&_svg]:size-4 disabled:cursor-not-allowed transition-colors hover:bg-fd-accent/80 hover:text-fd-accent-foreground',
   {
     variants: {
       active: {
@@ -88,7 +88,7 @@ export function Feedback({
       }}
       className="border-y py-3"
     >
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+      <div className="flex flex-col flex-wrap sm:flex-row items-start  justify-between gap-3 gap-y-3 sm:gap-x-0 sm:items-center">
         <div className="flex flex-row items-center gap-1.5">
           <p className="text-sm font-medium pe-2">Is this guide helpful?</p>
           <button

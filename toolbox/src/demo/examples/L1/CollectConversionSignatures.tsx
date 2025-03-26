@@ -1,194 +1,104 @@
 "use client";
 
-import { useExampleStore } from "../../utils/store";
-import { useErrorBoundary } from "react-error-boundary";
+import { useToolboxStore, useWalletStore } from "../../utils/store";
 import { useState } from "react";
-import { packL1ConversionMessage, PackL1ConversionMessageArgs } from "./convertWarp";
-import { networkIDs, utils } from "@avalabs/avalanchejs";
-import { Button, Input, InputArray } from "../../ui";
-import { Success } from "../../ui/Success";
+import { networkIDs } from "@avalabs/avalanchejs";
+import { Button } from "../../../components/button";
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
-import { useEffect } from "react";
 import { CodeHighlighter } from "../../ui/CodeHighlighter";
+import { Container } from "../../../components/container";
+import { Input } from "../../../components/input";
+
 export default function CollectConversionSignatures() {
-    const { showBoundary } = useErrorBoundary();
     const {
-        networkID,
-        subnetID,
-        chainID,
-        setSubnetID,
-        setChainID,
-        managerAddress,
-        setManagerAddress,
-        nodePopJsons,
-        setNodePopJsons,
         L1ConversionSignature,
         setL1ConversionSignature,
-        validatorWeights,
-        setValidatorWeights,
-    } = useExampleStore(state => state);
+        L1ID,
+        setL1ID,
+    } = useToolboxStore(state => state);
+    const { coreWalletClient } = useWalletStore();
     const [isConverting, setIsConverting] = useState(false);
-    const [message, setMessage] = useState("");
-    const [justification, setJustification] = useState("");
-    const [networkName, setNetworkName] = useState<"fuji" | "mainnet" | undefined>(undefined);
-    const [sdkCallString, setSdkCallString] = useState("");
-    const [localError, setLocalError] = useState("");
-
-
-
-    useEffect(() => {
-        if (networkID === networkIDs.MainnetID) {
-            setNetworkName("mainnet");
-        } else if (networkID === networkIDs.FujiID) {
-            setNetworkName("fuji");
-        } else {
-            showBoundary(new Error("Unsupported network with ID " + networkID));
-        }
-    }, [networkID]);
-
-    useEffect(() => {
-        try {
-            setLocalError("");
-            const pChainChainID = '11111111111111111111111111111111LpoYY';
-
-            const conversionArgs: PackL1ConversionMessageArgs = {
-                subnetId: subnetID,
-                managerChainID: chainID,
-                managerAddress,
-                validators: nodePopJsons.filter(json => json !== "").map((json, i) => {
-                    const { nodeID, nodePOP } = JSON.parse(json).result;
-                    return {
-                        nodeID,
-                        nodePOP,
-                        weight: validatorWeights[i]
-                    }
-                })
-            };
-
-            if (conversionArgs.validators.length === 0) {
-                setMessage("")
-                setJustification("")
-                return
-            }
-
-            const [message, justification] = packL1ConversionMessage(conversionArgs, networkID, pChainChainID);
-
-            if (networkName) {
-                setMessage(utils.bufferToHex(message));
-                setJustification(utils.bufferToHex(justification));
-            }
-        } catch (e) {
-            console.error(e);
-            setLocalError(e instanceof Error ? e.message : "An unknown error occurred");
-            setMessage("")
-            setJustification("")
-        }
-    }, [networkName, subnetID, chainID, managerAddress, nodePopJsons, validatorWeights, networkID]);
-
-    useEffect(() => {
-        if (message && justification) {
-            setSdkCallString(`import { AvaCloudSDK } from "https://esm.sh/@avalabs/avacloud-sdk";
-const { signedMessage } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
-    network: "${networkName}",
-    signatureAggregatorRequest: {
-        message: "${message}",
-        justification: "${justification}",
-        signingSubnetId: "${subnetID}",
-        quorumPercentage: 67, // Default threshold for subnet validation
-    },
-});`);
-        } else {
-            setSdkCallString("")
-        }
-    }, [networkName, message, justification, subnetID]);
+    const [error, setError] = useState<string | null>(null);
 
     async function handleConvertSignatures() {
         setL1ConversionSignature("");
+        setError(null);
         setIsConverting(true);
+
         try {
+            const { message, justification, signingSubnetId, networkId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: L1ID });
+
             const { signedMessage } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
-                network: networkName,
+                network: networkId === networkIDs.FujiID ? "fuji" : "mainnet",
                 signatureAggregatorRequest: {
                     message: message,
                     justification: justification,
-                    signingSubnetId: subnetID,
+                    signingSubnetId: signingSubnetId,
                     quorumPercentage: 67, // Default threshold for subnet validation
                 },
+            }, {
+                retries: {
+                    strategy: "backoff",
+                    backoff: { initialInterval: 1000, maxInterval: 10000, exponent: 1.5, maxElapsedTime: 30 * 1000 },
+                }
             });
 
             setL1ConversionSignature(signedMessage);
         } catch (error) {
-            showBoundary(error);
+            setError((error as Error)?.message || String(error));
         } finally {
             setIsConverting(false);
         }
     }
 
-
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold ">Collect conversion signatures</h2>
+        <Container
+            title="Collect conversion signatures"
+            description="This will collect signatures from the subnet validators to convert the subnet to an L1 chain."
+        >
             <div className="space-y-4">
                 <Input
-                    label="Subnet ID"
-                    value={subnetID}
-                    onChange={setSubnetID}
+                    label="Conversion ID"
+                    value={L1ID}
+                    onChange={setL1ID}
                     type="text"
-                    placeholder="Enter subnet ID to convert"
+                    placeholder="Enter conversion ID"
+                    helperText={`Also called L1 ID. Transaction ID of the conversion transaction on the P-Chain.`}
                 />
-                <Input
-                    label="Chain ID"
-                    value={chainID}
-                    onChange={setChainID}
-                    type="text"
-                    placeholder="Enter chain ID"
-                />
-                <Input
-                    label="Manager Address (0x...)"
-                    value={managerAddress}
-                    onChange={setManagerAddress}
-                    placeholder="0x..."
-                    type="text"
-                />
-                <InputArray
-                    label="Info.getNodeID responses of the initial validators"
-                    values={nodePopJsons}
-                    onChange={setNodePopJsons}
-                    type="textarea"
-                    placeholder={'{"result":{"nodeID":"NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg","nodePOP":{"publicKey":"0x...","proofOfPossession":"0x..."}}}'}
-                    rows={4}
-                />
-                <div className="text-sm ">
-                    Type in terminal: <span className="font-mono block">{`curl -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' -H "content-type:application/json;" 127.0.0.1:9650/ext/info`}</span>
-                </div>
-                <InputArray
-                    label="Validator Weights"
-                    values={validatorWeights.map(weight => weight.toString()).slice(0, nodePopJsons.length)}
-                    onChange={(weightsStrings) => setValidatorWeights(weightsStrings.map(weight => parseInt(weight)))}
-                    type="number"
-                    disableAddRemove={true}
-                />
-                {sdkCallString && <div className="mb-4">
-                    <div className="text-sm font-semibold">SDK Call that will be executed</div>
-                    <CodeHighlighter
-                        code={sdkCallString}
-                        lang="ts"
-                    />
-                </div>}
-                {localError && <div className="text-red-500">{localError}</div>}
                 <Button
-                    type="primary"
+                    variant="primary"
                     onClick={handleConvertSignatures}
-                    disabled={!managerAddress || nodePopJsons.length === 0}
+                    disabled={!L1ID}
                     loading={isConverting}
                 >
                     Collect Signatures
                 </Button>
+                <Input
+                    label="Aggregated Signature"
+                    value={L1ConversionSignature}
+                    onChange={setL1ConversionSignature}
+                    type="textarea"
+                    placeholder="0x...."
+                />
+                {error && (
+                    <div className="space-y-4">
+                        <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-400">
+                            <p className="font-medium mb-2">Failed to collect signatures. Please ensure:</p>
+                            <ul className="list-disc pl-5">
+                                <li>All validators for this subnet are up and running. The initial P-Chain sync takes around 10 minutes.</li>
+                                <li>Every node has a static IP and port 9651 open to external traffic</li>
+                            </ul>
+                            <p className="mt-4">If you're running this on a device without a dedicated public IP (e.g., laptop), try:</p>
+                            <CodeHighlighter
+                                code={`docker run -it --net=host --rm containerman17/local_agg:latest ${L1ID}`}
+                                lang="bash"
+                            />
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Paste the last line of its output into the signature field above.</p>
+                        </div>
+
+                    </div>
+                )}
             </div>
-            <Success
-                label="Collected Signatures"
-                value={L1ConversionSignature}
-            />
-        </div>
+        </Container>
     );
 };

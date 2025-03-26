@@ -215,9 +215,9 @@ async function main(): Promise<void> {
     },
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/subnets/config.md",
-      outputPath: "content/docs/nodes/configure/subnet-configs.mdx",
-      title: "Subnet Configurations",
-      description: "This page describes the configuration options available for Subnets.",
+      outputPath: "content/docs/nodes/configure/avalanche-l1-configs.mdx",
+      title: "Avalanche L1 Configs",
+      description: "This page describes the configuration options available for Avalanche L1s.",
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/subnets/",
     },
     {
@@ -248,6 +248,27 @@ async function main(): Promise<void> {
       description: "This page describes the API endpoints available for Subnet-EVM based blockchains.",
       contentUrl: "https://github.com/ava-labs/subnet-evm/blob/master/plugin/evm/",
     },
+    {
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/icm-contracts/refs/heads/main/contracts/validator-manager/README.md",
+      outputPath: "content/docs/avalanche-l1s/validator-manager/contract.mdx",
+      title: "Validator Manager Contracts",
+      description: "This page lists all available contracts for the Validator Manager.",
+      contentUrl: "https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/",
+    },
+    {
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/icm-contracts/refs/heads/main/contracts/ictt/README.md",
+      outputPath: "content/docs/cross-chain/interchain-token-transfer/overview.mdx",
+      title: "Avalanche Interchain Token Transfer (ICTT)",
+      description: "This page describes the Avalanche Interchain Token Transfer (ICTT)",
+      contentUrl: "https://github.com/ava-labs/icm-contracts/blob/main/contracts/ictt/",
+    },
+    { 
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/platformvm/config/config.md",
+      outputPath: "content/docs/nodes/chain-configs/p-chain.mdx",
+      title: "P-Chain",
+      description: "This page is an overview of the configurations and flags supported by P-Chain.",
+      contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/config",
+    }
   ];
 
   for (const fileConfig of fileConfigs) {

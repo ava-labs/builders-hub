@@ -1,87 +1,52 @@
 "use client";
 
-import { useExampleStore } from "../../utils/store";
+import { useToolboxStore } from "../../utils/store";
 import { Input, Button, Select } from "../../ui";
 import { useState, useEffect, useRef } from "react";
-import { createPublicClient, http, PublicClient, webSocket } from 'viem';
+import { createPublicClient, http, webSocket } from 'viem';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
-
-interface BlockInfo {
-    blockNumber: number;
-    transactionCount: number;
+import { BlockWatcher, BlockInfo } from "./BlockWatcher";
+import { ChainInfo } from "./chainInfo";
+// Data structure for bucketed metrics
+interface BucketedData {
+    transactions: number;
     gasUsed: bigint;
-    timestamp: number; // Unix timestamp in seconds
+    blockCount: number;
 }
 
-class BlockWatcher {
-    private publicClient: PublicClient;
-    private callback: (blockInfo: BlockInfo) => void;
-    private isRunning: boolean = false;
-
-    constructor(publicClient: PublicClient, callback: (blockInfo: BlockInfo) => void) {
-        this.publicClient = publicClient;
-        this.callback = callback;
-    }
-
-    async start(startFromBlock: number) {
-        if (this.isRunning) return;
-        this.isRunning = true;
-
-        let currentBlockNumber = BigInt(startFromBlock);
-        console.log('Starting from block', currentBlockNumber);
-
-        while (this.isRunning) {
-            try {
-                const block = await this.publicClient.getBlock({
-                    blockNumber: currentBlockNumber
-                });
-
-                // Send block info to callback
-                this.callback({
-                    blockNumber: Number(currentBlockNumber),
-                    transactionCount: block.transactions.length,
-                    gasUsed: block.gasUsed,
-                    timestamp: Number(block.timestamp)
-                });
-
-                // Move to the next block
-                currentBlockNumber = currentBlockNumber + 1n;
-            } catch (error) {
-                if (error instanceof Error &&
-                    error.message.includes('cannot query unfinalized data')) {
-                    console.log(`Block ${currentBlockNumber} not finalized yet, waiting...`);
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                } else {
-                    console.error('Error fetching block:', error);
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-            }
-        }
-    }
-
-    stop() {
-        this.isRunning = false;
-    }
-}
 
 export default function PerformanceMonitor() {
     const {
-        evmChainRpcUrl,
-        setEvmChainRpcUrl,
-    } = useExampleStore();
+        nodeRpcUrl,
+        setNodeRpcUrl,
+        chainID,
+        setChainID,
+        subnetID,
+        setSubnetID
+    } = useToolboxStore();
+
+
+    const [evmChainRpcUrl, setEvmChainRpcUrl] = useState('');
+    useEffect(() => {
+        let newUrl = nodeRpcUrl.replace(/\/$/, '') + '/ext/bc/' + chainID + '/ws'
+        if (newUrl.startsWith('http')) {
+            newUrl = newUrl.replace(/^http/, 'ws');
+        } else if (!newUrl.startsWith('ws')) {
+            newUrl = ''
+        }
+        setEvmChainRpcUrl(newUrl);
+    }, [nodeRpcUrl, chainID]);
+
 
     const [isMonitoring, setIsMonitoring] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [secondsToShow, setSecondsToShow] = useState("60");
+    const [timeRange, setTimeRange] = useState("60"); // in seconds
+    const [blockHistory, setBlockHistory] = useState("100"); // number of blocks to fetch from history
 
-    // Store seconds data in a Map for quick lookups and updates
-    const [secondsDataMap, setSecondsDataMap] = useState<Map<number, {
-        transactions: number;
-        gasUsed: bigint;
-        blockCount: number;
-    }>>(new Map());
+    // Store data in a Map for quick lookups and updates
+    const [dataMap, setDataMap] = useState<Map<number, BucketedData>>(new Map());
 
-    // Derived chart data from the secondsDataMap
+    // Derived chart data
     const [chartData, setChartData] = useState<Array<{
         time: string;
         timestamp: number;
@@ -90,40 +55,91 @@ export default function PerformanceMonitor() {
         blockCount: number;
     }>>([]);
 
-    // Add this to the component state
+    // Recent blocks
     const [recentBlocks, setRecentBlocks] = useState<BlockInfo[]>([]);
 
     const blockWatcherRef = useRef<BlockWatcher | null>(null);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Update chart data whenever secondsDataMap changes or once per second
+    // Get bucket resolution based on selected time range
+    const getBucketResolution = (): { seconds: number, label: string } => {
+        switch (timeRange) {
+            case "60": // 1 minute
+            case "300": // 5 minutes
+                return { seconds: 1, label: "second" };
+            case "900": // 15 minutes
+            case "1800": // 30 minutes
+            case "3600": // 1 hour
+            case "10800": // 3 hours
+                return { seconds: 60, label: "minute" };
+            case "86400": // 24 hours
+            case "345600": // 96 hours
+                return { seconds: 3600, label: "hour" };
+            default:
+                return { seconds: 1, label: "second" };
+        }
+    };
+
+    // Calculate bucket timestamp for a given timestamp
+    const getBucketTimestamp = (timestamp: number): number => {
+        const { seconds } = getBucketResolution();
+        return Math.floor(timestamp / seconds) * seconds;
+    };
+
+    // Format timestamp for display
+    const formatTimestamp = (timestamp: number): string => {
+        const date = new Date(timestamp * 1000);
+        const { label } = getBucketResolution();
+
+        if (label === "hour") {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else if (label === "minute") {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+    };
+
+    // Update chart data whenever dataMap changes or once per second
     useEffect(() => {
         if (!isMonitoring) return;
 
         const updateChartData = () => {
             const now = Math.floor(Date.now() / 1000);
-            const maxSecondsToShow = Number(secondsToShow);
+            const timeRangeSeconds = Number(timeRange);
+            const { seconds: bucketResolution } = getBucketResolution();
 
-            // Create a complete timeline with all seconds
-            const timelineStart = now - maxSecondsToShow + 1;
+            // Adjust to hide the last 5 seconds or equivalent
+            const endTime = getBucketTimestamp(now - 5);
+
+            // Calculate number of buckets and create timeline
+            const numBuckets = Math.floor(timeRangeSeconds / bucketResolution);
+            const timelineStart = endTime - (numBuckets - 1) * bucketResolution;
+
             const completeTimeline: number[] = Array.from(
-                { length: maxSecondsToShow },
-                (_, i) => timelineStart + i
+                { length: numBuckets },
+                (_, i) => timelineStart + i * bucketResolution
             );
 
             const newChartData = completeTimeline.map(timestamp => {
-                const data = secondsDataMap.get(timestamp) || {
+                const data = dataMap.get(timestamp) || {
                     transactions: 0,
                     gasUsed: BigInt(0),
                     blockCount: 0
                 };
 
+                // Convert values to per-second metrics
+                const secondsInBucket = bucketResolution;
+                const transactionsPerSecond = data.transactions / secondsInBucket;
+                const gasUsedPerSecond = Number(data.gasUsed) / secondsInBucket;
+                const blocksPerSecond = data.blockCount / secondsInBucket;
+
                 return {
-                    time: new Date(timestamp * 1000).toLocaleTimeString(),
+                    time: formatTimestamp(timestamp),
                     timestamp,
-                    transactions: data.transactions,
-                    gasUsed: Number(data.gasUsed),
-                    blockCount: data.blockCount
+                    transactions: transactionsPerSecond,
+                    gasUsed: gasUsedPerSecond,
+                    blockCount: blocksPerSecond
                 };
             });
 
@@ -133,8 +149,9 @@ export default function PerformanceMonitor() {
         // Initial update
         updateChartData();
 
-        // Set up a timer to update every second
-        timerRef.current = setInterval(updateChartData, 1000);
+        // Set up a timer to update regularly
+        const updateInterval = getBucketResolution().seconds * 1000 / 2;
+        timerRef.current = setInterval(updateChartData, Math.min(updateInterval, 1000));
 
         return () => {
             if (timerRef.current) {
@@ -142,7 +159,7 @@ export default function PerformanceMonitor() {
                 timerRef.current = null;
             }
         };
-    }, [isMonitoring, secondsDataMap, secondsToShow]);
+    }, [isMonitoring, dataMap, timeRange]);
 
     // Cleanup on component unmount
     useEffect(() => {
@@ -162,8 +179,9 @@ export default function PerformanceMonitor() {
         try {
             setError(null);
             setIsMonitoring(true);
-            setSecondsDataMap(new Map());
+            setDataMap(new Map());
             setChartData([]);
+            setRecentBlocks([]);
 
             // Create public client
             const publicClient = createPublicClient({
@@ -172,23 +190,30 @@ export default function PerformanceMonitor() {
 
             // Get the latest block number
             const lastBlock = Number(await publicClient.getBlockNumber());
-            const startFromBlock = Math.max(lastBlock - Number(secondsToShow) / 2, 1);
+
+            // Convert block history to number
+            const blockHistoryNum = parseInt(blockHistory);
+
+            // Start from the latest block minus some offset (to be able to see data immediately)
+            const startFromBlock = Math.max(lastBlock - 10, 1);
 
             // Create a new block watcher
             const blockWatcher = new BlockWatcher(publicClient, (blockInfo) => {
-                setSecondsDataMap(prevMap => {
-                    const newMap = new Map(prevMap);
-                    const timestamp = blockInfo.timestamp;
+                // Determine which bucket this block belongs to
+                const bucketTime = getBucketTimestamp(blockInfo.timestamp);
 
-                    // Get existing data for this second or create new entry
-                    const existingData = newMap.get(timestamp) || {
+                setDataMap(prevMap => {
+                    const newMap = new Map(prevMap);
+
+                    // Get existing data for this bucket or create new entry
+                    const existingData = newMap.get(bucketTime) || {
                         transactions: 0,
                         gasUsed: BigInt(0),
                         blockCount: 0
                     };
 
-                    // Update the data for this second
-                    newMap.set(timestamp, {
+                    // Update the data for this bucket
+                    newMap.set(bucketTime, {
                         transactions: existingData.transactions + blockInfo.transactionCount,
                         gasUsed: existingData.gasUsed + blockInfo.gasUsed,
                         blockCount: existingData.blockCount + 1
@@ -207,7 +232,7 @@ export default function PerformanceMonitor() {
             });
 
             blockWatcherRef.current = blockWatcher;
-            blockWatcher.start(startFromBlock);
+            blockWatcher.start(startFromBlock, blockHistoryNum);
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
             setIsMonitoring(false);
@@ -230,37 +255,77 @@ export default function PerformanceMonitor() {
         <div>
             <h3 className="text-lg font-semibold mb-2">EVM Chain Performance Monitor</h3>
             <div className="mb-6">
-                <p className="mb-2">This tool monitors blockchain performance metrics in real-time, tracking transactions per second, gas usage, and block production. Data is aggregated by second to provide insights into network throughput and activity patterns.</p>
-                <div className="mt-4 text-sm text-gray-600">
-                    <p>If you don't have a RPC URL, try any of these:</p>
-                    <ul className="list-disc pl-5 space-y-1">
-                        <li><code>https://api.avax.network/ext/bc/C/rpc</code> (Avalanche C-Chain)</li>
-                        <li><code>https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc</code> (DeFi Kingdoms)</li>
-                    </ul>
-                </div>
+                <p className="mb-2">This tool monitors blockchain performance metrics in real-time, tracking transactions, gas usage, and block production. Data is aggregated by time buckets and normalized to per-second values to provide insights into network throughput and activity patterns.</p>
             </div>
 
             <div className="flex flex-col gap-4 mb-4">
-                <Input
-                    type="text"
-                    label="EVM RPC URL"
-                    value={evmChainRpcUrl}
-                    onChange={setEvmChainRpcUrl}
-                    disabled={isMonitoring}
-                />
-                <Select
-                    options={[
-                        { value: "60", label: "1 minute" },
-                        { value: "180", label: "3 minutes" },
-                        { value: "300", label: "5 minutes" },
-                        { value: "600", label: "10 minutes" },
-                        { value: "1800", label: "30 minutes" },
-                        { value: "3600", label: "60 minutes" }
-                    ]}
-                    value={secondsToShow}
-                    onChange={(value) => setSecondsToShow(String(value))}
-                    label="Time Range"
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                        type="text"
+                        label="RPC URL excluding /ext/bc/..."
+                        value={nodeRpcUrl}
+                        onChange={setNodeRpcUrl}
+                        disabled={isMonitoring}
+                    />
+                    <Input
+                        type="text"
+                        label="Chain ID"
+                        value={chainID}
+                        onChange={setChainID}
+                        disabled={isMonitoring}
+                    />
+                    <Input
+                        type="text"
+                        label="EVM Chain RPC URL"
+                        value={evmChainRpcUrl}
+                        disabled={true}
+                    />
+                    <Input
+                        type="text"
+                        label="Subnet ID"
+                        value={subnetID}
+                        onChange={setSubnetID}
+                        disabled={isMonitoring}
+                    />
+
+                    <Select
+                        options={[
+                            { value: "60", label: "1 minute (1s buckets)" },
+                            { value: "300", label: "5 minutes (1s buckets)" },
+                            { value: "900", label: "15 minutes (1m buckets)" },
+                            { value: "1800", label: "30 minutes (1m buckets)" },
+                            { value: "3600", label: "1 hour (1m buckets)" },
+                            { value: "10800", label: "3 hours (1m buckets)" },
+                            { value: "86400", label: "24 hours (1h buckets)" },
+                            { value: "345600", label: "96 hours (1h buckets)" }
+                        ]}
+                        value={timeRange}
+                        onChange={(value) => setTimeRange(String(value))}
+                        label="Time Range"
+                        disabled={isMonitoring}
+                    />
+
+                    <Select
+                        options={[
+                            { value: "100", label: "100 blocks" },
+                            { value: "250", label: "250 blocks" },
+                            { value: "1000", label: "1,000 blocks" },
+                            { value: "2500", label: "2,500 blocks" },
+                            { value: "5000", label: "5,000 blocks" },
+                            { value: "10000", label: "10,000 blocks" },
+                            { value: "25000", label: "25,000 blocks" },
+                            { value: "50000", label: "50,000 blocks" },
+                            { value: "100000", label: "100,000 blocks" },
+                            { value: "250000", label: "250,000 blocks" },
+                            { value: "500000", label: "500,000 blocks" },
+                            { value: "1000000", label: "1,000,000 blocks" }
+                        ]}
+                        value={blockHistory}
+                        onChange={(value) => setBlockHistory(String(value))}
+                        label="Historical Blocks"
+                        disabled={isMonitoring}
+                    />
+                </div>
             </div>
 
             <div className="flex gap-2.5 mb-6">
@@ -280,6 +345,8 @@ export default function PerformanceMonitor() {
                 </Button>
             </div>
 
+            <ChainInfo rpcUrl={nodeRpcUrl} subnetID={subnetID} chainID={chainID} />
+
             {error && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded">
                     <strong>Error:</strong> {error}
@@ -288,7 +355,7 @@ export default function PerformanceMonitor() {
 
             {chartData.length > 0 && (
                 <div>
-                    <h4 className="font-medium mb-2">Transactions Per Second</h4>
+                    <h4 className="font-medium mb-2">Transactions per Second</h4>
                     <ResponsiveContainer width="100%" height={200}>
                         <LineChart
                             data={chartData}
@@ -296,13 +363,17 @@ export default function PerformanceMonitor() {
                         >
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="time" />
-                            <YAxis />
-                            <Tooltip />
+                            <YAxis
+                                tickFormatter={(value: number) => value.toFixed(1)}
+                            />
+                            <Tooltip
+                                formatter={(value: number) => [value.toFixed(1), 'Transactions/sec']}
+                            />
                             <Legend />
                             <Line
                                 type="monotone"
                                 dataKey="transactions"
-                                name="Transactions"
+                                name="Transactions/sec"
                                 stroke="#8884d8"
                                 animationDuration={100}
                                 dot={false}
@@ -315,8 +386,8 @@ export default function PerformanceMonitor() {
                                 strokeDasharray="3 3"
                                 label={{
                                     value: chartData.length > 0
-                                        ? `Avg: ${(chartData.reduce((sum, point) => sum + point.transactions, 0) / chartData.length).toFixed(1)} TPS`
-                                        : "Avg TPS",
+                                        ? `Avg: ${(chartData.reduce((sum, point) => sum + point.transactions, 0) / chartData.length).toFixed(1)}/sec`
+                                        : "Avg",
                                     fill: "#2ca02c",
                                     position: "insideBottomRight"
                                 }}
@@ -324,7 +395,7 @@ export default function PerformanceMonitor() {
                         </LineChart>
                     </ResponsiveContainer>
 
-                    <h4 className="font-medium mt-6 mb-2">Gas Usage Per Second</h4>
+                    <h4 className="font-medium mt-2 mb-2">Gas Usage per Second</h4>
                     <ResponsiveContainer width="100%" height={200}>
                         <LineChart
                             data={chartData}
@@ -336,13 +407,13 @@ export default function PerformanceMonitor() {
                                 tickFormatter={(value: number) => `${(value / 1_000_000).toFixed(1)}M`}
                             />
                             <Tooltip
-                                formatter={(value: number) => [`${(Number(value) / 1_000_000).toFixed(2)}M`, 'Gas']}
+                                formatter={(value: number) => [`${(Number(value) / 1_000_000).toFixed(1)}M/sec`, 'Gas']}
                             />
                             <Legend />
                             <Line
                                 type="monotone"
                                 dataKey="gasUsed"
-                                name="Gas Used"
+                                name="Gas Used/sec"
                                 stroke="#ff7300"
                                 animationDuration={100}
                                 dot={false}
@@ -355,8 +426,8 @@ export default function PerformanceMonitor() {
                                 strokeDasharray="3 3"
                                 label={{
                                     value: chartData.length > 0
-                                        ? `Avg: ${((chartData.reduce((sum, point) => sum + point.gasUsed, 0) / chartData.length) / 1_000_000).toFixed(2)}M Gas`
-                                        : "Avg Gas",
+                                        ? `Avg: ${((chartData.reduce((sum, point) => sum + point.gasUsed, 0) / chartData.length) / 1_000_000).toFixed(1)}M/sec`
+                                        : "Avg",
                                     fill: "#2ca02c",
                                     position: "insideBottomRight"
                                 }}
@@ -364,7 +435,7 @@ export default function PerformanceMonitor() {
                         </LineChart>
                     </ResponsiveContainer>
 
-                    <h4 className="font-medium mt-6 mb-2">Blocks Per Second</h4>
+                    <h4 className="font-medium mt-2 mb-2">Blocks per Second</h4>
                     <ResponsiveContainer width="100%" height={200}>
                         <LineChart
                             data={chartData}
@@ -372,21 +443,39 @@ export default function PerformanceMonitor() {
                         >
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="time" />
-                            <YAxis />
-                            <Tooltip />
+                            <YAxis
+                                tickFormatter={(value: number) => value.toFixed(1)}
+                            />
+                            <Tooltip
+                                formatter={(value: number) => [value.toFixed(1), 'Blocks/sec']}
+                            />
                             <Legend />
                             <Line
                                 type="monotone"
                                 dataKey="blockCount"
-                                name="Block Count"
+                                name="Blocks/sec"
                                 stroke="#0088aa"
                                 animationDuration={100}
                                 dot={false}
                             />
+                            <ReferenceLine
+                                y={chartData.length > 0
+                                    ? chartData.reduce((sum, point) => sum + point.blockCount, 0) / chartData.length
+                                    : 0}
+                                stroke="#2ca02c"
+                                strokeDasharray="3 3"
+                                label={{
+                                    value: chartData.length > 0
+                                        ? `Avg: ${(chartData.reduce((sum, point) => sum + point.blockCount, 0) / chartData.length).toFixed(1)}/sec`
+                                        : "Avg",
+                                    fill: "#2ca02c",
+                                    position: "insideBottomRight"
+                                }}
+                            />
                         </LineChart>
                     </ResponsiveContainer>
 
-                    <h4 className="font-medium mt-6 mb-2">Recent Blocks</h4>
+                    <h4 className="font-medium mt-2 mb-2">Recent Blocks</h4>
                     <div className="overflow-x-auto">
                         <table className="min-w-full bg-white border border-gray-200">
                             <thead>
@@ -403,7 +492,7 @@ export default function PerformanceMonitor() {
                                         <td className="py-2 px-4 border-b">{block.blockNumber}</td>
                                         <td className="py-2 px-4 border-b">{block.transactionCount}</td>
                                         <td className="py-2 px-4 border-b">
-                                            {(Number(block.gasUsed) / 1_000_000).toFixed(2)}M
+                                            {(Number(block.gasUsed) / 1_000_000).toFixed(1)}M
                                         </td>
                                         <td className="py-2 px-4 border-b">
                                             {new Date(block.timestamp * 1000).toLocaleString()}

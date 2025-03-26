@@ -1,0 +1,67 @@
+---
+title: Query the Validator Set
+description: Get info on validators for an L1.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: SearchCheck
+---
+
+
+### Query the Validator Set
+import ToolboxMdxWrapper from "../../../../toolbox/src/demo/ui/ToolboxMdxWrapper.tsx"
+import QueryValidatorList from "../../../../toolbox/src/demo/examples/ValidatorManager/QueryValidatorList.tsx"
+
+<ToolboxMdxWrapper>
+    <QueryValidatorList />
+</ToolboxMdxWrapper>
+
+To query the validator set, you can use the [Data API from AvaCloud](https://developers.avacloud.io/data-api/primary-network/list-l1-validators?playground=open).
+
+#### Using the Data API
+
+1. Navigate to the [List L1 Validators API endpoint](https://developers.avacloud.io/data-api/primary-network/list-l1-validators?playground=open)
+2. Enter your `subnetID` in the required field
+3. Select your network from the dropdown (`mainnet` or `fuji`)
+4. Click "Execute" to send the API request
+5. The response will display your current validator set
+
+The response will show your validator set in the following format:
+
+```json
+{
+  "nextPageToken": "<string>",
+  "validators": [
+    {
+      "validationId": "<string>",
+      "nodeId": "<string>",
+      "subnetId": "<string>",
+      "weight": 123,
+      "remainingBalance": 123,
+      "creationTimestamp": 123,
+      "blsCredentials": {},
+      "remainingBalanceOwner": {
+        "addresses": [
+          "<string>"
+        ],
+        "threshold": 123
+      },
+      "deactivationOwner": {
+        "addresses": [
+          "<string>"
+        ],
+        "threshold": 123
+      }
+    }
+  ]
+}
+```
+
+You can see that the `validators` array contains the validator set.
+
+Double check that the validators you listed in the `convertSubnetToL1Tx` are in the validator set.
+
+
+Alternatively, you can use the [validators_getCurrentValidators](/docs/api-reference/subnet-evm-api#validators_getcurrentvalidators) endpoint from the Subnet EVM API.
+
+
+

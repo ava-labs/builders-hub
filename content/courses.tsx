@@ -1,5 +1,5 @@
 
-import { ArrowLeftRight, Coins, MailIcon, SquareCode, SquareIcon, SquareStackIcon, TerminalIcon, Triangle, HexagonIcon } from 'lucide-react';
+import { ArrowLeftRight, Coins, MailIcon, SquareCode, SquareIcon, SquareStackIcon, TerminalIcon, Triangle, HexagonIcon, UserPen } from 'lucide-react';
 
 export type Course = {
     name: string;
@@ -48,9 +48,9 @@ const officialCourses: Course[] = [
         instructors: ["Martin Eckardt", "Ash", "Owen Wahlgren"] // + Usman
     },
     {
-        name:"Avalanche Interchain Messaging",
-        description:"Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche network",
-        slug:"interchain-messaging",
+        name: "Avalanche Interchain Messaging",
+        description: "Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche network",
+        slug: "interchain-messaging",
         icon: <MailIcon />,
         status: "featured",
         duration: "3 hours",
@@ -59,9 +59,9 @@ const officialCourses: Course[] = [
         instructors: ["Martin Eckardt", "Andrea Vargas", "Ash"] // + Usman
     },
     {
-        name:"Interchain Token Transfer",
-        description:"Deploy Avalanche Interchain Token Transfer to transfer assets between Avalanche blockchains",
-        slug:"interchain-token-transfer",
+        name: "Interchain Token Transfer",
+        description: "Deploy Avalanche Interchain Token Transfer to transfer assets between Avalanche blockchains",
+        slug: "interchain-token-transfer",
         icon: <ArrowLeftRight />,
         status: "featured",
         duration: "2.5 hours",
@@ -70,9 +70,9 @@ const officialCourses: Course[] = [
         instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Owen Wahlgren", "Sarp"]
     },
     {
-        name:"Customizing the EVM",
-        description:"Learn how to customize the EVM and add your own custom precompiles",
-        slug:"customizing-evm",
+        name: "Customizing the EVM",
+        description: "Learn how to customize the EVM and add your own custom precompiles",
+        slug: "customizing-evm",
         icon: <SquareCode />,
         duration: "4 hours",
         status: "featured",
@@ -81,20 +81,31 @@ const officialCourses: Course[] = [
         instructors: ["Martin Eckardt", "Ash"] // + Usman
     },
     {
-       name:"Layer 1 Tokenomics",
-       description:"Learn how to design and deploy tokenomics for your Avalanche L1",
-       slug:"l1-tokenomics",
-       icon: <Coins />,
-       duration: "2 hours",
-       status: "featured",
-       tools: ["Avalanche-CLI", "ICM"],
-       languages: ["Solidity"],
-       instructors: ["Sarp", "Owen Wahlgren"]
-   },
-   {
-        name:"AvaCloud APIs",
-        description:"Learn how to leverage AvaCloud APIs to build web apps on Avalanche",
-        slug:"avacloudapis",
+        name: "Layer 1 Tokenomics",
+        description: "Learn how to design and deploy tokenomics for your Avalanche L1",
+        slug: "l1-tokenomics",
+        icon: <Coins />,
+        duration: "2 hours",
+        status: "featured",
+        tools: ["Avalanche-CLI", "ICM"],
+        languages: ["Solidity"],
+        instructors: ["Sarp", "Owen Wahlgren"]
+    },
+    {
+        name: "L1 Validator Management",
+        description: "Learn how to manage your Avalanche L1 Validators",
+        slug: "l1-validator-management",
+        icon: <UserPen />,
+        duration: "1 hour",
+        status: "normal",
+        tools: ["Warp"],
+        languages: ["Solidity"],
+        instructors: ["Owen Wahlgren"]
+    },
+    {
+        name: "AvaCloud APIs",
+        description: "Learn how to leverage AvaCloud APIs to build web apps on Avalanche",
+        slug: "avacloudapis",
         icon: <SquareCode />,
         duration: "1 hour",
         status: "featured",
@@ -103,20 +114,20 @@ const officialCourses: Course[] = [
         instructors: ["Owen Wahlgren"]
     },
     {
-         name:"Solidity Programming with Foundry",
-         description:"Learn the basics on how to code in Solidity with Foundry",
-         slug:"solidity-foundry",
-         icon: <SquareCode />,
-         duration: "1 hour",
-         status: "featured",
-         tools: ["Starter-Kit", "Foundry"],
-         languages: ["Solidity"],
-         instructors: ["Andrea Vargas"]
-     },
+        name: "Solidity Programming with Foundry",
+        description: "Learn the basics on how to code in Solidity with Foundry",
+        slug: "solidity-foundry",
+        icon: <SquareCode />,
+        duration: "1 hour",
+        status: "featured",
+        tools: ["Starter-Kit", "Foundry"],
+        languages: ["Solidity"],
+        instructors: ["Andrea Vargas"]
+    },
     {
-        name:"HyperSDK",
-        description:"Learn how to build a high-performance blockchain using HyperSDK",
-        slug:"hypersdk",
+        name: "HyperSDK",
+        description: "Learn how to build a high-performance blockchain using HyperSDK",
+        slug: "hypersdk",
         icon: <TerminalIcon />,
         duration: "1 hour",
         status: "hidden",
@@ -125,9 +136,9 @@ const officialCourses: Course[] = [
         instructors: ["Aaron Buchwald", "Ilya", "Rodrigo Villar", "Martin Eckardt", "Owen Wahlgren"]
     },
     {
-        name:"Chainlink on your L1 via ICM",
-        description:"Utilize Interchain Messaging to make Chainlink services available on any blockchain in the Avalanche Network",
-        slug:"icm-chainlink",
+        name: "Chainlink on your L1 via ICM",
+        description: "Utilize Interchain Messaging to make Chainlink services available on any blockchain in the Avalanche Network",
+        slug: "icm-chainlink",
         icon: <HexagonIcon />,
         status: "featured",
         duration: "2.5 hours",
@@ -178,7 +189,7 @@ const ecosystemCourses: Course[] = [
 ];
 
 export default {
-    official: officialCourses.filter((course) =>  ["normal", "featured"].includes(course.status)),
+    official: officialCourses.filter((course) => ["normal", "featured"].includes(course.status)),
     official_featured: officialCourses.filter((course) => course.status === "featured"),
     ecosystem: ecosystemCourses,
 };

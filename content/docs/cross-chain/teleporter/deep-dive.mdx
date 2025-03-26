@@ -25,14 +25,14 @@ For help getting started with building ICM contracts, refer to [the avalanche-st
 ### Dependencies
 
 - [Ginkgo](https://onsi.github.io/ginkgo/#installing-ginkgo) for running the end-to-end tests.
-- [Foundry](https://book.getfoundry.sh/) Use `./scripts/install_foundry.sh` to install the Ava Labs [fork](https://github.com/ava-labs/foundry) for building contracts.
+- [Foundry](https://book.getfoundry.sh/) Use `./scripts/install_foundry.sh` to install Foundry for building contracts.
 
 ## Structure
 
 - `contracts/`
   - [`governance/`](https://github.com/ava-labs/teleporter/blob/main/contracts/governance/README.md) includes contracts related to L1 governance.
   - [`ictt/`](https://github.com/ava-labs/teleporter/blob/main/contracts/ictt/README.md) Interchain Token Transfer contracts. Facilitates the transfer of tokens among L1s.
-  - [`teleporter/`](https://github.com/ava-labs/teleporter/blob/main/contracts/teleporter/README.md) includes `TeleporterMessenger`, which serves as the interface for most contracts to use ICM. 
+  - [`teleporter/`](https://github.com/ava-labs/teleporter/blob/main/contracts/teleporter/README.md) includes `TeleporterMessenger`, which serves as the interface for most contracts to use ICM.
     - [`registry/`](https://github.com/ava-labs/teleporter/blob/main/contracts/teleporter/registry/README.md) includes a registry contract for managing different versions of `TeleporterMessenger`.
   - [`validator-manager/`](https://github.com/ava-labs/teleporter/blob/main/contracts/validator-manager/README.md) includes contracts for managing the validator set of an L1.
 - `abi-bindings/` includes Go ABI bindings for the contracts in `contracts/`.

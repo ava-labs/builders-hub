@@ -1,0 +1,35 @@
+---
+title: Create a Subnet
+description: Learn how to create a subnet on the P-Chain.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: Replace
+---
+import ToolboxMdxWrapper from "../../../../toolbox/src/demo/ui/ToolboxMdxWrapper"
+import CreateSubnet from "../../../../toolbox/src/demo/examples/L1/CreateSubnet.tsx"
+
+### Creating Your First Subnet
+
+After connecting your wallet to the P-Chain, you're ready to create your own subnet. Here's what happens during subnet creation:
+
+1. You submit a `CreateSubnetTx` transaction to the P-Chain
+2. The P-Chain creates a unique `subnetID` by hashing your wallet address
+3. This `subnetID` becomes your subnet's permanent identifier
+
+The `subnetID` is crucial for future operations - you'll need it when:
+- Creating blockchains within your subnet
+- Adding validators to your subnet
+- Managing subnet permissions
+- Converting the subnet to an L1 (permissioned or permissionless)
+
+<Callout type="info">
+There's no limit to how many subnets you can create from a single wallet address.
+</Callout>
+
+<ToolboxMdxWrapper>
+    <CreateSubnet />
+</ToolboxMdxWrapper>
+
+
+
+

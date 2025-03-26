@@ -1,0 +1,64 @@
+---
+title: Create Genesis
+description: Create and customize the genesis.json file for an EVM Avalanche L1.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: ScrollText
+---
+
+import ToolboxMdxWrapper from "../../../../toolbox/src/demo/ui/ToolboxMdxWrapper.tsx"
+import GenesisBuilder from "../../../../toolbox/src/demo/examples/L1/GenesisBuilder.tsx"
+
+## Creating a Genesis for an EVM L1
+
+The genesis block is the foundation of your new blockchain and defines its initial state. This critical configuration determines how your blockchain will operate and sets various parameters that will govern its behavior.
+
+### What is the Genesis Block?
+
+The genesis block is the first block in your blockchain. It doesn't have a parent block and contains the initial state of your blockchain, including:
+
+- Chain configuration parameters
+- Initial account balances
+- Precompile configurations
+- Network upgrade settings
+
+### Key Genesis Parameters
+
+When creating a genesis block for your Avalanche L1, you'll need to configure several important parameters:
+
+#### Chain ID
+- A unique identifier for your blockchain
+- Must be chosen carefully to avoid conflicts with existing chains
+- Consider checking [chainlist.org](https://chainlist.org/) to avoid ID collisions
+
+#### Fee Configuration
+- **gasLimit**: Maximum gas that can be consumed per block (e.g., 15,000,000)
+- **minBaseFee**: Minimum fee for transactions (creates a price floor)
+- **targetGas**: Target gas consumption in a 10-second window
+- **baseFeeChangeDenominator**: Controls how quickly the base fee can change
+- **targetBlockRate**: Target time between blocks in seconds (typically 2)
+- **blockGasCostStep**: Controls how block gas cost changes relative to block production rate
+
+#### Initial Token Allocation
+- Define addresses that will have tokens at launch
+- Specify the initial balance for each address
+- Without initial allocations, you won't be able to interact with your chain
+
+#### EVM Precompiles
+- Enable specific precompiled contracts
+- Set configuration parameters for each precompile
+- Specify activation timestamps and administrative addresses
+
+### Using the Genesis Builder
+
+The interactive tool below helps you create a properly formatted genesis.json file with the key parameters your Avalanche L1 needs:
+
+<ToolboxMdxWrapper>
+    <GenesisBuilder />
+</ToolboxMdxWrapper>
+
+### After Creating Your Genesis
+
+Once you've created your genesis file, you'll use it when creating your blockchain in the next step. This file will be stored and used by all validators to ensure they have the same initial state when starting to validate your Avalanche L1.
+
+For more detailed information about customizing the genesis file, see the [Avalanche L1 customization documentation](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#chain-config).
