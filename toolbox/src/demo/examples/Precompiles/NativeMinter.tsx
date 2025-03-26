@@ -6,6 +6,7 @@ import { Input } from "../../../components/input";
 import { Button } from "../../../components/button";
 import { useState } from "react";
 import { useNativeMinter } from '@avalabs/builderkit';
+import { EVMAddressInput } from "../../components/EVMAddressInput";
 
 const NATIVE_MINTER_ADDRESS = "0x0200000000000000000000000000000000000001";
 
@@ -44,11 +45,10 @@ export default function NativeMinter() {
                 description="This will mint native tokens to the EVM address."
             >
                 <div className="space-y-4">
-                    <Input
-                        label="L1 Address"
+                    <EVMAddressInput
+                        label="Recipient Address"
                         value={nativeMinterRecipient}
                         onChange={(value) => setNativeMinterRecipient(value)}
-                        type="text"
                     />
                     <Input
                         label="Amount"
