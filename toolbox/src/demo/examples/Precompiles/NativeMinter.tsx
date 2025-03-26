@@ -5,13 +5,37 @@ import { Container } from "../../../components/container";
 import { Input } from "../../../components/input";
 import { Button } from "../../../components/button";
 import { useState } from "react";
+import { useNativeMinter } from '@avalabs/builderkit';
 
-const NATIVE_MINTER_ADDRESS = "0x0300000000000000000000000000000000000000";
+const NATIVE_MINTER_ADDRESS = "0x0200000000000000000000000000000000000001";
 
 export default function NativeMinter() {
-    const { walletEVMAddress} = useWalletStore();
+    const { walletEVMAddress } = useWalletStore();
     const [amount, setAmount] = useState<number>(100);
     const [nativeMinterRecipient, setNativeMinterRecipient] = useState<string>(walletEVMAddress);
+    const [isMinting, setIsMinting] = useState(false);
+    const { mintNativeCoin } = useNativeMinter();
+
+    const convertToHex = (amount: number): `0x${string}` => {
+        const amountInWei = BigInt(amount) * BigInt(10 ** 18);
+        return `0x${amountInWei.toString(16)}` as `0x${string}`;
+    };
+
+    const handleMint = async () => {
+        if (!nativeMinterRecipient) return;
+        setIsMinting(true);
+        try {
+            const amountInHex = convertToHex(amount);
+            await mintNativeCoin(
+                nativeMinterRecipient,
+                amountInHex
+            );
+        } catch (error) {
+            console.error('Minting failed:', error);
+        } finally {
+            setIsMinting(false);
+        }
+    };
 
     return (
         <RequireChainFuji>
@@ -33,20 +57,13 @@ export default function NativeMinter() {
                         type="number"
                     />
                     <Button
-                        onClick={() => { }}
-                        loading={false}
+                        onClick={handleMint}
+                        loading={isMinting}
                         variant="primary"
                     >
                         Mint
                     </Button>
                 </div>
-                {/* {subnetID && (
-                    <ResultField
-                        label="Subnet ID"
-                        value={subnetID}
-                        showCheck={!!subnetID}
-                    />
-                )} */}
             </Container>
         </RequireChainFuji>
     );
