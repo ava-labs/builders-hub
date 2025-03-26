@@ -9,7 +9,7 @@ import { Buffer as BufferPolyfill } from "buffer";
 import { CoreWalletRpcSchema } from "../rpcSchema";
 import { isTestnet } from "./isTestnet";
 
-export async function getPChainAddress(client: WalletClient<any, any, any, CoreWalletRpcSchema>) {
+export async function getCorethAddress(client: WalletClient<any, any, any, CoreWalletRpcSchema>) {
     const networkID = (await isTestnet(client)) ? networkIDs.FujiID : networkIDs.MainnetID
 
     const pubkeys = await client.request({
@@ -23,5 +23,5 @@ export async function getPChainAddress(client: WalletClient<any, any, any, CoreW
     const compressed = SigningKey.computePublicKey(pubkeys.xp, true).slice(2);
     const pubComp = BufferPolyfill.from(compressed, "hex");
     const address = secp256k1.publicKeyBytesToAddress(pubComp);
-    return utils.format("P", networkIDs.getHRP(networkID), address)
+    return utils.format("C", networkIDs.getHRP(networkID), address)
 }
