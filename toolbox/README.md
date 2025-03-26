@@ -10,14 +10,18 @@ git clone https://github.com/ava-labs/builders-hub.git
 cd builders-hub
 ```
 
-2. Install dependencies:
+2. Navigate to the toolbox directory 
+```bash
+cd toolbox
+```
+
+3. Install dependencies:
 ```bash
 yarn install
 ```
 
-3. Navigate to the toolbox directory and start the development server:
+4. Start the development server:
 ```bash
-cd toolbox
 yarn dev
 ```
 
