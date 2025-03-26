@@ -145,8 +145,14 @@ export function Container({
 
           <div className="flex flex-col justify-center h-[60px]">
             <h3 className="text-base font-semibold text-zinc-800 dark:text-white">{title}</h3>
-            {description && <p className="text-xs text-zinc-500 dark:text-zinc-400">{description}</p>}
-            {subDescription && <p className="text-xs text-zinc-500 dark:text-zinc-400">{subDescription}</p>}
+            {description !== undefined && description !== null && (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                {typeof description === 'object' ? description : String(description)}
+              </p>
+            )}
+            {subDescription !== undefined && subDescription !== null && (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">{subDescription}</p>
+            )}
           </div>
         </div>
       </div>
