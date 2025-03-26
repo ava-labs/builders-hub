@@ -44,7 +44,7 @@ Use the **Avalanche CLI** to create a new blockchain where you will deploy the E
 You will deploy an ERC-20 token on the Avalanche C-Chain, which will later be transferred and used as the native token on the new L1.
 
 ```bash
-forge create --rpc-url local-c --private-key $PK lib/avalanche-interchain-token-transfer/contracts/src/mocks/ExampleERC20Decimals.sol:ExampleERC20Decimals --constructor-args 18 --broadcast
+forge create --rpc-url local-c --private-key $PK lib/ictt/contracts/src/mocks/ExampleERC20Decimals.sol:ExampleERC20Decimals --constructor-args 18 --broadcast
 ```
 
 Save the newly created ERC20 address to the environment variables
@@ -60,7 +60,7 @@ Set up the home and remote transferer contracts for transferring tokens between 
 
 - `ERC20TokenHome` Contract on C-Chain  
 ```bash
-forge create --rpc-url local-c --private-key $PK lib/avalanche-interchain-token-transfer/contracts/src/TokenHome/ERC20TokenHome.sol:ERC20TokenHome --constructor-args $TELEPORTER_REGISTRY_C_CHAIN $FUNDED_ADDRESS $ERC20_HOME_C_CHAIN 18 --broadcast
+forge create --rpc-url local-c --private-key $PK lib/ictt/contracts/src/TokenHome/ERC20TokenHome.sol:ERC20TokenHome --constructor-args $TELEPORTER_REGISTRY_C_CHAIN $FUNDED_ADDRESS $ERC20_HOME_C_CHAIN 18 --broadcast
 ```
 
 Export to environment variables:
@@ -71,7 +71,7 @@ export ERC20_HOME_TRANSFERER_C_CHAIN=0x...
 
 - `NativeTokenRemote` Contract on `myblockchain` 
 ```bash 
-forge create --rpc-url myblockchain --private-key $PK lib/avalanche-interchain-token-transfer/contracts/src/TokenRemote/NativeTokenRemote.sol:NativeTokenRemote --constructor-args "($TELEPORTER_REGISTRY_L1, $FUNDED_ADDRESS, $C_CHAIN_BLOCKCHAIN_ID_HEX, $ERC20_HOME_TRANSFERER_C_CHAIN, 18)" "EXMP.b" 100000000000000000000 0 false 0 --broadcast
+forge create --rpc-url myblockchain --private-key $PK lib/ictt/contracts/src/TokenRemote/NativeTokenRemote.sol:NativeTokenRemote --constructor-args "($TELEPORTER_REGISTRY_L1, $FUNDED_ADDRESS, $C_CHAIN_BLOCKCHAIN_ID_HEX, $ERC20_HOME_TRANSFERER_C_CHAIN, 18)" "EXMP.b" 100000000000000000000 0 false 0 --broadcast
 ```
 
 Add to the enviroment variables 
