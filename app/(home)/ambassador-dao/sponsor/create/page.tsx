@@ -5,6 +5,7 @@ import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, Suspense } from "react";
 import toast from "react-hot-toast";
+import "@mdxeditor/editor/style.css";
 
 function SearchParamsWrapper() {
   const searchParams = useSearchParams();

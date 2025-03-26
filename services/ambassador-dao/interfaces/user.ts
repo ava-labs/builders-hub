@@ -11,7 +11,7 @@ export interface IUserDetails {
 
 export interface IVerifiedDetails {
   user: IUserDetails;
-  token: {
+  tokens: {
     access_token: string;
     refresh_token: string;
   };

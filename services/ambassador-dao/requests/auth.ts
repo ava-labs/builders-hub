@@ -42,7 +42,7 @@ export const useVerifyPasscodeMutation = () => {
       queryclient.invalidateQueries({ queryKey: ["fetchUserProfile"] });
       toast.success("Verification successful");
 
-      if (!data.user.role || !data.user.first_name || !data.user.username) {
+      if (!data.user.role || !data.user.first_name) {
         router.push("/ambassador-dao/onboard");
       } else {
         if (data.user.role === "SPONSOR") {
@@ -83,7 +83,7 @@ export const useHandleGoogleCallback = () => {
     onSuccess: (data) => {
       toast.success("Google authentication successful");
       queryClient.setQueryData(["fetchUserProfile"], data);
-      if (!data.user.role || !data.user.first_name || !data.user.username) {
+      if (!data.user.role || !data.user.first_name) {
         router.push("/ambassador-dao/onboard");
       } else {
         if (data.user.role === "SPONSOR") {
