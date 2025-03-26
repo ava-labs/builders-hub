@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Input } from "../../ui";
+import { Button } from "../../ui";
 import { createPublicClient, http } from 'viem';
 import { useErrorBoundary } from "react-error-boundary";
 import { useToolboxStore, useWalletStore } from "../../utils/store";
