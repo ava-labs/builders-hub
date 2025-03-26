@@ -39,42 +39,60 @@ export const projects: Project[] = [
     name: "BlockVote",
     isWinner: true,
     bannerUrl: "/temp/project-banner.png",
+    logoUrl: "/temp/project-logo.png",
     shortDescription:
       "A decentralized and tamper-proof voting system leveraging blockchain technology to ensure fair elections.",
+    description:
+      "A decentralized and tamper-proof voting system leveraging blockchain technology to ensure transparency, security, and verifiability in elections. BlockVote enables real-time vote tracking while preserving voter privacy and integrity",
+    liveDemoUrl: "dsads",
+    sourceCodeUrl: "dsads",
     event: {
       name: "Avalanche Summit",
       location: "LATAM",
       year: 2024,
     },
     tracks: ["GAMING", "DEFI"],
+    gallery: ["GAMING", "DEFI"],
   },
   {
     id: "2",
     name: "MetaMed",
     isWinner: false,
     bannerUrl: "/temp/project-banner.png",
+    logoUrl: "/temp/project-logo.png",
     shortDescription:
       "A metaverse-powered medical training platform using VR to simulate emergency scenarios.",
+    description:
+      "A decentralized and tamper-proof voting system leveraging blockchain technology to ensure transparency, security, and verifiability in elections. BlockVote enables real-time vote tracking while preserving voter privacy and integrity",
+    liveDemoUrl: "dsads",
+    sourceCodeUrl: "dsads",
     event: {
       name: "ETHGlobal",
       location: "New York",
       year: 2023,
     },
-    tracks: ["HEALTHCARE", "EDTECH"],
+    tracks: ["SUSTAINABILITY", "SUPPLY_CHAIN"],
+    gallery: ["GAMING", "DEFI"],
   },
   {
     id: "3",
     name: "GreenChain",
     isWinner: true,
     bannerUrl: "/temp/project-banner.png",
+    logoUrl: "/temp/project-logo.png",
     shortDescription:
       "A carbon credit tracking system that brings transparency to environmental efforts via blockchain.",
+    description:
+      "A decentralized and tamper-proof voting system leveraging blockchain technology to ensure transparency, security, and verifiability in elections. BlockVote enables real-time vote tracking while preserving voter privacy and integrity",
+    liveDemoUrl: "dsads",
+    sourceCodeUrl: "dsads",
     event: {
       name: "Devcon",
       location: "Bogotá",
       year: 2022,
     },
     tracks: ["SUSTAINABILITY", "SUPPLY_CHAIN"],
+    gallery: ["GAMING", "DEFI"],
   },
 ];
 

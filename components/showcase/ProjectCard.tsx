@@ -5,6 +5,7 @@ import { Project } from "@/types/showcase";
 import { MapPin, Trophy } from "lucide-react";
 import Image from "next/image";
 import { Card } from "../ui/card";
+import { Button } from "../ui/button";
 
 type Props = {
   project: Project;
@@ -36,9 +37,9 @@ export function ProjectCard({ project }: Props) {
         <div className="flex gap-2 justify-between">
           <div className="max-w-[60%] flex items-center gap-6">
             <MapPin size={18} color="#BFBFC7" />
-            <div className="text-xs text-zinc-300">
+            <p className="text-xs text-zinc-300">
               {`${project.event.name} ${project.event.location} ${project.event.year}`}
-            </div>
+            </p>
           </div>
 
           <div className="flex flex-col gap-2">
