@@ -32,10 +32,10 @@
   dependencies:
     json-canonicalize "^1.0.6"
 
-"@avalabs/avalanchejs@^4.1.2-alpha.4":
-  version "4.2.0"
-  resolved "https://registry.yarnpkg.com/@avalabs/avalanchejs/-/avalanchejs-4.2.0.tgz#b0ec42b93ce3083b09a79588839954355203b8e8"
-  integrity sha512-ETbedWx17becwZu2limnVm54uFpqYrsOTh0XiCrAMjoULRPI9C6L3Ui2M1C3QLhQL2Z8B6qBBHKQYCviqGk4rA==
+"@avalabs/avalanchejs@^5.0.0":
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/@avalabs/avalanchejs/-/avalanchejs-5.0.0.tgz#be076fc4654fa136ffaecf6470fa340ef066f0d5"
+  integrity sha512-0hJK/Hdf8v+q05c8+5K6arFmzq7o1W4I05/Dmr+Es1XRi8canvTu1Y0RruYd6ea2rrvX3UhKrPs3BzLhCTHDrw==
   dependencies:
     "@noble/curves" "1.3.0"
     "@noble/hashes" "1.3.3"
@@ -2302,10 +2302,10 @@ lru-cache@^6.0.0:
   dependencies:
     yallist "^4.0.0"
 
-lucide-react@^0.475.0:
-  version "0.475.0"
-  resolved "https://registry.yarnpkg.com/lucide-react/-/lucide-react-0.475.0.tgz#4b7b62c024f153ee4b52a6a0f33f9e72f07156f0"
-  integrity sha512-NJzvVu1HwFVeZ+Gwq2q00KygM1aBhy/ZrhY9FsAgJtpB+E4R7uxRk9M2iKvHa6/vNxZydIB59htha4c2vvwvVg==
+lucide-react@^0.483.0:
+  version "0.483.0"
+  resolved "https://registry.yarnpkg.com/lucide-react/-/lucide-react-0.483.0.tgz#036c538173a8c310ac6b7d6af150543e5ecdf116"
+  integrity sha512-WldsY17Qb/T3VZdMnVQ9C3DDIP7h1ViDTHVdVGnLZcvHNg30zH/MTQ04RTORjexoGmpsXroiQXZ4QyR0kBy0FA==
 
 magic-string@^0.30.17:
   version "0.30.17"
