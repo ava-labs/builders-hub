@@ -84,12 +84,12 @@ export const AuthOptions: NextAuthOptions = {
 
         if (!result.isValid) {
           if (result.reason === "EXPIRED") {
-            throw new Error("Expired");
+            throw new Error("EXPIRED");
           } else if (
             result.reason === "NOT_FOUND" ||
             result.reason === "INVALID"
           ) {
-            throw new Error("Invalid OTP Code");
+            throw new Error("INVALID");
           } else {
             throw new Error("Error verifying OTP Code");
           }
