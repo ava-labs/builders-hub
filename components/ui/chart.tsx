@@ -42,8 +42,9 @@ function ChartContainer({
   ...props
 }: React.ComponentProps<"div"> & {
   config: ChartConfig
-  // @ts-ignore - Recharts ResponsiveContainer children type issue
-  children: React.ReactNode
+  children: React.ComponentProps<
+    typeof RechartsPrimitive.ResponsiveContainer
+  >["children"]
 }) {
   const uniqueId = React.useId()
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`
@@ -60,9 +61,7 @@ function ChartContainer({
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
-        {/* @ts-ignore - Workaround for Recharts ResponsiveContainer type issue */}
-        <RechartsPrimitive.ResponsiveContainer width="100%" height="100%">
-          {/* @ts-ignore - Children type incompatibility */}
+        <RechartsPrimitive.ResponsiveContainer>
           {children}
         </RechartsPrimitive.ResponsiveContainer>
       </div>
@@ -105,23 +104,28 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip
 
-// @ts-ignore - Recharts typing compatibility issue
-function ChartTooltipContent(props: any) {
-  const {
-    active,
-    payload,
-    className,
-    indicator = "dot",
-    hideLabel = false,
-    hideIndicator = false,
-    label,
-    labelFormatter,
-    labelClassName,
-    formatter,
-    color,
-    nameKey,
-    labelKey,
-  } = props;
+function ChartTooltipContent({
+  active,
+  payload,
+  className,
+  indicator = "dot",
+  hideLabel = false,
+  hideIndicator = false,
+  label,
+  labelFormatter,
+  labelClassName,
+  formatter,
+  color,
+  nameKey,
+  labelKey,
+}: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
+  React.ComponentProps<"div"> & {
+    hideLabel?: boolean
+    hideIndicator?: boolean
+    indicator?: "line" | "dot" | "dashed"
+    nameKey?: string
+    labelKey?: string
+  }) {
   const { config } = useChart()
 
   const tooltipLabel = React.useMemo(() => {
@@ -175,7 +179,6 @@ function ChartTooltipContent(props: any) {
     >
       {!nestLabel ? tooltipLabel : null}
       <div className="grid gap-1.5">
-        {/* @ts-ignore */}
         {payload.map((item, index) => {
           const key = `${nameKey || item.name || item.dataKey || "value"}`
           const itemConfig = getPayloadConfigFromPayload(config, item, key)
