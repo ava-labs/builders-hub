@@ -25,7 +25,7 @@ export default function BlockVote({ project }: Props) {
           </p>
         </div>
       </div>
-      <p className="text-zinc-50">{project.description}</p>
+      <p className="text-zinc-50">{project.shortDescription}</p>
       <div className="flex gap-2">
         {project.tracks.map((track) => (
           <Badge

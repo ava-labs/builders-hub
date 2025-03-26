@@ -4,6 +4,9 @@ import BlockVote from "./sections/BlockVote";
 import { Project } from "@/types/showcase";
 import Gallery from "./sections/Gallery";
 import Prices from "./sections/Prices";
+import Description from "./sections/Description";
+import TeamMembers from "./sections/TeamMembers";
+import Resources from "./sections/Resources";
 
 const project: Project = {
   id: "1",
@@ -40,6 +43,40 @@ const project: Project = {
       icon: "",
       title: "$15,000",
       description: "Total award for this project",
+    },
+  ],
+  members: [
+    {
+      imgUrl: "/temp/andrea-vargas.jpg",
+      name: "John Doe",
+      role: "Lead Developer",
+    },
+    {
+      imgUrl: "/temp/andrea-vargas.jpg",
+      name: "John Doe",
+      role: "Lead Developer",
+    },
+    {
+      imgUrl: "/temp/andrea-vargas.jpg",
+      name: "John Doe",
+      role: "Lead Developer",
+    },
+  ],
+  resources: [
+    {
+      icon: "rss",
+      title: "Website",
+      link: "linksito",
+    },
+    {
+      icon: "rss",
+      title: "Website",
+      link: "linksito",
+    },
+    {
+      icon: "rss",
+      title: "Website",
+      link: "linksito",
     },
   ],
 };
@@ -80,6 +117,11 @@ export default function ProjectOverview() {
             </video>
           )}
           {project.prices && <Prices prices={project.prices} />}
+          {project.description && (
+            <Description description={project.description} />
+          )}
+          {project.members && <TeamMembers members={project.members} />}
+          {project.resources && <Resources resources={project.resources} />}
         </div>
       </div>
     </div>

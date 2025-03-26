@@ -13,6 +13,8 @@ export type Project = {
   tracks: string[];
   gallery: string[]
   prices: ProjectPrice[]
+  members: ProjectMember[]
+  resources: ProjectResource[]
 };
 
 export type ProjectEvent = {
@@ -25,4 +27,16 @@ export type ProjectPrice = {
   icon: string
   title: string
   description: string
+}
+
+export type ProjectMember = {
+  imgUrl: string
+  name: string
+  role: string
+}
+
+export type ProjectResource = {
+  icon: string
+  title: string
+  link: string
 }
