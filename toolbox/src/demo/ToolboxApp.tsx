@@ -7,7 +7,7 @@ import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
 type ComponentType = {
     id: string;
     label: string;
-    component: React.LazyExoticComponent<React.ComponentType>;
+    component: React.LazyExoticComponent<() => ReactElement>;
     fileNames: string[];
     skipWalletConnection?: boolean;
 }
@@ -172,10 +172,46 @@ const componentGroups: Record<string, ComponentType[]> = {
     ],
     "Precompiles": [
         {
+            id: "allowList",
+            label: "Allow List",
+            component: lazy(() => import('./examples/Precompiles/AllowList')),
+            fileNames: ["toolbox/src/demo/examples/Precompiles/AllowList.tsx"]
+        },
+        {
             id: "nativeMinter",
             label: "Native Minter",
             component: lazy(() => import('./examples/Precompiles/NativeMinter')),
             fileNames: ["toolbox/src/demo/examples/Precompiles/NativeMinter.tsx"]
+        },
+        {
+            id: "feeManager",
+            label: "Fee Manager",
+            component: lazy(() => import('./examples/Precompiles/FeeManager')),
+            fileNames: ["toolbox/src/demo/examples/Precompiles/FeeManager.tsx"]
+        },
+        {
+            id: "rewardManager",
+            label: "Reward Manager",
+            component: lazy(() => import('./examples/Precompiles/RewardManager')),
+            fileNames: ["toolbox/src/demo/examples/Precompiles/RewardManager.tsx"]
+        },
+        {
+            id: "warpMessenger",
+            label: "Warp Messenger",
+            component: lazy(() => import('./examples/Precompiles/WarpMessenger')),
+            fileNames: ["toolbox/src/demo/examples/Precompiles/WarpMessenger.tsx"]
+        },
+        {
+            id: "transactionAllowlist",
+            label: "Transaction Allowlist",
+            component: lazy(() => import('./examples/Precompiles/TransactionAllowlist')),
+            fileNames: ["toolbox/src/demo/examples/Precompiles/TransactionAllowlist.tsx"]
+        },
+        {
+            id: "deployerAllowlist",
+            label: "Deployer Allowlist",
+            component: lazy(() => import('./examples/Precompiles/DeployerAllowlist')),
+            fileNames: ["toolbox/src/demo/examples/Precompiles/DeployerAllowlist.tsx"]
         }
     ]
 };
