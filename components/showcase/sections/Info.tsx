@@ -6,12 +6,12 @@ import { MapPin, Trophy } from "lucide-react";
 type Props = {
   project: Project;
 };
-export default function BlockVote({ project }: Props) {
+export default function Info({ project }: Props) {
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
       <div className="flex flex-col sm:flex-row justify-between">
         <div className="flex items-center gap-3 md:gap-6">
-          <h1 className="text-3xl md:text-5xl font-bold md:font-extrabold">BlockVote</h1>
+          <h1 className="text-3xl md:text-5xl font-bold md:font-extrabold">{project.name}</h1>
           {project.isWinner && (
             <div className="p-2 bg-red-500 rounded-full">
               <Trophy size={30} color="white" className="w-6 h-6 md:w-8 md:h-8" />

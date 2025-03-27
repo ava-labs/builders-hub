@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Separator } from "../ui/separator";
-import BlockVote from "./sections/BlockVote";
+import Info from "./sections/Info";
 import { Project } from "@/types/showcase";
 import Gallery from "./sections/Gallery";
 import Prices from "./sections/Prices";
@@ -102,7 +102,7 @@ export default function ProjectOverview() {
           />
         </div>
         <div className="mt-12 sm:mt-20 md:mt-40 flex flex-col gap-16">
-          <BlockVote project={project} />
+          <Info project={project} />
           {project.gallery && <Gallery projectGallery={project.gallery} />}
           {project.videoUrl && (
             <video

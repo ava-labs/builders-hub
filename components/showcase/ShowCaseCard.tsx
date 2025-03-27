@@ -121,7 +121,7 @@ export default function ShowCaseCard() {
     [...Array(20)].flatMap(() => projects).length / recordsByPage
   );
   return (
-    <Card className="bg-zinc-950 relative border boder-zinc-800 p-8">
+    <Card className="bg-zinc-950 relative border boder-zinc-800 p-4 sm:p-8">
       <h2 className="text-2xl text-zinc-50">Showcase</h2>
       <p className="text-zinc-400">
         Discover innovative projects built during our hackathons. Filter by
@@ -181,11 +181,11 @@ export default function ShowCaseCard() {
           found
         </h1>
         <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800 h-[2px]" />
-        <div className="grid grid-cols-1 gap-y-8 gap-x-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid justify-center grid-cols-1 gap-y-8 gap-x-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(20)]
             .flatMap(() => projects)
             .map((project, index) => (
-              <Link href={`/showcase/${project.id}`} key={index}>
+              <Link key={index} href={`/showcase/${project.id}`} className="flex justify-center">
                 <ProjectCard project={project} />
               </Link>
             ))}
