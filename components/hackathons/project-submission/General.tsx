@@ -70,8 +70,15 @@ export default function GeneralComponent() {
   const handleStepChange = (newStep: number) => {
     if (newStep >= 1 && newStep <= 3) {
       setStep(newStep);
+    
+      if(newStep===2) setProgress(70)
+      if(newStep===3) setProgress(100)
+      if(newStep===1) setProgress(40)
     }
   };
+
+  
+
   const onNextStep = async () => {
     let fieldsToValidate: (keyof SubmissionForm)[] = [];
     // if (step === 1) {

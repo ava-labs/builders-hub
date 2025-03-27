@@ -20,10 +20,7 @@ export const FormLabelWithCheck: FC<FormLabelWithCheckProps> = ({
       <Checkbox
         checked={checked}
         className={cn(
-            // Otras clases que quieras conservar:
-       
             "pointer-events-none opacity-100 border dark:border-white mr-2 rounded-md", 
-            // Aquí tu override final:
             "dark:data-[state=checked]:bg-white data-[state=checked]:bg-white",
                 "[&_[data-slot='checkbox-indicator']_svg]:stroke-black"
           )}

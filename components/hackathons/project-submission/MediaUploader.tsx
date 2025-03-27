@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ImageIcon, BadgeAlert } from "lucide-react";
 import { SubmissionForm } from "./General";
+import { Card } from "@/components/ui/card";
 
 type MediaUploaderProps = {
   name: keyof SubmissionForm;
@@ -223,36 +224,30 @@ export default function MediaUploader({
 
             {/* Dialogs */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-              <DialogContent className="bg-zinc-900 border border-red-500 max-w-md w-full px-4">
-                <DialogHeader className="flex flex-col items-center">
-                  <DialogTitle className="text-red-400 text-lg font-semibold">
+              <DialogContent className="bg-zinc-900 border border-zinc-400 max-w-md w-full px-4">
+                <DialogHeader className="flex flex-col ">
+                  <DialogTitle className="text-white text-lg pb-3">
                     Delete Image
                   </DialogTitle>
-                  <div className="mt-4">
-                    <BadgeAlert className="w-12 h-12 text-red-500" />
-                  </div>
                 </DialogHeader>
-                <div className="text-center">
-                  <DialogDescription className="text-red-200 text-sm">
+                <Card
+  className="border border-red-500 w-[95%] sm:w-[85%] md:w-full h-auto max-h-[190px]
+  rounded-md p-4 sm:p-6 gap-4 bg-zinc-800 text-white mx-auto
+  flex flex-col items-center justify-center text-center"
+                >
+                  <BadgeAlert className="w-9 h-9" color="rgb(239 68 68)" />
+                  <DialogDescription className="text-red-500 text-md">
                     Are you sure you want to delete this image?
                   </DialogDescription>
-                </div>
-                <DialogFooter className="mt-6 flex justify-end gap-3">
                   <Button
-                    variant="outline"
-                    onClick={() => setDeleteDialogOpen(false)}
-                    className="text-white border-white hover:bg-zinc-800"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="destructive"
+                  
                     onClick={confirmDelete}
-                    className="bg-red-600 hover:bg-red-700 text-white"
+                    className=" bg-white hover:bg-zinc-400 text-black w-full max-w-[73px] "
                   >
                     Delete
                   </Button>
-                </DialogFooter>
+                </Card>
+           
               </DialogContent>
             </Dialog>
 
