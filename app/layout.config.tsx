@@ -32,7 +32,7 @@ import Preview9000 from '@/public/nav-banner/9000-logo.png';
 import CoursePreview from '@/public/nav-banner/course-preview.png';
 import CodebaseBanner from '@/public/nav-banner/codebase-banner.png';
 import SummitLondonBanner from '@/public/nav-banner/avalanche_summit_london.png';
-import HackathonLondonBanner from '@/public/nav-banner/hackathon_luma.png';
+import HackathonsBanner from '@/public/nav-banner/hackathons-banner.png';
 import Team1Banner from '@/public/nav-banner/local_events_team1.jpg';
 import L1LauncherPreview from '@/public/nav-banner/l1-launcher-preview.png';
 import { SiGithub } from '@icons-pack/react-simple-icons';
@@ -416,7 +416,7 @@ export const eventsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={HackathonLondonBanner}
+              src={HackathonsBanner}
               alt='Preview'
               className='rounded-t-lg object-cover'
               style={{
@@ -428,9 +428,9 @@ export const eventsMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Ticket />,
-      text: 'Summit Hackathon London',
+      text: 'Join our Hackathons',
       description:
-        'This hackathon aims to harness the potential of Avalanche’s robust technology stack to address pressing issues and create scalable, practical solutions.',
+        'The hackathons aims to harness the potential of Avalanche’s robust technology stack to address pressing issues and create scalable, practical solutions.',
       url: '/hackathons',
     },
     {
@@ -499,5 +499,7 @@ export const baseOptions: BaseLayoutProps = {
     integrationsMenu,
     // hackathons,
     userMenu,
+    // hackathons,
+    //userMenu,
   ],
 };

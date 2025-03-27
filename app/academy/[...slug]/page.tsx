@@ -90,7 +90,7 @@ export default async function Page(props: {
       <Feedback
         path={path}
         title={page.data.title}
-        pagePath={`/docs/${page.slugs.join('/')}`}
+        pagePath={`/academy/${page.slugs.join('/')}`}
         onRateAction={async (url, feedback) => {
           'use server';
           await posthog.capture('on_rate_document', feedback);

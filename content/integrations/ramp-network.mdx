@@ -1,0 +1,130 @@
+---
+title: Ramp Network
+category: Fiat On-Ramp
+available: ["C-Chain", "All EVM L1s"]
+description: Ramp Network is a global provider of fiat-to-crypto on-ramp and off-ramp infrastructure, enabling users to purchase and sell cryptocurrencies directly within applications.
+logo: /images/ramp-network.png
+developer: Ramp Network
+website: https://ramp.network/
+documentation: https://docs.ramp.network/
+---
+
+## Overview
+
+Ramp Network is a leading fiat-to-crypto infrastructure provider that enables users to purchase and sell cryptocurrencies directly within blockchain applications. With a focus on regulatory compliance and user experience, Ramp offers a seamless on-ramp and off-ramp solution that can be integrated into any application with minimal developer effort. Ramp supports multiple payment methods across 150+ countries and provides a customizable widget that can be tailored to match your application's design.
+
+## Features
+
+- **Global Coverage**: Available in 150+ countries with localized payment methods and support for multiple currencies.
+- **Diverse Payment Options**: Bank transfers, credit/debit cards, Apple Pay, Google Pay, and region-specific payment methods.
+- **Full Off-Ramp Solution**: Complete selling experience allowing users to convert crypto back to fiat with direct bank deposits.
+- **Customizable Widget**: White-labeled solution that can be styled to match your application's branding.
+- **Low Integration Effort**: Simple SDK integration requiring just a few lines of code.
+- **Multi-Platform Support**: Web SDK, React SDK, and mobile SDKs for iOS and Android.
+- **Robust Compliance**: Built-in KYC and AML processes that meet regulatory requirements across jurisdictions.
+- **Competitive Fees**: Transparent fee structure with some of the lowest rates in the industry.
+- **Advanced Developer Tools**: Webhooks, callbacks, and detailed documentation for seamless integration.
+- **Advanced Purchase Flows**: Support for automatic purchases and recurring purchases.
+
+## Getting Started
+
+To integrate Ramp into your application:
+
+1. **Create an Account**: Register on the [Ramp Developer Dashboard](https://dashboard.ramp.network) to get your API key.
+
+2. **Install the SDK**: For web applications, add the Ramp SDK to your project:
+   ```bash
+   npm install @ramp-network/ramp-instant-sdk
+   ```
+
+3. **Initialize the On-Ramp Widget**: Implement the widget in your application:
+   ```javascript
+   import { RampInstantSDK } from '@ramp-network/ramp-instant-sdk';
+   
+   const ramp = new RampInstantSDK({
+     hostAppName: 'Your App Name',
+     hostLogoUrl: 'https://yourdomain.com/logo.png',
+     swapAsset: 'AVAX',
+     swapAmount: '100000000000000000', // Optional, in wei
+     userAddress: '0x...', // User's wallet address
+     hostApiKey: 'YOUR_API_KEY',
+     variant: 'auto', // or 'desktop', 'mobile', 'embedded'
+     webhookStatusUrl: 'https://your-webhook-endpoint.com', // Optional
+     defaultFlow: 'ONRAMP', // or 'OFFRAMP'
+   });
+   
+   ramp.show();
+   ```
+
+4. **Implement Off-Ramp** (if needed):
+   ```javascript
+   import { RampInstantSDK } from '@ramp-network/ramp-instant-sdk';
+   
+   const ramp = new RampInstantSDK({
+     hostAppName: 'Your App Name',
+     hostLogoUrl: 'https://yourdomain.com/logo.png',
+     swapAsset: 'AVAX',
+     userAddress: '0x...', // User's wallet address
+     hostApiKey: 'YOUR_API_KEY',
+     variant: 'auto',
+     defaultFlow: 'OFFRAMP',
+   });
+   
+   ramp.show();
+   ```
+
+5. **Handle Events**: Listen for purchase events:
+   ```javascript
+   ramp.on('PURCHASE_CREATED', (event) => {
+     console.log(`User started purchase: ${event.purchase.id}`);
+   });
+   
+   ramp.on('PURCHASE_SUCCESSFUL', (event) => {
+     console.log(`Purchase successful: ${event.purchase.id}`);
+   });
+   
+   ramp.on('WIDGET_CLOSE', () => {
+     console.log('Widget closed');
+   });
+   ```
+
+6. **Test in Sandbox**: Use the sandbox environment to test your integration before going live:
+   ```javascript
+   const ramp = new RampInstantSDK({
+     // ...your configuration
+     url: 'https://ri-widget-staging.firebaseapp.com/', // Use staging environment
+   });
+   ```
+
+## Documentation
+
+For comprehensive integration guides, API references, and webhook setup, visit the [Ramp Documentation](https://docs.ramp.network/).
+
+## Use Cases
+
+Ramp can enhance various blockchain applications:
+
+**Crypto Wallets**: Enable users to purchase crypto directly within your wallet application and cash out to their bank accounts.
+
+**DeFi Platforms**: Provide a seamless entry and exit point for users to acquire and liquidate tokens needed for DeFi protocols.
+
+**NFT Marketplaces**: Allow direct purchase of NFTs with fiat, simplifying the user journey.
+
+**Blockchain Games**: Let players purchase in-game tokens or assets without needing to understand crypto exchanges.
+
+**Enterprise Solutions**: Offer a compliant on/off-ramp solution for corporate blockchain applications.
+
+## Pricing
+
+Ramp operates on a transaction fee model:
+
+- **Standard Fee Range**: 0.49% to 2.9% per transaction, depending on payment method and region
+- **Volume Discounts**: Available for applications with high transaction volumes
+- **Revenue Sharing**: Partnership opportunities for qualified integrators
+- **No Monthly Fees**: Pay only for processed transactions
+
+For specific pricing details and potential custom arrangements, contact Ramp's sales team.
+
+## Conclusion
+
+Ramp Network provides a comprehensive fiat-to-crypto infrastructure solution that can significantly enhance user experience in blockchain applications. By handling the complex compliance, payment processing, and liquidity management, Ramp allows developers to focus on their core product while providing users with a seamless way to enter and exit the crypto ecosystem. With its competitive fees, extensive global coverage, and flexible integration options, Ramp is an ideal solution for any project looking to reduce friction in user onboarding and provide a complete crypto experience. 

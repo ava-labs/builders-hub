@@ -3,7 +3,9 @@ title: AllowList Interface
 description: The AllowList interface is used by many default precompiles to permission access to the features they provide.
 ---
 
-The AllowList is a security feature used by precompiles to manage which addresses have permission to interact with certain contract functionalities. In the case of the Native Minter Precompile, the allow list is used to control who can mint new native tokens.
+## Overview
+
+The AllowList is a security feature used by precompiles to manage which addresses have permission to interact with certain contract functionalities. For example, in the Native Minter Precompile, the allow list is used to control who can mint new native tokens.
 
 The AllowList consists of three roles:
 - **Admin**: Full control over the allow list, including the ability to add or remove Admins, Managers, and Enabled addresses.
@@ -11,3 +13,45 @@ The AllowList consists of three roles:
 - **Enabled**: These addresses can use the precompiled contract (e.g., mint native tokens) but cannot modify the allow list.
 
 The allow list provides a granular way to assign permissions, ensuring that only authorized addresses can mint native tokens or manage the minting process.
+
+## Interface
+
+The AllowList interface is defined as follows:
+
+```solidity
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+interface IAllowList {
+  event RoleSet(uint256 indexed role, address indexed account, address indexed sender, uint256 oldRole);
+
+  // Set [addr] to have the admin role over the precompile contract.
+  function setAdmin(address addr) external;
+
+  // Set [addr] to be enabled on the precompile contract.
+  function setEnabled(address addr) external;
+
+  // Set [addr] to have the manager role over the precompile contract.
+  function setManager(address addr) external;
+
+  // Set [addr] to have no role for the precompile contract.
+  function setNone(address addr) external;
+
+  // Read the status of [addr].
+  function readAllowList(address addr) external view returns (uint256 role);
+}
+```
+
+## Implementation
+
+The AllowList interface is implemented by multiple precompiles in the Subnet-EVM. You can find the core implementation in the [subnet-evm repository](https://github.com/ava-labs/subnet-evm/blob/master/precompile/allowlist/allowlist.go).
+
+## Precompiles Using AllowList
+
+Several precompiles in Subnet-EVM use the AllowList interface:
+
+- [Native Minter](/docs/virtual-machines/default-precompiles/nativeminter)
+- [Fee Manager](/docs/virtual-machines/default-precompiles/feemanager)  
+- [Reward Manager](/docs/virtual-machines/default-precompiles/rewardmanager)
+- Contract Deployer Allow List (at address `0x0200000000000000000000000000000000000000`)
+- Transaction Allow List (at address `0x0200000000000000000000000000000000000002`)

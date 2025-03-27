@@ -83,7 +83,7 @@ export default async function Page(props: {
                 <Feedback
                     path={path}
                     title={page.data.title}
-                    pagePath={`/docs/${page.slugs.join('/')}`}
+                    pagePath={`/guides/${page.slugs.join('/')}`}
                     onRateAction={async (url, feedback) => {
                     'use server';
                     await posthog.capture('on_rate_document', feedback);
@@ -154,7 +154,7 @@ export async function generateMetadata(props: {
 
   const image = {
     alt: 'Banner',
-    url: `/api/og/docs/${params.slug[0]}?${imageParams.toString()}`,
+    url: `/api/og/guides/${params.slug[0]}?${imageParams.toString()}`,
     width: 1200,
     height: 630,
   };
@@ -163,7 +163,7 @@ export async function generateMetadata(props: {
     title: page.data.title,
     description,
     openGraph: {
-      url: `/docs/${page.slugs.join('/')}`,
+      url: `/guides/${page.slugs.join('/')}`,
       images: image,
     },
     twitter: {
