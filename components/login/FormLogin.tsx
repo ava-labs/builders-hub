@@ -109,8 +109,8 @@ function Formlogin({ callbackUrl = '/' }: { callbackUrl?: string }) {
                       </div>
                       <Button
                         type='submit'
-                        variant='destructive'
-                        className='w-full bg-red-500 p-2 rounded'
+                          variant={'red'}
+                        className='w-full p-2 rounded'
                       >
                         {isLoading ? 'Sending...' : 'SEND VERIFICATION CODE'}
                       </Button>
