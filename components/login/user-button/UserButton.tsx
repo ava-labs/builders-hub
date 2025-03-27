@@ -18,23 +18,45 @@ export function UserButton() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isAuthenticated = status === "authenticated";
   const handleSignOut = (): void => {
-    signOut(); 
+    signOut();
   };
   return (
     <>
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        {isAuthenticated && session?.user?.image ? (
-          <Button variant="ghost" size="icon" className="rounded-full h-5 w-5">
-            <Image
-              src={session.user.image}
-              alt="User Avatar"
-              width={20}
-              height={20}
-              className="rounded-full"
-            />
-          </Button>
-        ) : (
+      {isAuthenticated && session?.user?.image ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-5 w-5"
+            >
+              <Image
+                src={session.user.image}
+                alt="User Avatar"
+                width={20}
+                height={20}
+                className="rounded-full"
+              />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="bg-white text-black dark:bg-zinc-900 dark:text-white
+    border border-zinc-200 dark:border-zinc-600
+    shadow-lg p-1 rounded-md w-48">
+            {isAuthenticated ? (
+              <>
+                <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
+                  Sign Out
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem>
+                <Link href="/login">Sign In</Link>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <Link href="/login">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -55,29 +77,14 @@ export function UserButton() {
             <circle cx="12" cy="10" r="4"></circle>
             <circle className="!text-zinc-800 " cx="12" cy="12" r="10"></circle>
           </svg>
-        )}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="bg-black border-zinc-600 text-white shadow-lg p-1 rounded-md w-48">
-        {isAuthenticated ? (
-          <>
-  
-            <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
-            Sign Out
-            </DropdownMenuItem>
-          </>
-        ) : (
-          <DropdownMenuItem>
-            <Link href="/login">Sign In</Link>
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </Link>
+      )}
 
-<SignOutComponent
-isOpen={isDialogOpen}
-onOpenChange={setIsDialogOpen}
-onConfirm={handleSignOut}
-/>
-</>
+      <SignOutComponent
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onConfirm={handleSignOut}
+      />
+    </>
   );
 }
