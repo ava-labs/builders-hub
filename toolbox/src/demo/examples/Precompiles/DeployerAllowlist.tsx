@@ -1,27 +1,32 @@
 import { RequireChainFuji } from "../../ui/RequireChain";
-import { useDeployerAllowList } from '@avalabs/builderkit';
 import { WagmiProvider, createConfig } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { avalancheFuji } from 'viem/chains';
 import { http } from 'viem';
 import { AllowListControls } from "../../components/AllowListComponents";
+import { Container } from "../../../components/container";
 
-// Deployer Allowlist precompile address
-const DEPLOYER_ALLOWLIST_ADDRESS = "0x0200000000000000000000000000000000000002";
+// Deployer AllowList precompile address
+const DEPLOYER_ALLOWLIST_ADDRESS = "0x0200000000000000000000000000000000000000";
 
 // Create a component that doesn't include the providers
-function DeployerAllowlistComponent() {
+function DeployerAllowListComponent() {
     return (
         <RequireChainFuji>
             <div className="space-y-6">
-                <AllowListControls precompileAddress={DEPLOYER_ALLOWLIST_ADDRESS} />
+                <Container
+                    title="Deployer AllowList Controls"
+                    description="Manage which addresses are allowed to deploy contracts on this chain."
+                >
+                    <AllowListControls precompileAddress={DEPLOYER_ALLOWLIST_ADDRESS} />
+                </Container>
             </div>
         </RequireChainFuji>
     );
 }
 
 // Create a wrapper component with the providers
-export default function DeployerAllowlist() {
+export default function DeployerAllowList() {
     // Create Wagmi config
     const config = createConfig({
         chains: [avalancheFuji],
@@ -36,7 +41,7 @@ export default function DeployerAllowlist() {
     return (
         <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>
-                <DeployerAllowlistComponent />
+                <DeployerAllowListComponent />
             </QueryClientProvider>
         </WagmiProvider>
     );

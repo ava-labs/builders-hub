@@ -1,27 +1,32 @@
 import { RequireChainFuji } from "../../ui/RequireChain";
-import { useTransactionAllowList } from '@avalabs/builderkit';
 import { WagmiProvider, createConfig } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { avalancheFuji } from 'viem/chains';
 import { http } from 'viem';
 import { AllowListControls } from "../../components/AllowListComponents";
+import { Container } from "../../../components/container";
 
-// Transaction Allowlist precompile address
-const TRANSACTION_ALLOWLIST_ADDRESS = "0x0200000000000000000000000000000000000003";
+// Transaction AllowList precompile address
+const TRANSACTION_ALLOWLIST_ADDRESS = "0x0200000000000000000000000000000000000002";
 
 // Create a component that doesn't include the providers
-function TransactionAllowlistComponent() {
+function TransactionAllowListComponent() {
     return (
         <RequireChainFuji>
             <div className="space-y-6">
-                <AllowListControls precompileAddress={TRANSACTION_ALLOWLIST_ADDRESS} />
+                <Container
+                    title="Transaction AllowList Controls"
+                    description="Manage which addresses are allowed to send transactions on this chain."
+                >
+                    <AllowListControls precompileAddress={TRANSACTION_ALLOWLIST_ADDRESS} />
+                </Container>
             </div>
         </RequireChainFuji>
     );
 }
 
 // Create a wrapper component with the providers
-export default function TransactionAllowlist() {
+export default function TransactionAllowList() {
     // Create Wagmi config
     const config = createConfig({
         chains: [avalancheFuji],
@@ -36,7 +41,7 @@ export default function TransactionAllowlist() {
     return (
         <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>
-                <TransactionAllowlistComponent />
+                <TransactionAllowListComponent />
             </QueryClientProvider>
         </WagmiProvider>
     );
