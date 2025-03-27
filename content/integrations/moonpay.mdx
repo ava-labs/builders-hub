@@ -1,0 +1,167 @@
+---
+title: MoonPay
+category: Fiat On-Ramp
+available: ["C-Chain", "All EVM L1s"]
+description: MoonPay is a financial technology company that provides payment infrastructure for cryptocurrencies, enabling easy fiat-to-crypto on-ramp and off-ramp solutions.
+logo: /images/moonpay.png
+developer: MoonPay
+website: https://www.moonpay.com/
+documentation: https://dev.moonpay.com/docs/on-ramp-overview
+---
+
+## Overview
+
+MoonPay is a global payment infrastructure that enables seamless cryptocurrency purchases using traditional payment methods. It provides a comprehensive fiat-to-crypto and crypto-to-fiat solution that can be integrated into any application, allowing users to buy cryptocurrencies with credit cards, debit cards, bank transfers, Apple Pay, Google Pay, and other local payment methods. MoonPay handles the entire payment process, including compliance, fraud prevention, and liquidity, making it easy for developers to offer a smooth crypto experience to their users.
+
+## Features
+
+- **Global Reach**: Available in 160+ countries with support for 80+ fiat currencies.
+- **Extensive Crypto Support**: Support for 100+ cryptocurrencies, including custom tokens for L1 networks.
+- **Multiple Payment Methods**: Credit/debit cards, bank transfers, Apple Pay, Google Pay, and region-specific payment options.
+- **Complete On/Off-Ramp Solution**: Both buy (on-ramp) and sell (off-ramp) functionality to create a full-circle user experience.
+- **Crypto Swaps**: Allow users to exchange one cryptocurrency for another with competitive rates.
+- **Customizable Widget**: White-label solution that can be styled to match your application's branding.
+- **NFT Checkout**: Direct purchase of NFTs with fiat currencies.
+- **Advanced Compliance**: Built-in KYC and AML processes with multiple verification levels.
+- **Fraud Prevention**: Sophisticated risk management system to prevent fraudulent transactions.
+- **Multi-Platform SDK Support**: Native SDKs for web, iOS, Android, and React Native applications.
+- **Enterprise-Grade Security**: SOC 2 Type 2 certified infrastructure with the highest security standards.
+
+## Getting Started
+
+To integrate MoonPay into your application:
+
+1. **Register for an Account**: Sign up on the [MoonPay Developer Dashboard](https://dashboard.moonpay.com/) to get your API credentials.
+
+2. **Choose Integration Method**: MoonPay offers several integration options:
+
+   - **Widget Integration**: The simplest approach, using a pre-built widget:
+     ```javascript
+     const moonpayUrl = new URL('https://buy.moonpay.com');
+     moonpayUrl.searchParams.append('apiKey', 'YOUR_API_KEY');
+     moonpayUrl.searchParams.append('currencyCode', 'avax');
+     moonpayUrl.searchParams.append('walletAddress', userWalletAddress);
+     
+     window.open(moonpayUrl.href, '_blank');
+     ```
+
+   - **Web SDK Integration**: For more control and a seamless experience:
+     ```bash
+     npm install @moonpay/moonpay-web-sdk
+     ```
+     
+     ```javascript
+     import { MoonPayWebSdk } from '@moonpay/moonpay-web-sdk';
+     
+     const moonpay = new MoonPayWebSdk({
+       flow: 'buy',
+       environment: 'production', // or 'sandbox' for testing
+       variant: 'overlay', // or 'embedded'
+       params: {
+         apiKey: 'YOUR_API_KEY',
+         currencyCode: 'avax',
+         walletAddress: userWalletAddress,
+         baseCurrencyCode: 'usd',
+         baseCurrencyAmount: 100,
+         externalTransactionId: 'YOUR_TRANSACTION_ID', // Optional 
+         theme: 'light', // or 'dark'
+         showWalletAddressForm: true,
+         lockAmount: false
+       }
+     });
+     
+     // Open the widget
+     moonpay.show();
+     
+     // Listen to events
+     moonpay.on('onClose', () => {
+       console.log('Widget closed');
+     });
+     
+     moonpay.on('onTransactionSuccess', (data) => {
+       console.log('Transaction created:', data);
+     });
+     ```
+
+   - **React SDK**:
+     ```bash
+     npm install @moonpay/moonpay-react-sdk
+     ```
+     
+     ```jsx
+     import { MoonPayProvider, useMoonPaySdk } from '@moonpay/moonpay-react-sdk';
+     
+     function BuyButton() {
+       const { showWidget } = useMoonPaySdk();
+       
+       const handleClick = () => {
+         showWidget({
+           flow: 'buy',
+           params: {
+             apiKey: 'YOUR_API_KEY',
+             currencyCode: 'avax',
+             walletAddress: userWalletAddress
+           }
+         });
+       };
+       
+       return <button onClick={handleClick}>Buy AVAX</button>;
+     }
+     
+     function App() {
+       return (
+         <MoonPayProvider>
+           <BuyButton />
+         </MoonPayProvider>
+       );
+     }
+     ```
+
+3. **Implement Webhooks**: Set up webhooks to receive transaction status updates:
+   ```javascript
+   // Example server-side webhook handler (Express.js)
+   app.post('/moonpay-webhook', (req, res) => {
+     const event = req.body;
+     
+     if (event.type === 'transaction_complete') {
+       // Handle completed transaction
+     }
+     
+     res.sendStatus(200);
+   });
+   ```
+
+4. **Test in Sandbox**: Use the sandbox environment to test your integration before going live.
+
+## Documentation
+
+For comprehensive integration guides, API references, and webhooks setup, visit the [MoonPay Developer Documentation](https://dev.moonpay.com/docs/on-ramp-overview).
+
+## Use Cases
+
+MoonPay can enhance various blockchain applications:
+
+**Cryptocurrency Wallets**: Enable direct crypto purchases within your wallet application.
+
+**NFT Marketplaces**: Allow users to purchase NFTs directly with credit cards and other payment methods.
+
+**DeFi Platforms**: Provide a seamless on-ramp for users to acquire tokens needed for DeFi services.
+
+**Web3 Applications**: Reduce friction in user onboarding by integrating a native fiat entry point.
+
+**Blockchain Games**: Enable players to purchase in-game assets without navigating external exchanges.
+
+## Pricing
+
+MoonPay operates on a transaction fee model:
+
+- **Fee Range**: Typically 1% to 4.5% per transaction, depending on payment method and region
+- **Custom Fee Structure**: Enterprise solutions with customizable fee arrangements
+- **White-Label Solutions**: Premium pricing for fully branded solutions
+- **Volume Discounts**: Available for high-volume partners
+
+For detailed pricing information and enterprise solutions, contact MoonPay's sales team.
+
+## Conclusion
+
+MoonPay provides a robust and comprehensive fiat-to-crypto infrastructure that can significantly enhance the user experience in blockchain applications. By handling the complex aspects of payment processing, compliance, and liquidity, MoonPay allows developers to focus on their core product while providing users with a seamless way to enter and exit the crypto ecosystem. With its global reach, extensive payment options, and customizable integration, MoonPay is an ideal solution for any blockchain project looking to reduce friction in the user onboarding process. 

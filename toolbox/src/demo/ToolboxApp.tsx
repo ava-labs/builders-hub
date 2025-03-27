@@ -1,6 +1,6 @@
-import { Button, GithubEmbed, ConnectWallet } from "./ui";
+import { Button, GithubLink, ConnectWallet } from "./ui";
 import { ErrorBoundary } from "react-error-boundary";
-import { useExampleStore } from './utils/store';
+import { useToolboxStore } from './utils/store';
 import { RefreshCw } from 'lucide-react';
 import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
 
@@ -15,16 +15,32 @@ type ComponentType = {
 const componentGroups: Record<string, ComponentType[]> = {
     "Wallet": [
         {
-            id: 'getPChainAddress',
-            label: "Get P-chain Address",
-            component: lazy(() => import('./examples/Wallet/GetPChainAddress')),
-            fileNames: ["toolbox/src/demo/examples/Wallet/pChainAddrFromPubKey.ts", "toolbox/src/demo/examples/Wallet/GetPChainAddress.tsx"]
-        },
-        {
             id: 'switchChain',
             label: "Switch Chain",
             component: lazy(() => import('./examples/Wallet/SwitchChain')),
             fileNames: ["toolbox/src/demo/examples/Wallet/SwitchChain.tsx"]
+        },
+        {
+            id: 'addL1s',
+            label: "Add L1s",
+            component: lazy(() => import('./examples/Wallet/AddL1s')),
+            fileNames: []
+        }
+    ],
+    'Conversion': [
+        {
+            id: 'formatConverter',
+            label: "Format Converter",
+            component: lazy(() => import('./examples/Conversion/FormatConverter')),
+            fileNames: [],
+            skipWalletConnection: true,
+        },
+        {
+            id: 'unitConverter',
+            label: "Unit Converter",
+            component: lazy(() => import('./examples/Conversion/UnitConverter')),
+            fileNames: [],
+            skipWalletConnection: true,
         }
     ],
     'Create an L1': [
@@ -73,16 +89,16 @@ const componentGroups: Record<string, ComponentType[]> = {
             fileNames: ["toolbox/src/demo/examples/ValidatorManager/DeployValidatorManager.tsx"]
         },
         {
-            id: "readContract",
-            label: "Read Contract",
-            component: lazy(() => import('./examples/ValidatorManager/ReadContract')),
-            fileNames: ["toolbox/src/demo/examples/ValidatorManager/ReadContract.tsx"]
-        },
-        {
             id: "upgradeProxy",
             label: "Upgrade Proxy",
             component: lazy(() => import('./examples/ValidatorManager/UpgradeProxy')),
             fileNames: ["toolbox/src/demo/examples/ValidatorManager/UpgradeProxy.tsx"]
+        },
+        {
+            id: "readContract",
+            label: "Read Contract",
+            component: lazy(() => import('./examples/ValidatorManager/ReadContract')),
+            fileNames: ["toolbox/src/demo/examples/ValidatorManager/ReadContract.tsx"]
         }
     ],
     "Initialize ValidatorManager": [
@@ -159,16 +175,7 @@ const componentGroups: Record<string, ComponentType[]> = {
                 "toolbox/contracts/example-contracts/contracts/senderOnCChain.sol",
             ]
         }
-    ],
-    "Docs": [
-        {
-            id: 'createL1Guide',
-            label: "Create L1",
-            component: lazy(() => import('./examples/Docs/CreateL1')),
-            fileNames: [],
-            skipWalletConnection: true,
-        }
-    ],
+    ]
 };
 
 const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) => {
@@ -244,15 +251,14 @@ export default function ToolboxApp() {
                             <Component />
                         </Suspense>
                     </div>
-                    <div className="overflow-x-hidden">
+                    <div className="mt-4 space-y-1 border-t pt-3">
                         {comp.fileNames.map((fileName, index) => (
-                            <GithubEmbed
+                            <GithubLink
                                 key={index}
                                 user="ava-labs"
                                 repo="builders-hub"
                                 branch={import.meta.env?.VITE_GIT_BRANCH_NAME || "master"}
                                 filePath={fileName}
-                                maxHeight={600}
                             />
                         ))}
                     </div>
@@ -291,7 +297,7 @@ export default function ToolboxApp() {
                     <Button
                         onClick={() => {
                             if (window.confirm("Are you sure you want to reset the state?")) {
-                                useExampleStore.getState().reset();
+                                useToolboxStore.getState().reset();
                             }
                         }}
                         className="w-full"

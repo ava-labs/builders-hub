@@ -7,26 +7,36 @@ icon: Terminal
 ---
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-
 We will deploy two Avalanche Interchain Token Transfer contracts. One of the source chain (which is C-chain in our case) and another on the destination chain (myblockchain in our case).
 
 <Steps>
 <Step>
-
 ### Deploy ERC20Home Contract
 
 ```bash
-forge create --rpc-url local-c --private-key $PK lib/avalanche-interchain-token-transfer/contracts/src/TokenHome/ERC20TokenHome.sol:ERC20TokenHome --constructor-args $TELEPORTER_REGISTRY_C_CHAIN $FUNDED_ADDRESS $ERC20_C_CHAIN 18 --broadcast
+forge create --rpc-url local-c --private-key $PK lib/avalanche-interchain-token-transfer/contracts/src/TokenHome/ERC20TokenHome.sol:ERC20TokenHome --optimize --optimizer-runs 200 --broadcast --constructor-args $TELEPORTER_REGISTRY_C_CHAIN $FUNDED_ADDRESS $ERC20_C_CHAIN 18
 ```
-
-</Step>
-<Step>
-
-### Save the ERC-20 Home Address
 
 ```bash
-export ERC20_HOME_C_CHAIN=<"Deployed to" address>
+[⠊] Compiling...
+[⠆] Compiling 4 files with Solc 0.8.18
+[⠰] Solc 0.8.18 finished in 1.25s
+Compiler run successful!
+Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+Deployed to: 0x789a5FDac2b37FCD290fb2924382297A6AE65860
+Transaction hash: 0x5818b2b6870c0f88555a885f61cd077799e17c139f97ac6c23195d79204f0b51
 ```
+</Step>
 
+<Step>
+### Save the ERC-20 Home Address
+
+<Callout title="Note" type="info">
+The address `0x789a5FDac2b37FCD290fb2924382297A6AE65860` is your receiver contract address.
+</Callout>
+
+```bash
+export ERC20_HOME_C_CHAIN=0x...
+```
 </Step>
 </Steps>

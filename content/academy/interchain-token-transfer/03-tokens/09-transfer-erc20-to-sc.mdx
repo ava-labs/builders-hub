@@ -48,15 +48,25 @@ Copy this code into a new file `src/my-contracts/TokenReceiver.sol`
 Let's deploy this ERC20receiver contract
 
 ```bash
-forge create --rpc-url myblockchain --private-key $PK src/my-contracts/TokenReceiver.sol:TokenReceiver --constructor-args $ERC20_CONTRACT_L1 --broadcast
+forge create --rpc-url myblockchain --private-key $PK src/my-contracts/TokenReceiver.sol:TokenReceiver --broadcast --constructor-args $ERC20_CONTRACT_L1 
 ```
 
+```
+[⠊] Compiling...
+No files changed, compilation skipped
+Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+Deployed to: 0x4Ac1d98D9cEF99EC6546dEd4Bd550b0b287aaD6D
+Transaction hash: 0x31b45c9df0a823254fd51863e217801da809cc77915a7b2901ea348c74aa0cfe
+```
 </Step>
 <Step>
 
 ### Save Receiver Address
+<Callout title="Note" type="info">
+The address `0x4Ac1d98D9cEF99EC6546dEd4Bd550b0b287aaD6D` is your receiver contract address.
+</Callout>
 
-```
+```bash
 export ERC20_RECEIVER_L1=0x...
 ```
 

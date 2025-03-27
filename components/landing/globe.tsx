@@ -10,7 +10,7 @@ import * as AvatarPrimitive from "@radix-ui/react-avatar";
 export const Sponsors = () => {
 	return (
 		<div className="mt-20 flex flex-col justify-center gap-y-10 w-full ">
-			<div className="relative flex h-[700px] w-full flex-col items-center justify-center overflow-hidden bg-background">
+			<div className="relative flex h-[700px] w-full flex-col items-center justify-center overflow-hidden">
 				<TooltipProvider delayDuration={100}>
 					<Tooltip>
 						<TooltipTrigger className="z-50 m-0 p-0">

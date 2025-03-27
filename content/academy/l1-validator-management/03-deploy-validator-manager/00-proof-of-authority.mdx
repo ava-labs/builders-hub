@@ -1,0 +1,261 @@
+---
+title: Proof of Authority
+description: Learn about Proof of Authority on an Avalanche L1.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: ShieldUser
+---
+
+Proof of Authority (PoA) is a consensus mechanism that relies on a set of approved validators to create blocks and validate transactions. On an Avalanche L1, this consensus model is managed through the ValidatorManager smart contract, providing a centralized but efficient governance structure for new L1 deployments.
+
+## The ValidatorManager Contract
+
+The ValidatorManager contract serves as the central authority for controlling validator operations in a PoA system. This contract implements the ACP99Manager abstract contract and handles all aspects of validator management including:
+
+- Adding new validators to the network
+- Removing validators from the network
+- Updating validator weights
+- Managing the validator set composition
+- Controlling validator churn rate
+
+### Admin Control
+
+The controller of the ValidatorManager contract is the admin address. Only the admin address can add, remove, and update weights from the validator set.
+
+Because ValidatorManager is a Solidity contract, any type of address can be set as the admin address. This means that the admin address can be a multisig address, a timelock address, a [validator multisig](https://github.com/ava-labs/icm-contracts/tree/main/contracts/governance) or a simple externally owned account (EOA).
+
+<Callout type="info">
+    `ValidatorManager` can later be converted to Proof of Stake by transferring the ownership to a `StakingManager` contract.
+</Callout>
+
+### Ownership Transfer
+
+The ValidatorManager inherits from Open Zeppelin's OwnableUpgradeable contract, so the admin address can be changed by the current owner using the transferOwnership function. This allows for flexibility in governance models over time.
+
+```solidity
+function transferOwnership(address newOwner) public virtual onlyOwner {
+    require(newOwner != address(0), "Ownable: new owner is the zero address");
+    _transferOwnership(newOwner);
+}
+```
+
+### Initialization and Configuration
+
+The ValidatorManager contract is initialized with specific settings that define how the PoA system will operate:
+
+```solidity
+struct ValidatorManagerSettings {
+    address admin;
+    bytes32 subnetID;
+    uint64 churnPeriodSeconds;
+    uint8 maximumChurnPercentage;
+}
+```
+
+These parameters determine:
+
+- The admin address with control privileges
+- The subnetID of the L1 being managed
+- The churn period duration in seconds
+- The maximum percentage of total weight that can be changed in a single churn period
+
+## Validator Management
+
+### Adding Validators
+
+New validators are added to the network through a two-step process:
+
+1. **Initiation**: The admin calls `initiateValidatorRegistration()` with the validator's nodeID, BLS public key, weight, and other parameters.
+2. **Completion**: After the P-Chain acknowledges the registration, the admin calls `completeValidatorRegistration()` to finalize the addition.
+
+```solidity
+function initiateValidatorRegistration(
+    bytes memory nodeID,
+    bytes memory blsPublicKey,
+    uint64 registrationExpiry,
+    PChainOwner memory remainingBalanceOwner,
+    PChainOwner memory disableOwner,
+    uint64 weight
+) public onlyOwner returns (bytes32)
+```
+
+### Removing Validators
+
+Similar to addition, removing validators follows a two-step process:
+
+1. **Initiation**: The admin calls `initiateValidatorRemoval()` with the validation ID.
+2. **Completion**: After the P-Chain acknowledges the removal, the admin calls `completeValidatorRemoval()` to finalize the removal.
+
+```solidity
+function initiateValidatorRemoval(
+    bytes32 validationID
+) public onlyOwner
+```
+
+### Updating Validator Weights
+
+The admin can modify a validator's weight, which affects their influence in the consensus process:
+
+```solidity
+function initiateValidatorWeightUpdate(
+    bytes32 validationID,
+    uint64 newWeight
+) public onlyOwner returns (uint64, bytes32)
+```
+
+## Churn Rate Control
+
+The ValidatorManager implements a churn control mechanism to prevent rapid changes to the validator set, which could potentially destabilize the network:
+
+```solidity
+struct ValidatorChurnPeriod {
+    uint256 startTime;
+    uint64 initialWeight;
+    uint64 totalWeight;
+    uint64 churnAmount;
+}
+```
+
+The contract enforces:
+
+- A maximum percentage of total weight that can be changed within a churn period
+- A minimum total weight to ensure network security
+- Tracking of cumulative weight changes within each period
+
+This mechanism is implemented in the `_checkAndUpdateChurnTracker` function:
+
+```solidity
+function _checkAndUpdateChurnTracker(
+    uint64 newValidatorWeight,
+    uint64 oldValidatorWeight
+) private {
+    // ... implementation details
+    if ($._maximumChurnPercentage * churnTracker.initialWeight < churnTracker.churnAmount * 100) {
+        revert MaxChurnRateExceeded(churnTracker.churnAmount);
+    }
+    // ... more implementation details
+}
+```
+
+## Warp Messages and P-Chain Integration
+
+The ValidatorManager contract communicates with the P-Chain through the [Warp Messaging system](/academy/interchain-messaging). This enables cross-chain communication for validator operations:
+
+```solidity
+IWarpMessenger public constant WARP_MESSENGER =
+    IWarpMessenger(0x0200000000000000000000000000000000000005);
+```
+
+The P-Chain will accept signed warp messages emitted by the ValidatorManager contract for operations such as:
+
+- `RegisterL1ValidatorMessage`: Register a new validator
+- `L1ValidatorWeightMessage`: Update a validator's weight
+
+### Signature Aggregation
+
+The ValidatorManager contract relies on signature aggregation for completing validator operations. This process involves several steps:
+
+#### Signature Aggregation Services
+
+- **ICM Services**: The [icm-services signature aggregation service](https://github.com/ava-labs/icm-services/tree/main/signature-aggregator)
+- **Data API**: The AvaCloud [Data API](https://developers.avacloud.io/data-api/signature-aggregator/aggregate-signatures)
+
+#### Process for Completing Validator Operations
+
+1. **Initial Transaction**: The process begins when `initiateValidatorRegistration` or `initiateValidatorRemoval` is called
+2. **P-Chain Response**: The P-Chain 'emits' (we must reconstruct the expected message) either:
+   - A `L1ValidatorRegistrationMessage` (for registration)
+   - A `L1ValidatorWeightMessage` (for removal)
+3. **Signature Request**: We pass this Warp message to the signature aggregation service
+4. **Signed Message**: The service returns a signed message
+5. **Completion Transaction**: We include this signed message in the [access list](https://eips.ethereum.org/EIPS/eip-2930) when calling:
+   - `completeValidatorRegistration` 
+   - `completeValidatorRemoval`
+
+#### Justification Parameter
+
+When signing P-Chain Warp messages, the `justification` parameter must always be the original unsigned Warp message emitted by the ValidatorManager contract's `initiateValidatorRegistration` call (the `RegisterL1ValidatorMessage`).
+
+<Callout type="info">
+    Learn more about [ACP-77](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/README.md) and [ACP-99](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/99-validatorsetmanager-contract)
+</Callout>
+
+## Validator States
+
+Validators in the system can exist in several states, tracked via the ValidatorStatus enum:
+
+- **Unknown**: Default state for non-existent validators
+- **PendingAdded**: Validator registration has been initiated but not yet confirmed
+- **Active**: Validator is currently active in the consensus
+- **PendingRemoved**: Validator removal has been initiated but not yet confirmed
+- **Completed**: Validator has been successfully removed
+- **Invalidated**: Validator registration was never completed
+
+```solidity
+struct Validator {
+    ValidatorStatus status;
+    bytes nodeID;
+    uint64 startingWeight;
+    uint64 sentNonce;
+    uint64 receivedNonce;
+    uint64 weight;
+    uint64 startTime;
+    uint64 endTime;
+}
+```
+
+## Initial Validator Set
+
+When an L1 is first converted from a subnet, an initial set of validators must be established. This is handled through the `initializeValidatorSet` function:
+
+```solidity
+function initializeValidatorSet(
+    ConversionData calldata conversionData,
+    uint32 messageIndex
+) public virtual override
+```
+
+This function:
+
+- Validates the conversion data via signed warp message in access list
+- Registers the initial validators
+- Sets up the initial total weight
+- Enables the validator management functionality
+
+## Security Considerations
+
+When using a PoA consensus model on an Avalanche L1, several security considerations should be addressed:
+
+- **Admin Key Management**: Ensure robust security practices for the admin key(s)
+- **Multisig Deployment**: Consider using a multisig wallet as the admin to prevent single points of failure
+- **Churn Rate Limits**: The contract enforces maximum churn percentages (up to 20%) to prevent rapid validator set changes
+- **Validation Checks**: Multiple validation checks are implemented to ensure proper operation:
+  - NodeID length and format validation
+  - BLS public key validation
+  - Weight constraints and calculations
+  - P-Chain owner address validation
+
+## Events
+
+The ValidatorManager contract emits several events to track changes to the validator set:
+
+- **RegisteredInitialValidator**: Emitted when an initial validator is registered
+- **InitiatedValidatorRegistration**: Emitted when a new validator registration is initiated
+- **CompletedValidatorRegistration**: Emitted when a validator registration is completed
+- **InitiatedValidatorWeightUpdate**: Emitted when a validator weight update is initiated
+- **CompletedValidatorWeightUpdate**: Emitted when a validator weight update is completed
+- **InitiatedValidatorRemoval**: Emitted when a validator removal is initiated
+- **CompletedValidatorRemoval**: Emitted when a validator removal is completed
+
+These events can be monitored by network participants to stay informed about changes to the validator set.
+
+## Transitioning to Proof of Stake
+
+As mentioned, the ValidatorManager can be transitioned to a Proof of Stake model by transferring ownership to a StakingManager contract. This process involves:
+
+1. Deploying the StakingManager contract
+2. Configuring staking parameters
+3. Transferring ownership from the current admin to the StakingManager using the transferOwnership function
+4. Initiating the transition period
+
+This allows a network to start with the simplicity of PoA and graduate to a more decentralized PoS system as the network matures.

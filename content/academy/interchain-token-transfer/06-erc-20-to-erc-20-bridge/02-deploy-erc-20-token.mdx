@@ -19,25 +19,35 @@ To transfer an ERC20 token from C-chain to your own blockchain, the first thing 
 forge create --rpc-url local-c --private-key $PK contracts/interchain-token-transfer/MyToken.sol:TOK --broadcast
 ```
 
+```bash 
+[⠊] Compiling...
+[⠰] Compiling 4 files with Solc 0.8.18
+[⠔] Solc 0.8.18 finished in 316.86ms
+Compiler run successful!
+Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+Deployed to: 0x5DB9A7629912EBF95876228C24A848de0bfB43A9
+Transaction hash: 0xc6e90bccc21e68edc5707159e636f91245576379329da3f513822fb32bd2bc89
+```
 </Step>
-<Step>
 
+<Step>
 ### Save the ERC-20 Address 
+<Callout title="Note" type="info">
+The address `0x5DB9A7629912EBF95876228C24A848de0bfB43A9` is your receiver contract address.
+</Callout>
 
 ```bash
-export ERC20_C_CHAIN=<"Deployed to" address>
+export ERC20_C_CHAIN=0x...
 ```
-
 </Step>
-<Step>
 
+<Step>
 ### Check the Balance
 
 If you deployed the above example contract, you should see a balance of 100,000 tokens when you run the below command:
 
 ```bash
-cast call --rpc-url local-c --private-key $PK $ERC20_C_CHAIN "balanceOf(address)(uint)" $FUNDED_ADDRESS
+cast call --rpc-url local-c $ERC20_C_CHAIN "balanceOf(address)(uint256)" $FUNDED_ADDRESS
 ```
-
 </Step>
 </Steps>
