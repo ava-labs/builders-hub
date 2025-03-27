@@ -12,6 +12,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { FormLabelWithCheck } from "./FormLabelWithCheck";
+
 
 export default function SubmitStep2() {
   const form = useFormContext(); // Asume que el padre provee <FormProvider>
@@ -19,44 +21,35 @@ export default function SubmitStep2() {
     <div className="space-y-8">
       {/* Sección: Technical Details */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-foreground">Technical Details</h2>
+        <h2 className="text-xl font-semibold text-foreground">
+          Technical Details
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Explain how your project works under the hood: tech stack, integrations, and architecture.
+          Explain how your project works under the hood: tech stack,
+          integrations, and architecture.
         </p>
 
         {/* Campo: How It's Made */}
         <FormField
           control={form.control}
-          name="howItIsMade"
+          name="tech_stack"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>How it's made</FormLabel>
+              <FormLabelWithCheck
+                label="How it's made"
+                checked={!!field.value}
+              />
               <FormControl>
                 <Textarea
-                  placeholder="Describe the core architecture, main components, or any 'hacky' parts worth highlighting."
-                  className="bg-[#2c2c2c] text-white"
+                  placeholder="Describe the tech stack, APIs, and integrations used."
+                  className=" h-[180px] resize-none text-zinc-400 dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Campo: Tech Stack */}
-        <FormField
-          control={form.control}
-          name="techStack"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tech Stack / APIs / Integrations</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="List out any frameworks, libraries, or services you used."
-                  className="bg-[#2c2c2c] text-white"
-                  {...field}
-                />
-              </FormControl>
+              <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
+                Mention any innovative solutions or "hacky" parts worth
+                highlighting.
+              </p>
               <FormMessage />
             </FormItem>
           )}
@@ -68,14 +61,20 @@ export default function SubmitStep2() {
           name="repoLink"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>GitHub Repository</FormLabel>
+              <FormLabelWithCheck
+                label="GitHub Repository"
+                checked={!!field.value}
+              />
               <FormControl>
                 <Input
                   placeholder="Paste GitHub link (e.g., https://github.com/user/repo)"
-                  className="bg-[#2c2c2c] text-white"
                   {...field}
+                  className="text-zinc-400 dark:bg-zinc-950"
                 />
               </FormControl>
+              <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
+                Must be a public repository. If design-only, link a Figma file.
+              </p>
               <FormMessage />
             </FormItem>
           )}
@@ -87,14 +86,17 @@ export default function SubmitStep2() {
           name="demoLink"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Demo Link</FormLabel>
+              <FormLabelWithCheck label="Demo Link" checked={!!field.value} />
               <FormControl>
                 <Input
                   placeholder="Paste Demo link (e.g., https://yoursite.com)"
-                  className="bg-[#2c2c2c] text-white"
+                  className="text-zinc-400 dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
+              <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
+                Provide a live demo or working prototype.
+              </p>
               <FormMessage />
             </FormItem>
           )}
@@ -103,10 +105,12 @@ export default function SubmitStep2() {
 
       {/* Sección: Project Continuity & Development */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-foreground">Project Continuity & Development</h2>
-        <p className="text-sm text-muted-foreground">
-          Indicate if your project builds upon a pre-existing idea and clarify your contributions
-          during the hackathon.
+        <h2 className="text-xl font-semibold text-foreground">
+          Project Continuity & Development
+        </h2>
+        <p className="text-sm text-muted-foreground pt-0 mt-0">
+          Indicate if your project builds upon a pre-existing idea and clarify
+          your contributions during the hackathon.
         </p>
 
         {/* Toggle: isPreExisting */}
@@ -114,33 +118,25 @@ export default function SubmitStep2() {
           control={form.control}
           name="isPreExisting"
           render={({ field }) => (
-            <FormItem className="flex items-center justify-between p-4 bg-[#2c2c2c] rounded">
+            <FormItem className="flex items-center justify-between p-4 border rounded">
               <div className="space-y-1">
-                <FormLabel className="text-white">Is this project based on a pre-existing idea?</FormLabel>
-                <p className="text-sm text-gray-400">
-                  If yes, describe how you extended or changed it.
+                <FormLabel className="text-white">
+                  Is this project based on a pre-existing idea?
+                </FormLabel>
+                <p className="text-sm text-zinc-400 whitespace-pre-line italic">
+                  If your project is built upon an existing idea, you must
+                  disclose which components were developed specifically during
+                  the      {"\n"}
+                  hackathon.      {"\n"}
+          
                 </p>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        {/* Toggle: isOpenSource (ejemplo) */}
-        <FormField
-          control={form.control}
-          name="isOpenSource"
-          render={({ field }) => (
-            <FormItem className="flex items-center justify-between p-4 bg-[#2c2c2c] rounded">
-              <div className="space-y-1">
-                <FormLabel className="text-white">Is this project open source?</FormLabel>
-                <p className="text-sm text-gray-400">
-                  Make code publicly available under an open source license.
+                <p className="text-sm text-zinc-400 whitespace-pre-line ">
+            
+                   Judges may not have enough time to fully verify
+                  the implementation during evaluation, but prize distribution
+                  may be
+                  {"\n"}
+                   subject to further review.
                 </p>
               </div>
               <FormControl>
@@ -162,11 +158,17 @@ export default function SubmitStep2() {
               <FormLabel>Explain what was built during the hackathon</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Provide a detailed breakdown of new features, improvements, or modifications..."
-                  className="bg-[#2c2c2c] text-white h-24"
+                  placeholder="Provide a detailed breakdown of the new features, functionalities, or improvements developed during this event."
+                  className=" h-15 resize-none text-zinc-400 placeholder-zinc-400 dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
+              <p className="text-zinc-400 text-sm  tracking-[0%] font-aeonik whitespace-pre-line">
+                Clearly specify what was created during the hackathon.{"\n"}
+                Differentiate between pre-existing work and new contributions.
+                {"\n"}
+                Mention any significant modifications or optimizations.
+              </p>
               <FormMessage />
             </FormItem>
           )}

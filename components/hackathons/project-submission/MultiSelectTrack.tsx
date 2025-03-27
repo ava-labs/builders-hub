@@ -50,7 +50,7 @@ export function MultiSelectTrack({ value, onChange }: MultiSelectTrackProps) {
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="w-full justify-between bg-[#2c2c2c] text-white"
+          className="w-full justify-between text-zinc-400"
         >
           {value.length > 0
             ? value
@@ -62,9 +62,9 @@ export function MultiSelectTrack({ value, onChange }: MultiSelectTrackProps) {
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-full p-0 bg-zinc-950 text-white"
+        className="w-full p-0 "
       >
-        <Command className="bg-zinc-950">
+        <Command className="dark:bg-zinc-950 ">
           {/* Mostrar los ítems seleccionados encima del buscador */}
           {value.length > 0 && (
             <div className="px-2 py-1 border-b border-zinc-800 ">
@@ -113,7 +113,7 @@ export function MultiSelectTrack({ value, onChange }: MultiSelectTrackProps) {
                     "border rounded-md",
                     value.includes(track.value)
                       ? "bg-zinc-50 "
-                      : "bg-zinc-800  border-zinc-50"
+                      : "dark:bg-zinc-800  dark:border-zinc-50"
                   )}
                   color={cn(
                     value.includes(track.value)?'black':'transparent'

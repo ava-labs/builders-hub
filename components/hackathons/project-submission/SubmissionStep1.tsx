@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/form";
 import { SubmissionForm } from "./General";
 import { MultiSelectTrack } from "./MultiSelectTrack";
+import { FormLabelWithCheck } from "./FormLabelWithCheck";
 
 interface TeamMember {
   name: string;
@@ -65,10 +66,10 @@ const SubmitStep1: FC = () => {
   ];
 
   return (
-    <div className="flex flex-col w-full text-white mt-6 space-y-8">
+    <div className="flex flex-col w-full  mt-6 space-y-8">
       {/* SECCIÓN GENERAL */}
       <section className="space-y-4">
-        <h3 className="font-medium text-white text-lg md:text-xl">
+        <h3 className="font-medium  text-lg md:text-xl">
           General Section
         </h3>
         <p className="text-sm text-muted-foreground">
@@ -81,11 +82,11 @@ const SubmitStep1: FC = () => {
           name="projectName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Project Name</FormLabel>
+               <FormLabelWithCheck label="Project Name" checked={!!field.value} />
               <FormControl>
                 <Input
                   placeholder="Enter your project name"
-                  className="bg-[#2c2c2c] text-white w-full"
+                  className="text-zinc-400 w-full dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
@@ -100,11 +101,12 @@ const SubmitStep1: FC = () => {
           name="shortDescription"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Short Description</FormLabel>
+           
+              <FormLabelWithCheck label="Short Description" checked={!!field.value} />
               <FormControl>
                 <Textarea
                   placeholder="Write a short and engaging overview..."
-                  className="bg-[#2c2c2c] text-white w-full"
+                  className="text-zinc-400 w-full dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
@@ -119,11 +121,11 @@ const SubmitStep1: FC = () => {
           name="fullDescription"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Full Description</FormLabel>
+              <FormLabelWithCheck label="Full Description" checked={!!field.value} />
               <FormControl>
                 <Textarea
                   placeholder="Describe your project in detail..."
-                  className="bg-[#2c2c2c] text-white h-24 w-full"
+                  className="text-zinc-400 h-24 w-full dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
@@ -138,7 +140,7 @@ const SubmitStep1: FC = () => {
           name="track"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Track</FormLabel>
+              <FormLabelWithCheck label="Tracks" checked={field.value.length>0} />
               <FormControl>
                 <MultiSelectTrack
                   value={field.value || []}
@@ -153,18 +155,18 @@ const SubmitStep1: FC = () => {
 
       {/* TEAM & COLLABORATION */}
       <section className="space-y-4">
-        <h3 className="font-medium text-white text-lg md:text-xl">
+        <h3 className="font-medium  text-lg md:text-xl">
           Team &amp; Collaboration
         </h3>
         {/* Campo de búsqueda */}
         <div className="relative w-full">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:bg-zinc-950"
             size={20}
           />
           <Input
-            placeholder="Search team member by email or name"
-            className="bg-[#2c2c2c] text-white w-full pl-10"
+            placeholder="Search team member by email or name "
+            className=" w-full pl-10 dark:bg-zinc-950"
           />
         </div>
 
@@ -179,20 +181,20 @@ const SubmitStep1: FC = () => {
         <div className="overflow-x-auto">
           <Table className="border border-[#333] w-full min-w-[500px]">
             <TableHeader>
-              <TableRow className="bg-[#2c2c2c]">
-                <TableHead className="text-white">Name</TableHead>
-                <TableHead className="text-white">Email</TableHead>
-                <TableHead className="text-white">Role</TableHead>
-                <TableHead className="text-white">Status</TableHead>
+              <TableRow>
+                <TableHead >Name</TableHead>
+                <TableHead >Email</TableHead>
+                <TableHead >Role</TableHead>
+                <TableHead >Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {teamMembers.map((member, index) => (
                 <TableRow key={index} className="hover:bg-[#2c2c2c]">
-                  <TableCell className="text-white">{member.name}</TableCell>
-                  <TableCell className="text-white">{member.email}</TableCell>
-                  <TableCell className="text-white">{member.role}</TableCell>
-                  <TableCell className="text-white">{member.status}</TableCell>
+                  <TableCell>{member.name}</TableCell>
+                  <TableCell >{member.email}</TableCell>
+                  <TableCell>{member.role}</TableCell>
+                  <TableCell >{member.status}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

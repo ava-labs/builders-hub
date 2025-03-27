@@ -34,6 +34,10 @@ export const FormSchema = z.object({
     .string()
     .max(280, { message: "Max 280 characters allowed" }),
   fullDescription: z.string().optional(),
+  tech: z.string().optional(),
+  how_made_it: z.string().optional(),
+  github_repository: z.string().optional(),
+  demo_link: z.string().optional(),
   logoFile: z.any().optional(),
   coverFile: z.any().optional(),
   screenshots: z.any().optional(),
@@ -120,7 +124,7 @@ export default function GeneralComponent() {
     }
   };
   return (
-    <div className="p-6 text-white rounded-lg">
+    <div className="p-6  rounded-lg">
       {/* Encabezado */}
       <div className="mb-4">
         <h2 className="text-xl font-semibold">Submit Your Project</h2>
@@ -148,7 +152,7 @@ export default function GeneralComponent() {
           variant="outline"
           className="flex items-center gap-2  border-red-500 px-3 py-1"
         >
-          <Hourglass size={16} />
+          <Hourglass size={16} color="#F5F5F9" />
           <span>Deadline: {timeLeft} remaining</span>
         </Badge>
       </div>
@@ -182,8 +186,8 @@ export default function GeneralComponent() {
                   <div className="flex flex-wrap gap-4 mb-4 md:mb-0">
                     <Button
                       type="submit"
-                      variant="destructive"
-                      className="dark:bg-red-500 px-4 py-2"
+                      variant="red"
+                      className="px-4 py-2"
                     >
                       Continue
                     </Button>
