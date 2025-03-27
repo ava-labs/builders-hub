@@ -36,7 +36,7 @@ const tracks = ["Track 1", "Track 2", "Track 3"];
 export const projects: Project[] = [
   {
     id: "1",
-    name: "BlockVote",
+    name: "BlockVote BlockVote BlockVote BlockVote BlockVote BlockVote BlockVote",
     isWinner: true,
     bannerUrl: "/temp/project-banner.png",
     logoUrl: "/temp/project-logo.png",
@@ -47,11 +47,11 @@ export const projects: Project[] = [
     liveDemoUrl: "dsads",
     sourceCodeUrl: "dsads",
     event: {
-      name: "Avalanche Summit",
-      location: "LATAM",
+      name: "Avalanche Summit tatata",
+      location: "LATAM AMERICA NORTE SUR CALLE OESTE AVENIDA ESTE",
       year: 2024,
     },
-    tracks: ["GAMING", "DEFI"],
+    tracks: ["GAMING", "DEFI", "GAMING", "DEFI", "GAMING", "DEFI", "GAMING", "DEFI", "GAMING", "DEFI", "GAMING", "DEFI"],
     gallery: ["GAMING", "DEFI"],
     members: [],
     prices: [],

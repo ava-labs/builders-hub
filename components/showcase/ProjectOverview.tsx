@@ -10,7 +10,7 @@ import Resources from "./sections/Resources";
 
 const project: Project = {
   id: "1",
-  name: "BlockVote",
+  name: "BlockVote BlockVote BlockVote BlockVote BlockVote BlockVote BlockVote",
   isWinner: true,
   bannerUrl: "/temp/project-banner.png",
   logoUrl: "/temp/project-logo.png",
@@ -22,12 +22,12 @@ const project: Project = {
   sourceCodeUrl: "dsads",
   videoUrl: "dsads",
   event: {
-    name: "Avalanche Summit",
-    location: "LATAM",
+    name: "Avalanche Summit tatata",
+    location: "LATAM AMERICA NORTE SUR CALLE OESTE AVENIDA ESTE",
     year: 2024,
   },
-  tracks: ["GAMING", "DEFI"],
-  gallery: ["/temp/project-overview-banner.png", "/temp/project-logo.png"],
+  tracks: ["GAMING", "DEFI", "GAMING", "DEFI", "GAMING", "DEFI", "GAMING", "DEFI", "GAMING", "DEFI", "GAMING", "DEFI"],
+  gallery: ["/temp/project-overview-banner.png", "/temp/project-logo.png", "/temp/project-overview-banner.png", "/temp/project-logo.png", "/temp/project-overview-banner.png", "/temp/project-logo.png"],
   prices: [
     {
       icon: "",
@@ -61,11 +61,26 @@ const project: Project = {
       name: "John Doe",
       role: "Lead Developer",
     },
+    {
+      imgUrl: "/temp/andrea-vargas.jpg",
+      name: "John Doe",
+      role: "Lead Developer",
+    },
+    {
+      imgUrl: "/temp/andrea-vargas.jpg",
+      name: "John Doe",
+      role: "Lead Developer",
+    },
+    {
+      imgUrl: "/temp/andrea-vargas.jpg",
+      name: "John Doe",
+      role: "Lead Developer",
+    },
   ],
   resources: [
     {
       icon: "rss",
-      title: "Website",
+      title: "Websitesdas dadas",
       link: "linksito",
     },
     {
@@ -101,7 +116,7 @@ export default function ProjectOverview() {
             className="absolute -bottom-6 sm:-bottom-20 lg:-bottom-32 left-4 sm:left-8 md:left-16 xl:left-24 w-12 h-12 sm:w-40 sm:h-40 lg:w-64 lg:h-64"
           />
         </div>
-        <div className="mt-12 sm:mt-20 md:mt-40 flex flex-col gap-16">
+        <div className="mt-12 sm:mt-28 md:mt-40 flex flex-col gap-16">
           <Info project={project} />
           {project.gallery && <Gallery projectGallery={project.gallery} />}
           {project.videoUrl && (
