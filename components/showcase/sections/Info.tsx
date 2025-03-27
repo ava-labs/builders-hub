@@ -19,19 +19,19 @@ export default function Info({ project }: Props) {
           )}
         </div>
         <div className="max-w-[60%] flex items-center gap-3 md:gap-6">
-          <MapPin size={18} color="#BFBFC7" className="min-w-5 w-5 h-5" />
-          <p className="text-xs text-zinc-300">
+          <MapPin size={18} className="min-w-5 w-5 h-5 !text-zinc-700 dark:!text-zinc-300" />
+          <p className="text-xs text-zinc-700 dark:text-zinc-300">
             {`${project.event.name} ${project.event.location} ${project.event.year}`}
           </p>
         </div>
       </div>
-      <p className="text-zinc-50">{project.shortDescription}</p>
+      <p className="text-zinc-900 dark:text-zinc-50">{project.shortDescription}</p>
       <div className="flex flex-wrap gap-2">
         {project.tracks.map((track) => (
           <Badge
             key={track}
             variant="outline"
-            className="border-2 border-zinc-50 flex justify-center"
+            className="border-2 border-zinc-900 dark:border-zinc-50 flex justify-center"
           >
             {track}
           </Badge>
@@ -44,7 +44,7 @@ export default function Info({ project }: Props) {
           </Button>
         )}
         {project.sourceCodeUrl && (
-          <Button variant="secondary" className="flex-1 md:flex-none bg-zinc-50 text-zinc-900">
+          <Button variant="secondary" className="flex-1 md:flex-none bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900">
             Source Code
           </Button>
         )}

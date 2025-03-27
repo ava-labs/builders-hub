@@ -24,7 +24,7 @@ export default function TeamMembers({ members }: Props) {
             />
             <div>
               <h3 className="text-center">{member.name}</h3>
-              <p className="text-sm text-zinc-300 text-center">{member.role}</p>
+              <p className="text-sm text-zinc-700 dark:text-zinc-300 text-center">{member.role}</p>
             </div>
           </div>
         ))}
