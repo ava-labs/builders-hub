@@ -7,7 +7,7 @@ type Props = {
 export default function Prices({ prices }: Props) {
   return (
     <div className="w-full h-[272px] bg-zinc-200 flex justify-center items-center">
-      <div className="w-[60%] xl:w-[55%] h-[176px] px-4 rounded-xl bg-zinc-700 flex items-center justify-center gap-2">
+      <div className="w-[80%] lg:w-[60%] xl:w-[55%] h-[176px] px-4 rounded-xl bg-zinc-700 flex items-center justify-center gap-2">
         {prices.map((price, index) => (
           <div
             key={index}

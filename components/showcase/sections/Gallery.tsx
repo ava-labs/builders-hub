@@ -17,7 +17,7 @@ export default function Gallery({ projectGallery }: Props) {
             alt={`Gallery Image ${index + 1}`}
             width={241}
             height={241}
-            className="rounded-md"
+            className="rounded-md w-[200px] h-[200px] lg:w-[241px] lg:h-[241px]"
           />
         ))}
       </div>
