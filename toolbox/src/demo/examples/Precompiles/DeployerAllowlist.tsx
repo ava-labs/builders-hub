@@ -1,4 +1,5 @@
 import { RequireChainFuji } from "../../ui/RequireChain";
+import { useDeployerAllowList } from '@avalabs/builderkit';
 import { WagmiProvider, createConfig } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { avalancheFuji } from 'viem/chains';

@@ -128,40 +128,40 @@ export function SetManagerComponent({ precompileAddress }: { precompileAddress: 
 }
 
 // Component for setting None permissions
-export function SetNoneComponent({ precompileAddress }: { precompileAddress: string }) {
-    const [isSettingNone, setIsSettingNone] = useState(false);
-    const [noneAddress, setNoneAddress] = useState<string>("");
+export function RemoveAllowListComponent({ precompileAddress }: { precompileAddress: string }) {
+    const [isRemoving, setIsRemoving] = useState(false);
+    const [removeAddress, setRemoveAddress] = useState<string>("");
     const { setNone } = useAllowList(precompileAddress);
 
-    const handleSetNone = async () => {
-        if (!noneAddress) return;
-        setIsSettingNone(true);
+    const handleRemove = async () => {
+        if (!removeAddress) return;
+        setIsRemoving(true);
         try {
-            await setNone(noneAddress);
+            await setNone(removeAddress);
         } catch (error) {
-            console.error('Setting none failed:', error);
+            console.error('Removing from allowlist failed:', error);
         } finally {
-            setIsSettingNone(false);
+            setIsRemoving(false);
         }
     };
 
     return (
         <Container
-            title="Set None"
+            title="Remove from Allowlist"
             description="Remove all permissions for an address."
         >
             <div className="space-y-4">
                 <EVMAddressInput
                     label="Address"
-                    value={noneAddress}
-                    onChange={setNoneAddress}
+                    value={removeAddress}
+                    onChange={setRemoveAddress}
                 />
                 <Button
-                    onClick={handleSetNone}
-                    loading={isSettingNone}
+                    onClick={handleRemove}
+                    loading={isRemoving}
                     variant="primary"
                 >
-                    Set None
+                    Remove Address
                 </Button>
             </div>
         </Container>
@@ -220,11 +220,11 @@ export function ReadAllowListComponent({ precompileAddress }: { precompileAddres
 export function AllowListControls({ precompileAddress }: { precompileAddress: string }) {
     return (
         <div className="space-y-6">
-            <SetAdminComponent precompileAddress={precompileAddress} />
             <SetEnabledComponent precompileAddress={precompileAddress} />
             <SetManagerComponent precompileAddress={precompileAddress} />
-            <SetNoneComponent precompileAddress={precompileAddress} />
+            <SetAdminComponent precompileAddress={precompileAddress} />
             <ReadAllowListComponent precompileAddress={precompileAddress} />
+            <RemoveAllowListComponent precompileAddress={precompileAddress} />
         </div>
     );
 } 
