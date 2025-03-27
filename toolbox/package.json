@@ -29,6 +29,7 @@
     "@avalabs/avacloud-sdk": "^0.9.0",
     "@avalabs/avalanchejs": "^4.1.2-alpha.4",
     "@avalabs/builderkit": "0.0.2",
+    "@rainbow-me/rainbowkit": "^2.2.4",
     "@types/react-syntax-highlighter": "^15.5.13",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
@@ -41,8 +42,9 @@
     "react-syntax-highlighter": "^15.6.1",
     "recharts": "^2.15.1",
     "tailwind-merge": "^3.0.1",
-    "viem": "^2.23.0",
+    "viem": "^2.24.1",
     "vitest": "^3.0.5",
+    "wagmi": "^2.14.15",
     "zod": "^3.24.2",
     "zustand": "^5.0.3"
   },

@@ -6,8 +6,13 @@ import { Input } from "../../../components/input";
 import { Button } from "../../../components/button";
 import { useState } from "react";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
+import { WagmiProvider, createConfig } from 'wagmi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { avalancheFuji } from 'viem/chains';
+import { http } from 'viem';
 
-export default function NativeMinter() {
+// Create a NativeMinterComponent that doesn't include the providers
+function NativeMinterComponent() {
     const { walletEVMAddress } = useWalletStore();
     const [amount, setAmount] = useState<number>(100);
     const [isMinting, setIsMinting] = useState(false);
@@ -152,5 +157,27 @@ export default function NativeMinter() {
                 </Container>
             </div>
         </RequireChainFuji>
+    );
+}
+
+// Create a wrapper component with the providers
+export default function NativeMinter() {
+    // Create Wagmi config
+    const config = createConfig({
+        chains: [avalancheFuji],
+        transports: {
+            [avalancheFuji.id]: http(),
+        },
+    });
+
+    // Create query client
+    const queryClient = new QueryClient();
+
+    return (
+        <WagmiProvider config={config}>
+            <QueryClientProvider client={queryClient}>
+                <NativeMinterComponent />
+            </QueryClientProvider>
+        </WagmiProvider>
     );
 }
