@@ -13,7 +13,7 @@ type Props = {
 
 export function ProjectCard({ project }: Props) {
   return (
-    <Card className="h-[471px] w-[306px] md:w-full flex flex-col rounded-xl bg-zinc-900 border-none">
+    <Card className="h-[471px] w-[306px] flex flex-col rounded-xl bg-zinc-900 border-none">
       <div className="relative p-6 flex items-start justify-between">
         <h3 className="text-3xl font-medium">{project.name}</h3>
         {project.isWinner && (
