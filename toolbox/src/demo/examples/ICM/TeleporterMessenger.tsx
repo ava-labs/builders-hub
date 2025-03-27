@@ -4,12 +4,12 @@ import { useState, useEffect } from "react";
 import { useErrorBoundary } from "react-error-boundary";
 import { Button } from "../../ui";
 import { Success } from "../../ui/Success";
-import { createPublicClient, createWalletClient, custom, formatEther, parseEther } from 'viem';
-import { useExampleStore } from "../../utils/store";
+import { formatEther, parseEther } from 'viem';
+import { useViemChainStore, useWalletStore } from "../../utils/store";
 import TeleporterMessengerDeploymentTransaction from '../../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployment_Transaction_v1.0.0.txt.json';
 import TeleporterMessengerDeployerAddress from '../../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployer_Address_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '../../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
-import KnownChainIDWarning from "../../ui/KnownChainIDWarning";
+import { RequireChainL1 } from "../../ui/RequireChain";
 
 const MINIMUM_BALANCE = parseEther('11');
 
@@ -23,37 +23,16 @@ const TopUpComponent = ({
     const [amount, setAmount] = useState(formatEther(MINIMUM_BALANCE));
     const [isSending, setIsSending] = useState(false);
     const { showBoundary } = useErrorBoundary();
-    const { walletChainId } = useExampleStore();
+    const viemChain = useViemChainStore();
+    const { coreWalletClient, publicClient } = useWalletStore();
 
     const handleTopUp = async () => {
         setIsSending(true);
         try {
-            const walletClient = createWalletClient({
-                transport: custom(window.avalanche!),
-            });
-
-            const [address] = await walletClient.requestAddresses();
-
-            const hash = await walletClient.sendTransaction({
+            const hash = await coreWalletClient.sendTransaction({
                 to: deployerAddress as `0x${string}`,
                 value: parseEther(amount),
-                account: address,
-                chain: {
-                    id: walletChainId,
-                    name: "My L1",
-                    rpcUrls: {
-                        default: { http: [] },
-                    },
-                    nativeCurrency: {
-                        name: "COIN",
-                        symbol: "COIN",
-                        decimals: 18,
-                    },
-                },
-            });
-
-            const publicClient = createPublicClient({
-                transport: custom(window.avalanche!),
+                chain: viemChain
             });
 
             await publicClient.waitForTransactionReceipt({ hash });
@@ -91,7 +70,7 @@ const TopUpComponent = ({
 
 export default function TeleporterMessenger() {
     const { showBoundary } = useErrorBoundary();
-    const { walletChainId } = useExampleStore();
+    const { publicClient, coreWalletClient } = useWalletStore();
     const [isDeploying, setIsDeploying] = useState(false);
     const [deployerBalance, setDeployerBalance] = useState(BigInt(0));
     const [isCheckingBalance, setIsCheckingBalance] = useState(true);
@@ -104,10 +83,6 @@ export default function TeleporterMessenger() {
     const checkDeployerBalance = async () => {
         setIsCheckingBalance(true);
         try {
-            const publicClient = createPublicClient({
-                transport: custom(window.avalanche!),
-            });
-
             const balance = await publicClient.getBalance({
                 address: deployerAddress,
             });
@@ -134,16 +109,8 @@ export default function TeleporterMessenger() {
     const handleDeploy = async () => {
         setIsDeploying(true);
         try {
-            const publicClient = createPublicClient({
-                transport: custom(window.avalanche!),
-            });
-
-            const walletClient = createWalletClient({
-                transport: custom(window.avalanche!),
-            });
-
             // Send the raw presigned transaction
-            const hash = await walletClient.sendRawTransaction({
+            const hash = await coreWalletClient.sendRawTransaction({
                 serializedTransaction: TeleporterMessengerDeploymentTransaction.content as `0x${string}`,
             });
 
@@ -164,86 +131,88 @@ export default function TeleporterMessenger() {
     const hasEnoughBalance = deployerBalance >= MINIMUM_BALANCE;
 
     return (
-        <div className="space-y-6">
-            <h1 className="text-2xl font-bold">Deploy TeleporterMessenger Contract</h1>
-
-            <div>
-                <p className="mt-2">This tool deploys the TeleporterMessenger contract, which is the core contract that handles cross-subnet message sending and receiving. Please read more <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/teleporter/README.md" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">here</a>.</p>
-            </div>
-
-            <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <p className="font-semibold">Deployer Address:</p>
-                        <code className="block py-2 rounded text-sm break-all">
-                            {deployerAddress}
-                        </code>
-                        <div className="pb-2 text-xs">
-                            TeleporterMessenger_Deployer_Address_v1.0.0.txt.json
-                        </div>
-                    </div>
-                    <div>
-                        <p className="font-semibold">Expected Contract Address:</p>
-                        <code className="block py-2 rounded text-sm break-all">
-                            {expectedContractAddress}
-                        </code>
-                        <div className="pb-2 text-xs">
-                            TeleporterMessenger_Contract_Address_v1.0.0.txt.json
-                        </div>
-                    </div>
-                </div>
+        <RequireChainL1>
+            <div className="space-y-6">
+                <h1 className="text-2xl font-bold">Deploy TeleporterMessenger Contract</h1>
 
                 <div>
-                    <p className="font-semibold">Deployer Balance:</p>
-                    {isCheckingBalance ? (
-                        <p>Checking balance...</p>
-                    ) : (
-                        <p>{formatEther(deployerBalance)} coins {hasEnoughBalance ? '✅' : '❌'}</p>
-                    )}
-                    <div className="pb-2 text-xs">
-                        Should be at least {formatEther(MINIMUM_BALANCE)} native coins
-                    </div>
+                    <p className="mt-2">This tool deploys the TeleporterMessenger contract, which is the core contract that handles cross-subnet message sending and receiving. Please read more <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/teleporter/README.md" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">here</a>.</p>
                 </div>
 
-                {!hasEnoughBalance && !isDeployed && (
-                    <TopUpComponent
-                        deployerAddress={deployerAddress}
-                        onTopUp={checkDeployerBalance}
-                    />
-                )}
-
-                {isDeployed ? (
-                    <div className="py-4">
-                        <h3 className="font-semibold">Contract Already Deployed</h3>
-                        <p>The TeleporterMessenger contract is already deployed at the expected address.</p>
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <p className="font-semibold">Deployer Address:</p>
+                            <code className="block py-2 rounded text-sm break-all">
+                                {deployerAddress}
+                            </code>
+                            <div className="pb-2 text-xs">
+                                TeleporterMessenger_Deployer_Address_v1.0.0.txt.json
+                            </div>
+                        </div>
+                        <div>
+                            <p className="font-semibold">Expected Contract Address:</p>
+                            <code className="block py-2 rounded text-sm break-all">
+                                {expectedContractAddress}
+                            </code>
+                            <div className="pb-2 text-xs">
+                                TeleporterMessenger_Contract_Address_v1.0.0.txt.json
+                            </div>
+                        </div>
                     </div>
-                ) : (
-                    <Button
-                        type="primary"
-                        onClick={handleDeploy}
-                        loading={isDeploying}
-                        disabled={isDeploying || !hasEnoughBalance}
-                    >
-                        Deploy TeleporterMessenger
-                    </Button>
-                )}
 
-                {txHash && (
-                    <Success
-                        label="Transaction Hash"
-                        value={txHash}
-                    />
-                )}
+                    {!isDeployed &&
+                        <div>
+                            <p className="font-semibold">Deployer Balance:</p>
+                            {isCheckingBalance ? (
+                                <p>Checking balance...</p>
+                            ) : (
+                                <p>{formatEther(deployerBalance)} coins {hasEnoughBalance ? '✅' : '❌'}</p>
+                            )}
+                            <div className="pb-2 text-xs">
+                                Should be at least {formatEther(MINIMUM_BALANCE)} native coins
+                            </div>
+                        </div>
+                    }
 
-                {isDeployed && (
-                    <Success
-                        label="TeleporterMessenger Address"
-                        value={expectedContractAddress}
-                    />
-                )}
+                    {!hasEnoughBalance && !isDeployed && (
+                        <TopUpComponent
+                            deployerAddress={deployerAddress}
+                            onTopUp={checkDeployerBalance}
+                        />
+                    )}
 
-                <KnownChainIDWarning walletChainId={walletChainId} />
+                    {isDeployed ? (
+                        <div className="py-4">
+                            <h3 className="font-semibold">Contract Already Deployed</h3>
+                            <p>The TeleporterMessenger contract is already deployed at the expected address.</p>
+                        </div>
+                    ) : (
+                        <Button
+                            type="primary"
+                            onClick={handleDeploy}
+                            loading={isDeploying}
+                            disabled={isDeploying || !hasEnoughBalance}
+                        >
+                            Deploy TeleporterMessenger
+                        </Button>
+                    )}
+
+                    {txHash && (
+                        <Success
+                            label="Transaction Hash"
+                            value={txHash}
+                        />
+                    )}
+
+                    {isDeployed && (
+                        <Success
+                            label="TeleporterMessenger Address"
+                            value={expectedContractAddress}
+                        />
+                    )}
+                </div>
             </div>
-        </div>
+        </RequireChainL1>
     );
 }

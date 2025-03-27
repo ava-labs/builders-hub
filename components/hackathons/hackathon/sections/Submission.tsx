@@ -62,8 +62,7 @@ export default async function Submission({
             Requirements
           </h3>
           <p className='text-sm text-zinc-50'>
-            Your project must include a GitHub repo, a short demo video, and a
-            brief pitch.
+            Your project must include a GitHub repo, slides for your pitch, and any additional content.
           </p>
         </div>
 
@@ -89,7 +88,7 @@ export default async function Submission({
           </h3>
           <p className='text-sm text-zinc-50'>
             Submit your project through the Avalanche Builders Hub, add your
-            team members, and upload your GitHub repo along with a demo video.
+            team members, and upload your GitHub repo, presentation slides along with any other file that support your submission.
           </p>
         </div>
       </div>

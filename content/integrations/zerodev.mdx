@@ -1,0 +1,81 @@
+---
+title: ZeroDev
+category: Account Abstraction
+available: ["C-Chain", "All EVM L1s"]
+description: ZeroDev is an account abstraction toolkit that enables developers to build applications with smart accounts, gasless transactions, and session keys.
+logo: /images/zerodev.png
+developer: ZeroDev
+website: https://zerodev.app/
+documentation: https://docs.zerodev.app/
+---
+
+## Overview
+
+ZeroDev is a comprehensive account abstraction toolkit built on ERC-4337 that empowers developers to create more user-friendly blockchain applications. It provides everything needed to integrate smart accounts into dApps, including gasless transactions, batch transactions, and session keys for simplified authentication flows.
+
+## Features
+
+- **Smart Accounts**: Implement fully ERC-4337 compliant smart contract accounts that enhance security and user experience.
+- **Gasless Transactions**: Enable sponsorship of gas fees for users, eliminating the need for them to hold native tokens.
+- **Bundled Transactions**: Combine multiple transactions into one for better UX and lower overall gas costs.
+- **Session Keys**: Allow users to authorize specific actions for a limited time without needing to sign every transaction.
+- **Social Login**: Integrate with email, social media, and passkey authentication for seamless user onboarding.
+- **Multi-chain Support**: Deploy and manage smart accounts across multiple EVM-compatible blockchains.
+- **Modular Architecture**: Customize account implementation based on specific application needs.
+
+## Getting Started
+
+To get started with ZeroDev, follow these steps:
+
+1. **Install ZeroDev SDK**: Add the SDK to your project using npm or yarn:
+   ```bash
+   npm install @zerodev/sdk
+   ```
+
+2. **Initialize the SDK**: Set up the client in your application code:
+   ```javascript
+   import { createEcdsaKernelAccountClient } from "@zerodev/sdk"
+   
+   const client = await createEcdsaKernelAccountClient({
+     projectId: "YOUR_PROJECT_ID",
+     owner: yourWalletClient,
+   })
+   ```
+
+3. **Register for API Keys**: Create an account on the [ZeroDev Dashboard](https://dashboard.zerodev.app/) to get your project ID.
+
+4. **Implement Gas Sponsorship**: Follow the [paymaster documentation](https://docs.zerodev.app/guides/sponsored-transactions) to set up gas sponsorship for your users.
+
+5. **Deploy and Test**: Test your implementation in a development environment before going live.
+
+## Documentation
+
+For detailed guides, API references, and examples, visit the [ZeroDev Documentation](https://docs.zerodev.app/).
+
+## Use Cases
+
+ZeroDev is versatile and can be used for a variety of applications:
+
+**DeFi Applications**: Streamline the user experience by eliminating gas fees and simplifying complex transaction sequences through batching.
+
+**Gaming and NFT Platforms**: Enable gasless minting and trading of NFTs, making blockchain gaming accessible to mainstream audiences.
+
+**Web3 Social Applications**: Implement social login and session keys to create smooth, Web2-like user experiences while maintaining the benefits of blockchain.
+
+**Enterprise Solutions**: Build corporate wallet solutions with customizable permissions, transaction limits, and multi-signature requirements.
+
+**Mobile dApps**: Create mobile-friendly applications that don't require users to manually sign every transaction.
+
+## Pricing
+
+ZeroDev offers a tiered pricing model:
+
+- **Free Tier**: Up to 100 monthly active users with basic features
+- **Growth**: Starting at $99/month for up to 1,000 monthly active users
+- **Scale**: Custom pricing for enterprises with higher volume needs
+
+For the most current pricing information, visit the [ZeroDev pricing page](https://zerodev.app/pricing).
+
+## Conclusion
+
+ZeroDev provides a comprehensive toolkit for implementing account abstraction in blockchain applications. By handling the complex infrastructure required for ERC-4337 smart accounts, it allows developers to focus on building great user experiences. With features like gasless transactions, bundled operations, and session keys, ZeroDev makes blockchain applications more accessible to mainstream users while maintaining the security and decentralization benefits of Web3. 

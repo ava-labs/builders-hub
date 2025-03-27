@@ -10,7 +10,7 @@ type Instructor = {
 const instructors: Instructor[] = [
     {
         name: "Martin Eckardt",
-        title: "Director of Developer Relations",
+        title: "Sr. Director of Developer Relations",
 
         twitter: "https://x.com/martin_eckardt",
         linkedin: "https://www.linkedin.com/in/eckardt/",
@@ -75,7 +75,7 @@ const instructors: Instructor[] = [
 ];
 
 export function getInstructorsByNames(names:string[]) : Instructor[] {
-    return instructors.filter((instructor) => names.includes(instructor.name));
+    return names.map((name) => instructors.find((instructor) => instructor.name === name)).filter((obj) => obj !== undefined) as Instructor[];
 }
 
 export default instructors;

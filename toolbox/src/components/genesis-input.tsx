@@ -18,7 +18,7 @@ export function GenesisInput({
   placeholder,
   helperText,
   disabled = false,
-  rows = 10,
+  rows = 25,
 }: GenesisInputProps) {
   return (
     <div className="space-y-2">

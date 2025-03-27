@@ -1,0 +1,28 @@
+---
+title: Add a Validator
+description: Add a validator to your Avalanche L1.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: UserPlus
+---
+
+import ToolboxMdxWrapper from "../../../../toolbox/src/demo/ui/ToolboxMdxWrapper.tsx"
+import AddValidator from "../../../../toolbox/src/demo/examples/ValidatorManager/AddValidator.tsx"
+
+To add a validator to your Avalanche L1, you need to call the `initiateValidatorRegistration` function on the `ValidatorManager` contract.
+
+This function will kick off the registration process for a new validator. The process includes the following steps:
+
+1. The L1 emits a `L1ValidatorRegistrationMessage` Warp message in the transaction logs.
+2. Request an aggregated signature of the message from the L1's validators.
+3. Submit the signed message to the P-Chain in a `L1ValidatorRegistration` transaction.
+4. The wait for the transaction to be committed on the P-Chain.
+5. Construct a `RegisterL1ValidatorMessage` Warp message.
+6. Request an aggregated signature of the `RegisterL1ValidatorMessage` Warp message from the L1's validators.
+7. Submit the signed `RegisterL1ValidatorMessage` to the `ValidatorManager` contract in a `completeValidatorRegistration` transaction.
+
+
+In short, the L1 does a round trip message with the P-Chain to register the validator.
+<ToolboxMdxWrapper>
+    <AddValidator />
+</ToolboxMdxWrapper>

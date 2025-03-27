@@ -1,0 +1,20 @@
+---
+title: Upgrade Proxy Implementation
+description: Upgrade the Proxy contract.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: CircleFadingArrowUp
+---
+
+import ToolboxMdxWrapper from "../../../../toolbox/src/demo/ui/ToolboxMdxWrapper.tsx"
+import UpgradeProxy from "../../../../toolbox/src/demo/examples/ValidatorManager/UpgradeProxy.tsx"
+
+Now that you've deployed the `ValidatorManager` contract, you need to upgrade the proxy. The proxy is registered on the P-Chain as the `ValidatorManager` contract, and you'll update it to point to your new implementation.
+
+<Callout type="info">
+    If you created your L1 using the Genesis Builder from this course, the `Manager Address` is an OpenZeppelin [TransparentUpgradeableProxy](https://docs.openzeppelin.com/contracts/4.x/api/proxy) that was pre-deployed in your `genesis.json` file.
+</Callout>
+
+<ToolboxMdxWrapper>
+    <UpgradeProxy />
+</ToolboxMdxWrapper>
