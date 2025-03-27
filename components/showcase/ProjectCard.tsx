@@ -35,8 +35,8 @@ export function ProjectCard({ project }: Props) {
       <div className="p-6 flex flex-col justify-between h-full">
         <p className="text-sm text-zinc-400">{project.shortDescription}</p>
         <div className="flex gap-2 justify-between">
-          <div className="max-w-[60%] flex items-center gap-6">
-            <MapPin size={18} color="#BFBFC7" />
+          <div className="max-w-[60%] flex items-center lg:gap-2 xl:gap-6">
+            <MapPin size={18} color="#BFBFC7" className="w-5 h-5"/>
             <p className="text-xs text-zinc-300">
               {`${project.event.name} ${project.event.location} ${project.event.year}`}
             </p>
