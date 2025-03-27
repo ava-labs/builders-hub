@@ -54,7 +54,7 @@ function Formlogin({ callbackUrl = '/' }: { callbackUrl?: string }) {
 
   return (
     <main>
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4  items-center'>
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4  items-center mt-8'>
         <div className='hidden lg:block p-10 w-full h-full bg-zinc-900'>
           <Image
             src='/hackaton-platform-images/avalancheLoginLogo.svg'

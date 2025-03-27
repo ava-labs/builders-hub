@@ -498,6 +498,6 @@ export const baseOptions: BaseLayoutProps = {
     eventsMenu,
     integrationsMenu,
     // hackathons,
-    //userMenu,
+    userMenu,
   ],
 };
