@@ -68,7 +68,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <button
-          className={`inline-flex items-center justify-between h-11 rounded-md bg-gray-800 px-4 py-2 text-sm focus:outline-none min-w-[160px] ${
+          className={`inline-flex items-center justify-between h-11 rounded-md border border-[#27272A] px-4 py-2 text-sm focus:outline-none min-w-[160px] ${
             date ? "text-white" : "text-[#9F9FA9]"
           } `}
           aria-label="Select date"
@@ -82,7 +82,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
-          className="bg-gray-800 text-white p-4 rounded-md shadow-md z-50 w-[300px]"
+          className="bg-black text-white p-4 rounded-md shadow-xl z-50 w-[300px]"
           sideOffset={5}
           align="start"
         >

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PaginationProps {
     metadata: {
@@ -67,11 +67,9 @@ interface PaginationProps {
       if (page < 1 || page > last_page || page === current_page) return;
       onPageChange(page);
     };
-  
-    if (last_page <= 1) return null;
-  
+    
     return (
-      <div className={`flex items-center justify-center gap-1 ${className}`}>
+      <div className={`flex items-center justify-end gap-4 my-4 ${className}`}>
         <button
           onClick={() => prev_page && handlePageChange(prev_page)}
           disabled={!prev_page}
@@ -82,7 +80,7 @@ interface PaginationProps {
           }`}
           aria-label="Previous page"
         >
-          <ChevronLeft size={20} />
+          <ArrowLeft size={16} color={next_page ? 'white' : '#9F9FA9'} />
           <span className="hidden sm:inline ml-1">Previous</span>
         </button>
   
@@ -96,7 +94,7 @@ interface PaginationProps {
                 onClick={() => handlePageChange(pageNum)}
                 className={`px-3 py-1 rounded ${
                   pageNum === current_page
-                    ? 'bg-[#FB2C36] text-white'
+                    ? 'bg-[#2F2F33] text-white'
                     : 'text-[#FAFAFA] hover:bg-[#27272A]'
                 }`}
               >
@@ -121,7 +119,7 @@ interface PaginationProps {
           aria-label="Next page"
         >
           <span className="hidden sm:inline mr-1">Next</span>
-          <ChevronRight size={20} />
+          <ArrowRight size={16} color={next_page ? 'white' : '#9F9FA9'} />
         </button>
       </div>
     );

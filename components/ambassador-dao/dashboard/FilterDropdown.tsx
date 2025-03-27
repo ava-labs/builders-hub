@@ -40,7 +40,7 @@ export const FilterDropdown = ({
   
         <Select.Portal>
           <Select.Content
-            className="bg-gray-800 text-white rounded-md shadow-lg overflow-hidden z-50"
+            className="bg-black text-white rounded-md shadow-xl overflow-hidden z-50"
             position="popper"
             sideOffset={5}
           >

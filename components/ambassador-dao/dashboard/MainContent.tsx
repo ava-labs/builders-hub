@@ -10,13 +10,15 @@ import JobsSection from "./JobSection";
 import BountiesSection from "./BountiesSection";
 import { GoBackButton } from "./BackButton";
 import SideContent from "./SideContent";
+import { Pagination } from "../ui/Pagination";
 
-const MainContent = ({user}: {user: any}) => {
+const MainContent = ({ user }: { user: any }) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
   const [openAuthModal, setOpenAuthModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [jobFilters, setJobFilters] = useState({
     type: "JOB",
@@ -60,23 +62,23 @@ const MainContent = ({user}: {user: any}) => {
 
   useEffect(() => {
     const newJobFilters = {
-        type: "JOB",
-        query: searchParams.get("job_query") || "",
-        skillSet: searchParams.get("job_skillSet") || "",
-        min_budget: searchParams.get("job_min_budget") || "",
-        category: searchParams.get("job_category") || "",
-        status: searchParams.get("job_status") || "",
+      type: "JOB",
+      query: searchParams.get("job_query") || "",
+      skillSet: searchParams.get("job_skillSet") || "",
+      min_budget: searchParams.get("job_min_budget") || "",
+      category: searchParams.get("job_category") || "",
+      status: searchParams.get("job_status") || "",
     };
 
     setJobFilters(newJobFilters);
 
     const newBountyFilters = {
-        type: "BOUNTY",
-        query: searchParams.get("bounty_query") || "",
-        skillSet: searchParams.get("bounty_skillSet") || "",
-        min_budget: searchParams.get("bounty_min_budget") || "",
-        category: searchParams.get("bounty_category") || "",
-        status: searchParams.get("bounty_status") || "",
+      type: "BOUNTY",
+      query: searchParams.get("bounty_query") || "",
+      skillSet: searchParams.get("bounty_skillSet") || "",
+      min_budget: searchParams.get("bounty_min_budget") || "",
+      category: searchParams.get("bounty_category") || "",
+      status: searchParams.get("bounty_status") || "",
     };
 
     setBountyFilters(newBountyFilters);
@@ -167,21 +169,36 @@ const MainContent = ({user}: {user: any}) => {
     setSearchBountyInput(e.target.value);
   };
 
-  const jobs = jobsData || [];
-  const bounties = bountiesData || [];
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const jobs = jobsData?.data || [];
+  const bounties = bountiesData?.data || [];
+
 
   const renderContent = () => {
     if (type === "jobs") {
       return isJobsLoading ? (
         <Loader />
       ) : (
-        <JobsSection
+        <>
+         <JobsSection
           data={jobs}
           filters={jobFilters}
           searchInput={searchJobInput}
           handleSearchChange={handleJobSearchChange}
           updateFilters={updateJobFilters}
         />
+        
+
+        {jobsData?.metadata.last_page > 1 && (
+          <Pagination 
+          metadata={bountiesData?.metadata && bountiesData?.metadata}
+          onPageChange={handlePageChange}
+          />)}
+        </>
+       
       );
     }
 
@@ -189,13 +206,22 @@ const MainContent = ({user}: {user: any}) => {
       return isBountiesLoading ? (
         <Loader />
       ) : (
-        <BountiesSection
-          data={bounties}
-          filters={bountyFilters}
-          searchInput={searchBountyInput}
-          handleSearchChange={handleBountySearchChange}
-          updateFilters={updateBountyFilters}
-        />
+        <>
+          <BountiesSection
+            data={bounties}
+            filters={bountyFilters}
+            searchInput={searchBountyInput}
+            handleSearchChange={handleBountySearchChange}
+            updateFilters={updateBountyFilters}
+          />
+          
+          
+          {bountiesData?.metadata.last_page > 1 && (
+          <Pagination 
+          metadata={bountiesData?.metadata && bountiesData?.metadata}
+          onPageChange={handlePageChange}
+          />)}
+        </>
       );
     }
 
@@ -205,7 +231,7 @@ const MainContent = ({user}: {user: any}) => {
 
         {!isJobsLoading || !isBountiesLoading ? (
           <JobsSection
-            data={jobs}
+            data={jobs?.slice(0, 4)}
             filters={jobFilters}
             searchInput={searchJobInput}
             handleSearchChange={handleJobSearchChange}
@@ -215,7 +241,7 @@ const MainContent = ({user}: {user: any}) => {
 
         {!isJobsLoading || !isBountiesLoading ? (
           <BountiesSection
-            data={bounties}
+            data={bounties?.slice(0, 4)}
             filters={bountyFilters}
             searchInput={searchBountyInput}
             handleSearchChange={handleBountySearchChange}

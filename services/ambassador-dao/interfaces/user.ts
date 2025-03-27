@@ -4,6 +4,8 @@ export interface IUserDetails {
   last_name: string | null;
   username: string | null;
   profile_image: string | null;
+  skills: string[] | null;
+  social_links: string[] | null;
   role: string | null;
   created_at: Date | null;
   status: "VERIFIED" | "PENDING" | "REJECTED" | "SUSPENDED";
@@ -29,4 +31,12 @@ export interface ISponsorStats {
   total_listings: number;
   total_submissions: number;
   total_rewards: number;
+}
+
+
+export interface IClaimXP {
+  project_name: string;
+  project_description: string;
+  file_ids: string[];
+  event_link: string;
 }
