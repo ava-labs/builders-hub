@@ -12,7 +12,7 @@ export default function TeamMembers({ members }: Props) {
       <h2 className="text-2xl">Team</h2>
       <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800" />
       <p className="text-lg">Meet the minds behind BlackVote</p>
-      <div className="flex justify-center gap-8 mt-8">
+      <div className="flex flex-wrap justify-center gap-8 mt-8">
         {members.map((member, index) => (
           <div key={index} className="flex flex-col justify-center gap-4">
             <Image
