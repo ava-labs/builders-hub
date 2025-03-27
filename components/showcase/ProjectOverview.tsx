@@ -98,7 +98,7 @@ export default function ProjectOverview() {
             alt="project-banner"
             width={100}
             height={635}
-            className="absolute -bottom-32 left-24 w-64 h-64"
+            className="absolute -bottom-32 left-16 xl:left-24 w-64 h-64"
           />
         </div>
         <div className="mt-40 flex flex-col gap-16">

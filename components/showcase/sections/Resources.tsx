@@ -14,7 +14,7 @@ export default function Resources({ resources }: Props) {
     <section className="text-black dark:text-white py-12">
       <h2 className="text-2xl font-bold mb-6">Project Resources</h2>
       <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800" />
-      <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
+      <p className="text-lg mb-6">
         Explore key links to learn more, connect with the team, and access
         essential resources.
       </p>
