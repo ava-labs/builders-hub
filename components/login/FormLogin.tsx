@@ -77,13 +77,13 @@ function Formlogin({ callbackUrl = '/' }: { callbackUrl?: string }) {
                 <h3 className='font-medium text-2xl'>
                   Sign in to your account
                 </h3>
-                <p className='text-zinc-400 text-sm pt-2'>
+                {/* <p className='text-zinc-400 text-sm pt-2'>
                   Enter your email to receive a sign-in code
-                </p>
+                </p> */}
               </div>
 
               <div className='flex flex-col justify-center items-center space-y-6 w-full mt-6 max-w-[350px]'>
-                <div className='w-full'>
+                {/* <div className='w-full'>
                   <Form {...formMethods}>
                     <form
                       onSubmit={formMethods.handleSubmit(onSubmit)}
@@ -116,7 +116,7 @@ function Formlogin({ callbackUrl = '/' }: { callbackUrl?: string }) {
                       </Button>
                     </form>
                   </Form>
-                </div>
+                </div> */}
                 <SocialLogin callbackUrl={callbackUrl} />
                 <div>
                   <footer className='pt-10'>
