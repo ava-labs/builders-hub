@@ -172,12 +172,6 @@ const componentGroups: Record<string, ComponentType[]> = {
     ],
     "Precompiles": [
         {
-            id: "allowList",
-            label: "Allow List",
-            component: lazy(() => import('./examples/Precompiles/AllowList')),
-            fileNames: ["toolbox/src/demo/examples/Precompiles/AllowList.tsx"]
-        },
-        {
             id: "nativeMinter",
             label: "Native Minter",
             component: lazy(() => import('./examples/Precompiles/NativeMinter')),

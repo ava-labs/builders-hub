@@ -10,24 +10,19 @@ import { WagmiProvider, createConfig } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { avalancheFuji } from 'viem/chains';
 import { http } from 'viem';
+import { AllowListControls } from "../../components/AllowListComponents";
+
+// Native Minter precompile address
+const NATIVE_MINTER_ADDRESS = "0x0200000000000000000000000000000000000001";
 
 // Create a NativeMinterComponent that doesn't include the providers
 function NativeMinterComponent() {
     const { walletEVMAddress } = useWalletStore();
     const [amount, setAmount] = useState<number>(100);
     const [isMinting, setIsMinting] = useState(false);
-    const [isSettingAdmin, setIsSettingAdmin] = useState(false);
-    const [isSettingEnabled, setIsSettingEnabled] = useState(false);
-    const [isSettingManager, setIsSettingManager] = useState(false);
-    const [isSettingNone, setIsSettingNone] = useState(false);
-    
-    const [adminAddress, setAdminAddress] = useState<string>("");
-    const [enabledAddress, setEnabledAddress] = useState<string>("");
-    const [managerAddress, setManagerAddress] = useState<string>("");
-    const [noneAddress, setNoneAddress] = useState<string>("");
     const [nativeMinterRecipient, setNativeMinterRecipient] = useState<string>(walletEVMAddress);
 
-    const { mintNativeCoin, setAdmin, setEnabled, setManager, setNone } = useNativeMinter();
+    const { mintNativeCoin } = useNativeMinter();
 
     const convertToHex = (amount: number): `0x${string}` => {
         const amountInWei = BigInt(amount) * BigInt(10 ** 18);
@@ -76,85 +71,8 @@ function NativeMinterComponent() {
                     </div>
                 </Container>
 
-                <Container
-                    title="Set Admin"
-                    description="Set an address as admin for the native minter."
-                >
-                    <div className="space-y-4">
-                        <EVMAddressInput
-                            label="Admin Address"
-                            value={adminAddress}
-                            onChange={setAdminAddress}
-                        />
-                        <Button
-                            onClick={() => setAdmin(adminAddress)}
-                            loading={isSettingAdmin}
-                            variant="primary"
-                        >
-                            Set Admin
-                        </Button>
-                    </div>
-                </Container>
-
-                <Container
-                    title="Set Enabled"
-                    description="Set an address as enabled for the native minter."
-                >
-                    <div className="space-y-4">
-                        <EVMAddressInput
-                            label="Enabled Address"
-                            value={enabledAddress}
-                            onChange={setEnabledAddress}
-                        />
-                        <Button
-                            onClick={() => setEnabled(enabledAddress)}
-                            loading={isSettingEnabled}
-                            variant="primary"
-                        >
-                            Set Enabled
-                        </Button>
-                    </div>
-                </Container>
-
-                <Container
-                    title="Set Manager"
-                    description="Set an address as manager for the native minter."
-                >
-                    <div className="space-y-4">
-                        <EVMAddressInput
-                            label="Manager Address"
-                            value={managerAddress}
-                            onChange={setManagerAddress}
-                        />
-                        <Button
-                            onClick={() => setManager(managerAddress)}
-                            loading={isSettingManager}
-                            variant="primary"
-                        >
-                            Set Manager
-                        </Button>
-                    </div>
-                </Container>
-
-                <Container
-                    title="Set None"
-                    description="Remove all permissions for an address."
-                >
-                    <div className="space-y-4">
-                        <EVMAddressInput
-                            label="Address"
-                            value={noneAddress}
-                            onChange={setNoneAddress}
-                        />
-                        <Button
-                            onClick={() => setNone(noneAddress)}
-                            loading={isSettingNone}
-                            variant="primary"
-                        >
-                            Set None
-                        </Button>
-                    </div>
-                </Container>
+                {/* Use AllowListControls component with the Native Minter precompile address */}
+                <AllowListControls precompileAddress={NATIVE_MINTER_ADDRESS} />
             </div>
         </RequireChainFuji>
     );
