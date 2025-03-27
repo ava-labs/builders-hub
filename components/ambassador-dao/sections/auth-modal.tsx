@@ -20,6 +20,7 @@ import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
 interface IAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  allowRedirection?: boolean
 }
 
 type AuthStep = "options" | "email" | "verification";
@@ -44,7 +45,7 @@ const SearchParamsHandler = ({
   return null;
 };
 
-export const AuthModal = ({ isOpen, onClose }: IAuthModalProps) => {
+export const AuthModal = ({ isOpen, onClose, allowRedirection }: IAuthModalProps) => {
   const [currentStep, setCurrentStep] = useState<AuthStep>("options");
   const [email, setEmail] = useState("");
 

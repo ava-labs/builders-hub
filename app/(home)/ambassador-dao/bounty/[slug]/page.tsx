@@ -33,6 +33,7 @@ import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 import Loader from "@/components/ambassador-dao/ui/Loader";
 import { Pagination } from "@/components/ambassador-dao/ui/Pagination";
 import { BountySubmissionModal } from "@/components/ambassador-dao/bounty/BountySubmissionModal";
+import { AuthModal } from "@/components/ambassador-dao/sections/auth-modal";
 
 interface CommentAuthor {
   id: string;
@@ -70,8 +71,8 @@ interface BountyHeaderProps {
     deadline: string;
     skills: Array<{ name: string } | string>;
     _count: {
-      submissions: number
-    }
+      submissions: number;
+    };
   };
 }
 
@@ -105,8 +106,10 @@ interface BountySidebarProps {
 const BountySidebar: React.FC<BountySidebarProps> = ({ bounty }) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const timeLeft = useCountdown(bounty?.deadline);
+  const [openAuthModal, setOpenAuthModal] = useState(false);
 
   const { data, isLoading } = useCheckBountyStatus(bounty.id);
+  const { data: userData } = useFetchUserDataQuery();
 
   return (
     <div className="bg-[#111] p-4 rounded-md border border-gray-800 sticky top-6">
@@ -169,18 +172,33 @@ const BountySidebar: React.FC<BountySidebarProps> = ({ bounty }) => {
       </div>
 
       <button
-        disabled={data?.has_submitted}
+        disabled={data?.has_submitted || timeLeft === "Expired"}
         className={`w-full font-medium py-3 rounded-md transition ${
-          data?.has_submitted
+          data?.has_submitted || timeLeft === "Expired"
             ? "bg-gray-400 text-white cursor-not-allowed"
             : "bg-red-500 hover:bg-red-600 text-white"
         }`}
-        onClick={() => !data?.has_submitted && setIsModalOpen(true)}
+        onClick={() => {
+          userData && !data?.has_submitted && timeLeft !== "Expired"
+            ? setIsModalOpen(true)
+            : !userData && setOpenAuthModal(true);
+        }}
       >
-        {!isLoading && data?.has_submitted && "Already Submitted"}
-        {isLoading && <Loader2 color="#FFF" />}
-        {!isLoading && !data?.has_submitted && "Participate"}
+        {isLoading ? (
+          <Loader2 color="#FFF" />
+        ) : data?.has_submitted ? (
+          "Already Submitted"
+        ) : timeLeft === "Expired" ? (
+          "Expired"
+        ) : (
+          "Participate"
+        )}
       </button>
+
+      <AuthModal
+        isOpen={openAuthModal}
+        onClose={() => setOpenAuthModal(false)}
+      />
 
       {isModalOpen && (
         <BountySubmissionModal
@@ -368,51 +386,56 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
 
   const [isReplying, setIsReplying] = useState<boolean>(false);
   const [replyText, setReplyText] = useState<string>("");
+  const [openAuthModal, setOpenAuthModal] = useState(false);
 
   const { mutateAsync: replyComment } =
     useReplyOpportunityComment(opportunityId);
 
   const handleReplySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (replyText.trim() !== "") {
-      const optimisticId = `optimistic-${Date.now()}`;
-      const optimisticReply: CommentReply = {
-        id: optimisticId,
-        content: replyText,
-        parent_id: commentId,
-        author: {
-          id: userData?.id || "",
-          first_name: userData?.first_name || "You",
-          last_name: userData?.last_name || "",
-        },
-        isOptimistic: true,
-      };
-
-      setOptimisticReplies((prev) => [...prev, optimisticReply]);
-
-      const replyContent = replyText;
-      setReplyText("");
-      setIsReplying(false);
-
-      setShowReplies(true);
-      if (!repliesLoaded && repliesCount > 0) {
-        loadReplies();
-      }
-
-      try {
-        await replyComment({
-          content: replyContent,
+    if (!userData) {
+      setOpenAuthModal(true);
+    } else {
+      if (replyText.trim() !== "") {
+        const optimisticId = `optimistic-${Date.now()}`;
+        const optimisticReply: CommentReply = {
+          id: optimisticId,
+          content: replyText,
           parent_id: commentId,
-        });
+          author: {
+            id: userData?.id || "",
+            first_name: userData?.first_name || "You",
+            last_name: userData?.last_name || "",
+          },
+          isOptimistic: true,
+        };
 
-        if (repliesLoaded) {
+        setOptimisticReplies((prev) => [...prev, optimisticReply]);
+
+        const replyContent = replyText;
+        setReplyText("");
+        setIsReplying(false);
+
+        setShowReplies(true);
+        if (!repliesLoaded && repliesCount > 0) {
           loadReplies();
         }
-      } catch (error) {
-        console.error("Failed to post reply:", error);
-        setOptimisticReplies((prev) =>
-          prev.filter((r) => r.id !== optimisticId)
-        );
+
+        try {
+          await replyComment({
+            content: replyContent,
+            parent_id: commentId,
+          });
+
+          if (repliesLoaded) {
+            loadReplies();
+          }
+        } catch (error) {
+          console.error("Failed to post reply:", error);
+          setOptimisticReplies((prev) =>
+            prev.filter((r) => r.id !== optimisticId)
+          );
+        }
       }
     }
   };
@@ -479,6 +502,11 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
             </form>
           </div>
         )}
+
+        <AuthModal
+          isOpen={openAuthModal}
+          onClose={() => setOpenAuthModal(false)}
+        />
       </div>
     );
   }
@@ -547,6 +575,11 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
           </form>
         </div>
       )}
+
+      <AuthModal
+        isOpen={openAuthModal}
+        onClose={() => setOpenAuthModal(false)}
+      />
 
       {isError && !optimisticReplies.length && (
         <div className="text-red-500 text-sm my-2">Failed to load replies</div>
@@ -746,6 +779,8 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
     next_page: null,
   });
 
+  const [openAuthModal, setOpenAuthModal] = useState(false);
+
   const { data: userData } = useFetchUserDataQuery();
 
   const {
@@ -794,45 +829,50 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
 
   const handleSubmitComment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (newComment.trim() !== "") {
-      const optimisticId = `optimistic-${Date.now()}`;
-      const commentContent = newComment;
 
-      const optimisticComment: Comment = {
-        id: optimisticId,
-        content: commentContent,
-        author: {
-          id: userData?.id || "",
-          first_name: userData?.first_name || "You",
-          last_name: userData?.last_name || "",
-        },
-        isOptimistic: true,
-        _count: {
-          replies: 0,
-        },
-      };
+    if (!userData) {
+      setOpenAuthModal(true);
+    } else {
+      if (newComment.trim() !== "") {
+        const optimisticId = `optimistic-${Date.now()}`;
+        const commentContent = newComment;
 
-      setNewComment("");
-      setIsFocused(false);
-
-      setOptimisticComments((prev) => [optimisticComment, ...prev]);
-
-      try {
-        await submitComment({
+        const optimisticComment: Comment = {
+          id: optimisticId,
           content: commentContent,
-          parent_id: "",
-        });
+          author: {
+            id: userData?.id || "",
+            first_name: userData?.first_name || "You",
+            last_name: userData?.last_name || "",
+          },
+          isOptimistic: true,
+          _count: {
+            replies: 0,
+          },
+        };
 
-        if (currentPage !== 1) {
-          setCurrentPage(1);
-        } else {
-          refetch();
+        setNewComment("");
+        setIsFocused(false);
+
+        setOptimisticComments((prev) => [optimisticComment, ...prev]);
+
+        try {
+          await submitComment({
+            content: commentContent,
+            parent_id: "",
+          });
+
+          if (currentPage !== 1) {
+            setCurrentPage(1);
+          } else {
+            refetch();
+          }
+        } catch (error) {
+          console.error("Failed to submit comment:", error);
+          setOptimisticComments((prev) =>
+            prev.filter((c) => c.id !== optimisticId)
+          );
         }
-      } catch (error) {
-        console.error("Failed to submit comment:", error);
-        setOptimisticComments((prev) =>
-          prev.filter((c) => c.id !== optimisticId)
-        );
       }
     }
   };
@@ -920,6 +960,11 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
               className="my-8"
             />
           )}
+
+          <AuthModal
+            isOpen={openAuthModal}
+            onClose={() => setOpenAuthModal(false)}
+          />
         </>
       )}
     </div>
@@ -942,7 +987,7 @@ const AmbasssadorDaoSingleBountyPage = () => {
     deadline: data?.end_date,
     proposalsCount: data?.max_winners || 0,
     skills: data?.skills || [],
-    _count: data?._count || 0
+    _count: data?._count || 0,
   };
 
   const extractDescriptionData = (apiResponse: { description: string }) => {
@@ -992,7 +1037,6 @@ const AmbasssadorDaoSingleBountyPage = () => {
             </div>
 
             <BountyDescription data={extractDescriptionData(data)} />
-
             <CommentsSection id={slug} />
           </div>
 

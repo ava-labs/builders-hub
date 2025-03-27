@@ -11,7 +11,7 @@ export const useFetchOpportunity = (filters = {}) => {
     queryKey: ["opportunity", filters],
     queryFn: async () => {
       const res = await axios.get(`${API_DEV}/opportunity`, { params: filters });
-      return res.data.data;
+      return res.data;
     },
     staleTime: Infinity,
   });
