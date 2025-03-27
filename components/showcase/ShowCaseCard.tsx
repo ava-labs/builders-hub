@@ -181,7 +181,7 @@ export default function ShowCaseCard() {
           found
         </h1>
         <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800 h-[2px]" />
-        <div className="grid grid-cols-1 gap-y-8 gap-x-4 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-y-8 gap-x-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(20)]
             .flatMap(() => projects)
             .map((project, index) => (
