@@ -121,9 +121,9 @@ export default function ShowCaseCard() {
     [...Array(20)].flatMap(() => projects).length / recordsByPage
   );
   return (
-    <Card className="bg-zinc-950 relative border boder-zinc-800 p-4 sm:p-8">
-      <h2 className="text-2xl text-zinc-50">Showcase</h2>
-      <p className="text-zinc-400">
+    <Card className="bg-zinc-50 dark:bg-zinc-950 relative border border-zinc-300 dark:border-zinc-800 p-4 sm:p-8">
+      <h2 className="text-2xl text-zinc-900 dark:text-zinc-50">Showcase</h2>
+      <p className="text-zinc-600 dark:text-zinc-400">
         Discover innovative projects built during our hackathons. Filter by
         track, technology, and winners
       </p>
@@ -171,7 +171,7 @@ export default function ShowCaseCard() {
           </Select>
       </div>
       <div className="mt-12">
-        <h1 className="text-2xl text-zinc-50">
+        <h1 className="text-2xl text-zinc-900 dark:text-zinc-50">
           {projects.length ?? ""}{" "}
           {projects.length > 1
             ? "Projects"
