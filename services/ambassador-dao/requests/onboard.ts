@@ -11,6 +11,7 @@ import {
 axios.defaults.withCredentials = true;
 
 export const useSelectRoleMutation = () => {
+  const queryclient = useQueryClient();
   return useMutation({
     mutationKey: ["selectRole"],
     mutationFn: async (role: string) => {
@@ -18,6 +19,10 @@ export const useSelectRoleMutation = () => {
         role,
       });
       return res.data;
+    },
+    onSuccess: (data) => {
+      queryclient.invalidateQueries({ queryKey: ["fetchUserProfile"] });
+      toast.success(data.message);
     },
     onError: (err) => errorMsg(err),
   });
