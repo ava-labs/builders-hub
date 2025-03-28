@@ -266,6 +266,7 @@ const MainContent = ({ user }: { user: any }) => {
       <AuthModal
         isOpen={openAuthModal}
         onClose={() => setOpenAuthModal(false)}
+        stopRedirection={true}
       />
     </>
   );

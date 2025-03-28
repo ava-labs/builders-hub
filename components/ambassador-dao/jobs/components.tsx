@@ -154,6 +154,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
       <AuthModal
         isOpen={openAuthModal}
         onClose={() => setOpenAuthModal(false)}
+        stopRedirection={true}
       />
 
       {isModalOpen && (

@@ -294,6 +294,7 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
         <AuthModal
           isOpen={openAuthModal}
           onClose={() => setOpenAuthModal(false)}
+          stopRedirection={true}
         />
       </div>
     );
@@ -367,6 +368,7 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
       <AuthModal
         isOpen={openAuthModal}
         onClose={() => setOpenAuthModal(false)}
+        stopRedirection={true}
       />
 
       {isError && !optimisticReplies.length && (
