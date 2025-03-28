@@ -24,7 +24,13 @@ const componentGroups: Record<string, ComponentType[]> = {
             id: 'addL1s',
             label: "Add L1s",
             component: lazy(() => import('./examples/Wallet/AddL1s')),
-            fileNames: []
+            fileNames: ["toolbox/src/demo/examples/Wallet/AddL1s.tsx"]
+        },
+        {
+            id: 'crossChainTransfer',
+            label: "Cross Chain Transfer",
+            component: lazy(() => import('./examples/Wallet/CrossChainTransfer')),
+            fileNames: ["toolbox/src/demo/examples/Wallet/CrossChainTransfer.tsx"]
         }
     ],
     'Conversion': [
@@ -113,6 +119,54 @@ const componentGroups: Record<string, ComponentType[]> = {
             label: "Initialize Validator Set",
             component: lazy(() => import('./examples/InitializePoA/InitValidatorSet')),
             fileNames: ["toolbox/src/demo/examples/InitializePoA/InitValidatorSet.tsx"]
+        }
+    ],
+    "ValidatorManager Operations": [
+        {
+            id: "addValidator",
+            label: "Add Validator",
+            component: lazy(() => import('./examples/ValidatorManager/AddValidator')),
+            fileNames: ["toolbox/src/demo/examples/ValidatorManager/AddValidator.tsx"]
+        },
+        {
+            id: "removeValidator",
+            label: "Remove Validator",
+            component: lazy(() => import('./examples/ValidatorManager/RemoveValidator')),
+            fileNames: ["toolbox/src/demo/examples/ValidatorManager/RemoveValidator.tsx"]
+        },
+        {
+            id: "changeWeight",
+            label: "Change Weight",
+            component: lazy(() => import('./examples/ValidatorManager/ChangeWeight')),
+            fileNames: ["toolbox/src/demo/examples/ValidatorManager/ChangeWeight.tsx"]
+        }
+    ],
+    "Deploy StakingManager": [
+        {
+            id: "deployRewardCalculator",
+            label: "Deploy Reward Calculator",
+            component: lazy(() => import('./examples/StakingManager/DeployRewardCalculator')),
+            fileNames: ["toolbox/src/demo/examples/StakingManager/DeployRewardCalculator.tsx"]
+        },
+        {
+            id: "deployStakingManager",
+            label: "Deploy Staking Manager",
+            component: lazy(() => import('./examples/StakingManager/DeployStakingManager')),
+            fileNames: ["toolbox/src/demo/examples/StakingManager/DeployStakingManager.tsx"]
+        },
+    ],
+    "Initialize StakingManager": [
+        {
+            id: "initializeStakingManager",
+            label: "Initialize Staking Manager",
+            component: lazy(() => import('./examples/StakingManager/Initialize')),
+            fileNames: ["toolbox/src/demo/examples/StakingManager/Initialize.tsx"]
+        },
+        {
+            id: "transferValidatorManagerOwnership",
+            label: "Transfer Validator Manager Ownership",
+            component: lazy(() => import('./examples/StakingManager/TransferOwnership')),
+            fileNames: ["toolbox/src/demo/examples/StakingManager/TransferOwnership.tsx"]
         }
     ],
     "Nodes": [

@@ -322,7 +322,7 @@ export default function CrossChainTransfer() {
   return (
     <Container
       title="Cross Chain Transfer"
-      description="Transfer tokens between Avalanche chains securely and efficiently."
+      description="Transfer tokens between Avalanche C-Chain and P-Chain."
     >
       <div className="flex flex-col lg:flex-row gap-6 w-full">
         <div className="flex-1 flex flex-col justify-center space-y-1">

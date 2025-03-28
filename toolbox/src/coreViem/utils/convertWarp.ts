@@ -67,13 +67,29 @@ export function marshalSubnetToL1ConversionData(args: PackL1ConversionMessageArg
     parts.push(encodeVarBytes(utils.hexToBuffer(args.managerAddress)));
     parts.push(encodeUint32(args.validators.length));
 
-    const sortedValidators = args.validators.sort((a, b) => compareNodeIDs(a.nodeID, b.nodeID));
+    // Sort validators by nodeID
+    let sortedValidators;
+    try {
+        sortedValidators = [...args.validators].sort((a, b) => compareNodeIDs(a.nodeID, b.nodeID));
+    } catch (error: any) {
+        console.warn("Error sorting validators, using original order:", error);
+        sortedValidators = args.validators;
+    }
 
     for (const validator of sortedValidators) {
         if (!validator.nodeID || !validator.nodePOP) {
             throw new Error(`Invalid validator data: ${JSON.stringify(validator)}`);
         }
-        const nodeIDBytes = validator.nodeID.startsWith("NodeID-") ? utils.base58check.decode(validator.nodeID.split("-")[1]) : utils.hexToBuffer(validator.nodeID);
+        
+        let nodeIDBytes;
+        try {
+            nodeIDBytes = validator.nodeID.startsWith("NodeID-") 
+                ? utils.base58check.decode(validator.nodeID.split("-")[1]) 
+                : utils.hexToBuffer(validator.nodeID);
+        } catch (error: any) {
+            throw new Error(`Failed to parse nodeID '${validator.nodeID}': ${error.message}`);
+        }
+        
         parts.push(encodeVarBytes(nodeIDBytes));
         parts.push(utils.hexToBuffer(validator.nodePOP.publicKey));
         parts.push(encodeUint64(BigInt(validator.weight)));
@@ -134,8 +150,20 @@ export function newUnsignedMessage(networkID: number, sourceChainID: string, mes
 }
 
 export const compareNodeIDs = (a: string, b: string) => {
-    const aNodeID = utils.base58check.decode(a.split("-")[1]);
-    const bNodeID = utils.base58check.decode(b.split("-")[1]);
+    console.log(a, b);
+    let aNodeID: Uint8Array;
+    let bNodeID: Uint8Array;
+    
+    try {
+        // Try to parse as NodeID-{base58check}
+        aNodeID = a.startsWith("NodeID-") ? utils.base58check.decode(a.split("-")[1]) : utils.hexToBuffer(a);
+        bNodeID = b.startsWith("NodeID-") ? utils.base58check.decode(b.split("-")[1]) : utils.hexToBuffer(b);
+    } catch (error: any) {
+        // If parsing fails, convert to hex strings for comparison
+        const aHex = a.startsWith("0x") ? a : `0x${a}`;
+        const bHex = b.startsWith("0x") ? b : `0x${b}`;
+        return aHex.localeCompare(bHex);
+    }
 
     // Compare all bytes
     const minLength = Math.min(aNodeID.length, bNodeID.length);

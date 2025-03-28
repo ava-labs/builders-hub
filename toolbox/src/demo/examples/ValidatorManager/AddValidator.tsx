@@ -68,6 +68,13 @@ export default function AddValidator() {
   const [networkName, setNetworkName] = useState<"fuji" | "mainnet" | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
   const viemChain = useViemChainStore()
+  
+  // Create a component variable to store the most recent warp message
+  // This won't be affected by state update delays
+  let lastWarpMessage = "";
+  let lastSignedMessage = ""; // Add a variable for signed message
+  let lastValidationID = ""; // Add a variable for validationID
+  let lastPChainWarpMsg = ""; // Add a variable for P-Chain warp message
 
   const pChainChainID = "11111111111111111111111111111111LpoYY"
   var platformEndpoint = "https://api.avax-test.network"
@@ -196,12 +203,19 @@ export default function AddValidator() {
 
           // Get receipt to extract warp message and validation ID
           const receipt = await publicClient.waitForTransactionReceipt({ hash })
+          console.log("Receipt: ", receipt)
           const unsignedWarpMsg = receipt.logs[0].data ?? ""
           const validationIdHex = receipt.logs[1].topics[1] ?? ""
 
-          // Save to state
+          console.log("Setting warp message:", unsignedWarpMsg.substring(0, 20) + "...")
+          console.log("Setting validationID:", validationIdHex)
+          
+          // Save to state and component variable
           setRegisterL1ValidatorUnsignedWarpMsg(unsignedWarpMsg)
+          lastWarpMessage = unsignedWarpMsg; // Store in component variable
+          
           setValidationID(validationIdHex)
+          lastValidationID = validationIdHex; // Store in component variable
 
           updateStepStatus("initializeRegistration", "success")
         } catch (error: any) {
@@ -215,9 +229,18 @@ export default function AddValidator() {
       if (!startFromStep || startFromStep === "signMessage") {
         updateStepStatus("signMessage", "loading")
         try {
-          // Use stored message if retrying
-          const messageToSign = startFromStep ? registerL1ValidatorUnsignedWarpMsg : registerL1ValidatorUnsignedWarpMsg
+          // Use component variable first, fall back to state if needed
+          const messageToSign = lastWarpMessage || registerL1ValidatorUnsignedWarpMsg
 
+          console.log("Message to sign (length):", messageToSign.length)
+          console.log("Message to sign (first 20 chars):", messageToSign.substring(0, 20))
+          
+          if (!messageToSign || messageToSign.length === 0) {
+            throw new Error("Warp message is empty. Please try again from step 1.")
+          }
+
+          console.log("Subnet ID: ", subnetID)
+          console.log("Network name: ", networkName)
           // Sign the unsigned warp message with signature aggregator
           const { signedMessage } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
@@ -228,7 +251,9 @@ export default function AddValidator() {
             },
           })
 
+          console.log("Signed message: ", signedMessage)
           setSavedSignedMessage(signedMessage)
+          lastSignedMessage = signedMessage; // Store in component variable
           updateStepStatus("signMessage", "success")
 
           if (startFromStep === "signMessage") {
@@ -248,8 +273,15 @@ export default function AddValidator() {
         try {
           if (!window.avalanche) throw new Error("Core wallet not found")
 
-          // Use saved message if retrying
-          const messageToUse = startFromStep ? savedSignedMessage : savedSignedMessage
+          // Use component variable first, then fall back to state
+          const messageToUse = lastSignedMessage || savedSignedMessage
+
+          console.log("Message to use for P-Chain (length):", messageToUse.length)
+          console.log("Message to use for P-Chain (first 20 chars):", messageToUse.substring(0, 20))
+          
+          if (!messageToUse || messageToUse.length === 0) {
+            throw new Error("Signed message is empty. Please try again from the sign message step.")
+          }
 
           // Get fee state, context and utxos from P-Chain
           const feeState = await pvmApi.getFeeState()
@@ -311,7 +343,15 @@ export default function AddValidator() {
           await new Promise((resolve) => setTimeout(resolve, 1000))
 
           // Create and sign P-Chain warp message
-          const validationIDBytes = hexToBytes(validationID as `0x${string}`)
+          const validationIDToUse = lastValidationID || validationID;
+          
+          if (!validationIDToUse || validationIDToUse.length === 0) {
+            throw new Error("ValidationID is empty. Please try again from step 1.");
+          }
+          
+          console.log("Using validationID:", validationIDToUse);
+          const validationIDBytes = hexToBytes(validationIDToUse as `0x${string}`)
+          
           const unsignedPChainWarpMsg = packL1ValidatorRegistration(
             validationIDBytes,
             true,
@@ -328,13 +368,15 @@ export default function AddValidator() {
             network: networkName,
             signatureAggregatorRequest: {
               message: unsignedPChainWarpMsgHex,
-              justification: registerL1ValidatorUnsignedWarpMsg,
+              justification: lastWarpMessage,
               signingSubnetId: subnetID,
               quorumPercentage: 67, // Default threshold for subnet validation
             },
           })
 
+          console.log("P-Chain signed message received:", signedMessage.signedMessage.substring(0, 20) + "...");
           setSavedPChainWarpMsg(signedMessage.signedMessage)
+          lastPChainWarpMsg = signedMessage.signedMessage; // Store in component variable
           updateStepStatus("waitForPChain", "success")
         } catch (error: any) {
           updateStepStatus("waitForPChain", "error", error.message)
@@ -347,8 +389,15 @@ export default function AddValidator() {
       if (!startFromStep || startFromStep === "finalizeRegistration") {
         updateStepStatus("finalizeRegistration", "loading")
         try {
-          // Use saved message if retrying
-          const warpMsgToUse = startFromStep ? savedPChainWarpMsg : savedPChainWarpMsg
+          // Use component variable first, then fall back to state
+          const warpMsgToUse = lastPChainWarpMsg || savedPChainWarpMsg
+
+          console.log("P-Chain warp message to use (length):", warpMsgToUse.length)
+          console.log("P-Chain warp message to use (first 20 chars):", warpMsgToUse.substring(0, 20))
+          
+          if (!warpMsgToUse || warpMsgToUse.length === 0) {
+            throw new Error("P-Chain warp message is empty. Please try again from the previous step.")
+          }
 
           // Convert to bytes and pack into access list
           const signedPChainWarpMsgBytes = hexToBytes(`0x${warpMsgToUse}`)
