@@ -1,21 +1,21 @@
 import React from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import CustomButton from "../custom-button";
-import { usePublishOpportunityMutation } from "@/services/ambassador-dao/requests/sponsor";
+import { useDeleteOpportunityMutation } from "@/services/ambassador-dao/requests/sponsor";
 
-interface IPublishProps {
+interface IDeleteProps {
   isOpen: boolean;
   onClose: () => void;
   opportunityId: string;
 }
 
-export const PublishOpportunityModal = ({
+export const DeleteOpportunityModal = ({
   isOpen,
   onClose,
   opportunityId,
-}: IPublishProps) => {
-  const { mutateAsync: publishOpportunity, isPending } =
-    usePublishOpportunityMutation(opportunityId);
+}: IDeleteProps) => {
+  const { mutateAsync: deleteOpportunity, isPending } =
+    useDeleteOpportunityMutation(opportunityId);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -24,11 +24,11 @@ export const PublishOpportunityModal = ({
         showClose
       >
         <DialogTitle className='text-2xl text-[#FAFAFA] font-semibold'>
-          Publishing Confirmation
+          Delete Opportunity
         </DialogTitle>
         <div className='text-[#9F9FA9] my-3'>
-          Approval may take xx hours, This content will be visible to all users
-          upon publishing.
+          Are you sure you want to delete this opportunity? This action cannot
+          be undone.
         </div>
 
         <div className='flex gap-2 justify-center mt-6 md:mt-8'>
@@ -45,7 +45,7 @@ export const PublishOpportunityModal = ({
               className='px-4'
               isLoading={isPending}
               onClick={async () => {
-                await publishOpportunity(true);
+                await deleteOpportunity();
                 onClose();
               }}
             >
