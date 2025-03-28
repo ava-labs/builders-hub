@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useCountdown } from "./Count-down";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/pagination";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { string, z } from "zod";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 import { Form } from "@/components/ui/form";
@@ -24,47 +24,56 @@ import SubmitStep2 from "./SubmissionStep2";
 import SubmitStep3 from "./SubmissionStep3";
 import { File } from 'fumadocs-ui/components/files';
 import { Separator } from "@/components/ui/separator";
+import axios from "axios";
+import { HackathonHeader } from "@/types/hackathons";
+import { Project } from "@/types/project";
 
 export const FormSchema = z.object({
-  projectName: z
+  project_name: z
     .string()
     .min(2, { message: "Project Name must be at least 2 characters" })
     .max(60, { message: "Max 60 characters allowed" }),
-  shortDescription: z
+    short_description: z
     .string()
     .max(280, { message: "Max 280 characters allowed" }),
-  fullDescription: z.string().optional(),
-  tech: z.string().optional(),
-  how_made_it: z.string().optional(),
+    full_description: z.string().optional(),
+
+  tech_stack: z.string().optional(),
   github_repository: z.string().optional(),
   demo_link: z.string().optional(),
+  open_source: z.boolean(),
   logoFile: z.any().optional(),
   coverFile: z.any().optional(),
   screenshots: z.any().optional(),
   demoVideoLink: z.string().optional(),
-  track: z
-  .array(z.enum(["tech", "design", "business"]))
-  .nonempty({ message: "Please select at least one track" }),
+  tracks: z.array(z.string()).min(1, "track are required"),
 });
 
 export type SubmissionForm = z.infer<typeof FormSchema>;
 
-export default function GeneralComponent() {
-  const [progress, setProgress] = useState<number>(40);
+export default function GeneralComponent(
+  {
+    searchParams,
+  }: {
+    searchParams: { [key: string]: string | string[] | undefined };
+  }
+) {
+  const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
+  const [progress, setProgress] = useState<number>(0);
   const [formData, setFormData] = useState({});
   const [step, setStep] = useState(1);
   const [deadline, setDeadline] = useState<number>(
     new Date().getTime() + 12 * 60 * 60 * 1000 // 12h de cuenta regresiva
   );
   const timeLeft: string = useCountdown(deadline);
-
+  let hackathon_id = searchParams?.hackaId ?? "";
   const form = useForm<SubmissionForm>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      projectName: "",
-      shortDescription: "",
-      fullDescription: "",
-      track: [],
+      project_name: "",
+      short_description: "",
+      full_description: "",
+      tracks: [],
     },
   });
   const handleStepChange = (newStep: number) => {
@@ -77,7 +86,33 @@ export default function GeneralComponent() {
     }
   };
 
+  async function getHackathon() {
+    if (!hackathon_id) return;
+    try {
+      const response = await axios.get(`/api/hackathons/${hackathon_id}`);
+      setHackathon(response.data);
+    } catch (err) {
+      console.error("API Error:", err);
+    }
+  }
+
+
+  async function uploadFile(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
   
+    const response = await fetch('/api/upload-file', {
+      method: 'POST',
+      body: formData,
+    });
+  
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Error uploading file');
+    }
+  
+    return data.url;
+  }
 
   const onNextStep = async () => {
     let fieldsToValidate: (keyof SubmissionForm)[] = [];
@@ -112,24 +147,78 @@ export default function GeneralComponent() {
       setStep((prev) => prev + 1);
     }
   };
+  const handleSave = async () => {
+    try {
+      await form.handleSubmit(save)(); // Ejecuta save con los datos del formulario
+    } catch (error) {
+      console.error("Error al guardar:", error);
+    }
+  };
+
+
+  async function saveRegisterForm(data: Project) {
+    try {
+      await axios.post(`/api/project-submission/`, data);
+    } catch (err) {
+      console.error("API Error:", err);
+    }
+  }
+  const save=async(data: SubmissionForm)=>{
+    const uploadedFiles = {
+      logoFileUrl: data.logoFile ? await uploadFile(data.logoFile) : null,
+      coverFileUrl: data.coverFile ? await uploadFile(data.coverFile) : null,
+      screenshotsUrls: data.screenshots
+        ? await Promise.all(data.screenshots.map(uploadFile))
+        : [],
+    };
+
+    setFormData((prevData) => ({ ...prevData, ...data }));
+    // Combinar datos del formulario con las URLs de los archivos subidos
+    const finalData:Project = {
+      ...data,
+      logo_url: uploadedFiles.logoFileUrl??"",
+      cover_url: uploadedFiles.coverFileUrl??"",
+      screenshots: uploadedFiles.screenshotsUrls,
+      hackaton_id:hackathon_id as string,
+      id:""
+    };
+     saveRegisterForm(finalData)
+  }
+
   const onSubmit = async (data: SubmissionForm) => {
     if (step < 3) {
       setStep(step + 1);
     } else {
-      setFormData((prevData) => ({ ...prevData, ...data }));
-      // const finalData = {
-      //   ...data,
-      //   hackathon_id: hackathon_id,
-      //   utm: utm != "" ? utm : utmSaved,
-      //   interests: data.interests ?? [],
-      //   languages: data.languages ?? [],
-      //   roles: data.roles ?? [],
-      //   tools: data.tools,
-      // };
-      // await saveRegisterForm(finalData);
-      // setIsDialogOpen(true); // Abrir el diálogo después de guardar
+      try{
+     await save(data);
+     const finalData={
+      ...data
+     }
+        // const finalData = {
+        //   ...data,
+        //   hackathon_id: hackathon_id,
+        //   utm: utm != "" ? utm : utmSaved,
+        //   interests: data.interests ?? [],
+        //   languages: data.languages ?? [],
+        //   roles: data.roles ?? [],
+        //   tools: data.tools,
+        // };
+        // await saveRegisterForm(finalData);
+        // setIsDialogOpen(true); // Abrir el diálogo después de guardar
+
+
+      }catch(error){
+console.error("Error uploading files:", error);
+      }
+ 
     }
   };
+
+  
+    useEffect(() => {
+      getHackathon();
+    }, [hackathon_id]);
+
   return (
     <div className="p-6  rounded-lg">
       {/* Encabezado */}
@@ -199,7 +288,8 @@ export default function GeneralComponent() {
                       Continue
                     </Button>
                     <Button
-                      type="button"
+                     type="button"
+                     onClick={handleSave}
                       variant="secondary"
                       className="dark:bg-white dark:text-black px-4 py-2"
                     >

@@ -79,7 +79,7 @@ const SubmitStep1: FC = () => {
         {/* Project Name */}
         <FormField
           control={form.control}
-          name="projectName"
+          name="project_name"
           render={({ field }) => (
             <FormItem>
                <FormLabelWithCheck label="Project Name" checked={!!field.value} />
@@ -98,7 +98,7 @@ const SubmitStep1: FC = () => {
         {/* Short Description */}
         <FormField
           control={form.control}
-          name="shortDescription"
+          name="short_description"
           render={({ field }) => (
             <FormItem>
            
@@ -118,7 +118,7 @@ const SubmitStep1: FC = () => {
         {/* Full Description */}
         <FormField
           control={form.control}
-          name="fullDescription"
+          name="full_description"
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck label="Full Description" checked={!!field.value} />
@@ -137,7 +137,7 @@ const SubmitStep1: FC = () => {
         {/* Track (MultiSelect) */}
         <FormField
           control={form.control}
-          name="track"
+          name="tracks"
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck label="Tracks" checked={field.value.length>0} />

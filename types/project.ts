@@ -6,9 +6,9 @@ export interface Project {
   project_name: string;
   short_description: string;
   full_description?: string;
-  tech_stack: string,
-  github_repository: string,
-  demo_link: string,
+  tech_stack?: string,
+  github_repository?: string,
+  demo_link?: string,
   open_source:boolean;
   logo_url?: string;
   cover_url?: string;
