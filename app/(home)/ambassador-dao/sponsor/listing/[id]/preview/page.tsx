@@ -14,6 +14,7 @@ import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
 import { PublishOpportunityModal } from "@/components/ambassador-dao/sections/publish-opportunity-modal";
 import { useFetchOpportunityDetails } from "@/services/ambassador-dao/requests/opportunity";
 import { Eye } from "lucide-react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import React, { useState } from "react";
 
@@ -70,12 +71,17 @@ const AmbasssadorDaoSponsorsListingPreview = () => {
     <div className='p-4 md:p-8 m-4 md:m-8 bg-[#09090B] border border-[#27272A] rounded-md'>
       <div className='flex justify-end mb-8'>
         <div className='flex space-x-3'>
-          <CustomButton
-            variant='outlined'
-            className='px-4 text-[#fff] whitespace-nowrap'
+          <Link
+            href={`/ambassador-dao/sponsor/listing/${data?.id}/update?type=${data?.type}`}
           >
-            Continue Editing
-          </CustomButton>
+            <CustomButton
+              variant='outlined'
+              className='px-4 text-[#fff] whitespace-nowrap'
+            >
+              Continue Editing
+            </CustomButton>
+          </Link>
+
           {data?.status === "DRAFT" && (
             <CustomButton
               variant={"danger"}
@@ -131,14 +137,15 @@ const AmbasssadorDaoSponsorsListingPreview = () => {
           )}
         </>
       )}
-
-      <PublishOpportunityModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-        }}
-        opportunityId={data.id ?? ""}
-      />
+      {data && (
+        <PublishOpportunityModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+          }}
+          opportunityId={data.id}
+        />
+      )}
     </div>
   );
 };

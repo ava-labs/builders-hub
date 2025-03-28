@@ -66,6 +66,23 @@ export const useDeleteOpportunityMutation = (id: string) => {
   });
 };
 
+export const useUpdateOpportunityMutation = (id: string) => {
+  const queryclient = useQueryClient();
+  return useMutation({
+    mutationKey: ["updateOpportunity"],
+    mutationFn: async (args: ICreateOpportunityBody) => {
+      const res = await axios.patch(`${API_DEV}/opportunity/${id}`, args);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      queryclient.invalidateQueries({ queryKey: ["allListings"] });
+      queryclient.invalidateQueries({ queryKey: ["singleListings"] });
+    },
+    onError: (err) => errorMsg(err),
+  });
+};
+
 export const useFetchAllListings = (
   query: string,
   type: string,
@@ -91,7 +108,7 @@ export const useFetchAllListings = (
   });
 };
 
-export const useFetchSingleListing = (id: string) => {
+export const useFetchSingleListing = (id: string | undefined) => {
   return useQuery({
     queryKey: ["singleListings", id],
     queryFn: async () => {
@@ -99,6 +116,7 @@ export const useFetchSingleListing = (id: string) => {
       return res.data.data as IOpportunityListing;
     },
     staleTime: Infinity,
+    enabled: !!id,
   });
 };
 

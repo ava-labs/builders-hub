@@ -274,9 +274,9 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                             <TableCell className='text-right'>
                               {/* Desktop actions */}
                               <div className='hidden sm:flex justify-end space-x-2'>
-                                {listing.status !== "PUBLISHED" && (
+                                {listing.status === "DRAFT" && (
                                   <Link
-                                    href={`/ambassador-dao/sponsor/listing/${listing.id}/preview`}
+                                    href={`/ambassador-dao/sponsor/listing/${listing.id}/update?type=${listing.type}`}
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <Button
@@ -353,13 +353,21 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                     align='end'
                                     className='bg-gray-800 border-[#27272A]'
                                   >
-                                    <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
-                                      <PenLine
-                                        className='h-4 w-4 mr-2'
-                                        color='#9F9FA9'
-                                      />{" "}
-                                      Edit
-                                    </DropdownMenuItem>
+                                    {listing.status === "DRAFT" && (
+                                      <Link
+                                        href={`/ambassador-dao/sponsor/listing/${listing.id}/update?type=${listing.type}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
+                                          <PenLine
+                                            className='h-4 w-4 mr-2'
+                                            color='#9F9FA9'
+                                          />{" "}
+                                          Edit
+                                        </DropdownMenuItem>
+                                      </Link>
+                                    )}
+
                                     <DropdownMenuItem
                                       className='text-white hover:bg-gray-700 cursor-pointer'
                                       onClick={(e) => {
