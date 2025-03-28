@@ -37,7 +37,7 @@ export interface IOpportunityListing {
   description: string;
   type: "JOB" | "BOUNTY";
   category: string;
-  status: "ALL" | "DRAFT" | "OPEN" | "IN_REVIEW" | "COMPLETED";
+  status: "ALL" | "DRAFT" | "OPEN" | "IN_REVIEW" | "COMPLETED" | "PUBLISHED";
   start_date: string;
   end_date: string;
   created_at: string;

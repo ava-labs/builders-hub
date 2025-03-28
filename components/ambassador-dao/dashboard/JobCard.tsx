@@ -5,11 +5,19 @@ import { useRouter } from "next/navigation";
 import { IJobDataType } from "@/services/ambassador-dao/interfaces/opportunity";
 import { Outline } from "../ui/Outline";
 import { getTimeLeft } from "@/utils/timeFormatting";
-import Token from "@/public/ambassador-dao-images/token.png";
+import Token from "@/public/images/usdcToken.svg";
 
 export const JobCard = ({ job }: IJobDataType) => {
-  const { id, title, created_by, total_budget, end_date, proposals, skills, _count } =
-    job;
+  const {
+    id,
+    title,
+    created_by,
+    total_budget,
+    end_date,
+    proposals,
+    skills,
+    _count,
+  } = job;
 
   const router = useRouter();
 
@@ -38,7 +46,7 @@ export const JobCard = ({ job }: IJobDataType) => {
                 <p className='text-gray-400'>
                   {created_by?.company_profile?.name}
                 </p>
-                <div className='flex flex-col sm:flex-row sm:items-center space-x-4'>
+                <div className='flex flex-col sm:flex-row sm:items-center space-x-4 mt-2'>
                   <div className='flex items-center text-sm text-gray-400'>
                     <BriefcaseBusiness
                       color='#9F9FA9'
@@ -61,7 +69,7 @@ export const JobCard = ({ job }: IJobDataType) => {
           <div className='flex items-center'>
             <span className='text-white flex items-center gap-1'>
               <Image src={Token} alt='$' />
-              {total_budget}
+              {parseFloat(total_budget).toLocaleString()}
             </span>
           </div>
         </div>

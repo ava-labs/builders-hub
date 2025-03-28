@@ -10,6 +10,7 @@ import {
   IOppotunityListingResponse,
   IOppotunitySubmissionsResponse,
 } from "../interfaces/sponsor";
+import { useRouter } from 'next/navigation';
 
 export const useCreateOpportunityMutation = () => {
   const queryclient = useQueryClient();
@@ -21,6 +22,26 @@ export const useCreateOpportunityMutation = () => {
     },
     onSuccess: (data) => {
       toast.success(data.message);
+      queryclient.invalidateQueries({ queryKey: ["allListings"] });
+    },
+    onError: (err) => errorMsg(err),
+  });
+};
+
+export const usePublishOpportunityMutation = (id: string) => {
+  const queryclient = useQueryClient();
+  const router = useRouter();
+  return useMutation({
+    mutationKey: ["publishOpportunity"],
+    mutationFn: async (should_publish: boolean) => {
+      const res = await axios.patch(`${API_DEV}/opportunity/${id}`, {
+        should_publish,
+      });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      router.push("/ambassador-dao/sponsor");
       queryclient.invalidateQueries({ queryKey: ["allListings"] });
     },
     onError: (err) => errorMsg(err),
