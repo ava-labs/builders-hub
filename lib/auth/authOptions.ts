@@ -3,7 +3,6 @@ import GoogleProvider from "next-auth/providers/google";
 import GithubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import TwitterProvider from "next-auth/providers/twitter";
-import { MailerSend } from "mailersend";
 import { prisma } from "../../prisma/prisma";
 import { JWT } from "next-auth/jwt";
 import type { VerifyOTPResult } from "@/types/verifyOTPResult";
@@ -24,10 +23,6 @@ declare module "next-auth" {
     avatar?: string;
   }
 }
-
-const mailersend = new MailerSend({
-  apiKey: process.env.MAILERSEND_API_TOKEN as string,
-});
 
 async function verifyOTP(
   email: string,
@@ -89,12 +84,12 @@ export const AuthOptions: NextAuthOptions = {
 
         if (!result.isValid) {
           if (result.reason === "EXPIRED") {
-            throw new Error("Expired");
+            throw new Error("EXPIRED");
           } else if (
             result.reason === "NOT_FOUND" ||
             result.reason === "INVALID"
           ) {
-            throw new Error("Invalid OTP Code");
+            throw new Error("INVALID");
           } else {
             throw new Error("Error verifying OTP Code");
           }

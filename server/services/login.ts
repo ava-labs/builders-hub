@@ -1,9 +1,8 @@
 import { generate6DigitCode } from '@/lib/auth/authOptions';
 import { prisma } from '@/prisma/prisma';
-import { EmailParams, Sender, Recipient, MailerSend } from 'mailersend';
-const mailersend = new MailerSend({
-  apiKey: process.env.MAILERSEND_API_TOKEN as string,
-});
+import sgMail from '@sendgrid/mail';
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
 
 export async function sendOTP(email: string) {
   const code = generate6DigitCode();
@@ -20,15 +19,14 @@ export async function sendOTP(email: string) {
     },
   });
 
-  const sender = new Sender(
-    process.env.EMAIL_FROM as string,
-    "Avalanche Builder's Hub"
-  );
-  const recipients = [new Recipient(email, 'Usuario')];
+  const from = {
+    email: process.env.EMAIL_FROM as string,
+    name: "Avalanche Builder's Hub"
+  };
 
-  const emailParams = new EmailParams({
-    from: sender,
-    to: recipients,
+  const msg = {
+    to: email,
+    from: from,
     subject: 'Verify Your Account',
     text: `Your verification code is: ${code}. It expires in 3 minutes.`,
     html: `
@@ -45,14 +43,14 @@ export async function sendOTP(email: string) {
 
       <div style="margin-top: 20px;">
         <img src="https://build.avax.network/logo-white.png" alt="Company Logo" style="max-width: 120px; margin-bottom: 10px;">
-        <p style="font-size: 12px; color: #A1A1AA;">Avalanche Builder's Hub &copy; 2025</p>
+        <p style="font-size: 12px; color: #A1A1AA;">Avalanche Builder's Hub © 2025</p>
       </div>
     </div>
   `,
-  });
+  };
 
   try {
-    await mailersend.email.send(emailParams);
+    await sgMail.send(msg);
   } catch (error) {
     throw new Error('Error sending email');
   }
