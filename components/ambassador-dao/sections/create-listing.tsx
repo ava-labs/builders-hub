@@ -24,8 +24,6 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { Image as ImageIcon } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
   PopoverContent,
