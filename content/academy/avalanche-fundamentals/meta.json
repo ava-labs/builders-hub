@@ -4,6 +4,7 @@
   "root": true,
   "pages": [
     "index",
+    "glossary",
     "---Primer on Avalanche Consensus---",
     "...02-avalanche-consensus-intro",
     "---Multi-Chain Architecture---",
