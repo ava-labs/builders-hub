@@ -53,6 +53,22 @@ interface CommentProps {
   opportunityId: string;
 }
 
+interface JobSidebarProps {
+  job: {
+    id: string;
+    category: string;
+    total_budget: number;
+    deadline: string;
+    proposalsCount: number;
+    skills: Array<{ name: string }>;
+    custom_questions: any[];
+    prize_distribution?: Array<{
+      amount: number;
+      position: number;
+    }>;
+  };
+}
+
 const GoBackButton = () => {
   const router = useRouter();
 
@@ -63,9 +79,9 @@ const GoBackButton = () => {
   return (
     <button
       onClick={handleGoBack}
-      className='flex items-center gap-2 text-[#FAFAFA] hover:text-white mb-6 bg-[#1A1A1A] py-2 px-4 rounded-md'
+      className="flex items-center gap-2 text-[#FAFAFA] hover:text-white mb-6 bg-[#1A1A1A] py-2 px-4 rounded-md"
     >
-      <ArrowLeft size={16} color='#FAFAFA' />
+      <ArrowLeft size={16} color="#FAFAFA" />
       <span>Go Back</span>
     </button>
   );
@@ -83,19 +99,19 @@ const Reply: React.FC<ReplyProps> = ({ reply, isOptimistic = false }) => {
         isOptimistic ? "border-blue-400 border-opacity-50" : ""
       }`}
     >
-      <div className='flex gap-3'>
-        <div className='w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center'>
-          <span className='text-white text-xs'>
+      <div className="flex gap-3">
+        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center">
+          <span className="text-white text-xs">
             {reply?.author?.first_name?.substring(0, 2).toUpperCase()}
           </span>
         </div>
-        <div className='flex-1'>
-          <div className='mb-1'>
-            <h3 className='font-medium text-[#FB2C36]'>
+        <div className="flex-1">
+          <div className="mb-1">
+            <h3 className="font-medium text-[#FB2C36]">
               {reply?.author?.first_name} {reply?.author?.last_name}
             </h3>
           </div>
-          <p className='text-gray-300 text-sm'>{reply?.content}</p>
+          <p className="text-gray-300 text-sm">{reply?.content}</p>
         </div>
       </div>
     </div>
@@ -232,21 +248,21 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
 
   if (displayRepliesCount === 0 && !isReplying && !isLoading) {
     return (
-      <div className='ml-12 my-2'>
+      <div className="ml-12 my-2">
         <button
-          type='button'
+          type="button"
           onClick={() => setIsReplying(!isReplying)}
-          className='hover:text-white text-gray-400 px-4 rounded-md text-sm transition'
+          className="hover:text-white text-gray-400 px-4 rounded-md text-sm transition"
         >
           Reply
         </button>
 
         {isReplying && (
-          <div className='mt-2'>
+          <div className="mt-2">
             <form onSubmit={handleReplySubmit}>
               <textarea
-                className='w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900'
-                placeholder='Write a reply...'
+                className="w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900"
+                placeholder="Write a reply..."
                 rows={1}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
@@ -254,17 +270,17 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
               ></textarea>
 
               {replyText.trim() !== "" && (
-                <div className='flex justify-end gap-2 mt-2'>
+                <div className="flex justify-end gap-2 mt-2">
                   <button
-                    type='button'
+                    type="button"
                     onClick={handleCancelReply}
-                    className='px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition'
+                    className="px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition"
                   >
                     Cancel
                   </button>
                   <button
-                    type='submit'
-                    className='px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition'
+                    type="submit"
+                    className="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition"
                   >
                     Reply
                   </button>
@@ -277,19 +293,20 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
         <AuthModal
           isOpen={openAuthModal}
           onClose={() => setOpenAuthModal(false)}
+          stopRedirection={true}
         />
       </div>
     );
   }
 
   return (
-    <div className='ml-12'>
-      <div className='flex items-center gap-2 my-2'>
+    <div className="ml-12">
+      <div className="flex items-center gap-2 my-2">
         {displayRepliesCount > 0 && (
           <button
-            type='button'
+            type="button"
             onClick={toggleReplies}
-            className='text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1 transition'
+            className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1 transition"
           >
             {isLoading ? (
               <span>Loading replies...</span>
@@ -297,29 +314,29 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
               <>
                 {displayRepliesCount}{" "}
                 {displayRepliesCount === 1 ? "Reply" : "Replies"}
-                <span className='text-xs'>{showReplies ? "▲" : "▼"}</span>
+                <span className="text-xs">{showReplies ? "▲" : "▼"}</span>
               </>
             )}
           </button>
         )}
 
-        <span className='text-gray-500'>•</span>
+        <span className="text-gray-500">•</span>
 
         <button
-          type='button'
+          type="button"
           onClick={() => setIsReplying(!isReplying)}
-          className='hover:text-white text-gray-400 text-sm transition'
+          className="hover:text-white text-gray-400 text-sm transition"
         >
           Reply
         </button>
       </div>
 
       {isReplying && (
-        <div className='mt-2'>
+        <div className="mt-2">
           <form onSubmit={handleReplySubmit}>
             <textarea
-              className='w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900'
-              placeholder='Write a reply...'
+              className="w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900"
+              placeholder="Write a reply..."
               rows={1}
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
@@ -327,17 +344,17 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
             ></textarea>
 
             {replyText.trim() !== "" && (
-              <div className='flex justify-end gap-2 mt-2'>
+              <div className="flex justify-end gap-2 mt-2">
                 <button
-                  type='button'
+                  type="button"
                   onClick={handleCancelReply}
-                  className='px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition'
+                  className="px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition"
                 >
                   Cancel
                 </button>
                 <button
-                  type='submit'
-                  className='px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition'
+                  type="submit"
+                  className="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition"
                 >
                   Reply
                 </button>
@@ -350,14 +367,15 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
       <AuthModal
         isOpen={openAuthModal}
         onClose={() => setOpenAuthModal(false)}
+        stopRedirection={true}
       />
 
       {isError && !optimisticReplies.length && (
-        <div className='text-red-500 text-sm my-2'>Failed to load replies</div>
+        <div className="text-red-500 text-sm my-2">Failed to load replies</div>
       )}
 
       {showReplies && displayReplies.length > 0 && (
-        <div className='space-y-2 mt-2 pl-2 border-l-2 border-gray-800'>
+        <div className="space-y-2 mt-2 pl-2 border-l-2 border-gray-800">
           {displayReplies.map((reply, idx) => (
             <Reply
               key={`reply-${reply.id}-${idx}`}
@@ -438,35 +456,35 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
         comment.isOptimistic ? "border-blue-400 border-opacity-50" : ""
       }`}
     >
-      <div className='p-4 border border-gray-800 rounded-lg my-2 relative'>
-        <div className='flex gap-3 w-full'>
-          <div className='w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center'>
-            <span className='text-white text-sm'>
+      <div className="p-4 border border-gray-800 rounded-lg my-2 relative">
+        <div className="flex gap-3 w-full">
+          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center">
+            <span className="text-white text-sm">
               {comment?.author?.first_name?.substring(0, 2).toUpperCase()}
             </span>
           </div>
-          <div className='flex-1'>
-            <div className='flex justify-between items-start mb-1 w-full'>
-              <h3 className='font-medium text-[#FB2C36]'>
+          <div className="flex-1">
+            <div className="flex justify-between items-start mb-1 w-full">
+              <h3 className="font-medium text-[#FB2C36]">
                 {comment?.author?.first_name} {comment?.author?.last_name}
               </h3>
               {isEditable && (
                 <button
-                  className='p-1 text-gray-400 hover:text-white focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity'
+                  className="p-1 text-gray-400 hover:text-white focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={toggleOptions}
-                  aria-label='Comment options'
+                  aria-label="Comment options"
                 >
-                  <MoreVertical size={16} color='#fff' />
+                  <MoreVertical size={16} color="#fff" />
                 </button>
               )}
 
               {showOptions && isEditable && (
                 <div
                   ref={optionsRef}
-                  className='absolute right-4 top-4 bg-gray-800 rounded-md shadow-lg z-10 py-1 min-w-[100px]'
+                  className="absolute right-4 top-4 bg-gray-800 rounded-md shadow-lg z-10 py-1 min-w-[100px]"
                 >
                   <button
-                    className='w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700'
+                    className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700"
                     onClick={() => {
                       setIsEditing(true);
                       setShowOptions(false);
@@ -475,7 +493,7 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
                     Edit
                   </button>
                   <button
-                    className='w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-700'
+                    className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-700"
                     onClick={handleDeleteComment}
                   >
                     Delete
@@ -485,36 +503,36 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
             </div>
 
             {isEditing ? (
-              <form onSubmit={handleEditSubmit} className='mt-2'>
+              <form onSubmit={handleEditSubmit} className="mt-2">
                 <textarea
-                  className='w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900'
-                  placeholder='Edit your comment'
+                  className="w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900"
+                  placeholder="Edit your comment"
                   rows={2}
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
                   autoFocus
                 ></textarea>
-                <div className='flex justify-end gap-2 mt-2'>
+                <div className="flex justify-end gap-2 mt-2">
                   <button
-                    type='button'
+                    type="button"
                     onClick={() => {
                       setEditText(comment?.content);
                       setIsEditing(false);
                     }}
-                    className='px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition'
+                    className="px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition"
                   >
                     Cancel
                   </button>
                   <button
-                    type='submit'
-                    className='px-4 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm transition'
+                    type="submit"
+                    className="px-4 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm transition"
                   >
                     Save
                   </button>
                 </div>
               </form>
             ) : (
-              <p className='text-gray-300 text-sm'>{comment?.content}</p>
+              <p className="text-gray-300 text-sm">{comment?.content}</p>
             )}
           </div>
         </div>
@@ -654,18 +672,18 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
   };
 
   return (
-    <div className='mt-8 border-t border-gray-800 pt-6'>
-      <div className='flex items-center gap-2 mb-4'>
-        <MessagesSquare size={16} color='#9F9FA9' />
-        <h2 className='text-lg font-semibold'>
+    <div className="mt-8 border-t border-gray-800 pt-6">
+      <div className="flex items-center gap-2 mb-4">
+        <MessagesSquare size={16} color="#9F9FA9" />
+        <h2 className="text-lg font-semibold">
           {(metadata.total || 0) + optimisticComments.length} Comments
         </h2>
       </div>
 
-      <form onSubmit={handleSubmitComment} className='mt-6 relative'>
+      <form onSubmit={handleSubmitComment} className="mt-6 relative">
         <textarea
-          className='w-full border border-gray-800 bg-gray-900 rounded-md p-3 text-white resize-none focus:outline-none'
-          placeholder='Write Comments'
+          className="w-full border border-gray-800 bg-gray-900 rounded-md p-3 text-white resize-none focus:outline-none"
+          placeholder="Write Comments"
           rows={isFocused || newComment.length > 0 ? 2 : 1}
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
@@ -675,19 +693,19 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
 
         {(isFocused || newComment.trim() !== "") && (
           <>
-            <div className='text-gray-400 text-xs flex justify-end mt-1'>
+            <div className="text-gray-400 text-xs flex justify-end mt-1">
               {`${280 - newComment.length} characters left`}
             </div>
-            <div className='flex justify-end gap-2 mt-2'>
+            <div className="flex justify-end gap-2 mt-2">
               <button
-                type='button'
+                type="button"
                 onClick={handleCancelComment}
-                className='px-4 py-2 text-gray-300 hover:text-white rounded-md text-sm transition'
+                className="px-4 py-2 text-gray-300 hover:text-white rounded-md text-sm transition"
               >
                 Cancel
               </button>
               <button
-                type='submit'
+                type="submit"
                 className={`px-4 py-2 bg-red-500 text-white rounded-md text-sm transition ${
                   newComment.trim() === "" || isSubmitting
                     ? "opacity-50 cursor-not-allowed"
@@ -703,14 +721,14 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
       </form>
 
       {isLoadingComments ? (
-        <div className='flex justify-center my-8'>
+        <div className="flex justify-center my-8">
           <Loader />
         </div>
       ) : (
         <>
-          <div className='space-y-4 mt-6'>
+          <div className="space-y-4 mt-6">
             {displayComments.length === 0 ? (
-              <p className='text-gray-400 text-center py-8'>
+              <p className="text-gray-400 text-center py-8">
                 No comments yet. Be the first to comment!
               </p>
             ) : (
@@ -728,13 +746,14 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
             <Pagination
               metadata={metadata}
               onPageChange={handlePageChange}
-              className='my-8'
+              className="my-8"
             />
           )}
 
           <AuthModal
             isOpen={openAuthModal}
             onClose={() => setOpenAuthModal(false)}
+            stopRedirection={true}
           />
         </>
       )}
@@ -782,6 +801,7 @@ const AmbasssadorDaoSingleJobPage = () => {
 
   const sidebarData = {
     id: data?.id,
+    category: data?.category,
     total_budget: data?.total_budget || 0,
     deadline: data?.end_date,
     proposalsCount: data?.max_winners || 0,
@@ -795,15 +815,15 @@ const AmbasssadorDaoSingleJobPage = () => {
   }
 
   return (
-    <div className='text-white min-h-screen'>
-      <div className='max-w-7xl mx-auto px-4 py-8 border border-[#27272A] rounded-lg shadow-sm my-6'>
+    <div className="text-white min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 py-8 border border-[#27272A] rounded-lg shadow-sm my-6">
         <GoBackButton />
 
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
-          <div className='md:col-span-2 flex flex-col'>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2 flex flex-col">
             <JobHeader job={headerData} />
 
-            <div className='block md:hidden my-6'>
+            <div className="block md:hidden my-6">
               <JobSidebar job={sidebarData} />
             </div>
 
@@ -812,7 +832,7 @@ const AmbasssadorDaoSingleJobPage = () => {
             <CommentsSection id={slug} />
           </div>
 
-          <div className='hidden md:block md:col-span-1'>
+          <div className="hidden md:block md:col-span-1">
             <JobSidebar job={sidebarData} />
           </div>
         </div>

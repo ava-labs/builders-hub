@@ -46,6 +46,7 @@ interface JobSidebarProps {
   nullAction?: boolean;
   job: {
     id: string;
+    category: string;
     total_budget: number;
     deadline: string;
     proposalsCount: number;
@@ -125,8 +126,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
           <div>No skills available</div>
         )}
       </div>
-
-      <button
+      {job.category === "AMBASSADOR_SPECIFIC" && userData?.role !== "AMBASSADOR" ? null : <button
         disabled={data?.has_applied || timeLeft === "Expired"}
         className={`w-full font-medium py-3 rounded-md transition ${
           data?.has_applied || timeLeft === "Expired"
@@ -141,7 +141,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
         }}
       >
         {isLoading ? (
-          <Loader2 color='#FFF' />
+          <Loader2 color="#FFF" />
         ) : data?.has_applied ? (
           "Already Applied"
         ) : timeLeft === "Expired" ? (
@@ -149,11 +149,12 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
         ) : (
           "APPLY"
         )}
-      </button>
+      </button>}
 
       <AuthModal
         isOpen={openAuthModal}
         onClose={() => setOpenAuthModal(false)}
+        stopRedirection={true}
       />
 
       {isModalOpen && (

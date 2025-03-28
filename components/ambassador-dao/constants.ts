@@ -6,7 +6,7 @@ export const statusOptions = [
 
 export const jobTypes = [
   { id: "PUBLIC", label: "All" },
-  { id: "AMBASSADOR", label: "Ambassador" },
+  { id: "AMBASSADOR_SPECIFIC", label: "Ambassador" },
 ];
 
 export const minBudget = [
