@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MoreHorizontal, PenLine, Trash2, Link, Pause } from "lucide-react";
+import { MoreHorizontal, PenLine, Trash2, Pause } from "lucide-react";
+import { Link as LinkIcon } from "lucide-react";
+
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Avalance3d from "@/public/ambassador-dao-images/3d.png";
@@ -265,29 +269,42 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                             <TableCell className='text-right'>
                               {/* Desktop actions */}
                               <div className='hidden sm:flex justify-end space-x-2'>
+                                {listing.status !== "PUBLISHED" && (
+                                  <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='p-1 h-auto'
+                                  >
+                                    <PenLine
+                                      className='h-4 w-4'
+                                      color='#9F9FA9'
+                                    />
+                                  </Button>
+                                )}
+                                <Link
+                                  href={`/ambassador-dao/sponsor/listing/${listing.id}/preview`}
+                                >
+                                  <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='p-1 h-auto'
+                                  >
+                                    <Trash2
+                                      className='h-4 w-4'
+                                      color='#9F9FA9'
+                                    />
+                                  </Button>
+                                </Link>
+
                                 <Button
                                   variant='ghost'
                                   size='sm'
                                   className='p-1 h-auto'
                                 >
-                                  <PenLine
+                                  <LinkIcon
                                     className='h-4 w-4'
                                     color='#9F9FA9'
                                   />
-                                </Button>
-                                <Button
-                                  variant='ghost'
-                                  size='sm'
-                                  className='p-1 h-auto'
-                                >
-                                  <Trash2 className='h-4 w-4' color='#9F9FA9' />
-                                </Button>
-                                <Button
-                                  variant='ghost'
-                                  size='sm'
-                                  className='p-1 h-auto'
-                                >
-                                  <Link className='h-4 w-4' color='#9F9FA9' />
                                 </Button>
                                 <Button
                                   variant='ghost'
@@ -328,7 +345,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                       Delete
                                     </DropdownMenuItem>
                                     <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
-                                      <Link
+                                      <LinkIcon
                                         className='h-4 w-4 mr-2'
                                         color='#9F9FA9'
                                       />{" "}

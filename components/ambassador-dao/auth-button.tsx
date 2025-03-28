@@ -9,7 +9,7 @@ import {
 } from "@/services/ambassador-dao/requests/auth";
 import Image from "next/image";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
-import { LogOut, User2Icon } from "lucide-react";
+import { ListIcon, LogOut, User2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export const AuthButton = () => {
@@ -35,6 +35,18 @@ export const AuthButton = () => {
             </PopoverTrigger>
             <PopoverContent className='w-auto p-0' align='start'>
               <div className='w-42 border border-[#27272A] bg-[#09090B] rounded-md flex flex-col space-y-1'>
+                {user.role === "SPONSOR" && (
+                  <>
+                    <div
+                      onClick={() => router.push("/ambassador-dao/sponsor")}
+                      className='px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-black'
+                    >
+                      <ListIcon color='#fff' size={16} />
+                      Listings
+                    </div>
+                    <hr />
+                  </>
+                )}
                 <div
                   onClick={() => router.push("/ambassador-dao/profile")}
                   className='px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-black'

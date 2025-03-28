@@ -1,8 +1,7 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Mail } from "lucide-react";
 import React, { useState, useEffect, Suspense } from "react";
 import { VerificationInput } from "../verification-code";
-import { DialogTitle } from "@radix-ui/react-dialog";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { useSearchParams } from "next/navigation";
@@ -21,7 +20,7 @@ import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
 interface IAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  allowRedirection?: boolean
+  stopRedirection?: boolean;
 }
 
 type AuthStep = "options" | "email" | "verification";
@@ -46,7 +45,11 @@ const SearchParamsHandler = ({
   return null;
 };
 
-export const AuthModal = ({ isOpen, onClose, allowRedirection }: IAuthModalProps) => {
+export const AuthModal = ({
+  isOpen,
+  onClose,
+  stopRedirection,
+}: IAuthModalProps) => {
   const [currentStep, setCurrentStep] = useState<AuthStep>("options");
   const [email, setEmail] = useState("");
 
@@ -64,7 +67,13 @@ export const AuthModal = ({ isOpen, onClose, allowRedirection }: IAuthModalProps
           <EmailStep setCurrentStep={setCurrentStep} setEmail={setEmail} />
         );
       case "verification":
-        return <VerificationStep email={email} onClose={onCloseModal} />;
+        return (
+          <VerificationStep
+            email={email}
+            onClose={onCloseModal}
+            stopRedirection={stopRedirection}
+          />
+        );
     }
   };
 
@@ -219,9 +228,14 @@ const EmailStep = ({ setCurrentStep, setEmail }: EmailStepProps) => {
 interface VerificationStepProps {
   email: string;
   onClose: () => void;
+  stopRedirection?: boolean;
 }
 
-const VerificationStep = ({ email, onClose }: VerificationStepProps) => {
+const VerificationStep = ({
+  email,
+  onClose,
+  stopRedirection,
+}: VerificationStepProps) => {
   const router = useRouter();
   const [code, setCode] = useState("");
   const {
@@ -230,7 +244,7 @@ const VerificationStep = ({ email, onClose }: VerificationStepProps) => {
     formState: { errors },
   } = useForm<{ code: string }>();
   const { mutateAsync: verifyPasscodeMutation, isPending } =
-    useVerifyPasscodeMutation();
+    useVerifyPasscodeMutation(stopRedirection);
   const requestPasscodeMutation = useRequestPasscodeMutation();
   const [resendDisabled, setResendDisabled] = useState(true);
   const [timeLeft, setTimeLeft] = useState(30);

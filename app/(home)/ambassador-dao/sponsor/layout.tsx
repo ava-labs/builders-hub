@@ -25,6 +25,8 @@ const AmbasssadorDaoSponsorsLayout = ({
     } else if (user && user.role !== "SPONSOR") {
       toast.error("You dont have permission to access this page.");
       router.push("/ambassador-dao/jobs");
+    } else {
+      // do nothing
     }
   }, [user, isLoading, router]);
 

@@ -89,6 +89,7 @@ interface CommentProps {
 }
 
 interface BountySidebarProps {
+  nullAction?: boolean;
   bounty: {
     id: string;
     total_budget: number;
@@ -103,7 +104,10 @@ interface BountySidebarProps {
   };
 }
 
-const BountySidebar: React.FC<BountySidebarProps> = ({ bounty }) => {
+export const BountySidebar: React.FC<BountySidebarProps> = ({
+  bounty,
+  nullAction,
+}) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const timeLeft = useCountdown(bounty?.deadline);
   const [openAuthModal, setOpenAuthModal] = useState(false);
@@ -112,11 +116,11 @@ const BountySidebar: React.FC<BountySidebarProps> = ({ bounty }) => {
   const { data: userData } = useFetchUserDataQuery();
 
   return (
-    <div className="bg-[#111] p-4 rounded-md border border-gray-800 sticky top-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-white flex items-center gap-2">
-            <Image src={Token} alt="$" />
+    <div className='bg-[#111] p-4 rounded-md border border-gray-800 sticky top-6'>
+      <div className='flex items-center justify-between mb-4'>
+        <div className='flex items-center gap-2'>
+          <span className='text-white flex items-center gap-2'>
+            <Image src={Token} alt='$' />
             {bounty?.total_budget} USDC
           </span>
         </div>
@@ -125,41 +129,41 @@ const BountySidebar: React.FC<BountySidebarProps> = ({ bounty }) => {
       {bounty?.prize_distribution &&
         bounty?.prize_distribution?.map(
           (prize: { amount: number; position: number }, index: number) => (
-            <div key={index} className="flex items-center gap-2 my-2">
-              <Image src={Token} alt="$" />
+            <div key={index} className='flex items-center gap-2 my-2'>
+              <Image src={Token} alt='$' />
               {prize.amount} USDC{" "}
-              <span className="text-[#9F9FA9]">
+              <span className='text-[#9F9FA9]'>
                 {getOrdinalPosition(prize.position)}
               </span>
             </div>
           )
         )}
 
-      <div className="flex gap-4 items-center mb-6">
-        <div className="flex flex-col">
-          <span className="text-white flex items-center">
+      <div className='flex gap-4 items-center mb-6 mt-2'>
+        <div className='flex flex-col'>
+          <span className='text-white flex items-center'>
             <BriefcaseBusiness
               size={16}
-              className="inline mr-1"
-              color="#9F9FA9"
+              className='inline mr-1'
+              color='#9F9FA9'
             />
             <span>25-50</span>
           </span>
-          <span className="text-gray-400 text-sm">Application</span>
+          <span className='text-gray-400 text-sm'>Application</span>
         </div>
-        <div className="flex flex-col justify-center">
-          <span className="text-white flex items-center">
-            <Hourglass size={16} className="inline mr-1" color="#9F9FA9" />
+        <div className='flex flex-col justify-center'>
+          <span className='text-white flex items-center'>
+            <Hourglass size={16} className='inline mr-1' color='#9F9FA9' />
             <span>{timeLeft}</span>
           </span>
-          <span className="text-gray-400 text-sm">Remaining</span>
+          <span className='text-gray-400 text-sm'>Remaining</span>
         </div>
       </div>
 
-      <div className="mb-6">
-        <h2 className="text-lg font-medium mb-3 text-white">SKILL NEEDED</h2>
+      <div className='mb-6'>
+        <h2 className='text-lg font-medium mb-3 text-white'>SKILL NEEDED</h2>
         {bounty?.skills?.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          <div className='flex flex-wrap gap-2'>
             {bounty?.skills?.map((skill: { name: string }, index: number) => (
               <div key={index}>
                 <Outline label={skill.name} />
@@ -179,13 +183,14 @@ const BountySidebar: React.FC<BountySidebarProps> = ({ bounty }) => {
             : "bg-red-500 hover:bg-red-600 text-white"
         }`}
         onClick={() => {
+          if (nullAction) return;
           userData && !data?.has_submitted && timeLeft !== "Expired"
             ? setIsModalOpen(true)
             : !userData && setOpenAuthModal(true);
         }}
       >
         {isLoading ? (
-          <Loader2 color="#FFF" />
+          <Loader2 color='#FFF' />
         ) : data?.has_submitted ? (
           "Already Submitted"
         ) : timeLeft === "Expired" ? (
@@ -221,53 +226,53 @@ const GoBackButton = () => {
   return (
     <button
       onClick={handleGoBack}
-      className="flex items-center gap-2 text-[#FAFAFA] hover:text-white mb-6 bg-[#1A1A1A] py-2 px-4 rounded-md"
+      className='flex items-center gap-2 text-[#FAFAFA] hover:text-white mb-6 bg-[#1A1A1A] py-2 px-4 rounded-md'
     >
-      <ArrowLeft size={16} color="#FAFAFA" />
+      <ArrowLeft size={16} color='#FAFAFA' />
       <span>Go Back</span>
     </button>
   );
 };
 
-const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
+export const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
   return (
-    <div className="border border-[#27272A] p-4 mb-6 rounded-lg">
-      <div className="flex items-center gap-5">
+    <div className='border border-[#27272A] p-4 mb-6 rounded-lg'>
+      <div className='flex items-center gap-5'>
         {bounty.companyLogo ? (
           <img
             src={bounty.companyLogo}
             alt={bounty.companyName}
-            className="w-14 h-14 rounded-full object-cover"
+            className='w-14 h-14 rounded-full object-cover'
           />
         ) : (
-          <CircleUser color="#9F9FA9" size={56} />
+          <CircleUser color='#9F9FA9' size={56} />
         )}
-        <div className="mb-6">
-          <h1 className="text-base font-bold text-red-500 mb-2">
+        <div className='mb-6'>
+          <h1 className='text-base font-bold text-red-500 mb-2'>
             {bounty.title}
           </h1>
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span className="text-gray-300 text-sm">
+          <div className='flex justify-between items-center'>
+            <div className='flex items-center gap-2'>
+              <span className='text-gray-300 text-sm'>
                 {bounty.companyName}
               </span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-4 rounded-md">
-            <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
-              <BriefcaseBusiness size={16} color="#9F9FA9" />
-              <span className="capitalize">{bounty.type?.toLowerCase()}</span>
+          <div className='flex flex-wrap gap-4 rounded-md mt-2'>
+            <div className='flex items-center gap-2 text-sm text-[#9F9FA9]'>
+              <BriefcaseBusiness size={16} color='#9F9FA9' />
+              <span className='capitalize'>{bounty.type?.toLowerCase()}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
-              <Hourglass size={16} color="#9F9FA9" />
+            <div className='flex items-center gap-2 text-sm text-[#9F9FA9]'>
+              <Hourglass size={16} color='#9F9FA9' />
               <span>Due in: {getTimeLeft(bounty?.deadline)}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
-              <FileText size={16} color="#9F9FA9" />
+            <div className='flex items-center gap-2 text-sm text-[#9F9FA9]'>
+              <FileText size={16} color='#9F9FA9' />
               <span>{bounty?._count?.submissions} Proposals</span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 mt-2">
+          <div className='flex flex-wrap gap-2 mt-2'>
             {bounty.skills.length > 0 ? (
               bounty.skills.map(
                 (skill: { name: string } | string, index: Key) => (
@@ -279,7 +284,7 @@ const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
                 )
               )
             ) : (
-              <span className="text-gray-400 text-sm">No skills specified</span>
+              <span className='text-gray-400 text-sm'>No skills specified</span>
             )}
           </div>
         </div>
@@ -288,11 +293,13 @@ const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
   );
 };
 
-const BountyDescription: React.FC<BountyDescriptionProps> = ({ data }) => {
+export const BountyDescription: React.FC<BountyDescriptionProps> = ({
+  data,
+}) => {
   return (
-    <div className="mb-6 text-gray-300">
-      <h2 className="text-xl font-semibold mb-2 text-white">{data.title}</h2>
-      <div className="space-y-4">
+    <div className='mb-6 text-gray-300'>
+      <h2 className='text-xl font-semibold mb-2 text-white'>{data.title}</h2>
+      <div className='space-y-4'>
         {data?.content?.map((paragraph, index) => (
           <p key={index}>{paragraph}</p>
         ))}
@@ -313,19 +320,19 @@ const Reply: React.FC<ReplyProps> = ({ reply, isOptimistic = false }) => {
         isOptimistic ? "border-blue-400 border-opacity-50" : ""
       }`}
     >
-      <div className="flex gap-3">
-        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center">
-          <span className="text-white text-xs">
+      <div className='flex gap-3'>
+        <div className='w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center'>
+          <span className='text-white text-xs'>
             {reply?.author?.first_name?.substring(0, 2).toUpperCase()}
           </span>
         </div>
-        <div className="flex-1">
-          <div className="mb-1">
-            <h3 className="font-medium text-[#FB2C36]">
+        <div className='flex-1'>
+          <div className='mb-1'>
+            <h3 className='font-medium text-[#FB2C36]'>
               {reply?.author?.first_name} {reply?.author?.last_name}
             </h3>
           </div>
-          <p className="text-gray-300 text-sm">{reply?.content}</p>
+          <p className='text-gray-300 text-sm'>{reply?.content}</p>
         </div>
       </div>
     </div>
@@ -461,21 +468,21 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
 
   if (displayRepliesCount === 0 && !isReplying && !isLoading) {
     return (
-      <div className="ml-12 my-2">
+      <div className='ml-12 my-2'>
         <button
-          type="button"
+          type='button'
           onClick={() => setIsReplying(!isReplying)}
-          className="hover:text-white text-gray-400 px-4 rounded-md text-sm transition"
+          className='hover:text-white text-gray-400 px-4 rounded-md text-sm transition'
         >
           Reply
         </button>
 
         {isReplying && (
-          <div className="mt-2">
+          <div className='mt-2'>
             <form onSubmit={handleReplySubmit}>
               <textarea
-                className="w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900"
-                placeholder="Write a reply..."
+                className='w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900'
+                placeholder='Write a reply...'
                 rows={1}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
@@ -483,17 +490,17 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
               ></textarea>
 
               {replyText.trim() !== "" && (
-                <div className="flex justify-end gap-2 mt-2">
+                <div className='flex justify-end gap-2 mt-2'>
                   <button
-                    type="button"
+                    type='button'
                     onClick={handleCancelReply}
-                    className="px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition"
+                    className='px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition'
                   >
                     Cancel
                   </button>
                   <button
-                    type="submit"
-                    className="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition"
+                    type='submit'
+                    className='px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition'
                   >
                     Reply
                   </button>
@@ -512,13 +519,13 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
   }
 
   return (
-    <div className="ml-12">
-      <div className="flex items-center gap-2 my-2">
+    <div className='ml-12'>
+      <div className='flex items-center gap-2 my-2'>
         {displayRepliesCount > 0 && (
           <button
-            type="button"
+            type='button'
             onClick={toggleReplies}
-            className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1 transition"
+            className='text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1 transition'
           >
             {isLoading ? (
               <span>Loading replies...</span>
@@ -526,29 +533,29 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
               <>
                 {displayRepliesCount}{" "}
                 {displayRepliesCount === 1 ? "Reply" : "Replies"}
-                <span className="text-xs">{showReplies ? "▲" : "▼"}</span>
+                <span className='text-xs'>{showReplies ? "▲" : "▼"}</span>
               </>
             )}
           </button>
         )}
 
-        <span className="text-gray-500">•</span>
+        <span className='text-gray-500'>•</span>
 
         <button
-          type="button"
+          type='button'
           onClick={() => setIsReplying(!isReplying)}
-          className="hover:text-white text-gray-400 text-sm transition"
+          className='hover:text-white text-gray-400 text-sm transition'
         >
           Reply
         </button>
       </div>
 
       {isReplying && (
-        <div className="mt-2">
+        <div className='mt-2'>
           <form onSubmit={handleReplySubmit}>
             <textarea
-              className="w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900"
-              placeholder="Write a reply..."
+              className='w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900'
+              placeholder='Write a reply...'
               rows={1}
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
@@ -556,17 +563,17 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
             ></textarea>
 
             {replyText.trim() !== "" && (
-              <div className="flex justify-end gap-2 mt-2">
+              <div className='flex justify-end gap-2 mt-2'>
                 <button
-                  type="button"
+                  type='button'
                   onClick={handleCancelReply}
-                  className="px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition"
+                  className='px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition'
                 >
                   Cancel
                 </button>
                 <button
-                  type="submit"
-                  className="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition"
+                  type='submit'
+                  className='px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition'
                 >
                   Reply
                 </button>
@@ -582,11 +589,11 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
       />
 
       {isError && !optimisticReplies.length && (
-        <div className="text-red-500 text-sm my-2">Failed to load replies</div>
+        <div className='text-red-500 text-sm my-2'>Failed to load replies</div>
       )}
 
       {showReplies && displayReplies.length > 0 && (
-        <div className="space-y-2 mt-2 pl-2 border-l-2 border-gray-800">
+        <div className='space-y-2 mt-2 pl-2 border-l-2 border-gray-800'>
           {displayReplies.map((reply, idx) => (
             <Reply
               key={`reply-${reply.id}-${idx}`}
@@ -667,35 +674,35 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
         comment.isOptimistic ? "border-blue-400 border-opacity-50" : ""
       }`}
     >
-      <div className="p-4 border border-gray-800 rounded-lg my-2 relative">
-        <div className="flex gap-3 w-full">
-          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center">
-            <span className="text-white text-sm">
+      <div className='p-4 border border-gray-800 rounded-lg my-2 relative'>
+        <div className='flex gap-3 w-full'>
+          <div className='w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center'>
+            <span className='text-white text-sm'>
               {comment?.author?.first_name?.substring(0, 2).toUpperCase()}
             </span>
           </div>
-          <div className="flex-1">
-            <div className="flex justify-between items-start mb-1 w-full">
-              <h3 className="font-medium text-[#FB2C36]">
+          <div className='flex-1'>
+            <div className='flex justify-between items-start mb-1 w-full'>
+              <h3 className='font-medium text-[#FB2C36]'>
                 {comment?.author?.first_name} {comment?.author?.last_name}
               </h3>
               {isEditable && (
                 <button
-                  className="p-1 text-gray-400 hover:text-white focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity"
+                  className='p-1 text-gray-400 hover:text-white focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity'
                   onClick={toggleOptions}
-                  aria-label="Comment options"
+                  aria-label='Comment options'
                 >
-                  <MoreVertical size={16} color="#fff" />
+                  <MoreVertical size={16} color='#fff' />
                 </button>
               )}
 
               {showOptions && isEditable && (
                 <div
                   ref={optionsRef}
-                  className="absolute right-4 top-4 bg-gray-800 rounded-md shadow-lg z-10 py-1 min-w-[100px]"
+                  className='absolute right-4 top-4 bg-gray-800 rounded-md shadow-lg z-10 py-1 min-w-[100px]'
                 >
                   <button
-                    className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700"
+                    className='w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700'
                     onClick={() => {
                       setIsEditing(true);
                       setShowOptions(false);
@@ -704,7 +711,7 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
                     Edit
                   </button>
                   <button
-                    className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-700"
+                    className='w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-700'
                     onClick={handleDeleteComment}
                   >
                     Delete
@@ -714,36 +721,36 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
             </div>
 
             {isEditing ? (
-              <form onSubmit={handleEditSubmit} className="mt-2">
+              <form onSubmit={handleEditSubmit} className='mt-2'>
                 <textarea
-                  className="w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900"
-                  placeholder="Edit your comment"
+                  className='w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900'
+                  placeholder='Edit your comment'
                   rows={2}
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
                   autoFocus
                 ></textarea>
-                <div className="flex justify-end gap-2 mt-2">
+                <div className='flex justify-end gap-2 mt-2'>
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => {
                       setEditText(comment?.content);
                       setIsEditing(false);
                     }}
-                    className="px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition"
+                    className='px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition'
                   >
                     Cancel
                   </button>
                   <button
-                    type="submit"
-                    className="px-4 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm transition"
+                    type='submit'
+                    className='px-4 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm transition'
                   >
                     Save
                   </button>
                 </div>
               </form>
             ) : (
-              <p className="text-gray-300 text-sm">{comment?.content}</p>
+              <p className='text-gray-300 text-sm'>{comment?.content}</p>
             )}
           </div>
         </div>
@@ -883,18 +890,18 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
   };
 
   return (
-    <div className="mt-8 border-t border-gray-800 pt-6">
-      <div className="flex items-center gap-2 mb-4">
-        <MessagesSquare size={16} color="#9F9FA9" />
-        <h2 className="text-lg font-semibold">
+    <div className='mt-8 border-t border-gray-800 pt-6'>
+      <div className='flex items-center gap-2 mb-4'>
+        <MessagesSquare size={16} color='#9F9FA9' />
+        <h2 className='text-lg font-semibold'>
           {(metadata.total || 0) + optimisticComments.length} Comments
         </h2>
       </div>
 
-      <form onSubmit={handleSubmitComment} className="mt-6 relative">
+      <form onSubmit={handleSubmitComment} className='mt-6 relative'>
         <textarea
-          className="w-full border border-gray-800 bg-gray-900 rounded-md p-3 text-white resize-none focus:outline-none"
-          placeholder="Write Comments"
+          className='w-full border border-gray-800 bg-gray-900 rounded-md p-3 text-white resize-none focus:outline-none'
+          placeholder='Write Comments'
           rows={isFocused || newComment.length > 0 ? 2 : 1}
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
@@ -904,19 +911,19 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
 
         {(isFocused || newComment.trim() !== "") && (
           <>
-            <div className="text-gray-400 text-xs flex justify-end mt-1">
+            <div className='text-gray-400 text-xs flex justify-end mt-1'>
               {`${280 - newComment.length} characters left`}
             </div>
-            <div className="flex justify-end gap-2 mt-2">
+            <div className='flex justify-end gap-2 mt-2'>
               <button
-                type="button"
+                type='button'
                 onClick={handleCancelComment}
-                className="px-4 py-2 text-gray-300 hover:text-white rounded-md text-sm transition"
+                className='px-4 py-2 text-gray-300 hover:text-white rounded-md text-sm transition'
               >
                 Cancel
               </button>
               <button
-                type="submit"
+                type='submit'
                 className={`px-4 py-2 bg-red-500 text-white rounded-md text-sm transition ${
                   newComment.trim() === "" || isSubmitting
                     ? "opacity-50 cursor-not-allowed"
@@ -932,14 +939,14 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
       </form>
 
       {isLoadingComments ? (
-        <div className="flex justify-center my-8">
+        <div className='flex justify-center my-8'>
           <Loader />
         </div>
       ) : (
         <>
-          <div className="space-y-4 mt-6">
+          <div className='space-y-4 mt-6'>
             {displayComments.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">
+              <p className='text-gray-400 text-center py-8'>
                 No comments yet. Be the first to comment!
               </p>
             ) : (
@@ -957,7 +964,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
             <Pagination
               metadata={metadata}
               onPageChange={handlePageChange}
-              className="my-8"
+              className='my-8'
             />
           )}
 
@@ -1024,15 +1031,15 @@ const AmbasssadorDaoSingleBountyPage = () => {
   }
 
   return (
-    <div className="text-white min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-8 border border-[#27272A] rounded-lg shadow-sm my-6">
+    <div className='text-white min-h-screen'>
+      <div className='max-w-7xl mx-auto px-4 py-8 border border-[#27272A] rounded-lg shadow-sm my-6'>
         <GoBackButton />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2 flex flex-col">
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
+          <div className='md:col-span-2 flex flex-col'>
             <BountyHeader bounty={headerData} />
 
-            <div className="block md:hidden my-6">
+            <div className='block md:hidden my-6'>
               <BountySidebar bounty={sidebarData} />
             </div>
 
@@ -1040,7 +1047,7 @@ const AmbasssadorDaoSingleBountyPage = () => {
             <CommentsSection id={slug} />
           </div>
 
-          <div className="hidden md:block md:col-span-1">
+          <div className='hidden md:block md:col-span-1'>
             <BountySidebar bounty={sidebarData} />
           </div>
         </div>

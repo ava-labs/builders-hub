@@ -102,7 +102,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
   const { mutateAsync: submitOpportunity, isPending } =
     useCreateOpportunityMutation();
 
-  const onSubmit = async (data: ICreateOpportunityBody) => {
+  const onSubmitContinue = async (data: ICreateOpportunityBody) => {
+    await submitOpportunity(data);
+    reset();
+    router.push("/ambassador-dao/sponsor/listings");
+  };
+
+  const onSubmitPreview = async (data: ICreateOpportunityBody) => {
     await submitOpportunity(data);
     reset();
     router.push("/ambassador-dao/sponsor/listings");
@@ -182,12 +188,21 @@ export default function AmbasssadorDaoSponsorsCreateListing({
           </Button>
 
           <div className='flex space-x-3'>
-            <CustomButton variant='white' className='px-4 text-[#18181B]'>
+            <CustomButton
+              variant='white'
+              className='px-4 text-[#18181B]'
+              onClick={handleSubmit(onSubmitPreview)}
+              isLoading={isPending}
+              disabled={
+                (type === "BOUNTY" && prizeFields.length === 0) ||
+                selectedSkills.length === 0
+              }
+            >
               <Eye className='mr-1 h-4 w-4' color='#18181B' />
               Preview
             </CustomButton>
             <CustomButton
-              onClick={handleSubmit(onSubmit)}
+              onClick={handleSubmit(onSubmitContinue)}
               isLoading={isPending}
               variant={"danger"}
               className='px-4'
@@ -201,7 +216,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmitContinue)}>
           <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
             <div className='lg:col-span-2 space-y-6'>
               {/* Title Section */}
