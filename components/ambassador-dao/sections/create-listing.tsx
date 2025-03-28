@@ -175,7 +175,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
       setIsPublishModalOpen(true);
     } else {
       const res = await submitOpportunity(data);
-      setOpportunityId(res.data.data.id);
+      setOpportunityId(res.data.id);
       setIsPublishModalOpen(true);
     }
     reset();
@@ -185,13 +185,11 @@ export default function AmbasssadorDaoSponsorsCreateListing({
     if (id) {
       const res = await updateOpportunity(data);
       router.push(
-        `/ambassador-dao/sponsor/listing/${id ?? res.data.data.id}/preview`
+        `/ambassador-dao/sponsor/listing/${id ?? res.data.id}/preview`
       );
     } else {
       const res = await submitOpportunity(data);
-      router.push(
-        `/ambassador-dao/sponsor/listing/${res.data.data.id}/preview`
-      );
+      router.push(`/ambassador-dao/sponsor/listing/${res.data.id}/preview`);
     }
     reset();
   };
@@ -415,7 +413,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       </label>
                       <Suspense fallback={null}>
                         <MarkdownEditor
-                          markdown={id ? getValues("description") : markdown}
+                          markdown={getValues("description") ?? markdown}
                           setValue={setValue}
                         />
                       </Suspense>

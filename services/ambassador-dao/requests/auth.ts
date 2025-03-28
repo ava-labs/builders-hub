@@ -43,14 +43,18 @@ export const useVerifyPasscodeMutation = (
     onSuccess: (data) => {
       queryclient.invalidateQueries({ queryKey: ["fetchUserProfile"] });
       toast.success("Verification successful");
-      if (stopRedirection) return;
+
       if (!data.user.role || !data.user.first_name) {
         router.push("/ambassador-dao/onboard");
       } else {
-        if (data.user.role === "SPONSOR") {
-          router.push("/ambassador-dao/sponsor");
+        if (stopRedirection) {
+          // do nothing
         } else {
-          router.push("/ambassador-dao/jobs");
+          if (data.user.role === "SPONSOR") {
+            router.push("/ambassador-dao/sponsor");
+          } else {
+            router.push("/ambassador-dao/jobs");
+          }
         }
       }
     },
