@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Tone from "@/public/ambassador-dao-images/Frame.png";
 import Halftone from "@/public/ambassador-dao-images/Halftone.png";
 import { useFetchUserStatsDataQuery } from "@/services/ambassador-dao/requests/auth";
-import { useFetchPublicUserDetails } from "@/services/ambassador-dao/requests/users";
+import { useFetchPastOpportunities, useFetchPublicUserDetails } from "@/services/ambassador-dao/requests/users";
 import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
 
 function ProfileContent() {
@@ -16,6 +16,18 @@ function ProfileContent() {
 
   const { data: userDetails, isLoading: isLoadingDetails } =
     useFetchPublicUserDetails(usernameFromUrl);
+
+
+    const { data: userPastJobOpportunities, isLoading: isLoadingPastJobOpportunities } =
+    useFetchPastOpportunities(usernameFromUrl, "JOB");
+
+    const { data: userPastBountyOpportunities, isLoading: isLoadingPastBountyOpportunities } =
+    useFetchPastOpportunities(usernameFromUrl, "BOUNTY");
+
+
+    console.log(userPastJobOpportunities, isLoadingPastJobOpportunities)
+    console.log(userPastBountyOpportunities, isLoadingPastBountyOpportunities)
+
 
   const { data: userStats, isLoading: isLoadingStats } =
     useFetchUserStatsDataQuery(usernameFromUrl);

@@ -12,6 +12,7 @@ import {
 import ClaimXPModal from "@/components/ambassador-dao/profile/xp-modal";
 import XpSection from "@/components/ambassador-dao/profile/xp-section";
 import ProjectSection from "@/components/ambassador-dao/profile/project-section";
+import { useFetchUserPendingRewards, useFetchUserProjects } from "@/services/ambassador-dao/requests/users";
 
 const AmbasssadorDaoProfilePage = () => {
   const [copySuccess, setCopySuccess] = useState(false);
@@ -21,6 +22,16 @@ const AmbasssadorDaoProfilePage = () => {
 
   const { data: userStats, isLoading: isLoadingStats } =
     useFetchUserStatsDataQuery(data?.username);
+
+    const { data: userPendingRewards, isLoading: isLoadingRewards } =
+    useFetchUserPendingRewards();
+
+    const { data: userProjects, isLoading: isLoadingUserProjects } =
+    useFetchUserProjects();
+
+    console.log(userProjects, "projects", isLoadingUserProjects)
+    console.log(userPendingRewards, "projects", isLoadingRewards)
+
 
   const userRole = data?.role;
 
@@ -94,7 +105,7 @@ const AmbasssadorDaoProfilePage = () => {
   ];
 
   const xpProgressionData = {
-    currentXP: 60000,
+    currentXP: data?.points?.balance,
     monthlyGrowth: 850,
     availableOpportunities: [
       {

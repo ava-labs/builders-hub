@@ -54,6 +54,23 @@ interface CommentProps {
   opportunityId: string;
 }
 
+interface BountySidebarProps {
+  bounty: {
+    id: string;
+    category: string;
+    total_budget: number;
+    deadline: string;
+    proposalsCount: number;
+    skills: Array<{ name: string }>;
+    custom_questions: any[];
+    prize_distribution?: Array<{
+      amount: number;
+      position: number;
+    }>;
+  };
+}
+
+
 const GoBackButton = () => {
   const router = useRouter();
 
@@ -782,6 +799,7 @@ const AmbasssadorDaoSingleBountyPage = () => {
 
   const sidebarData = {
     id: data?.id,
+    category: data?.category,
     total_budget: data?.total_budget || 0,
     deadline: data?.end_date,
     proposalsCount: data?.max_winners || 0,

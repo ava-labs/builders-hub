@@ -57,6 +57,7 @@ const AmbasssadorDaoSponsorsListingPreview = () => {
 
   const sidebarData = {
     id: data?.id,
+    category: data?.category,
     total_budget: data?.total_budget || 0,
     deadline: data?.end_date,
     proposalsCount: data?.max_winners || 0,
