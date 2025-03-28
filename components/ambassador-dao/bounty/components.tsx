@@ -231,6 +231,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
       <AuthModal
         isOpen={openAuthModal}
         onClose={() => setOpenAuthModal(false)}
+        stopRedirection={true}
       />
 
       {isModalOpen && (
