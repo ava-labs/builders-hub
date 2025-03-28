@@ -107,7 +107,7 @@ const AmbasssadorDaoSponsorsListingPreview = () => {
                     <JobHeader job={headerData} />
 
                     <div className='block md:hidden my-6'>
-                      <JobSidebar job={sidebarData} />
+                      <JobSidebar job={sidebarData} nullAction={true} />
                     </div>
 
                     <JobDescription data={extractDescriptionData(data)} />
@@ -123,7 +123,7 @@ const AmbasssadorDaoSponsorsListingPreview = () => {
                     <BountyHeader bounty={headerData} />
 
                     <div className='block md:hidden my-6'>
-                      <BountySidebar bounty={sidebarData} />
+                      <BountySidebar bounty={sidebarData} nullAction={true} />
                     </div>
 
                     <BountyDescription data={extractDescriptionData(data)} />
