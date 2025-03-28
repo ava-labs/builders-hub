@@ -10,6 +10,7 @@ import {
   IOppotunityListingResponse,
   IOppotunitySubmissionsResponse,
 } from "../interfaces/sponsor";
+import { useRouter } from "next/navigation";
 
 export const useCreateOpportunityMutation = () => {
   const queryclient = useQueryClient();
@@ -22,6 +23,61 @@ export const useCreateOpportunityMutation = () => {
     onSuccess: (data) => {
       toast.success(data.message);
       queryclient.invalidateQueries({ queryKey: ["allListings"] });
+    },
+    onError: (err) => errorMsg(err),
+  });
+};
+
+export const usePublishOpportunityMutation = (id: string) => {
+  const queryclient = useQueryClient();
+  const router = useRouter();
+  return useMutation({
+    mutationKey: ["publishOpportunity"],
+    mutationFn: async (should_publish: boolean) => {
+      const res = await axios.patch(`${API_DEV}/opportunity/${id}`, {
+        should_publish,
+      });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      queryclient.invalidateQueries({ queryKey: ["allListings"] });
+      router.push("/ambassador-dao/sponsor/listings");
+    },
+    onError: (err) => errorMsg(err),
+  });
+};
+
+export const useDeleteOpportunityMutation = (id: string) => {
+  const queryclient = useQueryClient();
+  const router = useRouter();
+  return useMutation({
+    mutationKey: ["deleteOpportunity"],
+    mutationFn: async () => {
+      const res = await axios.delete(`${API_DEV}/opportunity/${id}`);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      queryclient.invalidateQueries({ queryKey: ["allListings"] });
+      router.push("/ambassador-dao/sponsor/listings");
+    },
+    onError: (err) => errorMsg(err),
+  });
+};
+
+export const useUpdateOpportunityMutation = (id: string) => {
+  const queryclient = useQueryClient();
+  return useMutation({
+    mutationKey: ["updateOpportunity"],
+    mutationFn: async (args: ICreateOpportunityBody) => {
+      const res = await axios.patch(`${API_DEV}/opportunity/${id}`, args);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      queryclient.invalidateQueries({ queryKey: ["allListings"] });
+      queryclient.invalidateQueries({ queryKey: ["singleListings"] });
     },
     onError: (err) => errorMsg(err),
   });
@@ -52,7 +108,7 @@ export const useFetchAllListings = (
   });
 };
 
-export const useFetchSingleListing = (id: string) => {
+export const useFetchSingleListing = (id: string | undefined) => {
   return useQuery({
     queryKey: ["singleListings", id],
     queryFn: async () => {
@@ -60,6 +116,7 @@ export const useFetchSingleListing = (id: string) => {
       return res.data.data as IOpportunityListing;
     },
     staleTime: Infinity,
+    enabled: !!id,
   });
 };
 

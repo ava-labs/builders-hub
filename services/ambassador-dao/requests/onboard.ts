@@ -1,7 +1,6 @@
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
 import { errorMsg } from "@/utils/error-mapping";
 import { API_DEV } from "../data/constants";
 import {
@@ -25,6 +24,7 @@ export const useSelectRoleMutation = () => {
 };
 
 export const useUpdateSponsorProfileMutation = () => {
+  const queryclient = useQueryClient();
   return useMutation({
     mutationKey: ["updateSponsorProfile"],
     mutationFn: async (args: IUpdateSponsorProfileBody) => {
@@ -35,6 +35,7 @@ export const useUpdateSponsorProfileMutation = () => {
       return res.data;
     },
     onSuccess: (data) => {
+      queryclient.invalidateQueries({ queryKey: ["fetchUserProfile"] });
       toast.success(data.message);
     },
     onError: (err) => errorMsg(err),
@@ -42,6 +43,7 @@ export const useUpdateSponsorProfileMutation = () => {
 };
 
 export const useUpdateTalentProfileMutation = () => {
+  const queryclient = useQueryClient();
   return useMutation({
     mutationKey: ["updateTalentProfile"],
     mutationFn: async (args: IUpdateTalentProfileBody) => {
@@ -52,6 +54,7 @@ export const useUpdateTalentProfileMutation = () => {
       return res.data;
     },
     onSuccess: (data) => {
+      queryclient.invalidateQueries({ queryKey: ["fetchUserProfile"] });
       toast.success(data.message);
     },
     onError: (err) => errorMsg(err),
@@ -112,11 +115,15 @@ export const useFileUploadMutation = (type?: string) => {
       const formData = new FormData();
       formData.append("file", file);
       type && formData.append("type", type);
-      const res = await axios.post(`${API_DEV}/file-upload?type=${type}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const res = await axios.post(
+        `${API_DEV}/file-upload?type=${type}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
       return res.data.data;
     },
     onError: (err) => errorMsg(err),

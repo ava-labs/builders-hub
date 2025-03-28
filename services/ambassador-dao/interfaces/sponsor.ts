@@ -17,6 +17,7 @@ export interface ICreateOpportunityBody {
     endPosition?: number;
     amount: number;
   }[];
+  should_publish: boolean;
 }
 
 export interface IOppotunityListingResponse {
@@ -37,7 +38,7 @@ export interface IOpportunityListing {
   description: string;
   type: "JOB" | "BOUNTY";
   category: string;
-  status: "ALL" | "DRAFT" | "OPEN" | "IN_REVIEW" | "COMPLETED";
+  status: "ALL" | "DRAFT" | "OPEN" | "IN_REVIEW" | "COMPLETED" | "PUBLISHED";
   start_date: string;
   end_date: string;
   created_at: string;
@@ -45,6 +46,7 @@ export interface IOpportunityListing {
   requirements: string;
   max_winners: number;
   updated_at: Date;
+  point_of_contact: string;
   skills: {
     id: string;
     name: string;

@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MoreHorizontal, PenLine, Trash2, Link, Pause } from "lucide-react";
+import { MoreHorizontal, PenLine, Trash2, Pause } from "lucide-react";
+import { Link as LinkIcon } from "lucide-react";
+
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Avalance3d from "@/public/ambassador-dao-images/3d.png";
@@ -40,7 +44,8 @@ import {
 } from "@/services/ambassador-dao/requests/auth";
 import Loader from "@/components/ambassador-dao/ui/Loader";
 import { StatusBadge } from "@/components/ambassador-dao/status-badge";
-
+import { DeleteOpportunityModal } from "@/components/ambassador-dao/sections/delete-opportunity-modal";
+import toast from "react-hot-toast";
 // Mock data
 const mockUser = {
   name: "John Doe",
@@ -66,6 +71,10 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
   const [type, setType] = useState(tab);
   const [status, setStatus] = useState("ALL");
   const limit = 10;
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(
+    null
+  );
 
   const handleTabChange = (newTab: TabType) => {
     setType(newTab);
@@ -265,37 +274,67 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                             <TableCell className='text-right'>
                               {/* Desktop actions */}
                               <div className='hidden sm:flex justify-end space-x-2'>
+                                {listing.status === "DRAFT" && (
+                                  <Link
+                                    href={`/ambassador-dao/sponsor/listing/${listing.id}/update?type=${listing.type}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Button
+                                      variant='ghost'
+                                      size='sm'
+                                      className='p-1 h-auto'
+                                    >
+                                      <PenLine
+                                        className='h-4 w-4'
+                                        color='#9F9FA9'
+                                      />
+                                    </Button>
+                                  </Link>
+                                )}
+
                                 <Button
                                   variant='ghost'
                                   size='sm'
                                   className='p-1 h-auto'
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedListingId(listing.id);
+                                    setIsDeleteModalOpen(true);
+                                  }}
                                 >
-                                  <PenLine
+                                  <Trash2 className='h-4 w-4' color='#9F9FA9' />
+                                </Button>
+
+                                <Button
+                                  variant='ghost'
+                                  size='sm'
+                                  className='p-1 h-auto'
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(
+                                      `${
+                                        window.location.origin
+                                      }/ambassador-dao/${
+                                        listing.type === "BOUNTY"
+                                          ? "bounty"
+                                          : "jobs"
+                                      }/${listing.id}`
+                                    );
+                                    toast.success("Link copied to clipboard");
+                                  }}
+                                >
+                                  <LinkIcon
                                     className='h-4 w-4'
                                     color='#9F9FA9'
                                   />
                                 </Button>
-                                <Button
-                                  variant='ghost'
-                                  size='sm'
-                                  className='p-1 h-auto'
-                                >
-                                  <Trash2 className='h-4 w-4' color='#9F9FA9' />
-                                </Button>
-                                <Button
-                                  variant='ghost'
-                                  size='sm'
-                                  className='p-1 h-auto'
-                                >
-                                  <Link className='h-4 w-4' color='#9F9FA9' />
-                                </Button>
-                                <Button
+                                {/* <Button
                                   variant='ghost'
                                   size='sm'
                                   className='p-1 h-auto'
                                 >
                                   <Pause className='h-4 w-4' color='#9F9FA9' />
-                                </Button>
+                                </Button> */}
                               </div>
                               {/* Mobile dropdown */}
                               <div className='sm:hidden'>
@@ -305,6 +344,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                       variant='ghost'
                                       size='sm'
                                       className='p-1 h-auto'
+                                      onClick={(e) => e.stopPropagation()}
                                     >
                                       <MoreHorizontal className='h-4 w-4' />
                                     </Button>
@@ -313,22 +353,54 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                     align='end'
                                     className='bg-gray-800 border-[#27272A]'
                                   >
-                                    <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
-                                      <PenLine
-                                        className='h-4 w-4 mr-2'
-                                        color='#9F9FA9'
-                                      />{" "}
-                                      Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
+                                    {listing.status === "DRAFT" && (
+                                      <Link
+                                        href={`/ambassador-dao/sponsor/listing/${listing.id}/update?type=${listing.type}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
+                                          <PenLine
+                                            className='h-4 w-4 mr-2'
+                                            color='#9F9FA9'
+                                          />{" "}
+                                          Edit
+                                        </DropdownMenuItem>
+                                      </Link>
+                                    )}
+
+                                    <DropdownMenuItem
+                                      className='text-white hover:bg-gray-700 cursor-pointer'
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedListingId(listing.id);
+                                        setIsDeleteModalOpen(true);
+                                      }}
+                                    >
                                       <Trash2
                                         className='h-4 w-4 mr-2'
                                         color='#9F9FA9'
                                       />{" "}
                                       Delete
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
-                                      <Link
+                                    <DropdownMenuItem
+                                      className='text-white hover:bg-gray-700 cursor-pointer'
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(
+                                          `${
+                                            window.location.origin
+                                          }/ambassador-dao/${
+                                            listing.type === "BOUNTY"
+                                              ? "bounty"
+                                              : "jobs"
+                                          }/${listing.id}`
+                                        );
+                                        toast.success(
+                                          "Link copied to clipboard"
+                                        );
+                                      }}
+                                    >
+                                      <LinkIcon
                                         className='h-4 w-4 mr-2'
                                         color='#9F9FA9'
                                       />{" "}
@@ -372,6 +444,14 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
           )}
         </div>
       </div>
+
+      {selectedListingId && (
+        <DeleteOpportunityModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          opportunityId={selectedListingId}
+        />
+      )}
     </div>
   );
 }

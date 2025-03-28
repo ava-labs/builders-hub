@@ -1,0 +1,63 @@
+import React from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import CustomButton from "../custom-button";
+import { usePublishOpportunityMutation } from "@/services/ambassador-dao/requests/sponsor";
+import Link from "next/link";
+
+interface IPublishProps {
+  isOpen: boolean;
+  onClose: () => void;
+  opportunityId: string;
+}
+
+export const PublishOpportunityModal = ({
+  isOpen,
+  onClose,
+  opportunityId,
+}: IPublishProps) => {
+  const { mutateAsync: publishOpportunity, isPending } =
+    usePublishOpportunityMutation(opportunityId);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent
+        className='max-w-lg py-6 bg-gray-50 dark:bg-[#09090B]'
+        showClose
+      >
+        <DialogTitle className='text-2xl text-[#FAFAFA] font-semibold'>
+          Publishing Confirmation
+        </DialogTitle>
+        <div className='text-[#9F9FA9] my-3'>
+          Do you want to publish this listing ? Approval may take xx hours, This
+          content will be visible to all users upon publishing.
+        </div>
+
+        <div className='flex gap-2 justify-center mt-6 md:mt-8'>
+          <div className='flex justify-between space-x-3'>
+            <Link href='/ambassador-dao/sponsor/listings'>
+              <CustomButton
+                variant='white'
+                className='px-4 text-[#18181B]'
+                onClick={onClose}
+              >
+                Cancel
+              </CustomButton>
+            </Link>
+
+            <CustomButton
+              variant={"danger"}
+              className='px-4'
+              isLoading={isPending}
+              onClick={async () => {
+                await publishOpportunity(true);
+                onClose();
+              }}
+            >
+              Continue
+            </CustomButton>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
