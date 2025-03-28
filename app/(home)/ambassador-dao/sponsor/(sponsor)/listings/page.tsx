@@ -311,16 +311,25 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                   className='p-1 h-auto'
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigator.clipboard.writeText(
-                                      `${
-                                        window.location.origin
-                                      }/ambassador-dao/${
-                                        listing.type === "BOUNTY"
-                                          ? "bounty"
-                                          : "jobs"
-                                      }/${listing.id}`
-                                    );
-                                    toast.success("Link copied to clipboard");
+                                    if (
+                                      listing.status === "DRAFT" ||
+                                      listing.status === "IN_REVIEW"
+                                    ) {
+                                      toast.error(
+                                        "Error: Only published listings link can be copied"
+                                      );
+                                    } else {
+                                      navigator.clipboard.writeText(
+                                        `${
+                                          window.location.origin
+                                        }/ambassador-dao/${
+                                          listing.type === "BOUNTY"
+                                            ? "bounty"
+                                            : "jobs"
+                                        }/${listing.id}`
+                                      );
+                                      toast.success("Link copied to clipboard");
+                                    }
                                   }}
                                 >
                                   <LinkIcon
@@ -386,18 +395,27 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                       className='text-white hover:bg-gray-700 cursor-pointer'
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        navigator.clipboard.writeText(
-                                          `${
-                                            window.location.origin
-                                          }/ambassador-dao/${
-                                            listing.type === "BOUNTY"
-                                              ? "bounty"
-                                              : "jobs"
-                                          }/${listing.id}`
-                                        );
-                                        toast.success(
-                                          "Link copied to clipboard"
-                                        );
+                                        if (
+                                          listing.status === "DRAFT" ||
+                                          listing.status === "IN_REVIEW"
+                                        ) {
+                                          toast.error(
+                                            "Error: Only published listings link can be copied"
+                                          );
+                                        } else {
+                                          navigator.clipboard.writeText(
+                                            `${
+                                              window.location.origin
+                                            }/ambassador-dao/${
+                                              listing.type === "BOUNTY"
+                                                ? "bounty"
+                                                : "jobs"
+                                            }/${listing.id}`
+                                          );
+                                          toast.success(
+                                            "Link copied to clipboard"
+                                          );
+                                        }
                                       }}
                                     >
                                       <LinkIcon
