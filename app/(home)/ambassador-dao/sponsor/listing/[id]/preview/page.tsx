@@ -3,14 +3,14 @@ import {
   BountyHeader,
   BountySidebar,
   BountyDescription,
-} from "@/app/(home)/ambassador-dao/bounty/[slug]/page";
+} from "@/components/ambassador-dao/bounty/components";
+import CustomButton from "@/components/ambassador-dao/custom-button";
+import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
 import {
   JobHeader,
   JobSidebar,
   JobDescription,
-} from "@/app/(home)/ambassador-dao/jobs/[slug]/page";
-import CustomButton from "@/components/ambassador-dao/custom-button";
-import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
+} from "@/components/ambassador-dao/jobs/components";
 import { PublishOpportunityModal } from "@/components/ambassador-dao/sections/publish-opportunity-modal";
 import { useFetchOpportunityDetails } from "@/services/ambassador-dao/requests/opportunity";
 import { Eye } from "lucide-react";
