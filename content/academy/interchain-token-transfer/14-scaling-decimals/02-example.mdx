@@ -42,7 +42,7 @@ Set up the remote transferer contracts for transferring tokens between the C-Cha
    
 - `NativeTokenRemote` Contract on `myblockchain` 
 ```bash 
-forge create --rpc-url myblockchain --private-key $PK lib/avalanche-interchain-token-transfer/contracts/src/TokenRemote/NativeTokenRemote.sol:NativeTokenRemote --constructor-args "($TELEPORTER_REGISTRY_L1, $FUNDED_ADDRESS, $C_CHAIN_BLOCKCHAIN_ID_HEX, $USDC_HOME_C_CHAIN, 6)" "USDC" 100000000000000000000 0 --broadcast
+forge create --rpc-url myblockchain --private-key $PK lib/ictt/contracts/src/TokenRemote/NativeTokenRemote.sol:NativeTokenRemote --constructor-args "($TELEPORTER_REGISTRY_L1, $FUNDED_ADDRESS, $C_CHAIN_BLOCKCHAIN_ID_HEX, $USDC_HOME_C_CHAIN, 6)" "USDC" 100000000000000000000 0 --broadcast
 ```
 
 _Note: When deploying the `NativeTokenRemote` contract on the L1, ensure that the **initial amount** matches the native token amount that was minted when the blockchain was created. This ensures consistency between the native token supply and the remote token counterpart._
