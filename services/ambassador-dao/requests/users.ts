@@ -14,10 +14,57 @@ export const useFetchPublicUserDetails = (
         const res = await axios.get(`${API_DEV}/users/details/${username}`);
         return res.data.data;
       },
-      queryKey: ["fetchUserDetails"],
+      queryKey: ["userDetails"],
       staleTime: Infinity,
       refetchOnWindowFocus: false,
       enabled: !!username,
+    });
+  };
+
+
+
+  export const useFetchPastOpportunities = (
+    username: string | undefined | null,
+    type: string
+  ) => {
+    return useQuery({
+      queryFn: async () => {
+        const res = await axios.get(`${API_DEV}/users/past-opportunities/${username}?type=${type}`);
+        return res.data.data;
+      },
+      queryKey: ["past-opportunities", type],
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
+      enabled: !!username,
+    });
+  };
+
+
+
+
+  export const useFetchUserPendingRewards = () => {
+    return useQuery({
+      queryFn: async () => {
+        const res = await axios.get(`${API_DEV}/users/pending-rewards`);
+        return res.data.data;
+      },
+      queryKey: ["pendingRewards"],
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
+    });
+  };
+
+
+
+  export const useFetchUserProjects= () => {
+    return useQuery({
+      queryFn: async () => {
+        const res = await axios.get(`${API_DEV}/users/projects`);
+        return res.data.data;
+      },
+      queryKey: ["userProjects"],
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
     });
   };
 
