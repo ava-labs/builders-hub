@@ -52,27 +52,30 @@ const AmbasssadorDaoSponsorsLayout = ({
                 icon={<History className='h-5 w-5' />}
                 label='Get Help'
               />
+              {user.status === "VERIFIED" && (
+                <CustomButton
+                  variant='danger'
+                  className='px-3 hidden md:block'
+                  onClick={() => setOpenCreateListingModal(true)}
+                >
+                  Create new listing
+                </CustomButton>
+              )}
+            </div>
+          </aside>
 
+          {user.status === "VERIFIED" && (
+            <div className='md:hidden flex my-2'>
               <CustomButton
                 variant='danger'
-                className='px-3 hidden md:block'
+                className='px-3'
+                isFullWidth={false}
                 onClick={() => setOpenCreateListingModal(true)}
               >
                 Create new listing
               </CustomButton>
             </div>
-          </aside>
-
-          <div className='md:hidden flex my-2'>
-            <CustomButton
-              variant='danger'
-              className='px-3'
-              isFullWidth={false}
-              onClick={() => setOpenCreateListingModal(true)}
-            >
-              Create new listing
-            </CustomButton>
-          </div>
+          )}
 
           {/* Main content */}
           <main className='flex-1 p-4 sm:p-6'>{children}</main>

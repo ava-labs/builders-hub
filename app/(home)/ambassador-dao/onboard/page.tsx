@@ -187,6 +187,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
   const [usernameStatus, setUsernameStatus] = useState<
     "checking" | "available" | "unavailable" | null
   >(null);
+  const [profileImageName, setProfileImageName] = useState<string>("");
 
   const username = watch("username");
 
@@ -473,6 +474,8 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
   const [companyUsernameStatus, setCompanyUsernameStatus] = useState<
     "checking" | "available" | "unavailable" | null
   >(null);
+  const [profileImageName, setProfileImageName] = useState<string>("");
+  const [companyLogoName, setCompanyLogoName] = useState<string>("");
 
   const username = watch("username");
   const company_username = watch("company_user_name");
@@ -537,11 +540,13 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
   }, [company_username, checkCompanyUsername]);
 
   const handleProfileImageUpload = async (file: File) => {
+    setProfileImageName(file.name);
     const url = await uploadFile(file);
     setValue("profile_image", url.url);
   };
 
   const handleCompanyLogoUpload = async (file: File) => {
+    setCompanyLogoName(file.name);
     const url = await uploadFile(file);
     setValue("logo", url.url);
   };
@@ -663,10 +668,11 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
           </p>
           {profile_image ? (
             <div className='rounded-md my-2 flex justify-between items-center border border-[#27272A] p-3 text-sm'>
-              ...{profile_image.slice(-24)}
+              {profileImageName}
               <X
                 onClick={() => {
                   setValue("profile_image", "");
+                  setProfileImageName("");
                   getValues("profile_image");
                 }}
                 className='cursor-pointer'
@@ -794,10 +800,11 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
             </p>
             {logo ? (
               <div className='rounded-md my-2 flex justify-between items-center border border-[#27272A] p-3 text-sm'>
-                ...{logo.slice(-24)}
+                {companyLogoName}
                 <X
                   onClick={() => {
                     setValue("logo", "");
+                    setCompanyLogoName("");
                   }}
                   className='cursor-pointer'
                   color='white'
