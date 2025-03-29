@@ -1,47 +1,29 @@
-import { useExampleStore } from "../../utils/store";
+"use client";
+
+import { useToolboxStore, useViemChainStore, useWalletStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
-import { Button } from "../../ui";
-import { Success } from "../../ui/Success";
-import { createWalletClient, custom, createPublicClient } from 'viem';
+import { Button } from "../../../components/button";
+import { ResultField } from "../../../components/result-field";
 import ValidatorMessagesABI from "../../../../contracts/icm-contracts/compiled/ValidatorMessages.json";
+import { RequireChainL1 } from "../../ui/RequireChain";
+import { Container } from "../../../components/container";
 
-export const DeployValidatorMessages = () => {
+export default function DeployValidatorMessages() {
     const { showBoundary } = useErrorBoundary();
-    const { validatorMessagesLibAddress, setValidatorMessagesLibAddress, walletChainId } = useExampleStore();
+    const { validatorMessagesLibAddress, setValidatorMessagesLibAddress } = useToolboxStore();
+    const { walletChainId, coreWalletClient, publicClient } = useWalletStore();
     const [isDeploying, setIsDeploying] = useState(false);
+    const viemChain = useViemChainStore();
 
     async function handleDeploy() {
         setIsDeploying(true);
         setValidatorMessagesLibAddress("");
         try {
-            const publicClient = createPublicClient({
-                transport: custom(window.avalanche!),
-            });
-
-            const walletClient = createWalletClient({
-                transport: custom(window.avalanche!),
-            });
-
-            const [address] = await walletClient.requestAddresses();
-
-            const hash = await walletClient.deployContract({
+            const hash = await coreWalletClient.deployContract({
                 abi: ValidatorMessagesABI.abi,
                 bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
-                account: address,
-                chain: {
-                    // The values below (except for chainID) are not important since viem only checks chainID
-                    id: walletChainId,
-                    name: "My L1",
-                    rpcUrls: {
-                        default: { http: [] },
-                    },
-                    nativeCurrency: {
-                        name: "COIN",
-                        symbol: "COIN",
-                        decimals: 18,
-                    },
-                },
+                chain: viemChain,
             });
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -58,38 +40,35 @@ export const DeployValidatorMessages = () => {
         }
     }
 
+
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold ">Deploy Validator Messages Library</h2>
-            <div className="space-y-4">
-                <div className="mb-4">
-                    This will deploy the <code>ValidatorMessages</code> contract to the currently connected EVM network <code>{walletChainId}</code>. <code>ValidatorMessages</code> is a library required by the <code>ValidatorManager</code> family of contracts.
-                </div>
-                {knownNetwoks[walletChainId] && (
+        <RequireChainL1>
+            <Container
+                title="Deploy Validator Messages Library"
+                description="This will deploy the ValidatorMessages contract to the currently connected EVM network."
+            >
+                <div className="space-y-4">
                     <div className="mb-4">
-                        ⚠️ Warning: You are connected to {knownNetwoks[walletChainId]}, not to your L1.
+                        This will deploy the <code>ValidatorMessages</code> contract to the currently connected EVM network <code>{walletChainId}</code>. <code>ValidatorMessages</code> is a library required by the <code>ValidatorManager</code> family of contracts.
                     </div>
+                    <Button
+                        variant="primary"
+                        onClick={handleDeploy}
+                        loading={isDeploying}
+                        disabled={isDeploying}
+                    >
+                        Deploy Contract
+                    </Button>
+                </div>
+                {validatorMessagesLibAddress && (
+                    <ResultField
+                        label="Library Address"
+                        value={validatorMessagesLibAddress}
+                        showCheck={!!validatorMessagesLibAddress}
+                    />
                 )}
-                <Button
-                    type="primary"
-                    onClick={handleDeploy}
-                    loading={isDeploying}
-                    disabled={isDeploying}
-                >
-                    Deploy Contract
-                </Button>
-            </div>
-            <Success
-                label="Library Address"
-                value={validatorMessagesLibAddress}
-            />
-        </div>
+            </Container>
+        </RequireChainL1>
     );
 };
 
-
-const knownNetwoks: Record<number, string> = {
-    43114: "Avalanche Mainnet",
-    43113: "Avalanche Fuji Testnet",
-    43117: "Avalanche Devnet",
-}

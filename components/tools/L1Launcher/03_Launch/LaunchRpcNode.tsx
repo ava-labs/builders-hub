@@ -12,7 +12,6 @@ const dockerCommand = (subnetID: string) => `docker run -it -d \\
   -v ~/.avalanchego_rpc:/root/.avalanchego \\
   -e AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK=true \\
   -e AVAGO_PUBLIC_IP_RESOLUTION_SERVICE=opendns \\
-  -e AVAGO_PLUGIN_DIR=/avalanchego/build/plugins/ \\
   -e AVAGO_HTTP_HOST=0.0.0.0 \\
   -e AVAGO_TRACK_SUBNETS=${subnetID} \\
   -e AVAGO_HTTP_PORT=8080 \\

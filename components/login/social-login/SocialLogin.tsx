@@ -25,11 +25,11 @@ function SocialLogin({ callbackUrl = '/' }: SocialLoginProps) {
           image='/hackaton-platform-images/googleLogo.svg'
           onClick={() => SignInSocialMedia('google')}
         />
-        <SocialLoginButton
+        {/* <SocialLoginButton
           name='Github'
           image='/hackaton-platform-images/githubLogo.svg'
           onClick={() => SignInSocialMedia('github')}
-        />
+        /> */}
 
         <SocialLoginButton
           name='X'

@@ -1,34 +1,30 @@
-import { utils, Context } from "@avalabs/avalanchejs";
-import { pvm } from "@avalabs/avalanchejs";
-import { getRPCEndpoint } from "../../utils/rpcEndpoint";
-import { initialState, useExampleStore } from "../../utils/store";
+"use client";
+
+import { initialState, useToolboxStore, useWalletStore } from "../../utils/store";
 import { useErrorBoundary } from "react-error-boundary";
 import { useEffect, useState } from "react";
-import { Button, Input } from "../../ui";
-import { Success } from "../../ui/Success";
+import { Button, Input, Container, GenesisInput, ResultField } from "../../../components";
 import { quickAndDirtyGenesisBuilder } from "./GenesisBuilder";
 
-export const CreateChain = () => {
+export default function CreateChain() {
     const { showBoundary } = useErrorBoundary();
     const {
-        networkID,
-        getPChainAddress,
         subnetID,
-        chainName,
+        evmChainName,
         vmId,
-        setChainName,
         setVmId,
         chainID,
         setChainID,
         setSubnetID,
         genesisData,
         setGenesisData,
-        walletEVMAddress,
         evmChainId,
         gasLimit,
         targetBlockRate,
-    } = useExampleStore(state => state);
+        setEvmChainName,
+    } = useToolboxStore();
     const [isCreating, setIsCreating] = useState(false);
+    const { walletEVMAddress, coreWalletClient } = useWalletStore();
 
     useEffect(() => {
         if (!genesisData) {
@@ -36,49 +32,22 @@ export const CreateChain = () => {
         }
     }, [walletEVMAddress, evmChainId, gasLimit, targetBlockRate]);
 
-
-    async function handleCreateChain() {
+    function handleCreateChain() {
         setChainID("");
         setIsCreating(true);
-        try {
-            const pvmApi = new pvm.PVMApi(getRPCEndpoint(networkID));
-            const feeState = await pvmApi.getFeeState();
-            const context = await Context.getContextFromURI(getRPCEndpoint(networkID));
 
-            const addressBytes = utils.bech32ToBytes(getPChainAddress());
-
-            const { utxos } = await pvmApi.getUTXOs({
-                addresses: [getPChainAddress()]
-            });
-
-            const tx = pvm.e.newCreateChainTx({
-                feeState,
-                fromAddressesBytes: [addressBytes],
-                utxos,
-                chainName,
-                subnetAuth: [0],
-                subnetId: subnetID,
-                vmId,
-                fxIds: [],
-                genesisData: JSON.parse(genesisData),
-            }, context);
-
-            const txID = await window.avalanche!.request({
-                method: 'avalanche_sendTransaction',
-                params: {
-                    transactionHex: utils.bufferToHex(tx.toBytes()),
-                    chainAlias: 'P',
-                }
-            }) as string;
-
+        coreWalletClient.createChain({
+            chainName: evmChainName,
+            subnetId: subnetID,
+            vmId,
+            fxIds: [],
+            genesisData,
+            subnetAuth: [0],
+        }).then((txID: string) => {
             setChainID(txID);
-        } catch (error) {
-            showBoundary(error);
-        } finally {
             setIsCreating(false);
-        }
+        }).catch(showBoundary);
     }
-
 
     if (!genesisData) {
         return (
@@ -96,56 +65,53 @@ export const CreateChain = () => {
     }
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold ">Create Chain</h2>
-            <div className="space-y-4">
-                <Input
-                    label="Your P-Chain Address"
-                    value={getPChainAddress()}
-                    disabled={true}
-                    type="text"
-                />
-                <Input
-                    label="Chain Name"
-                    value={chainName}
-                    onChange={setChainName}
-                    placeholder="Enter chain name"
-                />
-                <Input
-                    label="Subnet ID"
-                    value={subnetID}
-                    type="text"
-                    onChange={setSubnetID}
-                    placeholder="Create a subnet to generate a subnet ID"
-                />
-                <Input
-                    label="VM ID"
-                    value={vmId}
-                    onChange={setVmId}
-                    placeholder="Enter VM ID"
-                    notes={`Default is ${initialState.vmId}`}
-                />
-                <Input
-                    label="Genesis Data (JSON)"
-                    value={genesisData}
-                    onChange={setGenesisData}
-                    type="textarea"
-                    placeholder="Enter genesis data in JSON format"
-                    notes={`Auto-generated for address ${walletEVMAddress}`}
-                    rows={20}
-                />
-                <Button
-                    type="primary"
-                    onClick={handleCreateChain}
-                    loading={isCreating}
-                >
-                    Create Chain
-                </Button>
-            </div>
-            <Success
-                label="Chain ID"
-                value={chainID}
+        <Container
+            title="Create Chain"
+            description="Create a new blockchain on your subnet with custom parameters and genesis data."
+        >
+            <Input
+                label="Chain Name"
+                value={evmChainName}
+                onChange={setEvmChainName}
+                placeholder="Enter chain name"
             />
-        </div>
+
+            <Input
+                label="Subnet ID"
+                value={subnetID}
+                type="text"
+                onChange={setSubnetID}
+                placeholder="Create a subnet to generate a subnet ID"
+            />
+
+            <Input
+                label="VM ID"
+                value={vmId}
+                onChange={setVmId}
+                placeholder="Enter VM ID"
+                helperText={`Default is ${initialState.vmId}`}
+            />
+
+            <GenesisInput label="Genesis Data (JSON)" value={genesisData} onChange={setGenesisData} />
+
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                Auto-generated for address 0xC8EA6E24567310104a5d3b5d9ab6Ca414987885
+            </div>
+
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                Open the{" "}
+                <a href="https://build.avax.network/tools/l1-toolbox#genesisBuilder" className="text-primary hover:text-primary/80 dark:text-primary/90 dark:hover:text-primary/70">
+                    Genesis Builder tool
+                </a>{" "}
+                to generate custom genesis data.
+            </div>
+
+            <Button onClick={handleCreateChain}
+                loading={isCreating} loadingText="Creating Chain...">
+                Create Chain
+            </Button>
+
+            {chainID && <ResultField label="Chain ID:" value={chainID} showCheck />}
+        </Container>
     );
 };

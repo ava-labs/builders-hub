@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getHackathon, updateHackathon } from "@/server/services/hackathons";
 import { HackathonHeader } from "@/types/hackathons";
+import { env } from "process";
 
 export async function GET(req: NextRequest, context: any) {
 
@@ -24,6 +25,8 @@ export async function GET(req: NextRequest, context: any) {
 
 export async function PUT(req: NextRequest) {
   try {
+    if (req.headers.get("x-api-key") != env.APIKEY)
+      throw new Error('Unauthorized')
     const id = req.nextUrl.searchParams.get('id')!;
     const partialEditedHackathon = (await req.json()) as Partial<HackathonHeader>;
 

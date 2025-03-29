@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, Zap, Cpu, Code, Coins, Bot, Home } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
-import { Banner } from "fumadocs-ui/components/banner"
 
 interface ProgramCardProps {
   title: string;
@@ -28,10 +27,10 @@ function ProgramCard({ title, description, icon, color, arrowColor }: ProgramCar
 
   return (
     <div className="group relative overflow-hidden rounded-3xl transition-all duration-300 hover:shadow-2xl">
-      <div className={`absolute inset-0 bg-gradient-to-br ${gradients[color]} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
-      <div className="relative p-6 space-y-4 bg-card border border-border rounded-3xl transition-all duration-300 group-hover:bg-card/50 group-hover:backdrop-blur-sm">
+      <div className={`absolute inset-0 bg-linear-to-br ${gradients[color]} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
+      <div className="relative p-6 space-y-4 bg-card border border-border rounded-3xl transition-all duration-300 group-hover:bg-card/50 group-hover:backdrop-blur-xs">
       <div className="flex justify-between items-start">
-        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradients[color]} flex items-center justify-center text-white`}>
+        <div className={`w-12 h-12 rounded-2xl bg-linear-to-br ${gradients[color]} flex items-center justify-center text-white`}>
         {icon}
         </div>
         <Button variant="ghost" className="group/button">
@@ -89,14 +88,14 @@ export default function Page() {
 
       {/* Prize Pool Section */}
       <section className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 dark:from-yellow-500/10 dark:to-amber-500/10 rounded-3xl" />
-        <div className="relative px-6 py-12 md:py-20 text-center space-y-6 rounded-3xl border border-yellow-500/30 backdrop-blur-sm shadow-2xl transform transition-all duration-300">
+        <div className="absolute inset-0 bg-linear-to-r from-yellow-500/20 to-amber-500/20 dark:from-yellow-500/10 dark:to-amber-500/10 rounded-3xl" />
+        <div className="relative px-6 py-12 md:py-20 text-center space-y-6 rounded-3xl border border-yellow-500/30 backdrop-blur-xs shadow-2xl transform transition-all duration-300">
         <div className="flex justify-center">
           <div className="inline-flex items-center rounded-full border border-yellow-500/50 px-4 py-1.5 text-sm font-semibold text-yellow-600 dark:text-yellow-400 bg-yellow-500/10">
           🏆 Total Funding Available
           </div>
         </div>
-            <h2 className="text-4xl md:text-7xl font-bold bg-gradient-to-r from-yellow-500 to-amber-500 bg-clip-text text-transparent">
+            <h2 className="text-4xl md:text-7xl font-bold bg-linear-to-r from-yellow-500 to-amber-500 bg-clip-text text-transparent">
               $50M+ in Grants
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -168,8 +167,8 @@ export default function Page() {
 
         {/* CTA Section */}
         <section className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-orange-500/10 dark:from-red-500/5 dark:to-orange-500/5 rounded-3xl" />
-          <div className="relative px-6 py-12 md:py-20 text-center space-y-6 rounded-3xl border border-red-500/20 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-linear-to-r from-red-500/10 to-orange-500/10 dark:from-red-500/5 dark:to-orange-500/5 rounded-3xl" />
+          <div className="relative px-6 py-12 md:py-20 text-center space-y-6 rounded-3xl border border-red-500/20 backdrop-blur-xs">
             <h2 className="text-2xl md:text-5xl font-bold">Avalanche Network [Security] Challenge</h2>
             <p className="text-lg text-muted-foreground max-w-4xl mx-auto">
               Shape the future of blockchain security and earn massive rewards. Elite security researchers who identify critical vulnerabilities on Avalanche can claim bounties up to <strong>$100,000 USD</strong>.

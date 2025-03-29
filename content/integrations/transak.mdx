@@ -1,0 +1,139 @@
+---
+title: Transak
+category: Fiat On-Ramp
+available: ["C-Chain", "All EVM L1s"]
+description: Transak is a global fiat-to-crypto payment gateway that enables users to buy cryptocurrencies with fiat directly within your application.
+logo: /images/transak.png
+developer: Transak
+website: https://transak.com/
+documentation: https://docs.transak.com/
+---
+
+## Overview
+
+Transak is a global fiat-to-crypto payment gateway that provides a seamless and compliant on-ramp solution for blockchain applications. It enables users to purchase cryptocurrencies using traditional payment methods directly within your application, eliminating the need to navigate external exchanges. With support for 130+ cryptocurrencies across 100+ countries, Transak offers extensive global coverage and regulatory compliance.
+
+## Features
+
+- **Global Coverage**: Support for users in 100+ countries with local payment methods, currencies, and languages.
+- **Multiple Payment Methods**: Credit/debit cards, bank transfers, Apple Pay, Google Pay, and regional payment options.
+- **Extensive Crypto Support**: On-ramp to 130+ cryptocurrencies, including native tokens for custom L1s.
+- **Flexible Integration Options**: Widget, SDK, and API solutions to fit your application's needs.
+- **Customizable Widget**: White-labeled integration that matches your application's design.
+- **KYC/AML Compliance**: Built-in compliance processes that meet regulatory requirements across jurisdictions.
+- **Risk Management**: Advanced fraud prevention systems that protect both users and merchants.
+- **Automated Payouts**: Direct deposit of purchased crypto to user wallets.
+- **Fiat Off-Ramp**: Select regions support converting crypto back to fiat (where permitted by regulations).
+- **NFT Checkout**: Allow users to purchase NFTs directly with fiat payment methods.
+- **Partner Dashboard**: Analytics and management tools to track conversions and optimize performance.
+
+## Getting Started
+
+To integrate Transak into your application:
+
+1. **Sign Up**: Create an account on the [Transak Partner Dashboard](https://partners.transak.com/signup) to get your API key.
+
+2. **Choose Integration Method**:
+   
+   - **Direct URL Integration**: The simplest approach:
+     ```javascript
+     const transakUrl = new URL('https://global.transak.com/');
+     transakUrl.searchParams.append('apiKey', 'YOUR_API_KEY');
+     transakUrl.searchParams.append('defaultCryptoCurrency', 'AVAX');
+     transakUrl.searchParams.append('network', 'avalanche');
+     transakUrl.searchParams.append('walletAddress', userWalletAddress);
+     
+     window.open(transakUrl.href, '_blank');
+     ```
+
+   - **SDK Integration**: For web applications, add the Transak SDK to your project:
+     ```bash
+     npm install @transak/transak-sdk
+     ```
+     
+     ```javascript
+     import transakSDK from '@transak/transak-sdk';
+     
+     const transak = new transakSDK({
+       apiKey: 'YOUR_API_KEY',
+       environment: 'PRODUCTION', // or 'STAGING' for testing
+       defaultCryptoCurrency: 'AVAX',
+       network: 'avalanche',
+       walletAddress: userWalletAddress, // Pre-fill user's wallet
+       themeColor: '000000', // Custom color in hex
+       hostURL: window.location.origin,
+       widgetHeight: '650px',
+       widgetWidth: '450px',
+       hideMenu: false,
+       exchangeScreenTitle: 'Buy Crypto',
+       disableWalletAddressForm: false,
+     });
+     
+     transak.init();
+     ```
+
+3. **Handle Events**: Listen for transaction events:
+   ```javascript
+   transak.on(transak.EVENTS.TRANSAK_WIDGET_CLOSE, () => {
+     // Handle widget close
+   });
+   
+   transak.on(transak.EVENTS.TRANSAK_ORDER_SUCCESSFUL, (orderData) => {
+     // Handle successful purchase
+     console.log(orderData);
+   });
+   
+   transak.on(transak.EVENTS.TRANSAK_ORDER_FAILED, (orderData) => {
+     // Handle failed purchase
+     console.log(orderData);
+   });
+   ```
+
+4. **Set Up Webhooks** (Optional): Implement server-side webhooks to receive transaction updates:
+   ```javascript
+   // Example Express.js webhook handler
+   app.post('/transak-webhook', (req, res) => {
+     const payload = req.body;
+     
+     if (payload.status === 'COMPLETED') {
+       // Process completed transaction
+     }
+     
+     res.status(200).send('Webhook received');
+   });
+   ```
+
+5. **Test in Staging**: Use the staging environment with test cards to verify your integration before going live.
+
+## Documentation
+
+For detailed implementation guides, API references, and webhook setup, visit the [Transak Documentation](https://docs.transak.com/).
+
+## Use Cases
+
+Transak can be integrated into various blockchain applications:
+
+**Wallets**: Allow users to purchase crypto directly within your wallet application without leaving the interface.
+
+**DeFi Platforms**: Provide a seamless on-ramp for users to acquire tokens needed for your DeFi services.
+
+**NFT Marketplaces**: Enable direct purchase of NFTs with fiat, abstracting away the crypto acquisition step.
+
+**GameFi Applications**: Let gamers purchase in-game assets or tokens without needing prior crypto knowledge.
+
+**Decentralized Applications**: Reduce friction in your dApp's user experience by integrating a native fiat entry point.
+
+## Pricing
+
+Transak operates on a transaction fee model:
+
+- **Fee Range**: Typically 0.5% to 3% per transaction
+- **Custom Fee Structure**: Enterprise solutions with custom fee arrangements available
+- **Revenue Sharing**: Partnership opportunities with revenue sharing for qualified partners
+- **No Monthly Fees**: Pay only for successful transactions
+
+The fee structure can vary by region, payment method, and transaction volume. For detailed pricing information, contact Transak's sales team.
+
+## Conclusion
+
+Transak provides a comprehensive fiat on-ramp solution that can significantly improve user experience in blockchain applications. By handling the complex compliance requirements and payment processing infrastructure, Transak allows developers to focus on building their core application features while providing users with a seamless way to enter the crypto ecosystem. With its extensive global coverage, multiple payment options, and customizable integration, Transak is an ideal solution for any blockchain project looking to reduce friction in the user onboarding process. 

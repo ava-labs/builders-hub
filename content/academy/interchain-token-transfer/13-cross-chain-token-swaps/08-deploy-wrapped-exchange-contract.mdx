@@ -13,7 +13,6 @@ Let's deploy our wrapper for the exchange contract on your own blockchain.
 
 <Steps>
 <Step>
-
 ### Wrapper Deployment
 
 While deploying the wrapped exchange contract, you will need to send two constructor arguments to the contract.
@@ -22,19 +21,26 @@ While deploying the wrapped exchange contract, you will need to send two constru
 - The second argument is the Trader Joe's (or any other Uniswap V2-like dapp) Factory V1 contract address on the destination chain (Fuji), which is: [`0xF5c7d9733e5f53abCC1695820c4818C59B457C2C`](https://testnet.snowtrace.io/address/0xF5c7d9733e5f53abCC1695820c4818C59B457C2C). Deployed contracts of TraderJoe can be found [here](https://docs.traderjoexyz.com/deployment-addresses/fuji).
 
 ```bash
-forge create --rpc-url local-c --private-key $PK contracts/interchain-token-transfer/cross-chain-token-swaps/DexERC20Wrapper.sol:DexERC20Wrapper --constructor-args 0xd00ae08403B9bbb9124bB305C09058E32C39A48c 0xF5c7d9733e5f53abCC1695820c4818C59B457C2C --broadcast
+forge create --rpc-url local-c --private-key $PK contracts/interchain-token-transfer/cross-chain-token-swaps/DexERC20Wrapper.sol:DexERC20Wrapper --broadcast --constructor-args 0xd00ae08403B9bbb9124bB305C09058E32C39A48c 0xF5c7d9733e5f53abCC1695820c4818C59B457C2C
 ```
 
+```bash 
+[⠊] Compiling...
+No files changed, compilation skipped
+Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+Deployed to: 0x4Ac1d98D9cEF99EC6546dEd4Bd550b0b287aaD6D
+Transaction hash: 0x5494b02a0278a113137f0ec9e2d31cc220d7276aa9bfd1a1438e61f2e85ca562
+```
 </Step>
+
 <Step>
-
 ### Save the Wrapper Address
-
-Save the `Deployed to` address in an environment variable.
-
+<Callout title="Note" type="info">
+The address `0x4Ac1d98D9cEF99EC6546dEd4Bd550b0b287aaD6D` is your receiver contract address.
+</Callout>
 
 ```bash
-export WRAPPED_EXCHANGE_ADDRESS=<address>
+export WRAPPED_EXCHANGE_ADDRESS=...
 ```
 
 In case you skipped the deployment phase mentioned on the previous page, you can use a wrapper contract, that is already deployed at [`0x38B097d95B96CD17966Cf617A71b7B20F61ba85B`](https://testnet.snowtrace.io/address/0x38B097d95B96CD17966Cf617A71b7B20F61ba85B).
@@ -42,10 +48,9 @@ In case you skipped the deployment phase mentioned on the previous page, you can
 ```bash
 export WRAPPED_EXCHANGE_ADDRESS=0x38B097d95B96CD17966Cf617A71b7B20F61ba85B
 ```
-
 </Step>
-<Step>
 
+<Step>
 ### Initiate the Cross-Chain Swap
 
 Now that the wrapped exchange contract has been deployed, send an ERC20 token to execute a swap for WAVAX or AVAX from your Avalanche L1 to Fuji using the [`cast send`](https://book.getfoundry.sh/reference/cast/cast-send) command in foundry.
@@ -56,7 +61,6 @@ cast send --rpc-url echo --private-key $PK $ERC20_HOME_C_CHAIN "sendAndCall((byt
 
 <Accordions>
 <Accordion title="Generate Payload">
- 
 The ```payload``` parameter that we sent can be generated via following JavaScript file:
 
 ```typescript
@@ -78,20 +82,31 @@ function encode() {
 
 encode();
 ```
- 
 </Accordion>
 </Accordions>
-
 </Step>
-<Step>
 
+<Step>
 ### Verify the Results
 
-TBD: Provide instructions
+To verify that your cross-chain swap was successful, you'll need to check the balance of your address on the destination chain (Fuji). You can use Foundry's cast command to check both native AVAX and WAVAX balances.
 
+**Check WAVAX Balance**: Since the swap involves WAVAX (the wrapped version of AVAX), use the following command to check the WAVAX token balance:
+
+```bash
+cast call --rpc-url local-c 0xd00ae08403B9bbb9124bB305C09058E32C39A48c "balanceOf(address)" ${FUNDED_ADDRESS}
+```
+
+This calls the `balanceOf` function on the WAVAX token contract to check your balance.
+
+**Check Native AVAX Balance**: If you chose to receive native AVAX instead of WAVAX, check your native balance:
+
+```bash
+cast balance --rpc-url local-c ${FUNDED_ADDRESS}
+```
+
+```bash
+cast balance --rpc-url local-c ${FUNDED_ADDRESS} --ether
+```
 </Step>
 </Steps>
-
-
-
-

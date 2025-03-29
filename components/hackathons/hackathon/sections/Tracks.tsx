@@ -20,9 +20,7 @@ function Tracks({ hackathon }: { hackathon: HackathonHeader }) {
       </h2>
       <Separator className='my-8 bg-zinc-300 dark:bg-zinc-800' />
       <div className='pt-5 pb-5'>
-        <p>
-          {hackathon.content.tracks_text}
-        </p>
+        <p>{hackathon.content.tracks_text}</p>
       </div>
       <div className='relative py-32 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-24 grid-flow-row'>
         <div className='absolute -z-10 w-screen h-full left-1/2 transform -translate-x-1/2 bg-zinc-200' />
@@ -39,17 +37,17 @@ function Tracks({ hackathon }: { hackathon: HackathonHeader }) {
             <span className='text-sm text-zinc-900'>Total price pool</span>
           </CardContent>
         </Card>
-        {hackathon.content.tracks.map((track, index) => (
-          <Dialog>
-            <DialogTrigger>
-              <TrackCard key={index} track={track} />
-            </DialogTrigger>
-            <DialogContent className='dark:bg-zinc-900 bg-zinc-50'>
-              <DialogTitle />
-              <TrackDialogContent track={track} />
-            </DialogContent>
-          </Dialog>
-        ))}
+          {hackathon.content.tracks.map((track, index) => (
+            <Dialog>
+              <DialogTrigger>
+                <TrackCard key={index} track={track} />
+              </DialogTrigger>
+              <DialogContent className='dark:bg-zinc-900 bg-zinc-50'>
+                <DialogTitle />
+                <TrackDialogContent track={track} />
+              </DialogContent>
+            </Dialog>
+          ))}
       </div>
     </section>
   );

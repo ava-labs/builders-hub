@@ -37,16 +37,16 @@ Avalanche has a [Faucet](https://core.app/tools/testnet-faucet/) that drips test
 
 ## Create Mintable Token
 
-Now, we can create our mintable token on Remix. Open Remix on your browser or go to [this link](https://remix.ethereum.org/#optimize=false&evmVersion=null&version=soljson-v0.6.6+commit.6c089d02.js).
+Now, we can create our mintable token on Remix. Open Remix on your browser or go to [this link](https://remix.ethereum.org/#optimize=false&evmVersion=null&version=soljson-v0.8.29+commit.ab55807c.js).
 
 ![Image for post](/images/erc3.png)
 
-You should view this page. On this page, first, click "SOLIDITY" from "Featured Plugins" and then click the "New File" button. When you click the New File button, you will see a pop-up that requires a file name. You can choose a name or leave the default.
+You should view this page. On this page, first, click the "Create new file" button. When you click the New File button, you have to choose a name.
 
 Since we will use an ERC-20 contract from [OpenZeppelin](https://openzeppelin.com/contracts/), just paste this line to the file and save.
 
 ```solidity
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v4.9/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol";
 ```
 
 ![Image for post](/images/erc4.png)
@@ -61,7 +61,7 @@ We have ERC20PresetMinterPauser.sol file in the presets. This file is written by
 
 ## Deploy the Contract
 
-Open the tab with label `Solidity compiler` and select the solidity version that matches with the solidity version written in file as `pragma solidity …..`. The version should be equal to or higher than the file's version. For example, in my file, `pragma solidity ^0.6.0` is written so the required version is 0.6.0 or higher. As shown, in the compiler the solidity version is 0.6.6, which is OK. After checking the solidity version click the compile button. If you did not change anything in the file, or the solidity version is not wrong, the contract should compile without any errors.
+Open the tab with label `Solidity compiler` and select the solidity version that matches with the solidity version written in file as `pragma solidity …..`. The version should be equal to or higher than the file's version. For example, in my file, `pragma solidity ^0.8.0` is written so the required version is 0.8.0 or higher. As shown, in the compiler the solidity version is 0.8.29, which is OK. After checking the solidity version click the compile button. If you did not change anything in the file, or the solidity version is not wrong, the contract should compile without any errors.
 
 ![Image for post](/images/erc7.png)
 

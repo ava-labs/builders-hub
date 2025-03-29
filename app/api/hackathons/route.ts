@@ -6,6 +6,7 @@ import {
 } from '@/server/services/hackathons';
 import { PrismaClient } from '@prisma/client';
 import { HackathonStatus } from '@/types/hackathons';
+import { env } from 'process';
 
 const prisma = new PrismaClient();
 
@@ -35,6 +36,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    if (req.headers.get("x-api-key") != env.APIKEY)
+      throw new Error('Unauthorized')
     const body = await req.json();
     const newHackathon = await createHackathon(body);
 

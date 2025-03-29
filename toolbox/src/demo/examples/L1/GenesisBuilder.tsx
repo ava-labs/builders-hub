@@ -1,8 +1,9 @@
+"use client";
+
 // FIXME: This is a quick implementation and will be replaced with a genesis builder component later on.
 
 import TransparentUpgradableProxy from "../../../../contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json"
 import ProxyAdmin from "../../../../contracts/openzeppelin-4.9/compiled/ProxyAdmin.json"
-
 export const quickAndDirtyGenesisBuilder = (ownerAddress: `${string}`, chainID: number, gasLimit: number, targetBlockRate: number) => {
     if (!/^0x[a-fA-F0-9]{40}$/.test(ownerAddress)) {
         throw new Error("Invalid ownerAddress format. It should be '0x' followed by 20 hex bytes (40 characters).");
@@ -85,13 +86,13 @@ export const quickAndDirtyGenesisBuilder = (ownerAddress: `${string}`, chainID: 
 }
 
 import { useEffect, useState } from "react";
-import { Input } from "../../ui";
-import { useExampleStore } from "../../utils/store";
+import { useToolboxStore, useWalletStore } from "../../utils/store";
 import { CodeHighlighter } from "../../ui/CodeHighlighter";
+import { Container } from "../../../components/container";
+import { Input } from "../../../components/input";
 
-export const GenesisBuilder = () => {
+export default function GenesisBuilder() {
     const {
-        walletEVMAddress,
         evmChainId,
         setEvmChainId,
         genesisData,
@@ -100,7 +101,8 @@ export const GenesisBuilder = () => {
         setGasLimit,
         targetBlockRate,
         setTargetBlockRate
-    } = useExampleStore()
+    } = useToolboxStore()
+    const { walletEVMAddress } = useWalletStore()
 
     const [ownerAddress, setOwnerAddress] = useState<string>("")
 
@@ -122,14 +124,16 @@ export const GenesisBuilder = () => {
     }, [ownerAddress, evmChainId, gasLimit, targetBlockRate])
 
     return (
-        <div className="space-y-4">
+        <Container
+            title="Genesis Builder"
+            description="This will build a genesis file for a new blockchain."
+        >
             <Input
                 label="Owner Address"
                 value={ownerAddress}
                 onChange={setOwnerAddress}
                 placeholder="0x..."
-                error={genesisData.includes("Invalid") ? genesisData : null}
-                notes="The address that will own the subnet's initial funds"
+                helperText={genesisData.includes("Invalid") ? genesisData : undefined}
             />
             <Input
                 label="Desired Chain ID"
@@ -144,7 +148,7 @@ export const GenesisBuilder = () => {
                 onChange={(value) => setGasLimit(Number(value))}
                 placeholder="Enter gas limit"
                 type="number"
-                notes="Maximum gas allowed per block"
+                helperText="Maximum gas allowed per block"
             />
             <Input
                 label="Target Block Rate (seconds)"
@@ -152,7 +156,7 @@ export const GenesisBuilder = () => {
                 onChange={(value) => setTargetBlockRate(Number(value))}
                 placeholder="Enter target block rate"
                 type="number"
-                notes="Target time between blocks in seconds"
+                helperText="Target time between blocks in seconds"
             />
             {genesisData && !genesisData.includes("Invalid") && (
                 <CodeHighlighter
@@ -160,6 +164,6 @@ export const GenesisBuilder = () => {
                     lang="json"
                 />
             )}
-        </div>
+        </Container>
     )
 }

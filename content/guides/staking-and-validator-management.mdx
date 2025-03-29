@@ -1,0 +1,98 @@
+---
+title: Validator Rewards and Staking Mechanisms on Avalanche L1s
+description: This article provides an overview of the mechanics of how L1's can manage their validator set and how the software and infrastructure architecture can affect future integrations.
+date: 2025-03-01
+authors: [meagfitzgerald]
+topics: [ Staking Tokens, L1 Validators, Validator Management]
+comments: true
+---
+
+## What are L1 Validators?
+
+Introduced with ACP-77, [Avalanche L1 Validators](https://build.avax.network/guides/subnet-vs-l1-validators) 
+enable the creation of sovereign L1 networks with minimal dependency on the Avalanche Primary Network. 
+Each L1 manages their own validators with a validator manager smart contract.
+
+## What is a Validator Manager Smart Contract? 
+
+A Validator Manager smart contract (VMC) is one or many smart contracts that work together to define the logic for
+L1 validator addition and removal on an Avalanche L1.
+
+ACP-77 enables any Avalanche L1 to independently manage its own validators. When an L1 network is established, the
+Avalanche P-Chain requires each L1 to specify the address that controls the validator set. This address is
+responsible for using Inter-chain messaging (ICM) to correspond with the P-Chain, notifying the network whenever a
+validator is added or removed from the L1. This address should be set to the contract address of the chosen PoA or
+PoS VMC. 
+
+The ICM-Contracts repository hosts a standard suite of [validator-manager](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/README.md)
+smart contracts that can define standard,
+minimal functionality for either PoA and PoS L1 networks. This library is maintained by the Avalanche Platform
+Engineers, and is open to use and extension by any developer in the ecosystem.
+
+## Where Can I Deploy the Validator Manager Contract? 
+
+The contract for controlling the validators of any L1 can be deployed on any blockchain in the Avalanche Network. Most
+chains will choose to deploy their validator manager contract on either (a) the Avalanche C-Chain or (b) the L1 it
+controls. 
+
+## Proof-of-Authority Networks
+
+If building a Proof-of-Authority (PoA) network, ideally the VMC should be deployed on the L1 chain it is managing so
+that the native gas token can be used to pay for validator management transactions. Due to the nature of PoA chains,
+the validators would be managed by the creators of the chain, meaning any transactions paid for with the L1's native
+gas token would be given the chain creator owns most, if not all of the supply. Without the requirement to stake any
+tokens in order to validate, PoA chains can create and instantiate the validators at the time of chain creation, and
+maintain the [P-Chain validator fee](https://build.avax.network/guides/l1-validator-fee) for the foreseeable future.
+
+## Proof-of-Stake Networks
+
+If designing a Proof-of-Stake (PoS) Avalanche L1, the validator manager contract must be deployed on the same 
+blockchain as the reward token that is being distributed, accompanied by a contract to [calculate validation rewards](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ExampleRewardCalculator.sol). 
+The reward token can be either an ERC20 token or the native token of the L1. The VMC must have minting privileges 
+for the reward token, either by enabling the Native Minter Precompile if the VMC is deployed on the L1 it controls,
+or via the [ERC20Mintable](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/interfaces/IERC20Mintable.sol) interface provided in the ICM-Contracts repo if the VMC is deployed on C-Chain or a 
+blockchain other than the L1 itself. Ultimately, the staking token must have a supply that's controlled exclusively 
+by the VMC and L1 blockchain itself. 
+
+Because most cryptocurrency exchanges, custodians, and onramps are more likely to sync and index older, more 
+established chains, deploying the VMC and ERC20 Staking Token contracts on the Avalanche C-Chain, in most cases, 
+would expedite the time needed to have the staking token listed. The ERC20 staking token VMC controls the supply 
+and distribution of the staking token when rewarding validators. 
+
+However, if a PoS L1 aims to use transaction fees as a mechanism for generating validator rewards, implementing 
+[native token](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/README.md#nativetokenstakingmanager)
+staking offers a streamlined approach to reward distribution. By using the network's native token for 
+staking, transaction fees collected from users can be directly recycled and distributed to validators without the 
+need for complex processes like burning and re-minting tokens. This simplifies the economic model, reduces 
+operational overhead, and ensures a more efficient flow of value within the ecosystem. 
+
+It's important to note that a counterargument exists against the use of transaction fees for value accrual: most
+blockchains aim to have the lowest gas fees possible. A better user experience for transactors on-chain usually
+includes a fee that is so low, you barely notice it. If the fee is as low as possible, it wouldn't be a great
+method of value accrual for an L1's validators; instead of this, the chain can employ a token emissions or token 
+inflation scheme, such as the many tokenomics models present on chains like [Avalanche](https://build.avax.network/docs/quick-start/avax-token#tokenomics)
+and [Ethereum](https://consensys.io/blog/your-guide-to-ethereum-validator-staking-rewards). Other mechanisms
+can also be employed, such as using fees generated by any on-chain applications to [buy back](https://hyperliquid.gitbook.io/hyperliquid-docs/trading/fees)
+tokens and either hold them in a fund or distribute them to the community.
+
+Regardless of the choice of reward mechanism, native token staking using the ICM-Contracts implementation must be
+deployed on the L1's blockchain. Staking rewards are minted by enabling the Native Minter Precompile on the L1's
+Subnet-EVM binary, which is configured with a set of addresses with minting privileges of the L1's native token.
+As such, the EVM address that NativeTokenStakingManager is deployed to must be added as an admin to the precompile.
+
+Because the supply of the native token will be controlled on the L1 itself, a native staking token may still be
+bridged to Avalanche C-Chain as a Wrapped ERC20 token and listed on exchanges without the need to index the L1 
+chain. 
+
+## Conclusion
+
+In summary, managing L1 validators on Avalanche involves deploying and configuring Validator Manager Contracts
+(VMCs). These contracts, which can be customized for Proof-of-Authority (PoA) or Proof-of-Stake (PoS) networks,
+dictate how validators are added and removed. The deployment location of the VMC, along with the choice of reward
+mechanism (ERC20 tokens or native tokens), are critical design decisions that impact the L1's functionality and
+integration with the broader Avalanche ecosystem. 
+
+Developers looking to implement or extend these functionalities can leverage the standard suite of validator-manager
+smart contracts available in the [ICM-Contracts](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/README.md)
+repository. Detailed information can be found in the [developer documentation](https://build.avax.network/docs/cross-chain/teleporter/overview).
+

@@ -6,9 +6,9 @@ import { DynamicIcon } from "lucide-react/dynamic";
 function MentorsJudges({ hackathon }: { hackathon: HackathonHeader }) {
   return (
     <section id="speakers">
-      <div className="bg-zinc-900 p-4 sm:p-16 flex flex-col gap-4">
-        <div className="flex items-center">
-          <div className="lg:w-[45%] pr-16">
+      <div className="bg-zinc-900 p-14 flex flex-col gap-4">
+        <div className="flex items-center justify-center text-center md:text-left md:justify-start flex-col md:flex-row ">
+          <div className="lg:w-[45%] md:pr-16">
             <h2 className="text-4xl font-bold mb-8 text-zinc-100">
               Mentors & Judges
             </h2>
@@ -16,15 +16,7 @@ function MentorsJudges({ hackathon }: { hackathon: HackathonHeader }) {
               {hackathon.content.speakers_text}
             </p>
           </div>
-          <Image
-            src={hackathon.content.speakers_banner}
-            alt="Speakers and judges collage"
-            width={300}
-            height={300}
-            className="w-[55%] hidden lg:block"
-          ></Image>
-        </div>
-        <div className="flex gap-4 justify-center sm:justify-start flex-wrap">
+            <div className="flex gap-10 justify-center sm:justify-start flex-wrap">
           {hackathon.content.speakers.map((speaker, index) => (
             <div key={index} className="flex flex-col gap-4 mt-4">
               <Image
@@ -52,6 +44,8 @@ function MentorsJudges({ hackathon }: { hackathon: HackathonHeader }) {
             </div>
           ))}
         </div>
+        </div>
+      
       </div>
     </section>
   );

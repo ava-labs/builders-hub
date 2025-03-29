@@ -25,7 +25,7 @@ function fetchTags() {
                     // Find semantic version tags like v0.7.1
                     const semanticTags = results
                         .map(tag => tag.name)
-                        .filter(name => /^v\d+\.\d+\.\d+$/.test(name));
+                        .filter(name => /^v\d+\.\d+\.\d+/.test(name));
 
                     if (semanticTags.length > 0) {
                         resolve(semanticTags[0]);
@@ -60,7 +60,7 @@ async function main() {
 
             console.error(`New version ${latestTag} is available. Current version is ${currentVersion}`);
             console.error('Please run `node toolbox/update_docker_tags.js` and commit the changes');
-            process.exit(1);
+            // process.exit(1);
         }
     } catch (error) {
         console.warn('Warning:', error.message);

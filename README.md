@@ -30,7 +30,7 @@ repository. Simply:
 To propose new docs or large edits to our existing pages, follow the steps accordingly:
 
 - **Ava Labs Github Organization Members:** Clone the repo
-  `git clone https://github.com/ava-labs/avalanche-docs.git`
+  `git clone https://github.com/ava-labs/builders-hub.git`
 - **External Contributors:** Fork the repo via GitHub's GUI
 - Checkout to a new branch `git checkout -b <your-name/branch-name>`
 - Make changes on your branch
@@ -38,7 +38,7 @@ To propose new docs or large edits to our existing pages, follow the steps accor
 - **`yarn dev` to ensure the build passes**
 - `git commit -m "some commit message"`
 - `git push`
-- Head to [GitHub](https://github.com/ava-labs/avalanche-docs) and open a new pull request
+- Head to [GitHub](https://github.com/ava-labs/builders-hub) and open a new pull request
 
 ### Structure and Syntax
 
@@ -85,7 +85,7 @@ _The information I am requesting is related to a specific project, i.e. Avalanch
 
 _The information I am requesting is explanatory in nature and does not currently exist:_
 
-- Please open a new [Issue](https://github.com/ava-labs/avalanche-docs/issues/new/choose)
+- Please open a new [Issue](https://github.com/ava-labs/builders-hub/issues/new/choose)
   in this repository and thoroughly detail your request according to the issue template.
   If urgent, please create a new ticket in the
   [Dev Docs Improvement Proposals](https://github.com/orgs/ava-labs/projects/15/views/1)
@@ -95,5 +95,5 @@ _Erroneous or missing information on documentation unrelated to a specific proje
 editing:_
 
 - If you understand the issue enough to provide a correction, follow the steps
-  [here](https://github.com/ava-labs/avalanche-docs#quick-fixes).
-- If not, please raise an [Issue](https://github.com/ava-labs/avalanche-docs/issues/new/choose).
+  [here](https://github.com/ava-labs/builders-hub#quick-fixes).
+- If not, please raise an [Issue](https://github.com/ava-labs/builders-hub/issues/new/choose).

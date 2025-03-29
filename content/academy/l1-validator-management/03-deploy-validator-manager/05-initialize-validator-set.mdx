@@ -1,0 +1,18 @@
+---
+title: Initialize Validator Set
+description: Initialize the validator set.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: Code
+---
+
+import ToolboxMdxWrapper from "../../../../toolbox/src/demo/ui/ToolboxMdxWrapper.tsx"
+import InitValidatorSet from "../../../../toolbox/src/demo/examples/InitializePoA/InitValidatorSet.tsx"
+
+Now that we have collected the signatures for the `convertSubnetToL1Tx`, we can initialize the validator set using the signed `SubnetToL1ConversionMessage`.
+
+You can think of this as confirming a cross-chain message from the P-Chain to the L1. The `SubnetToL1ConversionMessage` includes info about the initial validator set that was registered on the P-Chain during `convertSubnetToL1Tx`.
+
+<ToolboxMdxWrapper>
+    <InitValidatorSet />
+</ToolboxMdxWrapper>

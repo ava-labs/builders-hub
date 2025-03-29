@@ -76,14 +76,24 @@ export default function FundPChainWallet() {
         <div className="space-y-4">
             <div className="space-y-4">
                 <h1 className="text-2xl font-medium">Fund P-Chain Wallet</h1>
-                <p>To set up your L1, you need to transfer {requiredAmount} AVAX to your P-Chain address. You can do this using the <a
+                <p>To set up your L1, you need to have <a
+                    href="https://chromewebstore.google.com/detail/core-crypto-wallet-nft-ex/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                >Core wallet</a> installed and have at least {requiredAmount} AVAX on the P-Chain. You can claim testnet AVAX with the <a
+                href="https://core.app/tools/testnet-faucet/?subnet=c&token=c"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+            >faucet</a> (use the code avalanche-academy) and transfer {requiredAmount} AVAX to your P-Chain address. You can do this using the <a
                     href="https://test.core.app/stake/cross-chain-transfer/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
                 >
-                    Cross-Chain Transfer tool in Core.app
-                </a>.</p>
+                    Cross-Chain Transfer
+                </a> tool in Core.app.</p>
                 {!hasEnoughFunds && (
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                         Transfer {remainingAmount} more AVAX to continue.

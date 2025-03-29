@@ -54,7 +54,7 @@ function Formlogin({ callbackUrl = '/' }: { callbackUrl?: string }) {
 
   return (
     <main>
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4  items-center'>
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4  items-center mt-8'>
         <div className='hidden lg:block p-10 w-full h-full bg-zinc-900'>
           <Image
             src='/hackaton-platform-images/avalancheLoginLogo.svg'
@@ -77,13 +77,13 @@ function Formlogin({ callbackUrl = '/' }: { callbackUrl?: string }) {
                 <h3 className='font-medium text-2xl'>
                   Sign in to your account
                 </h3>
-                <p className='text-zinc-400 text-sm pt-2'>
+                {/* <p className='text-zinc-400 text-sm pt-2'>
                   Enter your email to receive a sign-in code
-                </p>
+                </p> */}
               </div>
 
               <div className='flex flex-col justify-center items-center space-y-6 w-full mt-6 max-w-[350px]'>
-                <div className='w-full'>
+                {/* <div className='w-full'>
                   <Form {...formMethods}>
                     <form
                       onSubmit={formMethods.handleSubmit(onSubmit)}
@@ -109,14 +109,14 @@ function Formlogin({ callbackUrl = '/' }: { callbackUrl?: string }) {
                       </div>
                       <Button
                         type='submit'
-                        variant='destructive'
-                        className='w-full bg-red-500 p-2 rounded'
+                          variant={'red'}
+                        className='w-full p-2 rounded'
                       >
                         {isLoading ? 'Sending...' : 'SEND VERIFICATION CODE'}
                       </Button>
                     </form>
                   </Form>
-                </div>
+                </div> */}
                 <SocialLogin callbackUrl={callbackUrl} />
                 <div>
                   <footer className='pt-10'>

@@ -23,7 +23,7 @@ export default function Welcome() {
             The PoA Manager helps you manage your L1's validator set. You can add new validators, disable existing ones, and adjust their weight. This tool is designed for developers who need to maintain their Proof of Authority (PoA) validator set through a simple web interface.
         </p>
         <p className="mb-4">
-            The tool is completely open source and available on <a href="https://github.com/ava-labs/avalanche-docs" target="_blank" className="text-blue-500 hover:text-blue-700 underline">GitHub</a>
+            The tool is completely open source and available on <a href="https://github.com/ava-labs/builders-hub" target="_blank" className="text-blue-500 hover:text-blue-700 underline">GitHub</a>
         </p>
 
         <div className="p-4 mb-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg">

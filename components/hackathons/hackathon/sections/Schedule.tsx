@@ -6,7 +6,7 @@ import { SearchEventInput } from "@/components/ui/search-event-input";
 import { TimeZoneSelect } from "@/components/ui/timezone-select";
 import { HackathonHeader, ScheduleActivity } from "@/types/hackathons";
 import { Link as LinkIcon, MapPin } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
@@ -15,6 +15,12 @@ import DeadLine from "../DeadLine";
 function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
   const [search, setSearch] = useState<string>("");
   const [timeZone, setTimeZone] = useState<string>("");
+
+  useEffect(() => {
+    if (hackathon.timezone) {
+      setTimeZone(hackathon.timezone);
+    }
+  }, [hackathon]);
 
   const defineTimeZone = (formatDateParams: any) => {
     if (timeZone) return { ...formatDateParams, timeZone: timeZone };
@@ -115,7 +121,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
           .map(([formattedGroupDate, activities], index) => {
             const now = new Date();
             const nowFormattedDay = getFormattedDay(now);
-            const dateIsCurrentDate = formattedGroupDate == nowFormattedDay;
+            const dateIsCurrentDate = false;//Pending to activate
             return (
               <div key={index} className="flex flex-col gap-4">
                 <h3
@@ -224,9 +230,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                         >
                           <CardContent
                             className={`p-3 sm:p-4 h-full flex flex-col ${
-                              voidHost
-                                ? "justify-start"
-                                : "justify-between"
+                              voidHost ? "justify-start" : "justify-between"
                             } gap-2`}
                           >
                             <div>
@@ -235,12 +239,12 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                                   {activity.name}
                                 </CardTitle>
                                 {activity.category && (
-                                  <Badge className="dark:bg-zinc-50 bg-zinc-900 dark:text-zinc-900 text-zinc-50 py-0.5 px-2.5 text-xs w-fit h-fit">
+                                  <Badge className="dark:bg-zinc-50 bg-zinc-900 dark:text-zinc-900 text-zinc-50 py-0.5 px-2.5 text-s w-fit h-fit">
                                     {activity.category}
                                   </Badge>
                                 )}
                               </div>
-                              <span className="dark:text-zinc-400 text-zinc-600 text-xs sm:text-sm font-normal">
+                              <span className="dark:text-zinc-400 text-zinc-600 text-s sm:text-sm font-normal">
                                 {activity.description}
                               </span>
                             </div>
@@ -263,7 +267,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                                   )}
                                   {activity.host_media && (
                                     <Link
-                                      className="dark:text-zinc-400 text-zinc-600 text-xs sm:text-sm font-normal"
+                                      className="dark:text-zinc-400 text-zinc-600 text-s sm:text-sm font-normal"
                                       href={`https://x.com/${activity.host_media}`}
                                       target="_blank"
                                     >
@@ -273,10 +277,16 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                                 </div>
                               </div>
                             )}
-                            <div className={`flex flex-row sm:gap-4 ${voidHost ? 'flex-1 items-center' : 'justify-between'}`}>
+                            <div
+                              className={`flex flex-row sm:gap-4 ${
+                                voidHost
+                                  ? "flex-1 items-center"
+                                  : "justify-between"
+                              }`}
+                            >
                               <div className="flex flex-row items-center gap-2">
                                 <MapPin color="#8F8F99" className="w-5 h-5" />
-                                <span className="dark:text-zinc-50 zinc-900 text-xs font-medium">
+                                <span className="dark:text-zinc-50 zinc-900 sm:text-sm font-normal">
                                   {activity.location}
                                 </span>
                               </div>

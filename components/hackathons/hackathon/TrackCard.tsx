@@ -10,7 +10,7 @@ type Props = {
 export default function TrackCard(props: Props) {
   return (
     <Card
-      className='basis-1/4 min-h-40 h-full bg-zinc-50 dark:bg-zinc-900 cursor-pointer'
+      className='min-h-40 h-full bg-zinc-50 dark:bg-zinc-900 cursor-pointer rounded-xl'
     >
       <CardHeader>
         <CardTitle>

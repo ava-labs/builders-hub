@@ -5,19 +5,17 @@ import {
   frontmatterSchema,
   metaSchema,
 } from 'fumadocs-mdx/config';
-import { rehypeCodeDefaultOptions, remarkImage } from 'fumadocs-core/mdx-plugins';
-import { transformerTwoslash } from 'fumadocs-twoslash';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { remarkHeading } from 'fumadocs-core/mdx-plugins';
 import { z } from 'zod';
+import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins';
+import { transformerTwoslash } from 'fumadocs-twoslash';
+import { createFileSystemTypesCache } from 'fumadocs-twoslash/cache-fs';
 
 export const { docs, meta } = defineDocs({
   docs: {
     async: true,
     schema: frontmatterSchema.extend({
-      preview: z.string().optional(),
-      toc: z.boolean().default(true),
       index: z.boolean().default(false),
     }),
   },
@@ -28,13 +26,11 @@ export const { docs, meta } = defineDocs({
   },
 });
 
-export const academy = defineCollections({
+export const course = defineCollections({
   type: 'doc',
-  async: true,
   dir: 'content/academy',
   schema: frontmatterSchema.extend({
     preview: z.string().optional(),
-    toc: z.boolean().default(true),
     index: z.boolean().default(false),
     updated: z.string().or(z.date()).transform((value, context) => {
         try {
@@ -49,7 +45,7 @@ export const academy = defineCollections({
   }),
 });
 
-export const academyMeta = defineCollections({
+export const courseMeta = defineCollections({
   type: 'meta',
   dir: 'content/academy',
   schema: metaSchema.extend({
@@ -74,7 +70,6 @@ export const integrations = defineCollections({
 
 export const guide = defineCollections({
   type: 'doc',
-  async: true,
   dir: 'content/guides',
   schema: frontmatterSchema.extend({
     authors: z.array(z.string()),
@@ -88,6 +83,9 @@ export default defineConfig({
   lastModifiedTime: 'git',
   mdxOptions: {
     rehypeCodeOptions: {
+      lazy: true,
+      experimentalJSEngine: true,
+      langs: ['ts', 'js', 'html', 'tsx', 'mdx'],
       inline: 'tailing-curly-colon',
       themes: {
         light: 'catppuccin-latte',
@@ -95,7 +93,9 @@ export default defineConfig({
       },
       transformers: [
         ...(rehypeCodeDefaultOptions.transformers ?? []),
-        transformerTwoslash(),
+        transformerTwoslash({
+          typesCache: createFileSystemTypesCache(),
+        }),
         {
           name: 'transformers:remove-notation-escape',
           code(hast) {
@@ -115,8 +115,7 @@ export default defineConfig({
         },
       ],
     },
-    remarkPlugins: [ remarkMath, remarkHeading, [remarkImage, { useImport: false }] ],
+    remarkPlugins: [remarkMath],
     rehypePlugins: (v) => [rehypeKatex, ...v],
-    jsx: false,
   },
 });

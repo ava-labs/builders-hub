@@ -1,11 +1,13 @@
 ---
 title: NativeMinter Precompile
-description: Learn how to use the AllowList Precompile on your Avalanche L1 blockchain.
+description: Learn how to use the NativeMinter Precompile on your Avalanche L1 blockchain.
 ---
 
 The Native Minter Precompile allows you to mint additional native tokens beyond the initial supply on your Avalanche L1 blockchain. 
 
-In order to activate this feature, you will need to provide the `FeeConfigManager` in the genesis:
+## Activating the Precompile
+
+In order to activate this feature, you will need to provide the `contractNativeMinterConfig` in the genesis:
 
 ```json
 {
@@ -19,3 +21,42 @@ In order to activate this feature, you will need to provide the `FeeConfigManage
 ```
 
 By enabling this feature, you can define who has permission to mint new tokens and how minting is managed over time.
+
+## Interface and Address
+
+The Native Minter precompile is located at address `0x0200000000000000000000000000000000000001` and implements the following interface:
+
+```solidity
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+interface INativeMinter {
+  event NativeCoinMinted(address indexed sender, address indexed recipient, uint256 amount);
+  // Mint [amount] number of native coins and send to [addr]
+  function mintNativeCoin(address addr, uint256 amount) external;
+
+  // IAllowList
+  event RoleSet(uint256 indexed role, address indexed account, address indexed sender, uint256 oldRole);
+
+  // Set [addr] to have the admin role over the precompile contract.
+  function setAdmin(address addr) external;
+
+  // Set [addr] to be enabled on the precompile contract.
+  function setEnabled(address addr) external;
+
+  // Set [addr] to have the manager role over the precompile contract.
+  function setManager(address addr) external;
+
+  // Set [addr] to have no role for the precompile contract.
+  function setNone(address addr) external;
+
+  // Read the status of [addr].
+  function readAllowList(address addr) external view returns (uint256 role);
+}
+```
+
+The Native Minter precompile uses the [AllowList interface](/docs/virtual-machines/default-precompiles/allowlist) to restrict access to its functionality.
+
+## Implementation
+
+You can find the implementation of the Native Minter precompile in the [subnet-evm repository](https://github.com/ava-labs/subnet-evm/blob/master/precompile/contracts/nativeminter/contract.go).

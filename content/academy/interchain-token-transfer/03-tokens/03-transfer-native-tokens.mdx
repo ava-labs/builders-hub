@@ -52,6 +52,17 @@ cast balance $MYADDRESS --rpc-url myblockchain
 cast send $MYADDRESS --value 200000  --private-key $PK --rpc-url myblockchain
 ```
 
+If you encounter the following error:
+
+```bash
+error: a value is required for '--private-key <RAW_PRIVATE_KEY>' but none was supplied
+```
+
+This means the private key environment variable isn't set properly. You'll need to export your private key using the command below:
+```bash
+export PK=56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027
+```
+
 </Step>
 <Step>
 
