@@ -12,14 +12,14 @@ export const projectValidations: Validation[] = [
 export const validateProject = (project: Partial<Project>): Validation[] => validateEntity(projectValidations, project);
 
 export class ValidationError extends Error {
-    public details: Validation[];
-    public cause: string;
+  public details: Validation[];
+  public cause: string;
 
-    constructor(message: string, details: Validation[]) {
-        super(message);
-        this.cause = "ValidationError";
-        this.details = details;
-    }
+  constructor(message: string, details: Validation[]) {
+    super(message);
+    this.cause = "ValidationError";
+    this.details = details;
+  }
 }
 
 export const getFilteredProjects = async (options: GetProjectOptions) => {
@@ -38,17 +38,12 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
     searchWords.forEach((word) => {
       searchFilters = [...searchFilters,
       {
-        title: {
+        project_name: {
           contains: word, mode: "insensitive",
         },
       },
       {
-        location: {
-          contains: word, mode: "insensitive"
-        },
-      },
-      {
-        description: {
+        full_description: {
           contains: word, mode: "insensitive"
         },
       },
@@ -56,7 +51,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
     })
     searchFilters = [...searchFilters,
     {
-      tags: {
+      tracks: {
         has: options.search
       },
     },
@@ -69,41 +64,33 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   }
   console.log('Filters: ', filters)
 
-  const projectList = await prisma.hackathon.findMany({
+  const projects = await prisma.project.findMany({
     where: filters,
     skip: offset,
     take: pageSize,
   });
 
-  const hackathons = projectList
-  let hackathonsLite = hackathons
-
-  const totalHackathons = await prisma.hackathon.count({
+  const totalProjects = await prisma.project.count({
     where: filters,
   });
 
   return {
-    hackathons: hackathonsLite.map((hackathon) => ({
-      total: totalHackathons,
-      page,
-      pageSize,
-    }))
+    projects: projects,
+    total: totalProjects,
+    page,
+    pageSize,
   }
 }
 
 export async function getProject(id: string) {
 
-    const hackathon = await prisma.hackathon.findUnique({
-        where: { id },
-    });
-    if (!hackathon)
-        throw new Error("Project not found", { cause: "BadRequest" });
+  const project = await prisma.project.findUnique({
+    where: { id },
+  });
+  if (!project)
+    throw new Error("Project not found", { cause: "BadRequest" });
 
-    const hackathonContent = hackathon.content as unknown as Hackathon
-    return {
-        ...hackathon,
-        content: hackathonContent,
-    } as Project 
+  return project
 }
 
 export async function createProject(projectData: Partial<Project>): Promise<Project> {
@@ -112,39 +99,72 @@ export async function createProject(projectData: Partial<Project>): Promise<Proj
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors)
   }
-
-  const content = { ...projectData} as Prisma.JsonObject
-  const newHackathon = await prisma.hackathon.create({
+  const newProject = await prisma.project.create({
     data: {
+      project_name: projectData.project_name ?? '',
+      short_description: projectData.short_description ?? '',
+      cover_url: projectData.cover_url ?? '',
+      demo_link: projectData.demo_link ?? '',
+      demo_video_link: projectData.demo_video_link ?? '',
+      full_description: projectData.full_description ?? '',
+      github_repository: projectData.github_repository ?? '',
+      logo_url: projectData.logo_url ?? '',
+      open_source: projectData.open_source ?? false,
+      screenshots: projectData.screenshots ?? [],
+      tech_stack: projectData.tech_stack ?? '',
+      tracks: projectData.tracks ?? [],
+      hackaton_id: projectData.hackaton_id ?? '',
+      members: {
+        create: projectData.members?.map((member) => ({
+          user_id: member.user_id,
+          role: member.role,
+          status: member.status,
+        })),
+      },
+      created_at: new Date(),
+      updated_at: new Date(),
     },
   });
-  projectData.id = newHackathon.id;
+  projectData.id = newProject.id;
   revalidatePath('/api/projects/')
   return projectData as Project;
 }
 
 export async function updateProject(id: string, projectData: Partial<Project>): Promise<Project> {
-    const errors = validateProject(projectData);
-    console.log(errors)
-    if (errors.length > 0) {
-        throw new ValidationError("Validation failed", errors)
-    }
+  const errors = validateProject(projectData);
+  console.log(errors)
+  if (errors.length > 0) {
+    throw new ValidationError("Validation failed", errors)
+  }
 
-    const existingHackathon = await prisma.hackathon.findUnique({
-        where: { id },
-    });
-    if (!existingHackathon) {
-        throw new Error("Hackathon not found")
-    }
+  const existingProject = await prisma.hackathon.findUnique({
+    where: { id },
+  });
+  if (!existingProject) {
+    throw new Error("Hackathon not found")
+  }
 
-    await prisma.hackathon.update({
-        where: { id },
-        data: {
-        },
-    });
-    revalidatePath(`/api/projects/${projectData.id}`)
-    revalidatePath('/api/projects/')
-    return projectData as Project;
+  await prisma.project.update({
+    where: { id },
+    data: {
+      project_name: projectData.project_name ?? '',
+      short_description: projectData.short_description ?? '',
+      cover_url: projectData.cover_url ?? '',
+      demo_link: projectData.demo_link ?? '',
+      demo_video_link: projectData.demo_video_link ?? '',
+      full_description: projectData.full_description ?? '',
+      github_repository: projectData.github_repository ?? '',
+      logo_url: projectData.logo_url ?? '',
+      open_source: projectData.open_source ?? false,
+      screenshots: projectData.screenshots ?? [],
+      tech_stack: projectData.tech_stack ?? '',
+      tracks: projectData.tracks ?? [],
+      updated_at: new Date(),
+    },
+  });
+  revalidatePath(`/api/projects/${projectData.id}`)
+  revalidatePath('/api/projects/')
+  return projectData as Project;
 }
 
 export type GetProjectOptions = {

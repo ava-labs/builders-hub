@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { createProject, getFilteredProjects, GetProjectOptions } from '@/server/services/projects';
 
-const prisma = new PrismaClient();
-
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
