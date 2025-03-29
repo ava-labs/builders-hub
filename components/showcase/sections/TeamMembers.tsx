@@ -1,9 +1,9 @@
 import { Separator } from "@/components/ui/separator";
-import { ProjectMember } from "@/types/showcase";
+import { Member } from "@/types/showcase";
 import Image from "next/image";
 
 type Props = {
-  members: ProjectMember[];
+  members: Member[];
 };
 
 export default function TeamMembers({ members }: Props) {
@@ -16,14 +16,14 @@ export default function TeamMembers({ members }: Props) {
         {members.map((member, index) => (
           <div key={index} className="flex flex-col justify-center gap-4">
             <Image
-              src={member.imgUrl}
-              alt={member.name}
+              src={member.user.image ?? ''}
+              alt={member.user.name ?? ''}
               width={150}
               height={150}
               className="w-40 h-40 rounded-full"
             />
             <div>
-              <h3 className="text-center">{member.name}</h3>
+              <h3 className="text-center">{member.user.name}</h3>
               <p className="text-sm text-zinc-700 dark:text-zinc-300 text-center">{member.role}</p>
             </div>
           </div>

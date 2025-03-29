@@ -9,7 +9,7 @@ export const projectValidations: Validation[] = [
   { field: "name", message: "Please provide a name for the project.", validation: (project: Project) => requiredField(project, "title") },
 ];
 
-export const validateHackathon = (project: Partial<Project>): Validation[] => validateEntity(projectValidations, project);
+export const validateProject = (project: Partial<Project>): Validation[] => validateEntity(projectValidations, project);
 
 export class ValidationError extends Error {
     public details: Validation[];
@@ -69,13 +69,13 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   }
   console.log('Filters: ', filters)
 
-  const hackathonList = await prisma.hackathon.findMany({
+  const projectList = await prisma.hackathon.findMany({
     where: filters,
     skip: offset,
     take: pageSize,
   });
 
-  const hackathons = hackathonList
+  const hackathons = projectList
   let hackathonsLite = hackathons
 
   const totalHackathons = await prisma.hackathon.count({
@@ -107,7 +107,7 @@ export async function getProject(id: string) {
 }
 
 export async function createProject(projectData: Partial<Project>): Promise<Project> {
-  const errors = validateHackathon(projectData);
+  const errors = validateProject(projectData);
   console.log(errors)
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors)
@@ -124,7 +124,7 @@ export async function createProject(projectData: Partial<Project>): Promise<Proj
 }
 
 export async function updateProject(id: string, projectData: Partial<Project>): Promise<Project> {
-    const errors = validateHackathon(projectData);
+    const errors = validateProject(projectData);
     console.log(errors)
     if (errors.length > 0) {
         throw new ValidationError("Validation failed", errors)

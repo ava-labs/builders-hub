@@ -1,38 +1,41 @@
+import { User } from "@prisma/client";
+import { HackathonHeader } from "./hackathons";
+
 export type Project = {
-  id: string
-  name: string;
-  isWinner: boolean;
-  bannerUrl: string;
-  logoUrl: string;
-  videoUrl: string;
-  shortDescription: string;
-  description: string
-  liveDemoUrl: string
-  sourceCodeUrl: string
-  event: ProjectEvent
+  id: string;
+  hackaton_id: string;
+  project_name: string;
+  short_description: string;
+  full_description?: string;
+  tech_stack?: string;
+  github_repository?: string;
+  demo_link?: string;
+  open_source: boolean;
+  logo_url?: string;
+  cover_url?: string;
+  demo_video_link?: string;
+  screenshots: string[];
   tracks: string[];
-  gallery: string[]
-  prices: ProjectPrice[]
-  members: ProjectMember[]
-  resources: ProjectResource[]
+  created_at: string;
+  updated_at: string; 
+  members: Member[];
+  hackathon: HackathonHeader;
 };
 
-export type ProjectEvent = {
-  name: string;
-  location: string;
-  year: number;
-}
+export type Member = {
+  id: string;
+  user_id: string;
+  project_id: string;
+  role: string;
+  status: string;
+  project: Project;
+  user: User;
+};
 
 export type ProjectPrice = {
   icon: string
   title: string
   description: string
-}
-
-export type ProjectMember = {
-  imgUrl: string
-  name: string
-  role: string
 }
 
 export type ProjectResource = {
