@@ -175,6 +175,44 @@ const componentGroups: Record<string, ComponentType[]> = {
                 "toolbox/contracts/example-contracts/contracts/senderOnCChain.sol",
             ]
         }
+    ],
+    "Precompiles": [
+        {
+            id: "nativeMinter",
+            label: "Native Minter",
+            component: lazy(() => import('./examples/Precompiles/NativeMinter')),
+            fileNames: ["toolbox/src/demo/examples/Precompiles/NativeMinter.tsx"]
+        },
+        {
+            id: "feeManager",
+            label: "Fee Manager",
+            component: lazy(() => import('./examples/Precompiles/FeeManager')),
+            fileNames: ["toolbox/src/demo/examples/Precompiles/FeeManager.tsx"]
+        },
+        {
+            id: "rewardManager",
+            label: "Reward Manager",
+            component: lazy(() => import('./examples/Precompiles/RewardManager')),
+            fileNames: ["toolbox/src/demo/examples/Precompiles/RewardManager.tsx"]
+        },
+        {
+            id: "warpMessenger",
+            label: "Warp Messenger",
+            component: lazy(() => import('./examples/Precompiles/WarpMessenger')),
+            fileNames: ["toolbox/src/demo/examples/Precompiles/WarpMessenger.tsx"]
+        },
+        {
+            id: "transactionAllowlist",
+            label: "Transaction Allowlist",
+            component: lazy(() => import('./examples/Precompiles/TransactionAllowlist')),
+            fileNames: ["toolbox/src/demo/examples/Precompiles/TransactionAllowlist.tsx"]
+        },
+        {
+            id: "deployerAllowlist",
+            label: "Deployer Allowlist",
+            component: lazy(() => import('./examples/Precompiles/DeployerAllowlist')),
+            fileNames: ["toolbox/src/demo/examples/Precompiles/DeployerAllowlist.tsx"]
+        }
     ]
 };
 
