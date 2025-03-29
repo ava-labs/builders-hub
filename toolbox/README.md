@@ -1,42 +1,18 @@
 # Avalanche Builders Hub Toolbox
 
-This is the toolbox component of the Avalanche Builders Hub, providing various tools for interacting with Avalanche networks.
+Please read this guide before contributing or at least feed this into your Cursor/v0/Windsurf/whatever. 
 
-## Installation
+## UI Components
+- Reusable components are in `./src/components`
+- Only create shared components when used in multiple places
+- Keep components minimal to reduce dependency complexity
 
-1. Clone the repository:
-```bash
-git clone https://github.com/ava-labs/builders-hub.git
-cd builders-hub
-```
+## Stores
+- Create new stores when state shouldn't be shared with toolbox
+- State persists in localStorage except when it doesn't make sense to do so like in the Wallet store
+- Use derived stores to simplify dependencies (see `useViemChainStore` example)
 
-2. Navigate to the toolbox directory 
-```bash
-cd toolbox
-```
+## CoreViem
+An experimental library that unifies Core wallet transactions and RPC calls. Will eventually be released as an SDK.
 
-3. Install dependencies:
-```bash
-yarn install
-```
-
-4. Start the development server:
-```bash
-yarn dev
-```
-
-The application will be available at `http://localhost:5174/l1-toolbox`.
-
-## Features
-
-- Performance Monitoring
-- RPC Methods Check
-- And more...
-
-## Development
-
-The toolbox is built with React and TypeScript. The development server provides hot-reloading for a smooth development experience.
-
-## License
-
-This project is licensed under the BSD-3-Clause License - see the LICENSE file for details.
+Toolbox is an independent software from builder-hub and could not have any dependencies on builder-hub.
