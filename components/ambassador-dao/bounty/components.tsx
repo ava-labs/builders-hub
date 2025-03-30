@@ -18,6 +18,7 @@ import { getOrdinalPosition } from "@/utils/getOrdinalPosition";
 import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 import { BountySubmissionModal } from "@/components/ambassador-dao/bounty/BountySubmissionModal";
 import { AuthModal } from "@/components/ambassador-dao/sections/auth-modal";
+import ReactMarkdown from "react-markdown";
 
 interface BountyHeaderProps {
   bounty: {
@@ -90,7 +91,7 @@ export const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
             </div>
             <div className='flex items-center gap-2 text-sm text-[#9F9FA9]'>
               <Hourglass size={16} color='#9F9FA9' />
-              <span>Due in: {getTimeLeft(bounty?.deadline)}</span>
+              <span>{getTimeLeft(bounty?.deadline) === 'Expired' ? 'Closed' : `Due in: ${getTimeLeft(bounty?.deadline)}`}</span>
             </div>
             <div className='flex items-center gap-2 text-sm text-[#9F9FA9]'>
               <FileText size={16} color='#9F9FA9' />
@@ -125,9 +126,18 @@ export const BountyDescription: React.FC<BountyDescriptionProps> = ({
     <div className='mb-6 text-gray-300'>
       <h2 className='text-xl font-semibold mb-2 text-white'>{data.title}</h2>
       <div className='space-y-4'>
-        {data?.content?.map((paragraph, index) => (
-          <p key={index}>{paragraph}</p>
-        ))}
+      <ReactMarkdown
+          components={{
+            ul: ({ node, ...props }) => (
+              <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />
+            ),
+            ol: ({ node, ...props }) => (
+              <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />
+            ),
+          }}
+        >
+          {data?.content?.join("\n\n")}
+        </ReactMarkdown>
       </div>
     </div>
   );

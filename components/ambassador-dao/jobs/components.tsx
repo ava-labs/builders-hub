@@ -2,7 +2,7 @@
 
 import { useState, Key } from "react";
 import {
-  FileText, 
+  FileText,
   Hourglass,
   CircleUser,
   BriefcaseBusiness,
@@ -18,6 +18,7 @@ import Token from "@/public/ambassador-dao-images/token.png";
 import { getOrdinalPosition } from "@/utils/getOrdinalPosition";
 import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 import { AuthModal } from "@/components/ambassador-dao/sections/auth-modal";
+import ReactMarkdown from "react-markdown";
 
 interface JobHeaderProps {
   job: {
@@ -68,11 +69,11 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
   const { data: userData } = useFetchUserDataQuery();
 
   return (
-    <div className='bg-[#111] p-4 rounded-md border border-gray-800 sticky top-6'>
-      <div className='flex items-center justify-between mb-4'>
-        <div className='flex items-center gap-2'>
-          <span className='text-white flex items-center gap-2'>
-            <Image src={Token} alt='$' />
+    <div className="bg-[#111] p-4 rounded-md border border-gray-800 sticky top-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-white flex items-center gap-2">
+            <Image src={Token} alt="$" />
             {job?.total_budget} USDC
           </span>
         </div>
@@ -81,41 +82,41 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
       {job?.prize_distribution &&
         job?.prize_distribution?.map(
           (prize: { amount: number; position: number }, index: number) => (
-            <div key={index} className='flex items-center gap-2 my-2'>
-              <Image src={Token} alt='$' />
+            <div key={index} className="flex items-center gap-2 my-2">
+              <Image src={Token} alt="$" />
               {prize.amount} USDC{" "}
-              <span className='text-[#9F9FA9]'>
+              <span className="text-[#9F9FA9]">
                 {getOrdinalPosition(prize.position)}
               </span>
             </div>
           )
         )}
 
-      <div className='flex gap-4 items-center mb-6 mt-2'>
-        <div className='flex flex-col'>
-          <span className='text-white flex items-center'>
+      <div className="flex gap-4 items-center mb-6 mt-2">
+        <div className="flex flex-col">
+          <span className="text-white flex items-center">
             <BriefcaseBusiness
               size={16}
-              className='inline mr-1'
-              color='#9F9FA9'
+              className="inline mr-1"
+              color="#9F9FA9"
             />
             <span>25-50</span>
           </span>
-          <span className='text-gray-400 text-sm'>Application</span>
+          <span className="text-gray-400 text-sm">Application</span>
         </div>
-        <div className='flex flex-col justify-center'>
-          <span className='text-white flex items-center'>
-            <Hourglass size={16} className='inline mr-1' color='#9F9FA9' />
+        <div className="flex flex-col justify-center">
+          <span className="text-white flex items-center">
+            <Hourglass size={16} className="inline mr-1" color="#9F9FA9" />
             <span>{timeLeft}</span>
           </span>
-          <span className='text-gray-400 text-sm'>Remaining</span>
+          <span className="text-gray-400 text-sm">Remaining</span>
         </div>
       </div>
 
-      <div className='mb-6'>
-        <h2 className='text-lg font-medium mb-3 text-white'>SKILL NEEDED</h2>
+      <div className="mb-6">
+        <h2 className="text-lg font-medium mb-3 text-white">SKILL NEEDED</h2>
         {job?.skills?.length > 0 ? (
-          <div className='flex flex-wrap gap-2'>
+          <div className="flex flex-wrap gap-2">
             {job?.skills?.map((skill: { name: string }, index: number) => (
               <div key={index}>
                 <Outline label={skill.name} />
@@ -126,30 +127,33 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
           <div>No skills available</div>
         )}
       </div>
-      {job.category === "AMBASSADOR_SPECIFIC" && userData?.role !== "AMBASSADOR" ? null : <button
-        disabled={data?.has_applied || timeLeft === "Expired"}
-        className={`w-full font-medium py-3 rounded-md transition ${
-          data?.has_applied || timeLeft === "Expired"
-            ? "bg-gray-400 text-white cursor-not-allowed"
-            : "bg-red-500 hover:bg-red-600 text-white"
-        }`}
-        onClick={() => {
-          if (nullAction) return;
-          userData && !data?.has_applied && timeLeft !== "Expired"
-            ? setIsModalOpen(true)
-            : !userData && setOpenAuthModal(true);
-        }}
-      >
-        {isLoading ? (
-          <Loader2 color="#FFF" />
-        ) : data?.has_applied ? (
-          "Already Applied"
-        ) : timeLeft === "Expired" ? (
-          "Expired"
-        ) : (
-          "APPLY"
-        )}
-      </button>}
+      {job.category === "AMBASSADOR_SPECIFIC" &&
+      userData?.role !== "AMBASSADOR" ? null : (
+        <button
+          disabled={data?.has_applied || timeLeft === "Expired"}
+          className={`w-full font-medium py-3 rounded-md transition ${
+            data?.has_applied || timeLeft === "Expired"
+              ? "bg-gray-400 text-white cursor-not-allowed"
+              : "bg-red-500 hover:bg-red-600 text-white"
+          }`}
+          onClick={() => {
+            if (nullAction) return;
+            userData && !data?.has_applied && timeLeft !== "Expired"
+              ? setIsModalOpen(true)
+              : !userData && setOpenAuthModal(true);
+          }}
+        >
+          {isLoading ? (
+            <Loader2 color="#FFF" />
+          ) : data?.has_applied ? (
+            "Already Applied"
+          ) : timeLeft === "Expired" ? (
+            "Expired"
+          ) : (
+            "APPLY"
+          )}
+        </button>
+      )}
 
       <AuthModal
         isOpen={openAuthModal}
@@ -171,39 +175,39 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
 
 export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
   return (
-    <div className='border border-[#27272A] p-4 mb-6 rounded-lg'>
-      <div className='flex items-center gap-5'>
+    <div className="border border-[#27272A] p-4 mb-6 rounded-lg">
+      <div className="flex items-center gap-5">
         {job.companyLogo ? (
           <img
             src={job.companyLogo}
             alt={job.companyName}
-            className='w-14 h-14 rounded-full object-cover'
+            className="w-14 h-14 rounded-full object-cover"
           />
         ) : (
-          <CircleUser color='#9F9FA9' size={56} />
+          <CircleUser color="#9F9FA9" size={56} />
         )}
-        <div className='mb-6'>
-          <h1 className='text-base font-bold text-red-500 mb-2'>{job.title}</h1>
-          <div className='flex justify-between items-center'>
-            <div className='flex items-center gap-2'>
-              <span className='text-gray-300 text-sm'>{job.companyName}</span>
+        <div className="mb-6">
+          <h1 className="text-base font-bold text-red-500 mb-2">{job.title}</h1>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-300 text-sm">{job.companyName}</span>
             </div>
           </div>
-          <div className='flex flex-wrap gap-4 rounded-md mt-2'>
-            <div className='flex items-center gap-2 text-sm text-[#9F9FA9]'>
-              <BriefcaseBusiness size={16} color='#9F9FA9' />
-              <span className='capitalize'>{job.type?.toLowerCase()}</span>
+          <div className="flex flex-wrap gap-4 rounded-md mt-2">
+            <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
+              <BriefcaseBusiness size={16} color="#9F9FA9" />
+              <span className="capitalize">{job.type?.toLowerCase()}</span>
             </div>
-            <div className='flex items-center gap-2 text-sm text-[#9F9FA9]'>
-              <Hourglass size={16} color='#9F9FA9' />
-              <span>Due in: {getTimeLeft(job?.deadline)}</span>
+            <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
+              <Hourglass size={16} color="#9F9FA9" />
+              <span>{getTimeLeft(job?.deadline) === 'Expired' ? 'Closed' : `Due in: ${getTimeLeft(job?.deadline)}`}</span>
             </div>
-            <div className='flex items-center gap-2 text-sm text-[#9F9FA9]'>
-              <FileText size={16} color='#9F9FA9' />
+            <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
+              <FileText size={16} color="#9F9FA9" />
               <span>{job._count?.applications} Proposals</span>
             </div>
           </div>
-          <div className='flex flex-wrap gap-2 mt-2'>
+          <div className="flex flex-wrap gap-2 mt-2">
             {job.skills.length > 0 ? (
               job.skills.map((skill: { name: string } | string, index: Key) => (
                 <div key={index}>
@@ -213,7 +217,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
                 </div>
               ))
             ) : (
-              <span className='text-gray-400 text-sm'>No skills specified</span>
+              <span className="text-gray-400 text-sm">No skills specified</span>
             )}
           </div>
         </div>
@@ -224,12 +228,21 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
 
 export const JobDescription: React.FC<JobDescriptionProps> = ({ data }) => {
   return (
-    <div className='mb-6 text-gray-300'>
-      <h2 className='text-xl font-semibold mb-2 text-white'>{data.title}</h2>
-      <div className='space-y-4'>
-        {data?.content?.map((paragraph, index) => (
-          <p key={index}>{paragraph}</p>
-        ))}
+    <div className="mb-6 text-gray-300">
+      <h2 className="text-xl font-semibold mb-2 text-white">{data.title}</h2>
+      <div className="space-y-4 !list-disc">
+        <ReactMarkdown
+          components={{
+            ul: ({ node, ...props }) => (
+              <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />
+            ),
+            ol: ({ node, ...props }) => (
+              <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />
+            ),
+          }}
+        >
+          {data?.content?.join("\n\n")}
+        </ReactMarkdown>
       </div>
     </div>
   );
