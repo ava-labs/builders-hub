@@ -26,10 +26,6 @@ const AmbasssadorDaoProfilePage = () => {
     const { data: userPendingRewards, isLoading: isLoadingRewards } =
     useFetchUserPendingRewards();
 
-    const { data: userProjects, isLoading: isLoadingUserProjects } =
-    useFetchUserProjects();
-
-    console.log(userProjects, "projects", isLoadingUserProjects)
     console.log(userPendingRewards, "projects", isLoadingRewards)
 
 
@@ -282,8 +278,8 @@ const AmbasssadorDaoProfilePage = () => {
           </div>
 
           <div className="space-y-4">
-            {rewardsPendingData.projects.map((project) => (
-              <div key={project.id} className="bg-[#161617] rounded-lg p-4">
+            {userPendingRewards?.map((project:any, index:number) => (
+              <div key={index} className="bg-[#161617] rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start">
                     <div className="w-10 h-10 bg-blue-500 rounded-full mr-3 overflow-hidden">
@@ -294,9 +290,9 @@ const AmbasssadorDaoProfilePage = () => {
                       />
                     </div>
                     <div>
-                      <h3 className="text-red-500 font-bold">{project.name}</h3>
+                      <h3 className="text-red-500 font-bold">{project?.name || "Project name"}</h3>
                       <p className="text-gray-400 text-xs">
-                        {project.description}
+                        {project?.description || "Lorem ipsum jagshgh jhgashgasj"}
                       </p>
                     </div>
                   </div>
@@ -305,7 +301,7 @@ const AmbasssadorDaoProfilePage = () => {
                     <div className="flex flex-col items-center">
                       <File size={14} color="#9F9FA9" />
                       <span className="text-xs text-gray-400">
-                        {project.proposals}
+                        {project?.proposals || 10}
                       </span>
                     </div>
 
@@ -313,11 +309,11 @@ const AmbasssadorDaoProfilePage = () => {
                       <div className="flex items-center text-xs">
                         <Image src={Token} alt="$" />
                         <span className="text-white ml-1">
-                          {project.reward} USDC
+                          {project.amount} USDC
                         </span>
                       </div>
                       <div className="flex items-center text-xs bg-gray-800 px-2 py-1 rounded-full">
-                        <span className="text-white">{project.xp} XP</span>
+                        <span className="text-white">{project?.xp || 200} XP</span>
                       </div>
                     </div>
 
@@ -331,11 +327,7 @@ const AmbasssadorDaoProfilePage = () => {
           </div>
         </div>
 
-        <ProjectSection
-          navigationTabs={navigationTabs}
-          projectTabs={projectTabs}
-          projects={projects}
-        />
+        <ProjectSection />
       </div>
 
       {isModalOpen && (

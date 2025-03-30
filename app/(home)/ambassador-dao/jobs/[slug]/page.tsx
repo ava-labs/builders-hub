@@ -780,19 +780,22 @@ const AmbasssadorDaoSingleJobPage = () => {
     _count: data?._count || 0,
   };
 
-  const extractDescriptionData = (apiResponse: { description: string }) => {
+  const extractDescriptionData = (apiResponse: { description: string, title: string }) => {
     const descriptionParagraphs = apiResponse?.description
       ? apiResponse.description
           .split("\n\n")
           .filter((para) => para.trim() !== "")
       : [];
+
+
     const titleParagraph =
-      descriptionParagraphs.length > 0
-        ? descriptionParagraphs[0]
+    apiResponse?.title
+        ? apiResponse?.title
         : "About the Job";
 
-    const contentParagraphs = descriptionParagraphs.slice(1);
+    const contentParagraphs = descriptionParagraphs;
 
+    console.log(titleParagraph, contentParagraphs)
     return {
       title: titleParagraph,
       content: contentParagraphs,

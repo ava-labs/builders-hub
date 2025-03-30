@@ -34,7 +34,7 @@ const ClaimXPModal: React.FC<XPModalProps> = ({
   const [isUploading, setIsUploading] = useState(false);
 
   const { mutateAsync: uploadFile } = useFileUploadMutation("document");
-  const { mutateAsync: claimXP, isPending: isSubmitting } = useClaimXP(id);
+  const { mutateAsync: claimXP, isPending: isSubmitting } = useClaimXP();
 
   const {
     register,
