@@ -24,11 +24,6 @@ function ProfileContent() {
     const { data: userPastBountyOpportunities, isLoading: isLoadingPastBountyOpportunities } =
     useFetchPastOpportunities(usernameFromUrl, "BOUNTY");
 
-
-    console.log(userPastJobOpportunities, isLoadingPastJobOpportunities)
-    console.log(userPastBountyOpportunities, isLoadingPastBountyOpportunities)
-
-
   const { data: userStats, isLoading: isLoadingStats } =
     useFetchUserStatsDataQuery(usernameFromUrl);
 

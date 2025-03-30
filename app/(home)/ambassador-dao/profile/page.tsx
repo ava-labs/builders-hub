@@ -13,6 +13,7 @@ import ClaimXPModal from "@/components/ambassador-dao/profile/xp-modal";
 import XpSection from "@/components/ambassador-dao/profile/xp-section";
 import ProjectSection from "@/components/ambassador-dao/profile/project-section";
 import { useFetchUserPendingRewards, useFetchUserProjects } from "@/services/ambassador-dao/requests/users";
+import { useFetchOpportunity } from "@/services/ambassador-dao/requests/opportunity";
 
 const AmbasssadorDaoProfilePage = () => {
   const [copySuccess, setCopySuccess] = useState(false);
@@ -26,17 +27,11 @@ const AmbasssadorDaoProfilePage = () => {
     const { data: userPendingRewards, isLoading: isLoadingRewards } =
     useFetchUserPendingRewards();
 
-    console.log(userPendingRewards, "projects", isLoadingRewards)
 
+    const {data: opportunities, isLoading: isLoadingOpportunities} = useFetchOpportunity({})
 
   const userRole = data?.role;
 
-  const navigationTabs = ["Bounties", "Jobs"];
-  const projectTabs = [
-    { id: "Applied", count: 4, bgColor: "bg-[#161617]" },
-    { id: "Won", count: 4, bgColor: "bg-[#27272A]" },
-    { id: "Closed", count: 4, bgColor: "bg-[#27272A]" },
-  ];
 
   const profile = {
     name: data ? `${data.first_name || ""} ${data.last_name || ""}` : "-",
@@ -52,109 +47,12 @@ const AmbasssadorDaoProfilePage = () => {
     },
   };
 
-  const projects = [
-    {
-      id: 1,
-      name: "Project Name",
-      description: "Lorem ipsum Dolor Sit Amet, Consetetur S...",
-      type: "Job",
-      proposals: 60,
-      reward: 1000,
-      status: "Reward Pending",
-    },
-    {
-      id: 2,
-      name: "Project Name",
-      description: "Lorem ipsum Dolor Sit Amet, Consetetur S...",
-      type: "Job",
-      proposals: 60,
-      reward: 1000,
-      status: "Reward Pending",
-    },
-    {
-      id: 3,
-      name: "Project Name",
-      description: "Lorem ipsum Dolor Sit Amet, Consetetur S...",
-      type: "Job",
-      proposals: 60,
-      reward: 1000,
-      status: "Reward Pending",
-    },
-    {
-      id: 4,
-      name: "Project Name",
-      description: "Lorem ipsum Dolor Sit Amet, Consetetur S...",
-      type: "Job",
-      proposals: 60,
-      reward: 1000,
-      status: "Reward Pending",
-    },
-    {
-      id: 5,
-      name: "Project Name",
-      description: "Lorem ipsum Dolor Sit Amet, Consetetur S...",
-      type: "Job",
-      proposals: 60,
-      reward: 1000,
-      status: "Reward Pending",
-    },
-  ];
-
   const xpProgressionData = {
     currentXP: data?.points?.balance,
     monthlyGrowth: 850,
-    availableOpportunities: [
-      {
-        id: 1,
-        title: "Write a Twitter thread on Musk X project & SM-90T token",
-        company: "Company Name",
-        bounty: true,
-        due: "2d",
-        proposals: 60,
-        reward: 1000,
-        xp: 200,
-      },
-      {
-        id: 2,
-        title: "Write a Twitter thread on Musk X project & SM-90T token",
-        company: "Company Name",
-        bounty: true,
-        due: "2d",
-        proposals: 60,
-        reward: 1000,
-        xp: 200,
-      },
-    ],
+    availableOpportunities: opportunities?.data
   };
 
-  const rewardsPendingData = {
-    projects: [
-      {
-        id: 1,
-        name: "Project Name",
-        description: "Lorem ipsum Dolor Sit Amet, Consectetur S...",
-        proposals: 60,
-        reward: 1000,
-        xp: 200,
-      },
-      {
-        id: 2,
-        name: "Project Name",
-        description: "Lorem ipsum Dolor Sit Amet, Consectetur S...",
-        proposals: 60,
-        reward: 1000,
-        xp: 200,
-      },
-      {
-        id: 3,
-        name: "Project Name",
-        description: "Lorem ipsum Dolor Sit Amet, Consectetur S...",
-        proposals: 60,
-        reward: 1000,
-        xp: 200,
-      },
-    ],
-  };
 
   const handleShareClick = () => {
     const baseUrl = window.location.origin;
