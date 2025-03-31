@@ -4,8 +4,9 @@ import { API_DEV } from "../data/constants";
 import { errorMsg } from "@/utils/error-mapping";
 import toast from "react-hot-toast";
 import { IBountySubmissionBody, IJobApplicationBody } from "../interfaces/opportunity";
+import { useRouter } from "next/navigation";
 
-  
+
 export const useFetchOpportunity = (filters = {}) => {
   return useQuery({
     queryKey: ["opportunity", filters],
@@ -19,15 +20,25 @@ export const useFetchOpportunity = (filters = {}) => {
 
 
 export const useFetchOpportunityDetails = (opportunity_id: string) => {
+  const router = useRouter();
+
   return useQuery({
     queryKey: ["opportunity-details", opportunity_id],
     queryFn: async () => {
-      const res = await axios.get(`${API_DEV}/opportunity/${opportunity_id}`);
-      return res.data.data;
+      try {
+        const res = await axios.get(`${API_DEV}/opportunity/${opportunity_id}`);
+        return res.data.data;
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+        router.push("/404");
+        }
+        throw error;
+      }
     },
     staleTime: Infinity,
   });
 };
+
 
 export const useCheckJobStatus = (opportunity_id: string) => {
   return useQuery({

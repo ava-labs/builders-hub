@@ -765,7 +765,7 @@ const AmbasssadorDaoSingleBountyPage = () => {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
 
-  const { data, isLoading } = useFetchOpportunityDetails(slug);
+  const { data, isLoading: isFetchingOpportunityDetails } = useFetchOpportunityDetails(slug);
 
   const headerData = {
     id: data?.id,
@@ -814,12 +814,13 @@ const AmbasssadorDaoSingleBountyPage = () => {
     prize_distribution: data?.prize_distribution,
   };
 
-  if (isLoading) {
+  if (isFetchingOpportunityDetails) {
     return <FullScreenLoader />;
   }
 
   return (
     <div className='text-white min-h-screen'>
+      {!isFetchingOpportunityDetails && 
       <div className='max-w-7xl mx-auto px-4 py-8 border border-[#27272A] rounded-lg shadow-sm my-6'>
         <GoBackButton />
 
@@ -839,7 +840,7 @@ const AmbasssadorDaoSingleBountyPage = () => {
             <BountySidebar bounty={sidebarData} />
           </div>
         </div>
-      </div>
+      </div>}
     </div>
   );
 };
