@@ -7,6 +7,7 @@ import { categories, jobTypes } from "../constants";
 import Token from "@/public/ambassador-dao-images/token.png";
 import { useFetchUserProjects } from "@/services/ambassador-dao/requests/users";
 import Loader from "../ui/Loader";
+import { Pagination } from "../ui/Pagination";
 
 export default function ProjectSection() {
   const navigationTabs = ["Bounties", "Jobs"];
@@ -23,6 +24,7 @@ export default function ProjectSection() {
     category: jobTypes[0].id,
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   const jobType = activeTab === "Bounties" ? "BOUNTY" : "JOB";
 
@@ -48,7 +50,9 @@ export default function ProjectSection() {
     setSearchQuery("");
   };
 
-  const handleSearchChange = (e: { target: { value: React.SetStateAction<string>; }; }) => {
+  const handleSearchChange = (e: {
+    target: { value: React.SetStateAction<string> };
+  }) => {
     setSearchQuery(e.target.value);
   };
 
@@ -58,6 +62,10 @@ export default function ProjectSection() {
 
   const handleProjectTabChange = (tabId: React.SetStateAction<string>) => {
     setActiveProjectTab(tabId);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   return (
@@ -148,66 +156,93 @@ export default function ProjectSection() {
         <div className="space-y-4 col-span-2">
           {isLoadingUserProjects ? (
             <Loader />
-          ) : userProjects && userProjects.length > 0 ? (
-            userProjects.map((project: { id: React.Key; image: any; title: any; name: any; description: string;  type: any; proposals: any; application_count: any; reward: string; status: any; }) => (
-              <div
-                key={project.id}
-                className="bg-[#161617] shadow-sm rounded-lg p-4"
-              >
-                <div className="flex flex-col md:flex-row justify-between">
-                  <div className="flex">
-                    <div className="w-10 h-10 bg-blue-500 rounded-full mr-3 overflow-hidden">
-                      <img
-                        src={project.image || "/api/placeholder/40/40"}
-                        alt="Project"
-                        className="w-full h-full object-cover"
-                      />
+          ) : userProjects?.data && userProjects?.data?.length > 0 ? (
+            userProjects?.data?.map(
+              (project: {
+                opportunity: {
+                  id: React.Key;
+                  profile_image: string;
+                  title: string;
+                  name: any;
+                  description: string;
+                  type: string;
+                  _count: any;
+                  rewards: any;
+                  status: string;
+                  created_by: any;
+                };
+                status: string;
+              }) => (
+                <div
+                  key={project?.opportunity?.id}
+                  className="bg-[#161617] shadow-sm rounded-lg p-4"
+                >
+                  <div className="flex flex-col md:flex-row justify-between">
+                    <div className="flex">
+                      <div className="w-10 h-10 bg-blue-500 rounded-full mr-3 overflow-hidden">
+                        <img
+                          src={project?.opportunity?.created_by?.profile_image}
+                          alt="Project"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <h3 className="text-red-500 font-bold">
+                          {project?.opportunity?.title}
+                        </h3>
+                        <p className="text-gray-400 text-xs">
+                          {project?.opportunity?.description ||
+                            "Lorem ipsum omo nla, wa sere eje mi"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-red-500 font-bold">
-                        {project.title || project.name}
-                      </h3>
-                      <p className="text-gray-400 text-xs">
-                        {project.description}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex mt-4 md:mt-0 items-center space-x-6">
-                    <div className="flex flex-col justify-center gap-1">
-                      <BriefcaseBusiness color="#9F9FA9" size={12} />
-                      <p className="text-gray-400 text-xs">
-                        {project.type || jobType}
-                      </p>
-                    </div>
-                    <div className="flex flex-col justify-center gap-1">
-                      <File color="#9F9FA9" size={12} />
-                      <p className="text-gray-400 text-xs">
-                        {project.proposals || project.application_count || 0}{" "}
-                        Proposals
-                      </p>
-                    </div>
-                    {project.reward && (
-                      <div className="text-center flex items-center text-xs gap-1">
-                        <Image src={Token} alt="$" />
-                        <span className="text-white">
-                          {project.reward} USDC
+                    <div className="flex mt-4 md:mt-0 items-center space-x-6">
+                      <div className="flex flex-col justify-center gap-1">
+                        <BriefcaseBusiness color="#9F9FA9" size={12} />
+                        <p className="text-gray-400 text-xs capitalize">
+                          {project?.opportunity?.type.toLowerCase() || jobType}
+                        </p>
+                      </div>
+                      <div className="flex flex-col justify-center gap-1">
+                        <File color="#9F9FA9" size={12} />
+                        <p className="text-gray-400 text-xs">
+                          {project?.opportunity?._count?.applications ||
+                            project?.opportunity?._count?.submissions ||
+                            0}{" "}
+                          Proposals
+                        </p>
+                      </div>
+                      {project?.opportunity?.rewards && (
+                        <div className="text-center flex items-center text-xs gap-1">
+                          <Image src={Token} alt="$" />
+                          <span className="text-white">
+                            {project?.opportunity?.rewards[0]?.amount} USDC
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full">
+                          {project?.status || activeProjectTab}
                         </span>
                       </div>
-                    )}
-                    <div>
-                      <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full">
-                        {project.status || activeProjectTab}
-                      </span>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              )
+            )
           ) : (
             <div className="flex flex-col items-center justify-center h-40 text-gray-400">
               <Search size={48} className="mb-2 opacity-30" />
               <p>No projects found matching your filters</p>
             </div>
+          )}
+
+          {userProjects?.metadata.last_page > 1 && (
+            <Pagination
+              metadata={userProjects?.metadata}
+              onPageChange={handlePageChange}
+              className="my-8"
+            />
           )}
         </div>
       </div>

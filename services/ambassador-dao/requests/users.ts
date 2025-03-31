@@ -43,7 +43,7 @@ export const useFetchUserPendingRewards = () => {
   return useQuery({
     queryFn: async () => {
       const res = await axios.get(`${API_DEV}/users/pending-rewards`);
-      return res.data.data as any;
+      return res.data as any;
     },
     queryKey: ["pendingRewards"],
     staleTime: Infinity,
@@ -65,7 +65,7 @@ export const useFetchUserProjects = (params: {
         `${API_DEV}/users/projects`,
         { params }
       );
-      return res.data.data;
+      return res.data;
     },
     queryKey: ["userProjects"],
     staleTime: Infinity,

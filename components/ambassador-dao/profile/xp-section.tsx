@@ -3,6 +3,8 @@ import React from "react";
 import Trophy from "@/public/ambassador-dao-images/trophy.png";
 import { ChevronRight, File, Hourglass, Lightbulb } from "lucide-react";
 import Token from "@/public/ambassador-dao-images/token.png";
+import XP from "@/public/ambassador-dao-images/sparkles.png";
+
 import Loader from "../ui/Loader";
 import { getTimeLeft } from "@/utils/timeFormatting";
 
@@ -104,7 +106,7 @@ export default function XpSection({ data }: any) {
                   data.currentXP >= 0 ? " text-white" : " text-[#6A7282]"
                 } text-xl font-medium`}
               >
-                Tier 1: Contributor
+                Tier 1: Chill 001
               </div>
               <div className="text-sm text-[#6A7282]">0-2000 XP</div>
             </div>
@@ -124,7 +126,7 @@ export default function XpSection({ data }: any) {
                   data.currentXP > 2000 ? " text-white" : " text-[#6A7282]"
                 } font-medium text-xl`}
               >
-                Tier 2: Advocate
+                Tier 2: Snr Chiller
               </div>
               <div className="text-sm text-[#6A7282]">2001-5000 XP</div>
             </div>
@@ -144,7 +146,7 @@ export default function XpSection({ data }: any) {
                   data.currentXP > 5000 ? " text-white" : " text-[#6A7282]"
                 } text-xl font-medium`}
               >
-                Tier 3: Ambassador
+                Tier 3: Supreme Leader
               </div>
               <div className="text-sm text-[#6A7282]">5001-100000 XP</div>
             </div>
@@ -233,13 +235,13 @@ export default function XpSection({ data }: any) {
                         <div className="flex items-center text-xs py-2">
                           <Image src={Token} alt="$" />
                           <span className="text-white ml-2">
-                            {opportunity.reward} USDC
+                            {opportunity.total_budget} USDC
                           </span>
                         </div>
                         <div className="flex items-center text-xs  py-2 rounded-full">
-                          <Image src={Token} alt="$" />
+                          <Image src={XP} alt="$" />
                           <span className="text-white ml-2">
-                            {opportunity.xp} XP
+                            {opportunity.xp_allocated} XP
                           </span>
                         </div>
                       </div>

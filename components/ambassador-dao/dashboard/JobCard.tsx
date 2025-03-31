@@ -1,11 +1,13 @@
 import { BriefcaseBusiness, FileText, Hourglass } from "lucide-react";
 import Image from "next/image";
-import Team1 from "@/public/ambassador-dao-images/Avalanche-team1.png";
 import { useRouter } from "next/navigation";
 import { IJobDataType } from "@/services/ambassador-dao/interfaces/opportunity";
 import { Outline } from "../ui/Outline";
 import { getTimeLeft } from "@/utils/timeFormatting";
 import Token from "@/public/images/usdcToken.svg";
+
+
+
 
 export const JobCard = ({ job }: IJobDataType) => {
   const {
@@ -14,7 +16,6 @@ export const JobCard = ({ job }: IJobDataType) => {
     created_by,
     total_budget,
     end_date,
-    proposals,
     skills,
     _count,
   } = job;
@@ -35,7 +36,7 @@ export const JobCard = ({ job }: IJobDataType) => {
           <div>
             <div className='flex items-center gap-2 md:gap-5'>
               <Image
-                src={Team1}
+                src={created_by?.company_profile?.logo}
                 alt=''
                 className='w-6 h-6 md:w-16 md:h-16  object-cover rounded-full'
                 width={60}
@@ -69,7 +70,7 @@ export const JobCard = ({ job }: IJobDataType) => {
           <div className='flex items-center'>
             <span className='text-white flex items-center gap-1'>
               <Image src={Token} alt='$' />
-              {parseFloat(total_budget).toLocaleString()}
+              {parseFloat(total_budget).toLocaleString()} USDC
             </span>
           </div>
         </div>

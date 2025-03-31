@@ -795,7 +795,6 @@ const AmbasssadorDaoSingleJobPage = () => {
 
     const contentParagraphs = descriptionParagraphs;
 
-    console.log(titleParagraph, contentParagraphs)
     return {
       title: titleParagraph,
       content: contentParagraphs,
