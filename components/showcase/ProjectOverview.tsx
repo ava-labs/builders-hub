@@ -8,8 +8,6 @@ import TeamMembers from "./sections/TeamMembers";
 import Resources from "./sections/Resources";
 import { Project } from "@/types/showcase";
 
-const project: Project = {} as unknown as Project
-
 const prices = [
   {
     icon: "",
@@ -44,7 +42,10 @@ const resources = [
     link: "linksito",
   },
 ];
-export default function ProjectOverview() {
+type Props = {
+  project: Project; 
+}
+export default function ProjectOverview({project}: Props) {
   return (
     <div>
       <Separator className="my-4 sm:my-8 bg-zinc-300 dark:bg-zinc-800" />
@@ -88,7 +89,7 @@ export default function ProjectOverview() {
           {project.full_description&& (
             <Description description={project.full_description} />
           )}
-          {project.members && <TeamMembers members={project.members} />}
+          {project.members && <TeamMembers members={project.members} projectName={project.project_name} />}
           {resources && <Resources resources={resources} />}
         </div>
       </div>

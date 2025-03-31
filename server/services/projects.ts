@@ -1,12 +1,12 @@
 import { Project } from "@/types/showcase";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { requiredField, validateEntity, Validation } from "./base";
 import { revalidatePath } from "next/cache";
 
 const prisma = new PrismaClient();
 
 export const projectValidations: Validation[] = [
-  { field: "name", message: "Please provide a name for the project.", validation: (project: Project) => requiredField(project, "title") },
+  // { field: "project_name", message: "Please provide a name for the project.", validation: (project: Project) => requiredField(project, "title") },
 ];
 
 export const validateProject = (project: Partial<Project>): Validation[] => validateEntity(projectValidations, project);
@@ -65,6 +65,10 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   console.log('Filters: ', filters)
 
   const projects = await prisma.project.findMany({
+    include: {
+      members: true,
+      hackathon: true,
+    },
     where: filters,
     skip: offset,
     take: pageSize,
@@ -85,6 +89,14 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
 export async function getProject(id: string) {
 
   const project = await prisma.project.findUnique({
+    include: {
+      members: {
+        include: {
+          user: true,
+        },
+      },
+      hackathon: true,
+    },
     where: { id },
   });
   if (!project)
@@ -137,11 +149,11 @@ export async function updateProject(id: string, projectData: Partial<Project>): 
     throw new ValidationError("Validation failed", errors)
   }
 
-  const existingProject = await prisma.hackathon.findUnique({
+  const existingProject = await prisma.project.findUnique({
     where: { id },
   });
   if (!existingProject) {
-    throw new Error("Hackathon not found")
+    throw new Error("Project not found")
   }
 
   await prisma.project.update({
@@ -159,6 +171,13 @@ export async function updateProject(id: string, projectData: Partial<Project>): 
       screenshots: projectData.screenshots ?? [],
       tech_stack: projectData.tech_stack ?? '',
       tracks: projectData.tracks ?? [],
+      members: {
+        create: projectData.members?.map((member) => ({
+          user_id: member.user_id,
+          role: member.role,
+          status: member.status,
+        })),
+      },
       updated_at: new Date(),
     },
   });

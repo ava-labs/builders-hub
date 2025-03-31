@@ -11,9 +11,9 @@ type Props = {
 };
 
 export function ProjectCard({ project }: Props) {
-  const eventInfo = `${project.hackathon.title} ${
-    project.hackathon.location
-  } ${new Date(project.hackathon.start_date).getFullYear()}`;
+  const eventInfo = `${project.hackathon?.title ?? ''} ${
+    project.hackathon?.location ?? ''
+  } ${new Date(project.hackathon?.start_date ?? '').getFullYear()}`;
   return (
     <Card className="h-[500px] w-[306px] flex flex-col rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-none">
       <div className="relative p-6 flex items-center justify-between">
@@ -39,7 +39,7 @@ export function ProjectCard({ project }: Props) {
         )}
       </div>
 
-      <div className="p-6 flex flex-col justify-between h-full">
+      <div className="px-6 flex flex-col justify-between gap-1 h-full">
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           {project.short_description}
         </p>
@@ -60,7 +60,7 @@ export function ProjectCard({ project }: Props) {
               <Badge
                 key={track}
                 variant="outline"
-                className="border-2 border-zinc-900 dark:border-zinc-50 flex justify-center"
+                className="border-2 border-zinc-900 dark:border-zinc-50 flex justify-center rounded-xl"
               >
                 {track}
               </Badge>

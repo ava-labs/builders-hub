@@ -30,7 +30,7 @@ export default function Resources({ resources }: Props) {
           >
             <Card
               className="border border-gray-300 dark:border-gray-800 hover:border-gray-500 dark:hover:border-gray-600 transition 
-                         flex items-center justify-start md:justify-center gap-3 w-full h-full 
+                         flex flex-row items-center justify-start md:justify-center gap-3 w-full h-full 
                          rounded-lg px-6 py-4 "
             >
               <div className="p-3 flex items-center justify-center bg-[#FF394A] rounded-full text-zinc-50">

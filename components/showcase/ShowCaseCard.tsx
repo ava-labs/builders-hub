@@ -33,10 +33,12 @@ const events = [
   { id: "id3", name: "Event 3" },
 ];
 const tracks = ["Track 1", "Track 2", "Track 3"];
-export const projects: Project[] = [
-];
 
-export default function ShowCaseCard() {
+type Props = {
+  projects: Project[];
+};
+
+export default function ShowCaseCard({ projects }: Props) {
   const [searchValue, setSearchValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsByPage, setRecordsByPage] = useState(12);
@@ -63,40 +65,40 @@ export default function ShowCaseCard() {
             <TabsTrigger value="winingProjects">Winning Projects</TabsTrigger>
           </TabsList>
         </Tabs>
-          <div className="relative w-[271px]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-zinc-400 stroke-zinc-700" />
-            <Input
-              type="text"
-              onChange={(e) => setSearchValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Search by name, event, location..."
-              className="w-full h-full px-3 pl-10 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-md dark:text-zinc-50 text-zinc-900 placeholder-zinc-500"
-            />
-          </div>
-          <Select>
-            <SelectTrigger className="w-[237px] border border-zinc-300 dark:border-zinc-800">
-              <SelectValue placeholder="Select events" />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-              {events.map((event) => (
-                <SelectItem key={event.id} value={event.id}>
-                  {event.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select>
-            <SelectTrigger className="w-[237px] border border-zinc-300 dark:border-zinc-800">
-              <SelectValue placeholder="Select tracks" />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-              {tracks.slice(0, 2).map((track) => (
-                <SelectItem key={track} value={track}>
-                  {track}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="relative w-[271px]">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-zinc-400 stroke-zinc-700" />
+          <Input
+            type="text"
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search by name, event, location..."
+            className="w-full h-full px-3 pl-10 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-md dark:text-zinc-50 text-zinc-900 placeholder-zinc-500"
+          />
+        </div>
+        <Select>
+          <SelectTrigger className="w-[237px] border border-zinc-300 dark:border-zinc-800">
+            <SelectValue placeholder="Select events" />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
+            {events.map((event) => (
+              <SelectItem key={event.id} value={event.id}>
+                {event.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select>
+          <SelectTrigger className="w-[237px] border border-zinc-300 dark:border-zinc-800">
+            <SelectValue placeholder="Select tracks" />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
+            {tracks.slice(0, 2).map((track) => (
+              <SelectItem key={track} value={track}>
+                {track}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="mt-12">
         <h1 className="text-2xl text-zinc-900 dark:text-zinc-50">
@@ -113,7 +115,11 @@ export default function ShowCaseCard() {
           {[...Array(20)]
             .flatMap(() => projects)
             .map((project, index) => (
-              <Link key={index} href={`/showcase/${project.id}`} className="flex justify-center">
+              <Link
+                key={index}
+                href={`/showcase/${project.id}`}
+                className="flex justify-center"
+              >
                 <ProjectCard project={project} />
               </Link>
             ))}

@@ -31,9 +31,9 @@ export default function Info({ project }: Props) {
             className="min-w-5 w-5 h-5 !text-zinc-700 dark:!text-zinc-300"
           />
           <p className="text-xs text-zinc-700 dark:text-zinc-300">
-            {`${project.hackathon.title} ${
-              project.hackathon.location
-            } ${new Date(project.hackathon.start_date).getFullYear()}`}
+            {`${project.hackathon?.title ?? ''} ${
+              project.hackathon?.location ?? ''
+            } ${new Date(project.hackathon?.start_date ?? '').getFullYear()}`}
           </p>
         </div>
       </div>
@@ -45,7 +45,7 @@ export default function Info({ project }: Props) {
           <Badge
             key={track}
             variant="outline"
-            className="border-2 border-zinc-900 dark:border-zinc-50 flex justify-center"
+            className="border-2 border-zinc-900 dark:border-zinc-50 flex justify-center rounded-xl"
           >
             {track}
           </Badge>

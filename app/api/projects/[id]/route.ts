@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateHackathon } from "@/server/services/hackathons";
 import { HackathonHeader } from "@/types/hackathons";
-import { getProject } from "@/server/services/projects";
+import { getProject, updateProject } from "@/server/services/projects";
 
 export async function GET(req: NextRequest, context: any) {
 
@@ -28,7 +27,7 @@ export async function PUT(req: NextRequest) {
     const id = req.nextUrl.searchParams.get('id')!;
     const partialEditedHackathon = (await req.json()) as Partial<HackathonHeader>;
 
-    const updatedHackathon = await updateHackathon(id ?? partialEditedHackathon.id, partialEditedHackathon);
+    const updatedHackathon = await updateProject(id ?? partialEditedHackathon.id, partialEditedHackathon);
 
     return NextResponse.json(updatedHackathon);
   } catch (error) {
