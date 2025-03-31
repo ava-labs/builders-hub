@@ -765,7 +765,8 @@ const AmbasssadorDaoSingleJobPage = () => {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
 
-  const { data, isLoading } = useFetchOpportunityDetails(slug);
+  const { data, isLoading: isFetchingOpportunityDetails } =
+    useFetchOpportunityDetails(slug);
 
   const headerData = {
     id: data?.id,
@@ -780,18 +781,19 @@ const AmbasssadorDaoSingleJobPage = () => {
     _count: data?._count || 0,
   };
 
-  const extractDescriptionData = (apiResponse: { description: string, title: string }) => {
+  const extractDescriptionData = (apiResponse: {
+    description: string;
+    title: string;
+  }) => {
     const descriptionParagraphs = apiResponse?.description
       ? apiResponse.description
           .split("\n\n")
           .filter((para) => para.trim() !== "")
       : [];
 
-
-    const titleParagraph =
-    apiResponse?.title
-        ? apiResponse?.title
-        : "About the Job";
+    const titleParagraph = apiResponse?.title
+      ? apiResponse?.title
+      : "About the Job";
 
     const contentParagraphs = descriptionParagraphs;
 
@@ -812,33 +814,35 @@ const AmbasssadorDaoSingleJobPage = () => {
     prize_distribution: data?.prize_distribution,
   };
 
-  if (isLoading) {
+  if (isFetchingOpportunityDetails) {
     return <FullScreenLoader />;
   }
 
   return (
     <div className="text-white min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-8 border border-[#27272A] rounded-lg shadow-sm my-6">
-        <GoBackButton />
+      {!isFetchingOpportunityDetails && (
+        <div className="max-w-7xl mx-auto px-4 py-8 border border-[#27272A] rounded-lg shadow-sm my-6">
+          <GoBackButton />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2 flex flex-col">
-            <JobHeader job={headerData} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="md:col-span-2 flex flex-col">
+              <JobHeader job={headerData} />
 
-            <div className="block md:hidden my-6">
-              <JobSidebar job={sidebarData} />
+              <div className="block md:hidden my-6">
+                <JobSidebar job={sidebarData} />
+              </div>
+
+              <JobDescription data={extractDescriptionData(data)} />
+
+              <CommentsSection id={slug} />
             </div>
 
-            <JobDescription data={extractDescriptionData(data)} />
-
-            <CommentsSection id={slug} />
-          </div>
-
-          <div className="hidden md:block md:col-span-1">
-            <JobSidebar job={sidebarData} />
+            <div className="hidden md:block md:col-span-1">
+              <JobSidebar job={sidebarData} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
