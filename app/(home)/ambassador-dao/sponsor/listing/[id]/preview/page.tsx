@@ -13,7 +13,6 @@ import {
 } from "@/components/ambassador-dao/jobs/components";
 import { PublishOpportunityModal } from "@/components/ambassador-dao/sections/publish-opportunity-modal";
 import { useFetchOpportunityDetails } from "@/services/ambassador-dao/requests/opportunity";
-import { Eye } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import React, { useState } from "react";
@@ -60,7 +59,7 @@ const AmbasssadorDaoSponsorsListingPreview = () => {
     category: data?.category,
     total_budget: data?.total_budget || 0,
     deadline: data?.end_date,
-    proposalsCount: data?.max_winners || 0,
+    proposalsCount: data?._count?.submissions,
     skills: data?.skills || [],
     custom_questions: data?.custom_questions || [],
     prize_distribution: data?.prize_distribution,

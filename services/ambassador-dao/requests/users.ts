@@ -90,3 +90,21 @@ export const useClaimXP = () => {
     onError: (err) => errorMsg(err),
   });
 };
+
+
+export const useUpdateWalletAddress = () => {
+  // const queryclient = useQueryClient();
+  return useMutation({
+    mutationKey: ["updateWallet"],
+    mutationFn: async (args: {wallet_address: string}) => {
+      const res = await axios.patch(`${API_DEV}/users/update-wallet-address`, args);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      // queryclient.invalidateQueries({ queryKey: ["allListings"] });
+      // queryclient.invalidateQueries({ queryKey: ["singleListings"] });
+    },
+    onError: (err) => errorMsg(err),
+  });
+};

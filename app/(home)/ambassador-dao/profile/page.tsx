@@ -14,8 +14,7 @@ import ClaimXPModal from "@/components/ambassador-dao/profile/xp-modal";
 import XpSection from "@/components/ambassador-dao/profile/xp-section";
 import ProjectSection from "@/components/ambassador-dao/profile/project-section";
 import {
-  useFetchUserPendingRewards,
-  useFetchUserProjects,
+  useFetchUserPendingRewards
 } from "@/services/ambassador-dao/requests/users";
 import { useFetchOpportunity } from "@/services/ambassador-dao/requests/opportunity";
 import { Pagination } from "@/components/ambassador-dao/ui/Pagination";
@@ -245,6 +244,12 @@ const AmbasssadorDaoProfilePage = () => {
                 </div>
               </div>
             ))}
+
+            {userPendingRewards?.data.length === 0 && (
+              <div className="flex items-center justify-center">
+                No data available
+              </div>
+            )}
 
             {userPendingRewards?.metadata.last_page === 1 && (
               <Pagination
