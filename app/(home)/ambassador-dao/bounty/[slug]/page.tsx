@@ -81,7 +81,7 @@ const GoBackButton = () => {
   return (
     <button
       onClick={handleGoBack}
-      className='flex items-center gap-2 text-[#FAFAFA] hover:text-white mb-6 bg-[#1A1A1A] py-2 px-4 rounded-md'
+      className='flex items-center gap-2 text-[#FAFAFA] hover:text-white mb-6 bg-[#1A1A1A] py-2 px-4 rounded-md border border-[#27272A]'
     >
       <ArrowLeft size={16} color='#FAFAFA' />
       <span>Go Back</span>
@@ -808,7 +808,7 @@ const AmbasssadorDaoSingleBountyPage = () => {
     category: data?.category,
     total_budget: data?.total_budget || 0,
     deadline: data?.end_date,
-    proposalsCount: data?.max_winners || 0,
+    proposalsCount: data?._count?.submissions,
     skills: data?.skills || [],
     custom_questions: data?.custom_questions || [],
     prize_distribution: data?.prize_distribution,

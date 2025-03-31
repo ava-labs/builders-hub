@@ -186,9 +186,9 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
               className='inline mr-1'
               color='#9F9FA9'
             />
-            <span>25-50</span>
+            <span>{bounty?.proposalsCount}</span>
           </span>
-          <span className='text-gray-400 text-sm'>Application</span>
+          <span className='text-gray-400 text-sm'>Proposals</span>
         </div>
         <div className='flex flex-col justify-center'>
           <span className='text-white flex items-center'>

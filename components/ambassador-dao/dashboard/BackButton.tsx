@@ -14,7 +14,7 @@ export const GoBackButton = () => {
     if (!type) return null;
   
     return (
-      <p className="flex gap-2 py-4 cursor-pointer" onClick={handleGoBack}>
+      <p className="flex items-center justify-center rounded-md gap-2 py-4 cursor-pointer w-[121px] h-10 mb-8 border border-[#27272A]" onClick={handleGoBack}>
         <ArrowLeft color="#fff" />
         Go Back
       </p>
