@@ -14,8 +14,7 @@ import ClaimXPModal from "@/components/ambassador-dao/profile/xp-modal";
 import XpSection from "@/components/ambassador-dao/profile/xp-section";
 import ProjectSection from "@/components/ambassador-dao/profile/project-section";
 import {
-  useFetchUserPendingRewards,
-  useFetchUserProjects,
+  useFetchUserPendingRewards
 } from "@/services/ambassador-dao/requests/users";
 import { useFetchOpportunity } from "@/services/ambassador-dao/requests/opportunity";
 import { Pagination } from "@/components/ambassador-dao/ui/Pagination";
