@@ -200,7 +200,11 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
             </div>
             <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
               <Hourglass size={16} color="#9F9FA9" />
-              <span>{getTimeLeft(job?.deadline) === 'Expired' ? 'Closed' : `Due in: ${getTimeLeft(job?.deadline)}`}</span>
+              <span>
+                {getTimeLeft(job?.deadline) === "Expired"
+                  ? "Closed"
+                  : `Due in: ${getTimeLeft(job?.deadline)}`}
+              </span>
             </div>
             <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
               <FileText size={16} color="#9F9FA9" />
@@ -230,7 +234,7 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({ data }) => {
   return (
     <div className="mb-6 text-gray-300">
       <h2 className="text-xl font-semibold mb-2 text-white">{data.title}</h2>
-      <div className="space-y-4 !list-disc">
+      <div className="space-y-4 break-all">
         <ReactMarkdown
           components={{
             ul: ({ node, ...props }) => (

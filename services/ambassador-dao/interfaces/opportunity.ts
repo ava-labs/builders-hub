@@ -34,6 +34,7 @@ export interface IBountyDataType {
     company: string;
     duration: string;
     proposals: number;
+    xp_allocated: number;
     reward: number;
     currency: string;
     total_budget: string;
