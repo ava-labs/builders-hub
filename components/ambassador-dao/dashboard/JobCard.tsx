@@ -61,7 +61,7 @@ export const JobCard = ({ job }: IJobDataType) => {
                   </div>
                   <div className='flex items-center text-sm text-gray-400'>
                     <FileText color='#9F9FA9' className='w-3 h-3 mr-1' />
-                    {_count?.applications} Proposals
+                    {_count?.applications} Applications
                   </div>
                 </div>
               </div>

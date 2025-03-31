@@ -246,6 +246,12 @@ const AmbasssadorDaoProfilePage = () => {
               </div>
             ))}
 
+            {userPendingRewards?.data.length === 0 && (
+              <div className="flex items-center justify-center">
+                No data available
+              </div>
+            )}
+
             {userPendingRewards?.metadata.last_page === 1 && (
               <Pagination
                 metadata={userPendingRewards?.metadata}

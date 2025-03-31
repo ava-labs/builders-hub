@@ -100,9 +100,9 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
               className="inline mr-1"
               color="#9F9FA9"
             />
-            <span>25-50</span>
+            <span>{job?.proposalsCount}</span>
           </span>
-          <span className="text-gray-400 text-sm">Application</span>
+          <span className="text-gray-400 text-sm">Applications</span>
         </div>
         <div className="flex flex-col justify-center">
           <span className="text-white flex items-center">
@@ -208,7 +208,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
             </div>
             <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
               <FileText size={16} color="#9F9FA9" />
-              <span>{job._count?.applications} Proposals</span>
+              <span>{job._count?.applications} Applications</span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 mt-2">

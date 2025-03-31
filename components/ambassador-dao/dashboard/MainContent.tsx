@@ -13,7 +13,6 @@ import SideContent from "./SideContent";
 import { Pagination } from "../ui/Pagination";
 
 const MainContent = ({ user }: { user: any }) => {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
@@ -122,7 +121,6 @@ const MainContent = ({ user }: { user: any }) => {
     };
     setJobFilters(updatedJobFilters);
 
-    // Use replaceState to update URL without full navigation
     const params = new URLSearchParams(searchParams.toString());
 
     Object.entries(newFilterValues as object).forEach(([key, value]) => {
@@ -133,7 +131,6 @@ const MainContent = ({ user }: { user: any }) => {
       }
     });
 
-    // Use history.replaceState to update URL without navigation
     window.history.replaceState(
       null, 
       '', 
@@ -159,7 +156,6 @@ const MainContent = ({ user }: { user: any }) => {
     };
     setBountyFilters(updatedBountyFilters);
 
-    // Use replaceState to update URL without full navigation
     const params = new URLSearchParams(searchParams.toString());
 
     Object.entries(newFilterValues as object).forEach(([key, value]) => {
@@ -170,7 +166,6 @@ const MainContent = ({ user }: { user: any }) => {
       }
     });
 
-    // Use history.replaceState to update URL without navigation
     window.history.replaceState(
       null, 
       '', 
@@ -195,7 +190,6 @@ const MainContent = ({ user }: { user: any }) => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     
-    // Update URL with page parameter but don't navigate
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(page));
     window.history.replaceState(null, '', `${pathname}?${params.toString()}`);
