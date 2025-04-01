@@ -17,13 +17,16 @@ import { useFetchUserPendingRewards } from "@/services/ambassador-dao/requests/u
 import { useFetchOpportunity } from "@/services/ambassador-dao/requests/opportunity";
 import { Pagination } from "@/components/ambassador-dao/ui/Pagination";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const AmbasssadorDaoProfilePage = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
-
+  const router = useRouter();
   const { data, isLoading } = useFetchUserDataQuery();
+
+
 
   const { data: userStats, isLoading: isLoadingStats } =
     useFetchUserStatsDataQuery(data?.username);
@@ -35,6 +38,12 @@ const AmbasssadorDaoProfilePage = () => {
     useFetchOpportunity({});
 
   const userRole = data?.role;
+
+  useState(() => {
+    if (!userRole || !data?.username || !data?.wallet_address) {
+      router.push("/ambassador-dao/onboard");
+    }
+  });
 
   const profile = {
     name: data ? `${data.first_name || ""} ${data.last_name || ""}` : "-",

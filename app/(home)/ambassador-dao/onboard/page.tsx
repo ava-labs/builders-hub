@@ -252,7 +252,6 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
 
   useEffect(() => {
     if (username && username.length > 3) {
-      // Don't check username if it's the same as user's current username
       if (userData?.username === username) {
         setUsernameStatus("available");
         return;
@@ -317,9 +316,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
       {
         onSuccess: () => {
           if (isEditProfilePage) {
-            toast.success("Profile updated successfully");
-            // Optionally redirect after edit profile update
-            // router.push("/ambassador-dao");
+              return;
           } else {
             setStage(2);
           }
@@ -344,7 +341,6 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
   const { mutateAsync: updateTalentWallet, isPending: isConnectingWallet } =
     useUpdateWalletAddress();
 
-  // Show loading indicator until we've fetched user data
   if (!isDataFetched) {
     return (
       <div className="flex justify-center items-center h-60">
@@ -539,7 +535,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
               {isEditProfilePage ? "Update Profile" : "Create Profile"}
             </CustomButton>
 
-            {isEditProfilePage && (
+            {/* {isEditProfilePage && (
               <CustomButton
                 variant="outlined"
                 type="button"
@@ -549,7 +545,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
               >
                 Edit Wallet
               </CustomButton>
-            )}
+            )} */}
           </div>
         </form>
       )}
@@ -721,12 +717,6 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
         <h2 className="text-[#FAFAFA] text-xl md:text-2xl font-medium">
           Welcome to Ambassador DAO
         </h2>
-        {/* <button
-          onClick={handleClose}
-          className='text-[#FAFAFA] hover:bg-[#27272A] p-1 rounded-md'
-        >
-          <X size={20} color='#9F9FA9' />
-        </button> */}
       </div>
       <p className="text-[#9F9FA9] text-sm mb-8">
         It takes less than a minute to start earning in global standards.
