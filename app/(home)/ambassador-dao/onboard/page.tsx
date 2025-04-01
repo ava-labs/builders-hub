@@ -9,7 +9,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import Image from "next/image";
 import Avalance3d from "@/public/images/avalance3d.svg";
 import CustomInput from "@/components/ambassador-dao/input";
@@ -23,7 +23,7 @@ import {
   useUpdateSponsorProfileMutation,
   useUpdateTalentProfileMutation,
 } from "@/services/ambassador-dao/requests/onboard";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import CustomButton from "@/components/ambassador-dao/custom-button";
 import { useForm } from "react-hook-form";
 import {
@@ -34,6 +34,7 @@ import toast from "react-hot-toast";
 import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 import { countries } from "@/services/ambassador-dao/data/locations";
 import { useUpdateWalletAddress } from "@/services/ambassador-dao/requests/users";
+import Loader from "@/components/ambassador-dao/ui/Loader";
 
 const userTypes = [
   {
@@ -58,12 +59,20 @@ const userTypes = [
   },
 ];
 
+
 const AmbasssadorDaoOnboardPage = () => {
-  const { data: userData } = useFetchUserDataQuery();
+  const { data: userData, isLoading } = useFetchUserDataQuery();
   const [userType, setUserType] = useState<"TALENT" | "SPONSOR">("TALENT");
   const [selectionStep, setShowSelectionStep] = useState<
     "account_option" | "account_form"
   >(userData?.role ? "account_form" : "account_option");
+
+  useEffect(() => {
+    if (userData?.role) {
+      setShowSelectionStep("account_form");
+      setUserType(userData.role as "TALENT" | "SPONSOR");
+    }
+  }, [userData]);
 
   const { mutate: selectRole, isPending: isSelectingRole } =
     useSelectRoleMutation();
@@ -80,6 +89,10 @@ const AmbasssadorDaoOnboardPage = () => {
   const handleClose = () => {
     setShowSelectionStep("account_option");
   };
+
+  if (isLoading) {
+    return <Loader />;
+  }
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-8 md:p-16 lg:p-24">
@@ -155,7 +168,9 @@ const AmbasssadorDaoOnboardPage = () => {
       )}
       {selectionStep === "account_form" && (
         <div className="bg-[#09090B] rounded-xl border border-[#27272A] p-6 py-10">
-          {userType === "TALENT" && <TalentForm handleClose={handleClose} />}
+          {userType === ("USER" as "TALENT") && (
+            <TalentForm handleClose={handleClose} />
+          )}
           {userType === "SPONSOR" && <SponsorForm handleClose={handleClose} />}
         </div>
       )}
@@ -168,6 +183,7 @@ export default AmbasssadorDaoOnboardPage;
 const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
   const router = useRouter();
   const { data: userData } = useFetchUserDataQuery();
+  const [isDataFetched, setIsDataFetched] = useState(false);
   const {
     register,
     handleSubmit,
@@ -175,11 +191,12 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
     formState: { errors },
     setValue,
     watch,
+    reset,
   } = useForm<IUpdateTalentProfileBody>({
     defaultValues: {
-      first_name: userData?.first_name || "",
-      last_name: userData?.last_name || "",
-      username: userData?.username || "",
+      first_name: "",
+      last_name: "",
+      username: "",
     },
   });
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
@@ -189,8 +206,12 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
     "checking" | "available" | "unavailable" | null
   >(null);
   const [profileImageName, setProfileImageName] = useState<string>("");
-  // const [wallet_address, setWalletAddress] = useState<string>("");
-  const [stage, setStage] = useState(userData?.first_name ? 2 : 1);
+  const [stage, setStage] = useState(1);
+
+  const pathname = usePathname();
+
+  const isEditProfilePage = pathname === "/ambassador-dao/edit-profile";
+  const isOnboardPage = pathname === "/ambassador-dao/onboard";
 
   const username = watch("username");
 
@@ -200,7 +221,43 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
   const { data: skills } = useFetchAllSkills();
 
   useEffect(() => {
+    if (userData) {
+      if (userData.first_name && userData.wallet_address && isOnboardPage) {
+        router.push("/ambassador-dao");
+      }
+
+      reset({
+        first_name: userData.first_name || "",
+        last_name: userData.last_name || "",
+        username: userData.username || "",
+        location: userData.location || "",
+      });
+
+      if (userData.skills_ids && userData.skills_ids.length > 0) {
+        setSelectedSkills(userData.skills_ids);
+      }
+
+      if (userData.social_links && userData.social_links.length > 0) {
+        setSocialLinks(userData.social_links);
+      }
+      if (!isEditProfilePage && userData.first_name) {
+        setStage(2);
+      } else {
+        setStage(1);
+      }
+
+      setIsDataFetched(true);
+    }
+  }, [userData, router, isEditProfilePage, isOnboardPage, reset]);
+
+  useEffect(() => {
     if (username && username.length > 3) {
+      // Don't check username if it's the same as user's current username
+      if (userData?.username === username) {
+        setUsernameStatus("available");
+        return;
+      }
+
       setUsernameStatus("checking");
       const timer = setTimeout(() => {
         checkUsername(username, {
@@ -220,7 +277,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
     } else {
       setUsernameStatus(null);
     }
-  }, [username, checkUsername]);
+  }, [username, checkUsername, userData?.username]);
 
   const addSkill = (skill: string) => {
     if (!selectedSkills.includes(skill) && skill) {
@@ -259,13 +316,17 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
       },
       {
         onSuccess: () => {
-          setStage(2);
-          // router.push("/ambassador-dao/jobs");
+          if (isEditProfilePage) {
+            toast.success("Profile updated successfully");
+            // Optionally redirect after edit profile update
+            // router.push("/ambassador-dao");
+          } else {
+            setStage(2);
+          }
         },
       }
     );
   };
-
 
   const onSubmitWallet = (data: any) => {
     updateTalentWallet(
@@ -281,23 +342,34 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
   };
 
   const { mutateAsync: updateTalentWallet, isPending: isConnectingWallet } =
-  useUpdateWalletAddress();
+    useUpdateWalletAddress();
+
+  // Show loading indicator until we've fetched user data
+  if (!isDataFetched) {
+    return (
+      <div className="flex justify-center items-center h-60">
+        <Loader2 className="animate-spin" size={30} color="#FB2C36" />
+      </div>
+    );
+  }
 
   return (
     <div>
       <div className="flex justify-between items-center">
         <h2 className="text-[#FAFAFA] text-xl md:text-2xl font-medium">
-          {stage === 1 ? "Finish Your Profile" : "Add a wallet address"}
+          {isEditProfilePage
+            ? stage === 1
+              ? "Edit Your Profile"
+              : "Update Wallet Address"
+            : stage === 1
+            ? "Finish Your Profile"
+            : "Add a wallet address"}
         </h2>
-        {/* <button
-          onClick={handleClose}
-          className='text-[#FAFAFA] hover:bg-[#27272A] p-1 rounded-md'
-        >
-          <X size={20} color='#9F9FA9' />
-        </button> */}
       </div>
       <p className="text-[#9F9FA9] text-sm">
-        It takes less than a minute to start earning in global standards.
+        {isEditProfilePage
+          ? "Update your profile information and wallet details."
+          : "It takes less than a minute to start earning in global standards."}
       </p>
 
       <hr className="border-[#27272A] my-6" />
@@ -451,7 +523,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
           </div>
 
           <hr className="border-[#27272A] my-6" />
-          <div className="flex">
+          <div className="flex justify-between">
             <CustomButton
               isLoading={isUpdatingProfile}
               variant="danger"
@@ -464,38 +536,61 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
                 !selectedSkills.length
               }
             >
-              Create Profile
+              {isEditProfilePage ? "Update Profile" : "Create Profile"}
             </CustomButton>
+
+            {isEditProfilePage && (
+              <CustomButton
+                variant="outlined"
+                type="button"
+                isFullWidth={false}
+                className="px-6"
+                onClick={() => setStage(2)}
+              >
+                Edit Wallet
+              </CustomButton>
+            )}
           </div>
         </form>
       )}
 
       {stage === 2 && (
         <form
-         onSubmit={handleSubmit(onSubmitWallet)}
+          onSubmit={handleSubmit(onSubmitWallet)}
           className="text-[#FAFAFA] text-sm mt-6 md:mt-10 flex flex-col gap-4"
-        
         >
           <CustomInput
             id="wallet_address"
             label="Enter Wallet Address"
             placeholder="Enter Wallet Address"
             required
+            defaultValue={userData?.wallet_address || ""}
             {...register("wallet_address")}
           />
 
           <hr className="border-[#27272A] my-6" />
-          <div className="flex">
+          <div className="flex justify-between">
             <CustomButton
               isLoading={isConnectingWallet}
               variant="danger"
               type="submit"
               isFullWidth={false}
               className="px-6"
-              // disabled={!wallet_address}
             >
-              Connect wallet
+              {isEditProfilePage ? "Update Wallet" : "Connect Wallet"}
             </CustomButton>
+
+            {isEditProfilePage && (
+              <CustomButton
+                variant="outlined"
+                type="button"
+                isFullWidth={false}
+                className="px-6"
+                onClick={() => setStage(1)}
+              >
+                Back to Profile
+              </CustomButton>
+            )}
           </div>
         </form>
       )}

@@ -298,7 +298,7 @@ const MainContent = ({ user }: { user: any }) => {
           {renderContent()}
         </div>
         <div className="order-1 xl:order-2 col-span-3">
-          <SideContent user={user} setOpenAuthModal={setOpenAuthModal} />
+          <SideContent user={user} />
         </div>
       </div>
       <AuthModal
