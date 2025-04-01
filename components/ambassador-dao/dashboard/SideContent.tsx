@@ -34,15 +34,16 @@ const UserProfileCard = ({ userData }: any) => {
   );
 };
 
-const AmbassadorCard = ({
-  setOpenAuthModal,
-}: {
-  setOpenAuthModal: React.Dispatch<React.SetStateAction<boolean>>;
-}) => {
+const AmbassadorCard = () => {
+
+const openInNewTab = (url:string) => {
+  window.open(url, '_blank', 'noopener,noreferrer');
+};
+
   return (
     <div
       className="bg-gradient-to-r from-blue-900 to-blue-700 rounded-lg p-4 mb-4 relative overflow-hidden cursor-pointer"
-      onClick={() => setOpenAuthModal(true)}
+      onClick={() => openInNewTab("https://t.co/dgSO4YUKCD")}
     >
       <div className="relative z-10">
         <h3 className="font-medium mb-1">Become An Ambassador</h3>
@@ -57,16 +58,10 @@ const AmbassadorCard = ({
   );
 };
 
-const SideContent = ({
-  user,
-  setOpenAuthModal,
-}: {
-  user: any;
-  setOpenAuthModal: React.Dispatch<React.SetStateAction<boolean>>;
-}) => {
+const SideContent = ({ user }: { user: any }) => {
   return (
     <div className="lg:col-span-1">
-      {!user && <AmbassadorCard setOpenAuthModal={setOpenAuthModal} />}
+      {!user && <AmbassadorCard />}
       {user && <UserProfileCard userData={user} />}
     </div>
   );
