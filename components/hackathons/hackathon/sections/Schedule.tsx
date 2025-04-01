@@ -121,7 +121,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
           .map(([formattedGroupDate, activities], index) => {
             const now = new Date();
             const nowFormattedDay = getFormattedDay(now);
-            const dateIsCurrentDate = false;//Pending to activate
+            const dateIsCurrentDate = false; //Pending to activate
             return (
               <div key={index} className="flex flex-col gap-4">
                 <h3
@@ -239,7 +239,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                                   {activity.name}
                                 </CardTitle>
                                 {activity.category && (
-                                  <Badge className="dark:bg-zinc-50 bg-zinc-900 dark:text-zinc-900 text-zinc-50 py-0.5 px-2.5 text-s w-fit h-fit">
+                                  <Badge className="bg-zinc-600 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900 py-0.5 px-2.5 text-sm w-fit h-fit">
                                     {activity.category}
                                   </Badge>
                                 )}
