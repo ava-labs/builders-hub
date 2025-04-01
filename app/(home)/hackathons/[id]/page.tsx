@@ -56,9 +56,8 @@ export default async function HackathonPage({
         />
         <span className='text-sm sm:text-xl font-bold'>{hackathon.title}</span>{' '}
         <Button
-          asChild
-          variant='secondary'
-          className='w-1/4 bg-red-500 rounded-md text-zinc-100 text-s sm:text-base'
+          asChild variant='red'
+          className='w-2/5 md:w-1/3 lg:w-1/4 cursor-pointer'
         >
           <Link
             href={
