@@ -49,6 +49,7 @@ interface JobSidebarProps {
   job: {
     id: string;
     category: string;
+    status: string;
     total_budget: number;
     deadline: string;
     proposalsCount: number;
@@ -132,45 +133,47 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
 
       {job.category === "AMBASSADOR_SPECIFIC" &&
       userData?.role !== "AMBASSADOR" ? null : (
-        <button
-          disabled={data?.has_applied || timeLeft === "Expired"}
-          className={`w-full font-medium py-3 rounded-md transition ${
-            data?.has_applied || timeLeft === "Expired"
-              ? "bg-gray-400 text-white cursor-not-allowed"
-              : "bg-red-500 hover:bg-red-600 text-white"
-          }`}
-          onClick={() => {
-            if (nullAction) return;
+        job.status === "PUBLISHED" ? (
+          <button
+            disabled={data?.has_applied || timeLeft === "Expired"}
+            className={`w-full font-medium py-3 rounded-md transition ${
+              data?.has_applied || timeLeft === "Expired"
+                ? "bg-gray-400 text-white cursor-not-allowed"
+                : "bg-red-500 hover:bg-red-600 text-white"
+            }`}
+            onClick={() => {
+              if (nullAction) return;
 
-            if (
-              !userData?.role ||
-              !userData?.username ||
-              !userData?.wallet_address
-            ) {
-              setIsOnboadModalOpen(true);
-              return;
-            }
+              if (
+                !userData?.role ||
+                !userData?.username ||
+                !userData?.wallet_address
+              ) {
+                setIsOnboadModalOpen(true);
+                return;
+              }
 
-            if (!userData) {
-              setOpenAuthModal(true);
-              return;
-            }
+              if (!userData) {
+                setOpenAuthModal(true);
+                return;
+              }
 
-            if (!data?.has_applied && timeLeft !== "Expired") {
-              setIsModalOpen(true);
-            }
-          }}
-        >
-          {isLoading ? (
-            <Loader2 color="#FFF" />
-          ) : data?.has_applied ? (
-            "Already Applied"
-          ) : timeLeft === "Expired" ? (
-            "Expired"
-          ) : (
-            "APPLY"
-          )}
-        </button>
+              if (!data?.has_applied && timeLeft !== "Expired") {
+                setIsModalOpen(true);
+              }
+            }}
+          >
+            {isLoading ? (
+              <Loader2 color="#FFF" />
+            ) : data?.has_applied ? (
+              "Already Applied"
+            ) : timeLeft === "Expired" ? (
+              "Expired"
+            ) : (
+              "APPLY"
+            )}
+          </button>
+        ) : null
       )}
 
     
