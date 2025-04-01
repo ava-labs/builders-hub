@@ -19,6 +19,7 @@ import { getOrdinalPosition } from "@/utils/getOrdinalPosition";
 import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 import { AuthModal } from "@/components/ambassador-dao/sections/auth-modal";
 import ReactMarkdown from "react-markdown";
+import OnboardModal from "../ui/OnboardModal";
 
 interface JobHeaderProps {
   job: {
@@ -62,6 +63,7 @@ interface JobSidebarProps {
 
 export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isOnboardModalOpen, setIsOnboadModalOpen] = useState<boolean>(false);
   const timeLeft = useCountdown(job?.deadline);
   const [openAuthModal, setOpenAuthModal] = useState(false);
 
@@ -127,6 +129,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
           <div>No skills available</div>
         )}
       </div>
+
       {job.category === "AMBASSADOR_SPECIFIC" &&
       userData?.role !== "AMBASSADOR" ? null : (
         <button
@@ -138,9 +141,24 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
           }`}
           onClick={() => {
             if (nullAction) return;
-            userData && !data?.has_applied && timeLeft !== "Expired"
-              ? setIsModalOpen(true)
-              : !userData && setOpenAuthModal(true);
+
+            if (
+              !userData?.role ||
+              !userData?.username ||
+              !userData?.wallet_address
+            ) {
+              setIsOnboadModalOpen(true);
+              return;
+            }
+
+            if (!userData) {
+              setOpenAuthModal(true);
+              return;
+            }
+
+            if (!data?.has_applied && timeLeft !== "Expired") {
+              setIsModalOpen(true);
+            }
           }}
         >
           {isLoading ? (
@@ -155,6 +173,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
         </button>
       )}
 
+    
       <AuthModal
         isOpen={openAuthModal}
         onClose={() => setOpenAuthModal(false)}
@@ -167,6 +186,13 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
           customQuestions={job?.custom_questions}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
+        />
+      )}
+
+      {isOnboardModalOpen && (
+        <OnboardModal
+          isOpen={isOnboardModalOpen}
+          onClose={() => setIsOnboadModalOpen(false)}
         />
       )}
     </div>

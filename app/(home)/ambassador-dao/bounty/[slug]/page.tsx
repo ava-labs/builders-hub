@@ -820,10 +820,11 @@ const AmbasssadorDaoSingleBountyPage = () => {
 
   return (
     <div className='text-white min-h-screen'>
+        <div className="max-w-7xl mx-auto my-6">
+        <GoBackButton />
+      </div>
       {!isFetchingOpportunityDetails && 
       <div className='max-w-7xl mx-auto px-4 py-8 border border-[#27272A] rounded-lg shadow-sm my-6'>
-        <GoBackButton />
-
         <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
           <div className='md:col-span-2 flex flex-col'>
             <BountyHeader bounty={headerData} />

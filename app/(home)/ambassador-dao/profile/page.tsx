@@ -4,8 +4,8 @@ import { BriefcaseBusiness, File } from "lucide-react";
 import React, { useState } from "react";
 import Token from "@/public/ambassador-dao-images/token.png";
 import XP from "@/public/ambassador-dao-images/sparkles.png";
-
 import Image from "next/image";
+
 import {
   useFetchUserDataQuery,
   useFetchUserStatsDataQuery,
@@ -13,18 +13,20 @@ import {
 import ClaimXPModal from "@/components/ambassador-dao/profile/xp-modal";
 import XpSection from "@/components/ambassador-dao/profile/xp-section";
 import ProjectSection from "@/components/ambassador-dao/profile/project-section";
-import {
-  useFetchUserPendingRewards
-} from "@/services/ambassador-dao/requests/users";
+import { useFetchUserPendingRewards } from "@/services/ambassador-dao/requests/users";
 import { useFetchOpportunity } from "@/services/ambassador-dao/requests/opportunity";
 import { Pagination } from "@/components/ambassador-dao/ui/Pagination";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const AmbasssadorDaoProfilePage = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
-
+  const router = useRouter();
   const { data, isLoading } = useFetchUserDataQuery();
+
+
 
   const { data: userStats, isLoading: isLoadingStats } =
     useFetchUserStatsDataQuery(data?.username);
@@ -36,6 +38,12 @@ const AmbasssadorDaoProfilePage = () => {
     useFetchOpportunity({});
 
   const userRole = data?.role;
+
+  useState(() => {
+    if (!userRole || !data?.username || !data?.wallet_address) {
+      router.push("/ambassador-dao/onboard");
+    }
+  });
 
   const profile = {
     name: data ? `${data.first_name || ""} ${data.last_name || ""}` : "-",
@@ -97,9 +105,13 @@ const AmbasssadorDaoProfilePage = () => {
               </div>
             </div>
             <div className="flex space-x-3">
-              <button className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md">
+              <Link
+                href="/ambassador-dao/edit-profile"
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md"
+              >
                 Edit Profile
-              </button>
+              </Link>
+
               <button
                 onClick={handleShareClick}
                 className="border border-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-md"
