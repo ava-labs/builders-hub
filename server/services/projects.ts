@@ -26,9 +26,9 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   if (options.page && options.page < 1 || options.pageSize && options.pageSize < 1)
     throw new Error("Pagination params invalid", { cause: "BadRequest" });
 
-  console.log('GET hackathons with options:', options);
+  console.log('GET projects with options:', options);
   const page = options.page ?? 1;
-  const pageSize = options.pageSize ?? 10;
+  const pageSize = options.pageSize ?? 12;
   const offset = (page - 1) * pageSize;
 
   let filters: any = {};
@@ -190,5 +190,6 @@ export type GetProjectOptions = {
   page?: number;
   pageSize?: number;
   search?: string;
-  events?: string;
+  event?: string;
+  track?: string;
 }

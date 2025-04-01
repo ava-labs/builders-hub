@@ -11,7 +11,7 @@ export default async function HackathonsPage({
   searchParams: Promise<{ page?: number; location?: string; status?: HackathonStatus | null }>;
 }) {
   const { page, location, status } = await searchParams;
-  const { hackathons, total } =  await getFilteredHackathons({
+  const { hackathons} =  await getFilteredHackathons({
     page: page ?? 1,
     pageSize: 4,
     location: location,
