@@ -233,7 +233,7 @@ export default function ShowCaseCard({
                   length: totalPages > 7 ? 7 : totalPages,
                 },
                 (_, i) =>
-                  currentPage + i - (currentPage > 3 ? 3 : currentPage - 1)
+                  currentPage + i - (currentPage > 3 ? totalPages - currentPage > 3 ? 3 : 7 - (totalPages - currentPage + 1) : currentPage - 1)
               ).map((page) => (
                 <PaginationItem
                   key={page}
