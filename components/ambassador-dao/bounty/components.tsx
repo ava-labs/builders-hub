@@ -234,7 +234,11 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
             }`}
             onClick={() => {
               if (nullAction) return;
-
+              
+              if (!userData) {
+                setOpenAuthModal(true);
+                return;
+              }
               if (
                 !userData?.role ||
                 !userData?.username ||
@@ -244,10 +248,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
                 return;
               }
 
-              if (!userData) {
-                setOpenAuthModal(true);
-                return;
-              }
+          
 
               if (!data?.has_submitted && timeLeft !== "Expired") {
                 setIsModalOpen(true);

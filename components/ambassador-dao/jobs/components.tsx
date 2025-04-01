@@ -144,6 +144,11 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
             onClick={() => {
               if (nullAction) return;
 
+              if (!userData) {
+                setOpenAuthModal(true);
+                return;
+              }
+
               if (
                 !userData?.role ||
                 !userData?.username ||
@@ -153,11 +158,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
                 return;
               }
 
-              if (!userData) {
-                setOpenAuthModal(true);
-                return;
-              }
-
+            
               if (!data?.has_applied && timeLeft !== "Expired") {
                 setIsModalOpen(true);
               }
