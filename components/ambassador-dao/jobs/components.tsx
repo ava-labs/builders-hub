@@ -70,7 +70,6 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
   const { data, isLoading } = useCheckJobStatus(job.id);
   const { data: userData } = useFetchUserDataQuery();
 
-  console.log("userData", userData);
   return (
     <div className="bg-[#111] p-4 rounded-md border border-gray-800 sticky top-6">
       <div className="flex items-center justify-between mb-4">
@@ -149,7 +148,6 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
               !userData?.wallet_address
             ) {
               setIsOnboadModalOpen(true);
-              console.log("here")
               return;
             }
 
