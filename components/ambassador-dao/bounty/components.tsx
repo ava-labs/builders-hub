@@ -239,7 +239,6 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
               !userData?.wallet_address
             ) {
               setIsOnboadModalOpen(true);
-              console.log("here");
               return;
             }
 
