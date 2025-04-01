@@ -806,6 +806,7 @@ const AmbasssadorDaoSingleJobPage = () => {
   const sidebarData = {
     id: data?.id,
     category: data?.category,
+    status: data?.status,
     total_budget: data?.total_budget || 0,
     deadline: data?.end_date,
     proposalsCount: data?._count?.applications,
