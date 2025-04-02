@@ -192,4 +192,5 @@ export type GetProjectOptions = {
   search?: string;
   event?: string;
   track?: string;
+  winningProjects?: boolean;
 }

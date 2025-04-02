@@ -23,6 +23,8 @@ export type ProjectFilters = {
   track?: string
   page?: number
   recordsByPage?: number
+  search?: string
+  winningProjecs?: boolean
 }
         
 export interface Member extends User {

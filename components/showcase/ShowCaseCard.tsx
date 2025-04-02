@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@radix-ui/react-dropdown-menu";
 import { Search } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useState } from "react";
 import {
   Select,
   SelectContent,
@@ -28,38 +28,30 @@ import { ProjectCard } from "./ProjectCard";
 import Link from "next/link";
 import { ProjectFilters } from "@/types/project";
 import { useRouter } from "next/navigation";
-import { array } from "zod";
-
-const events = [
-  { id: "id1", name: "Event 1" },
-  { id: "id2", name: "Event 2" },
-  { id: "id3", name: "Event 3" },
-];
-const tracks = ["Track1", "Track2", "Track3"];
+import { HackathonHeader } from "@/types/hackathons";
+const tracks = ["AI", "DeFi", "RWA", "Gaming", "SocialFi", "Tooling"];
 
 type Props = {
   projects: Project[];
+  events: HackathonHeader[];
   initialFilters: ProjectFilters;
   totalProjects: number;
 };
 
 export default function ShowCaseCard({
   projects,
+  events,
   initialFilters,
   totalProjects,
 }: Props) {
   const [searchValue, setSearchValue] = useState("");
   const [filters, setFilters] = useState<ProjectFilters>(initialFilters);
-  const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(initialFilters.page ?? 1);
   const [recordsByPage, setRecordsByPage] = useState(12);
   const [totalPages, setTotalPages] = useState<number>(
     Math.ceil(totalProjects / recordsByPage)
   );
-
   const router = useRouter();
-
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleFilterChange = (type: keyof ProjectFilters, value: string) => {
     const newFilters = {
@@ -84,57 +76,16 @@ export default function ShowCaseCard({
     }
     if (newFilters.event) params.set("event", newFilters.event);
     if (newFilters.track) params.set("track", newFilters.track);
+    if (newFilters.search) params.set("search", newFilters.search);
+    if (newFilters.winningProjecs)
+      params.set("winningProjects", String(newFilters.winningProjecs));
 
     router.replace(`/showcase?${params.toString()}`);
   };
 
-  const handleSearchChange = useCallback((query: string) => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    searchTimeoutRef.current = setTimeout(() => {
-      setSearchQuery(query);
-      const newFilters = { ...filters, page: undefined };
-
-      setFilters(newFilters);
-
-      const queryString = buildQueryString(newFilters, query, recordsByPage);
-      router.replace(`/showcase?${queryString}`);
-    }, 300);
-  }, []);
-
-  function buildQueryString(
-    filters: ProjectFilters,
-    searchQuery: string,
-    pageSize: number
-  ) {
-    const params = new URLSearchParams();
-
-    if (filters.event) {
-      params.set("event", filters.event);
-    }
-    if (filters.track) {
-      params.set("track", filters.track);
-    }
-    if (filters.page) {
-      params.set("page", filters.page.toString());
-    }
-    if (filters.recordsByPage) {
-      params.set("recordsByPage", filters.recordsByPage.toString());
-    }
-    if (searchQuery.trim()) {
-      params.set("search", searchQuery.trim());
-    }
-
-    params.set("pageSize", pageSize.toString());
-
-    return params.toString();
-  }
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      handleSearchChange(searchValue);
+      handleFilterChange("search", searchValue);
     }
   };
 
@@ -149,8 +100,18 @@ export default function ShowCaseCard({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Tabs defaultValue="allProjects">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="allProjects">All Projects</TabsTrigger>
-            <TabsTrigger value="winingProjects">Winning Projects</TabsTrigger>
+            <TabsTrigger
+              onClick={() => handleFilterChange("winningProjecs", "false")}
+              value="allProjects"
+            >
+              All Projects
+            </TabsTrigger>
+            <TabsTrigger
+              onClick={() => handleFilterChange("winningProjecs", "true")}
+              value="winingProjects"
+            >
+              Winning Projects
+            </TabsTrigger>
           </TabsList>
         </Tabs>
         <div className="relative w-[271px]">
@@ -173,7 +134,7 @@ export default function ShowCaseCard({
           <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
             {events.map((event) => (
               <SelectItem key={event.id} value={event.id}>
-                {event.name}
+                {event.title}
               </SelectItem>
             ))}
           </SelectContent>
@@ -233,7 +194,13 @@ export default function ShowCaseCard({
                   length: totalPages > 7 ? 7 : totalPages,
                 },
                 (_, i) =>
-                  currentPage + i - (currentPage > 3 ? totalPages - currentPage > 3 ? 3 : 7 - (totalPages - currentPage + 1) : currentPage - 1)
+                  currentPage +
+                  i -
+                  (currentPage > 3
+                    ? totalPages - currentPage > 3
+                      ? 3
+                      : 7 - (totalPages - currentPage + 1)
+                    : currentPage - 1)
               ).map((page) => (
                 <PaginationItem
                   key={page}
