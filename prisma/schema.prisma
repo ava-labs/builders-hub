@@ -24,6 +24,7 @@ model Hackathon {
   content      Json     @default("{}")
 
     registrations RegisterForm[]
+    projects      Project[]
 }
 
 model User {
@@ -36,6 +37,7 @@ model User {
   last_login     DateTime?
   image         String?
   registrations           RegisterForm[]
+  memberships   Member[]
 }
 
 model VerificationToken {
@@ -73,4 +75,38 @@ model RegisterForm {
 
   @@unique([hackathon_id, email])
 
+}
+
+model Project {
+  id              String    @id @default(uuid())
+  hackaton_id     String
+  hackathon       Hackathon @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
+  project_name    String
+  short_description String
+  full_description String?   @default("")
+  tech_stack      String?   @default("")
+  github_repository String? @default("")
+  demo_link       String?   @default("")
+  is_preexisting_idea     Boolean   @default(false)
+  logo_url        String?   @default("")
+  cover_url       String?   @default("")
+  demo_video_link String?   @default("")
+  explanation String?   @default("")
+  screenshots     String[]  @default([])
+  tracks          String[]  @default([])
+
+  members         Member[]  // Relación con la tabla Member
+  created_at      DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at      DateTime  @updatedAt @db.Timestamptz(3)
+}
+
+model Member {
+  id         String  @id @default(uuid())
+  user_id    String
+  project_id String
+  user       User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  role       String  @default("member") 
+  status     String  @default("Awaiting Confirmation") 
+  @@unique([user_id, project_id]) 
 }

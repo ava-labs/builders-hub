@@ -78,9 +78,8 @@ export function RegisterForm({
   const [formLoaded, setRegistrationForm] = useState<RegistrationForm | null>(
     null
   );
-  const [isDialogOpen, setIsDialogOpen] = useState(false); // Estado para controlar el Dialog
-  const router = useRouter(); // Hook para redirecciones
-
+  const [isDialogOpen, setIsDialogOpen] = useState(false); 
+  const router = useRouter(); 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -187,7 +186,7 @@ export function RegisterForm({
     }
   };
 
-  async function saveRegisterForm(data: RegisterFormValues) {
+  async function saveProject(data: RegisterFormValues) {
     try {
       await axios.post(`/api/register-form/`, data);
       localStorage.removeItem("formData");
@@ -236,7 +235,7 @@ export function RegisterForm({
         roles: data.roles ?? [],
         tools: data.tools,
       };
-      await saveRegisterForm(finalData);
+      await saveProject(finalData);
       setIsDialogOpen(true); // Abrir el diálogo después de guardar
     }
   };
