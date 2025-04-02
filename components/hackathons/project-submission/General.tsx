@@ -56,7 +56,7 @@ export default function GeneralComponent({
 }) {
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [progress, setProgress] = useState<number>(0);
-  const [formData, setFormData] = useState({});
+  
   const [step, setStep] = useState(1);
   const [deadline, setDeadline] = useState<number>(
     new Date().getTime() + 12 * 60 * 60 * 1000 // 12h de cuenta regresiva
@@ -69,6 +69,20 @@ export default function GeneralComponent({
     coverFile?: string;
     screenshots?: string[];
   }>({});
+  const step1Fields: (keyof SubmissionForm)[] = ["project_name",
+     "short_description",
+     "full_description",
+      "tracks",
+    ];
+  const step2Fields: (keyof SubmissionForm)[] = [
+    "tech_stack",
+    "github_repository",
+    "explanation",
+    "demo_link",
+    "is_preexisting_idea",
+  ];
+
+
   let hackathon_id = searchParams?.hackaId ?? "";
 
   const form = useForm<SubmissionForm>({
@@ -113,7 +127,7 @@ export default function GeneralComponent({
       const response = await axios.get(`/api/project`, {
         params: {
           hackathon_id,
-          user_id: session?.user.id,
+          user_id: currentUser?.id,
         },
       });
       if (response.data.project) {
@@ -157,48 +171,72 @@ export default function GeneralComponent({
       console.log("Project saved successfully:", response.data);
     } catch (err) {
       console.error("API Error in saveProject:", err);
-      throw err; // Relanzamos el error para que se maneje en el llamador
+      throw err; 
     }
   }
 
   const save = async (data: SubmissionForm) => {
     try {
       const uploadedFiles = {
-        logoFileUrl: data.logoFile 
-          ? typeof data.logoFile === "string" 
-            ? data.logoFile 
-            : originalImages.logoFile 
-              ? await replaceImage(originalImages.logoFile, data.logoFile) 
+        logoFileUrl:
+          data.logoFile && (!Array.isArray(data.logoFile) || data.logoFile.length > 0)
+            ? typeof data.logoFile === "string"
+              ? data.logoFile // No se cambió
+              : originalImages.logoFile
+              ? await replaceImage(originalImages.logoFile, data.logoFile)
               : await uploadFile(data.logoFile)
-          : null,
+            : originalImages.logoFile
+            ? (await deleteImage(originalImages.logoFile), null)
+            : null,
 
-        coverFileUrl: data.coverFile 
-          ? typeof data.coverFile === "string" 
-            ? data.coverFile 
-            : originalImages.coverFile 
+        coverFileUrl:
+          data.coverFile && (!Array.isArray(data.coverFile) || data.coverFile.length > 0)
+            ? typeof data.coverFile === "string"
+              ? data.coverFile
+              : originalImages.coverFile
               ? await replaceImage(originalImages.coverFile, data.coverFile)
               : await uploadFile(data.coverFile)
-          : null,
-  
+            : originalImages.coverFile
+            ? (await deleteImage(originalImages.coverFile), null)
+            : null,
 
-        screenshotsUrls: data.screenshots
-          ? await Promise.all(
-              data.screenshots.map(async (item:any, index:any) => {
-                if (typeof item === "string") {
-                  return item;
-                } else {
-                  const originalUrl = originalImages.screenshots?.[index];
-                  return originalUrl 
-                    ? await replaceImage(originalUrl, item)
-                    : await uploadFile(item);
-                }
-              })
-            )
-          : [],
+        screenshotsUrls:
+          data.screenshots && Array.isArray(data.screenshots) && data.screenshots.length > 0
+            ? await Promise.all(
+                data.screenshots.map(async (item: any, index: any) => {
+                  if (typeof item === "string") {
+                    return item;
+                  } else {
+                    const originalUrl = originalImages.screenshots?.[index];
+                    return originalUrl
+                      ? await replaceImage(originalUrl, item)
+                      : await uploadFile(item);
+                  }
+                })
+              )
+            : originalImages.screenshots && originalImages.screenshots.length > 0
+            ? (
+                await Promise.all(
+                  originalImages.screenshots.map(async (oldUrl) => {
+                    await deleteImage(oldUrl);
+                    return null;
+                  })
+                ),
+                []
+              )
+            : [],
       };
-
-      setFormData((prevData) => ({ ...prevData, ...data }));
-
+  
+     
+      form.setValue("logoFile", uploadedFiles.logoFileUrl);
+      form.setValue("coverFile", uploadedFiles.coverFileUrl);
+      form.setValue("screenshots", uploadedFiles.screenshotsUrls);
+  
+      setOriginalImages({
+        logoFile: uploadedFiles.logoFileUrl ?? undefined,
+        coverFile: uploadedFiles.coverFileUrl ?? undefined,
+        screenshots: uploadedFiles.screenshotsUrls,
+      });
       const finalData: Project = {
         ...data,
         logo_url: uploadedFiles.logoFileUrl ?? "",
@@ -208,14 +246,20 @@ export default function GeneralComponent({
         user_id : session?.user.id??"",
         id: "", 
       };
-      console.log("session",session)
+    
       await saveProject(finalData); 
     } catch (error) {
-      console.error("Error in save:", error);
+     
       throw error; 
     }
   };
-
+  async function deleteImage(oldImageUrl: string): Promise<void> {
+    const fileName = oldImageUrl.split("/").pop();
+    await fetch(`/api/upload-file/delete?fileName=${encodeURIComponent(fileName!)}`, {
+      method: "DELETE",
+    });
+  }
+  
   const handleSave = async () => {
     try {
       await form.handleSubmit(save)(); // Ejecuta la validación y luego save
@@ -227,10 +271,20 @@ export default function GeneralComponent({
 
   const onSubmit = async (data: SubmissionForm) => {
     if (step < 3) {
-      setStep(step + 1);
+      let valid = false;
+      if (step === 1) {
+        valid = await form.trigger(step1Fields);
+      } else if (step === 2) {
+        valid = await form.trigger(step2Fields);
+      }
+      if (valid) {
+        setStep(step + 1);
+        if (step + 1 === 2) setProgress(70);
+        if (step + 1 === 3) setProgress(100);
+      }
     } else {
       try {
-        await save(data); // Guardamos cuando se completa el formulario
+        await save(data); // Finalmente se guarda al llegar al paso 3
       } catch (error) {
         console.error("Error uploading files or saving project:", error);
       }
@@ -263,11 +317,13 @@ export default function GeneralComponent({
   useEffect(() => {
     getHackathon();
   }, [hackathon_id]);
+
   useEffect(() => {
     if (hackathon_id && session?.user?.id) {
       getProject();
     }
   }, [hackathon_id, session?.user?.id]);
+
   return (
     <div className="p-6 rounded-lg">
       {/* Encabezado */}

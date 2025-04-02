@@ -74,11 +74,18 @@ export default function MediaUploader({
       const newFile = e.target.files[0];
       if (!newFile) return;
       const currentValue = form.getValues(name);
-      const currentFiles = Array.isArray(currentValue) ? currentValue : [currentValue];      
-      currentFiles[selectedIndex] = newFile;
-      form.setValue(name, currentFiles);
+      if (maxItems === 1) {
+        // Si sólo se permite un archivo, guarda directamente el File
+        form.setValue(name, newFile);
+      } else {
+        // Si se permiten varios, normaliza a array
+        const currentFiles = Array.isArray(currentValue) ? currentValue : [currentValue];
+        currentFiles[selectedIndex] = newFile;
+        form.setValue(name, currentFiles);
+      }
     }
   };
+  
 
   const handleDelete = (index: number) => {
     setSelectedIndex(index);
@@ -89,9 +96,8 @@ export default function MediaUploader({
     if (selectedIndex === null) return;
     const currentValue = form.getValues(name);
     const currentFiles = Array.isArray(currentValue) ? currentValue : [currentValue];
-    
     currentFiles.splice(selectedIndex, 1);
-    form.setValue(name, currentFiles);
+    form.setValue(name, currentFiles.length === 0 ? null : currentFiles);
     setDeleteDialogOpen(false);
   };
 
