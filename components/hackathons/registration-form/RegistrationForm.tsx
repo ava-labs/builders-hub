@@ -78,8 +78,8 @@ export function RegisterForm({
   const [formLoaded, setRegistrationForm] = useState<RegistrationForm | null>(
     null
   );
-  const [isDialogOpen, setIsDialogOpen] = useState(false); // Estado para controlar el Dialog
-  const router = useRouter(); // Hook para redirecciones
+  const [isDialogOpen, setIsDialogOpen] = useState(false); 
+  const router = useRouter(); 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {

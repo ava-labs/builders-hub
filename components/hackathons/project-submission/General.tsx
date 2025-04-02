@@ -27,6 +27,7 @@ import { HackathonHeader } from "@/types/hackathons";
 import { Project } from "@/types/project";
 import { useSession } from "next-auth/react";
 import { User } from "next-auth";
+import { useRouter } from "next/navigation"; 
 
 export const FormSchema = z.object({
   project_name: z
@@ -64,6 +65,7 @@ export default function GeneralComponent({
   const { data: session, status } = useSession();
   const currentUser: User | undefined = session?.user;
   const timeLeft: string = useCountdown(deadline);
+    const router = useRouter(); 
   const [originalImages, setOriginalImages] = useState<{
     logoFile?: string;
     coverFile?: string;
@@ -263,7 +265,8 @@ export default function GeneralComponent({
   const handleSave = async () => {
     try {
       await form.handleSubmit(save)(); // Ejecuta la validación y luego save
-      console.log("Save & Continue Later completed successfully");
+    
+      router.push(`/hackathons/${hackathon_id}`);
     } catch (error) {
       console.error("Error in handleSave:", error);
     }
