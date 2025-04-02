@@ -49,7 +49,7 @@ export default function ShowCaseCard({
   const [currentPage, setCurrentPage] = useState(initialFilters.page ?? 1);
   const [recordsByPage, setRecordsByPage] = useState(12);
   const [totalPages, setTotalPages] = useState<number>(
-    Math.ceil(totalProjects / recordsByPage)
+    Math.ceil(totalProjects / recordsByPage) || 1
   );
   const router = useRouter();
 
@@ -98,7 +98,11 @@ export default function ShowCaseCard({
       </p>
       <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800 h-[2px]" />
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <Tabs defaultValue="allProjects">
+        <Tabs
+          defaultValue={
+            filters.winningProjecs ? "winingProjects" : "allProjects"
+          }
+        >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger
               onClick={() => handleFilterChange("winningProjecs", "false")}
@@ -118,6 +122,7 @@ export default function ShowCaseCard({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-[40px] w-5 text-zinc-400 stroke-zinc-700" />
           <Input
             type="text"
+            value={filters.search}
             onChange={(e) => setSearchValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search by name, event, location..."
