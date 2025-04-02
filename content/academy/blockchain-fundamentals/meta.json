@@ -4,6 +4,7 @@
   "root": true,
   "pages": [
     "index",
+    "glossary",
     "---What is a Blockchain?---",
     "...02-what-is-a-blockchain",
     "---Payments---",
