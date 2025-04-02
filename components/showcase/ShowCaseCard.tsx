@@ -110,12 +110,12 @@ export default function ShowCaseCard({
             filters.winningProjecs ? "winingProjects" : "allProjects"
           }
         >
-          <TabsList className="grid w-full grid-cols-2 bg-zinc-800">
+          <TabsList className="grid w-full grid-cols-2 dark:!bg-zinc-800 bg-zinc-100">
             <TabsTrigger
               onClick={() => handleFilterChange("winningProjecs", "false")}
               value="allProjects"
               className={`${
-                filters.winningProjecs ? "!bg-transparent" : "!bg-zinc-950"
+                filters.winningProjecs ? "!bg-transparent" : "bg-zinc-50 dark:!bg-zinc-950"
               } border-none`}
             >
               All Projects
@@ -124,7 +124,7 @@ export default function ShowCaseCard({
               onClick={() => handleFilterChange("winningProjecs", "true")}
               value="winingProjects"
               className={`${
-                filters.winningProjecs ? "!bg-zinc-950" : "!bg-transparent"
+                filters.winningProjecs ? "bg-zinc-50 dark:!bg-zinc-950" : "!bg-transparent"
               } border-none`}
             >
               Winning Projects
