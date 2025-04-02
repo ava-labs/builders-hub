@@ -1,109 +1,100 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
+generator client {
+  provider = "prisma-client-js"
+}
 model Hackathon {
-  id            String         @id @default(uuid())
-  title         String
-  description   String
-  location      String
-  total_prizes  Int
-  tags          String[]
-  content       Json           @default("{}")
-  end_date      DateTime       @default(now()) @db.Timestamptz(3)
-  start_date    DateTime       @default(now()) @db.Timestamptz(3)
-  timezone      String         @default("UTC")
-  banner        String         @default("")
-  icon          String         @default("")
-  small_banner  String         @default("")
-  participants  Int
-  projects      Project[]
-  registrations RegisterForm[]
+  id           String   @id @default(uuid())
+  title        String
+  description  String
+  start_date   DateTime @default(now()) @db.Timestamptz(3)
+  end_date     DateTime @default(now()) @db.Timestamptz(3)
+  location     String
+  total_prizes Int
+  participants Int
+  tags         String[]
+  timezone     String   @default("UTC")
+  icon         String   @default("")
+  banner       String   @default("")
+  small_banner String   @default("")
+  content      Json     @default("{}")
+    registrations RegisterForm[]
+    projects      Project[]
 }
-
 model User {
-  id                  String        @id @default(cuid())
-  name                String?
-  email               String?       @unique
-  image               String?
+  id            String    @id @default(cuid())
+  name          String?
+  user_name     String?
+  integration   String?
   authentication_mode String?
-  integration         String?
-  last_login          DateTime?
-  user_name           String?
-  memberships         Member[]
-  registrations       RegisterForm?
+  email         String?   @unique
+  last_login     DateTime?
+  image         String?
+  registrations           RegisterForm[]
+  memberships   Member[]
 }
-
 model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
-
   @@unique([identifier, token])
 }
-
 model RegisterForm {
-  id                      String    @id @default(uuid())
-  utm                     String
-  city                    String
-  dietary                 String?
-  email                   String    @unique
-  interests               String
-  languages               String
-  roles                   String
-  name                    String
-  role                    String
-  tools                   String
-  company_name            String?
-  created_at              DateTime  @default(now()) @db.Timestamptz(3)
-  github_portfolio        String?
+  id                     String   @id @default(uuid())
   hackathon_id            String
+  hackathon              Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
+  utm                    String
+  city                   String
+  company_name            String?
+  dietary                String?
+  email                  String    @unique
+  user                   User?     @relation(fields: [email], references: [email], onDelete: Cascade)
+  github_portfolio        String?
   hackathon_participation String
+  interests              String
+  languages              String
+  roles                  String
+  name                   String
   newsletter_subscription Boolean   @default(false)
   prohibited_items        Boolean   @default(false)
-  terms_event_conditions  Boolean   @default(false)
-  updated_at              DateTime  @updatedAt @db.Timestamptz(3)
+  role                   String
+  terms_event_conditions   Boolean   @default(false)
+  tools                  String
   web3_proficiency        String
-  user                    User      @relation(fields: [email], references: [email], onDelete: Cascade)
-  hackathon               Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
-
+  created_at              DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at              DateTime  @updatedAt @db.Timestamptz(3)
   @@unique([hackathon_id, email])
 }
-
 model Project {
-  id                String    @id @default(uuid())
-  hackaton_id       String
-  project_name      String
+  id              String    @id @default(uuid())
+  hackaton_id     String
+  hackathon       Hackathon @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
+  project_name    String
   short_description String
-  full_description  String?   @default("")
-  tech_stack        String?   @default("")
-  github_repository String?   @default("")
-  demo_link         String?   @default("")
-  open_source       Boolean   @default(false)
-  logo_url          String?   @default("")
-  cover_url         String?   @default("")
-  demo_video_link   String?   @default("")
-  screenshots       String[]  @default([])
-  tracks            String[]  @default([])
-  created_at        DateTime  @default(now()) @db.Timestamptz(3)
-  updated_at        DateTime  @updatedAt @db.Timestamptz(3)
-  members           Member[]
-  hackathon         Hackathon @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
+  full_description String?  @default("")
+  tech_stack      String?   @default("")
+  github_repository String? @default("")
+  demo_link       String?   @default("")
+  is_preexisting_idea     Boolean   @default(false)
+  logo_url        String?   @default("")
+  cover_url       String?   @default("")
+  demo_video_link String?   @default("")
+  explanation String?   @default("")
+  screenshots     String[]  @default([])
+  tracks          String[]  @default([])
+  members         Member[]  // Relación con la tabla Member
+  created_at      DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at      DateTime  @updatedAt @db.Timestamptz(3)
 }
-
 model Member {
   id         String  @id @default(uuid())
   user_id    String
   project_id String
+  user       User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
   role       String  @default("member")
   status     String  @default("Awaiting Confirmation")
-  project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  user       User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
   @@unique([user_id, project_id])
 }

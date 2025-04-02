@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@radix-ui/react-dropdown-menu";
 import { Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -58,6 +58,11 @@ export default function ShowCaseCard({
       ...filters,
       [type]: value === "all" ? "" : value,
       ...(type !== "page" ? { page: undefined } : {}),
+      ...(type == "winningProjecs"
+        ? value == "true"
+          ? { winningProjecs: true }
+          : { winningProjecs: false }
+        : {}),
     };
 
     setFilters(newFilters);
@@ -77,8 +82,7 @@ export default function ShowCaseCard({
     if (newFilters.event) params.set("event", newFilters.event);
     if (newFilters.track) params.set("track", newFilters.track);
     if (newFilters.search) params.set("search", newFilters.search);
-    if (newFilters.winningProjecs)
-      params.set("winningProjects", String(newFilters.winningProjecs));
+    params.set("winningProjects", String(newFilters.winningProjecs));
 
     router.replace(`/showcase?${params.toString()}`);
   };
@@ -88,6 +92,9 @@ export default function ShowCaseCard({
       handleFilterChange("search", searchValue);
     }
   };
+  useEffect(() => {
+    console.debug("filters: ", filters);
+  }, [filters]);
 
   return (
     <Card className="bg-zinc-50 dark:bg-zinc-950 relative border border-zinc-300 dark:border-zinc-800 p-4 sm:p-8">
@@ -103,16 +110,22 @@ export default function ShowCaseCard({
             filters.winningProjecs ? "winingProjects" : "allProjects"
           }
         >
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2 bg-zinc-800">
             <TabsTrigger
               onClick={() => handleFilterChange("winningProjecs", "false")}
               value="allProjects"
+              className={`${
+                filters.winningProjecs ? "!bg-transparent" : "!bg-zinc-950"
+              } border-none`}
             >
               All Projects
             </TabsTrigger>
             <TabsTrigger
               onClick={() => handleFilterChange("winningProjecs", "true")}
               value="winingProjects"
+              className={`${
+                filters.winningProjecs ? "!bg-zinc-950" : "!bg-transparent"
+              } border-none`}
             >
               Winning Projects
             </TabsTrigger>
@@ -132,7 +145,7 @@ export default function ShowCaseCard({
             }}
             onKeyDown={handleKeyDown}
             placeholder="Search by name, event, location..."
-            className="w-full h-full px-3 pl-10 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-md dark:text-zinc-50 text-zinc-900 placeholder-zinc-500"
+            className="w-full min-h-[36px] px-3 pl-10 bg-transparent border border-zinc-300 dark:border-zinc-800 rounded-md dark:text-zinc-50 text-zinc-900 placeholder-zinc-500"
           />
         </div>
         <Select

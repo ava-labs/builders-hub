@@ -18,13 +18,14 @@ export default async function ShowCasePage({
 }) {
   const { page, event, track, recordsByPage, search, winningProjects } =
     await searchParams;
+  const boolWinningProjects = winningProjects == "true" ? true : false;
   const { projects, total } = await getFilteredProjects({
     page: page ? Number(page) : 1,
     pageSize: recordsByPage ? Number(recordsByPage) : 12,
     event: event,
     track: track,
     search: search,
-    winningProjects: Boolean(winningProjects),
+    winningProjects: boolWinningProjects,
   });
   const initialFilters: ProjectFilters = {
     page: page ? Number(page) : 1,
@@ -32,7 +33,7 @@ export default async function ShowCasePage({
     track: track,
     recordsByPage: recordsByPage ? parseInt(recordsByPage) : 12,
     search: search,
-    winningProjecs: Boolean(winningProjects),
+    winningProjecs: boolWinningProjects,
   };
   const events = await getFilteredHackathons({});
   return (

@@ -1,6 +1,6 @@
 import { Project } from "@/types/showcase";
 import { PrismaClient } from "@prisma/client";
-import { requiredField, validateEntity, Validation } from "./base";
+import { validateEntity, Validation } from "./base";
 import { revalidatePath } from "next/cache";
 
 const prisma = new PrismaClient();
@@ -132,7 +132,6 @@ export async function createProject(projectData: Partial<Project>): Promise<Proj
       full_description: projectData.full_description ?? '',
       github_repository: projectData.github_repository ?? '',
       logo_url: projectData.logo_url ?? '',
-      open_source: projectData.open_source ?? false,
       screenshots: projectData.screenshots ?? [],
       tech_stack: projectData.tech_stack ?? '',
       tracks: projectData.tracks ?? [],
@@ -178,7 +177,6 @@ export async function updateProject(id: string, projectData: Partial<Project>): 
       full_description: projectData.full_description ?? '',
       github_repository: projectData.github_repository ?? '',
       logo_url: projectData.logo_url ?? '',
-      open_source: projectData.open_source ?? false,
       screenshots: projectData.screenshots ?? [],
       tech_stack: projectData.tech_stack ?? '',
       tracks: projectData.tracks ?? [],
