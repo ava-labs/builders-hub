@@ -32,6 +32,17 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   const offset = (page - 1) * pageSize;
 
   let filters: any = {};
+  if (options.event) {
+    filters.hackaton_id = options.event
+  }
+  if (options.track) {
+    filters.tracks = {
+      has: options.track
+    }
+  }
+  // if (options.winningProjects) {
+  //   filters.winningProjects = true
+  // }
   if (options.search) {
     const searchWords = options.search.split(/\s+/)
     let searchFilters: any[] = []

@@ -122,8 +122,14 @@ export default function ShowCaseCard({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-[40px] w-5 text-zinc-400 stroke-zinc-700" />
           <Input
             type="text"
-            value={filters.search}
-            onChange={(e) => setSearchValue(e.target.value)}
+            defaultValue={filters.search}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSearchValue(value);
+              if (value == "") {
+                handleFilterChange("search", value);
+              }
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Search by name, event, location..."
             className="w-full h-full px-3 pl-10 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-md dark:text-zinc-50 text-zinc-900 placeholder-zinc-500"
@@ -137,6 +143,7 @@ export default function ShowCaseCard({
             <SelectValue placeholder="Select event" />
           </SelectTrigger>
           <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
+            <SelectItem value={"all"}>{"All events"}</SelectItem>
             {events.map((event) => (
               <SelectItem key={event.id} value={event.id}>
                 {event.title}
@@ -152,6 +159,7 @@ export default function ShowCaseCard({
             <SelectValue placeholder="Select track" />
           </SelectTrigger>
           <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
+            <SelectItem value={"all"}>{"All tracks"}</SelectItem>
             {tracks.map((track) => (
               <SelectItem key={track} value={track}>
                 {track}
