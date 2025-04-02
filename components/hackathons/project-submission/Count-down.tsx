@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 
 interface TimeLeft {
+
+  days: number;
   hours: number;
   minutes: number;
   seconds: number;
@@ -21,16 +23,34 @@ export function useCountdown(targetDate: number): string {
 }
 
 function getTimeRemaining(targetDate: number): TimeLeft {
-  const now: number = new Date().getTime();
-  const difference: number = targetDate - now;
+  const now: number = Date.now();
+  let difference: number = targetDate - now;
 
-  return {
-    hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-    minutes: Math.floor((difference / (1000 * 60)) % 60),
-    seconds: Math.floor((difference / 1000) % 60),
-  };
+  if (difference < 0) {
+    return {
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+    };
+  }
+
+
+  const dayInMs = 1000 * 60 * 60 * 24;
+  const days = Math.floor(difference / dayInMs);
+  difference %= dayInMs;
+
+  const hours = Math.floor(difference / (1000 * 60 * 60));
+  difference %= 1000 * 60 * 60;
+
+  const minutes = Math.floor(difference / (1000 * 60));
+  difference %= 1000 * 60;
+
+  const seconds = Math.floor(difference / 1000);
+
+  return {  days, hours, minutes, seconds };
 }
 
 function formatTimeLeft(timeLeft: TimeLeft): string {
-  return `${timeLeft.hours}h ${timeLeft.minutes}m ${timeLeft.seconds}s`;
+  return ` ${timeLeft.days}d ${timeLeft.hours}h ${timeLeft.minutes}min ${timeLeft.seconds}s`;
 }

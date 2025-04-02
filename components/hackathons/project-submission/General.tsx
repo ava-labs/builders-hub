@@ -13,7 +13,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { string, z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -22,26 +21,25 @@ import { Form } from "@/components/ui/form";
 import SubmitStep1 from "./SubmissionStep1";
 import SubmitStep2 from "./SubmissionStep2";
 import SubmitStep3 from "./SubmissionStep3";
-import { File } from 'fumadocs-ui/components/files';
 import { Separator } from "@/components/ui/separator";
 import axios from "axios";
 import { HackathonHeader } from "@/types/hackathons";
 import { Project } from "@/types/project";
+import { useSession } from "next-auth/react";
+import { User } from "next-auth";
 
 export const FormSchema = z.object({
   project_name: z
     .string()
     .min(2, { message: "Project Name must be at least 2 characters" })
     .max(60, { message: "Max 60 characters allowed" }),
-    short_description: z
-    .string()
-    .max(280, { message: "Max 280 characters allowed" }),
-    full_description: z.string().optional(),
-
+  short_description: z.string().max(280, { message: "Max 280 characters allowed" }),
+  full_description: z.string().optional(),
   tech_stack: z.string().optional(),
   github_repository: z.string().optional(),
+  explanation: z.string().optional(),
   demo_link: z.string().optional(),
-  open_source: z.boolean(),
+  is_preexisting_idea: z.boolean(),
   logoFile: z.any().optional(),
   coverFile: z.any().optional(),
   screenshots: z.any().optional(),
@@ -51,13 +49,11 @@ export const FormSchema = z.object({
 
 export type SubmissionForm = z.infer<typeof FormSchema>;
 
-export default function GeneralComponent(
-  {
-    searchParams,
-  }: {
-    searchParams: { [key: string]: string | string[] | undefined };
-  }
-) {
+export default function GeneralComponent({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const [formData, setFormData] = useState({});
@@ -65,8 +61,16 @@ export default function GeneralComponent(
   const [deadline, setDeadline] = useState<number>(
     new Date().getTime() + 12 * 60 * 60 * 1000 // 12h de cuenta regresiva
   );
+  const { data: session, status } = useSession();
+  const currentUser: User | undefined = session?.user;
   const timeLeft: string = useCountdown(deadline);
+  const [originalImages, setOriginalImages] = useState<{
+    logoFile?: string;
+    coverFile?: string;
+    screenshots?: string[];
+  }>({});
   let hackathon_id = searchParams?.hackaId ?? "";
+
   const form = useForm<SubmissionForm>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -74,15 +78,16 @@ export default function GeneralComponent(
       short_description: "",
       full_description: "",
       tracks: [],
+      is_preexisting_idea: false, // Añadimos un valor por defecto para open_source
     },
   });
+
   const handleStepChange = (newStep: number) => {
     if (newStep >= 1 && newStep <= 3) {
       setStep(newStep);
-    
-      if(newStep===2) setProgress(70)
-      if(newStep===3) setProgress(100)
-      if(newStep===1) setProgress(40)
+      if (newStep === 2) setProgress(70);
+      if (newStep === 3) setProgress(100);
+      if (newStep === 1) setProgress(40);
     }
   };
 
@@ -91,136 +96,180 @@ export default function GeneralComponent(
     try {
       const response = await axios.get(`/api/hackathons/${hackathon_id}`);
       setHackathon(response.data);
+      let deadlineValue = 0;
+      if (response.data?.content?.submission_deadline) {
+        deadlineValue = new Date(response.data.content.submission_deadline).getTime();
+      } else {
+ 
+      }
+      setDeadline(deadlineValue);
     } catch (err) {
       console.error("API Error:", err);
     }
   }
 
+  async function getProject(){
+    try {
+      const response = await axios.get(`/api/project`, {
+        params: {
+          hackathon_id,
+          user_id: session?.user.id,
+        },
+      });
+      if (response.data.project) {
+        setData(response.data.project)
+      }
+  }
+  catch (err) {
+    console.error("Error fetching project:", err);
+  }
 
+}
   async function uploadFile(file: File): Promise<string> {
     const formData = new FormData();
-    formData.append('file', file);
-  
-    const response = await fetch('/api/upload-file', {
-      method: 'POST',
+    formData.append("file", file);
+    console.log("show:",file)
+    const response = await fetch("/api/upload-file", {
+      method: "POST",
       body: formData,
     });
-  
+
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.error || 'Error uploading file');
+      throw new Error(data.error || "Error uploading file");
     }
-  
+
     return data.url;
   }
 
-  const onNextStep = async () => {
-    let fieldsToValidate: (keyof SubmissionForm)[] = [];
-    // if (step === 1) {
-    //   fieldsToValidate = [
-    //     "name",
-    //     "email",
-    //     "company_name",
-    //     "dietary",
-    //     "role",
-    //     "city",
-    //   ];
-    // } else if (step === 2) {
-    //   fieldsToValidate = [
-    //     "web3_proficiency",
-    //     "tools",
-    //     "roles",
-    //     "languages",
-    //     "interests",
-    //     "hackathon_participation",
-    //     "github_portfolio",
-    //   ];
-    // } else if (step === 3) {
-    //   fieldsToValidate = [
-    //     "newsletter_subscription",
-    //     "terms_event_conditions",
-    //     "prohibited_items",
-    //   ];
-    // }
-    const isValid = await form.trigger(fieldsToValidate);
-    if (isValid) {
-      setStep((prev) => prev + 1);
+  async function replaceImage(oldImageUrl: string, newFile: File): Promise<string> {
+    const fileName = oldImageUrl.split('/').pop();
+    await fetch(`/api/upload-file/delete?fileName=${encodeURIComponent(fileName!)}`, {
+      method: 'DELETE',
+    });
+
+    return await uploadFile(newFile);
+  }
+
+  async function saveProject(data: Project) {
+    try {
+      const response = await axios.post(`/api/project/`, data);
+      console.log("Project saved successfully:", response.data);
+    } catch (err) {
+      console.error("API Error in saveProject:", err);
+      throw err; // Relanzamos el error para que se maneje en el llamador
+    }
+  }
+
+  const save = async (data: SubmissionForm) => {
+    try {
+      const uploadedFiles = {
+        logoFileUrl: data.logoFile 
+          ? typeof data.logoFile === "string" 
+            ? data.logoFile 
+            : originalImages.logoFile 
+              ? await replaceImage(originalImages.logoFile, data.logoFile) 
+              : await uploadFile(data.logoFile)
+          : null,
+
+        coverFileUrl: data.coverFile 
+          ? typeof data.coverFile === "string" 
+            ? data.coverFile 
+            : originalImages.coverFile 
+              ? await replaceImage(originalImages.coverFile, data.coverFile)
+              : await uploadFile(data.coverFile)
+          : null,
+  
+
+        screenshotsUrls: data.screenshots
+          ? await Promise.all(
+              data.screenshots.map(async (item:any, index:any) => {
+                if (typeof item === "string") {
+                  return item;
+                } else {
+                  const originalUrl = originalImages.screenshots?.[index];
+                  return originalUrl 
+                    ? await replaceImage(originalUrl, item)
+                    : await uploadFile(item);
+                }
+              })
+            )
+          : [],
+      };
+
+      setFormData((prevData) => ({ ...prevData, ...data }));
+
+      const finalData: Project = {
+        ...data,
+        logo_url: uploadedFiles.logoFileUrl ?? "",
+        cover_url: uploadedFiles.coverFileUrl ?? "",
+        screenshots: uploadedFiles.screenshotsUrls,
+        hackaton_id: hackathon_id as string,
+        user_id : session?.user.id??"",
+        id: "", 
+      };
+      console.log("session",session)
+      await saveProject(finalData); 
+    } catch (error) {
+      console.error("Error in save:", error);
+      throw error; 
     }
   };
+
   const handleSave = async () => {
     try {
-      await form.handleSubmit(save)(); // Ejecuta save con los datos del formulario
+      await form.handleSubmit(save)(); // Ejecuta la validación y luego save
+      console.log("Save & Continue Later completed successfully");
     } catch (error) {
-      console.error("Error al guardar:", error);
+      console.error("Error in handleSave:", error);
     }
   };
-
-
-  async function saveRegisterForm(data: Project) {
-    try {
-      await axios.post(`/api/project-submission/`, data);
-    } catch (err) {
-      console.error("API Error:", err);
-    }
-  }
-  const save=async(data: SubmissionForm)=>{
-    const uploadedFiles = {
-      logoFileUrl: data.logoFile ? await uploadFile(data.logoFile) : null,
-      coverFileUrl: data.coverFile ? await uploadFile(data.coverFile) : null,
-      screenshotsUrls: data.screenshots
-        ? await Promise.all(data.screenshots.map(uploadFile))
-        : [],
-    };
-
-    setFormData((prevData) => ({ ...prevData, ...data }));
-    // Combinar datos del formulario con las URLs de los archivos subidos
-    const finalData:Project = {
-      ...data,
-      logo_url: uploadedFiles.logoFileUrl??"",
-      cover_url: uploadedFiles.coverFileUrl??"",
-      screenshots: uploadedFiles.screenshotsUrls,
-      hackaton_id:hackathon_id as string,
-      id:""
-    };
-     saveRegisterForm(finalData)
-  }
 
   const onSubmit = async (data: SubmissionForm) => {
     if (step < 3) {
       setStep(step + 1);
     } else {
-      try{
-     await save(data);
-     const finalData={
-      ...data
-     }
-        // const finalData = {
-        //   ...data,
-        //   hackathon_id: hackathon_id,
-        //   utm: utm != "" ? utm : utmSaved,
-        //   interests: data.interests ?? [],
-        //   languages: data.languages ?? [],
-        //   roles: data.roles ?? [],
-        //   tools: data.tools,
-        // };
-        // await saveRegisterForm(finalData);
-        // setIsDialogOpen(true); // Abrir el diálogo después de guardar
-
-
-      }catch(error){
-console.error("Error uploading files:", error);
+      try {
+        await save(data); // Guardamos cuando se completa el formulario
+      } catch (error) {
+        console.error("Error uploading files or saving project:", error);
       }
- 
     }
   };
 
-  
-    useEffect(() => {
-      getHackathon();
-    }, [hackathon_id]);
+ function setData(project:any){
+  setOriginalImages({
+    logoFile: project.logo_url??undefined,
+    coverFile: project.cover_url??undefined,
+    screenshots: project.screenshots??[],
+  });
+    form.reset({
+      project_name: project.project_name,
+      short_description: project.short_description,
+      full_description: project.full_description,
+      tech_stack: project.tech_stack,
+      github_repository: project.github_repository,
+      explanation: project.explanation,
+      demo_link: project.demo_link,
+      is_preexisting_idea: project.is_preexisting_idea,
+      demoVideoLink: project.demo_video_link,
+      tracks: project.tracks,
+      logoFile: project.logo_url ?? undefined,
+      coverFile: project.cover_url ?? undefined,
+      screenshots: project.screenshots ?? [],
+    });
 
+  }
+  useEffect(() => {
+    getHackathon();
+  }, [hackathon_id]);
+  useEffect(() => {
+    if (hackathon_id && session?.user?.id) {
+      getProject();
+    }
+  }, [hackathon_id, session?.user?.id]);
   return (
-    <div className="p-6  rounded-lg">
+    <div className="p-6 rounded-lg">
       {/* Encabezado */}
       <div className="mb-4">
         <h2 className="text-xl font-semibold">Submit Your Project</h2>
@@ -232,7 +281,6 @@ console.error("Error uploading files:", error);
 
       {/* Contenedor de progreso y deadline */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        {/* Barra de progreso */}
         <div className="flex items-center gap-4 w-full md:w-auto">
           <Progress
             value={progress}
@@ -243,63 +291,66 @@ console.error("Error uploading files:", error);
           </span>
         </div>
 
-        {/* Deadline */}
         <Badge
           variant="outline"
-          className="flex items-center gap-2  border-red-500 px-3 py-1"
+          className="flex items-center gap-2 border-red-500 px-3 py-1"
         >
           <Hourglass size={16} color="#F5F5F9" />
           <span>Deadline: {timeLeft} remaining</span>
         </Badge>
       </div>
 
-      {/* Contenedor principal con dos columnas: aside y contenido (formulario y botones) */}
+      {/* Contenedor principal */}
       <div className="flex mt-6 gap-4 space-x-12">
-        {/* Sidebar en la columna izquierda */}
-        <aside className="w-16  flex-col items-center dark:bg-zinc-900 border border-zinc-800 px-2 py-2 gap-2 hidden sm:flex">
+        <aside className="w-16 flex-col items-center dark:bg-zinc-900 border border-zinc-800 px-2 py-2 gap-2 hidden sm:flex">
           <div className="p-2 space-y-4">
-            <Tag className="cursor-pointer" color={step === 1 ? "#F5F5F9" : "#4F4F55"}   onClick={() => handleStepChange(1)}  />
-            <Users className="cursor-pointer" color={step === 1 ? "#F5F5F9" : "#4F4F55"}   onClick={() => handleStepChange(1)}/>
-            <Pickaxe className="cursor-pointer"color={step === 2 ? "#F5F5F9" : "#4F4F55"}   onClick={() => handleStepChange(2)}/>
-            <Image className="cursor-pointer" color={step === 3 ? "#F5F5F9" : "#4F4F55"}  onClick={() => handleStepChange(3)} />
+            <Tag
+              className="cursor-pointer"
+              color={step === 1 ? "#F5F5F9" : "#4F4F55"}
+              onClick={() => handleStepChange(1)}
+            />
+            <Users
+              className="cursor-pointer"
+              color={step === 1 ? "#F5F5F9" : "#4F4F55"}
+              onClick={() => handleStepChange(1)}
+            />
+            <Pickaxe
+              className="cursor-pointer"
+              color={step === 2 ? "#F5F5F9" : "#4F4F55"}
+              onClick={() => handleStepChange(2)}
+            />
+            <Image
+              className="cursor-pointer"
+              color={step === 3 ? "#F5F5F9" : "#4F4F55"}
+              onClick={() => handleStepChange(3)}
+            />
           </div>
         </aside>
 
-        {/* Contenedor derecho que agrupa el formulario y la sección de botones/paginador */}
         <div className="flex-1 flex flex-col gap-6">
-          {/* Formulario */}
           <section>
             <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
-              >{step===1 &&<SubmitStep1 />}
-                {step===2 &&<SubmitStep2 />}
-                {step===3 &&<SubmitStep3 />}
-                <Separator/>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {step === 1 && <SubmitStep1 />}
+                {step === 2 && <SubmitStep2 />}
+                {step === 3 && <SubmitStep3 />}
+                <Separator />
                 <div className="flex flex-col md:flex-row items-center justify-between mt-8">
-                  {/* Contenedor de botones (alineados a la izquierda en desktop) */}
                   <div className="flex flex-wrap gap-4 mb-4 md:mb-0">
-                    <Button
-                      type="submit"
-                      variant="red"
-                      className="px-4 py-2"
-                    >
+                    <Button type="submit" variant="red" className="px-4 py-2">
                       Continue
                     </Button>
                     <Button
-                     type="button"
-                     onClick={handleSave}
+                      type="button"
+                      onClick={handleSave}
                       variant="secondary"
                       className="dark:bg-white dark:text-black px-4 py-2"
                     >
-                      Save &amp; Continue Later
+                      Save & Continue Later
                     </Button>
                   </div>
 
-                  {/* Contenedor derecho: paginador y paso */}
                   <div className="flex flex-col md:flex-row items-center">
-                    {/* Paginador */}
                     <div className="flex items-center space-x-1">
                       {step > 1 && (
                         <PaginationPrevious
@@ -331,7 +382,6 @@ console.error("Error uploading files:", error);
                         />
                       )}
                     </div>
-                    {/* Indicador de paso: en md se ubica a la derecha, en móviles en nueva fila */}
                     <div className="mt-2 md:mt-0 md:ml-4">
                       <span className="font-Aeonik text-xs sm:text-sm">
                         Step {step} of 3
@@ -342,8 +392,6 @@ console.error("Error uploading files:", error);
               </form>
             </Form>
           </section>
-
-          {/* Paginación y botones, debajo del formulario */}
         </div>
       </div>
     </div>

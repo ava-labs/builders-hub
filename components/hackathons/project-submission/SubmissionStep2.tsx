@@ -13,10 +13,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
+import { SubmissionForm } from "./General";
 
 
 export default function SubmitStep2() {
-  const form = useFormContext(); // Asume que el padre provee <FormProvider>
+  const form =  useFormContext<SubmissionForm>();
   return (
     <div className="space-y-8">
       {/* Sección: Technical Details */}
@@ -58,7 +59,7 @@ export default function SubmitStep2() {
         {/* Campo: Repo Link */}
         <FormField
           control={form.control}
-          name="repoLink"
+          name="github_repository"
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
@@ -83,7 +84,7 @@ export default function SubmitStep2() {
         {/* Campo: Demo Link */}
         <FormField
           control={form.control}
-          name="demoLink"
+          name="demo_link"
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck label="Demo Link" checked={!!field.value} />
@@ -116,7 +117,7 @@ export default function SubmitStep2() {
         {/* Toggle: isPreExisting */}
         <FormField
           control={form.control}
-          name="isPreExisting"
+          name="is_preexisting_idea"
           render={({ field }) => (
             <FormItem className="flex items-center justify-between p-4 border rounded">
               <div className="space-y-1">
@@ -152,7 +153,7 @@ export default function SubmitStep2() {
         {/* Campo: Explanation of what's built during hackathon */}
         <FormField
           control={form.control}
-          name="hackathonExplanation"
+          name="explanation"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Explain what was built during the hackathon</FormLabel>
