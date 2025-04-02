@@ -47,7 +47,9 @@ export default function ShowCaseCard({
   const [searchValue, setSearchValue] = useState("");
   const [filters, setFilters] = useState<ProjectFilters>(initialFilters);
   const [currentPage, setCurrentPage] = useState(initialFilters.page ?? 1);
-  const [recordsByPage, setRecordsByPage] = useState(12);
+  const [recordsByPage, setRecordsByPage] = useState(
+    initialFilters.recordsByPage ?? 12
+  );
   const [totalPages, setTotalPages] = useState<number>(
     Math.ceil(totalProjects / recordsByPage) || 1
   );
@@ -104,7 +106,7 @@ export default function ShowCaseCard({
         track, technology, and winners
       </p>
       <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800 h-[2px]" />
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-center sm:justify-between gap-4">
         <Tabs
           defaultValue={
             filters.winningProjecs ? "winingProjects" : "allProjects"
@@ -115,7 +117,9 @@ export default function ShowCaseCard({
               onClick={() => handleFilterChange("winningProjecs", "false")}
               value="allProjects"
               className={`${
-                filters.winningProjecs ? "!bg-transparent" : "bg-zinc-50 dark:!bg-zinc-950"
+                filters.winningProjecs
+                  ? "!bg-transparent"
+                  : "bg-zinc-50 dark:!bg-zinc-950"
               } border-none`}
             >
               All Projects
@@ -124,14 +128,16 @@ export default function ShowCaseCard({
               onClick={() => handleFilterChange("winningProjecs", "true")}
               value="winingProjects"
               className={`${
-                filters.winningProjecs ? "bg-zinc-50 dark:!bg-zinc-950" : "!bg-transparent"
+                filters.winningProjecs
+                  ? "bg-zinc-50 dark:!bg-zinc-950"
+                  : "!bg-transparent"
               } border-none`}
             >
               Winning Projects
             </TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="relative w-[271px]">
+        <div className="relative w-full sm:w-[237px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-[40px] w-5 text-zinc-400 stroke-zinc-700" />
           <Input
             type="text"
@@ -145,14 +151,14 @@ export default function ShowCaseCard({
             }}
             onKeyDown={handleKeyDown}
             placeholder="Search by name, event, location..."
-            className="w-full min-h-[36px] px-3 pl-10 bg-transparent border border-zinc-300 dark:border-zinc-800 rounded-md dark:text-zinc-50 text-zinc-900 placeholder-zinc-500"
+            className="w-full min-h-[36px] text-sm px-3 pl-10 bg-transparent border border-zinc-300 dark:border-zinc-800 rounded-md dark:text-zinc-50 text-zinc-900 placeholder-zinc-500"
           />
         </div>
         <Select
           onValueChange={(value: string) => handleFilterChange("event", value)}
           value={filters.event}
         >
-          <SelectTrigger className="w-[237px] border border-zinc-300 dark:border-zinc-800">
+          <SelectTrigger className="w-full sm:w-[237px] border border-zinc-300 dark:border-zinc-800">
             <SelectValue placeholder="Select event" />
           </SelectTrigger>
           <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
@@ -168,7 +174,7 @@ export default function ShowCaseCard({
           onValueChange={(value: string) => handleFilterChange("track", value)}
           value={filters.track}
         >
-          <SelectTrigger className="w-[237px] border border-zinc-300 dark:border-zinc-800">
+          <SelectTrigger className="w-full sm:w-[237px] border border-zinc-300 dark:border-zinc-800">
             <SelectValue placeholder="Select track" />
           </SelectTrigger>
           <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
@@ -205,7 +211,7 @@ export default function ShowCaseCard({
         </div>
         <div className="w-full flex justify-end mt-8">
           <Pagination className="flex justify-end gap-2">
-            <PaginationContent>
+            <PaginationContent className="flex-wrap">
               {currentPage > 1 && (
                 <PaginationItem
                   onClick={() =>
@@ -225,7 +231,7 @@ export default function ShowCaseCard({
                   (currentPage > 3
                     ? totalPages - currentPage > 3
                       ? 3
-                      : 7 - (totalPages - currentPage + 1)
+                      : (totalPages - 1) - (totalPages - currentPage)
                     : currentPage - 1)
               ).map((page) => (
                 <PaginationItem
