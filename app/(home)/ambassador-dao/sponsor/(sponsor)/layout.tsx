@@ -21,7 +21,6 @@ const AmbasssadorDaoSponsorsLayout = ({
   const [openCreateListingModal, setOpenCreateListingModal] = useState(false);
   useEffect(() => {
     if (!isLoading && !user) {
-      toast.error("Error Authenticating");
       router.push("/ambassador-dao");
     } else if (user && user.role !== "SPONSOR") {
       toast.error("You dont have permission to access this page.");
@@ -102,7 +101,7 @@ interface SidebarItemProps {
 
 function SidebarItem({ href, icon, label }: SidebarItemProps) {
   const pathname = usePathname();
-  const isActive = pathname === href;
+  const isActive = pathname === href || pathname.includes(href);
 
   return (
     <Link

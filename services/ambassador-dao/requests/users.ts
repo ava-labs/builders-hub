@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+
 import { API_DEV } from "../data/constants";
-import { IJobApplicationBody } from "../interfaces/opportunity";
 import toast from "react-hot-toast";
 import { errorMsg } from "@/utils/error-mapping";
 import { IClaimXP } from "../interfaces/user";
+import axiosInstance from "./axios";
 
 export const useFetchPublicUserDetails = (
   username: string | undefined | null
@@ -27,7 +28,7 @@ export const useFetchPastOpportunities = (
 ) => {
   return useQuery({
     queryFn: async () => {
-      const res = await axios.get(
+      const res = await axiosInstance.get(
         `${API_DEV}/users/past-opportunities/${username}?type=${type}`
       );
       return res.data.data;
@@ -42,7 +43,7 @@ export const useFetchPastOpportunities = (
 export const useFetchUserPendingRewards = () => {
   return useQuery({
     queryFn: async () => {
-      const res = await axios.get(`${API_DEV}/users/pending-rewards`);
+      const res = await axiosInstance.get(`${API_DEV}/users/pending-rewards`);
       return res.data as any;
     },
     queryKey: ["pendingRewards"],
@@ -61,10 +62,9 @@ export const useFetchUserProjects = (params: {
 }) => {
   return useQuery({
     queryFn: async () => {
-      const res = await axios.get(
-        `${API_DEV}/users/projects`,
-        { params }
-      );
+      const res = await axiosInstance.get(`${API_DEV}/users/projects`, {
+        params,
+      });
       return res.data;
     },
     queryKey: ["userProjects"],
@@ -79,7 +79,7 @@ export const useClaimXP = () => {
   return useMutation({
     mutationKey: ["claimXP"],
     mutationFn: async (args: IClaimXP) => {
-      const res = await axios.post(`${API_DEV}/users/xp-claim`, args);
+      const res = await axiosInstance.post(`${API_DEV}/users/xp-claim`, args);
       return res.data as any;
     },
     onSuccess: (data) => {
@@ -91,13 +91,15 @@ export const useClaimXP = () => {
   });
 };
 
-
 export const useUpdateWalletAddress = () => {
   // const queryclient = useQueryClient();
   return useMutation({
     mutationKey: ["updateWallet"],
-    mutationFn: async (args: {wallet_address: string}) => {
-      const res = await axios.patch(`${API_DEV}/users/update-wallet-address`, args);
+    mutationFn: async (args: { wallet_address: string }) => {
+      const res = await axiosInstance.patch(
+        `${API_DEV}/users/update-wallet-address`,
+        args
+      );
       return res.data;
     },
     onSuccess: (data) => {

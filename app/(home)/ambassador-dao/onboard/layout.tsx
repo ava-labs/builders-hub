@@ -15,7 +15,6 @@ const AmbasssadorDaoOnboardLayout = ({
 
   useEffect(() => {
     if (!isLoading && !user) {
-      toast.error("Error Authenticating");
       router.push("/ambassador-dao");
     }
   }, [user, isLoading, router]);

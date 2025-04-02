@@ -32,7 +32,7 @@ export const AuthButton = () => {
                     alt='profile_image'
                     width={30}
                     height={30}
-                    className='rounded-full cursor-pointer'
+                    className='rounded-full cursor-pointer w-8 h-8'
                   />
                 </PopoverTrigger>
                 <PopoverContent className='w-auto p-0' align='start'>

@@ -1,4 +1,6 @@
+import axiosInstance from "./axios";
 import axios from "axios";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -12,12 +14,11 @@ import { errorMsg } from "@/utils/error-mapping";
 import { API_DEV } from "../data/constants";
 import { IVerifyPasscodeBody } from "../interfaces/auth";
 axios.defaults.withCredentials = true;
-
 export const useRequestPasscodeMutation = () => {
   return useMutation({
     mutationKey: ["requestPasscode"],
     mutationFn: async (email: string) => {
-      const res = await axios.post(`${API_DEV}/auth/request-passcode`, {
+      const res = await axiosInstance.post(`${API_DEV}/auth/request-passcode`, {
         email,
       });
       return res.data.data as IUserDetails;
@@ -30,14 +31,18 @@ export const useRequestPasscodeMutation = () => {
 };
 
 export const useVerifyPasscodeMutation = (
-  stopRedirection: boolean | undefined
+  stopRedirection: boolean | undefined,
+  onClose: () => void
 ) => {
   const queryclient = useQueryClient();
   const router = useRouter();
   return useMutation({
     mutationKey: ["verifyPasscode"],
     mutationFn: async (args: IVerifyPasscodeBody) => {
-      const res = await axios.post(`${API_DEV}/auth/verify-passcode`, args);
+      const res = await axiosInstance.post(
+        `${API_DEV}/auth/verify-passcode`,
+        args
+      );
       return res.data.data as IVerifiedDetails;
     },
     onSuccess: (data) => {
@@ -48,13 +53,14 @@ export const useVerifyPasscodeMutation = (
         router.push("/ambassador-dao/onboard");
       } else {
         if (stopRedirection) {
-          // do nothing
+          onClose();
         } else {
           if (data.user.role === "SPONSOR") {
             router.push("/ambassador-dao/sponsor");
           } else {
             router.push("/ambassador-dao/jobs");
           }
+          onClose();
         }
       }
     },
@@ -66,7 +72,7 @@ export const useGoogleAuthUrl = () => {
   return useQuery({
     queryKey: ["googleAuthUrl"],
     queryFn: async () => {
-      const res = await axios.get(`${API_DEV}/auth/google`);
+      const res = await axiosInstance.get(`${API_DEV}/auth/google`);
       return res.data.data.url as string;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -81,7 +87,7 @@ export const useHandleGoogleCallback = () => {
   return useMutation({
     mutationKey: ["googleAuth"],
     mutationFn: async (code: string) => {
-      const res = await axios.get(
+      const res = await axiosInstance.get(
         `${API_DEV}/auth/google/callback?code=${code}`
       );
       return res.data.data as IVerifiedDetails;
@@ -110,7 +116,7 @@ export const useLogoutMutation = () => {
     mutationKey: ["logout"],
     mutationFn: async () => {
       toast.loading("Logging you out");
-      const res = await axios.post(`${API_DEV}/auth/logout`);
+      const res = await axiosInstance.post(`${API_DEV}/auth/logout`);
       return res.data;
     },
     onSuccess: () => {
@@ -143,7 +149,7 @@ export const useFetchUserStatsDataQuery = (
 ) => {
   return useQuery({
     queryFn: async () => {
-      const res = await axios.get(`${API_DEV}/users/stats/${username}`);
+      const res = await axiosInstance.get(`${API_DEV}/users/stats/${username}`);
       return res.data.data as IUserStats;
     },
     queryKey: ["fetchUserStats"],
@@ -156,7 +162,7 @@ export const useFetchUserStatsDataQuery = (
 export const useFetchSponsorStatsDataQuery = () => {
   return useQuery({
     queryFn: async () => {
-      const res = await axios.get(`${API_DEV}/users/sponsor/stats`);
+      const res = await axiosInstance.get(`${API_DEV}/users/sponsor/stats`);
       return res.data.data as ISponsorStats;
     },
     queryKey: ["fetchSponsorStats"],
