@@ -242,6 +242,13 @@ async function main(): Promise<void> {
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/config/",
     },
     {
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/subnet-evm/master/plugin/evm/service.md",
+      outputPath: "content/docs/api-reference/subnet-evm-api.mdx",
+      title: "Subnet-EVM API",
+      description: "This page describes the API endpoints available for Subnet-EVM based blockchains.",
+      contentUrl: "https://github.com/ava-labs/subnet-evm/blob/master/plugin/evm/",
+    },
+    {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/icm-contracts/refs/heads/main/contracts/validator-manager/README.md",
       outputPath: "content/docs/avalanche-l1s/validator-manager/contract.mdx",
       title: "Validator Manager Contracts",

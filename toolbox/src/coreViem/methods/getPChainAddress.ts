@@ -15,7 +15,7 @@ export async function getPChainAddress(client: WalletClient<any, any, any, CoreW
     const pubkeys = await client.request({
         method: "avalanche_getAccountPubKey",
         params: []
-    })
+    }) as {evm: string, xp: string}
 
     if (!pubkeys.xp.startsWith("0x")) {
         pubkeys.xp = `0x${pubkeys.xp}`;
