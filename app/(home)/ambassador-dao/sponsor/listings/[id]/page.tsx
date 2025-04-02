@@ -35,7 +35,8 @@ import {
   opportunityApplicationStatusOptions,
   opportunitySubmissionStatusOptions,
 } from "@/components/ambassador-dao/constants";
-
+import { SumbissionReviewDetailsModal } from "@/components/ambassador-dao/sections/submission-review-details";
+import { MarkSubmissionAsPaidModal } from "@/components/ambassador-dao/sections/mark-as-paid";
 const AmbasssadorDaoSponsorsListingsSubmissions = () => {
   const params = useParams<{ id: string }>();
 
@@ -56,7 +57,7 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
       ) : (
         <>
           {listing && (
-            <div className='border border-[#27272A] p-2 rounded-lg md:p-4 hover:border-red-500 transition-colors cursor-pointer'>
+            <div className='border border-[#27272A] p-2 rounded-lg md:p-4 transition-colors cursor-pointer'>
               <div className='flex flex-col md:flex-row gap-3 items-start justify-between mb-4'>
                 <div className='flex md:items-center gap-3'>
                   <div>
@@ -65,7 +66,7 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                       alt='logo'
                       width={60}
                       height={60}
-                      className='shrink-0 rounded-md'
+                      className='shrink-0 rounded-full object-cover w-14 h-14'
                     />
                   </div>
                   <div>
@@ -79,16 +80,17 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                       <div className='flex items-center text-sm text-gray-400 capitalize'>
                         <BriefcaseBusiness
                           color='#9F9FA9'
-                          className='w-3 h-3 mr-1'
+                          size={14}
+                          className='mr-1'
                         />
                         {listing.type}
                       </div>
                       <div className='flex items-center text-sm text-gray-400'>
-                        <Hourglass color='#9F9FA9' className='w-3 h-3 mr-1' />
+                        <Hourglass color='#9F9FA9' size={14} className='mr-1' />
                         Due in {getTimeLeft(listing.end_date)}
                       </div>
                       <div className='flex items-center text-sm text-gray-400'>
-                        <FileText color='#9F9FA9' className='w-3 h-3 mr-1' />
+                        <FileText color='#9F9FA9' size={14} className='mr-1' />
                         {listing.type === "JOB"
                           ? listing._count.applications
                           : listing._count.submissions}{" "}
@@ -200,13 +202,13 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
       ) : (
         <>
           {!!listingApplications?.data?.length ? (
-            <>
+            <div className='space-y-4'>
               {listingApplications?.data.map((application) => (
                 <div
                   key={application.id}
                   className='bg-[#18181B] p-2 rounded-lg md:p-4 hover:border-black transition-colors'
                 >
-                  <div className='flex flex-col md:flex-row gap-3 items-center justify-between mb-4'>
+                  <div className='flex flex-col md:flex-row gap-3 md:items-center justify-between mb-4'>
                     <div className='flex md:items-center gap-3'>
                       <div>
                         <Image
@@ -216,7 +218,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                           alt='user profile'
                           width={60}
                           height={60}
-                          className='shrink-0'
+                          className='shrink-0 rounded-full'
                         />
                       </div>
                       <div>
@@ -247,17 +249,21 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                   </div>
 
                   <div className='flex justify-end gap-3'>
-                    {/* <div className='flex gap-2 items-center overflow-x-auto'>
-                      {application.skills.map((skill, index) => (
+                    <div className='flex gap-2 items-center overflow-x-auto'>
+                      {application.applicant.skills?.map((skill, index) => (
                         <div key={index}>
                           <Outline label={skill.name} />
                         </div>
                       ))}
-                    </div> */}
+                    </div>
 
-                    <CustomButton className='px-3' isFullWidth={false}>
-                      Details
-                    </CustomButton>
+                    <Link
+                      href={`/ambassador-dao/sponsor/listings/${listingId}/${application.id}`}
+                    >
+                      <CustomButton className='px-3' isFullWidth={false}>
+                        Details
+                      </CustomButton>
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -268,7 +274,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                 onPageChange={handlePageChange}
                 totalPages={listingApplications?.metadata.last_page ?? 1}
               />
-            </>
+            </div>
           ) : (
             <div className='max-w-lg mx-auto p-2 my-6'>
               <Image src={Avalance3d} objectFit='contain' alt='avalance icon' />
@@ -315,6 +321,11 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
     };
   }, [query]);
 
+  const [isOpen, setIsOpen] = useState(false);
+  const [submissionId, setSubmissionId] = useState("");
+  const [submission, setSubmission] = useState<any>(null);
+  const [markSubmissionAsPaidOpen, setMarkSubmissionAsPaidOpen] =
+    useState(false);
   return (
     <div className='border border-[#27272A] rounded-md p-3 md:p-6'>
       <div className='flex justify-between items-center mb-6'>
@@ -352,13 +363,13 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
       ) : (
         <>
           {!!listingSubmissions?.data?.length ? (
-            <>
+            <div className='space-y-4'>
               {listingSubmissions?.data.map((submission) => (
                 <div
                   key={submission.id}
                   className='bg-[#18181B] p-2 rounded-lg md:p-4 hover:border-black transition-colors'
                 >
-                  <div className='flex flex-col md:flex-row gap-3 items-center justify-between mb-4'>
+                  <div className='flex flex-col md:flex-row gap-3 md:items-center justify-between mb-4'>
                     <div className='flex md:items-center gap-3'>
                       <div>
                         <Image
@@ -368,7 +379,7 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
                           alt='user profile'
                           width={60}
                           height={60}
-                          className='shrink-0'
+                          className='shrink-0 rounded-full'
                         />
                       </div>
                       <div>
@@ -398,17 +409,38 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
                   </div>
 
                   <div className='flex justify-end gap-3'>
-                    {/* <div className='flex gap-2 items-center overflow-x-auto'>
-                      {submission.skills.map((skill, index) => (
+                    <div className='flex gap-2 items-center overflow-x-auto'>
+                      {submission.submitter.skills?.map((skill, index) => (
                         <div key={index}>
                           <Outline label={skill.name} />
                         </div>
                       ))}
-                    </div> */}
-
-                    <CustomButton className='px-3' isFullWidth={false}>
-                      Details
-                    </CustomButton>
+                    </div>
+                    {submission.status === "REWARDED" ? (
+                      <CustomButton
+                        className='px-3'
+                        isFullWidth={false}
+                        onClick={() => {
+                          setMarkSubmissionAsPaidOpen(true);
+                          setSubmission(submission);
+                        }}
+                      >
+                        Mark as Paid
+                      </CustomButton>
+                    ) : (
+                      <CustomButton
+                        className='px-3'
+                        isFullWidth={false}
+                        onClick={() => {
+                          setSubmissionId(submission.id);
+                          setIsOpen(true);
+                        }}
+                      >
+                        {submission.status === "ACCEPTED"
+                          ? "Select Winner"
+                          : "Details"}
+                      </CustomButton>
+                    )}
                   </div>
                 </div>
               ))}
@@ -417,9 +449,9 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
               <PaginationComponent
                 currentPage={currentPage}
                 onPageChange={handlePageChange}
-                totalPages={listingSubmissions?.metadata.last_page ?? 1} // Replace with actual total pages from API
+                totalPages={listingSubmissions?.metadata.last_page ?? 1}
               />
-            </>
+            </div>
           ) : (
             <div className='max-w-lg mx-auto p-2 my-6'>
               <Image src={Avalance3d} objectFit='contain' alt='avalance icon' />
@@ -432,6 +464,23 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
             </div>
           )}
         </>
+      )}
+      {submissionId && (
+        <SumbissionReviewDetailsModal
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          submissionId={submissionId}
+        />
+      )}
+
+      {submission && (
+        <MarkSubmissionAsPaidModal
+          isOpen={markSubmissionAsPaidOpen}
+          onClose={() => setMarkSubmissionAsPaidOpen(false)}
+          submissionId={submission.id}
+          applicantName={submission.submitter.first_name}
+          opportunityId={listingId}
+        />
       )}
     </div>
   );

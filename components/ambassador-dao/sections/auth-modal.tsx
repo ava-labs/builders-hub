@@ -244,7 +244,7 @@ const VerificationStep = ({
     formState: { errors },
   } = useForm<{ code: string }>();
   const { mutateAsync: verifyPasscodeMutation, isPending } =
-    useVerifyPasscodeMutation(stopRedirection);
+    useVerifyPasscodeMutation(stopRedirection, onClose);
   const requestPasscodeMutation = useRequestPasscodeMutation();
   const [resendDisabled, setResendDisabled] = useState(true);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -295,7 +295,6 @@ const VerificationStep = ({
         email,
         passcode: code,
       });
-      onClose();
     } catch (error) {
       // Error handling is done in the mutation
     }
@@ -313,7 +312,9 @@ const VerificationStep = ({
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className='w-full'>
-        <VerificationInput onChange={(code) => setCode(code)} />
+        <VerificationInput
+          onChange={(code) => setCode(code.toLocaleUpperCase())}
+        />
 
         <CustomButton
           type='submit'

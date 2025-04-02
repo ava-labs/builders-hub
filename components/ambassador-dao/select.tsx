@@ -11,11 +11,11 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
   ...props
 }) => {
   return (
-    <div className="my-2">
+    <div className='my-2'>
       {label && (
-        <label htmlFor={props.id} className="block text-sm mb-2">
+        <label htmlFor={props.id} className='block text-sm mb-2'>
           {label}
-          {props.required && <span className="text-[#FB2C36]">*</span>}
+          {props.required && <span className='text-[#FB2C36]'>*</span>}
         </label>
       )}
       <select

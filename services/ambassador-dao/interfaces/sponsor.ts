@@ -130,6 +130,12 @@ export interface IOppotunityApplicationsResponse {
       email: string;
       role: string;
       status: "VERIFIED" | "PENDING" | "REJECTED" | "SUSPENDED";
+      skills:
+        | {
+            id: string;
+            name: string;
+          }[]
+        | undefined;
     };
     files: {
       id: string;
@@ -165,6 +171,12 @@ export interface IOppotunitySubmissionsResponse {
       profile_image: string | null;
       status: "VERIFIED" | "PENDING" | "REJECTED" | "SUSPENDED";
       role: string | null;
+      skills:
+        | {
+            id: string;
+            name: string;
+          }[]
+        | undefined;
     };
     files: string[];
   }[];
@@ -175,5 +187,92 @@ export interface IOppotunitySubmissionsResponse {
     per_page: number;
     prev_page: number;
     total: number;
+  };
+}
+
+export interface ISingleOppotunityApplicationResponse {
+  id: string;
+  cover_letter: string;
+  status: OpportunityApplicationStatus;
+  created_at: Date;
+  updated_at: Date;
+  extra_data: string | null;
+  custom_answers: {
+    question: string;
+    answer: string;
+  }[];
+  telegram_username: string;
+  feedback: string | null;
+  user_id: string;
+  opportunity_id: string;
+  opportunity: {
+    id: string;
+    user_id: string;
+    type: "JOB" | "BOUNTY";
+  };
+  files: {
+    id: string;
+    filename: string;
+    original_name: string;
+  }[];
+  applicant: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    username: string;
+    profile_image: string | null;
+    country: string;
+    email: string;
+    role: string;
+    status: "VERIFIED" | "PENDING" | "REJECTED" | "SUSPENDED";
+    skills: {
+      id: string;
+      name: string;
+    }[];
+    socials: string[];
+  };
+}
+
+export interface ISingleOppotunitySubmissionResponse {
+  id: string;
+  cover_letter: string;
+  content: string;
+  status: OpportunitySubmissionStatus;
+  created_at: Date;
+  updated_at: Date;
+  extra_data: string | null;
+  custom_answers: {
+    question: string;
+    answer: string;
+  }[];
+  telegram_username: string;
+  feedback: string | null;
+  user_id: string;
+  opportunity_id: string;
+  opportunity: {
+    id: string;
+    user_id: string;
+    type: "JOB" | "BOUNTY";
+  };
+  files: {
+    id: string;
+    filename: string;
+    original_name: string;
+  }[];
+  submitter: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    username: string;
+    profile_image: string | null;
+    country: string;
+    email: string;
+    role: string;
+    status: "VERIFIED" | "PENDING" | "REJECTED" | "SUSPENDED";
+    skills: {
+      id: string;
+      name: string;
+    }[];
+    socials: string[];
   };
 }

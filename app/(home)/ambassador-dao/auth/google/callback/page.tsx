@@ -11,7 +11,6 @@ const GoogleCallbackRedirectPage = () => {
 
   useEffect(() => {
     if (!isLoading && !data) {
-      toast.error("Error Authenticating");
       router.push("/ambassador-dao");
     } else if (!isLoading && data) {
       if (!data.role || !data.first_name || !data.username) {
