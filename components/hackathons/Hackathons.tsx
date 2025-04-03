@@ -44,14 +44,16 @@ type Props = {
   initialPastHackathons: HackathonHeader[];
   initialUpcomingHackathons: HackathonHeader[];
   initialFilters: HackathonsFilters;
-  totalHackathons: number;
+  totalPastHackathons: number;
+  totalUpcomingHackathons: number;
 };
 
 export default function Hackathons({
   initialPastHackathons,
   initialUpcomingHackathons,
   initialFilters,
-  totalHackathons,
+  totalPastHackathons,
+  totalUpcomingHackathons,
 }: Props) {
   const router = useRouter();
   const pageSize = 4;
@@ -66,7 +68,7 @@ export default function Hackathons({
   const [filters, setFilters] = useState<HackathonsFilters>(initialFilters);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [totalPages, setTotalPages] = useState<number>(
-    Math.ceil(totalHackathons / pageSize)
+    Math.ceil(totalPastHackathons / pageSize)
   );
   const [searchValue, setSearchValue] = useState("");
 
@@ -80,7 +82,7 @@ export default function Hackathons({
     async function fetchHackathons() {
       try {
         const queryString = buildQueryString(filters, searchQuery, pageSize);
-        const { data } = await axios.get(`/api/hackathons?${queryString}`, {
+        const { data } = await axios.get(`/api/hackathons?${queryString}&status=ENDED`, {
           signal,
         });
 
@@ -143,6 +145,33 @@ export default function Hackathons({
 
   return (
     <section className="px-8 py-6">
+      {/* Hackathons List */}
+      <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
+        {upcomingHackathons.length ?? ""}{" "}
+        {upcomingHackathons.length > 1
+          ? "Upcoming hackathons"
+          : upcomingHackathons.length == 0
+          ? "No upcoming hackathons found"
+          : "Upcoming hackathon"}{" "}
+        found
+      </h3>
+      <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
+      <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
+        {upcomingHackathons.map((hackathon: any) => (
+          <HackathonCard key={hackathon.id} hackathon={hackathon} />
+        ))}
+      </div>
+      <h3 className="font-medium text-lg py-5 text-zinc-900 dark:text-zinc-50">
+        <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
+          {pastHackathons.length ?? ""}{" "}
+          {pastHackathons.length > 1
+            ? "Past hackathons"
+            : pastHackathons.length == 0
+            ? "No Past hackathons found"
+            : "Past hackathon"}{" "}
+          found
+        </h3>
+      </h3>
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
         <div className="flex items-stretch gap-4 max-w-sm w-full h-9">
           {/* Input */}
@@ -164,65 +193,24 @@ export default function Hackathons({
             <Search size={24} color="white" />
           </button>
         </div>
-        {/* <Button
-          asChild
-          variant='secondary'
-          className='bg-red-500 hover:bg-red-600 py-2 px-4'
+        <Select
+          onValueChange={(value: string) =>
+            handleFilterChange("location", value)
+          }
+          value={filters.location}
         >
-          <Link href='/hackathons/new'>Create New Hackathon</Link>
-        </Button> */}
+          <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
+            <SelectValue placeholder="Filter by Location" />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
+            <SelectItem value="all">All Locations</SelectItem>
+            <SelectItem value="Online">Online</SelectItem>
+            <SelectItem value="InPerson">In Person</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
-        <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
-          {pastHackathons.length ?? ""}{" "}
-          {pastHackathons.length > 1
-            ? "Hackathons"
-            : pastHackathons.length == 0
-            ? "No hackathons found"
-            : "Hackathon"}{" "}
-          found
-        </h3>
-        <div className="flex gap-4 flex-col md:flex-row justify-end">
-          <Select
-            onValueChange={(value: string) =>
-              handleFilterChange("location", value)
-            }
-            value={filters.location}
-          >
-            <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
-              <SelectValue placeholder="Filter by Location" />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-              <SelectItem value="all">All Locations</SelectItem>
-              <SelectItem value="Online">Online</SelectItem>
-              <SelectItem value="InPerson">In Person</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* <Select
-            onValueChange={(value: string) =>
-              handleFilterChange("status", value)
-            }
-            value={filters.status as string}
-          >
-            <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
-              <SelectValue placeholder="Filter by Status" />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="UPCOMING">Upcoming</SelectItem>
-              <SelectItem value="ONGOING">Ongoing</SelectItem>
-              <SelectItem value="ENDED">Ended</SelectItem>
-            </SelectContent>
-          </Select> */}
-        </div>
-      </div>
-      <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-      {/* Hackathons List */}
       <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
         {pastHackathons.map((hackathon: any) => (
           <HackathonCard key={hackathon.id} hackathon={hackathon} />

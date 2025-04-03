@@ -11,10 +11,9 @@ export default async function HackathonsPage({
   searchParams: Promise<{
     page?: number;
     location?: string;
-    status?: HackathonStatus | null;
   }>;
 }) {
-  const { page, location, status } = await searchParams;
+  const { page, location } = await searchParams;
   const { hackathons: pastHackathons, total: totalPastHackathons } =
     await getFilteredHackathons({
       page: page ?? 1,
@@ -28,23 +27,23 @@ export default async function HackathonsPage({
       page: page ?? 1,
       pageSize: 4,
       location: location,
-      status: status,
+      status: '!ENDED',
     });
 
   const initialFilters: HackathonsFilters = {
     page: page ?? 1,
     location: location,
-    status: status as HackathonStatus | null,
   };
 
   return (
-    <main className="container relative max-w-[1400px] py-4 lg:py-16 ">
+    <main className="container relative max-w-[1400px] pt-4 pb-16">
       <div className="border border-zinc-300 dark:border-transparent shadow-sm dark:bg-zinc-950 bg-zinc-50 rounded-md">
         <Hackathons
           initialPastHackathons={pastHackathons}
           initialUpcomingHackathons={upcomingHackathons}
           initialFilters={initialFilters}
-          totalHackathons={totalPastHackathons + totalUpcomingHackathons}
+          totalPastHackathons={totalPastHackathons}
+          totalUpcomingHackathons={totalUpcomingHackathons}
         />
       </div>
     </main>
