@@ -6,7 +6,7 @@ import Prices from "./sections/Prices";
 import Description from "./sections/Description";
 import TeamMembers from "./sections/TeamMembers";
 import Resources from "./sections/Resources";
-import { Project } from "@/types/showcase";
+import { Project, ProjectResource } from "@/types/showcase";
 
 const prices = [
   {
@@ -24,23 +24,33 @@ const prices = [
     title: "$15,000",
     description: "Total award for this project",
   },
+  {
+    icon: "",
+    title: "$15,000",
+    description: "Total award for this project",
+  },
+  {
+    icon: "",
+    title: "$15,000",
+    description: "Total award for this project",
+  },
 ];
-const resources = [
-  {
-    icon: "rss",
-    title: "Websitesdas dadas",
-    link: "linksito",
-  },
-  {
-    icon: "rss",
-    title: "Website",
-    link: "linksito",
-  },
-  {
-    icon: "rss",
-    title: "Website",
-    link: "linksito",
-  },
+const resources: ProjectResource[] = [
+  // {
+  //   icon: "rss",
+  //   title: "Websitesdas dadas",
+  //   link: "linksito",
+  // },
+  // {
+  //   icon: "rss",
+  //   title: "Website",
+  //   link: "linksito",
+  // },
+  // {
+  //   icon: "rss",
+  //   title: "Website",
+  //   link: "linksito",
+  // },
 ];
 type Props = {
   project: Project; 
@@ -90,7 +100,7 @@ export default function ProjectOverview({project}: Props) {
             <Description description={project.full_description} />
           )}
           {project.members && <TeamMembers members={project.members} projectName={project.project_name} />}
-          {resources && <Resources resources={resources} />}
+          {/* {resources && <Resources resources={resources} />} */}
         </div>
       </div>
     </div>

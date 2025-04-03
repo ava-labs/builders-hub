@@ -15,7 +15,7 @@ export function ProjectCard({ project }: Props) {
     project.hackathon?.location ?? ''
   } ${new Date(project.hackathon?.start_date ?? '').getFullYear()}`;
   return (
-    <Card className="h-[500px] w-[306px] flex flex-col rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-none">
+    <Card className="h-[500px] w-[306px] flex flex-col rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-none">
       <div className="relative p-6 flex items-center justify-between">
         <h3 className="text-3xl font-medium h-[72px] flex items-center text-zinc-900 dark:text-zinc-50">
           {project.project_name.slice(0, 20)}

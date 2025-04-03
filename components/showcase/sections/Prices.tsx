@@ -14,7 +14,7 @@ export default function Prices({ prices }: Props) {
             className="flex-1 flex flex-col items-center justify-center"
           >
             <div className="p-2 bg-zinc-900 dark:bg-zinc-50 rounded-full">
-              <DynamicIcon name="crown" size={20} className="!text-zinc-300 dark:!text-zinc-700" />
+              <DynamicIcon name={price.icon as any} size={20} className="!text-zinc-300 dark:!text-zinc-700" />
             </div>
             <div className="mt-2 sm:mt-4 flex flex-col justify-center">
               <h2 className="text-zinc-900 dark:text-zinc-50 text-2xl text-center font-bold">{price.title}</h2>

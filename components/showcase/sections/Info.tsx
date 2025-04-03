@@ -38,7 +38,7 @@ export default function Info({ project }: Props) {
         </div>
       </div>
       <p className="text-zinc-900 dark:text-zinc-50">
-        {project.short_description}
+        {project.full_description}
       </p>
       <div className="flex flex-wrap gap-2">
         {project.tracks.map((track) => (

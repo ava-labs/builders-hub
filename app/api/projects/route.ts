@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { createProject, getFilteredProjects, GetProjectOptions } from '@/server/services/projects';
 
 export async function GET(req: NextRequest) {
@@ -9,7 +8,7 @@ export async function GET(req: NextRequest) {
       page: Number(searchParams.get('page') || 1),
       pageSize: Number(searchParams.get('pageSize') || 12),
       search: searchParams.get('search') || undefined,
-      events: searchParams.get('events') || undefined,
+      event: searchParams.get('events') || undefined,
     };
     const response = await getFilteredProjects(options);
 

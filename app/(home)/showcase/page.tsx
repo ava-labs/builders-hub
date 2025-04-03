@@ -37,7 +37,7 @@ export default async function ShowCasePage({
   };
   const events = await getFilteredHackathons({});
   return (
-    <main className="container relative max-w-[1400px] py-4">
+    <main className="container relative max-w-[1400px] pt-4 pb-16">
       <ShowCaseCard
         projects={projects as unknown as Project[]}
         initialFilters={initialFilters}

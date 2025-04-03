@@ -211,7 +211,7 @@ export default function ShowCaseCard({
         </div>
         <div className="w-full flex justify-end mt-8">
           <Pagination className="flex justify-end gap-2">
-            <PaginationContent className="flex-wrap">
+            <PaginationContent className="flex-wrap cursor-pointer">
               {currentPage > 1 && (
                 <PaginationItem
                   onClick={() =>
@@ -231,7 +231,7 @@ export default function ShowCaseCard({
                   (currentPage > 3
                     ? totalPages - currentPage > 3
                       ? 3
-                      : (totalPages - 1) - (totalPages - currentPage)
+                      : totalPages - 1 - (totalPages - currentPage)
                     : currentPage - 1)
               ).map((page) => (
                 <PaginationItem
