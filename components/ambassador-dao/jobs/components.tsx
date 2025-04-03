@@ -105,7 +105,9 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
             />
             <span>{job?.proposalsCount}</span>
           </span>
-          <span className="text-gray-400 text-sm">Applications</span>
+          <span className="text-gray-400 text-sm">
+            {job?.proposalsCount > 1 ? "Applications" : "Application"}
+          </span>
         </div>
         <div className="flex flex-col justify-center">
           <span className="text-white flex items-center">
@@ -132,52 +134,48 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
       </div>
 
       {job.category === "AMBASSADOR_SPECIFIC" &&
-      userData?.role !== "AMBASSADOR" ? null : (
-        job.status === "PUBLISHED" ? (
-          <button
-            disabled={data?.has_applied || timeLeft === "Expired"}
-            className={`w-full font-medium py-3 rounded-md transition ${
-              data?.has_applied || timeLeft === "Expired"
-                ? "bg-gray-400 text-white cursor-not-allowed"
-                : "bg-red-500 hover:bg-red-600 text-white"
-            }`}
-            onClick={() => {
-              if (nullAction) return;
+      userData?.role !== "AMBASSADOR" ? null : job.status === "PUBLISHED" ? (
+        <button
+          disabled={data?.has_applied || timeLeft === "Expired"}
+          className={`w-full font-medium py-3 rounded-md transition ${
+            data?.has_applied || timeLeft === "Expired"
+              ? "bg-gray-400 text-white cursor-not-allowed"
+              : "bg-red-500 hover:bg-red-600 text-white"
+          }`}
+          onClick={() => {
+            if (nullAction) return;
 
-              if (!userData) {
-                setOpenAuthModal(true);
-                return;
-              }
+            if (!userData) {
+              setOpenAuthModal(true);
+              return;
+            }
 
-              if (
-                !userData?.role ||
-                !userData?.username ||
-                !userData?.wallet_address
-              ) {
-                setIsOnboadModalOpen(true);
-                return;
-              }
+            if (
+              !userData?.role ||
+              !userData?.username ||
+              !userData?.wallet_address
+            ) {
+              setIsOnboadModalOpen(true);
+              return;
+            }
 
-            
-              if (!data?.has_applied && timeLeft !== "Expired") {
-                setIsModalOpen(true);
-              }
-            }}
-          >
-            {isLoading ? (
-              <Loader2 color="#FFF" />
-            ) : data?.has_applied ? (
-              "Already Applied"
-            ) : timeLeft === "Expired" ? (
-              "Expired"
-            ) : (
-              "APPLY"
-            )}
-          </button>
-        ) : null
-      )}
+            if (!data?.has_applied && timeLeft !== "Expired") {
+              setIsModalOpen(true);
+            }
+          }}
+        >
+          {isLoading ? (
+            <Loader2 className="mx-auto" color="#FFF" />
+          ) : data?.has_applied ? (
+            "Already Applied"
+          ) : timeLeft === "Expired" ? (
+            "Expired"
+          ) : (
+            "APPLY"
+          )}
+        </button>
+      ) : null}
 
-    
       <AuthModal
         isOpen={openAuthModal}
         onClose={() => setOpenAuthModal(false)}
@@ -238,7 +236,10 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
             </div>
             <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
               <FileText size={16} color="#9F9FA9" />
-              <span>{job._count?.applications} Applications</span>
+              <span>
+                {job._count?.applications}{" "}
+                {job?._count?.applications > 1 ? "Applications" : "Application"}
+              </span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 mt-2">

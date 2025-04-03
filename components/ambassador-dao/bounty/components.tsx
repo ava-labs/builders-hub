@@ -49,7 +49,7 @@ interface BountySidebarProps {
   bounty: {
     id: string;
     category: string;
-    status: string
+    status: string;
     total_budget: number;
     deadline: string;
     proposalsCount: number;
@@ -101,7 +101,10 @@ export const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
             </div>
             <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
               <FileText size={16} color="#9F9FA9" />
-              <span>{bounty?._count?.submissions} Proposals</span>
+              <span>
+                {bounty?._count?.submissions}{" "}
+                {bounty?._count?.submissions > 1 ? "Proposals" : "Proposal"}
+              </span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
@@ -196,7 +199,10 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
             />
             <span>{bounty?.proposalsCount}</span>
           </span>
-          <span className="text-gray-400 text-sm">Proposals</span>
+
+          <span className="text-gray-400 text-sm">
+            {bounty?.proposalsCount > 1 ? "Proposals" : "Proposal"}
+          </span>
         </div>
         <div className="flex flex-col justify-center">
           <span className="text-white flex items-center">
@@ -223,50 +229,46 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
       </div>
 
       {bounty.category === "AMBASSADOR_SPECIFIC" &&
-      userData?.role !== "AMBASSADOR" ? null : (
-        bounty.status === "PUBLISHED" ? (
-          <button
-            disabled={data?.has_submitted || timeLeft === "Expired"}
-            className={`w-full font-medium py-3 rounded-md transition ${
-              data?.has_submitted || timeLeft === "Expired"
-                ? "bg-gray-400 text-white cursor-not-allowed"
-                : "bg-red-500 hover:bg-red-600 text-white"
-            }`}
-            onClick={() => {
-              if (nullAction) return;
-              
-              if (!userData) {
-                setOpenAuthModal(true);
-                return;
-              }
-              if (
-                !userData?.role ||
-                !userData?.username ||
-                !userData?.wallet_address
-              ) {
-                setIsOnboadModalOpen(true);
-                return;
-              }
+      userData?.role !== "AMBASSADOR" ? null : bounty.status === "PUBLISHED" ? (
+        <button
+          disabled={data?.has_submitted || timeLeft === "Expired"}
+          className={`w-full font-medium py-3 rounded-md transition ${
+            data?.has_submitted || timeLeft === "Expired"
+              ? "bg-gray-400 text-white cursor-not-allowed"
+              : "bg-red-500 hover:bg-red-600 text-white"
+          }`}
+          onClick={() => {
+            if (nullAction) return;
 
-          
+            if (!userData) {
+              setOpenAuthModal(true);
+              return;
+            }
+            if (
+              !userData?.role ||
+              !userData?.username ||
+              !userData?.wallet_address
+            ) {
+              setIsOnboadModalOpen(true);
+              return;
+            }
 
-              if (!data?.has_submitted && timeLeft !== "Expired") {
-                setIsModalOpen(true);
-              }
-            }}
-          >
-            {isLoading ? (
-              <Loader2 color="#FFF" />
-            ) : data?.has_submitted ? (
-              "Already Submitted"
-            ) : timeLeft === "Expired" ? (
-              "Expired"
-            ) : (
-              "Participate"
-            )}
-          </button>
-        ) : null
-      )}
+            if (!data?.has_submitted && timeLeft !== "Expired") {
+              setIsModalOpen(true);
+            }
+          }}
+        >
+          {isLoading ? (
+            <Loader2 className="mx-auto" color="#FFF" />
+          ) : data?.has_submitted ? (
+            "Already Submitted"
+          ) : timeLeft === "Expired" ? (
+            "Expired"
+          ) : (
+            "Participate"
+          )}
+        </button>
+      ) : null}
 
       <AuthModal
         isOpen={openAuthModal}

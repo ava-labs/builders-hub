@@ -170,6 +170,9 @@ const AmbasssadorDaoOnboardPage = () => {
           {userType === ("USER" as "TALENT") && (
             <TalentForm handleClose={handleClose} />
           )}
+          {userType === ("AMBASSADOR" as "TALENT") && (
+            <TalentForm handleClose={handleClose} />
+          )}
           {userType === "SPONSOR" && <SponsorForm handleClose={handleClose} />}
         </div>
       )}

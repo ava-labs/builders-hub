@@ -43,12 +43,12 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
   const { data: listing, isLoading } = useFetchSingleListing(params.id);
 
   return (
-    <div className='space-y-6'>
+    <div className="space-y-6">
       <Link
         href={"/ambassador-dao/sponsor/listings"}
-        className='flex items-center text-sm gap-2 p-2 cursor-pointer rounded-md w-fit bg-[#18181B] border border-[#27272A]'
+        className="flex items-center text-sm gap-2 p-2 cursor-pointer rounded-md w-fit bg-[#18181B] border border-[#27272A]"
       >
-        <ArrowLeft color='#fff' size={16} />
+        <ArrowLeft color="#fff" size={16} />
         Go Back
       </Link>
 
@@ -57,64 +57,71 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
       ) : (
         <>
           {listing && (
-            <div className='border border-[#27272A] p-2 rounded-lg md:p-4 transition-colors cursor-pointer'>
-              <div className='flex flex-col md:flex-row gap-3 items-start justify-between mb-4'>
-                <div className='flex md:items-center gap-3'>
+            <div className="border border-[#27272A] p-2 rounded-lg md:p-4 transition-colors cursor-pointer">
+              <div className="flex flex-col md:flex-row gap-3 items-start justify-between mb-4">
+                <div className="flex md:items-center gap-3">
                   <div>
                     <Image
                       src={listing.created_by.company_profile.logo}
-                      alt='logo'
+                      alt="logo"
                       width={60}
                       height={60}
-                      className='shrink-0 rounded-full object-cover w-14 h-14'
+                      className="shrink-0 rounded-full object-cover w-14 h-14"
                     />
                   </div>
                   <div>
-                    <h3 className='text-lg font-medium text-red-500'>
+                    <h3 className="text-lg font-medium text-red-500">
                       {listing?.title}
                     </h3>
-                    <p className='text-gray-400 font-light text-sm'>
+                    <p className="text-gray-400 font-light text-sm">
                       {listing.created_by.company_profile.name}
                     </p>
-                    <div className='flex items-center space-x-3 mt-2 overflow-x-auto'>
-                      <div className='flex items-center text-sm text-gray-400 capitalize'>
+                    <div className="flex items-center space-x-3 mt-2 overflow-x-auto">
+                      <div className="flex items-center text-sm text-gray-400 capitalize">
                         <BriefcaseBusiness
-                          color='#9F9FA9'
+                          color="#9F9FA9"
                           size={14}
-                          className='mr-1'
+                          className="mr-1"
                         />
                         {listing.type.toLowerCase()}
                       </div>
-                      <div className='flex items-center text-sm text-gray-400'>
-                        <Hourglass color='#9F9FA9' size={14} className='mr-1' />
+                      <div className="flex items-center text-sm text-gray-400">
+                        <Hourglass color="#9F9FA9" size={14} className="mr-1" />
                         Due in {getTimeLeft(listing.end_date)}
                       </div>
-                      <div className='flex items-center text-sm text-gray-400'>
-                        <FileText color='#9F9FA9' size={14} className='mr-1' />
+                      <div className="flex items-center text-sm text-gray-400">
+                        <FileText color="#9F9FA9" size={14} className="mr-1" />
                         {listing.type === "JOB"
-                          ? listing._count.applications
-                          : listing._count.submissions}{" "}
-                        Proposals
+                          ? `${listing._count.applications} ${
+                              listing._count.applications === 1
+                                ? "Application"
+                                : "Applications"
+                            }`
+                          : `${listing._count.submissions} ${
+                              listing._count.submissions === 1
+                                ? "Proposal"
+                                : "Proposals"
+                            }`}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className='flex items-center gap-2'>
+                <div className="flex items-center gap-2">
                   <Image
                     src={USDCICON}
-                    alt='USDC'
+                    alt="USDC"
                     width={20}
                     height={20}
-                    className='shrink-0'
+                    className="shrink-0"
                   />
-                  <span className='text-white text-sm'>
+                  <span className="text-white text-sm">
                     {listing.total_budget.toLocaleString()} USDC
                   </span>
                 </div>
               </div>
 
-              <div className='flex gap-2 items-center overflow-x-auto py-2'>
+              <div className="flex gap-2 items-center overflow-x-auto py-2">
                 {listing.skills.map((skill, index) => (
                   <div key={index}>
                     <Outline label={skill.name} />
@@ -166,19 +173,19 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
     };
   }, [query]);
   return (
-    <div className='border border-[#27272A] rounded-md p-3 md:p-6'>
-      <div className='flex justify-between items-center mb-6'>
-        <h2 className='text-xl font-medium text-[#FAFAFA]'>All Applications</h2>
-        <div className='flex space-x-2'>
+    <div className="border border-[#27272A] rounded-md p-3 md:p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-medium text-[#FAFAFA]">All Applications</h2>
+        <div className="flex space-x-2">
           <Select
-            defaultValue='ALL'
+            defaultValue="ALL"
             onValueChange={setStatus}
-            iconColor='#FAFAFA'
+            iconColor="#FAFAFA"
           >
-            <SelectTrigger className='w-36 bg-[#09090B] border-[#27272A]'>
-              <SelectValue placeholder='Everything' />
+            <SelectTrigger className="w-36 bg-[#09090B] border-[#27272A]">
+              <SelectValue placeholder="Everything" />
             </SelectTrigger>
-            <SelectContent className='bg-[#27272A] border-[#27272A]'>
+            <SelectContent className="bg-[#27272A] border-[#27272A]">
               {opportunityApplicationStatusOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -188,53 +195,53 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
           </Select>
 
           <Input
-            placeholder='Search...'
-            className='bg-[#09090B] border-[#27272A] focus:ring-[#27272A] hidden md:block'
+            placeholder="Search..."
+            className="bg-[#09090B] border-[#27272A] focus:ring-[#27272A] hidden md:block"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
       </div>
-      <hr className='border-[#27272A] my-6' />
+      <hr className="border-[#27272A] my-6" />
 
       {isLoadingApplications ? (
         <Loader />
       ) : (
         <>
           {!!listingApplications?.data?.length ? (
-            <div className='space-y-4'>
+            <div className="space-y-4">
               {listingApplications?.data.map((application) => (
                 <div
                   key={application.id}
-                  className='bg-[#18181B] p-2 rounded-lg md:p-4 hover:border-black transition-colors'
+                  className="bg-[#18181B] p-2 rounded-lg md:p-4 hover:border-black transition-colors"
                 >
-                  <div className='flex flex-col md:flex-row gap-3 md:items-center justify-between mb-4'>
-                    <div className='flex md:items-center gap-3'>
+                  <div className="flex flex-col md:flex-row gap-3 md:items-center justify-between mb-4">
+                    <div className="flex md:items-center gap-3">
                       <div>
                         <Image
                           src={
                             application.applicant.profile_image ?? DefaultAvatar
                           }
-                          alt='user profile'
+                          alt="user profile"
                           width={60}
                           height={60}
-                          className='shrink-0 rounded-full'
+                          className="shrink-0 rounded-full"
                         />
                       </div>
                       <div>
-                        <h3 className='text-lg font-medium text-white'>
+                        <h3 className="text-lg font-medium text-white">
                           {application.applicant.first_name}{" "}
                           {application.applicant.last_name}
                         </h3>
-                        <p className='text-gray-400 font-light text-sm'>
+                        <p className="text-gray-400 font-light text-sm">
                           {" "}
                           {application.applicant.job_title ?? "--"}
                         </p>
-                        <div className='flex items-center space-x-3 mt-2 overflow-x-auto'>
-                          <div className='flex items-center text-sm text-gray-400'>
+                        <div className="flex items-center space-x-3 mt-2 overflow-x-auto">
+                          <div className="flex items-center text-sm text-gray-400">
                             <Hourglass
-                              color='#9F9FA9'
-                              className='w-3 h-3 mr-1'
+                              color="#9F9FA9"
+                              className="w-3 h-3 mr-1"
                             />
                             Submitted:{" "}
                             {new Date(
@@ -248,8 +255,8 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                     <StatusBadge status={application.status ?? "N/A"} />
                   </div>
 
-                  <div className='flex justify-between gap-3'>
-                    <div className='flex gap-2 items-center overflow-x-auto'>
+                  <div className="flex justify-between gap-3">
+                    <div className="flex gap-2 items-center overflow-x-auto">
                       {application.applicant.skills?.map((skill, index) => (
                         <div key={index}>
                           <Outline label={skill.name} />
@@ -260,7 +267,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                     <Link
                       href={`/ambassador-dao/sponsor/listings/${listingId}/${application.id}`}
                     >
-                      <CustomButton className='px-3' isFullWidth={false}>
+                      <CustomButton className="px-3" isFullWidth={false}>
                         Details
                       </CustomButton>
                     </Link>
@@ -276,11 +283,11 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
               />
             </div>
           ) : (
-            <div className='max-w-lg mx-auto p-2 my-6'>
-              <Image src={Avalance3d} objectFit='contain' alt='avalance icon' />
+            <div className="max-w-lg mx-auto p-2 my-6">
+              <Image src={Avalance3d} objectFit="contain" alt="avalance icon" />
 
-              <div className='my-2'>
-                <h2 className='text-white text-2xl text-center font-medium'>
+              <div className="my-2">
+                <h2 className="text-white text-2xl text-center font-medium">
                   No applications yet
                 </h2>
               </div>
@@ -327,19 +334,19 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
   const [markSubmissionAsPaidOpen, setMarkSubmissionAsPaidOpen] =
     useState(false);
   return (
-    <div className='border border-[#27272A] rounded-md p-3 md:p-6'>
-      <div className='flex justify-between items-center mb-6'>
-        <h2 className='text-xl font-medium text-[#FAFAFA]'>All Submissions</h2>
-        <div className='flex space-x-2'>
+    <div className="border border-[#27272A] rounded-md p-3 md:p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-medium text-[#FAFAFA]">All Submissions</h2>
+        <div className="flex space-x-2">
           <Select
-            defaultValue='ALL'
+            defaultValue="ALL"
             onValueChange={setStatus}
-            iconColor='#FAFAFA'
+            iconColor="#FAFAFA"
           >
-            <SelectTrigger className='w-36 bg-[#09090B] border-[#27272A]'>
-              <SelectValue placeholder='Everything' />
+            <SelectTrigger className="w-36 bg-[#09090B] border-[#27272A]">
+              <SelectValue placeholder="Everything" />
             </SelectTrigger>
-            <SelectContent className='bg-[#27272A] border-[#27272A]'>
+            <SelectContent className="bg-[#27272A] border-[#27272A]">
               {opportunitySubmissionStatusOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -349,52 +356,52 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
           </Select>
 
           <Input
-            placeholder='Search...'
-            className='bg-[#09090B] border-[#27272A] focus:ring-[#27272A] hidden md:block'
+            placeholder="Search..."
+            className="bg-[#09090B] border-[#27272A] focus:ring-[#27272A] hidden md:block"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
       </div>
-      <hr className='border-[#27272A] my-6' />
+      <hr className="border-[#27272A] my-6" />
 
       {isLoadingSubmissions ? (
         <Loader />
       ) : (
         <>
           {!!listingSubmissions?.data?.length ? (
-            <div className='space-y-4'>
+            <div className="space-y-4">
               {listingSubmissions?.data.map((submission) => (
                 <div
                   key={submission.id}
-                  className='bg-[#18181B] p-2 rounded-lg md:p-4 hover:border-black transition-colors'
+                  className="bg-[#18181B] p-2 rounded-lg md:p-4 hover:border-black transition-colors"
                 >
-                  <div className='flex flex-col md:flex-row gap-3 md:items-center justify-between mb-4'>
-                    <div className='flex md:items-center gap-3'>
+                  <div className="flex flex-col md:flex-row gap-3 md:items-center justify-between mb-4">
+                    <div className="flex md:items-center gap-3">
                       <div>
                         <Image
                           src={
                             submission.submitter.profile_image ?? DefaultAvatar
                           }
-                          alt='user profile'
+                          alt="user profile"
                           width={60}
                           height={60}
-                          className='shrink-0 rounded-full'
+                          className="shrink-0 rounded-full"
                         />
                       </div>
                       <div>
-                        <h3 className='text-lg font-medium text-white'>
+                        <h3 className="text-lg font-medium text-white">
                           {submission.submitter.first_name}{" "}
                           {submission.submitter.last_name}
                         </h3>
-                        <p className='text-gray-400 font-light text-sm'>
+                        <p className="text-gray-400 font-light text-sm">
                           {submission.submitter.job_title ?? "--"}
                         </p>
-                        <div className='flex items-center space-x-3 mt-2 overflow-x-auto'>
-                          <div className='flex items-center text-sm text-gray-400'>
+                        <div className="flex items-center space-x-3 mt-2 overflow-x-auto">
+                          <div className="flex items-center text-sm text-gray-400">
                             <Hourglass
-                              color='#9F9FA9'
-                              className='w-3 h-3 mr-1'
+                              color="#9F9FA9"
+                              className="w-3 h-3 mr-1"
                             />
                             Submitted:{" "}
                             {new Date(
@@ -408,8 +415,8 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
                     <StatusBadge status={submission.status ?? "N/A"} />
                   </div>
 
-                  <div className='flex justify-between gap-3'>
-                    <div className='flex gap-2 items-center overflow-x-auto'>
+                  <div className="flex justify-between gap-3">
+                    <div className="flex gap-2 items-center overflow-x-auto">
                       {submission.submitter.skills?.map((skill, index) => (
                         <div key={index}>
                           <Outline label={skill.name} />
@@ -418,7 +425,7 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
                     </div>
                     {submission.status === "ACCEPTED" ? (
                       <CustomButton
-                        className='px-3'
+                        className="px-3"
                         isFullWidth={false}
                         onClick={() => {
                           setMarkSubmissionAsPaidOpen(true);
@@ -429,7 +436,7 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
                       </CustomButton>
                     ) : (
                       <CustomButton
-                        className='px-3'
+                        className="px-3"
                         isFullWidth={false}
                         onClick={() => {
                           setSubmissionId(submission.id);
@@ -451,11 +458,11 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
               />
             </div>
           ) : (
-            <div className='max-w-lg mx-auto p-2 my-6'>
-              <Image src={Avalance3d} objectFit='contain' alt='avalance icon' />
+            <div className="max-w-lg mx-auto p-2 my-6">
+              <Image src={Avalance3d} objectFit="contain" alt="avalance icon" />
 
-              <div className='my-2'>
-                <h2 className='text-white text-2xl text-center font-medium'>
+              <div className="my-2">
+                <h2 className="text-white text-2xl text-center font-medium">
                   No submissions yet
                 </h2>
               </div>
