@@ -76,7 +76,7 @@ axiosInstance.interceptors.response.use(
       processQueue(refreshError);
 
       // If refresh token fails, redirect to home page
-      //   toast.error("Session expired. Please login again.");
+      toast.error("Please login to perform this action.");
       window.location.href = "/";
       return Promise.reject(refreshError);
     } finally {
