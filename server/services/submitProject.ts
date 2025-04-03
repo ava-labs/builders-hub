@@ -44,7 +44,7 @@ export const projectValidations: Validation[] = [
     // }
 ];
 
-export const validateProject = (projectData: Partial<Project>): Validation[] => 
+export const validateProject = (projectData: Partial<Project>): Validation[] =>
     validateEntity(projectValidations, projectData);
 
 export async function createProject(projectData: Partial<Project>): Promise<Project> {
@@ -64,8 +64,8 @@ export async function createProject(projectData: Partial<Project>): Promise<Proj
         },
     });
 
-    console.log("projectData",projectData)
-    console.log("existingProject",existingProject)
+    console.log("projectData", projectData)
+    console.log("existingProject", existingProject)
 
     const newProjectData = await prisma.project.upsert({
         where: {
@@ -108,19 +108,19 @@ export async function createProject(projectData: Partial<Project>): Promise<Proj
 
     await prisma.member.upsert({
         where: {
-          user_id_project_id: {
-            user_id: projectData.user_id!,
-            project_id: newProjectData.id,
-          },
+            user_id_project_id: {
+                user_id: projectData.user_id!,
+                project_id: newProjectData.id,
+            },
         },
         update: {},
         create: {
-          user_id: projectData.user_id as string,
-          project_id: newProjectData.id,
-          role: 'Member', 
-          status: 'Confirmed',
+            user_id: projectData.user_id as string,
+            project_id: newProjectData.id,
+            role: 'Member',
+            status: 'Confirmed',
         },
-      });
+    });
     projectData.id = newProjectData.id;
     revalidatePath('/api/projects/');
     return newProjectData as unknown as Project;
@@ -159,7 +159,7 @@ export async function getProject(projectId: string): Promise<Project | null> {
         demo_video_link: projectData.demo_video_link ?? undefined,
         screenshots: projectData.screenshots ?? undefined,
         tracks: projectData.tracks,
-        is_winner:projectData.is_winner??false,
+        is_winner: false,
         // Mapeamos los members para aplanar la estructura user
         members: projectData.members?.map(member => ({
             ...member.user, // Extraemos las propiedades de user al nivel raíz
