@@ -21,7 +21,15 @@ interface AvalancheResponse {
 // Helper function for delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export default function CrossChainTransfer({ suggestedAmount = "0.0" }: { suggestedAmount?: string } = {}) {
+export default function CrossChainTransfer({ 
+  suggestedAmount = "0.0",
+  onAmountChange,
+  onTransferComplete
+}: { 
+  suggestedAmount?: string;
+  onAmountChange?: (amount: string) => void;
+  onTransferComplete?: () => void;
+} = {}) {
 
   const platformEndpoint = "https://api.avax-test.network";
 
@@ -287,6 +295,7 @@ export default function CrossChainTransfer({ suggestedAmount = "0.0" }: { sugges
       await delay(2000);
       // Refresh balances after import completes
       await fetchBalances();
+      onTransferComplete?.();
     } catch (error) {
       console.error("Error sending import transaction:", error);
     } finally {
@@ -369,7 +378,10 @@ export default function CrossChainTransfer({ suggestedAmount = "0.0" }: { sugges
                 <Input
                   type="text"
                   value={amount}
-                  onChange={setAmount}
+                  onChange={(newAmount) => {
+                    setAmount(newAmount);
+                    onAmountChange?.(newAmount);
+                  }}
                   className="w-full px-3 py-2 h-12 text-lg bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-md text-zinc-900 dark:text-zinc-100 pr-16 focus:outline-none focus:ring-1 focus:ring-red-500 dark:focus:ring-red-400"
                   label=""
                 />

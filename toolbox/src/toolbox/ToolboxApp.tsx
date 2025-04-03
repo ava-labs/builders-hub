@@ -36,6 +36,12 @@ const componentGroups: Record<string, ComponentType[]> = {
             label: "Cross Chain Transfer",
             component: lazy(() => import('./Wallet/CrossChainTransfer')),
             fileNames: ["toolbox/src/toolbox/Wallet/CrossChainTransfer.tsx"]
+        },
+        {
+            id: 'balanceTopup',
+            label: "Validator Balance Topup",
+            component: lazy(() => import('./ValidatorManager/BalanceTopup')),
+            fileNames: ["toolbox/src/toolbox/ValidatorManager/BalanceTopup.tsx"]
         }
     ],
     'Conversion': [
