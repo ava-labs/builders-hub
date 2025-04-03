@@ -20,25 +20,24 @@ const LeaderboardPage = () => {
 
     if (position === 1) {
       return (
-        <div className='w-8 h-8'>
-          <Image src={GoldReward} alt='First Place' width={32} height={32} />
-        </div>
+        <Image src={GoldReward} alt='First Place' width={46} height={46} />
       );
     } else if (position === 2) {
       return (
-        <div className='w-8 h-8'>
-          <Image src={SilverReward} alt='Second Place' width={32} height={32} />
-        </div>
+        <Image src={SilverReward} alt='Second Place' width={46} height={46} />
       );
     } else if (position === 3) {
       return (
-        <div className='w-8 h-8'>
-          <Image src={BronzeReward} alt='Third Place' width={32} height={32} />
-        </div>
+        <Image src={BronzeReward} alt='Third Place' width={46} height={46} />
       );
     } else {
       return (
-        <div className='w-8 h-8 flex items-center justify-center rounded-full bg-[#2F2F33]'>
+        <div
+          className='px-6 py-1 flex items-center justify-center rounded-full bg-[#2F2F33] w-fit'
+          style={{
+            background: "linear-gradient(90deg, #E84142 0%, #822425 100%)",
+          }}
+        >
           <span className='text-white'>{position}</span>
         </div>
       );
@@ -46,18 +45,18 @@ const LeaderboardPage = () => {
   };
 
   return (
-    <div className='p-6'>
+    <div className='p-6 '>
       <div className='flex justify-between items-center mb-8'>
         <h1 className='text-3xl font-bold text-white'>Leaderboard</h1>
-        <p className='text-gray-400'>
+        <p className='text-gray-400 hidden md:block'>
           Last updated: {new Date().toLocaleString()}
         </p>
       </div>
 
       <div className='space-y-2'>
-        <div className='grid grid-cols-12 px-4 py-2 text-gray-400'>
-          <div className='col-span-1'>Rank</div>
-          <div className='col-span-8'>Name</div>
+        <div className='grid grid-cols-12 px-4 py-2 text-[#9F9FA9]'>
+          <div className='col-span-3 md:col-span-1'>Rank</div>
+          <div className='col-span-6 md:col-span-8'>Name</div>
           <div className='col-span-3 text-right'>XP</div>
         </div>
 
@@ -68,27 +67,43 @@ const LeaderboardPage = () => {
           leaderboardData?.data.map((user, index) => (
             <div
               key={user.id}
-              className='grid grid-cols-12 px-4 py-3 bg-[#1C1C1F] rounded-lg items-center'
+              className={`grid grid-cols-12 px-4 py-3 my-4 rounded-xl items-center bg-[#171717]`}
+              style={{
+                background:
+                  (currentPage - 1) * 10 + index + 1 === 1
+                    ? "linear-gradient(90.38deg, rgba(255, 122, 0, 0.24) 0%, #171717 50.33%)"
+                    : (currentPage - 1) * 10 + index + 1 === 2
+                    ? "linear-gradient(90.26deg, rgba(172, 166, 190, 0.24) 0%, #171717 50.23%)"
+                    : (currentPage - 1) * 10 + index + 1 === 3
+                    ? "linear-gradient(90.26deg, rgba(233, 125, 102, 0.24) 0%, #171717 50.23%)"
+                    : "#171717",
+              }}
             >
-              <div className='col-span-1'>
+              <div className='col-span-3 md:col-span-1'>
                 {getRankIcon(index, currentPage)}
               </div>
-              <div className='col-span-8 flex items-center gap-2'>
-                <div className='w-8 h-8 rounded-full overflow-hidden'>
-                  <Image
-                    src={DefaultAvatar}
-                    alt={user.nickname}
-                    width={32}
-                    height={32}
-                  />
+              <div className='col-span-6 md:col-span-8 flex items-center gap-4'>
+                <Image
+                  src={DefaultAvatar}
+                  alt={user.nickname}
+                  width={32}
+                  height={32}
+                  className='hidden md:block rounded-full'
+                />
+                <div className='flex flex-col md:flex-row gap-2 md:gap-4 md:items-center'>
+                  <span className='text-white capitalize'>{user.nickname}</span>
+                  {user.tag === "ambassador" && (
+                    <span className='px-3 py-1 text-xs bg-[#FB2C3633] text-[#FB2C36] rounded-md capitalize'>
+                      {user.tag}
+                    </span>
+                  )}
                 </div>
-                <span className='text-white'>{user.nickname}</span>
-                <span className='px-2 py-1 text-xs bg-[#2F2F33] rounded-md'>
-                  {user.tag}
-                </span>
               </div>
-              <div className='col-span-3 text-right text-white'>
-                {user.points.toLocaleString()}
+              <div className='col-span-3 flex justify-end'>
+                <p className='bg-black text-white text-right rounded-full px-4 py-1 border border-[#171717]'>
+                  {" "}
+                  {user.points.toLocaleString()}
+                </p>
               </div>
             </div>
           ))
