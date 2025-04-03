@@ -3,29 +3,19 @@
 import React, { FC } from "react";
 import { useFormContext } from "react-hook-form";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "@/components/ui/table";
 
-import { Search } from "lucide-react";
 import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { SubmissionForm } from "./General";
 import { MultiSelectTrack } from "./MultiSelectTrack";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
+import MembersComponent from "./Members";
 
 interface TeamMember {
   name: string;
@@ -33,37 +23,12 @@ interface TeamMember {
   role: string;
   status: string;
 }
-
-const SubmitStep1: FC = () => {
+export interface projectProps {
+  project_id: string;
+}
+const SubmitStep1: FC<projectProps> = ({ project_id })=> {
   const form = useFormContext<SubmissionForm>();
 
-  // Ejemplo de miembros de equipo
-  const teamMembers: TeamMember[] = [
-    {
-      name: "Ken",
-      email: "ken025@yahoo.com",
-      role: "Developer",
-      status: "Confirmed",
-    },
-    {
-      name: "Alex",
-      email: "alex12@gmail.com",
-      role: "Designer",
-      status: "Confirmed",
-    },
-    {
-      name: "Monserrat",
-      email: "monserrat44@gmail.com",
-      role: "PM",
-      status: "Confirmed",
-    },
-    {
-      name: "Silas",
-      email: "silas87@gmail.com",
-      role: "Researcher",
-      status: "Awaiting Confirmation",
-    },
-  ];
 
   return (
     <div className="flex flex-col w-full  mt-6 space-y-8">
@@ -158,48 +123,7 @@ const SubmitStep1: FC = () => {
         <h3 className="font-medium  text-lg md:text-xl">
           Team &amp; Collaboration
         </h3>
-        {/* Campo de búsqueda */}
-        <div className="relative w-full">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:bg-zinc-950"
-            size={20}
-          />
-          <Input
-            placeholder="Search team member by email or name "
-            className=" w-full pl-10 dark:bg-zinc-950"
-          />
-        </div>
-
-        {/* Botón de invitación */}
-        <div className="flex justify-end">
-          <Button variant="outline" type="button">
-            Invite Team Member
-          </Button>
-        </div>
-
-        {/* Tabla con scroll horizontal en pantallas pequeñas */}
-        <div className="overflow-x-auto">
-          <Table className="border border-[#333] w-full min-w-[500px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead >Name</TableHead>
-                <TableHead >Email</TableHead>
-                <TableHead >Role</TableHead>
-                <TableHead >Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teamMembers.map((member, index) => (
-                <TableRow key={index} className="hover:bg-[#2c2c2c]">
-                  <TableCell>{member.name}</TableCell>
-                  <TableCell >{member.email}</TableCell>
-                  <TableCell>{member.role}</TableCell>
-                  <TableCell >{member.status}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+          <MembersComponent project_id={project_id} />
       </section>
     </div>
   );

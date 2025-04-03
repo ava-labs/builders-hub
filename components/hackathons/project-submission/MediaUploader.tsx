@@ -73,11 +73,19 @@ export default function MediaUploader({
     if (e.target.files && selectedIndex !== null) {
       const newFile = e.target.files[0];
       if (!newFile) return;
-      const currentFiles = form.getValues(name) || [];
-      currentFiles[selectedIndex] = newFile;
-      form.setValue(name, currentFiles);
+      const currentValue = form.getValues(name);
+      if (maxItems === 1) {
+        // Si sólo se permite un archivo, guarda directamente el File
+        form.setValue(name, newFile);
+      } else {
+        // Si se permiten varios, normaliza a array
+        const currentFiles = Array.isArray(currentValue) ? currentValue : [currentValue];
+        currentFiles[selectedIndex] = newFile;
+        form.setValue(name, currentFiles);
+      }
     }
   };
+  
 
   const handleDelete = (index: number) => {
     setSelectedIndex(index);
@@ -86,9 +94,10 @@ export default function MediaUploader({
 
   const confirmDelete = () => {
     if (selectedIndex === null) return;
-    const currentFiles = form.getValues(name) || [];
+    const currentValue = form.getValues(name);
+    const currentFiles = Array.isArray(currentValue) ? currentValue : [currentValue];
     currentFiles.splice(selectedIndex, 1);
-    form.setValue(name, currentFiles);
+    form.setValue(name, currentFiles.length === 0 ? null : currentFiles);
     setDeleteDialogOpen(false);
   };
 
@@ -104,7 +113,8 @@ export default function MediaUploader({
       control={form.control}
       name={name as any}
       render={({ field }) => {
-        const fileArray = field.value ? Array.from(field.value) : [];
+        const value = field.value;
+        const fileArray = Array.isArray(value) ? value : value ? [value] : [];
 
         return (
           <FormItem className="space-y-2">
@@ -133,7 +143,15 @@ export default function MediaUploader({
                 </div>
               ) : (
                 fileArray.map((file, index) => {
-                  const previewUrl = URL.createObjectURL(file as Blob);
+                  let previewUrl: string;
+                  if (typeof file === "string") {
+                    previewUrl = file;
+                  } else if (file instanceof Blob) {
+                    previewUrl = URL.createObjectURL(file);
+                  } else {
+                    console.error("El elemento no es un Blob ni una cadena válida:", file);
+                    return null;
+                  }
                   return (
                     <DropdownMenu key={index}>
                       <DropdownMenuTrigger asChild>
@@ -168,6 +186,7 @@ export default function MediaUploader({
             <div className="flex flex-col">
               <Button
                 variant="secondary"
+                type="button"
                 onClick={handleUploadClick}
                 className="flex gap-2 w-max max-w-[137px] bg-white text-black hover:bg-gray-200"
                 disabled={fileArray.length >= maxItems}
@@ -184,16 +203,21 @@ export default function MediaUploader({
                 accept={accept}
                 multiple={maxItems > 1}
                 onChange={(e) => {
-                  if (e.target.files) {
-                    const newFiles = Array.from(e.target.files);
-                    const existingFiles = field.value
-                      ? Array.from(field.value)
+                  if (!e.target.files) return;
+
+                  const files = Array.from(e.target.files);
+
+                  if (maxItems === 1) {
+                    field.onChange(files[0]); // 👈 pasa solo el File
+                  } else {
+                    const existingFiles = Array.isArray(field.value)
+                      ? field.value
                       : [];
-                    const totalFiles = [...existingFiles, ...newFiles].slice(
+                    const totalFiles = [...existingFiles, ...files].slice(
                       0,
                       maxItems
                     );
-                    field.onChange(totalFiles);
+                    field.onChange(totalFiles); // 👈 pasa File[]
                   }
                 }}
               />
@@ -231,7 +255,7 @@ export default function MediaUploader({
                   </DialogTitle>
                 </DialogHeader>
                 <Card
-  className="border border-red-500 w-[95%] sm:w-[85%] md:w-full h-auto max-h-[190px]
+                  className="border border-red-500 w-[95%] sm:w-[85%] md:w-full h-auto max-h-[190px]
   rounded-md p-4 sm:p-6 gap-4 bg-zinc-800 text-white mx-auto
   flex flex-col items-center justify-center text-center"
                 >
@@ -240,14 +264,12 @@ export default function MediaUploader({
                     Are you sure you want to delete this image?
                   </DialogDescription>
                   <Button
-                  
                     onClick={confirmDelete}
                     className=" bg-white hover:bg-zinc-400 text-black w-full max-w-[73px] "
                   >
                     Delete
                   </Button>
                 </Card>
-           
               </DialogContent>
             </Dialog>
 
@@ -257,11 +279,13 @@ export default function MediaUploader({
                   <DialogTitle>View Image</DialogTitle>
                 </DialogHeader>
                 {(() => {
-                  if (selectedIndex === null) return null;
-                  const files = form.getValues(name) || [];
-                  const file = files[selectedIndex];
-                  if (!file) return null;
-                  const previewUrl = URL.createObjectURL(file);
+  if (selectedIndex === null) return null;
+  const value = form.getValues(name);
+  const files = Array.isArray(value) ? value : value ? [value] : [];
+  const file = files[selectedIndex];
+  if (!file) return null;
+  const previewUrl =
+    typeof file === "string" ? file : URL.createObjectURL(file as Blob);
                   return (
                     <div className="flex justify-center">
                       <img

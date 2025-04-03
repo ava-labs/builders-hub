@@ -8,14 +8,19 @@ export interface Project {
   full_description?: string;
   tech_stack?: string,
   github_repository?: string,
+  explanation?: string,
   demo_link?: string,
-  open_source: boolean;
+  is_preexisting_idea:boolean;
+  is_winner:boolean;
   logo_url?: string;
   cover_url?: string;
+  tags?: string[];
+  small_cover_url?: string;
   demo_video_link?: string;
   screenshots?: string[];
   tracks: string[];
-  members?: Member[]
+  members?:Member[]
+  user_id?:string
 }
 
 export type ProjectFilters = {

@@ -1,138 +1,172 @@
-import { Project } from "@/types/project";
-import { hasAtLeastOne, requiredField, validateEntity, Validation } from "./base";
-import { ValidationError } from "./hackathons";
-import { Prisma } from "@prisma/client";
-import { prisma } from "@/prisma/prisma";
-import { revalidatePath } from "next/cache";
+import { hasAtLeastOne, requiredField, validateEntity, Validation } from './base';
+import { revalidatePath } from 'next/cache';
+import { ValidationError } from './hackathons';
+import { Prisma } from '@prisma/client';
+import { prisma } from '@/prisma/prisma';
+import { Project } from '@/types/project'; // Asumo que tienes este tipo definido
 
 export const projectValidations: Validation[] = [
-    // { 
-    //   field: 'name', 
-    //   message: 'Name is required.', 
-    //   validation: (registerForm: Project) => requiredField(registerForm, 'name') 
+    {
+        field: 'project_name',
+        message: 'Project name is required.',
+        validation: (project: Project) => requiredField(project, 'project_name')
+    },
+    {
+        field: 'short_description',
+        message: 'Short description is required.',
+        validation: (project: Project) => requiredField(project, 'short_description')
+    },
+    {
+        field: 'hackaton_id',
+        message: 'Hackathon ID is required.',
+        validation: (project: Project) => requiredField(project, 'hackaton_id')
+    },
+    {
+        field: 'tracks',
+        message: 'Please select at least one track.',
+        validation: (project: Project) => hasAtLeastOne(project, 'tracks')
+    },
+    // {
+    //     field: 'github_repository',
+    //     message: 'Invalid GitHub URL format.',
+    //     validation: (project: Project) => {
+    //         if (!project.github_repository) return true; // Optional field
+    //         return /^(https?:\/\/)?github\.com\/[\w-]+\/[\w-]+$/.test(project.github_repository);
+    //     }
     // },
-    // { 
-    //   field: 'email', 
-    //   message: 'A valid email is required.', 
-    //   validation: (registerForm: Project) => requiredField(registerForm, 'email') && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerForm.email || '') 
-    // },
-    // { 
-    //   field: 'city', 
-    //   message: 'City is required.', 
-    //   validation: (registerForm: Project) => requiredField(registerForm, 'city') 
-    // },
-    // { 
-    //   field: 'interests', 
-    //   message: 'Please select at least one interest.', 
-    //   validation: (registerForm: Project) => hasAtLeastOne(registerForm, 'interests') 
-    // },
-    // { 
-    //   field: 'web3_proficiency', 
-    //   message: 'Web3 proficiency is required.', 
-    //   validation: (registerForm: Project) => requiredField(registerForm, 'web3_proficiency') 
-    // },
-    // { 
-    //   field: 'tools', 
-    //   message: 'Please select at least one tool.', 
-    //   validation: (registerForm: Project) => hasAtLeastOne(registerForm, 'tools') 
-    // },
-    // { 
-    //   field: 'roles', 
-    //   message: 'Please select at least one role.', 
-    //   validation: (registerForm: Project) => hasAtLeastOne(registerForm, 'roles') 
-    // },
-    // { 
-    //   field: 'languages', 
-    //   message: 'Please select at least one programming language.', 
-    //   validation: (registerForm: Project) => hasAtLeastOne(registerForm, 'languages') 
-    // },
-    // { 
-    //   field: 'hackathon_participation', 
-    //   message: 'Hackathon participation is required.', 
-    //   validation: (registerForm: Project) => requiredField(registerForm, 'hackathon_participation') 
-    // },
-    // { 
-    //   field: 'terms_event_conditions', 
-    //   message: 'You must accept the Event Terms and Conditions to continue.', 
-    //   validation: (registerForm: Project) => registerForm.terms_event_conditions === true 
-    // },
-    // { 
-    //   field: 'newsletter_subscription', 
-    //   message: 'You must agree to the newsletter subscription.', 
-    //   validation: (registerForm: Project) => registerForm.newsletter_subscription === true 
-    // },
-    // { 
-    //   field: 'prohibited_items', 
-    //   message: 'You must agree not to bring prohibited items to continue.', 
-    //   validation: (registerForm: Project) => registerForm.prohibited_items === true 
-    // },
-  ];
+    // {
+    //     field: 'demo_link',
+    //     message: 'Invalid demo URL format.',
+    //     validation: (project: Project) => {
+    //         if (!project.demo_link) return true; // Optional field
+    //         return /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/.test(project.demo_link);
+    //     }
+    // }
+];
 
-export const validateRegisterForm = (registerData: Partial<Project>): Validation[] => validateEntity(projectValidations, registerData);
+export const validateProject = (projectData: Partial<Project>): Validation[] => 
+    validateEntity(projectValidations, projectData);
 
-export async function createRegisterForm(registerData: Partial<Project>): Promise<Project> {
-    const errors = validateRegisterForm(registerData);
-    console.error(errors)
+export async function createProject(projectData: Partial<Project>): Promise<Project> {
+    const errors = validateProject(projectData);
     if (errors.length > 0) {
-        throw new ValidationError('Validation failed', errors)
+        throw new ValidationError('Project validation failed', errors);
     }
 
-    const content = { ...registerData } as Prisma.JsonObject
+    const existingProject = await prisma.project.findFirst({
+        where: {
+            hackaton_id: projectData.hackaton_id,
+            members: {
+                some: {
+                    user_id: projectData.user_id,
+                },
+            },
+        },
+    });
 
-//     console.log("content",content)
-//     const newRegisterFormData = await prisma.registerForm.upsert({
-//       where: {
-//           hackathon_id_email: {
-//               hackathon_id: registerData.hackathon_id as string,
-//               email: registerData.email as string,
-//           },
-//       },
-//       update: {
-         
-//           city: registerData.city ?? "",
-//           company_name: registerData.company_name ?? null,
-//           dietary: registerData.dietary ?? null,
-//           hackathon_participation: registerData.hackathon_participation ?? "",
-//           interests: (registerData.interests ?? []).join(','),
-//           languages: (registerData.languages ?? []).join(','),
-//           roles: (registerData.roles ?? []).join(','),
-//           name: registerData.name ?? "",
-//           newsletter_subscription: registerData.newsletter_subscription ?? false,
-//           prohibited_items: registerData.prohibited_items ?? false,
-//           role: registerData.role ?? "",
-//           terms_event_conditions: registerData.terms_event_conditions ?? false,
-//           tools: (registerData.tools ?? []).join(','),
-//           web3_proficiency: registerData.web3_proficiency ?? "",
-//           github_portfolio: registerData.github_portfolio ?? "",
-//       },
-//       create: {
-//           hackathon: {
-//               connect: { id: registerData.hackathon_id },
-//           },
-//           user: {
-//               connect: { email: registerData.email },
-//           },
-//           utm: registerData.utm ?? "",
-//           city: registerData.city ?? "",
-//           company_name: registerData.company_name ?? null,
-//           dietary: registerData.dietary ?? null,
-//           hackathon_participation: registerData.hackathon_participation ?? "",
-//           interests: (registerData.interests ?? []).join(','),
-//           languages: (registerData.languages ?? []).join(','),
-//           roles: (registerData.roles ?? []).join(','),
-//           name: registerData.name ?? "",
-//           newsletter_subscription: registerData.newsletter_subscription ?? false,
-//           prohibited_items: registerData.prohibited_items ?? false,
-//           role: registerData.role ?? "",
-//           terms_event_conditions: registerData.terms_event_conditions ?? false,
-//           tools: (registerData.tools ?? []).join(','),
-//           web3_proficiency: registerData.web3_proficiency ?? "",
-//           github_portfolio: registerData.github_portfolio ?? "",
-//       },
-//   });
-    //  registerData.id= newRegisterFormData.id;
-    revalidatePath('/api/submit-project/')
-    return {} as unknown as Project;
-    
+    console.log("projectData",projectData)
+    console.log("existingProject",existingProject)
+
+    const newProjectData = await prisma.project.upsert({
+        where: {
+            id: existingProject?.id || '',
+        },
+        update: {
+            project_name: projectData.project_name ?? "",
+            short_description: projectData.short_description ?? "",
+            full_description: projectData.full_description ?? "",
+            tech_stack: projectData.tech_stack ?? "",
+            github_repository: projectData.github_repository ?? "",
+            demo_link: projectData.demo_link ?? "",
+            explanation: projectData.explanation ?? "",
+            is_preexisting_idea: projectData.is_preexisting_idea ?? false,
+            logo_url: projectData.logo_url ?? "",
+            cover_url: projectData.cover_url ?? "",
+            demo_video_link: projectData.demo_video_link ?? "",
+            screenshots: projectData.screenshots ?? [],
+            tracks: projectData.tracks ?? [],
+        },
+        create: {
+            hackathon: {
+                connect: { id: projectData.hackaton_id },
+            },
+            project_name: projectData.project_name ?? "",
+            short_description: projectData.short_description ?? "",
+            full_description: projectData.full_description ?? "",
+            tech_stack: projectData.tech_stack ?? "",
+            github_repository: projectData.github_repository ?? "",
+            demo_link: projectData.demo_link ?? "",
+            is_preexisting_idea: projectData.is_preexisting_idea ?? false,
+            logo_url: projectData.logo_url ?? "",
+            cover_url: projectData.cover_url ?? "",
+            demo_video_link: projectData.demo_video_link ?? "",
+            screenshots: projectData.screenshots ?? [],
+            tracks: projectData.tracks ?? [],
+            explanation: projectData.explanation ?? "",
+        },
+    });
+
+    await prisma.member.upsert({
+        where: {
+          user_id_project_id: {
+            user_id: projectData.user_id!,
+            project_id: newProjectData.id,
+          },
+        },
+        update: {},
+        create: {
+          user_id: projectData.user_id as string,
+          project_id: newProjectData.id,
+          role: 'Member', 
+          status: 'Confirmed',
+        },
+      });
+    projectData.id = newProjectData.id;
+    revalidatePath('/api/projects/');
+    return newProjectData as unknown as Project;
 }
 
+export async function getProject(projectId: string): Promise<Project | null> {
+    const projectData = await prisma.project.findUnique({
+        where: {
+            id: projectId,
+        },
+        include: {
+            hackathon: true,
+            members: {
+                include: {
+                    user: true
+                }
+            }
+        }
+    });
+
+    if (!projectData) return null;
+
+    // Transformamos los datos de Prisma al formato del DTO Project
+    const project: Project = {
+        id: projectData.id,
+        hackaton_id: projectData.hackaton_id,
+        project_name: projectData.project_name,
+        short_description: projectData.short_description,
+        full_description: projectData.full_description ?? undefined, // null -> undefined
+        tech_stack: projectData.tech_stack ?? undefined,
+        github_repository: projectData.github_repository ?? undefined,
+        demo_link: projectData.demo_link ?? undefined,
+        is_preexisting_idea: projectData.is_preexisting_idea,
+        logo_url: projectData.logo_url ?? undefined,
+        cover_url: projectData.cover_url ?? undefined,
+        demo_video_link: projectData.demo_video_link ?? undefined,
+        screenshots: projectData.screenshots ?? undefined,
+        tracks: projectData.tracks,
+        is_winner:projectData.is_winner??false,
+        // Mapeamos los members para aplanar la estructura user
+        members: projectData.members?.map(member => ({
+            ...member.user, // Extraemos las propiedades de user al nivel raíz
+            role: member.role,
+            status: member.status
+        }))
+    };
+
+    return project;
+}

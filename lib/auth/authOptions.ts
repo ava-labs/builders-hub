@@ -1,4 +1,4 @@
-import { NextAuthOptions, DefaultSession, Session } from "next-auth";
+import { NextAuthOptions, DefaultSession, Session, User } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import GithubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -110,21 +110,37 @@ export const AuthOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async signIn({ user, account,profile }) {
-      
+    async signIn({ user, account, profile }) {
       try {
-        await upsertUser(user, account, profile);
+        const dbUser = await upsertUser(user, account, profile);
+        user.id = dbUser.id; // para que llegue bien al jwt
         return true;
       } catch (error) {
         console.error("Error procesing user:", error);
         return false;
       }
     },
-    async jwt({ token, user }: { token: JWT; user?: any }): Promise<JWT> {
-      if (user) {
-        token.id = user.id;
-        token.avatar = user.image;
+    async jwt({ token, user }: { token: JWT; user?: User }): Promise<JWT> {
+      let dbUser = null;
+
+      if (user?.email) {
+        dbUser = await prisma.user.findUnique({
+          where: { email: user.email },
+        });
+      } else if (token?.email) {
+        dbUser = await prisma.user.findUnique({
+          where: { email: token.email },
+        });
       }
+    
+      if (dbUser) {
+        token.id = dbUser.id;
+        token.avatar = dbUser.image;
+        token.name = dbUser.name ?? '';
+        token.email = dbUser.email ?? '';
+        token.user_name = dbUser.user_name ?? '';
+      }
+    
       return token;
     },
     async session({ session, token }: { session: Session; token: JWT }) {

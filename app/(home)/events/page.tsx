@@ -149,17 +149,6 @@ export default function Page() {
                 arrowColor={arrowColor}
               />
             </a>
-            <a href="/hackathons/1661940a-d9f4-4811-9d1a-e6e8d4585893" target="_blank" rel="noopener noreferrer">
-              <EventCard
-                title="Beantown Showndown Hackathon"
-                description="Boston Blockchain Association + Avalanche Hackathon"
-                icon={<Award className="w-8 h-8" color='white'/>}
-                image={HackathonBBABanner}
-                url="/hackathon"
-                color="blue"
-                arrowColor={arrowColor}
-              />
-            </a>
             <a href="https://lu.ma/Team1?utm_source=builder_hub" target="_blank" rel="noopener noreferrer">
               <EventCard
                 title="Team1 Events"
