@@ -35,10 +35,10 @@ export const FormSchema = z.object({
     .min(2, { message: "Project Name must be at least 2 characters" })
     .max(60, { message: "Max 60 characters allowed" }),
   short_description: z.string().max(280, { message: "Max 280 characters allowed" }),
-  full_description: z.string().optional(),
-  tech_stack: z.string().optional(),
-  github_repository: z.string().optional(),
-  explanation: z.string().optional(),
+  full_description: z.string(),
+  tech_stack: z.string(),
+  github_repository: z.string(),
+  explanation: z.string(),
   demo_link: z.string().optional(),
   is_preexisting_idea: z.boolean(),
   logoFile: z.any().optional(),
@@ -399,8 +399,10 @@ setProjectId(project.id)
                 <div className="flex flex-col md:flex-row items-center justify-between mt-8">
                   <div className="flex flex-wrap gap-4 mb-4 md:mb-0">
                     <Button type="submit" variant="red" className="px-4 py-2">
-                      Continue
+                    {step===3 ?'Final Submit':'Continue'}  
                     </Button>
+
+                    
                     <Button
                       type="button"
                       onClick={handleSave}
