@@ -57,7 +57,7 @@ export default function GeneralComponent({
 }) {
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [progress, setProgress] = useState<number>(0);
-  
+  const [project_id, setProjectId] = useState<string>("");
   const [step, setStep] = useState(1);
   const [deadline, setDeadline] = useState<number>(
     new Date().getTime() + 12 * 60 * 60 * 1000 // 12h de cuenta regresiva
@@ -134,6 +134,7 @@ export default function GeneralComponent({
       });
       if (response.data.project) {
         setData(response.data.project)
+        
       }
   }
   catch (err) {
@@ -170,6 +171,7 @@ export default function GeneralComponent({
   async function saveProject(data: Project) {
     try {
       const response = await axios.post(`/api/project/`, data);
+      setProjectId(response.data.id)
       console.log("Project saved successfully:", response.data);
     } catch (err) {
       console.error("API Error in saveProject:", err);
@@ -315,7 +317,7 @@ export default function GeneralComponent({
       coverFile: project.cover_url ?? undefined,
       screenshots: project.screenshots ?? [],
     });
-
+setProjectId(project.id)
   }
   useEffect(() => {
     getHackathon();
@@ -390,7 +392,7 @@ export default function GeneralComponent({
           <section>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {step === 1 && <SubmitStep1 />}
+                {step === 1 && <SubmitStep1 project_id={project_id} />}
                 {step === 2 && <SubmitStep2 />}
                 {step === 3 && <SubmitStep3 />}
                 <Separator />
