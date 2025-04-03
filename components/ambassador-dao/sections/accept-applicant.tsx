@@ -64,7 +64,7 @@ export const AcceptApplicantModal = ({
             isLoading={isPending}
             onClick={async () => {
               await reviewApplicant({
-                status: "ACCEPTED",
+                status: "APPROVED",
                 feedback: feedback,
               });
               onClose();

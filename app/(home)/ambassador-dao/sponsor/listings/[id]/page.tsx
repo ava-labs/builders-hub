@@ -83,7 +83,7 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                           size={14}
                           className='mr-1'
                         />
-                        {listing.type}
+                        {listing.type.toLowerCase()}
                       </div>
                       <div className='flex items-center text-sm text-gray-400'>
                         <Hourglass color='#9F9FA9' size={14} className='mr-1' />
@@ -228,7 +228,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                         </h3>
                         <p className='text-gray-400 font-light text-sm'>
                           {" "}
-                          {application.applicant.role ?? "--"}
+                          {application.applicant.job_title ?? "--"}
                         </p>
                         <div className='flex items-center space-x-3 mt-2 overflow-x-auto'>
                           <div className='flex items-center text-sm text-gray-400'>
@@ -388,7 +388,7 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
                           {submission.submitter.last_name}
                         </h3>
                         <p className='text-gray-400 font-light text-sm'>
-                          {submission.submitter.role ?? "--"}
+                          {submission.submitter.job_title ?? "--"}
                         </p>
                         <div className='flex items-center space-x-3 mt-2 overflow-x-auto'>
                           <div className='flex items-center text-sm text-gray-400'>
@@ -416,7 +416,7 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
                         </div>
                       ))}
                     </div>
-                    {submission.status === "REWARDED" ? (
+                    {submission.status === "ACCEPTED" ? (
                       <CustomButton
                         className='px-3'
                         isFullWidth={false}
@@ -436,9 +436,7 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
                           setIsOpen(true);
                         }}
                       >
-                        {submission.status === "ACCEPTED"
-                          ? "Select Winner"
-                          : "Details"}
+                        Details
                       </CustomButton>
                     )}
                   </div>

@@ -19,6 +19,7 @@ export interface IUpdateTalentProfileBody {
   username: string;
   profile_image: string;
   location: string;
+  job_title: string;
   skills_ids: string[];
   social_links: string[];
   wallet_address: string;

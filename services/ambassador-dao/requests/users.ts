@@ -92,7 +92,7 @@ export const useClaimXP = () => {
 };
 
 export const useUpdateWalletAddress = () => {
-  // const queryclient = useQueryClient();
+  const queryclient = useQueryClient();
   return useMutation({
     mutationKey: ["updateWallet"],
     mutationFn: async (args: { wallet_address: string }) => {
@@ -104,8 +104,7 @@ export const useUpdateWalletAddress = () => {
     },
     onSuccess: (data) => {
       toast.success(data.message);
-      // queryclient.invalidateQueries({ queryKey: ["allListings"] });
-      // queryclient.invalidateQueries({ queryKey: ["singleListings"] });
+      queryclient.invalidateQueries({ queryKey: ["fetchUserDetails"] });
     },
     onError: (err) => errorMsg(err),
   });

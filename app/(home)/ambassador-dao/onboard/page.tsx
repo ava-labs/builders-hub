@@ -59,7 +59,6 @@ const userTypes = [
   },
 ];
 
-
 const AmbasssadorDaoOnboardPage = () => {
   const { data: userData, isLoading } = useFetchUserDataQuery();
   const [userType, setUserType] = useState<"TALENT" | "SPONSOR">("TALENT");
@@ -95,9 +94,9 @@ const AmbasssadorDaoOnboardPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-8 md:p-16 lg:p-24">
+    <div className='max-w-7xl mx-auto p-4 sm:p-8 md:p-16 lg:p-24'>
       {selectionStep === "account_option" && (
-        <div className="w-full flex flex-col md:flex-row gap-8 md:gap-6">
+        <div className='w-full flex flex-col md:flex-row gap-8 md:gap-6'>
           {userTypes.map((type, idx) => (
             <div
               key={idx}
@@ -110,56 +109,56 @@ const AmbasssadorDaoOnboardPage = () => {
                 `}
               onClick={() => setUserType(type.name.toUpperCase() as any)}
             >
-              <div className="flex items-center gap-6">
-                <div className="w-10 md:w-14 h-10 md:h-14 shrink-0 flex items-center justify-center bg-[#FB2C36] rounded-full p-2">
-                  <Crown color="white" size={28} />
+              <div className='flex items-center gap-6'>
+                <div className='w-10 md:w-14 h-10 md:h-14 shrink-0 flex items-center justify-center bg-[#FB2C36] rounded-full p-2'>
+                  <Crown color='white' size={28} />
                 </div>
-                <div className="text-[#FAFAFA]">
-                  <p className="font-medium text-2xl md:text-3xl">
-                    Continue as <span className="capitalize">{type.name}</span>
+                <div className='text-[#FAFAFA]'>
+                  <p className='font-medium text-2xl md:text-3xl'>
+                    Continue as <span className='capitalize'>{type.name}</span>
                   </p>
                   <p>{type.description}</p>
                 </div>
               </div>
 
-              <hr className="my-6 border-[#27272A]" />
+              <hr className='my-6 border-[#27272A]' />
 
-              <div className="bg-black rounded-md h-36 md:h-44 relative overflow-hidden">
+              <div className='bg-black rounded-md h-36 md:h-44 relative overflow-hidden'>
                 <Image
                   src={Avalance3d}
-                  objectFit="contain"
-                  alt="avalance icon"
-                  className="absolute right-0"
+                  objectFit='contain'
+                  alt='avalance icon'
+                  className='absolute right-0'
                 />
               </div>
 
-              <hr className="my-6 border-[#27272A]" />
+              <hr className='my-6 border-[#27272A]' />
 
-              <div className="flex flex-col space-y-2">
+              <div className='flex flex-col space-y-2'>
                 {type.perks.map((perk, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-3 text-[#FAFAFA]"
+                    className='flex items-center gap-3 text-[#FAFAFA]'
                   >
-                    <Check color="white" size={16} />
-                    <p className="text-sm">{perk}</p>
+                    <Check color='white' size={16} />
+                    <p className='text-sm'>{perk}</p>
                   </div>
                 ))}
               </div>
 
-              <hr className="my-6 border-[#27272A]" />
+              <hr className='my-6 border-[#27272A]' />
 
-              <div className="flex justify-center">
+              <div className='flex justify-center'>
                 <CustomButton
-                  variant="danger"
+                  variant='danger'
                   isFullWidth={false}
                   isLoading={
                     isSelectingRole && userType === type.name.toUpperCase()
                   }
                   onClick={() => handleContinue(type.name.toUpperCase() as any)}
-                  className="px-6 h-10 text-sm font-medium"
+                  className='px-6 h-10 text-sm font-medium'
                 >
-                  Continue as <span className="capitalize">{type.name}</span>
+                  Continue as <span className='capitalize'>{type.name}</span>
                 </CustomButton>
               </div>
             </div>
@@ -167,7 +166,7 @@ const AmbasssadorDaoOnboardPage = () => {
         </div>
       )}
       {selectionStep === "account_form" && (
-        <div className="bg-[#09090B] rounded-xl border border-[#27272A] p-6 py-10">
+        <div className='bg-[#09090B] rounded-xl border border-[#27272A] p-6 py-10'>
           {userType === ("USER" as "TALENT") && (
             <TalentForm handleClose={handleClose} />
           )}
@@ -197,6 +196,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
       first_name: "",
       last_name: "",
       username: "",
+      job_title: "",
     },
   });
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
@@ -231,6 +231,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
         last_name: userData.last_name || "",
         username: userData.username || "",
         location: userData.location || "",
+        job_title: userData.job_title || "",
       });
 
       if (userData.skills_ids && userData.skills_ids.length > 0) {
@@ -316,7 +317,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
       {
         onSuccess: () => {
           if (isEditProfilePage) {
-              return;
+            return;
           } else {
             setStage(2);
           }
@@ -343,16 +344,16 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
 
   if (!isDataFetched) {
     return (
-      <div className="flex justify-center items-center h-60">
-        <Loader2 className="animate-spin" size={30} color="#FB2C36" />
+      <div className='flex justify-center items-center h-60'>
+        <Loader2 className='animate-spin' size={30} color='#FB2C36' />
       </div>
     );
   }
 
   return (
     <div>
-      <div className="flex justify-between items-center">
-        <h2 className="text-[#FAFAFA] text-xl md:text-2xl font-medium">
+      <div className='flex justify-between items-center'>
+        <h2 className='text-[#FAFAFA] text-xl md:text-2xl font-medium'>
           {isEditProfilePage
             ? stage === 1
               ? "Edit Your Profile"
@@ -362,66 +363,75 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             : "Add a wallet address"}
         </h2>
       </div>
-      <p className="text-[#9F9FA9] text-sm">
+      <p className='text-[#9F9FA9] text-sm'>
         {isEditProfilePage
           ? "Update your profile information and wallet details."
           : "It takes less than a minute to start earning in global standards."}
       </p>
 
-      <hr className="border-[#27272A] my-6" />
+      <hr className='border-[#27272A] my-6' />
 
       {stage === 1 && (
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="text-[#FAFAFA] text-sm mt-6 md:mt-10 flex flex-col gap-4"
+          className='text-[#FAFAFA] text-sm mt-6 md:mt-10 flex flex-col gap-4'
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <CustomInput
-              id="firstName"
-              label="First Name"
-              placeholder="First Name"
+              id='firstName'
+              label='First Name'
+              placeholder='First Name'
               required
               {...register("first_name")}
             />
             <CustomInput
-              id="lastName"
-              label="Last Name"
-              placeholder="Last Name"
+              id='lastName'
+              label='Last Name'
+              placeholder='Last Name'
               required
               {...register("last_name")}
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="relative">
+
+          <CustomInput
+            id='job_title'
+            label='Job Title'
+            placeholder='Job Title'
+            required
+            {...register("job_title")}
+          />
+
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            <div className='relative'>
               <CustomInput
-                id="userName"
-                label="User Name"
-                placeholder="User Name"
+                id='userName'
+                label='User Name'
+                placeholder='User Name'
                 required
                 {...register("username")}
-                className="relative"
+                className='relative'
                 icon={
                   <>
                     {" "}
                     {usernameStatus === "checking" && (
                       <Loader2
-                        className="absolute right-2 animate-spin"
+                        className='absolute right-2 animate-spin'
                         size={20}
-                        color="#9F9FA9"
+                        color='#9F9FA9'
                       />
                     )}
                     {usernameStatus === "available" && (
                       <Check
-                        className="absolute right-2"
+                        className='absolute right-2'
                         size={20}
-                        color="#10B981"
+                        color='#10B981'
                       />
                     )}
                     {usernameStatus === "unavailable" && (
                       <AlertCircle
-                        className="absolute right-2"
+                        className='absolute right-2'
                         size={20}
-                        color="#FB2C36"
+                        color='#FB2C36'
                       />
                     )}
                   </>
@@ -430,57 +440,57 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             </div>
 
             <CustomSelect
-              id="location"
-              label="Location"
+              id='location'
+              label='Location'
               required
               {...register("location")}
             >
-              <option value="">Select location</option>
+              <option value=''>Select location</option>
               {countries.map((country, idx) => (
-                <option value={country.name} key={idx} className="capitalize">
+                <option value={country.name} key={idx} className='capitalize'>
                   {country.name}
                 </option>
               ))}
             </CustomSelect>
           </div>
           <div>
-            <div className="my-2">
-              <p className="block text-sm mb-2">
+            <div className='my-2'>
+              <p className='block text-sm mb-2'>
                 Your skills
-                <span className="text-[#FB2C36]">*</span>
+                <span className='text-[#FB2C36]'>*</span>
               </p>
             </div>
-            <div className="w-full h-12 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36] overflow-x-auto">
+            <div className='w-full h-12 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
               {selectedSkills &&
                 !!selectedSkills.length &&
                 selectedSkills.map((badge, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2 bg-[#fff] text-[#18181B] rounded-full px-2 text-sm cursor-pointer capitalize"
+                    className='flex items-center gap-2 bg-[#fff] text-[#18181B] rounded-full px-2 text-sm cursor-pointer capitalize'
                     onClick={() => removeSkill(badge)}
                   >
                     {skills?.find((skill) => skill.id === badge)?.name}
-                    <X size={16} color="#18181B" />
+                    <X size={16} color='#18181B' />
                   </div>
                 ))}
             </div>
-            <div className="flex flex-wrap gap-2 mt-4">
+            <div className='flex flex-wrap gap-2 mt-4'>
               {skills &&
                 !!skills.length &&
                 skills.map((badge, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-sm cursor-pointer capitalize"
+                    className='flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-sm cursor-pointer capitalize'
                     onClick={() => addSkill(badge.id)}
                   >
                     {badge.name}
-                    <Plus size={16} color="#A1A1AA" />
+                    <Plus size={16} color='#A1A1AA' />
                   </div>
                 ))}
 
               {!skills?.length && (
                 <>
-                  <p className="text-center mt-1 text-sm font-thin">
+                  <p className='text-center mt-1 text-sm font-thin'>
                     No skills available
                   </p>
                 </>
@@ -489,48 +499,44 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
           </div>
           <div>
             <CustomInput
-              id="socials"
-              label="Socials"
-              placeholder="Socials"
+              id='socials'
+              label='Socials'
+              placeholder='Socials'
               value={currentSocialLink}
               onChange={(e) => setCurrentSocialLink(e.target.value)}
             />
-            <div className="flex justify-end">
+            <div className='flex justify-end'>
               <button
-                type="button"
-                className="flex items-center text-sm text-[#A1A1AA]"
+                type='button'
+                className='flex items-center text-sm text-[#A1A1AA]'
                 onClick={addSocialLink}
               >
-                <Plus size={14} color="#A1A1AA" /> Add Link
+                <Plus size={14} color='#A1A1AA' /> Add Link
               </button>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 mt-1">
+          <div className='flex flex-wrap gap-2 mt-1'>
             {socialLinks.map((link, idx) => (
               <div
                 key={idx}
-                className="flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-sm cursor-pointer"
+                className='flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-sm cursor-pointer'
                 onClick={() => removeSocialLink(link)}
               >
                 {link}
-                <Minus size={16} color="#A1A1AA" />
+                <Minus size={16} color='#A1A1AA' />
               </div>
             ))}
           </div>
 
-          <hr className="border-[#27272A] my-6" />
-          <div className="flex justify-between">
+          <hr className='border-[#27272A] my-6' />
+          <div className='flex justify-between'>
             <CustomButton
               isLoading={isUpdatingProfile}
-              variant="danger"
-              type="submit"
+              variant='danger'
+              type='submit'
               isFullWidth={false}
-              className="px-6"
-              disabled={
-                usernameStatus !== "available" ||
-                !socialLinks.length ||
-                !selectedSkills.length
-              }
+              className='px-6'
+              disabled={!socialLinks.length || !selectedSkills.length}
             >
               {isEditProfilePage ? "Update Profile" : "Create Profile"}
             </CustomButton>
@@ -553,35 +559,35 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
       {stage === 2 && (
         <form
           onSubmit={handleSubmit(onSubmitWallet)}
-          className="text-[#FAFAFA] text-sm mt-6 md:mt-10 flex flex-col gap-4"
+          className='text-[#FAFAFA] text-sm mt-6 md:mt-10 flex flex-col gap-4'
         >
           <CustomInput
-            id="wallet_address"
-            label="Enter Wallet Address"
-            placeholder="Enter Wallet Address"
+            id='wallet_address'
+            label='Enter Wallet Address'
+            placeholder='Enter Wallet Address'
             required
             defaultValue={userData?.wallet_address || ""}
             {...register("wallet_address")}
           />
 
-          <hr className="border-[#27272A] my-6" />
-          <div className="flex justify-between">
+          <hr className='border-[#27272A] my-6' />
+          <div className='flex justify-between'>
             <CustomButton
               isLoading={isConnectingWallet}
-              variant="danger"
-              type="submit"
+              variant='danger'
+              type='submit'
               isFullWidth={false}
-              className="px-6"
+              className='px-6'
             >
               {isEditProfilePage ? "Update Wallet" : "Connect Wallet"}
             </CustomButton>
 
             {isEditProfilePage && (
               <CustomButton
-                variant="outlined"
-                type="button"
+                variant='outlined'
+                type='button'
                 isFullWidth={false}
-                className="px-6"
+                className='px-6'
                 onClick={() => setStage(1)}
               >
                 Back to Profile
@@ -713,69 +719,69 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
 
   return (
     <div>
-      <div className="flex justify-between items-center">
-        <h2 className="text-[#FAFAFA] text-xl md:text-2xl font-medium">
+      <div className='flex justify-between items-center'>
+        <h2 className='text-[#FAFAFA] text-xl md:text-2xl font-medium'>
           Welcome to Ambassador DAO
         </h2>
       </div>
-      <p className="text-[#9F9FA9] text-sm mb-8">
+      <p className='text-[#9F9FA9] text-sm mb-8'>
         It takes less than a minute to start earning in global standards.
       </p>
       <hr />
-      <h3 className="text-[#FAFAFA] font-medium text-xl my-6">About you</h3>
+      <h3 className='text-[#FAFAFA] font-medium text-xl my-6'>About you</h3>
       <hr />
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="text-[#FAFAFA] text-sm mt-6 md:mt-10 flex flex-col gap-4"
+        className='text-[#FAFAFA] text-sm mt-6 md:mt-10 flex flex-col gap-4'
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
           <CustomInput
-            id="firstName"
-            label="First Name"
-            placeholder="First Name"
+            id='firstName'
+            label='First Name'
+            placeholder='First Name'
             required
             {...register("first_name")}
           />
           <CustomInput
-            id="lastName"
-            label="Last Name"
-            placeholder="Last Name"
+            id='lastName'
+            label='Last Name'
+            placeholder='Last Name'
             required
             {...register("last_name")}
           />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="relative">
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+          <div className='relative'>
             <CustomInput
-              id="userName"
-              label="User Name"
-              placeholder="User Name"
+              id='userName'
+              label='User Name'
+              placeholder='User Name'
               required
               {...register("username")}
-              className="relative"
+              className='relative'
               icon={
                 <>
                   {" "}
                   {usernameStatus === "checking" && (
                     <Loader2
-                      className="absolute right-2 animate-spin"
+                      className='absolute right-2 animate-spin'
                       size={20}
-                      color="#9F9FA9"
+                      color='#9F9FA9'
                     />
                   )}
                   {usernameStatus === "available" && (
                     <Check
-                      className="absolute right-2"
+                      className='absolute right-2'
                       size={20}
-                      color="#10B981"
+                      color='#10B981'
                     />
                   )}
                   {usernameStatus === "unavailable" && (
                     <AlertCircle
-                      className="absolute right-2"
+                      className='absolute right-2'
                       size={20}
-                      color="#FB2C36"
+                      color='#FB2C36'
                     />
                   )}
                 </>
@@ -784,29 +790,29 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
           </div>
 
           <CustomSelect
-            id="location"
-            label="Location"
+            id='location'
+            label='Location'
             required
             {...register("location")}
           >
-            <option value="">Select location</option>
+            <option value=''>Select location</option>
             {countries.map((country, idx) => (
-              <option value={country.name} key={idx} className="capitalize">
+              <option value={country.name} key={idx} className='capitalize'>
                 {country.name}
               </option>
             ))}
           </CustomSelect>
         </div>
-        <div className="mb-6">
-          <label className="block text-sm">
+        <div className='mb-6'>
+          <label className='block text-sm'>
             Upload Profile Image or Avatar
-            <span className="text-[#FB2C36]">*</span>
+            <span className='text-[#FB2C36]'>*</span>
           </label>
-          <p className="text-xs text-[#A1A1AA] mb-2">
+          <p className='text-xs text-[#A1A1AA] mb-2'>
             Add the image here. Recommended size: 512 x 512px (square format)
           </p>
           {profile_image ? (
-            <div className="rounded-md my-2 flex justify-between items-center border border-[#27272A] p-3 text-sm">
+            <div className='rounded-md my-2 flex justify-between items-center border border-[#27272A] p-3 text-sm'>
               {profileImageName}
               <X
                 onClick={() => {
@@ -814,31 +820,31 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                   setProfileImageName("");
                   getValues("profile_image");
                 }}
-                className="cursor-pointer"
-                color="white"
+                className='cursor-pointer'
+                color='white'
                 size={16}
               />
             </div>
           ) : (
-            <div className="border border-dashed border-[#27272A] rounded-md p-6 flex flex-col items-center justify-center h-32">
+            <div className='border border-dashed border-[#27272A] rounded-md p-6 flex flex-col items-center justify-center h-32'>
               {isUploading ? (
                 <>
-                  <Loader2 className="animate-spin" color="white" size={24} />
+                  <Loader2 className='animate-spin' color='white' size={24} />
                 </>
               ) : (
                 <>
                   {" "}
                   <Upload
                     size={24}
-                    className="text-[#A1A1AA] mb-2"
-                    color="white"
+                    className='text-[#A1A1AA] mb-2'
+                    color='white'
                   />
-                  <p className="text-sm text-[#A1A1AA]">
+                  <p className='text-sm text-[#A1A1AA]'>
                     Drag your file(s) or{" "}
                     <input
-                      type="file"
-                      className="hidden"
-                      id="profileImage"
+                      type='file'
+                      className='hidden'
+                      id='profileImage'
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
                           handleProfileImageUpload(e.target.files[0]);
@@ -846,13 +852,13 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                       }}
                     />
                     <label
-                      htmlFor="profileImage"
-                      className="text-[#FAFAFA] underline cursor-pointer"
+                      htmlFor='profileImage'
+                      className='text-[#FAFAFA] underline cursor-pointer'
                     >
                       browse
                     </label>
                   </p>
-                  <p className="text-xs text-[#A1A1AA] mt-1">
+                  <p className='text-xs text-[#A1A1AA] mt-1'>
                     Max 1 MB files are allowed
                   </p>
                 </>
@@ -863,51 +869,51 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
 
         <hr />
 
-        <h3 className="text-[#FAFAFA] font-medium text-xl my-6">
+        <h3 className='text-[#FAFAFA] font-medium text-xl my-6'>
           About Your Company
         </h3>
 
         <hr />
 
-        <div className="mt-6 md:mt-10 flex flex-col gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className='mt-6 md:mt-10 flex flex-col gap-4'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <CustomInput
-              id="companyName"
-              label="Company Name"
-              placeholder="Company Name"
+              id='companyName'
+              label='Company Name'
+              placeholder='Company Name'
               required
               {...register("company_name")}
             />
-            <div className="relative">
+            <div className='relative'>
               <CustomInput
-                id="companyUserName"
-                label="Company User Name"
-                placeholder="Company User Name"
+                id='companyUserName'
+                label='Company User Name'
+                placeholder='Company User Name'
                 required
                 {...register("company_user_name")}
-                className="relative"
+                className='relative'
                 icon={
                   <>
                     {" "}
                     {companyUsernameStatus === "checking" && (
                       <Loader2
-                        className="absolute right-2 animate-spin"
+                        className='absolute right-2 animate-spin'
                         size={20}
-                        color="#9F9FA9"
+                        color='#9F9FA9'
                       />
                     )}
                     {companyUsernameStatus === "available" && (
                       <Check
-                        className="absolute right-2"
+                        className='absolute right-2'
                         size={20}
-                        color="#10B981"
+                        color='#10B981'
                       />
                     )}
                     {companyUsernameStatus === "unavailable" && (
                       <AlertCircle
-                        className="absolute right-2"
+                        className='absolute right-2'
                         size={20}
-                        color="#FB2C36"
+                        color='#FB2C36'
                       />
                     )}
                   </>
@@ -915,61 +921,61 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <CustomInput
-              id="companyUrl"
-              label="Company Url"
-              placeholder="Company Url"
+              id='companyUrl'
+              label='Company Url'
+              placeholder='Company Url'
               required
               {...register("website")}
             />
             <CustomInput
-              id="companyTwitter"
-              label="Company Twitter"
-              placeholder="Company Twitter"
+              id='companyTwitter'
+              label='Company Twitter URL'
+              placeholder='https://x.com/company'
               {...register("twitter_url")}
             />
           </div>
-          <div className="">
-            <label className="block text-sm">
-              Company Logo<span className="text-[#FB2C36]">*</span>
+          <div className=''>
+            <label className='block text-sm'>
+              Company Logo<span className='text-[#FB2C36]'>*</span>
             </label>
-            <p className="text-xs text-[#A1A1AA] mb-2">
+            <p className='text-xs text-[#A1A1AA] mb-2'>
               Add the image here. Recommended size: 512 x 512px (square format)
             </p>
             {logo ? (
-              <div className="rounded-md my-2 flex justify-between items-center border border-[#27272A] p-3 text-sm">
+              <div className='rounded-md my-2 flex justify-between items-center border border-[#27272A] p-3 text-sm'>
                 {companyLogoName}
                 <X
                   onClick={() => {
                     setValue("logo", "");
                     setCompanyLogoName("");
                   }}
-                  className="cursor-pointer"
-                  color="white"
+                  className='cursor-pointer'
+                  color='white'
                   size={16}
                 />
               </div>
             ) : (
-              <div className="border border-dashed border-[#27272A] rounded-md p-6 flex flex-col items-center justify-center h-32">
+              <div className='border border-dashed border-[#27272A] rounded-md p-6 flex flex-col items-center justify-center h-32'>
                 {isUploading ? (
                   <>
-                    <Loader2 className="animate-spin" color="white" size={24} />
+                    <Loader2 className='animate-spin' color='white' size={24} />
                   </>
                 ) : (
                   <>
                     {" "}
                     <Upload
                       size={24}
-                      className="text-[#A1A1AA] mb-2"
-                      color="white"
+                      className='text-[#A1A1AA] mb-2'
+                      color='white'
                     />
-                    <p className="text-sm text-[#A1A1AA]">
+                    <p className='text-sm text-[#A1A1AA]'>
                       Drag your file(s) or{" "}
                       <input
-                        type="file"
-                        className="hidden"
-                        id="profileImage"
+                        type='file'
+                        className='hidden'
+                        id='profileImage'
                         onChange={(e) => {
                           if (e.target.files && e.target.files[0]) {
                             handleCompanyLogoUpload(e.target.files[0]);
@@ -977,13 +983,13 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                         }}
                       />
                       <label
-                        htmlFor="profileImage"
-                        className="text-[#FAFAFA] underline cursor-pointer"
+                        htmlFor='profileImage'
+                        className='text-[#FAFAFA] underline cursor-pointer'
                       >
                         browse
                       </label>
                     </p>
-                    <p className="text-xs text-[#A1A1AA] mt-1">
+                    <p className='text-xs text-[#A1A1AA] mt-1'>
                       Max 1 MB files are allowed
                     </p>
                   </>
@@ -992,32 +998,28 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
             )}
           </div>
           <CustomInput
-            id="industry"
-            label="Industry"
-            placeholder="Industry"
+            id='industry'
+            label='Industry'
+            placeholder='Industry'
             required
             {...register("industry")}
           />
           <CustomInput
-            id="companyBio"
-            label="Company Short Bio"
-            placeholder="Company Short Bio"
+            id='companyBio'
+            label='Company Short Bio'
+            placeholder='Company Short Bio'
             required
             {...register("short_bio")}
           />
         </div>
-        <hr className="border-[#27272A] my-6" />
-        <div className="flex">
+        <hr className='border-[#27272A] my-6' />
+        <div className='flex'>
           <CustomButton
             isLoading={isUpdatingProfile || isUploading}
-            disabled={
-              companyUsernameStatus !== "available" ||
-              usernameStatus !== "available"
-            }
-            variant="danger"
-            type="submit"
+            variant='danger'
+            type='submit'
             isFullWidth={false}
-            className="px-6"
+            className='px-6'
           >
             Create Sponsor
           </CustomButton>
