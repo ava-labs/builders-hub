@@ -71,6 +71,14 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                     </div>
 
                     {application.status === "APPROVED" ? (
+                      <CustomButton
+                        isFullWidth={false}
+                        className='px-4 bg-green-600 text-white'
+                        onClick={() => setIsCompleteJobModalOpen(true)}
+                      >
+                        Complete Job
+                      </CustomButton>
+                    ) : (
                       <div className='flex items-center gap-2'>
                         <CustomButton
                           isFullWidth={false}
@@ -87,15 +95,6 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                           Select Applicant
                         </CustomButton>
                       </div>
-                    ) : (
-                      <CustomButton
-                        variant='default'
-                        isFullWidth={false}
-                        className='px-4 bg-[#00A63E] text-white'
-                        onClick={() => setIsCompleteJobModalOpen(true)}
-                      >
-                        Complete Job
-                      </CustomButton>
                     )}
                   </div>
 

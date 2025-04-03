@@ -136,6 +136,7 @@ export interface IOppotunityApplicationsResponse {
             name: string;
           }[]
         | undefined;
+      job_title: string;
     };
     files: {
       id: string;
@@ -177,6 +178,7 @@ export interface IOppotunitySubmissionsResponse {
             name: string;
           }[]
         | undefined;
+      job_title: string;
     };
     files: string[];
   }[];
@@ -230,6 +232,7 @@ export interface ISingleOppotunityApplicationResponse {
       name: string;
     }[];
     socials: string[];
+    job_title: string;
   };
 }
 
@@ -274,5 +277,22 @@ export interface ISingleOppotunitySubmissionResponse {
       name: string;
     }[];
     socials: string[];
+    job_title: string;
   };
+}
+
+export interface ILeaderboardResponse {
+  metadata: {
+    total: number;
+    last_page: number;
+    current_page: number;
+    per_page: number;
+  };
+  data: {
+    id: string;
+    clientId: string;
+    tag: string;
+    nickname: string;
+    points: number;
+  }[];
 }
