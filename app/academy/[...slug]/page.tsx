@@ -6,6 +6,7 @@ import {
   DocsDescription,
 } from 'fumadocs-ui/page';
 import { Card, Cards } from 'fumadocs-ui/components/card';
+import defaultComponents from 'fumadocs-ui/mdx';
 import { notFound } from 'next/navigation';
 import { academy } from '@/lib/source';
 import { createMetadata } from '@/utils/metadata';
@@ -73,6 +74,7 @@ export default async function Page(props: {
       <DocsBody className="text-fd-foreground/80">
         <IndexedDBComponent/>
         <MDX components={{
+          ...defaultComponents,
           h1: (props) => <Heading as="h1" {...props} />,
           h2: (props) => <Heading as="h2" {...props} />,
           h3: (props) => <Heading as="h3" {...props} />,
