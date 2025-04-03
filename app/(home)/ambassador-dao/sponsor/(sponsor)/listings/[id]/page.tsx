@@ -248,7 +248,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                     <StatusBadge status={application.status ?? "N/A"} />
                   </div>
 
-                  <div className='flex justify-end gap-3'>
+                  <div className='flex justify-between gap-3'>
                     <div className='flex gap-2 items-center overflow-x-auto'>
                       {application.applicant.skills?.map((skill, index) => (
                         <div key={index}>
@@ -408,7 +408,7 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
                     <StatusBadge status={submission.status ?? "N/A"} />
                   </div>
 
-                  <div className='flex justify-end gap-3'>
+                  <div className='flex justify-between gap-3'>
                     <div className='flex gap-2 items-center overflow-x-auto'>
                       {submission.submitter.skills?.map((skill, index) => (
                         <div key={index}>

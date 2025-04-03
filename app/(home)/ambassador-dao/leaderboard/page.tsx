@@ -4,6 +4,10 @@ import { useFetchLeaderboard } from "@/services/ambassador-dao/requests/sponsor"
 import { useState } from "react";
 import Image from "next/image";
 import Loader from "@/components/ambassador-dao/ui/Loader";
+import GoldReward from "@/public/ambassador-dao-images/GoldReward.svg";
+import SilverReward from "@/public/ambassador-dao-images/SilverReward.svg";
+import BronzeReward from "@/public/ambassador-dao-images/BronzeReward.svg";
+import DefaultAvatar from "@/public/ambassador-dao-images/Avatar.svg";
 
 const LeaderboardPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -17,34 +21,19 @@ const LeaderboardPage = () => {
     if (position === 1) {
       return (
         <div className='w-8 h-8'>
-          <Image
-            src='/images/gold-medal.png'
-            alt='First Place'
-            width={32}
-            height={32}
-          />
+          <Image src={GoldReward} alt='First Place' width={32} height={32} />
         </div>
       );
     } else if (position === 2) {
       return (
         <div className='w-8 h-8'>
-          <Image
-            src='/images/silver-medal.png'
-            alt='Second Place'
-            width={32}
-            height={32}
-          />
+          <Image src={SilverReward} alt='Second Place' width={32} height={32} />
         </div>
       );
     } else if (position === 3) {
       return (
         <div className='w-8 h-8'>
-          <Image
-            src='/images/bronze-medal.png'
-            alt='Third Place'
-            width={32}
-            height={32}
-          />
+          <Image src={BronzeReward} alt='Third Place' width={32} height={32} />
         </div>
       );
     } else {
@@ -87,7 +76,7 @@ const LeaderboardPage = () => {
               <div className='col-span-8 flex items-center gap-2'>
                 <div className='w-8 h-8 rounded-full overflow-hidden'>
                   <Image
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.clientId}`}
+                    src={DefaultAvatar}
                     alt={user.nickname}
                     width={32}
                     height={32}
