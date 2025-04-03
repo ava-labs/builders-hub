@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { AlertCircle, Loader2, CheckCircle2, ArrowUpRight, ArrowRight } from "lucide-react"
+import { AlertCircle, Loader2, CheckCircle2, ArrowUpRight } from "lucide-react"
 import { Button } from "../../components/Button"
 import { Container } from "../components/Container"
 import { Context, pvm, utils } from "@avalabs/avalanchejs"
