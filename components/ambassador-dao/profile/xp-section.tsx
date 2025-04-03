@@ -156,12 +156,14 @@ export default function XpSection({ data }: any) {
         <div className="col-span-2">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-medium">Available Opportunities</h3>
-            {data?.availableOpportunities?.length > 1 && <a
-              href="/ambassador-dao"
-              className="text-sm text-red-500 flex items-center"
-            >
-              View All <ChevronRight size={16} />
-            </a>}
+            {data?.availableOpportunities?.length > 1 && (
+              <a
+                href="/ambassador-dao"
+                className="text-sm text-red-500 flex items-center"
+              >
+                View All <ChevronRight size={16} />
+              </a>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -197,7 +199,9 @@ export default function XpSection({ data }: any) {
                                     className="mr-1"
                                     color="#9F9FA9"
                                   />
-                                  <span className="capitalize">{opportunity?.type?.toLowerCase()}</span>
+                                  <span className="capitalize">
+                                    {opportunity?.type?.toLowerCase()}
+                                  </span>
                                 </div>
                                 <div className="flex items-center text-xs text-gray-400">
                                   <Hourglass
@@ -222,7 +226,7 @@ export default function XpSection({ data }: any) {
                                   />
                                   <span>
                                     {opportunity._count?.submissions || 0}{" "}
-                                    Proposals
+                                    {opportunity?._count?.submissions > 1 ? "Proposals" : "Proposal"}
                                   </span>
                                 </div>
                               </div>
@@ -249,7 +253,11 @@ export default function XpSection({ data }: any) {
                   </div>
                 ))}
             {!data?.availableOpportunities && <Loader />}
-            {data?.availableOpportunities?.length < 1 && <p className="flex justify-center items-center h-44">No opportunity available</p>}
+            {data?.availableOpportunities?.length < 1 && (
+              <p className="flex justify-center items-center h-44">
+                No opportunity available
+              </p>
+            )}
           </div>
         </div>
       </div>
