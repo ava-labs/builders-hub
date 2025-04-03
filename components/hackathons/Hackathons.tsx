@@ -162,10 +162,10 @@ export default function Hackathons({
     <section className="px-8 py-6">
       {/* Hackathons List */}
       <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
-        {upcomingHackathons.length ?? ""}{" "}
-        {upcomingHackathons.length > 1
+        {totalUpcomingHackathons ?? ""}{" "}
+        {totalUpcomingHackathons > 1
           ? "Upcoming hackathons"
-          : upcomingHackathons.length == 0
+          : totalUpcomingHackathons == 0
           ? "No upcoming hackathons found"
           : "Upcoming hackathon"}{" "}
         found
@@ -178,10 +178,10 @@ export default function Hackathons({
       </div>
       <h3 className="font-medium text-lg py-5 text-zinc-900 dark:text-zinc-50">
         <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
-          {pastHackathons.length ?? ""}{" "}
-          {pastHackathons.length > 1
+          {totalPastHackathons ?? ""}{" "}
+          {totalPastHackathons > 1
             ? "Past hackathons"
-            : pastHackathons.length == 0
+            : totalPastHackathons == 0
             ? "No Past hackathons found"
             : "Past hackathon"}{" "}
           found
