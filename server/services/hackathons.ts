@@ -142,14 +142,11 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
 
     if (options.status) {
         switch (options.status) {
-            case "UPCOMING":
-                hackathonsLite = hackathons.filter(hackathon => hackathon.start_date.getTime() > Date.now());
-                break;
-            case "ONGOING":
-                hackathonsLite = hackathons.filter(hackathon => hackathon.start_date.getTime() <= Date.now() && hackathon.end_date.getTime() >= Date.now());
-                break;
             case "ENDED":
-                hackathonsLite = hackathons.filter(hackathon => hackathon.end_date.getTime() < Date.now());
+                hackathonsLite = hackathons.filter(hackathon => hackathon.start_date.getTime() < Date.now());
+                break;
+            case "!ENDED":
+                hackathonsLite = hackathons.filter(hackathon => hackathon.start_date.getTime() >= Date.now());
                 break;
         }
     }

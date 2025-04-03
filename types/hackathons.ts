@@ -1,4 +1,4 @@
-export type HackathonStatus = "UPCOMING" | "ONGOING" | "ENDED"
+export type HackathonStatus = "ENDED" | "!ENDED"
 export type HackathonHeader = {
   id: string
   title: string

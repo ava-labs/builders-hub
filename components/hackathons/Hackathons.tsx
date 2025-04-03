@@ -40,21 +40,29 @@ function buildQueryString(
   return params.toString();
 }
 
-export default function Hackathons({
-  initialHackathons,
-  initialFilters,
-  totalHackathons,
-}: {
-  initialHackathons: HackathonHeader[];
+type Props = {
+  initialPastHackathons: HackathonHeader[];
+  initialUpcomingHackathons: HackathonHeader[];
   initialFilters: HackathonsFilters;
   totalHackathons: number;
-}) {
+};
+
+export default function Hackathons({
+  initialPastHackathons,
+  initialUpcomingHackathons,
+  initialFilters,
+  totalHackathons,
+}: Props) {
   const router = useRouter();
   const pageSize = 4;
 
-  console.debug({ initialHackathons, initialFilters, totalHackathons });
-  const [hackathons, setHackathons] =
-    useState<HackathonHeader[]>(initialHackathons);
+  const [pastHackathons, setPastHackathons] = useState<HackathonHeader[]>(
+    initialPastHackathons
+  );
+  const [upcomingHackathons, setUpcomingHackathons] = useState<
+    HackathonHeader[]
+  >(initialUpcomingHackathons);
+
   const [filters, setFilters] = useState<HackathonsFilters>(initialFilters);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [totalPages, setTotalPages] = useState<number>(
@@ -77,7 +85,7 @@ export default function Hackathons({
         });
 
         if (!signal.aborted) {
-          setHackathons(data.hackathons);
+          setPastHackathons(data.hackathons);
           setTotalPages(Math.ceil(data.total / pageSize));
         }
       } catch (err: any) {
@@ -170,10 +178,10 @@ export default function Hackathons({
       {/* Filters */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
         <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
-          {hackathons.length ?? ''}{" "}
-          {hackathons.length > 1
+          {pastHackathons.length ?? ""}{" "}
+          {pastHackathons.length > 1
             ? "Hackathons"
-            : hackathons.length == 0
+            : pastHackathons.length == 0
             ? "No hackathons found"
             : "Hackathon"}{" "}
           found
@@ -195,7 +203,7 @@ export default function Hackathons({
             </SelectContent>
           </Select>
 
-          <Select
+          {/* <Select
             onValueChange={(value: string) =>
               handleFilterChange("status", value)
             }
@@ -210,13 +218,13 @@ export default function Hackathons({
               <SelectItem value="ONGOING">Ongoing</SelectItem>
               <SelectItem value="ENDED">Ended</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
         </div>
       </div>
       <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
       {/* Hackathons List */}
       <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
-        {hackathons.map((hackathon: any) => (
+        {pastHackathons.map((hackathon: any) => (
           <HackathonCard key={hackathon.id} hackathon={hackathon} />
         ))}
       </div>
