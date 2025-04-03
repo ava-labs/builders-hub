@@ -159,6 +159,7 @@ export async function getProject(projectId: string): Promise<Project | null> {
         demo_video_link: projectData.demo_video_link ?? undefined,
         screenshots: projectData.screenshots ?? undefined,
         tracks: projectData.tracks,
+        is_winner:projectData.is_winner??false,
         // Mapeamos los members para aplanar la estructura user
         members: projectData.members?.map(member => ({
             ...member.user, // Extraemos las propiedades de user al nivel raíz

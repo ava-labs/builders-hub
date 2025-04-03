@@ -248,6 +248,7 @@ export default function GeneralComponent({
         screenshots: uploadedFiles.screenshotsUrls,
         hackaton_id: hackathon_id as string,
         user_id : session?.user.id??"",
+        is_winner:false,
         id: "", 
       };
     
