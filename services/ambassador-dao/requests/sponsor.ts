@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { API_DEV } from "../data/constants";
 import {
   ICreateOpportunityBody,
+  ILeaderboardResponse,
   IOpportunityListing,
   IOppotunityApplicationsResponse,
   IOppotunityListingResponse,
@@ -83,19 +84,26 @@ export const useReviewApplicantMutation = (applicationId: string) => {
     onSuccess: (data) => {
       toast.success(data.message);
       queryclient.invalidateQueries({ queryKey: ["allListings"] });
+      queryclient.invalidateQueries({ queryKey: ["singleListings"] });
+      queryclient.invalidateQueries({
+        queryKey: ["singleListingsApplications"],
+      });
+      queryclient.invalidateQueries({
+        queryKey: ["singleListingsApplication"],
+      });
       router.push("/ambassador-dao/sponsor/listings");
     },
     onError: (err) => errorMsg(err),
   });
 };
 
-export const useReviewSubmissionMutation = (submissionId: string) => {
+export const useRejectSubmissionMutation = (submissionId: string) => {
   const queryclient = useQueryClient();
   return useMutation({
-    mutationKey: ["reviewSubmission"],
+    mutationKey: ["rejectSubmission"],
     mutationFn: async (args: { status: string; feedback: string }) => {
       const res = await axiosInstance.patch(
-        `${API_DEV}/opportunity/submissions/${submissionId}/review`,
+        `${API_DEV}/opportunity/submissions/${submissionId}/reject`,
         args
       );
       return res.data;
@@ -104,6 +112,9 @@ export const useReviewSubmissionMutation = (submissionId: string) => {
       toast.success(data.message);
       queryclient.invalidateQueries({ queryKey: ["allListings"] });
       queryclient.invalidateQueries({ queryKey: ["singleListings"] });
+      queryclient.invalidateQueries({
+        queryKey: ["singleListingsSubmissions"],
+      });
     },
     onError: (err) => errorMsg(err),
   });
@@ -129,6 +140,13 @@ export const useCompleteJobMutation = (
     onSuccess: (data) => {
       toast.success(data.message);
       queryclient.invalidateQueries({ queryKey: ["allListings"] });
+      queryclient.invalidateQueries({ queryKey: ["singleListings"] });
+      queryclient.invalidateQueries({
+        queryKey: ["singleListingsApplications"],
+      });
+      queryclient.invalidateQueries({
+        queryKey: ["singleListingsApplication"],
+      });
       router.push("/ambassador-dao/sponsor/listings");
     },
     onError: (err) => errorMsg(err),
@@ -280,14 +298,14 @@ export const useUpdateBountyRewardMutation = () => {
   return useMutation({
     mutationKey: ["updateRewardBounty"],
     mutationFn: async (args: {
-      winner_id: string;
+      submissionId: string;
       opportunityId: string;
       rewardId: string;
     }) => {
       const res = await axiosInstance.post(
         `${API_DEV}/opportunity/${args.opportunityId}/rewards/${args.rewardId}/bounty`,
         {
-          winner_id: args.winner_id,
+          submission_id: args.submissionId,
         }
       );
       return res.data;
@@ -296,6 +314,9 @@ export const useUpdateBountyRewardMutation = () => {
       toast.success(data.message);
       queryclient.invalidateQueries({ queryKey: ["allListings"] });
       queryclient.invalidateQueries({ queryKey: ["singleListings"] });
+      queryclient.invalidateQueries({
+        queryKey: ["singleListingsSubmissions"],
+      });
     },
     onError: (err) => errorMsg(err),
   });
@@ -321,8 +342,48 @@ export const useMarkSubmissionAsPaidMutation = (
     onSuccess: (data) => {
       toast.success(data.message);
       queryclient.invalidateQueries({ queryKey: ["allListings"] });
+      queryclient.invalidateQueries({ queryKey: ["singleListings"] });
+      queryclient.invalidateQueries({
+        queryKey: ["singleListingsSubmissions"],
+      });
       router.push("/ambassador-dao/sponsor/listings");
     },
     onError: (err) => errorMsg(err),
+  });
+};
+
+export const useFetchLeaderboard = (page: number, per_page: number = 10) => {
+  return useQuery({
+    queryKey: ["leaderboard", page, per_page],
+    queryFn: async () => {
+      const res = await axiosInstance.get(`${API_DEV}/users/leaderboard`, {
+        params: {
+          page,
+          per_page,
+        },
+      });
+      return res.data.data as ILeaderboardResponse;
+    },
+    staleTime: Infinity,
+  });
+};
+
+export const useFetchUnclaimedRewards = (id: string | undefined) => {
+  return useQuery({
+    queryKey: ["unclaimedRewards", id],
+    queryFn: async () => {
+      const res = await axiosInstance.get(
+        `${API_DEV}/opportunity/${id}/unclaimed-rewards`
+      );
+      return res.data.data as {
+        amount: number;
+        id: string;
+        payment_status: string;
+        position: number;
+        user_id: string | null;
+      }[];
+    },
+    staleTime: Infinity,
+    enabled: !!id,
   });
 };

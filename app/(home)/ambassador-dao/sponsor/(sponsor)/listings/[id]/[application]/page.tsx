@@ -65,12 +65,20 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                           @{application.applicant.username}
                         </p>
                         <p className='text-[#9F9FA9] font-light text-sm'>
-                          Based in {application.applicant.country ?? "--"}
+                          Based in {application.applicant.location ?? "--"}
                         </p>
                       </div>
                     </div>
 
                     {application.status === "APPROVED" ? (
+                      <CustomButton
+                        isFullWidth={false}
+                        className='px-4 bg-green-600 text-white'
+                        onClick={() => setIsCompleteJobModalOpen(true)}
+                      >
+                        Complete Job
+                      </CustomButton>
+                    ) : (
                       <div className='flex items-center gap-2'>
                         <CustomButton
                           isFullWidth={false}
@@ -87,15 +95,6 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                           Select Applicant
                         </CustomButton>
                       </div>
-                    ) : (
-                      <CustomButton
-                        variant='default'
-                        isFullWidth={false}
-                        className='px-4 bg-[#00A63E] text-white'
-                        onClick={() => setIsCompleteJobModalOpen(true)}
-                      >
-                        Complete Job
-                      </CustomButton>
                     )}
                   </div>
 
@@ -124,7 +123,7 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                         Socials
                       </h3>
                       <div className='flex flex-wrap gap-2'>
-                        {application?.applicant?.socials?.map(
+                        {application?.applicant?.social_links?.map(
                           (social: string, index: number) => (
                             <span
                               key={index}

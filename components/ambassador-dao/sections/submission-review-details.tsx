@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import CustomButton from "../custom-button";
 import {
-  useFetchSingleListing,
   useFetchSingleListingSubmission,
-  useReviewSubmissionMutation,
+  useFetchUnclaimedRewards,
+  useRejectSubmissionMutation,
   useUpdateBountyRewardMutation,
 } from "@/services/ambassador-dao/requests/sponsor";
 import CustomInput from "../input";
@@ -21,12 +21,17 @@ interface IDeleteProps {
   submissionId: string;
 }
 
+type ActionType = "NONE" | "ACCEPT" | "REJECT";
+
 export const SumbissionReviewDetailsModal = ({
   isOpen,
   onClose,
   submissionId,
 }: IDeleteProps) => {
+  const [selectedAction, setSelectedAction] = useState<ActionType>("NONE");
   const [feedback, setFeedback] = useState("");
+  const [rewardId, setRewardId] = useState<string>("");
+
   const { data: submission, isLoading } =
     useFetchSingleListingSubmission(submissionId);
 
@@ -34,24 +39,52 @@ export const SumbissionReviewDetailsModal = ({
     submission?.submitter.username
   );
 
-  const { data: listing } = useFetchSingleListing(submission?.opportunity.id);
+  const { data: unclaimedRewards } = useFetchUnclaimedRewards(
+    submission?.opportunity.id
+  );
 
-  const { mutate: reviewSubmission, isPending: isReviewing } =
-    useReviewSubmissionMutation(submissionId);
-
-  const [rewardId, setRewardId] = useState<string | null>(null);
+  const { mutate: rejectSubmission, isPending: isRejecting } =
+    useRejectSubmissionMutation(submissionId);
 
   const { mutateAsync: updateBountyReward, isPending: isUpdatingBounty } =
     useUpdateBountyRewardMutation();
 
+  const handleContinue = async () => {
+    if (selectedAction === "ACCEPT" && rewardId) {
+      await updateBountyReward({
+        submissionId: submission!.id,
+        opportunityId: submission!.opportunity.id,
+        rewardId: rewardId,
+      });
+      onClose();
+    } else if (selectedAction === "REJECT" && feedback) {
+      rejectSubmission({ status: "REJECTED", feedback });
+      onClose();
+    }
+  };
+
+  const resetForm = () => {
+    setSelectedAction("NONE");
+    setFeedback("");
+    setRewardId("");
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          resetForm();
+        }
+        onClose();
+      }}
+    >
       <DialogContent
         className='max-w-2xl py-6 bg-gray-50 dark:bg-[#09090B]'
         showClose
       >
         <DialogTitle className='text-2xl text-[#FAFAFA] font-semibold'>
-          Applicant Details
+          Submission Details
         </DialogTitle>
         <div className='text-[#9F9FA9] my-3'>
           Review the details of this submission before making a decision.
@@ -80,7 +113,7 @@ export const SumbissionReviewDetailsModal = ({
                     </div>
                     <div>
                       <h3 className='text-lg font-medium text-white'>
-                        {submission.submitter.role ?? "--"}
+                        {submission.submitter.job_title ?? "--"}
                       </h3>
                       <p className='text-gray-400 font-light text-sm'>
                         {submission.submitter.first_name}{" "}
@@ -157,56 +190,70 @@ export const SumbissionReviewDetailsModal = ({
                 </div>
               </div>
 
-              {submission.status === "ACCEPTED" ? (
-                <>
+              {selectedAction === "NONE" && (
+                <div className='flex gap-2 justify-between mt-6 md:mt-8'>
+                  <CustomButton
+                    variant='outlined'
+                    className='px-4 text-[#18181B] w-full'
+                    onClick={() => setSelectedAction("REJECT")}
+                  >
+                    Reject Submission
+                  </CustomButton>
+
+                  <CustomButton
+                    variant='danger'
+                    className='px-4 w-full'
+                    onClick={() => setSelectedAction("ACCEPT")}
+                  >
+                    Accept Submission
+                  </CustomButton>
+                </div>
+              )}
+
+              {selectedAction === "ACCEPT" && (
+                <div className='space-y-4'>
                   <CustomSelect
-                    id='location'
-                    label='Select Winner'
+                    id='winner'
+                    label='Select Winner Position'
+                    value={rewardId}
                     onChange={(e) => setRewardId(e.target.value)}
                   >
-                    <option value=''>Select</option>
-                    {listing?.prize_distribution?.map((reward, idx) => (
-                      <option value={reward.position} key={idx}>
+                    <option value=''>Select position</option>
+                    {unclaimedRewards?.map((reward, idx) => (
+                      <option value={reward.id} key={idx}>
                         {reward.position === 1
-                          ? "First Prize"
+                          ? `First Prize ($${reward.amount})`
                           : reward.position === 2
-                          ? "Second Prize"
+                          ? `Second Prize ($${reward.amount})`
                           : reward.position === 3
-                          ? "Third Prize"
-                          : `${reward.position + 1}th Prize`}
+                          ? `Third Prize ($${reward.amount})`
+                          : `${reward.position}th Prize ($${reward.amount})`}
                       </option>
                     ))}
                   </CustomSelect>
-
-                  <div className='flex gap-2 justify-between mt-6 md:mt-8'>
+                  <div className='flex gap-2 mt-3'>
                     <CustomButton
-                      variant='white'
-                      className='px-4 text-[#18181B] w-full'
-                      onClick={onClose}
+                      variant='outlined'
+                      className='px-4'
+                      onClick={() => setSelectedAction("NONE")}
                     >
-                      Cancel
+                      Back
                     </CustomButton>
                     <CustomButton
                       variant='danger'
-                      className='px-4 w-full'
+                      className='px-4'
                       disabled={!rewardId}
-                      onClick={async () => {
-                        if (!rewardId) return;
-                        await updateBountyReward({
-                          winner_id: submission.submitter.id,
-                          opportunityId: submission.opportunity.id,
-                          rewardId: rewardId,
-                        });
-                        onClose();
-                      }}
                       isLoading={isUpdatingBounty}
+                      onClick={handleContinue}
                     >
-                      Confirm Reward
+                      Continue
                     </CustomButton>
                   </div>
-                </>
-              ) : (
-                <>
+                </div>
+              )}
+
+              {selectedAction === "REJECT" && (
+                <div className='space-y-4'>
                   <div>
                     <CustomInput
                       label='Feedback'
@@ -216,37 +263,30 @@ export const SumbissionReviewDetailsModal = ({
                       value={feedback}
                       onChange={(e) => setFeedback(e.target.value)}
                     />
-
-                    <div className='text-[#9F9FA9] text-xs my-3'>
-                      Please provide a feedback for the applicant. This will be
+                    <div className='text-[#9F9FA9] text-xs mt-2'>
+                      Please provide feedback for the applicant. This will be
                       sent to the applicant.
                     </div>
                   </div>
-                  <div className='flex gap-2 justify-between mt-6 md:mt-8'>
+                  <div className='flex gap-2 mt-3'>
                     <CustomButton
                       variant='outlined'
-                      className='px-4 text-[#18181B] w-full'
-                      disabled={isReviewing}
-                      isLoading={isReviewing}
-                      onClick={() =>
-                        reviewSubmission({ status: "REJECTED", feedback })
-                      }
+                      className='px-4'
+                      onClick={() => setSelectedAction("NONE")}
                     >
-                      Reject Submission
+                      Back
                     </CustomButton>
                     <CustomButton
                       variant='danger'
-                      className='px-4 w-full'
-                      disabled={isReviewing}
-                      isLoading={isReviewing}
-                      onClick={() =>
-                        reviewSubmission({ status: "ACCEPTED", feedback })
-                      }
+                      className='px-4'
+                      disabled={!feedback}
+                      isLoading={isRejecting}
+                      onClick={handleContinue}
                     >
-                      Accept Submission
+                      Continue
                     </CustomButton>
                   </div>
-                </>
+                </div>
               )}
             </div>
           )
