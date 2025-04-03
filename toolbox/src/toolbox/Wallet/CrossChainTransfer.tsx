@@ -8,9 +8,9 @@ import { Context, pvm, utils, evm, TransferableOutput } from "@avalabs/avalanche
 import { useWalletStore } from "../../stores/walletStore"
 import { useViemChainStore } from "../../stores/toolboxStore"
 import { JsonRpcProvider } from "ethers"
-import { bytesToHex, Chain } from "viem"
+import { bytesToHex } from "viem"
 import { createPublicClient, http } from "viem"
-
+import { avalancheFuji } from "viem/chains"
 // Define the type for window.avalanche response
 interface AvalancheResponse {
   txID?: string;
@@ -43,7 +43,7 @@ export default function CrossChainTransfer() {
   useEffect(() => {
     if (typeof window !== 'undefined' && chain) {
       const client = createPublicClient({
-        chain: chain as Chain,
+        chain: avalancheFuji,
         transport: http(),
       })
       setPublicClient(client)
@@ -323,7 +323,7 @@ export default function CrossChainTransfer() {
   return (
     <Container
       title="Cross Chain Transfer"
-      description="Transfer tokens between Avalanche chains securely and efficiently."
+      description="Transfer tokens between Avalanche C-Chain and P-Chain."
     >
       <div className="flex flex-col lg:flex-row gap-6 w-full">
         <div className="flex-1 flex flex-col justify-center space-y-1">

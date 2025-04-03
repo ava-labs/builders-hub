@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore"
 import { useWalletStore } from "../../stores/walletStore"
 import { useErrorBoundary } from "react-error-boundary"
-import { createWalletClient, custom, createPublicClient, fromBytes, bytesToHex, hexToBytes } from "viem"
+import { custom, createPublicClient, fromBytes, bytesToHex, hexToBytes } from "viem"
 import { pvm, utils, Context, networkIDs } from "@avalabs/avalanchejs"
 import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
 import { packWarpIntoAccessList } from "../InitializePoA/packWarp"
@@ -39,8 +39,8 @@ const parseNodeID = (nodeID: string) => {
 
 export default function AddValidator() {
   const { showBoundary } = useErrorBoundary()
-  const { subnetID, proxyAddress, evmChainRpcUrl, evmChainName, evmChainCoinName } = useToolboxStore()
-  const { avalancheNetworkID, walletChainId, pChainAddress } = useWalletStore()
+  const { subnetID, proxyAddress, setProxyAddress } = useToolboxStore()
+  const { avalancheNetworkID, pChainAddress, coreWalletClient } = useWalletStore()
 
   // State variables for form inputs
   const [newNodeID, setNewNodeID] = useState("")
@@ -48,6 +48,8 @@ export default function AddValidator() {
   const [newBlsProofOfPossession, setNewBlsProofOfPossession] = useState("")
   const [newWeight, setNewWeight] = useState("")
   const [newBalance, setNewBalance] = useState("0.1")
+  const [validatorManagerAddress, setValidatorManagerAddress] = useState(proxyAddress || "")
+  const [inputSubnetID, setInputSubnetID] = useState(subnetID || "")
 
   // State for managing the validation process
   const [isAddingValidator, setIsAddingValidator] = useState(false)
@@ -69,6 +71,13 @@ export default function AddValidator() {
   const [networkName, setNetworkName] = useState<"fuji" | "mainnet" | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
   const viemChain = useViemChainStore()
+  
+  // Create a component variable to store the most recent warp message
+  // This won't be affected by state update delays
+  let lastWarpMessage = "";
+  let lastSignedMessage = ""; // Add a variable for signed message
+  let lastValidationID = ""; // Add a variable for validationID
+  let lastPChainWarpMsg = ""; // Add a variable for P-Chain warp message
 
   const pChainChainID = "11111111111111111111111111111111LpoYY"
   var platformEndpoint = "https://api.avax-test.network"
@@ -123,6 +132,13 @@ export default function AddValidator() {
     }
   }
 
+  // Update proxyAddress in the store when validatorManagerAddress changes
+  useEffect(() => {
+    if (validatorManagerAddress) {
+      setProxyAddress(validatorManagerAddress)
+    }
+  }, [validatorManagerAddress, setProxyAddress])
+
   // Main function to add a validator
   const addValidator = async (startFromStep?: keyof ValidationSteps) => {
     if (
@@ -131,7 +147,8 @@ export default function AddValidator() {
       !newBlsProofOfPossession ||
       !pChainAddress ||
       !newWeight ||
-      !proxyAddress
+      !validatorManagerAddress ||
+      !inputSubnetID
     ) {
       setError("Please fill all required fields to continue")
       return
@@ -149,16 +166,12 @@ export default function AddValidator() {
     }
 
     try {
-      // Create wallet client using Core wallet
-      const walletClient = createWalletClient({
-        transport: custom(window.avalanche!),
-      })
-
       const publicClient = createPublicClient({
         transport: custom(window.avalanche!),
       })
+      console.log(await publicClient.getChainId())
 
-      const [account] = await walletClient.requestAddresses()
+      const [account] = await coreWalletClient.requestAddresses()
 
       // Step 1: Initialize Registration
       if (!startFromStep || startFromStep === "initializeRegistration") {
@@ -184,10 +197,9 @@ export default function AddValidator() {
             },
             BigInt(newWeight)
           ]
-
           // Submit transaction
-          const hash = await walletClient.writeContract({
-            address: proxyAddress as `0x${string}`,
+          const hash = await coreWalletClient.writeContract({
+            address: validatorManagerAddress as `0x${string}`,
             abi: validatorManagerAbi.abi,
             functionName: "initiateValidatorRegistration",
             args,
@@ -197,12 +209,19 @@ export default function AddValidator() {
 
           // Get receipt to extract warp message and validation ID
           const receipt = await publicClient.waitForTransactionReceipt({ hash })
+          console.log("Receipt: ", receipt)
           const unsignedWarpMsg = receipt.logs[0].data ?? ""
           const validationIdHex = receipt.logs[1].topics[1] ?? ""
 
-          // Save to state
+          console.log("Setting warp message:", unsignedWarpMsg.substring(0, 20) + "...")
+          console.log("Setting validationID:", validationIdHex)
+          
+          // Save to state and component variable
           setRegisterL1ValidatorUnsignedWarpMsg(unsignedWarpMsg)
+          lastWarpMessage = unsignedWarpMsg; // Store in component variable
+          
           setValidationID(validationIdHex)
+          lastValidationID = validationIdHex; // Store in component variable
 
           updateStepStatus("initializeRegistration", "success")
         } catch (error: any) {
@@ -216,20 +235,31 @@ export default function AddValidator() {
       if (!startFromStep || startFromStep === "signMessage") {
         updateStepStatus("signMessage", "loading")
         try {
-          // Use stored message if retrying
-          const messageToSign = startFromStep ? registerL1ValidatorUnsignedWarpMsg : registerL1ValidatorUnsignedWarpMsg
+          // Use component variable first, fall back to state if needed
+          const messageToSign = lastWarpMessage || registerL1ValidatorUnsignedWarpMsg
 
+          console.log("Message to sign (length):", messageToSign.length)
+          console.log("Message to sign (first 20 chars):", messageToSign.substring(0, 20))
+          
+          if (!messageToSign || messageToSign.length === 0) {
+            throw new Error("Warp message is empty. Please try again from step 1.")
+          }
+
+          console.log("Subnet ID: ", inputSubnetID)
+          console.log("Network name: ", networkName)
           // Sign the unsigned warp message with signature aggregator
           const { signedMessage } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
             signatureAggregatorRequest: {
               message: messageToSign,
-              signingSubnetId: subnetID,
+              signingSubnetId: inputSubnetID,
               quorumPercentage: 67, // Default threshold for subnet validation
             },
           })
 
+          console.log("Signed message: ", signedMessage)
           setSavedSignedMessage(signedMessage)
+          lastSignedMessage = signedMessage; // Store in component variable
           updateStepStatus("signMessage", "success")
 
           if (startFromStep === "signMessage") {
@@ -249,8 +279,15 @@ export default function AddValidator() {
         try {
           if (!window.avalanche) throw new Error("Core wallet not found")
 
-          // Use saved message if retrying
-          const messageToUse = startFromStep ? savedSignedMessage : savedSignedMessage
+          // Use component variable first, then fall back to state
+          const messageToUse = lastSignedMessage || savedSignedMessage
+
+          console.log("Message to use for P-Chain (length):", messageToUse.length)
+          console.log("Message to use for P-Chain (first 20 chars):", messageToUse.substring(0, 20))
+          
+          if (!messageToUse || messageToUse.length === 0) {
+            throw new Error("Signed message is empty. Please try again from the sign message step.")
+          }
 
           // Get fee state, context and utxos from P-Chain
           const feeState = await pvmApi.getFeeState()
@@ -312,7 +349,15 @@ export default function AddValidator() {
           await new Promise((resolve) => setTimeout(resolve, 1000))
 
           // Create and sign P-Chain warp message
-          const validationIDBytes = hexToBytes(validationID as `0x${string}`)
+          const validationIDToUse = lastValidationID || validationID;
+          
+          if (!validationIDToUse || validationIDToUse.length === 0) {
+            throw new Error("ValidationID is empty. Please try again from step 1.");
+          }
+          
+          console.log("Using validationID:", validationIDToUse);
+          const validationIDBytes = hexToBytes(validationIDToUse as `0x${string}`)
+          
           const unsignedPChainWarpMsg = packL1ValidatorRegistration(
             validationIDBytes,
             true,
@@ -329,13 +374,15 @@ export default function AddValidator() {
             network: networkName,
             signatureAggregatorRequest: {
               message: unsignedPChainWarpMsgHex,
-              justification: registerL1ValidatorUnsignedWarpMsg,
-              signingSubnetId: subnetID,
+              justification: lastWarpMessage,
+              signingSubnetId: inputSubnetID,
               quorumPercentage: 67, // Default threshold for subnet validation
             },
           })
 
+          console.log("P-Chain signed message received:", signedMessage.signedMessage.substring(0, 20) + "...");
           setSavedPChainWarpMsg(signedMessage.signedMessage)
+          lastPChainWarpMsg = signedMessage.signedMessage; // Store in component variable
           updateStepStatus("waitForPChain", "success")
         } catch (error: any) {
           updateStepStatus("waitForPChain", "error", error.message)
@@ -348,38 +395,38 @@ export default function AddValidator() {
       if (!startFromStep || startFromStep === "finalizeRegistration") {
         updateStepStatus("finalizeRegistration", "loading")
         try {
-          // Use saved message if retrying
-          const warpMsgToUse = startFromStep ? savedPChainWarpMsg : savedPChainWarpMsg
+          // Use component variable first, then fall back to state
+          const warpMsgToUse = lastPChainWarpMsg || savedPChainWarpMsg
+
+          console.log(warpMsgToUse)
+          if (!warpMsgToUse || warpMsgToUse.length === 0) {
+            throw new Error("P-Chain warp message is empty. Please try again from the previous step.")
+          }
 
           // Convert to bytes and pack into access list
           const signedPChainWarpMsgBytes = hexToBytes(`0x${warpMsgToUse}`)
           const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes)
 
           // Submit the transaction to the EVM using Core Wallet
-          const response = await walletClient.writeContract({
-            address: proxyAddress as `0x${string}`,
+          console.log(accessList)
+          const response = await coreWalletClient.writeContract({
+            address: validatorManagerAddress as `0x${string}`,
             abi: validatorManagerAbi.abi,
             functionName: "completeValidatorRegistration",
             args: [0],
             accessList,
             account,
-            chain: {
-              id: walletChainId,
-              name: evmChainName,
-              rpcUrls: {
-                default: { http: [evmChainRpcUrl] },
-              },
-              nativeCurrency: {
-                name: evmChainCoinName,
-                symbol: evmChainCoinName,
-                decimals: 18,
-              },
-            },
+            chain: viemChain
           })
 
           const receipt = await publicClient.waitForTransactionReceipt({ hash: response })
           console.log("Receipt: ", receipt)
-          updateStepStatus("finalizeRegistration", "success")
+          if (receipt.status === "success") {
+            updateStepStatus("finalizeRegistration", "success")
+            setIsProcessComplete(true)
+          } else {
+            updateStepStatus("finalizeRegistration", "error", "Transaction failed")
+          }
         } catch (error: any) {
           updateStepStatus("finalizeRegistration", "error", error.message)
           showBoundary(error)
@@ -454,9 +501,6 @@ export default function AddValidator() {
   return (
 
     <Container title="Add New Validator" description="Add a validator to your L1 by providing the required details">
-      {/* Background gradient effect */}
-      {/* <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent dark:from-red-900/10 dark:to-transparent pointer-events-none"></div> */}
-
       <div className="relative">
         {error && (
           <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
@@ -471,6 +515,22 @@ export default function AddValidator() {
           <div className="bg-zinc-50 dark:bg-zinc-800/70 rounded-md p-3 border border-zinc-200 dark:border-zinc-700">
             <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Your P-Chain Address</div>
             <div className="font-mono text-xs text-zinc-800 dark:text-zinc-200 truncate">{pChainAddress}</div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Validator Manager Address <span className="text-red-500">*</span>
+            </label>
+            <Input
+              label=""
+              type="text"
+              value={validatorManagerAddress}
+              onChange={setValidatorManagerAddress}
+              placeholder="Enter Validator Manager contract address (0x...)"
+              className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-md text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-red-500 dark:focus:ring-red-400"
+              required
+            />
+            {!validatorManagerAddress && error && <p className="text-xs text-red-500">Validator Manager Address is required</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -584,14 +644,30 @@ export default function AddValidator() {
               Initial 'Pay As You Go' Balance (1.33 AVAX/month/validator)
             </p>
           </div>
+
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Signing Subnet ID <span className="text-red-500">*</span>
+            </label>
+            <Input
+              label=""
+              type="text"
+              value={inputSubnetID}
+              onChange={setInputSubnetID}
+              placeholder="Enter subnet ID"
+              className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-md text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-red-500 dark:focus:ring-red-400"
+              required
+            />
+            {!inputSubnetID && error && <p className="text-xs text-red-500">Subnet ID is required</p>}
+          </div>
         </div>
 
         {!isAddingValidator && (
           <Button
             onClick={() => addValidator()}
-            disabled={!proxyAddress}
+            disabled={!validatorManagerAddress || !inputSubnetID}
           >
-            {!proxyAddress ? "Set Proxy Address First" : "Add Validator"}
+            {!validatorManagerAddress || !inputSubnetID ? "Set Required Fields First" : "Add Validator"}
           </Button>
         )}
 
@@ -670,4 +746,3 @@ export default function AddValidator() {
     </Container>
   )
 }
-
