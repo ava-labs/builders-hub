@@ -123,7 +123,7 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
                     <p className="text-zinc-400 items-center justify-center w-full max-w-[400px] text-center text-sm font-medium">
                       By clicking continue, you agree to our{" "}
                       <Link
-                        href="#"
+                        href="https://www.avax.network/terms-of-use"
                         target="_blank"
                         className="underline Dark:text-white  Dark:hover:text-gray-300"
                       >
@@ -131,7 +131,7 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
                       </Link>{" "}
                       and{" "}
                       <Link
-                        href="#"
+                        href="https://www.avax.network/privacy-policy"
                         target="_blank"
                         className="tracking-normal text-center underline underline-offset-auto decoration-solid  Dark:text-white  Dark:hover:text-gray-300"
                       >
