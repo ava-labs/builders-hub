@@ -3,7 +3,7 @@ import { prisma } from '@/prisma/prisma';
 import { createProject } from '@/server/services/submitProject';
 import {  NextResponse } from 'next/server';
 
-export const POST = withAuth(async (request, session) => {
+export const POST = withAuth(async (request,context ,session) => {
   try{
     const body = await request.json();
     console.log("body",body)

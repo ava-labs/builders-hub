@@ -88,14 +88,17 @@ model Project {
   github_repository String? @default("")
   demo_link       String?   @default("")
   is_preexisting_idea     Boolean   @default(false)
+  is_winner     Boolean   @default(false)
   logo_url        String?   @default("")
   cover_url       String?   @default("")
+  small_cover_url       String?   @default("")
+  tags     String[]   @default([])
   demo_video_link String?   @default("")
   explanation String?   @default("")
   screenshots     String[]  @default([])
   tracks          String[]  @default([])
 
-  members         Member[]  // Relación con la tabla Member
+  members         Member[] 
   created_at      DateTime  @default(now()) @db.Timestamptz(3)
   updated_at      DateTime  @updatedAt @db.Timestamptz(3)
 }

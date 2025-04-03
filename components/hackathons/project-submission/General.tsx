@@ -35,10 +35,10 @@ export const FormSchema = z.object({
     .min(2, { message: "Project Name must be at least 2 characters" })
     .max(60, { message: "Max 60 characters allowed" }),
   short_description: z.string().max(280, { message: "Max 280 characters allowed" }),
-  full_description: z.string().optional(),
-  tech_stack: z.string().optional(),
-  github_repository: z.string().optional(),
-  explanation: z.string().optional(),
+  full_description: z.string(),
+  tech_stack: z.string(),
+  github_repository: z.string(),
+  explanation: z.string(),
   demo_link: z.string().optional(),
   is_preexisting_idea: z.boolean(),
   logoFile: z.any().optional(),
@@ -57,7 +57,7 @@ export default function GeneralComponent({
 }) {
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [progress, setProgress] = useState<number>(0);
-  
+  const [project_id, setProjectId] = useState<string>("");
   const [step, setStep] = useState(1);
   const [deadline, setDeadline] = useState<number>(
     new Date().getTime() + 12 * 60 * 60 * 1000 // 12h de cuenta regresiva
@@ -134,6 +134,7 @@ export default function GeneralComponent({
       });
       if (response.data.project) {
         setData(response.data.project)
+        
       }
   }
   catch (err) {
@@ -170,6 +171,7 @@ export default function GeneralComponent({
   async function saveProject(data: Project) {
     try {
       const response = await axios.post(`/api/project/`, data);
+      setProjectId(response.data.id)
       console.log("Project saved successfully:", response.data);
     } catch (err) {
       console.error("API Error in saveProject:", err);
@@ -315,7 +317,7 @@ export default function GeneralComponent({
       coverFile: project.cover_url ?? undefined,
       screenshots: project.screenshots ?? [],
     });
-
+setProjectId(project.id)
   }
   useEffect(() => {
     getHackathon();
@@ -390,15 +392,17 @@ export default function GeneralComponent({
           <section>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {step === 1 && <SubmitStep1 />}
+                {step === 1 && <SubmitStep1 project_id={project_id} />}
                 {step === 2 && <SubmitStep2 />}
                 {step === 3 && <SubmitStep3 />}
                 <Separator />
                 <div className="flex flex-col md:flex-row items-center justify-between mt-8">
                   <div className="flex flex-wrap gap-4 mb-4 md:mb-0">
                     <Button type="submit" variant="red" className="px-4 py-2">
-                      Continue
+                    {step===3 ?'Final Submit':'Continue'}  
                     </Button>
+
+                    
                     <Button
                       type="button"
                       onClick={handleSave}
