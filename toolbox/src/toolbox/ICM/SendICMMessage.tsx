@@ -21,7 +21,7 @@ export default function DeployReceiver() {
     const { icmReceiverAddress, chainID, setChainID, evmChainRpcUrl, setEvmChainRpcUrl } = useToolboxStore();
     const viemChain = useViemChainStore();
     const { coreWalletClient, publicClient } = useWalletStore();
-    const [message, setMessage] = useState(`It is around ${new Date().toISOString().slice(11, 16)} o'clock in England`);
+    const [message, setMessage] = useState(`It is ${new Date().toISOString().slice(11, 16)} in London`);
     const [isSending, setIsSending] = useState(false);
     const [lastTxId, setLastTxId] = useState<string>();
     const [lastReceivedMessage, setLastReceivedMessage] = useState<string>();
