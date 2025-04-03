@@ -42,8 +42,12 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If the error is not 401 or the request has already been retried, reject
-    if (error.response?.status !== 401 || originalRequest._retry) {
+    // Only handle 401 errors for POST requests
+    if (
+      error.response?.status !== 401 ||
+      originalRequest._retry ||
+      originalRequest.method?.toLowerCase() !== "post"
+    ) {
       return Promise.reject(error);
     }
 
