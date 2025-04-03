@@ -92,12 +92,12 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
   return (
     <div className={`flex gap-4 ${className}`}>
       {Array.from({ length }, (_, index) => (
-        <div key={index} className="relative">
+        <div key={index} className='relative'>
           <input
             ref={(el) => {
               inputRefs.current[index] = el;
             }}
-            type="text"
+            type='text'
             maxLength={1}
             value={code[index] || ""}
             onChange={(e) => handleChange(e, index)}
@@ -111,7 +111,7 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
               bg-transparent
               border-2 rounded-lg border-[#27272A]
               focus:outline-none focus:ring-2 focus:ring-opacity-50
-              transition-colors
+              transition-colors uppercase
               ${
                 isError
                   ? "border-[#E11D48] focus:border-[#E11D48] focus:ring-[#E11D48]"

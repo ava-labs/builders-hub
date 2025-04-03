@@ -8,14 +8,14 @@ import {
   IUpdateSponsorProfileBody,
   IUpdateTalentProfileBody,
 } from "../interfaces/onbaord";
-axios.defaults.withCredentials = true;
+import axiosInstance from "./axios";
 
 export const useSelectRoleMutation = () => {
   const queryclient = useQueryClient();
   return useMutation({
     mutationKey: ["selectRole"],
     mutationFn: async (role: string) => {
-      const res = await axios.post(`${API_DEV}/users/select-role`, {
+      const res = await axiosInstance.post(`${API_DEV}/users/select-role`, {
         role,
       });
       return res.data;
@@ -33,7 +33,7 @@ export const useUpdateSponsorProfileMutation = () => {
   return useMutation({
     mutationKey: ["updateSponsorProfile"],
     mutationFn: async (args: IUpdateSponsorProfileBody) => {
-      const res = await axios.post(
+      const res = await axiosInstance.post(
         `${API_DEV}/users/update-sponsor-profile`,
         args
       );
@@ -52,7 +52,7 @@ export const useUpdateTalentProfileMutation = () => {
   return useMutation({
     mutationKey: ["updateTalentProfile"],
     mutationFn: async (args: IUpdateTalentProfileBody) => {
-      const res = await axios.post(
+      const res = await axiosInstance.post(
         `${API_DEV}/users/update-talent-profile`,
         args
       );
@@ -70,7 +70,7 @@ export const useCheckUsernameAvailabilityMutation = () => {
   return useMutation({
     mutationKey: ["checkUsernameAvailability"],
     mutationFn: async (username: string) => {
-      const res = await axios.post(
+      const res = await axiosInstance.post(
         `${API_DEV}/users/check-username-availability`,
         {
           username,
@@ -88,7 +88,7 @@ export const useCheckCompanyUsernameAvailabilityMutation = () => {
   return useMutation({
     mutationKey: ["checkUsernameAvailability"],
     mutationFn: async (username: string) => {
-      const res = await axios.post(
+      const res = await axiosInstance.post(
         `${API_DEV}/users/check-company-username-availability`,
         {
           username,
@@ -106,7 +106,7 @@ export const useFetchAllSkills = () => {
   return useQuery({
     queryKey: ["skills"],
     queryFn: async () => {
-      const res = await axios.get(`${API_DEV}/skill`);
+      const res = await axiosInstance.get(`${API_DEV}/skill`);
       return res.data.data as ISkillsResponse[];
     },
     staleTime: Infinity,
@@ -120,7 +120,7 @@ export const useFileUploadMutation = (type?: string) => {
       const formData = new FormData();
       formData.append("file", file);
       type && formData.append("type", type);
-      const res = await axios.post(
+      const res = await axiosInstance.post(
         `${API_DEV}/file-upload?type=${type}`,
         formData,
         {

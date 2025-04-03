@@ -3,7 +3,7 @@ export const StatusBadge = ({ status }: { status: string }) => {
     switch (status) {
       case "Draft":
       case "DRAFT":
-        return "bg-[#6D6D6D]";
+        return "bg-[#6D6D6D] text-white";
       case "Live Job":
       case "OPEN":
         return "bg-[#155DFC] text-white";
@@ -23,7 +23,7 @@ export const StatusBadge = ({ status }: { status: string }) => {
         return "bg-[#00A63E] text-white";
       case "PENDING":
       case "APPLIED":
-        return "bg-[#6D6D6D] text-white"; // Same as "Payment Pending"
+        return "bg-[#4361FF1A] text-[#155DFC]"; // Same as "Payment Pending"
       case "REJECTED":
       case "WITHDRAWN":
       case "SUSPENDED":
@@ -37,7 +37,7 @@ export const StatusBadge = ({ status }: { status: string }) => {
 
   return (
     <span
-      className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusStyles(
+      className={`px-3 py-1 w-fit rounded-full text-xs font-medium ${getStatusStyles(
         status
       )}`}
     >
