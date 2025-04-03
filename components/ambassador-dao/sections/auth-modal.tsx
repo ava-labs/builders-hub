@@ -79,7 +79,7 @@ export const AuthModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={onCloseModal}>
       <DialogContent
-        className='max-w-3xl h-full bg-gray-50 dark:bg-[#09090B]'
+        className='max-w-2xl bg-gray-50 dark:bg-[#09090B]'
         showClose
       >
         <DialogTitle></DialogTitle>
