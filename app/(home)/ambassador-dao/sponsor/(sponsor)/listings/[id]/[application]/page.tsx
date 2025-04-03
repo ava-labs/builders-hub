@@ -65,7 +65,7 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                           @{application.applicant.username}
                         </p>
                         <p className='text-[#9F9FA9] font-light text-sm'>
-                          Based in {application.applicant.country ?? "--"}
+                          Based in {application.applicant.location ?? "--"}
                         </p>
                       </div>
                     </div>
@@ -123,7 +123,7 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                         Socials
                       </h3>
                       <div className='flex flex-wrap gap-2'>
-                        {application?.applicant?.socials?.map(
+                        {application?.applicant?.social_links?.map(
                           (social: string, index: number) => (
                             <span
                               key={index}

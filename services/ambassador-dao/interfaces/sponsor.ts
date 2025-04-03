@@ -136,6 +136,7 @@ export interface IOppotunityApplicationsResponse {
             name: string;
           }[]
         | undefined;
+      social_links: string[];
       job_title: string;
     };
     files: {
@@ -223,7 +224,7 @@ export interface ISingleOppotunityApplicationResponse {
     last_name: string;
     username: string;
     profile_image: string | null;
-    country: string;
+    location: string;
     email: string;
     role: string;
     status: "VERIFIED" | "PENDING" | "REJECTED" | "SUSPENDED";
@@ -232,6 +233,7 @@ export interface ISingleOppotunityApplicationResponse {
       name: string;
     }[];
     socials: string[];
+    social_links: string[];
     job_title: string;
   };
 }
@@ -268,7 +270,7 @@ export interface ISingleOppotunitySubmissionResponse {
     last_name: string;
     username: string;
     profile_image: string | null;
-    country: string;
+    location: string;
     email: string;
     role: string;
     status: "VERIFIED" | "PENDING" | "REJECTED" | "SUSPENDED";
@@ -277,6 +279,7 @@ export interface ISingleOppotunitySubmissionResponse {
       name: string;
     }[];
     socials: string[];
+    social_links: string[];
     job_title: string;
   };
 }
