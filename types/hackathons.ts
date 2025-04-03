@@ -21,6 +21,7 @@ export type HackathonsFilters = {
   location?: string
   status?: HackathonStatus | null
   page?: number
+  recordsByPage?: number
 }
 
 export type Hackathon = {

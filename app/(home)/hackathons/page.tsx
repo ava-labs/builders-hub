@@ -10,14 +10,15 @@ export default async function HackathonsPage({
 }: {
   searchParams: Promise<{
     page?: number;
+    recordsByPage?: number;
     location?: string;
   }>;
 }) {
-  const { page, location } = await searchParams;
+  const { page, location, recordsByPage } = await searchParams;
   const { hackathons: pastHackathons, total: totalPastHackathons } =
     await getFilteredHackathons({
       page: page ?? 1,
-      pageSize: 4,
+      pageSize: Number(recordsByPage ?? 4),
       location: location,
       status: "ENDED",
     });
@@ -25,7 +26,7 @@ export default async function HackathonsPage({
   const { hackathons: upcomingHackathons, total: totalUpcomingHackathons } =
     await getFilteredHackathons({
       page: page ?? 1,
-      pageSize: 4,
+      pageSize: Number(recordsByPage ?? 4),
       location: location,
       status: '!ENDED',
     });
@@ -33,6 +34,7 @@ export default async function HackathonsPage({
   const initialFilters: HackathonsFilters = {
     page: page ?? 1,
     location: location,
+    recordsByPage: Number(recordsByPage ?? 4)
   };
 
   return (
