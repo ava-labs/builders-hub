@@ -208,10 +208,22 @@ export default function ProjectSection() {
                       <div className='flex flex-col justify-center gap-1'>
                         <File color='#9F9FA9' size={12} />
                         <p className='text-[var(--secondary-text-color)] text-xs'>
-                          {project?.opportunity?._count?.applications ||
-                            project?.opportunity?._count?.submissions ||
-                            0}{" "}
-                          Proposals
+                          {(() => {
+                            const appCount =
+                              project?.opportunity?._count?.applications || 0;
+                            const subCount =
+                              project?.opportunity?._count?.submissions || 0;
+
+                            if (appCount > 0) {
+                              return `${appCount} ${
+                                appCount === 1 ? "Application" : "Applications"
+                              }`;
+                            } else {
+                              return `${subCount} ${
+                                subCount === 1 ? "Proposal" : "Proposals"
+                              }`;
+                            }
+                          })()}
                         </p>
                       </div>
                       {project?.opportunity?.rewards && (

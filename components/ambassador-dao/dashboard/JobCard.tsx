@@ -52,7 +52,7 @@ export const JobCard = ({ job }: IJobDataType) => {
                   </div>
                   <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
                     <FileText color='#9F9FA9' className='w-3 h-3 mr-1' />
-                    {_count?.applications} Applications
+                    {_count?.applications} {_count?.applications > 1 ? "Applications" : "Application"}
                   </div>
                 </div>
               </div>

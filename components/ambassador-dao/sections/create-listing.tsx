@@ -145,10 +145,10 @@ export default function AmbasssadorDaoSponsorsCreateListing({
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [opportunityId, setOpportunityId] = useState<string | null>(null);
 
-  // Handle route changes
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isNavigating, setIsNavigating] = useState(false);
+  const [buttonState, setButtonState] = useState<string>("");
 
   useEffect(() => {
     if (isDirty && isNavigating) {
@@ -293,11 +293,15 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                   <CustomButton
                     variant='white'
                     className='px-4'
-                    onClick={handleSubmit(onSubmitPreview)}
-                    isLoading={isPending}
+                    onClick={() => {
+                      setButtonState("preview");
+                      handleSubmit(onSubmitPreview)();
+                    }}
+                    isLoading={isPending && buttonState === "preview"}
                     disabled={
                       (type === "BOUNTY" && prizeFields.length === 0) ||
-                      selectedSkills.length === 0
+                      selectedSkills.length === 0 ||
+                      isPending
                     }
                   >
                     <Eye
@@ -307,13 +311,17 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     Preview
                   </CustomButton>
                   <CustomButton
-                    onClick={handleSubmit(onSubmitContinue)}
-                    isLoading={isPending}
+                    onClick={() => {
+                      setButtonState("continue");
+                      handleSubmit(onSubmitContinue)();
+                    }}
+                    isLoading={isPending && buttonState === "continue"}
                     variant={"danger"}
                     className='px-4'
                     disabled={
                       (type === "BOUNTY" && prizeFields.length === 0) ||
-                      selectedSkills.length === 0
+                      selectedSkills.length === 0 ||
+                      isPending
                     }
                   >
                     Continue

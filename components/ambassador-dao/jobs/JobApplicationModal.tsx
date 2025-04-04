@@ -277,10 +277,11 @@ const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
               customQuestions.map((q, index) => (
                 <div key={index} className='space-y-2'>
                   <label className='block text-white'>
-                    Custom questions<span className='text-red-500'>*</span>
+                    {q}
+                    <span className='text-red-500'>*</span>
                   </label>
                   <textarea
-                    placeholder={q}
+                    placeholder='Answer question here'
                     rows={2}
                     className={`w-full bg-[#fff] dark:bg-[#000] border ${
                       errors.custom_question_answers &&

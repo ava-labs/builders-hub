@@ -101,7 +101,10 @@ export const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
             </div>
             <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
               <FileText size={16} color='#9F9FA9' />
-              <span>{bounty?._count?.submissions} Proposals</span>
+              <span>
+                {bounty?._count?.submissions}{" "}
+                {bounty?._count?.submissions > 1 ? "Proposals" : "Proposal"}
+              </span>
             </div>
           </div>
           <div className='flex flex-wrap gap-2 mt-2'>
@@ -199,7 +202,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
             <span>{bounty?.proposalsCount}</span>
           </span>
           <span className='text-[var(--secondary-text-color)] text-sm'>
-            Proposals
+            {bounty?.proposalsCount > 1 ? "Proposals" : "Proposal"}
           </span>
         </div>
         <div className='flex flex-col justify-center'>

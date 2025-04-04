@@ -92,9 +92,16 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                       <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
                         <FileText color='#9F9FA9' size={14} className='mr-1' />
                         {listing.type === "JOB"
-                          ? listing._count.applications
-                          : listing._count.submissions}{" "}
-                        Proposals
+                          ? `${listing._count.applications} ${
+                              listing._count.applications === 1
+                                ? "Application"
+                                : "Applications"
+                            }`
+                          : `${listing._count.submissions} ${
+                              listing._count.submissions === 1
+                                ? "Proposal"
+                                : "Proposals"
+                            }`}
                       </div>
                     </div>
                   </div>

@@ -43,7 +43,7 @@ export const BountyCard = ({ bounty }: IBountyDataType) => {
               />
               <div>
                 <h3 className='text-lg font-medium text-red-500'>{title}</h3>
-                <p className='text-[var(--secondary-text-color)]'>
+                <p className='text-gray-400'>
                   {created_by?.company_profile?.name}
                 </p>
                 <div className='flex flex-col sm:flex-row sm:items-center space-x-4 mt-2'>
@@ -58,9 +58,10 @@ export const BountyCard = ({ bounty }: IBountyDataType) => {
                       ? "Closed"
                       : `Due in: ${getTimeLeft(end_date)}`}
                   </div>
-                  <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
+                  <div className='flex items-center text-sm text-gray-400'>
                     <FileText color='#9F9FA9' className='w-3 h-3 mr-1' />
-                    {_count?.submissions} Proposals
+                    {_count?.submissions}{" "}
+                    {_count?.submissions > 1 ? "Proposals" : "Proposal"}
                   </div>
                 </div>
               </div>

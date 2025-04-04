@@ -226,7 +226,9 @@ export default function XpSection({ data }: any) {
                                   />
                                   <span>
                                     {opportunity._count?.submissions || 0}{" "}
-                                    Proposals
+                                    {opportunity?._count?.submissions > 1
+                                      ? "Proposals"
+                                      : "Proposal"}
                                   </span>
                                 </div>
                               </div>

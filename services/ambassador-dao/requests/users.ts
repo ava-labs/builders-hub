@@ -40,7 +40,7 @@ export const useFetchPastOpportunities = (
   });
 };
 
-export const useFetchUserPendingRewards = () => {
+export const useFetchUserPendingRewards = (needsOnboarding?: boolean) => {
   return useQuery({
     queryFn: async () => {
       const res = await axiosInstance.get(`${API_DEV}/users/pending-rewards`);
@@ -49,6 +49,7 @@ export const useFetchUserPendingRewards = () => {
     queryKey: ["pendingRewards"],
     staleTime: Infinity,
     refetchOnWindowFocus: false,
+    enabled: needsOnboarding,
   });
 };
 
