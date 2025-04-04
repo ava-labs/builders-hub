@@ -20,7 +20,7 @@ const OnboardModal: React.FC<OnboardModalProps> = ({ isOpen, onClose }) => {
       maxWidth='max-w-lg'
     >
       <div className='px-6 pb-6'>
-        <p className='text-sm text-white mb-4'>
+        <p className='text-sm text-[var(--white-text-color)] mb-4'>
           TODO: Generate a better copy here. You need to complete your
           onboarding process to have access to the full actions of the platform.
         </p>

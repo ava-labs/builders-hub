@@ -48,9 +48,9 @@ export const useVerifyPasscodeMutation = (
     onSuccess: (data) => {
       queryclient.invalidateQueries({ queryKey: ["fetchUserProfile"] });
       toast.success("Verification successful");
-
       if (!data.user.role || !data.user.first_name) {
         router.push("/ambassador-dao/onboard");
+        onClose();
       } else {
         if (stopRedirection) {
           onClose();

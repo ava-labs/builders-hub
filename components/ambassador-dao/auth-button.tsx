@@ -36,14 +36,14 @@ export const AuthButton = () => {
                   />
                 </PopoverTrigger>
                 <PopoverContent className='w-auto p-0' align='start'>
-                  <div className='w-42 border border-[#27272A] bg-[#09090B] rounded-md flex flex-col space-y-1'>
+                  <div className='w-42  bg-[#fafafa] dark:bg-[#09090B] rounded-md flex flex-col space-y-1'>
                     {user.role === "SPONSOR" && (
                       <>
                         <div
                           onClick={() => router.push("/ambassador-dao/sponsor")}
-                          className='px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-black'
+                          className='px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-opacity-50 dark:bg-[#000]'
                         >
-                          <ListIcon color='#fff' size={16} />
+                          <ListIcon color='var(--white-text-color)' size={16} />
                           Listings
                         </div>
                         <hr />
@@ -51,15 +51,15 @@ export const AuthButton = () => {
                     )}
                     <div
                       onClick={() => router.push("/ambassador-dao/profile")}
-                      className='px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-black'
+                      className='px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-opacity-50 dark:bg-[#000]'
                     >
-                      <User2Icon color='#fff' size={16} />
+                      <User2Icon color='var(--white-text-color)' size={16} />
                       Profile
                     </div>
                     <hr />
                     <div
                       onClick={() => logout()}
-                      className='px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-black'
+                      className='px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-opacity-50 dark:bg-[#000]'
                     >
                       <LogOut color='#FB2C36' size={16} />
                       Logout

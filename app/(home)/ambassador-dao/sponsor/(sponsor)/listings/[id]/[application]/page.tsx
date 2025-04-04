@@ -30,9 +30,9 @@ const AmbasssadorDaoSingleApplicationPage = () => {
       <div className='space-y-6'>
         <Link
           href={`/ambassador-dao/sponsor/listings/${params.id}`}
-          className='flex items-center text-sm gap-2 p-2 cursor-pointer rounded-md w-fit bg-[#18181B] border border-[#27272A]'
+          className='flex items-center text-sm gap-2 p-2 cursor-pointer rounded-md w-fit bg-[var(--default-background-color)] border border-[var(--default-border-color)]'
         >
-          <ArrowLeft color='#fff' size={16} />
+          <ArrowLeft color='var(--white-text-color)' size={16} />
           Go Back
         </Link>
 
@@ -42,7 +42,7 @@ const AmbasssadorDaoSingleApplicationPage = () => {
           <>
             {application && (
               <div className='space-y-6'>
-                <div className='border border-[#27272A] p-2 rounded-lg md:p-4 transition-colors'>
+                <div className='border border-[var(--default-border-color)] p-2 rounded-lg md:p-4 transition-colors'>
                   <div className='flex flex-col md:flex-row gap-3 md:items-center justify-between mb-4'>
                     <div className='flex md:items-center gap-3'>
                       <div>
@@ -57,14 +57,14 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                         />
                       </div>
                       <div>
-                        <h3 className='text-lg font-medium text-[#FAFAFA]'>
+                        <h3 className='text-lg font-medium text-[var(--primary-text-color)]'>
                           {application.applicant.first_name}{" "}
                           {application.applicant.last_name}
                         </h3>
-                        <p className='text-[#9F9FA9] font-light text-sm'>
+                        <p className='text-[var(--secondary-text-color)] font-light text-sm'>
                           @{application.applicant.username}
                         </p>
-                        <p className='text-[#9F9FA9] font-light text-sm'>
+                        <p className='text-[var(--secondary-text-color)] font-light text-sm'>
                           Based in {application.applicant.location ?? "--"}
                         </p>
                       </div>
@@ -82,14 +82,14 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                       <div className='flex items-center gap-2'>
                         <CustomButton
                           isFullWidth={false}
-                          className='text-[#FF394A] bg-transparent border border-[#FF394A] px-4'
+                          className='!text-[#FF394A] !bg-transparent border !border-[#FF394A] px-4'
                           onClick={() => setIsRejectApplicantModalOpen(true)}
                         >
                           Reject Applicant
                         </CustomButton>
                         <CustomButton
                           isFullWidth={false}
-                          className='text-white bg-[#FF394A] px-4'
+                          className='!text-[#fff] !bg-[#FF394A] px-4'
                           onClick={() => setIsAcceptApplicantModalOpen(true)}
                         >
                           Select Applicant
@@ -108,12 +108,12 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                       <div className='flex flex-wrap gap-2'>
                         {application?.applicant?.skills?.map(
                           (skill: { name: string; id: string }) => (
-                            <span
+                            <div
                               key={skill.id}
-                              className='bg-[#F5F5F9] text-[#161617] px-3 py-1 rounded-full text-sm'
+                              className='text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]'
                             >
                               {skill.name}
-                            </span>
+                            </div>
                           )
                         )}
                       </div>
@@ -125,12 +125,12 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                       <div className='flex flex-wrap gap-2'>
                         {application?.applicant?.social_links?.map(
                           (social: string, index: number) => (
-                            <span
+                            <div
                               key={index}
-                              className='bg-[#F5F5F9] text-[#161617] px-3 py-1 rounded-full text-sm'
+                              className='text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]'
                             >
-                              {social}
-                            </span>
+                              {social.slice(0, 20)}...
+                            </div>
                           )
                         )}
                       </div>
@@ -138,7 +138,7 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                   </div>
                 </div>
 
-                <div className='border border-[#27272A] p-2 rounded-lg md:p-4 transition-colors'>
+                <div className='border border-[var(--default-border-color)] p-2 rounded-lg md:p-4 transition-colors'>
                   <h3 className='text-3xl font-medium mb-2'>Portfolio</h3>
                   <hr className='my-4 md:my-8' />
 

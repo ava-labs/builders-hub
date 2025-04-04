@@ -47,14 +47,16 @@ const LeaderboardPage = () => {
   return (
     <div className='p-6 '>
       <div className='flex justify-between items-center mb-8'>
-        <h1 className='text-3xl font-bold text-white'>Leaderboard</h1>
-        <p className='text-gray-400 hidden md:block'>
+        <h1 className='text-3xl font-bold text-[var(--white-text-color)]'>
+          Leaderboard
+        </h1>
+        <p className='text-[var(--secondary-text-color)] hidden md:block'>
           Last updated: {new Date().toLocaleString()}
         </p>
       </div>
 
       <div className='space-y-2'>
-        <div className='grid grid-cols-12 px-4 py-2 text-[#9F9FA9]'>
+        <div className='grid grid-cols-12 px-4 py-2 text-[var(--secondary-text-color)]'>
           <div className='col-span-3 md:col-span-1'>Rank</div>
           <div className='col-span-6 md:col-span-8'>Name</div>
           <div className='col-span-3 text-right'>XP</div>
@@ -91,16 +93,18 @@ const LeaderboardPage = () => {
                   className='hidden md:block rounded-full'
                 />
                 <div className='flex flex-col md:flex-row gap-2 md:gap-4 md:items-center'>
-                  <span className='text-white capitalize'>{user.nickname}</span>
+                  <span className='text-[var(--white-text-color)] capitalize'>
+                    {user.nickname}
+                  </span>
                   {user.tag === "ambassador" && (
-                    <span className='px-3 py-1 text-xs bg-[#FB2C3633] text-[#FB2C36] rounded-md capitalize'>
+                    <span className='px-3 py-1 text-xs bg-[#fb2c36e9] dark:bg-[#FB2C3633] text-[#fff] dark:text-[#FB2C36] rounded-md capitalize'>
                       {user.tag}
                     </span>
                   )}
                 </div>
               </div>
               <div className='col-span-3 flex justify-end'>
-                <p className='bg-black text-white text-right rounded-full px-4 py-1 border border-[#171717]'>
+                <p className='bg-[#fff] dark:bg-[#000] text-[var(--white-text-color)] text-right rounded-full px-4 py-1 border border-[#171717]'>
                   {" "}
                   {user.points.toLocaleString()}
                 </p>

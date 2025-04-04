@@ -23,11 +23,7 @@ interface FormData {
   event_link: string;
 }
 
-const ClaimXPModal: React.FC<XPModalProps> = ({
-  isOpen,
-  onClose,
-  id,
-}) => {
+const ClaimXPModal: React.FC<XPModalProps> = ({ isOpen, onClose, id }) => {
   const [files, setFiles] = useState<File[]>([]);
   const [fileIds, setFileIds] = useState<string[]>([]);
   const [filesPreviews, setFilesPreviews] = useState<string[]>([]);
@@ -154,89 +150,89 @@ const ClaimXPModal: React.FC<XPModalProps> = ({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Claim XP"
-    >
-      <div className="p-6">
+    <Modal isOpen={isOpen} onClose={onClose} title='Claim XP'>
+      <div className='p-6'>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="block text-white">
-                Project Name<span className="text-red-500">*</span>
+          <div className='space-y-6'>
+            <div className='space-y-2'>
+              <label className='block text-white'>
+                Project Name<span className='text-red-500'>*</span>
               </label>
               <input
-                type="text"
-                placeholder="Project Name"
-                className={`w-full bg-black border ${
-                  errors.project_name ? "border-red-500" : "border-gray-700"
-                } rounded-md p-3 text-white placeholder-gray-500 focus:outline-none`}
+                type='text'
+                placeholder='Project Name'
+                className={`w-full bg-[#fff] dark:bg-[#000] border ${
+                  errors.project_name
+                    ? "border-red-500"
+                    : "border-[var(--default-border-color)]"
+                } rounded-md p-3 text-[var(--white-text-color)] placeholder-gray-500 focus:outline-none`}
                 {...register("project_name", {
                   required: "Telegram username is required",
                 })}
               />
               {errors.project_name && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className='text-red-500 text-sm mt-1'>
                   {errors.project_name.message}
                 </p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-white">
-                Project Description<span className="text-red-500">*</span>
+            <div className='space-y-2'>
+              <label className='block text-white'>
+                Project Description<span className='text-red-500'>*</span>
               </label>
               <input
-                type="textarea"
-                placeholder="Project Description"
-                className={`w-full bg-black border ${
+                type='textarea'
+                placeholder='Project Description'
+                className={`w-full bg-[#fff] dark:bg-[#000] border ${
                   errors.project_description
                     ? "border-red-500"
-                    : "border-gray-700"
-                } rounded-md p-3 text-white placeholder-gray-500 focus:outline-none`}
+                    : "border-[var(--default-border-color)]"
+                } rounded-md p-3 text-[var(--white-text-color)] placeholder-gray-500 focus:outline-none`}
                 {...register("project_description", {
                   required: "Telegram username is required",
                 })}
               />
               {errors.project_description && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className='text-red-500 text-sm mt-1'>
                   {errors.project_description.message}
                 </p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-white">
+            <div className='space-y-2'>
+              <label className='block text-white'>
                 Upload Event Images or Documents
               </label>
-              <p className="text-sm text-gray-400 mb-2">Add the image here.</p>
+              <p className='text-sm text-[var(--secondary-text-color)] mb-2'>
+                Add the image here.
+              </p>
 
               <div
-                className="border-2 border-dashed border-gray-700 rounded-md p-6 text-center bg-[#111] cursor-pointer"
+                className='border-2 border-dashed border-[var(--default-border-color)] rounded-md p-6 text-center bg-[var(--default-background-color)] cursor-pointer'
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
                 onClick={() => document.getElementById("fileInput")?.click()}
               >
                 {filesPreviews.length > 0 && (
                   <div
-                    className="flex flex-wrap gap-4 mb-4"
+                    className='flex flex-wrap gap-4 mb-4'
                     onClick={(e) => e.stopPropagation()}
                   >
                     {filesPreviews.map((preview, index) => (
-                      <div key={index} className="relative">
-                        <div className="w-24 h-24 border border-gray-700 rounded flex items-center justify-center">
-                          <div className="text-xs text-gray-400">
+                      <div key={index} className='relative'>
+                        <div className='w-24 h-24 border border-[var(--default-border-color)] rounded flex items-center justify-center'>
+                          <div className='text-xs text-[var(--secondary-text-color)]'>
                             {files[index]?.name.substring(0, 10)}...
                           </div>
                         </div>
                         <button
-                          type="button"
+                          type='button'
                           onClick={(e) => {
                             e.stopPropagation();
                             removeFile(index);
                           }}
-                          className="absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center text-white text-xs"
+                          className='absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center text-white text-xs'
                         >
                           ×
                         </button>
@@ -246,21 +242,24 @@ const ClaimXPModal: React.FC<XPModalProps> = ({
                 )}
 
                 {files.length < 3 && (
-                  <div className="py-8 flex flex-col items-center">
+                  <div className='py-8 flex flex-col items-center'>
                     {isUploading ? (
-                      <Loader2 className="h-8 w-8 text-gray-400 mb-2 animate-spin" />
+                      <Loader2 className='h-8 w-8 text-[var(--secondary-text-color)] mb-2 animate-spin' />
                     ) : (
                       <>
-                        <Upload className="h-12 w-12 mb-2" color="#fff" />
-                        <p className="text-[#FAFAFA] mb-2">
+                        <Upload
+                          className='h-12 w-12 mb-2'
+                          color='var(--white-text-color)'
+                        />
+                        <p className='text-[var(--primary-text-color)] mb-2'>
                           Drag your file(s) or click anywhere in this area to
                           browse
                           <input
-                            type="file"
-                            className="hidden"
-                            id="fileInput"
+                            type='file'
+                            className='hidden'
+                            id='fileInput'
                             multiple
-                            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            accept='.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                             onChange={(e) => {
                               if (e.target.files && e.target.files.length > 0) {
                                 const selectedFiles = Array.from(
@@ -271,7 +270,7 @@ const ClaimXPModal: React.FC<XPModalProps> = ({
                             }}
                           />
                         </p>
-                        <p className="text-xs text-[#9F9FA9]">
+                        <p className='text-xs text-[var(--secondary-text-color)]'>
                           Max 1 MB files are allowed (PDF, DOC, DOCX)
                         </p>
                       </>
@@ -281,15 +280,15 @@ const ClaimXPModal: React.FC<XPModalProps> = ({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-white">
+            <div className='space-y-2'>
+              <label className='block text-white'>
                 Event Link
-                <span className="text-red-500">*</span>
+                <span className='text-red-500'>*</span>
               </label>
               <input
-                type="text"
-                placeholder="Event Link"
-                className="w-full bg-black border border-gray-700 rounded-md p-3 text-white placeholder-gray-500 focus:outline-none"
+                type='text'
+                placeholder='Event Link'
+                className='w-full bg-[#fff] dark:bg-[#000] border border-[var(--default-border-color)] rounded-md p-3 text-[var(--white-text-color)] placeholder-gray-500 focus:outline-none'
                 {...register("event_link", {
                   required: "Event Link is required",
                 })}
@@ -297,14 +296,14 @@ const ClaimXPModal: React.FC<XPModalProps> = ({
             </div>
           </div>
 
-          <hr className="border-gray-800 my-6" />
+          <hr className='border-[var(--default-border-color)] my-6' />
 
           <button
-            type="submit"
+            type='submit'
             disabled={isSubmitting}
-            className="px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-800 disabled:cursor-not-allowed text-white font-medium rounded-md transition flex items-center gap-2 justify-center"
+            className='px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-800 disabled:cursor-not-allowed text-white font-medium rounded-md transition flex items-center gap-2 justify-center'
           >
-            {isSubmitting && <Loader2 className="animate-spin h-4 w-4" />}
+            {isSubmitting && <Loader2 className='animate-spin h-4 w-4' />}
             {isSubmitting ? "Submitting..." : "Submit for Review"}
           </button>
         </form>

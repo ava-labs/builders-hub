@@ -109,8 +109,10 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
       {/* Under review */}
       {user?.status === "PENDING" && (
         <div className='bg-[#155DFC] rounded-md p-3 md:p-6'>
-          <p className='text-[#FAFAFA] text-sm'>Under review</p>
-          <p className='text-[#9F9FA9] text-sm font-light'>
+          <p className='text-[var(--primary-text-color)] text-sm'>
+            Under review
+          </p>
+          <p className='text-[var(--secondary-text-color)] text-sm font-light'>
             Your account is under review, and will be approved shortly.
           </p>
         </div>
@@ -119,7 +121,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
       {user?.status === "REJECTED" && (
         <div className='bg-[#FB2C36] rounded-md p-3 md:p-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between'>
           <div>
-            <p className='text-[#FAFAFA] text-sm'>
+            <p className='text-[var(--primary-text-color)] text-sm'>
               Uh oh! Something went wrong.
             </p>
             <p className='text-[#E5E7EB] text-sm font-light'>
@@ -139,7 +141,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
       )}
 
       {/* User Profile */}
-      <div className='border border-[#27272A] rounded-md p-3 md:p-6'>
+      <div className='border border-[var(--default-border-color)] rounded-md p-3 md:p-6'>
         <div className='flex items-center space-x-4'>
           <div className='w-12 h-12 rounded-full bg-gray-700 overflow-hidden'>
             <img
@@ -149,10 +151,10 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
             />
           </div>
           <div>
-            <h2 className='text-lg font-medium text-[#F8FAFC]'>
+            <h2 className='text-lg font-medium text-[var(--primary-text-color)]'>
               {user?.first_name} {user?.last_name}
             </h2>
-            <p className='text-sm text-[#9F9FA9] font-light'>
+            <p className='text-sm text-[var(--secondary-text-color)] font-light'>
               Sponsor since{" "}
               {user?.created_at
                 ? new Date(user?.created_at).getFullYear()
@@ -161,7 +163,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
           </div>
         </div>
 
-        <hr className='border-[#27272A] my-8' />
+        <hr className='border-[var(--default-border-color)] my-8' />
 
         <div className='grid grid-cols-3 gap-4 text-center'>
           <StatCard value={stats?.total_rewards ?? 0} label='Rewarded' />
@@ -170,19 +172,21 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
         </div>
       </div>
       {/* Listings Section */}
-      <div className='border border-[#27272A] rounded-md p-3 md:p-6'>
+      <div className='border border-[var(--default-border-color)] rounded-md p-3 md:p-6'>
         <div className='flex justify-between items-center mb-6'>
-          <h2 className='text-xl font-medium text-[#FAFAFA]'>My Listing</h2>
+          <h2 className='text-xl font-medium text-[var(--primary-text-color)]'>
+            My Listing
+          </h2>
           <div className='flex space-x-2'>
             <Select
               defaultValue='ALL'
               onValueChange={setStatus}
-              iconColor='#FAFAFA'
+              iconColor='var(--primary-text-color)'
             >
-              <SelectTrigger className='w-36 bg-[#09090B] border-[#27272A]'>
+              <SelectTrigger className='w-36 bg-[var(--default-background-color)] border-[var(--default-border-color)]'>
                 <SelectValue placeholder='Everything' />
               </SelectTrigger>
-              <SelectContent className='bg-[#27272A] border-[#27272A]'>
+              <SelectContent className='bg-[#27272A] border-[var(--default-border-color)]'>
                 <SelectItem value='ALL'>Everything</SelectItem>
                 <SelectItem value='DRAFT'>Draft</SelectItem>
                 <SelectItem value='OPEN'>Open</SelectItem>
@@ -193,7 +197,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
 
             <Input
               placeholder='Search...'
-              className='bg-[#09090B] border-[#27272A] focus:ring-[#27272A] hidden md:block'
+              className='bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:ring-[#27272A] hidden md:block'
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -222,7 +226,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
           </TabButton>
         </div>
 
-        <hr className='border-[#27272A] my-6' />
+        <hr className='border-[var(--default-border-color)] my-6' />
 
         {/* Listings Table */}
         <div className='w-full'>
@@ -235,7 +239,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                   <div className='overflow-x-auto'>
                     <Table>
                       <TableHeader>
-                        <TableRow className='border-[#27272A] hover:bg-transparent whitespace-nowrap p-3 text-[#9F9FA9]'>
+                        <TableRow className='border-[var(--default-border-color)] hover:bg-transparent whitespace-nowrap p-3 text-[var(--secondary-text-color)]'>
                           <TableHead>Listing Name</TableHead>
                           <TableHead>Submissions</TableHead>
                           <TableHead>Deadline</TableHead>
@@ -248,7 +252,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                         {listings?.data.map((listing) => (
                           <TableRow
                             key={listing.id}
-                            className='border-gray-800 hover:bg-[#27272A]/50 whitespace-nowrap p-3 text-white cursor-pointer'
+                            className='border-[var(--default-border-color)] hover:bg-gray-200 dark:hover:bg-[#27272A]/50 whitespace-nowrap p-3 text-[var(--white-text-color)] cursor-pointer'
                             onClick={() => {
                               router.push(
                                 `/ambassador-dao/sponsor/listings/${listing.id}`
@@ -305,21 +309,13 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                 >
                                   <Trash2 className='h-4 w-4' color='#9F9FA9' />
                                 </Button>
-
-                                <Button
-                                  variant='ghost'
-                                  size='sm'
-                                  className='p-1 h-auto'
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (
-                                      listing.status === "DRAFT" ||
-                                      listing.status === "IN_REVIEW"
-                                    ) {
-                                      toast.error(
-                                        "Error: Only published listings link can be copied"
-                                      );
-                                    } else {
+                                {listing.status === "PUBLISHED" && (
+                                  <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='p-1 h-auto'
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       navigator.clipboard.writeText(
                                         `${
                                           window.location.origin
@@ -330,14 +326,14 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                         }/${listing.id}`
                                       );
                                       toast.success("Link copied to clipboard");
-                                    }
-                                  }}
-                                >
-                                  <LinkIcon
-                                    className='h-4 w-4'
-                                    color='#9F9FA9'
-                                  />
-                                </Button>
+                                    }}
+                                  >
+                                    <LinkIcon
+                                      className='h-4 w-4'
+                                      color='#9F9FA9'
+                                    />
+                                  </Button>
+                                )}
                                 {/* <Button
                                   variant='ghost'
                                   size='sm'
@@ -361,14 +357,14 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent
                                     align='end'
-                                    className='bg-gray-800 border-[#27272A]'
+                                    className='bg-gray-800 border-[var(--default-border-color)]'
                                   >
                                     {listing.status === "DRAFT" && (
                                       <Link
                                         href={`/ambassador-dao/sponsor/listing/${listing.id}/update?type=${listing.type}`}
                                         onClick={(e) => e.stopPropagation()}
                                       >
-                                        <DropdownMenuItem className='text-white hover:bg-gray-700 cursor-pointer'>
+                                        <DropdownMenuItem className='text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer'>
                                           <PenLine
                                             className='h-4 w-4 mr-2'
                                             color='#9F9FA9'
@@ -379,7 +375,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                     )}
 
                                     <DropdownMenuItem
-                                      className='text-white hover:bg-gray-700 cursor-pointer'
+                                      className='text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer'
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedListingId(listing.id);
@@ -392,18 +388,12 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                       />{" "}
                                       Delete
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      className='text-white hover:bg-gray-700 cursor-pointer'
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (
-                                          listing.status === "DRAFT" ||
-                                          listing.status === "IN_REVIEW"
-                                        ) {
-                                          toast.error(
-                                            "Error: Only published listings link can be copied"
-                                          );
-                                        } else {
+                                    {listing.status === "PUBLISHED" && (
+                                      <DropdownMenuItem
+                                        className='text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer'
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+
                                           navigator.clipboard.writeText(
                                             `${
                                               window.location.origin
@@ -416,15 +406,15 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                           toast.success(
                                             "Link copied to clipboard"
                                           );
-                                        }
-                                      }}
-                                    >
-                                      <LinkIcon
-                                        className='h-4 w-4 mr-2'
-                                        color='#9F9FA9'
-                                      />{" "}
-                                      Copy Link
-                                    </DropdownMenuItem>
+                                        }}
+                                      >
+                                        <LinkIcon
+                                          className='h-4 w-4 mr-2'
+                                          color='#9F9FA9'
+                                        />{" "}
+                                        Copy Link
+                                      </DropdownMenuItem>
+                                    )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
@@ -450,10 +440,10 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                   />
 
                   <div className='my-2'>
-                    <h2 className='text-white text-2xl text-center font-medium'>
+                    <h2 className='text-[var(--white-text-color)] text-2xl text-center font-medium'>
                       Create your first listing
                     </h2>
-                    <p className='text-[#9F9FA9] text-sm text-center'>
+                    <p className='text-[var(--secondary-text-color)] text-sm text-center'>
                       and start getting contributions
                     </p>
                   </div>
@@ -483,10 +473,12 @@ interface StatCardProps {
 function StatCard({ value, label }: StatCardProps) {
   return (
     <div>
-      <p className='text-2xl md:text-3xl font-semibold text-[#F8FAFC]'>
+      <p className='text-2xl md:text-3xl font-semibold text-[var(--primary-text-color)]'>
         {value}
       </p>
-      <p className='text-[#9F9FA9] font-light text-sm sm:text-base'>{label}</p>
+      <p className='text-[var(--secondary-text-color)] font-light text-sm sm:text-base'>
+        {label}
+      </p>
     </div>
   );
 }
@@ -505,7 +497,7 @@ function TabButton({ active, onClick, children }: TabButtonProps) {
         "px-4 py-2 font-medium",
         active
           ? "text-white bg-red-500 rounded-md"
-          : "text-gray-400 hover:text-white"
+          : "text-[var(--secondary-text-color)] hover:text-[var(--primary-text-color)]"
       )}
     >
       {children}

@@ -15,10 +15,10 @@ export const GoBackButton = () => {
 
   return (
     <p
-      className='flex items-center justify-center rounded-md gap-2 py-4 cursor-pointer w-[121px] h-10 mb-8 border border-[#27272A]'
+      className='flex items-center justify-center rounded-md gap-2 py-4 cursor-pointer w-[121px] h-10 mb-8 border border-[var(--default-border-color)]'
       onClick={handleGoBack}
     >
-      <ArrowLeft color='#fff' size={16} />
+      <ArrowLeft color='var(--white-text-color)' size={16} />
       Go Back
     </p>
   );

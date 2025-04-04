@@ -21,13 +21,13 @@ export const PublishOpportunityModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className='max-w-lg py-6 bg-gray-50 dark:bg-[#09090B]'
+        className='max-w-lg py-6 bg-[#fafafa] dark:bg-[#09090B]'
         showClose
       >
-        <DialogTitle className='text-2xl text-[#FAFAFA] font-semibold'>
+        <DialogTitle className='text-2xl text-[var(--primary-text-color)] font-semibold'>
           Publishing Confirmation
         </DialogTitle>
-        <div className='text-[#9F9FA9] my-3'>
+        <div className='text-[var(--secondary-text-color)] my-3'>
           Do you want to publish this listing ? Approval may take xx hours, This
           content will be visible to all users upon publishing.
         </div>

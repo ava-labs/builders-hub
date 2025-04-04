@@ -27,10 +27,11 @@ const CustomButton: FC<ButtonProps> = ({
     "rounded-md h-10 text-sm font-medium flex items-center justify-center gap-2 transition focus:outline-none";
 
   const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
-    default: "bg-[#FAFAFA] text-[#09090B]",
-    outlined: "bg-transparent border border-[#27272A] text-[#FAFAFA]",
-    danger: "bg-[#FB2C36] text-[#FAFAFA]",
-    white: "bg-[#F5F5F9] text-[#161617]",
+    default: "bg-[#18181B] dark:bg-[#FAFAFA] text-[#fff] dark:text-[#09090B]",
+    outlined:
+      "bg-transparent border border-[var(--default-border-color)] text-[var(--primary-text-color)]",
+    danger: "bg-[#FB2C36] text-[#fafafa]",
+    white: "bg-[#000] text-[#fff] dark:bg-[#F5F5F9] dark:text-[#161617]",
   };
 
   return (
@@ -49,7 +50,7 @@ const CustomButton: FC<ButtonProps> = ({
       {isLoading ? (
         <Loader2
           className='animate-spin'
-          color={variant === "default" ? "#09090B" : "#FAFAFA"}
+          color={variant === "default" ? "#fff dark:#09090B" : "#FAFAFA"}
           size={20}
         />
       ) : (
