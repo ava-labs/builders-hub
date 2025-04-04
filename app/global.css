@@ -405,7 +405,6 @@ nav a:not(:first-child) {
   background-color: transparent;
   border: solid 1px var(--default-border-color);
   color: var(--primary-text-color);
-  margin-top: 10px;
   border-radius: 6px;
 
   ._code_1tncs_52 {
@@ -439,6 +438,21 @@ nav a:not(:first-child) {
   h6 {
     font-size: 1rem;
     font-weight: 400;
+  }
+}
+
+.mdxeditor-root-contenteditable {
+  margin-top: 20px !important;
+}
+
+._placeholder_uazmk_1084 {
+  color: #6b6b74 !important;
+}
+
+/* For dark mode support */
+@media (prefers-color-scheme: dark) {
+  ._placeholder_uazmk_1084 {
+    color: #a1a1aa !important;
   }
 }
 

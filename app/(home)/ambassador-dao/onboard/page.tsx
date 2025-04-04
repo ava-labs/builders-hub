@@ -340,7 +340,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
       },
       {
         onSuccess: () => {
-          router.push("/ambassador-dao/jobs");
+          router.push("/ambassador-dao");
         },
       }
     );
