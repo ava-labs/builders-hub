@@ -20,7 +20,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
       )}
       <select
         {...props}
-        className={`w-full h-10 px-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36] ${props.className}`}
+        className={`w-full h-10 px-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] ${props.className}`}
       >
         {children}
       </select>

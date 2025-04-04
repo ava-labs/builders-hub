@@ -69,7 +69,7 @@ const AmbasssadorDaoSponsorsListingPreview = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <div className='p-4 md:p-8 m-4 md:m-8 bg-[#09090B] border border-[#27272A] rounded-md'>
+    <div className='p-4 md:p-8 m-4 md:m-8 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-md'>
       <div className='flex justify-end mb-8'>
         <div className='flex space-x-3'>
           <Link
@@ -77,7 +77,7 @@ const AmbasssadorDaoSponsorsListingPreview = () => {
           >
             <CustomButton
               variant='outlined'
-              className='px-4 text-[#fff] whitespace-nowrap'
+              className='px-4 text-[#000] dark:text-[#fff] whitespace-nowrap'
             >
               Continue Editing
             </CustomButton>

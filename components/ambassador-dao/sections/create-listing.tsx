@@ -275,19 +275,36 @@ export default function AmbasssadorDaoSponsorsCreateListing({
       ) : (
         <>
           {" "}
+<<<<<<< HEAD
           <div className="p-4 md:p-8 m-4 md:m-8 bg-[#09090B] border border-[#27272A] rounded-md">
             <div className="max-w-7xl mx-auto">
               <div className="flex justify-between mb-8">
+=======
+          <div className='p-4 md:p-8 m-4 md:m-8 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-md'>
+            <div className='max-w-7xl mx-auto'>
+              <div className='flex justify-between mb-8'>
+>>>>>>> 4289f3331... feat: light and dark mode
                 <Button
                   variant="outline"
                   onClick={goBack}
+<<<<<<< HEAD
                   className="text-[#FAFAFA] border-[#27272A]"
                 >
                   <ArrowLeft className="mr-1 h-4 w-4" color="#FAFAFA" /> Go Back
+=======
+                  className='text-[var(--primary-text-color)] border-[var(--default-border-color)]'
+                >
+                  <ArrowLeft
+                    className='mr-1 h-4 w-4'
+                    color='var(--primary-text-color)'
+                  />{" "}
+                  Go Back
+>>>>>>> 4289f3331... feat: light and dark mode
                 </Button>
 
                 <div className="flex space-x-3">
                   <CustomButton
+<<<<<<< HEAD
                     variant="default"
                     className="px-4 text-[#18181B]"
                     onClick={() => {
@@ -295,13 +312,26 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       handleSubmit(onSubmitPreview)();
                     }}
                     isLoading={isPending && buttonState === "preview"}
+=======
+                    variant='white'
+                    className='px-4'
+                    onClick={handleSubmit(onSubmitPreview)}
+                    isLoading={isPending}
+>>>>>>> 4289f3331... feat: light and dark mode
                     disabled={
                       (type === "BOUNTY" && prizeFields.length === 0) ||
                       selectedSkills.length === 0 ||
                       isPending
                     }
                   >
+<<<<<<< HEAD
                     <Eye className="mr-1 h-4 w-4" color="#18181B" />
+=======
+                    <Eye
+                      className='mr-1 h-4 w-4'
+                      color='var(--black-background-color)'
+                    />
+>>>>>>> 4289f3331... feat: light and dark mode
                     Preview
                   </CustomButton>
                   <CustomButton
@@ -327,8 +357,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-2 space-y-6">
                     {/* Title Section */}
+<<<<<<< HEAD
                     <div className="space-y-1">
                       <label className="flex text-[#FAFAFA] text-sm font-medium">
+=======
+                    <div className='space-y-1'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 4289f3331... feat: light and dark mode
                         Listing Title
                         <span className="text-red-500 ml-1">*</span>
                       </label>
@@ -340,6 +375,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             <Select
                               value={field.value}
                               onValueChange={field.onChange}
+<<<<<<< HEAD
                               iconColor="#FAFAFA"
                             >
                               <SelectTrigger className="min-w-32 bg-[#09090B] border-[#27272A] focus:outline-none !h-10 my-2">
@@ -351,6 +387,19 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                     <BriefcaseBusiness
                                       className="mr-2"
                                       color="#FAFAFA"
+=======
+                              iconColor='var(--primary-text-color)'
+                            >
+                              <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
+                                <SelectValue placeholder='Select' />
+                              </SelectTrigger>
+                              <SelectContent className='bg-[#fafafa] dark:bg-[#09090B] text-[var(--primary-text-color)]'>
+                                <SelectItem value='JOB'>
+                                  <div className='flex items-center'>
+                                    <BriefcaseBusiness
+                                      className='mr-2'
+                                      color='var(--primary-text-color)'
+>>>>>>> 4289f3331... feat: light and dark mode
                                     />
                                     Job
                                   </div>
@@ -358,8 +407,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                 <SelectItem value="BOUNTY">
                                   <div className="flex items-center">
                                     <BriefcaseBusiness
+<<<<<<< HEAD
                                       className="mr-2"
                                       color="#FAFAFA"
+=======
+                                      className='mr-2'
+                                      color='var(--primary-text-color)'
+>>>>>>> 4289f3331... feat: light and dark mode
                                     />
                                     Bounty
                                   </div>
@@ -390,8 +444,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     </div>
 
                     {/* Requirements Section */}
+<<<<<<< HEAD
                     <div className="space-y-2">
                       <label className="flex text-[#FAFAFA] text-sm font-medium">
+=======
+                    <div className='space-y-2'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 4289f3331... feat: light and dark mode
                         Requirements
                         <span className="text-red-500 ml-1">*</span>
                       </label>
@@ -415,8 +474,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     </div>
 
                     {/* Description Section */}
+<<<<<<< HEAD
                     <div className="space-y-2">
                       <label className="flex text-[#FAFAFA] text-sm font-medium">
+=======
+                    <div className='space-y-2'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 4289f3331... feat: light and dark mode
                         Description
                         <span className="text-red-500 ml-1">*</span>
                       </label>
@@ -437,11 +501,17 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                   <div className="lg:col-span-1 space-y-6">
                     {/* Rewards Section - Conditional based on type */}
                     {formType === "JOB" ? (
+<<<<<<< HEAD
                       <div className="space-y-1">
                         <label className="flex text-[#FAFAFA] text-sm font-medium">
+=======
+                      <div className='space-y-1'>
+                        <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 4289f3331... feat: light and dark mode
                           Add Rewards
                           <span className="text-red-500 ml-1">*</span>
                         </label>
+<<<<<<< HEAD
                         <div className="flex items-center gap-2">
                           <Select defaultValue="USDC" iconColor="#FAFAFA">
                             <SelectTrigger className="min-w-32 bg-[#09090B] border-[#27272A] focus:outline-none !h-10 my-2">
@@ -450,6 +520,19 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             <SelectContent className="bg-[#09090B] text-[#FAFAFA]">
                               <SelectItem value="USDC">
                                 <div className="flex items-center">
+=======
+                        <div className='flex items-center gap-2'>
+                          <Select
+                            defaultValue='USDC'
+                            iconColor='var(--primary-text-color)'
+                          >
+                            <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className='bg-[var(--default-background-color)] text-[var(--primary-text-color)]'>
+                              <SelectItem value='USDC'>
+                                <div className='flex items-center'>
+>>>>>>> 4289f3331... feat: light and dark mode
                                   <Image
                                     src={UsdcToken}
                                     alt="usdc token"
@@ -487,8 +570,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                         )}
                       </div>
                     ) : (
+<<<<<<< HEAD
                       <div className="space-y-4">
                         <label className="flex text-[#FAFAFA] text-sm font-medium">
+=======
+                      <div className='space-y-4'>
+                        <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 4289f3331... feat: light and dark mode
                           Prize Distribution
                           <span className="text-red-500 ml-1">*</span>
                         </label>
@@ -501,8 +589,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                         )}
 
                         {prizeFields.map((field, index) => (
+<<<<<<< HEAD
                           <div key={field.id} className="space-y-1">
                             <label className="flex text-[#FAFAFA] text-sm font-medium">
+=======
+                          <div key={field.id} className='space-y-1'>
+                            <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 4289f3331... feat: light and dark mode
                               {index === 0
                                 ? "First Prize"
                                 : index === 1
@@ -516,12 +609,21 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                 defaultValue="USDC"
                                 onValueChange={() => {}}
                               >
+<<<<<<< HEAD
                                 <SelectTrigger className="min-w-32 bg-[#09090B] border-[#27272A] focus:outline-none !h-10 my-2">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent className="bg-[#09090B] text-[#FAFAFA]">
                                   <SelectItem value="USDC">
                                     <div className="flex items-center">
+=======
+                                <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className='bg-[var(--default-background-color)] text-[var(--primary-text-color)]'>
+                                  <SelectItem value='USDC'>
+                                    <div className='flex items-center'>
+>>>>>>> 4289f3331... feat: light and dark mode
                                       <Image
                                         src={UsdcToken}
                                         alt="usdc token"
@@ -570,10 +672,17 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 
                         <div className="flex justify-end">
                           <Button
+<<<<<<< HEAD
                             type="button"
                             variant="ghost"
                             size="sm"
                             className="h-6 py-1 text-xs text-[#FAFAFA] hover:bg-none"
+=======
+                            type='button'
+                            variant='ghost'
+                            size='sm'
+                            className='h-6 py-1 text-xs text-[var(--primary-text-color)] hover:bg-none'
+>>>>>>> 4289f3331... feat: light and dark mode
                             onClick={() =>
                               appendPrize({
                                 position: prizeFields.length + 1,
@@ -581,7 +690,14 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                               })
                             }
                           >
+<<<<<<< HEAD
                             <Plus className="h-3 w-3 mr-1" color="#FAFAFA" />
+=======
+                            <Plus
+                              className='h-3 w-3 mr-1'
+                              color='var(--primary-text-color)'
+                            />
+>>>>>>> 4289f3331... feat: light and dark mode
                             Add Individual Prize Position
                           </Button>
                         </div>
@@ -589,8 +705,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     )}
 
                     {/* Start Date Section */}
+<<<<<<< HEAD
                     <div className="space-y-2">
                       <label className="flex text-[#FAFAFA] text-sm font-medium">
+=======
+                    <div className='space-y-2'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 4289f3331... feat: light and dark mode
                         Start Date (in America/New_York)
                         <span className="text-red-500 ml-1">*</span>
                       </label>
@@ -603,8 +724,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button
+<<<<<<< HEAD
                                   variant="outline"
                                   className="bg-[#09090B] border-[#27272A] justify-between text-left font-normal"
+=======
+                                  variant='outline'
+                                  className='bg-[var(--default-background-color)] border-[var(--default-border-color)] justify-between text-left font-normal'
+>>>>>>> 4289f3331... feat: light and dark mode
                                 >
                                   {field.value ? (
                                     format(new Date(field.value), "PPP")
@@ -612,8 +738,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                     <span>Pick a date</span>
                                   )}
                                   <CalendarIcon
+<<<<<<< HEAD
                                     className="h-4 w-4 opacity-50"
                                     color="#FAFAFA"
+=======
+                                    className='h-4 w-4 opacity-50'
+                                    color='var(--primary-text-color)'
+>>>>>>> 4289f3331... feat: light and dark mode
                                   />
                                 </Button>
                               </PopoverTrigger>
@@ -634,7 +765,11 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                     document.body.click();
                                   }}
                                   initialFocus
+<<<<<<< HEAD
                                   className="text-[#FAFAFA] bg-[#09090B]"
+=======
+                                  className='text-[var(--primary-text-color)] bg-[#fafafa] dark:bg-[#09090B]'
+>>>>>>> 4289f3331... feat: light and dark mode
                                 />
                               </PopoverContent>
                             </Popover>
@@ -649,8 +784,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     </div>
 
                     {/* End Date Section */}
+<<<<<<< HEAD
                     <div className="space-y-2">
                       <label className="flex text-[#FAFAFA] text-sm font-medium">
+=======
+                    <div className='space-y-2'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 4289f3331... feat: light and dark mode
                         End Date (in America/New_York)
                         <span className="text-red-500 ml-1">*</span>
                       </label>
@@ -663,8 +803,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button
+<<<<<<< HEAD
                                   variant="outline"
                                   className="bg-[#09090B] border-[#27272A] justify-between text-left font-normal"
+=======
+                                  variant='outline'
+                                  className='bg-[var(--default-background-color)] border-[var(--default-border-color)] justify-between text-left font-normal'
+>>>>>>> 4289f3331... feat: light and dark mode
                                 >
                                   {field.value ? (
                                     format(new Date(field.value), "PPP")
@@ -672,8 +817,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                     <span>Pick a date</span>
                                   )}
                                   <CalendarIcon
+<<<<<<< HEAD
                                     className="h-4 w-4 opacity-50"
                                     color="#FAFAFA"
+=======
+                                    className='h-4 w-4 opacity-50'
+                                    color='var(--primary-text-color)'
+>>>>>>> 4289f3331... feat: light and dark mode
                                   />
                                 </Button>
                               </PopoverTrigger>
@@ -694,7 +844,11 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                     document.body.click();
                                   }}
                                   initialFocus
+<<<<<<< HEAD
                                   className="text-[#FAFAFA] bg-[#09090B]"
+=======
+                                  className='text-[var(--primary-text-color)] bg-[#fafafa] dark:bg-[#09090B]'
+>>>>>>> 4289f3331... feat: light and dark mode
                                 />
                               </PopoverContent>
                             </Popover>
@@ -723,7 +877,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                 type="button"
                                 variant="outline"
                                 className={cn(
-                                  "bg-transparent border-[#27272A] rounded-full text-xs px-3 h-8",
+                                  "bg-transparent border-[var(--default-border-color)] rounded-full text-xs px-3 h-8",
                                   isActive && "border-blue-500 bg-blue-500/10"
                                 )}
                                 onClick={() =>
@@ -744,12 +898,21 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     </div>
 
                     {/* Skills Section */}
+<<<<<<< HEAD
                     <div className="space-y-2">
                       <label className="flex text-[#FAFAFA] text-sm font-medium">
+=======
+                    <div className='space-y-2'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 4289f3331... feat: light and dark mode
                         Skills Needed
                         <span className="text-red-500 ml-1">*</span>
                       </label>
+<<<<<<< HEAD
                       <div className="w-full min-h-10 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36] overflow-x-auto">
+=======
+                      <div className='w-full min-h-10 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
+>>>>>>> 4289f3331... feat: light and dark mode
                         {selectedSkills.map((skillId, idx) => {
                           const skillName =
                             skills?.find((skill) => skill.id === skillId)
@@ -757,7 +920,11 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           return (
                             <div
                               key={idx}
+<<<<<<< HEAD
                               className="flex items-center gap-2 bg-[#fff] text-[#18181B] rounded-full px-2 text-xs cursor-pointer capitalize"
+=======
+                              className='flex items-center gap-2 bg-gray-200 dark:bg-[#fff] text-[#18181B] rounded-full px-2 text-xs cursor-pointer capitalize'
+>>>>>>> 4289f3331... feat: light and dark mode
                               onClick={() => removeSkill(skillId)}
                             >
                               {skillName}
@@ -771,7 +938,11 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           skills.map((badge, idx) => (
                             <div
                               key={idx}
+<<<<<<< HEAD
                               className="flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-xs cursor-pointer capitalize"
+=======
+                              className='flex items-center gap-2 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-full px-3 py-1 text-xs cursor-pointer capitalize'
+>>>>>>> 4289f3331... feat: light and dark mode
                               onClick={() => addSkill(badge.id)}
                             >
                               {badge.name}
@@ -787,8 +958,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     </div>
 
                     {/* Contact Section */}
+<<<<<<< HEAD
                     <div className="space-y-2">
                       <label className="flex text-[#FAFAFA] text-sm font-medium">
+=======
+                    <div className='space-y-2'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 4289f3331... feat: light and dark mode
                         Point of Contact (TG / X / Email)
                         <span className="text-red-500 ml-1">*</span>
                       </label>
@@ -799,8 +975,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                         render={({ field }) => (
                           <CustomInput
                             {...field}
+<<<<<<< HEAD
                             type="text"
                             className="bg-[#09090B] border-[#27272A]"
+=======
+                            type='text'
+                            className='bg-[var(--default-background-color)] border-[var(--default-border-color)]'
+>>>>>>> 4289f3331... feat: light and dark mode
                           />
                         )}
                       />
@@ -831,8 +1012,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             render={({ field }) => (
                               <CustomInput
                                 {...field}
+<<<<<<< HEAD
                                 className="bg-[#09090B] border-[#27272A] flex-1"
                                 placeholder="Enter your question"
+=======
+                                className='bg-[var(--default-background-color)] border-[var(--default-border-color)] flex-1'
+                                placeholder='Enter your question'
+>>>>>>> 4289f3331... feat: light and dark mode
                               />
                             )}
                           />
@@ -850,6 +1036,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 
                       <div className="flex justify-end">
                         <Button
+<<<<<<< HEAD
                           type="button"
                           variant="ghost"
                           size="sm"
@@ -858,6 +1045,19 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                         >
                           <Plus className="h-3 w-3 mr-1" color="#FAFAFA" /> Add
                           Question
+=======
+                          type='button'
+                          variant='ghost'
+                          size='sm'
+                          className='h-6 py-2 text-sm text-[var(--primary-text-color)] hover:bg-none'
+                          onClick={addCustomQuestion}
+                        >
+                          <Plus
+                            className='h-3 w-3 mr-1'
+                            color='var(--primary-text-color)'
+                          />{" "}
+                          Add Question
+>>>>>>> 4289f3331... feat: light and dark mode
                         </Button>
                       </div>
                     </div>

@@ -109,15 +109,15 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
               flex items-center justify-center
               text-lg md:text-xl text-center
               bg-transparent
-              border-2 rounded-lg border-[#27272A]
+              border-2 rounded-lg border-[var(--default-border-color)]
               focus:outline-none focus:ring-2 focus:ring-opacity-50
               transition-colors uppercase
               ${
                 isError
                   ? "border-[#E11D48] focus:border-[#E11D48] focus:ring-[#E11D48]"
-                  : "border-[#27272A] focus:border-[#FAFAFA] focus:ring-[#FAFAFA]"
+                  : "border-[var(--default-border-color)] focus:border-[var(--primary-text-color)] focus:ring-[var(--primary-text-color)]"
               }
-              text-[#FAFAFA]
+              text-[var(--primary-text-color)]
             `}
             aria-label={`Verification code digit ${index + 1}`}
           />
