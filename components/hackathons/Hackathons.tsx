@@ -131,7 +131,8 @@ export default function Hackathons({
     if (newFilters.page) params.set("page", newFilters.page.toString());
     if (newFilters.location) params.set("location", newFilters.location);
     if (newFilters.status) params.set("status", newFilters.status);
-    if (newFilters.recordsByPage) params.set("recordsByPage", String(newFilters.recordsByPage));
+    if (newFilters.recordsByPage)
+      params.set("recordsByPage", String(newFilters.recordsByPage));
 
     router.replace(`/hackathons?${params.toString()}`);
   };
@@ -161,32 +162,19 @@ export default function Hackathons({
   return (
     <section className="px-8 py-6">
       {/* Hackathons List */}
-      <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
-        {totalUpcomingHackathons ?? ""}{" "}
-        {totalUpcomingHackathons > 1
-          ? "Upcoming hackathons"
-          : totalUpcomingHackathons == 0
-          ? "No upcoming hackathons found"
-          : "Upcoming hackathon"}{" "}
-        found
-      </h3>
+      <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50">
+        Upcoming
+      </h2>
       <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
       <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
         {upcomingHackathons.map((hackathon: any) => (
           <HackathonCard key={hackathon.id} hackathon={hackathon} />
         ))}
       </div>
-      <h3 className="font-medium text-lg py-5 text-zinc-900 dark:text-zinc-50">
-        <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
-          {totalPastHackathons ?? ""}{" "}
-          {totalPastHackathons > 1
-            ? "Past hackathons"
-            : totalPastHackathons == 0
-            ? "No Past hackathons found"
-            : "Past hackathon"}{" "}
-          found
-        </h3>
-      </h3>
+      <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">
+        Past
+      </h2>
+      <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
         <div className="flex items-stretch gap-4 max-w-sm w-full h-9">
           {/* Input */}
@@ -208,23 +196,33 @@ export default function Hackathons({
             <Search size={24} color="white" />
           </button>
         </div>
-        <Select
-          onValueChange={(value: string) =>
-            handleFilterChange("location", value)
-          }
-          value={filters.location}
-        >
-          <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
-            <SelectValue placeholder="Filter by Location" />
-          </SelectTrigger>
-          <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-            <SelectItem value="all">All Locations</SelectItem>
-            <SelectItem value="Online">Online</SelectItem>
-            <SelectItem value="InPerson">In Person</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-row gap-4 items-center">
+          <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
+            {totalPastHackathons ?? ""}{" "}
+            {totalPastHackathons > 1
+              ? "Hackathons"
+              : totalPastHackathons == 0
+              ? "No Hackathons"
+              : "Hackathon"}{" "}
+            found
+          </h3>
+          <Select
+            onValueChange={(value: string) =>
+              handleFilterChange("location", value)
+            }
+            value={filters.location}
+          >
+            <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
+              <SelectValue placeholder="Filter by Location" />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
+              <SelectItem value="all">All Locations</SelectItem>
+              <SelectItem value="Online">Online</SelectItem>
+              <SelectItem value="InPerson">In Person</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-
       <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
       <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
         {pastHackathons.map((hackathon: any) => (
