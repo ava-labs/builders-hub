@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
-import { createPortal } from 'react-dom';
+import React, { useEffect, useRef } from "react";
+import { X } from "lucide-react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   isOpen: boolean;
@@ -31,24 +31,28 @@ const Modal: React.FC<ModalProps> = ({
 
   useEffect(() => {
     const handleEscKey = (e: KeyboardEvent) => {
-      if (closeOnEsc && e.key === 'Escape' && isOpen) {
+      if (closeOnEsc && e.key === "Escape" && isOpen) {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscKey);
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleEscKey);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscKey);
-      document.body.style.overflow = 'auto';
+      document.removeEventListener("keydown", handleEscKey);
+      document.body.style.overflow = "auto";
     };
   }, [isOpen, onClose, closeOnEsc]);
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (closeOnOutsideClick && modalRef.current && !modalRef.current.contains(e.target as Node)) {
+    if (
+      closeOnOutsideClick &&
+      modalRef.current &&
+      !modalRef.current.contains(e.target as Node)
+    ) {
       onClose();
     }
   };
@@ -56,36 +60,44 @@ const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    <div
+      className='fixed inset-0 bg-white dark:bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4'
       onClick={handleBackdropClick}
     >
-      <div 
+      <div
         ref={modalRef}
-        className={`bg-[#111] border border-[#2F2F33] rounded-lg ${maxWidth} w-full max-h-[90vh] overflow-y-auto`}
-        aria-modal="true"
-        role="dialog"
+        className={`bg-[#fafafa] dark:bg-[#111] border border-[var(--default-border-color)] rounded-lg ${maxWidth} w-full max-h-[90vh] overflow-y-auto`}
+        aria-modal='true'
+        role='dialog'
       >
         {(title || showCloseButton) && (
-          <div className="p-6">
-            <div className="flex justify-between items-center">
+          <div className='p-6'>
+            <div className='flex justify-between items-center'>
               {title && (
                 <div>
-                  <h2 className="text-2xl font-bold text-white">{title}</h2>
-                  {description && <p className="text-gray-400">{description}</p>}
+                  <h2 className='text-2xl font-bold text-[var(--white-text-color)]'>
+                    {title}
+                  </h2>
+                  {description && (
+                    <p className='text-[var(--secondary-text-color)]'>
+                      {description}
+                    </p>
+                  )}
                 </div>
               )}
               {showCloseButton && (
-                <button 
+                <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-white transition"
-                  aria-label="Close modal"
+                  className='text-[var(--secondary-text-color)] hover:text-[var(--white-text-color)] transition'
+                  aria-label='Close modal'
                 >
-                  <X size={24} color="#fff" />
+                  <X size={24} color='var(--white-text-color)' />
                 </button>
               )}
             </div>
-            {(title || showCloseButton) && <hr className="border-[#2F2F33] my-4" />}
+            {(title || showCloseButton) && (
+              <hr className='border-[#2F2F33] my-4' />
+            )}
           </div>
         )}
         <div className={!title && !showCloseButton ? "p-6" : ""}>

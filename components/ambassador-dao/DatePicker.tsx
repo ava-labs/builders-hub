@@ -68,58 +68,68 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <button
-          className={`inline-flex items-center justify-between h-11 rounded-md border border-[#27272A] px-4 py-2 text-sm focus:outline-none min-w-[160px] ${
-            date ? "text-white" : "text-[#9F9FA9]"
+          className={`inline-flex items-center justify-between h-11 rounded-md border border-[var(--default-border-color)] px-4 py-2 text-sm focus:outline-none min-w-[160px] ${
+            date
+              ? "text-[var(--white-text-color)]"
+              : "text-[var(--secondary-text-color)]"
           } `}
-          aria-label="Select date"
+          aria-label='Select date'
         >
           {date ? date.format("MMM D, YYYY") : "Select date"}
           <CalendarIcon
-            className="ml-2 h-4 w-4"
-            color={`${date ? "#fff" : "#9F9FA9"}`}
+            className='ml-2 h-4 w-4'
+            color={`${
+              date ? "var(--white-text-color)" : "var(--secondary-text-color)"
+            }`}
           />
         </button>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
-          className="bg-black text-white p-4 rounded-md shadow-xl z-50 w-[300px]"
+          className='bg-[#fff] dark:bg-[#000] text-[var(--white-text-color)] p-4 rounded-md shadow-xl z-50 w-[300px]'
           sideOffset={5}
-          align="start"
+          align='start'
         >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          <div className='space-y-4'>
+            <div className='flex items-center justify-between'>
               <button
                 onClick={previousMonth}
-                className="p-2 hover:bg-gray-700 rounded-md focus:outline-none"
-                aria-label="Previous month"
+                className='p-2 hover:bg-gray-700 rounded-md focus:outline-none'
+                aria-label='Previous month'
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft
+                  className='h-4 w-4'
+                  color='var(--secondary-text-color)'
+                />
               </button>
-              <div className="font-medium">
+              <div className='font-medium'>
                 {currentMonth.format("MMMM YYYY")}
               </div>
               <button
                 onClick={nextMonth}
-                className="p-2 hover:bg-gray-700 rounded-md focus:outline-none"
-                aria-label="Next month"
+                className='p-2 hover:bg-gray-700 rounded-md focus:outline-none'
+                aria-label='Next month'
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight
+                  className='h-4 w-4'
+                  color='var(--secondary-text-color)'
+                />
               </button>
             </div>
 
             <div>
-              <div className="grid grid-cols-7 mb-2">
+              <div className='grid grid-cols-7 mb-2'>
                 {weekDays.map((day) => (
                   <div
                     key={day}
-                    className="text-center text-xs text-gray-400 py-1"
+                    className='text-center text-xs text-[var(--secondary-text-color)] py-1'
                   >
                     {day}
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-7 gap-1">
+              <div className='grid grid-cols-7 gap-1'>
                 {calendarDays.map((day) => {
                   const isCurrentMonth = day.month() === currentMonth.month();
                   const isSelected = date ? day.isSame(date, "day") : false;
@@ -130,11 +140,15 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
                       onClick={() => handleSelect(day)}
                       className={`
                         h-8 w-8 rounded-full flex items-center justify-center text-sm
-                        ${isCurrentMonth ? "text-white" : "text-gray-500"}
+                        ${
+                          isCurrentMonth
+                            ? "text-[var(--white-text-color)]"
+                            : "text-gray-500"
+                        }
                         ${
                           isSelected
                             ? "bg-red-500 text-white hover:bg-red-600"
-                            : "hover:bg-gray-700"
+                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
                         }
                         focus:outline-none
                       `}
@@ -146,7 +160,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
               </div>
             </div>
           </div>
-          <Popover.Arrow className="fill-gray-800" />
+          <Popover.Arrow className='fill-gray-800' />
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

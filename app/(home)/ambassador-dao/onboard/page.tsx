@@ -100,7 +100,7 @@ const AmbasssadorDaoOnboardPage = () => {
           {userTypes.map((type, idx) => (
             <div
               key={idx}
-              className={`rounded-xl border border-[#27272A] bg-[#09090B] p-6 flex-1 cursor-pointer
+              className={`rounded-xl border border-[var(--default-border-color)] bg-[var(--default-background-color)] p-6 flex-1 cursor-pointer
                   ${
                     userType === type.name.toUpperCase()
                       ? "border-[#FB2C36]"
@@ -113,7 +113,7 @@ const AmbasssadorDaoOnboardPage = () => {
                 <div className='w-10 md:w-14 h-10 md:h-14 shrink-0 flex items-center justify-center bg-[#FB2C36] rounded-full p-2'>
                   <Crown color='white' size={28} />
                 </div>
-                <div className='text-[#FAFAFA]'>
+                <div className='text-[var(--primary-text-color)]'>
                   <p className='font-medium text-2xl md:text-3xl'>
                     Continue as <span className='capitalize'>{type.name}</span>
                   </p>
@@ -121,9 +121,9 @@ const AmbasssadorDaoOnboardPage = () => {
                 </div>
               </div>
 
-              <hr className='my-6 border-[#27272A]' />
+              <hr className='my-6 border-[var(--default-border-color)]' />
 
-              <div className='bg-black rounded-md h-36 md:h-44 relative overflow-hidden'>
+              <div className='bg-[#fff] dark:bg-[#000] rounded-md h-36 md:h-44 relative overflow-hidden'>
                 <Image
                   src={Avalance3d}
                   objectFit='contain'
@@ -132,13 +132,13 @@ const AmbasssadorDaoOnboardPage = () => {
                 />
               </div>
 
-              <hr className='my-6 border-[#27272A]' />
+              <hr className='my-6 border-[var(--default-border-color)]' />
 
               <div className='flex flex-col space-y-2'>
                 {type.perks.map((perk, idx) => (
                   <div
                     key={idx}
-                    className='flex items-center gap-3 text-[#FAFAFA]'
+                    className='flex items-center gap-3 text-[var(--primary-text-color)]'
                   >
                     <Check color='white' size={16} />
                     <p className='text-sm'>{perk}</p>
@@ -146,7 +146,7 @@ const AmbasssadorDaoOnboardPage = () => {
                 ))}
               </div>
 
-              <hr className='my-6 border-[#27272A]' />
+              <hr className='my-6 border-[var(--default-border-color)]' />
 
               <div className='flex justify-center'>
                 <CustomButton
@@ -166,7 +166,7 @@ const AmbasssadorDaoOnboardPage = () => {
         </div>
       )}
       {selectionStep === "account_form" && (
-        <div className='bg-[#09090B] rounded-xl border border-[#27272A] p-6 py-10'>
+        <div className='bg-[var(--default-background-color)] rounded-xl border border-[var(--default-border-color)] p-6 py-10'>
           {userType === ("USER" as "TALENT") && (
             <TalentForm handleClose={handleClose} />
           )}
@@ -356,7 +356,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
   return (
     <div>
       <div className='flex justify-between items-center'>
-        <h2 className='text-[#FAFAFA] text-xl md:text-2xl font-medium'>
+        <h2 className='text-[var(--primary-text-color)] text-xl md:text-2xl font-medium'>
           {isEditProfilePage
             ? stage === 1
               ? "Edit Your Profile"
@@ -366,18 +366,18 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             : "Add a wallet address"}
         </h2>
       </div>
-      <p className='text-[#9F9FA9] text-sm'>
+      <p className='text-[var(--secondary-text-color)] text-sm'>
         {isEditProfilePage
           ? "Update your profile information and wallet details."
           : "It takes less than a minute to start earning in global standards."}
       </p>
 
-      <hr className='border-[#27272A] my-6' />
+      <hr className='border-[var(--default-border-color)] my-6' />
 
       {stage === 1 && (
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className='text-[#FAFAFA] text-sm mt-6 md:mt-10 flex flex-col gap-4'
+          className='text-[var(--primary-text-color)] text-sm mt-6 md:mt-10 flex flex-col gap-4'
         >
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <CustomInput
@@ -463,13 +463,13 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
                 <span className='text-[#FB2C36]'>*</span>
               </p>
             </div>
-            <div className='w-full h-12 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
+            <div className='w-full h-12 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
               {selectedSkills &&
                 !!selectedSkills.length &&
                 selectedSkills.map((badge, idx) => (
                   <div
                     key={idx}
-                    className='flex items-center gap-2 bg-[#fff] text-[#18181B] rounded-full px-2 text-sm cursor-pointer capitalize'
+                    className='flex items-center gap-2 bg-gray-200 dark:bg-[#fff] text-[#18181B] rounded-full px-2 text-sm cursor-pointer capitalize'
                     onClick={() => removeSkill(badge)}
                   >
                     {skills?.find((skill) => skill.id === badge)?.name}
@@ -483,7 +483,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
                 skills.map((badge, idx) => (
                   <div
                     key={idx}
-                    className='flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-sm cursor-pointer capitalize'
+                    className='flex items-center gap-2 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-full px-3 py-1 text-sm cursor-pointer capitalize'
                     onClick={() => addSkill(badge.id)}
                   >
                     {badge.name}
@@ -511,7 +511,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             <div className='flex justify-end'>
               <button
                 type='button'
-                className='flex items-center text-sm text-[#A1A1AA]'
+                className='flex items-center text-sm text-[#6b6b74] dark:text-[#A1A1AA]'
                 onClick={addSocialLink}
               >
                 <Plus size={14} color='#A1A1AA' /> Add Link
@@ -522,7 +522,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             {socialLinks.map((link, idx) => (
               <div
                 key={idx}
-                className='flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-sm cursor-pointer'
+                className='flex items-center gap-2 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-full px-3 py-1 text-sm cursor-pointer'
                 onClick={() => removeSocialLink(link)}
               >
                 {link}
@@ -531,7 +531,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             ))}
           </div>
 
-          <hr className='border-[#27272A] my-6' />
+          <hr className='border-[var(--default-border-color)] my-6' />
           <div className='flex justify-between'>
             <CustomButton
               isLoading={isUpdatingProfile}
@@ -562,7 +562,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
       {stage === 2 && (
         <form
           onSubmit={handleSubmit(onSubmitWallet)}
-          className='text-[#FAFAFA] text-sm mt-6 md:mt-10 flex flex-col gap-4'
+          className='text-[var(--primary-text-color)] text-sm mt-6 md:mt-10 flex flex-col gap-4'
         >
           <CustomInput
             id='wallet_address'
@@ -573,7 +573,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             {...register("wallet_address")}
           />
 
-          <hr className='border-[#27272A] my-6' />
+          <hr className='border-[var(--default-border-color)] my-6' />
           <div className='flex justify-between'>
             <CustomButton
               isLoading={isConnectingWallet}
@@ -723,20 +723,22 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
   return (
     <div>
       <div className='flex justify-between items-center'>
-        <h2 className='text-[#FAFAFA] text-xl md:text-2xl font-medium'>
+        <h2 className='text-[var(--primary-text-color)] text-xl md:text-2xl font-medium'>
           Welcome to Ambassador DAO
         </h2>
       </div>
-      <p className='text-[#9F9FA9] text-sm mb-8'>
+      <p className='text-[var(--secondary-text-color)] text-sm mb-8'>
         It takes less than a minute to start earning in global standards.
       </p>
       <hr />
-      <h3 className='text-[#FAFAFA] font-medium text-xl my-6'>About you</h3>
+      <h3 className='text-[var(--primary-text-color)] font-medium text-xl my-6'>
+        About you
+      </h3>
       <hr />
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className='text-[#FAFAFA] text-sm mt-6 md:mt-10 flex flex-col gap-4'
+        className='text-[var(--primary-text-color)] text-sm mt-6 md:mt-10 flex flex-col gap-4'
       >
         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
           <CustomInput
@@ -811,11 +813,11 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
             Upload Profile Image or Avatar
             <span className='text-[#FB2C36]'>*</span>
           </label>
-          <p className='text-xs text-[#A1A1AA] mb-2'>
+          <p className='text-xs text-[#6b6b74] dark:text-[#A1A1AA] mb-2'>
             Add the image here. Recommended size: 512 x 512px (square format)
           </p>
           {profile_image ? (
-            <div className='rounded-md my-2 flex justify-between items-center border border-[#27272A] p-3 text-sm'>
+            <div className='rounded-md my-2 flex justify-between items-center border border-[var(--default-border-color)] p-3 text-sm'>
               {profileImageName}
               <X
                 onClick={() => {
@@ -829,7 +831,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
               />
             </div>
           ) : (
-            <div className='border border-dashed border-[#27272A] rounded-md p-6 flex flex-col items-center justify-center h-32'>
+            <div className='border border-dashed border-[var(--default-border-color)] rounded-md p-6 flex flex-col items-center justify-center h-32'>
               {isUploading ? (
                 <>
                   <Loader2 className='animate-spin' color='white' size={24} />
@@ -839,10 +841,10 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                   {" "}
                   <Upload
                     size={24}
-                    className='text-[#A1A1AA] mb-2'
+                    className='text-[#6b6b74] dark:text-[#A1A1AA] mb-2'
                     color='white'
                   />
-                  <p className='text-sm text-[#A1A1AA]'>
+                  <p className='text-sm text-[#6b6b74] dark:text-[#A1A1AA]'>
                     Drag your file(s) or{" "}
                     <input
                       type='file'
@@ -856,12 +858,12 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                     />
                     <label
                       htmlFor='profileImage'
-                      className='text-[#FAFAFA] underline cursor-pointer'
+                      className='text-[var(--primary-text-color)] underline cursor-pointer'
                     >
                       browse
                     </label>
                   </p>
-                  <p className='text-xs text-[#A1A1AA] mt-1'>
+                  <p className='text-xs text-[#6b6b74] dark:text-[#A1A1AA] mt-1'>
                     Max 1 MB files are allowed
                   </p>
                 </>
@@ -872,7 +874,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
 
         <hr />
 
-        <h3 className='text-[#FAFAFA] font-medium text-xl my-6'>
+        <h3 className='text-[var(--primary-text-color)] font-medium text-xl my-6'>
           About Your Company
         </h3>
 
@@ -943,11 +945,11 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
             <label className='block text-sm'>
               Company Logo<span className='text-[#FB2C36]'>*</span>
             </label>
-            <p className='text-xs text-[#A1A1AA] mb-2'>
+            <p className='text-xs text-[#6b6b74] dark:text-[#A1A1AA] mb-2'>
               Add the image here. Recommended size: 512 x 512px (square format)
             </p>
             {logo ? (
-              <div className='rounded-md my-2 flex justify-between items-center border border-[#27272A] p-3 text-sm'>
+              <div className='rounded-md my-2 flex justify-between items-center border border-[var(--default-border-color)] p-3 text-sm'>
                 {companyLogoName}
                 <X
                   onClick={() => {
@@ -960,7 +962,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                 />
               </div>
             ) : (
-              <div className='border border-dashed border-[#27272A] rounded-md p-6 flex flex-col items-center justify-center h-32'>
+              <div className='border border-dashed border-[var(--default-border-color)] rounded-md p-6 flex flex-col items-center justify-center h-32'>
                 {isUploading ? (
                   <>
                     <Loader2 className='animate-spin' color='white' size={24} />
@@ -970,10 +972,10 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                     {" "}
                     <Upload
                       size={24}
-                      className='text-[#A1A1AA] mb-2'
+                      className='text-[#6b6b74] dark:text-[#A1A1AA] mb-2'
                       color='white'
                     />
-                    <p className='text-sm text-[#A1A1AA]'>
+                    <p className='text-sm text-[#6b6b74] dark:text-[#A1A1AA]'>
                       Drag your file(s) or{" "}
                       <input
                         type='file'
@@ -987,12 +989,12 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                       />
                       <label
                         htmlFor='profileImage'
-                        className='text-[#FAFAFA] underline cursor-pointer'
+                        className='text-[var(--primary-text-color)] underline cursor-pointer'
                       >
                         browse
                       </label>
                     </p>
-                    <p className='text-xs text-[#A1A1AA] mt-1'>
+                    <p className='text-xs text-[#6b6b74] dark:text-[#A1A1AA] mt-1'>
                       Max 1 MB files are allowed
                     </p>
                   </>
@@ -1015,7 +1017,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
             {...register("short_bio")}
           />
         </div>
-        <hr className='border-[#27272A] my-6' />
+        <hr className='border-[var(--default-border-color)] my-6' />
         <div className='flex'>
           <CustomButton
             isLoading={isUpdatingProfile || isUploading}

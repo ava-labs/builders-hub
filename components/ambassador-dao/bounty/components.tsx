@@ -64,50 +64,50 @@ interface BountySidebarProps {
 
 export const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
   return (
-    <div className="border border-[#27272A] p-4 mb-6 rounded-lg">
-      <div className="flex items-center gap-5">
+    <div className='border border-[var(--default-border-color)] p-4 mb-6 rounded-lg'>
+      <div className='flex items-center gap-5'>
         {bounty.companyLogo ? (
           <img
             src={bounty.companyLogo}
             alt={bounty.companyName}
-            className="w-14 h-14 rounded-full object-cover"
+            className='w-14 h-14 rounded-full object-cover'
           />
         ) : (
-          <CircleUser color="#9F9FA9" size={56} />
+          <CircleUser color='#9F9FA9' size={56} />
         )}
-        <div className="mb-6">
-          <h1 className="text-base font-bold text-red-500 mb-2">
+        <div className='mb-6'>
+          <h1 className='text-base font-bold text-red-500 mb-2'>
             {bounty.title}
           </h1>
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span className="text-gray-300 text-sm">
+          <div className='flex justify-between items-center'>
+            <div className='flex items-center gap-2'>
+              <span className='text-[var(--secondary-text-color)] text-sm'>
                 {bounty.companyName}
               </span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-4 rounded-md mt-2">
-            <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
-              <BriefcaseBusiness size={16} color="#9F9FA9" />
-              <span className="capitalize">{bounty.type?.toLowerCase()}</span>
+          <div className='flex flex-wrap gap-4 rounded-md mt-2'>
+            <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
+              <BriefcaseBusiness size={16} color='#9F9FA9' />
+              <span className='capitalize'>{bounty.type?.toLowerCase()}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
-              <Hourglass size={16} color="#9F9FA9" />
+            <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
+              <Hourglass size={16} color='#9F9FA9' />
               <span>
                 {getTimeLeft(bounty?.deadline) === "Expired"
                   ? "Closed"
                   : `Due in: ${getTimeLeft(bounty?.deadline)}`}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
-              <FileText size={16} color="#9F9FA9" />
+            <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
+              <FileText size={16} color='#9F9FA9' />
               <span>
                 {bounty?._count?.submissions}{" "}
                 {bounty?._count?.submissions > 1 ? "Proposals" : "Proposal"}
               </span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 mt-2">
+          <div className='flex flex-wrap gap-2 mt-2'>
             {bounty.skills.length > 0 ? (
               bounty.skills.map(
                 (skill: { name: string } | string, index: Key) => (
@@ -119,7 +119,9 @@ export const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
                 )
               )
             ) : (
-              <span className="text-gray-400 text-sm">No skills specified</span>
+              <span className='text-[var(--secondary-text-color)] text-sm'>
+                No skills specified
+              </span>
             )}
           </div>
         </div>
@@ -132,16 +134,16 @@ export const BountyDescription: React.FC<BountyDescriptionProps> = ({
   data,
 }) => {
   return (
-    <div className="mb-6 text-gray-300">
-      <h2 className="text-xl font-semibold mb-2 text-white">{data.title}</h2>
-      <div className="space-y-4">
+    <div className='mb-6 text-[var(--secondary-text-color)]'>
+      <h2 className='text-xl font-semibold mb-2 text-white'>{data.title}</h2>
+      <div className='space-y-4'>
         <ReactMarkdown
           components={{
             ul: ({ node, ...props }) => (
-              <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />
+              <ul className='list-disc pl-6 mb-4 space-y-2' {...props} />
             ),
             ol: ({ node, ...props }) => (
-              <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />
+              <ol className='list-decimal pl-6 mb-4 space-y-2' {...props} />
             ),
           }}
         >
@@ -166,11 +168,11 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
   const { data: userData } = useFetchUserDataQuery();
 
   return (
-    <div className="bg-[#111] p-4 rounded-md border border-gray-800 sticky top-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-white flex items-center gap-2">
-            <Image src={Token} alt="$" />
+    <div className='bg-transparent p-4 rounded-md border border-[var(--default-border-color)] sticky top-6'>
+      <div className='flex items-center justify-between mb-4'>
+        <div className='flex items-center gap-2'>
+          <span className='text-[var(--white-text-color)] flex items-center gap-2'>
+            <Image src={Token} alt='$' />
             {bounty?.total_budget} USDC
           </span>
         </div>
@@ -179,44 +181,47 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
       {bounty?.prize_distribution &&
         bounty?.prize_distribution?.map(
           (prize: { amount: number; position: number }, index: number) => (
-            <div key={index} className="flex items-center gap-2 my-2">
-              <Image src={Token} alt="$" />
+            <div key={index} className='flex items-center gap-2 my-2'>
+              <Image src={Token} alt='$' />
               {prize.amount} USDC{" "}
-              <span className="text-[#9F9FA9]">
+              <span className='text-[var(--secondary-text-color)]'>
                 {getOrdinalPosition(prize.position)}
               </span>
             </div>
           )
         )}
 
-      <div className="flex gap-4 items-center mb-6 mt-2">
-        <div className="flex flex-col">
-          <span className="text-white flex items-center">
+      <div className='flex gap-4 items-center mb-6 mt-2'>
+        <div className='flex flex-col'>
+          <span className='text-[var(--white-text-color)] flex items-center'>
             <BriefcaseBusiness
               size={16}
-              className="inline mr-1"
-              color="#9F9FA9"
+              className='inline mr-1'
+              color='#9F9FA9'
             />
             <span>{bounty?.proposalsCount}</span>
           </span>
-
-          <span className="text-gray-400 text-sm">
+          <span className='text-[var(--secondary-text-color)] text-sm'>
             {bounty?.proposalsCount > 1 ? "Proposals" : "Proposal"}
           </span>
         </div>
-        <div className="flex flex-col justify-center">
-          <span className="text-white flex items-center">
-            <Hourglass size={16} className="inline mr-1" color="#9F9FA9" />
+        <div className='flex flex-col justify-center'>
+          <span className='text-[var(--white-text-color)] flex items-center'>
+            <Hourglass size={16} className='inline mr-1' color='#9F9FA9' />
             <span>{timeLeft}</span>
           </span>
-          <span className="text-gray-400 text-sm">Remaining</span>
+          <span className='text-[var(--secondary-text-color)] text-sm'>
+            Remaining
+          </span>
         </div>
       </div>
 
-      <div className="mb-6">
-        <h2 className="text-lg font-medium mb-3 text-white">SKILL NEEDED</h2>
+      <div className='mb-6'>
+        <h2 className='text-lg font-medium mb-3 text-[var(--primary-text-color)]'>
+          SKILL NEEDED
+        </h2>
         {bounty?.skills?.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          <div className='flex flex-wrap gap-2'>
             {bounty?.skills?.map((skill: { name: string }, index: number) => (
               <div key={index}>
                 <Outline label={skill.name} />
@@ -234,7 +239,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
           disabled={data?.has_submitted || timeLeft === "Expired"}
           className={`w-full font-medium py-3 rounded-md transition ${
             data?.has_submitted || timeLeft === "Expired"
-              ? "bg-gray-400 text-white cursor-not-allowed"
+              ? "bg-gray-400 text-[var(--white-text-color)] cursor-not-allowed"
               : "bg-red-500 hover:bg-red-600 text-white"
           }`}
           onClick={() => {
@@ -259,7 +264,9 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
           }}
         >
           {isLoading ? (
-            <Loader2 className="mx-auto" color="#FFF" />
+            <div className='flex items-center justify-center'>
+              <Loader2 color='var(--white-text-color)' />
+            </div>
           ) : data?.has_submitted ? (
             "Already Submitted"
           ) : timeLeft === "Expired" ? (

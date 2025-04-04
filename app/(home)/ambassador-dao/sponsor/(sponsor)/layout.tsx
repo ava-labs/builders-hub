@@ -36,9 +36,9 @@ const AmbasssadorDaoSponsorsLayout = ({
   return (
     <>
       {user && (
-        <div className='flex flex-col md:flex-row min-h-screen bg-[#09090B] rounded-md text-white m-4 md:m-6 border border-[#27272A] p-3 md:p-6 lg:p-8'>
+        <div className='flex flex-col md:flex-row min-h-screen bg-[var(--default-background-color)] rounded-md text-[var(--white-text-color)] m-4 md:m-6 border border-[var(--default-border-color)] p-3 md:p-6 lg:p-8'>
           {/* Sidebar */}
-          <aside className='w-full md:w-56 lg:w-64 p-3 md:border-r border-[#27272A]'>
+          <aside className='w-full md:w-56 lg:w-64 p-3 md:border-r border-[var(--default-border-color)]'>
             <div className='flex flex-row justify-center md:justify-normal md:flex-col md:space-y-4 overflow-x-auto whitespace-nowrap space-x-4 md:space-x-0'>
               <SidebarItem
                 href='/ambassador-dao/sponsor/listings'
@@ -110,11 +110,13 @@ function SidebarItem({ href, icon, label }: SidebarItemProps) {
         "flex items-center space-x-2 py-2",
         isActive
           ? "font-semibold text-[#FB2C36]"
-          : "font-medium text-[#9F9FA9] hover:!text-white hover:!font-semibold"
+          : "font-medium text-[var(--secondary-text-color)] hover:!text-[var(--white-text-color)] hover:!font-semibold"
       )}
     >
       {React.cloneElement(icon as React.ReactElement<any>, {
-        className: cn(isActive ? " !text-[#FB2C36]" : " !text-[#9F9FA9]"),
+        className: cn(
+          isActive ? " !text-[#FB2C36]" : " !text-[var(--secondary-text-color)]"
+        ),
       })}
       <span className='text-base md:text-lg'>{label}</span>
     </Link>
