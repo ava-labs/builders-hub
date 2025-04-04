@@ -7,6 +7,7 @@ import Description from "./sections/Description";
 import TeamMembers from "./sections/TeamMembers";
 import Resources from "./sections/Resources";
 import { Project, ProjectResource } from "@/types/showcase";
+import VideoRenderer from "./DemoVideoRenderer";
 
 const prices = [
   {
@@ -58,9 +59,9 @@ const resources: ProjectResource[] = [
   // },
 ];
 type Props = {
-  project: Project; 
-}
-export default function ProjectOverview({project}: Props) {
+  project: Project;
+};
+export default function ProjectOverview({ project }: Props) {
   return (
     <div>
       <Separator className="my-4 sm:my-8 bg-zinc-300 dark:bg-zinc-800" />
@@ -89,22 +90,19 @@ export default function ProjectOverview({project}: Props) {
             <Gallery projectGallery={project.screenshots} />
           )}
           {project.demo_video_link && (
-            <video
-              width="320"
-              height="816"
-              controls
-              preload="none"
-              className="w-full"
-            >
-              <source src={project.demo_video_link} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
+            <VideoRenderer link={project.demo_video_link} />
           )}
+
           {prices && <Prices prices={prices} />}
-          {project.full_description&& (
+          {project.full_description && (
             <Description description={project.full_description} />
           )}
-          {project.members && <TeamMembers members={project.members} projectName={project.project_name} />}
+          {project.members && (
+            <TeamMembers
+              members={project.members}
+              projectName={project.project_name}
+            />
+          )}
           {/* {resources && <Resources resources={resources} />} */}
         </div>
       </div>
