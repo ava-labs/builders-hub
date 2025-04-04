@@ -11,6 +11,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import DeadLine from "../DeadLine";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
   const [search, setSearch] = useState<string>("");
@@ -115,6 +122,27 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
         <DeadLine deadline={hackathon.content.submission_deadline} />
       </div>
       <Divider />
+      {/* <div className="bg-zinc-800 rounded-lg px-16 py-2 w-1/2">
+        <Carousel className="w-full">
+          <CarouselContent>
+            {Object.entries(
+              groupActivitiesByDay(hackathon.content.schedule)
+            ).map(([formattedDate, _], index) => (
+              <CarouselItem key={index} className="basis-1/3">
+                <Card className="border-none p-0">
+                  <CardContent className="flex justify-center">
+                    <span className="text-sm font-semibold">
+                      {formattedDate}
+                    </span>
+                  </CardContent>
+                </Card>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious />
+          <CarouselNext />
+        </Carousel>
+      </div> */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
         {Object.entries(groupActivitiesByDay(hackathon.content.schedule))
           .slice(0, 2)
@@ -164,8 +192,8 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                         <Card
                           className={`${
                             dateIsCurrentDate
-                              ?  "bg-zinc-100 dark:!bg-zinc-900"
-                              :  "bg-zinc-50 dark:!bg-zinc-950"
+                              ? "bg-zinc-100 dark:!bg-zinc-900"
+                              : "bg-zinc-50 dark:!bg-zinc-950"
                           } ${
                             activityIsOcurring && dateIsCurrentDate
                               ? "border-2 dark:border-red-500 border-red-500"
