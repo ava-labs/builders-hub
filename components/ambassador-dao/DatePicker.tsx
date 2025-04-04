@@ -69,14 +69,18 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
       <Popover.Trigger asChild>
         <button
           className={`inline-flex items-center justify-between h-11 rounded-md border border-[var(--default-border-color)] px-4 py-2 text-sm focus:outline-none min-w-[160px] ${
-            date ? "text-white" : "text-[var(--secondary-text-color)]"
+            date
+              ? "text-[var(--white-text-color)]"
+              : "text-[var(--secondary-text-color)]"
           } `}
           aria-label='Select date'
         >
           {date ? date.format("MMM D, YYYY") : "Select date"}
           <CalendarIcon
             className='ml-2 h-4 w-4'
-            color={`${date ? "#fff" : "#9F9FA9"}`}
+            color={`${
+              date ? "var(--white-text-color)" : "var(--secondary-text-color)"
+            }`}
           />
         </button>
       </Popover.Trigger>
@@ -93,7 +97,10 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
                 className='p-2 hover:bg-gray-700 rounded-md focus:outline-none'
                 aria-label='Previous month'
               >
-                <ChevronLeft className='h-4 w-4' />
+                <ChevronLeft
+                  className='h-4 w-4'
+                  color='var(--secondary-text-color)'
+                />
               </button>
               <div className='font-medium'>
                 {currentMonth.format("MMMM YYYY")}
@@ -103,7 +110,10 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
                 className='p-2 hover:bg-gray-700 rounded-md focus:outline-none'
                 aria-label='Next month'
               >
-                <ChevronRight className='h-4 w-4' />
+                <ChevronRight
+                  className='h-4 w-4'
+                  color='var(--secondary-text-color)'
+                />
               </button>
             </div>
 
@@ -130,11 +140,15 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
                       onClick={() => handleSelect(day)}
                       className={`
                         h-8 w-8 rounded-full flex items-center justify-center text-sm
-                        ${isCurrentMonth ? "text-white" : "text-gray-500"}
+                        ${
+                          isCurrentMonth
+                            ? "text-[var(--white-text-color)]"
+                            : "text-gray-500"
+                        }
                         ${
                           isSelected
                             ? "bg-red-500 text-white hover:bg-red-600"
-                            : "hover:bg-gray-700"
+                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
                         }
                         focus:outline-none
                       `}
