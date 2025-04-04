@@ -42,13 +42,13 @@ export default function Info({ project }: Props) {
         {project.full_description}
       </p>
       <div className="flex flex-wrap gap-2">
-        {project.tracks.map((track) => (
+        {project.tags?.map((tag) => (
           <Badge
-            key={track}
+            key={tag}
             variant="outline"
             className="border-2 border-zinc-900 dark:border-zinc-50 flex justify-center rounded-xl"
           >
-            {track}
+            {tag}
           </Badge>
         ))}
       </div>

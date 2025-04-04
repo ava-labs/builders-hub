@@ -1,5 +1,5 @@
 import { Project } from "@/types/showcase";
-import { PrismaClient } from "@prisma/client";
+import { Hackathon, PrismaClient, User } from "@prisma/client";
 import { validateEntity, Validation } from "./base";
 import { revalidatePath } from "next/cache";
 
@@ -90,7 +90,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   });
 
   return {
-    projects: projects,
+    projects: projects.map((project) => ({ ...project, members: [], hackathon: { title: project.hackathon.title } })),
     total: totalProjects,
     page,
     pageSize,
@@ -99,7 +99,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
 
 export async function getProject(id: string) {
 
-  const project = await prisma.project.findUnique({
+  let project = await prisma.project.findUnique({
     include: {
       members: {
         include: {
@@ -113,8 +113,27 @@ export async function getProject(id: string) {
   if (!project)
     throw new Error("Project not found", { cause: "BadRequest" });
 
+  project = {
+    ...project,
+    members:
+      project.members.map((member) => ({
+        ...member, user: {
+          user_name: member.user.user_name,
+          image: member.user.image
+        } as User
+      })),
+    hackathon: {
+      title: project.hackathon.title,
+      location: project.hackathon.location,
+      start_date: project.hackathon.start_date,
+    } as Hackathon
+  }
+
+  console.log('GET project:', project);
+
   return project
 }
+
 
 export async function createProject(projectData: Partial<Project>): Promise<Project> {
   const errors = validateProject(projectData);
@@ -193,6 +212,13 @@ export async function updateProject(id: string, projectData: Partial<Project>): 
   revalidatePath(`/api/projects/${projectData.id}`)
   revalidatePath('/api/projects/')
   return projectData as Project;
+}
+
+function getProjectUser(user: any) {
+  return {
+    user_name: user.user_name,
+    image: user.image
+  }
 }
 
 export type GetProjectOptions = {
