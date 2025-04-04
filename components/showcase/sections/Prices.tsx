@@ -6,8 +6,8 @@ type Props = {
 };
 export default function Prices({ prices }: Props) {
   return (
-    <div className="w-full md:h-[272px] bg-zinc-800 dark:bg-zinc-200 flex justify-center items-center p-4">
-      <div className="w-full md:w-[80%] lg:w-[60%] xl:w-[55%] sm:h-[176px] p-4 rounded-xl bg-zinc-300 dark:bg-zinc-700 flex flex-col sm:flex-row items-center sm:justify-center gap-8 sm:gap-2">
+    <div className="w-full md:h-[272px] bg-zinc-800 dark:bg-zinc-200 flex justify-center items-center py-4">
+      <div className="w-full p-4 bg-zinc-300 dark:bg-zinc-700 flex flex-col sm:flex-row items-center sm:justify-center gap-4 sm:gap-2">
         {prices.map((price, index) => (
           <div
             key={index}

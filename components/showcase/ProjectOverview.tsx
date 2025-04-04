@@ -10,27 +10,32 @@ import { Project, ProjectResource } from "@/types/showcase";
 
 const prices = [
   {
-    icon: "",
+    icon: "crown",
     title: "$15,000",
     description: "Total award for this project",
   },
   {
-    icon: "",
+    icon: "crown",
     title: "$15,000",
     description: "Total award for this project",
   },
   {
-    icon: "",
+    icon: "crown",
     title: "$15,000",
     description: "Total award for this project",
   },
   {
-    icon: "",
+    icon: "crown",
     title: "$15,000",
     description: "Total award for this project",
   },
   {
-    icon: "",
+    icon: "crown",
+    title: "$15,000",
+    description: "Total award for this project",
+  },
+  {
+    icon: "crown",
     title: "$15,000",
     description: "Total award for this project",
   },
