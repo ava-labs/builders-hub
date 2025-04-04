@@ -1,6 +1,6 @@
 "use client";
 
-import { BriefcaseBusiness, File } from "lucide-react";
+import { BriefcaseBusiness, DivideCircle, File } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import Token from "@/public/ambassador-dao-images/token.png";
 import XP from "@/public/ambassador-dao-images/sparkles.png";
@@ -89,7 +89,7 @@ const AmbasssadorDaoProfilePage = () => {
   };
 
   return (
-    <div className='bg-black text-white min-h-screen'>
+    <div className='bg-[#fff] dark:bg-[#000] text-[var(--white-text-color)] min-h-screen'>
       <div className='max-w-6xl mx-auto p-6'>
         <div className='border rounded-lg p-6 mb-6'>
           <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b-2 pb-8'>
@@ -105,7 +105,12 @@ const AmbasssadorDaoProfilePage = () => {
               </div>
               <div>
                 <h2 className='text-base font-bold'>{profile.name}</h2>
-                <p className='text-[#9F9FA9] text-sm'>{profile.username}</p>
+                <p className='text-[var(--secondary-text-color)] text-sm'>
+                  {profile.username}
+                </p>
+                <p className='text-[var(--secondary-text-color)] text-xs'>
+                  Base in: {profile.location}
+                </p>
               </div>
             </div>
             <div className='flex space-x-3'>
@@ -118,42 +123,52 @@ const AmbasssadorDaoProfilePage = () => {
 
               <button
                 onClick={handleShareClick}
-                className='border border-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-md'
+                className='border border-[var(--default-border-color)] hover:bg-gray-800 text-[var(--white-text-color)] px-4 py-2 rounded-md'
               >
                 {copySuccess ? "Copied!" : "Share"}
               </button>
             </div>
           </div>
 
-          <div className='grid grid-cols-1 lg:grid-cols-4 gap-6'>
-            <div>
-              <h3 className='text-3xl font-medium mb-2'>Details</h3>
-              <p className='text-[#F5F5F9]'>Base in: {profile.location}</p>
-            </div>
+          <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
             <div>
               <h3 className='text-3xl font-medium mb-2'>Skills</h3>
               <div className='flex flex-wrap gap-2'>
-                {profile?.skills?.map((skill: { name: string; id: string }) => (
-                  <span
-                    key={skill.id}
-                    className='bg-[#F5F5F9] text-[#161617] px-3 py-1 rounded-full text-sm'
-                  >
-                    {skill.name}
+                {profile?.skills?.length > 0 ? (
+                  profile?.skills?.map(
+                    (skill: { name: string; id: string }) => (
+                      <div
+                        key={skill.id}
+                        className='text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]'
+                      >
+                        {skill.name}
+                      </div>
+                    )
+                  )
+                ) : (
+                  <span className='text-[var(--secondary-text-color)]'>
+                    No skills listed
                   </span>
-                ))}
+                )}
               </div>
             </div>
             <div>
               <h3 className='text-3xl font-medium mb-2'>Socials</h3>
               <div className='flex flex-wrap gap-2'>
-                {profile?.socials?.map((social: string, index: number) => (
-                  <span
-                    key={index}
-                    className='bg-[#F5F5F9] text-[#161617] px-3 py-1 rounded-full text-sm'
-                  >
-                    {social}
+                {profile?.socials?.length > 0 ? (
+                  profile?.socials?.map((social: string, index: number) => (
+                    <div
+                      className='text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]'
+                      key={index}
+                    >
+                      {social.slice(0, 20)}...
+                    </div>
+                  ))
+                ) : (
+                  <span className='text-[var(--secondary-text-color)]'>
+                    No socials listed
                   </span>
-                ))}
+                )}
               </div>
             </div>
             <div className='grid grid-cols-4 gap-6 text-center mt-1'>
@@ -161,25 +176,33 @@ const AmbasssadorDaoProfilePage = () => {
                 <h2 className='text-3xl font-medium mb-3'>
                   {profile.stats.earned}
                 </h2>
-                <p className='text-[#F5F5F9] text-xs'>Earned</p>
+                <p className='text-[var(--secondary-text-color)] text-xs'>
+                  Earned
+                </p>
               </div>
               <div>
                 <h2 className='text-3xl font-medium mb-3'>
                   {profile.stats.submissions}
                 </h2>
-                <p className='text-[#F5F5F9] text-xs'>Submissions</p>
+                <p className='text-[var(--secondary-text-color)] text-xs'>
+                  Submissions
+                </p>
               </div>
               <div>
                 <h2 className='text-3xl font-medium mb-3'>
                   {profile.stats.job}
                 </h2>
-                <p className='text-[#F5F5F9] text-xs'>Job</p>
+                <p className='text-[var(--secondary-text-color)] text-xs'>
+                  Job
+                </p>
               </div>
               <div>
                 <h2 className='text-3xl font-medium mb-3'>
                   {profile.stats.bounty}
                 </h2>
-                <p className='text-[#F5F5F9] text-xs'>Bounty</p>
+                <p className='text-[var(--secondary-text-color)] text-xs'>
+                  Bounty
+                </p>
               </div>
             </div>
           </div>
@@ -218,7 +241,7 @@ const AmbasssadorDaoProfilePage = () => {
                       <h3 className='text-red-500 font-bold'>
                         {project?.name || "Project name"}
                       </h3>
-                      <p className='text-gray-400 text-xs'>
+                      <p className='text-[var(--secondary-text-color)] text-xs'>
                         {project?.description ||
                           "Lorem ipsum jagshgh jhgashgasj"}
                       </p>
@@ -227,14 +250,14 @@ const AmbasssadorDaoProfilePage = () => {
 
                   <div className='flex flex-col sm:items-center'>
                     <BriefcaseBusiness size={14} color='#9F9FA9' />
-                    <span className='text-xs text-gray-400'>
+                    <span className='text-xs text-[var(--secondary-text-color)]'>
                       {project?.type || "Job"}
                     </span>
                   </div>
 
                   <div className='flex flex-col sm:items-center'>
                     <File size={14} color='#9F9FA9' />
-                    <span className='text-xs text-gray-400'>
+                    <span className='text-xs text-[var(--secondary-text-color)]'>
                       {project?.proposals || 10} proposals
                     </span>
                   </div>
@@ -242,7 +265,7 @@ const AmbasssadorDaoProfilePage = () => {
                   <div className='flex flex-col space-x-3'>
                     <div className='flex items-center text-xs'>
                       <Image src={Token} alt='$' />
-                      <span className='text-white ml-1'>
+                      <span className='text-[var(--white-text-color)] ml-1'>
                         {project.amount} USDC
                       </span>
                     </div>
@@ -254,7 +277,7 @@ const AmbasssadorDaoProfilePage = () => {
                     </div>
                   </div>
 
-                  <button className='bg-blue-600 text-white text-xs px-3 py-1 rounded-full'>
+                  <button className='bg-blue-600 text-[var(--white-text-color)] text-xs px-3 py-1 rounded-full'>
                     Reward Pending
                   </button>
                 </div>

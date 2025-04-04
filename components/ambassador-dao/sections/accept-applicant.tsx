@@ -24,13 +24,13 @@ export const AcceptApplicantModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className='max-w-lg py-6 bg-gray-50 dark:bg-[#09090B]'
+        className='max-w-lg py-6 bg-[#fafafa] dark:bg-[#09090B]'
         showClose
       >
-        <DialogTitle className='text-2xl text-[#FAFAFA] font-semibold'>
+        <DialogTitle className='text-2xl text-[var(--primary-text-color)] font-semibold'>
           Select Applicant
         </DialogTitle>
-        <div className='text-[#9F9FA9] my-3'>
+        <div className='text-[var(--secondary-text-color)] my-3'>
           Are you sure you want to assign this project to{" "}
           <span className='font-semibold text-[#FB2C36]'>{applicantName}</span>{" "}
           ?
@@ -45,7 +45,7 @@ export const AcceptApplicantModal = ({
           onChange={(e) => setFeedback(e.target.value)}
         />
 
-        <div className='text-[#9F9FA9] text-xs my-3'>
+        <div className='text-[var(--secondary-text-color)] text-xs my-3'>
           Please provide a feedback for the applicant. This will be sent to the
           applicant.
         </div>

@@ -46,9 +46,9 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
     <div className='space-y-6'>
       <Link
         href={"/ambassador-dao/sponsor/listings"}
-        className='flex items-center text-sm gap-2 p-2 cursor-pointer rounded-md w-fit bg-[#18181B] border border-[#27272A]'
+        className='flex items-center text-sm gap-2 p-2 cursor-pointer rounded-md w-fit bg-[var(--default-background-color)] border border-[var(--default-border-color)]'
       >
-        <ArrowLeft color='#fff' size={16} />
+        <ArrowLeft color='var(--white-text-color)' size={16} />
         Go Back
       </Link>
 
@@ -57,7 +57,7 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
       ) : (
         <>
           {listing && (
-            <div className='border border-[#27272A] p-2 rounded-lg md:p-4 transition-colors cursor-pointer'>
+            <div className='border border-[var(--default-border-color)] p-2 rounded-lg md:p-4 transition-colors cursor-pointer'>
               <div className='flex flex-col md:flex-row gap-3 items-start justify-between mb-4'>
                 <div className='flex md:items-center gap-3'>
                   <div>
@@ -73,11 +73,11 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                     <h3 className='text-lg font-medium text-red-500'>
                       {listing?.title}
                     </h3>
-                    <p className='text-gray-400 font-light text-sm'>
+                    <p className='text-[var(--secondary-text-color)] font-light text-sm'>
                       {listing.created_by.company_profile.name}
                     </p>
                     <div className='flex items-center space-x-3 mt-2 overflow-x-auto'>
-                      <div className='flex items-center text-sm text-gray-400 capitalize'>
+                      <div className='flex items-center text-sm text-[var(--secondary-text-color)] capitalize'>
                         <BriefcaseBusiness
                           color='#9F9FA9'
                           size={14}
@@ -85,11 +85,11 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                         />
                         {listing.type.toLowerCase()}
                       </div>
-                      <div className='flex items-center text-sm text-gray-400'>
+                      <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
                         <Hourglass color='#9F9FA9' size={14} className='mr-1' />
                         Due in {getTimeLeft(listing.end_date)}
                       </div>
-                      <div className='flex items-center text-sm text-gray-400'>
+                      <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
                         <FileText color='#9F9FA9' size={14} className='mr-1' />
                         {listing.type === "JOB"
                           ? listing._count.applications
@@ -108,7 +108,7 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                     height={20}
                     className='shrink-0'
                   />
-                  <span className='text-white text-sm'>
+                  <span className='text-[var(--white-text-color)] text-sm'>
                     {listing.total_budget.toLocaleString()} USDC
                   </span>
                 </div>
@@ -166,19 +166,21 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
     };
   }, [query]);
   return (
-    <div className='border border-[#27272A] rounded-md p-3 md:p-6'>
+    <div className='border border-[var(--default-border-color)] rounded-md p-3 md:p-6'>
       <div className='flex justify-between items-center mb-6'>
-        <h2 className='text-xl font-medium text-[#FAFAFA]'>All Applications</h2>
+        <h2 className='text-xl font-medium text-[var(--primary-text-color)]'>
+          All Applications
+        </h2>
         <div className='flex space-x-2'>
           <Select
             defaultValue='ALL'
             onValueChange={setStatus}
-            iconColor='#FAFAFA'
+            iconColor='var(--primary-text-color)'
           >
-            <SelectTrigger className='w-36 bg-[#09090B] border-[#27272A]'>
+            <SelectTrigger className='w-36 bg-[var(--default-background-color)] border-[var(--default-border-color)]'>
               <SelectValue placeholder='Everything' />
             </SelectTrigger>
-            <SelectContent className='bg-[#27272A] border-[#27272A]'>
+            <SelectContent className='bg-[#27272A] border-[var(--default-border-color)]'>
               {opportunityApplicationStatusOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -189,13 +191,13 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
 
           <Input
             placeholder='Search...'
-            className='bg-[#09090B] border-[#27272A] focus:ring-[#27272A] hidden md:block'
+            className='bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:ring-[#27272A] hidden md:block'
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
       </div>
-      <hr className='border-[#27272A] my-6' />
+      <hr className='border-[var(--default-border-color)] my-6' />
 
       {isLoadingApplications ? (
         <Loader />
@@ -206,7 +208,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
               {listingApplications?.data.map((application) => (
                 <div
                   key={application.id}
-                  className='bg-[#18181B] p-2 rounded-lg md:p-4 hover:border-black transition-colors'
+                  className='bg-[var(--default-background-color)] p-2 rounded-lg md:p-4 hover:border-black transition-colors'
                 >
                   <div className='flex flex-col md:flex-row gap-3 md:items-center justify-between mb-4'>
                     <div className='flex md:items-center gap-3'>
@@ -222,16 +224,16 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                         />
                       </div>
                       <div>
-                        <h3 className='text-lg font-medium text-white'>
+                        <h3 className='text-lg font-medium text-[var(--primary-text-color)]'>
                           {application.applicant.first_name}{" "}
                           {application.applicant.last_name}
                         </h3>
-                        <p className='text-gray-400 font-light text-sm'>
+                        <p className='text-[var(--secondary-text-color)] font-light text-sm'>
                           {" "}
                           {application.applicant.job_title ?? "--"}
                         </p>
                         <div className='flex items-center space-x-3 mt-2 overflow-x-auto'>
-                          <div className='flex items-center text-sm text-gray-400'>
+                          <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
                             <Hourglass
                               color='#9F9FA9'
                               className='w-3 h-3 mr-1'
@@ -280,7 +282,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
               <Image src={Avalance3d} objectFit='contain' alt='avalance icon' />
 
               <div className='my-2'>
-                <h2 className='text-white text-2xl text-center font-medium'>
+                <h2 className='text-[var(--white-text-color)] text-2xl text-center font-medium'>
                   No applications yet
                 </h2>
               </div>
@@ -327,19 +329,21 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
   const [markSubmissionAsPaidOpen, setMarkSubmissionAsPaidOpen] =
     useState(false);
   return (
-    <div className='border border-[#27272A] rounded-md p-3 md:p-6'>
+    <div className='border border-[var(--default-border-color)] rounded-md p-3 md:p-6'>
       <div className='flex justify-between items-center mb-6'>
-        <h2 className='text-xl font-medium text-[#FAFAFA]'>All Submissions</h2>
+        <h2 className='text-xl font-medium text-[var(--primary-text-color)]'>
+          All Submissions
+        </h2>
         <div className='flex space-x-2'>
           <Select
             defaultValue='ALL'
             onValueChange={setStatus}
-            iconColor='#FAFAFA'
+            iconColor='var(--primary-text-color)'
           >
-            <SelectTrigger className='w-36 bg-[#09090B] border-[#27272A]'>
+            <SelectTrigger className='w-36 bg-[var(--default-background-color)] border-[var(--default-border-color)]'>
               <SelectValue placeholder='Everything' />
             </SelectTrigger>
-            <SelectContent className='bg-[#27272A] border-[#27272A]'>
+            <SelectContent className='bg-[var(--default-background-color)] border-[var(--default-border-color)]'>
               {opportunitySubmissionStatusOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -350,13 +354,13 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
 
           <Input
             placeholder='Search...'
-            className='bg-[#09090B] border-[#27272A] focus:ring-[#27272A] hidden md:block'
+            className='bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:ring-[#27272A] hidden md:block'
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
       </div>
-      <hr className='border-[#27272A] my-6' />
+      <hr className='border-[var(--default-border-color)] my-6' />
 
       {isLoadingSubmissions ? (
         <Loader />
@@ -367,7 +371,7 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
               {listingSubmissions?.data.map((submission) => (
                 <div
                   key={submission.id}
-                  className='bg-[#18181B] p-2 rounded-lg md:p-4 hover:border-black transition-colors'
+                  className='bg-[var(--default-background-color)] border border-[var(--default-border-color)] p-2 rounded-lg md:p-4 hover:border-black dark:hover:border-white transition-colors'
                 >
                   <div className='flex flex-col md:flex-row gap-3 md:items-center justify-between mb-4'>
                     <div className='flex md:items-center gap-3'>
@@ -383,15 +387,15 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
                         />
                       </div>
                       <div>
-                        <h3 className='text-lg font-medium text-white'>
+                        <h3 className='text-lg font-medium text-[var(--primary-text-color)]'>
                           {submission.submitter.first_name}{" "}
                           {submission.submitter.last_name}
                         </h3>
-                        <p className='text-gray-400 font-light text-sm'>
+                        <p className='text-[var(--secondary-text-color)] font-light text-sm'>
                           {submission.submitter.job_title ?? "--"}
                         </p>
                         <div className='flex items-center space-x-3 mt-2 overflow-x-auto'>
-                          <div className='flex items-center text-sm text-gray-400'>
+                          <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
                             <Hourglass
                               color='#9F9FA9'
                               className='w-3 h-3 mr-1'
@@ -455,7 +459,7 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
               <Image src={Avalance3d} objectFit='contain' alt='avalance icon' />
 
               <div className='my-2'>
-                <h2 className='text-white text-2xl text-center font-medium'>
+                <h2 className='text-[var(--white-text-color)] text-2xl text-center font-medium'>
                   No submissions yet
                 </h2>
               </div>

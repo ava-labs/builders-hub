@@ -274,21 +274,25 @@ export default function AmbasssadorDaoSponsorsCreateListing({
       ) : (
         <>
           {" "}
-          <div className='p-4 md:p-8 m-4 md:m-8 bg-[#09090B] border border-[#27272A] rounded-md'>
+          <div className='p-4 md:p-8 m-4 md:m-8 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-md'>
             <div className='max-w-7xl mx-auto'>
               <div className='flex justify-between mb-8'>
                 <Button
                   variant='outline'
                   onClick={goBack}
-                  className='text-[#FAFAFA] border-[#27272A]'
+                  className='text-[var(--primary-text-color)] border-[var(--default-border-color)]'
                 >
-                  <ArrowLeft className='mr-1 h-4 w-4' color='#FAFAFA' /> Go Back
+                  <ArrowLeft
+                    className='mr-1 h-4 w-4'
+                    color='var(--primary-text-color)'
+                  />{" "}
+                  Go Back
                 </Button>
 
                 <div className='flex space-x-3'>
                   <CustomButton
                     variant='white'
-                    className='px-4 text-[#18181B]'
+                    className='px-4'
                     onClick={handleSubmit(onSubmitPreview)}
                     isLoading={isPending}
                     disabled={
@@ -296,7 +300,10 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       selectedSkills.length === 0
                     }
                   >
-                    <Eye className='mr-1 h-4 w-4' color='#18181B' />
+                    <Eye
+                      className='mr-1 h-4 w-4'
+                      color='var(--black-background-color)'
+                    />
                     Preview
                   </CustomButton>
                   <CustomButton
@@ -319,7 +326,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                   <div className='lg:col-span-2 space-y-6'>
                     {/* Title Section */}
                     <div className='space-y-1'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         Listing Title
                         <span className='text-red-500 ml-1'>*</span>
                       </label>
@@ -331,17 +338,17 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             <Select
                               value={field.value}
                               onValueChange={field.onChange}
-                              iconColor='#FAFAFA'
+                              iconColor='var(--primary-text-color)'
                             >
-                              <SelectTrigger className='min-w-32 bg-[#09090B] border-[#27272A] focus:outline-none !h-10 my-2'>
+                              <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
                                 <SelectValue placeholder='Select' />
                               </SelectTrigger>
-                              <SelectContent className='bg-[#09090B] text-[#FAFAFA]'>
+                              <SelectContent className='bg-[#fafafa] dark:bg-[#09090B] text-[var(--primary-text-color)]'>
                                 <SelectItem value='JOB'>
                                   <div className='flex items-center'>
                                     <BriefcaseBusiness
                                       className='mr-2'
-                                      color='#FAFAFA'
+                                      color='var(--primary-text-color)'
                                     />
                                     Job
                                   </div>
@@ -350,7 +357,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                   <div className='flex items-center'>
                                     <BriefcaseBusiness
                                       className='mr-2'
-                                      color='#FAFAFA'
+                                      color='var(--primary-text-color)'
                                     />
                                     Bounty
                                   </div>
@@ -382,7 +389,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 
                     {/* Requirements Section */}
                     <div className='space-y-2'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         Requirements
                         <span className='text-red-500 ml-1'>*</span>
                       </label>
@@ -407,7 +414,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 
                     {/* Description Section */}
                     <div className='space-y-2'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         Description
                         <span className='text-red-500 ml-1'>*</span>
                       </label>
@@ -429,16 +436,19 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     {/* Rewards Section - Conditional based on type */}
                     {formType === "JOB" ? (
                       <div className='space-y-1'>
-                        <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                        <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                           Add Rewards
                           <span className='text-red-500 ml-1'>*</span>
                         </label>
                         <div className='flex items-center gap-2'>
-                          <Select defaultValue='USDC' iconColor='#FAFAFA'>
-                            <SelectTrigger className='min-w-32 bg-[#09090B] border-[#27272A] focus:outline-none !h-10 my-2'>
+                          <Select
+                            defaultValue='USDC'
+                            iconColor='var(--primary-text-color)'
+                          >
+                            <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className='bg-[#09090B] text-[#FAFAFA]'>
+                            <SelectContent className='bg-[var(--default-background-color)] text-[var(--primary-text-color)]'>
                               <SelectItem value='USDC'>
                                 <div className='flex items-center'>
                                   <Image
@@ -479,7 +489,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       </div>
                     ) : (
                       <div className='space-y-4'>
-                        <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                        <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                           Prize Distribution
                           <span className='text-red-500 ml-1'>*</span>
                         </label>
@@ -493,7 +503,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 
                         {prizeFields.map((field, index) => (
                           <div key={field.id} className='space-y-1'>
-                            <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                            <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                               {index === 0
                                 ? "First Prize"
                                 : index === 1
@@ -507,10 +517,10 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                 defaultValue='USDC'
                                 onValueChange={() => {}}
                               >
-                                <SelectTrigger className='min-w-32 bg-[#09090B] border-[#27272A] focus:outline-none !h-10 my-2'>
+                                <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
                                   <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className='bg-[#09090B] text-[#FAFAFA]'>
+                                <SelectContent className='bg-[var(--default-background-color)] text-[var(--primary-text-color)]'>
                                   <SelectItem value='USDC'>
                                     <div className='flex items-center'>
                                       <Image
@@ -564,7 +574,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             type='button'
                             variant='ghost'
                             size='sm'
-                            className='h-6 py-1 text-xs text-[#FAFAFA] hover:bg-none'
+                            className='h-6 py-1 text-xs text-[var(--primary-text-color)] hover:bg-none'
                             onClick={() =>
                               appendPrize({
                                 position: prizeFields.length + 1,
@@ -572,7 +582,10 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                               })
                             }
                           >
-                            <Plus className='h-3 w-3 mr-1' color='#FAFAFA' />
+                            <Plus
+                              className='h-3 w-3 mr-1'
+                              color='var(--primary-text-color)'
+                            />
                             Add Individual Prize Position
                           </Button>
                         </div>
@@ -581,7 +594,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 
                     {/* Start Date Section */}
                     <div className='space-y-2'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         Start Date (in America/New_York)
                         <span className='text-red-500 ml-1'>*</span>
                       </label>
@@ -595,7 +608,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                               <PopoverTrigger asChild>
                                 <Button
                                   variant='outline'
-                                  className='bg-[#09090B] border-[#27272A] justify-between text-left font-normal'
+                                  className='bg-[var(--default-background-color)] border-[var(--default-border-color)] justify-between text-left font-normal'
                                 >
                                   {field.value ? (
                                     format(new Date(field.value), "PPP")
@@ -604,7 +617,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                   )}
                                   <CalendarIcon
                                     className='h-4 w-4 opacity-50'
-                                    color='#FAFAFA'
+                                    color='var(--primary-text-color)'
                                   />
                                 </Button>
                               </PopoverTrigger>
@@ -625,7 +638,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                     document.body.click();
                                   }}
                                   initialFocus
-                                  className='text-[#FAFAFA] bg-[#09090B]'
+                                  className='text-[var(--primary-text-color)] bg-[#fafafa] dark:bg-[#09090B]'
                                 />
                               </PopoverContent>
                             </Popover>
@@ -641,7 +654,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 
                     {/* End Date Section */}
                     <div className='space-y-2'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         End Date (in America/New_York)
                         <span className='text-red-500 ml-1'>*</span>
                       </label>
@@ -655,7 +668,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                               <PopoverTrigger asChild>
                                 <Button
                                   variant='outline'
-                                  className='bg-[#09090B] border-[#27272A] justify-between text-left font-normal'
+                                  className='bg-[var(--default-background-color)] border-[var(--default-border-color)] justify-between text-left font-normal'
                                 >
                                   {field.value ? (
                                     format(new Date(field.value), "PPP")
@@ -664,7 +677,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                   )}
                                   <CalendarIcon
                                     className='h-4 w-4 opacity-50'
-                                    color='#FAFAFA'
+                                    color='var(--primary-text-color)'
                                   />
                                 </Button>
                               </PopoverTrigger>
@@ -685,7 +698,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                     document.body.click();
                                   }}
                                   initialFocus
-                                  className='text-[#FAFAFA] bg-[#09090B]'
+                                  className='text-[var(--primary-text-color)] bg-[#fafafa] dark:bg-[#09090B]'
                                 />
                               </PopoverContent>
                             </Popover>
@@ -714,7 +727,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                 type='button'
                                 variant='outline'
                                 className={cn(
-                                  "bg-transparent border-[#27272A] rounded-full text-xs px-3 h-8",
+                                  "bg-transparent border-[var(--default-border-color)] rounded-full text-xs px-3 h-8",
                                   isActive && "border-blue-500 bg-blue-500/10"
                                 )}
                                 onClick={() =>
@@ -736,11 +749,11 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 
                     {/* Skills Section */}
                     <div className='space-y-2'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         Skills Needed
                         <span className='text-red-500 ml-1'>*</span>
                       </label>
-                      <div className='w-full min-h-10 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
+                      <div className='w-full min-h-10 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
                         {selectedSkills.map((skillId, idx) => {
                           const skillName =
                             skills?.find((skill) => skill.id === skillId)
@@ -748,7 +761,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           return (
                             <div
                               key={idx}
-                              className='flex items-center gap-2 bg-[#fff] text-[#18181B] rounded-full px-2 text-xs cursor-pointer capitalize'
+                              className='flex items-center gap-2 bg-gray-200 dark:bg-[#fff] text-[#18181B] rounded-full px-2 text-xs cursor-pointer capitalize'
                               onClick={() => removeSkill(skillId)}
                             >
                               {skillName}
@@ -762,7 +775,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           skills.map((badge, idx) => (
                             <div
                               key={idx}
-                              className='flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-xs cursor-pointer capitalize'
+                              className='flex items-center gap-2 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-full px-3 py-1 text-xs cursor-pointer capitalize'
                               onClick={() => addSkill(badge.id)}
                             >
                               {badge.name}
@@ -779,7 +792,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 
                     {/* Contact Section */}
                     <div className='space-y-2'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         Point of Contact (TG / X / Email)
                         <span className='text-red-500 ml-1'>*</span>
                       </label>
@@ -791,7 +804,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           <CustomInput
                             {...field}
                             type='text'
-                            className='bg-[#09090B] border-[#27272A]'
+                            className='bg-[var(--default-background-color)] border-[var(--default-border-color)]'
                           />
                         )}
                       />
@@ -822,7 +835,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             render={({ field }) => (
                               <CustomInput
                                 {...field}
-                                className='bg-[#09090B] border-[#27272A] flex-1'
+                                className='bg-[var(--default-background-color)] border-[var(--default-border-color)] flex-1'
                                 placeholder='Enter your question'
                               />
                             )}
@@ -844,11 +857,14 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           type='button'
                           variant='ghost'
                           size='sm'
-                          className='h-6 py-2 text-sm text-[#FAFAFA] hover:bg-none'
+                          className='h-6 py-2 text-sm text-[var(--primary-text-color)] hover:bg-none'
                           onClick={addCustomQuestion}
                         >
-                          <Plus className='h-3 w-3 mr-1' color='#FAFAFA' /> Add
-                          Question
+                          <Plus
+                            className='h-3 w-3 mr-1'
+                            color='var(--primary-text-color)'
+                          />{" "}
+                          Add Question
                         </Button>
                       </div>
                     </div>

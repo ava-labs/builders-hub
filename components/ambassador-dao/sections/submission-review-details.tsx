@@ -80,13 +80,13 @@ export const SumbissionReviewDetailsModal = ({
       }}
     >
       <DialogContent
-        className='max-w-2xl py-6 bg-gray-50 dark:bg-[#09090B]'
+        className='max-w-2xl py-6 bg-[#fafafa] dark:bg-[#09090B]'
         showClose
       >
-        <DialogTitle className='text-2xl text-[#FAFAFA] font-semibold'>
+        <DialogTitle className='text-2xl text-[var(--primary-text-color)] font-semibold'>
           Submission Details
         </DialogTitle>
-        <div className='text-[#9F9FA9] my-3'>
+        <div className='text-[var(--secondary-text-color)] my-3'>
           Review the details of this submission before making a decision.
         </div>
 
@@ -97,7 +97,7 @@ export const SumbissionReviewDetailsModal = ({
         ) : (
           submission && (
             <div className='space-y-6 md:space-y-8'>
-              <div className='bg-[#18181B] border border-[#27272A] p-2 rounded-lg md:p-4 hover:border-black transition-colors'>
+              <div className='bg-gray-100 dark:bg-[#18181B] border border-[var(--default-border-color)] p-2 rounded-lg md:p-4 hover:border-black transition-colors'>
                 <div className='flex flex-col md:flex-row gap-3 md:items-center justify-between mb-4'>
                   <div className='flex md:items-center gap-3'>
                     <div>
@@ -112,15 +112,15 @@ export const SumbissionReviewDetailsModal = ({
                       />
                     </div>
                     <div>
-                      <h3 className='text-lg font-medium text-white'>
+                      <h3 className='text-lg font-medium text-[var(--primary-text-color)]'>
                         {submission.submitter.job_title ?? "--"}
                       </h3>
-                      <p className='text-gray-400 font-light text-sm'>
+                      <p className='text-[var(--secondary-text-color)] font-light text-sm'>
                         {submission.submitter.first_name}{" "}
                         {submission.submitter.last_name}
                       </p>
                       <div className='flex items-center space-x-3 mt-2 overflow-x-auto'>
-                        <div className='flex items-center text-sm text-gray-400'>
+                        <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
                           <Hourglass color='#9F9FA9' className='w-3 h-3 mr-1' />
                           Submitted:{" "}
                           {new Date(submission.created_at).toLocaleDateString()}
@@ -130,7 +130,7 @@ export const SumbissionReviewDetailsModal = ({
                   </div>
 
                   <CustomButton
-                    className='px-3 bg-[#FB2C3633] text-[#FB2C36]'
+                    className='px-2 bg-[#fb2c36e9] dark:bg-[#FB2C3633] text-[#fff] dark:text-[#FB2C36]'
                     isFullWidth={false}
                   >
                     Contributor
@@ -139,11 +139,13 @@ export const SumbissionReviewDetailsModal = ({
               </div>
 
               <div>
-                <p className='text-[#FAFAFA] font-semibold'>Skills</p>
+                <p className='text-[var(--primary-text-color)] font-semibold'>
+                  Skills
+                </p>
                 <div className='flex flex-wrap gap-2 mt-2'>
                   {submission.submitter.skills.map((skill) => (
                     <div
-                      className='text-xs px-2 py-1 rounded-full text-center border border-[#27272A]'
+                      className='text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]'
                       key={skill.id}
                     >
                       {skill.name}
@@ -154,16 +156,28 @@ export const SumbissionReviewDetailsModal = ({
 
               <div className='grid grid-cols-1 md:grid-cols-3 gap-2'>
                 <div className=''>
-                  <p className='text-[#FAFAFA] font-semibold'>Experience</p>
-                  <p className='text-[#9F9FA9] text-sm'>-- years</p>
+                  <p className='text-[var(--primary-text-color)] font-semibold'>
+                    Experience
+                  </p>
+                  <p className='text-[var(--secondary-text-color)] text-sm'>
+                    -- years
+                  </p>
                 </div>
                 <div className=''>
-                  <p className='text-[#FAFAFA] font-semibold'>Success Rate</p>
-                  <p className='text-[#9F9FA9] text-sm'>--%</p>
+                  <p className='text-[var(--primary-text-color)] font-semibold'>
+                    Success Rate
+                  </p>
+                  <p className='text-[var(--secondary-text-color)] text-sm'>
+                    --%
+                  </p>
                 </div>
                 <div className=''>
-                  <p className='text-[#FAFAFA] font-semibold'>Completed Jobs</p>
-                  <p className='text-[#9F9FA9] text-sm'>--</p>
+                  <p className='text-[var(--primary-text-color)] font-semibold'>
+                    Completed Jobs
+                  </p>
+                  <p className='text-[var(--secondary-text-color)] text-sm'>
+                    --
+                  </p>
                 </div>
               </div>
 
@@ -171,7 +185,7 @@ export const SumbissionReviewDetailsModal = ({
                 <p className='text-[#FB2C36] font-semibold'>Submission Link</p>
                 <div className='space-y-3 mt-2'>
                   {!submission.files.length && (
-                    <div className='text-[#9F9FA9] text-sm'>
+                    <div className='text-[var(--secondary-text-color)] text-sm'>
                       No files uploaded
                     </div>
                   )}
@@ -179,12 +193,16 @@ export const SumbissionReviewDetailsModal = ({
                     <div className='flex flex-col md:flex-row gap-2 justify-between'>
                       <div className='flex gap-2 items-center'>
                         <Link size={16} color='#9F9FA9' />
-                        <p className='font-semibold text-[#FAFAFA]'>
+                        <p className='font-semibold text-[var(--primary-text-color)]'>
                           {file.original_name}
-                          <span className='text-[#9F9FA9]'>--mb</span>
+                          <span className='text-[var(--secondary-text-color)]'>
+                            --mb
+                          </span>
                         </p>
                       </div>
-                      <p className='text-[#fafafa]'>Download</p>
+                      <p className='text-[var(--primary-text-color)]'>
+                        Download
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -194,7 +212,7 @@ export const SumbissionReviewDetailsModal = ({
                 <div className='flex gap-2 justify-between mt-6 md:mt-8'>
                   <CustomButton
                     variant='outlined'
-                    className='px-4 text-[#18181B] w-full'
+                    className='px-4 w-full'
                     onClick={() => setSelectedAction("REJECT")}
                   >
                     Reject Submission
@@ -263,7 +281,7 @@ export const SumbissionReviewDetailsModal = ({
                       value={feedback}
                       onChange={(e) => setFeedback(e.target.value)}
                     />
-                    <div className='text-[#9F9FA9] text-xs mt-2'>
+                    <div className='text-[var(--secondary-text-color)] text-xs mt-2'>
                       Please provide feedback for the applicant. This will be
                       sent to the applicant.
                     </div>

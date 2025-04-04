@@ -26,31 +26,31 @@ export const MarkSubmissionAsPaidModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className='max-w-lg py-6 bg-gray-50 dark:bg-[#09090B]'
+        className='max-w-lg py-6 bg-[#fafafa] dark:bg-[#09090B]'
         showClose
       >
-        <DialogTitle className='text-2xl text-[#FAFAFA] font-semibold'>
+        <DialogTitle className='text-2xl text-[var(--primary-text-color)] font-semibold'>
           Payment Method
         </DialogTitle>
-        <div className='text-[#9F9FA9] my-3'>
+        <div className='text-[var(--secondary-text-color)] my-3'>
           You've confirmed the submission from {applicantName}. Use the details
           below to arrange payment.
         </div>
 
         <hr className='my-4 md:my-6' />
 
-        <div className='border border-[#27272A] p-2 rounded-lg md:p-4 transition-colors'>
+        <div className='border border-[var(--default-border-color)] p-2 rounded-lg md:p-4 transition-colors'>
           <div className='flex items-center space-x-2'>
             <Checkbox
               id='paid'
               checked={isPaid}
               onCheckedChange={() => setIsPaid(!isPaid)}
-              color='#fafafa'
-              className='text-[#FAFAFA]'
+              color='var(--primary-text-color)'
+              className='text-[var(--primary-text-color)]'
             />
             <label
               htmlFor='paid'
-              className='text-sm text-[#FAFAFA] font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+              className='text-sm text-[var(--primary-text-color)] font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
             >
               Mark As Paid (offline)
             </label>

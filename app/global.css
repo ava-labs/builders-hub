@@ -403,8 +403,8 @@ nav a:not(:first-child) {
 .custom-markdown-editor ._contentEditable_uazmk_379 {
   min-height: 256px;
   background-color: transparent;
-  border: solid 1px #27272a;
-  color: #fafafa;
+  border: solid 1px var(--default-border-color);
+  color: var(--primary-text-color);
   margin-top: 10px;
   border-radius: 6px;
 
@@ -440,4 +440,25 @@ nav a:not(:first-child) {
     font-size: 1rem;
     font-weight: 400;
   }
+}
+
+/* Dark mode, light mode variables */
+
+:root {
+  --primary-text-color: #18181b;
+  --secondary-text-color: #5a5a5f;
+  --white-text-color: #000;
+  --black-background-color: #fff;
+  --default-border-color: #d4d4d8;
+  --default-background-color: #fafafa;
+}
+
+/* light */
+.dark {
+  --primary-text-color: #fafafa;
+  --secondary-text-color: #9f9fa9;
+  --white-text-color: #fff;
+  --black-background-color: #000;
+  --default-border-color: #27272a;
+  --default-background-color: #09090b;
 }

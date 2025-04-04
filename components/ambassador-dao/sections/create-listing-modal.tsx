@@ -49,7 +49,7 @@ export const CreateListingModal = ({
     <div>
       <Dialog open={isOpen} onOpenChange={onCloseModal}>
         <DialogContent
-          className='max-w-5xl bg-gray-50 dark:bg-[#09090B]'
+          className='max-w-5xl bg-[#fafafa] dark:bg-[#09090B]'
           showClose
         >
           <DialogTitle></DialogTitle>
@@ -57,7 +57,7 @@ export const CreateListingModal = ({
             {listingTypes.map((type, idx) => (
               <div
                 key={idx}
-                className={`rounded-xl border border-[#27272A] bg-[#09090B] p-6 flex-1 cursor-pointer space-y-4
+                className={`rounded-xl border border-[var(--default-border-color)] bg-[var(--default-background-color)] p-6 flex-1 cursor-pointer space-y-4
                   ${
                     listingType === type.id.toUpperCase()
                       ? "border-[#FB2C36]"
@@ -66,7 +66,7 @@ export const CreateListingModal = ({
                 `}
                 onClick={() => setListingType(type.id.toUpperCase() as any)}
               >
-                <div className='bg-black rounded-md h-36 md:h-44 relative overflow-hidden'>
+                <div className='bg-[#fff] dark:bg-[#000] rounded-md h-36 md:h-44 relative overflow-hidden'>
                   <Image
                     src={Avalance3d}
                     objectFit='contain'
@@ -75,7 +75,7 @@ export const CreateListingModal = ({
                   />
                 </div>
 
-                <div className='text-[#FAFAFA]'>
+                <div className='text-[var(--primary-text-color)]'>
                   <p className='font-medium text-xl md:text-2xl mb-2'>
                     {type.title}
                   </p>

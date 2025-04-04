@@ -24,7 +24,7 @@ export const PaginationComponent = ({
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
       >
-        <ArrowLeft size={16} color='white' />
+        <ArrowLeft size={16} color='var(--white-text-color)' />
         Previous
       </Button>
       {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
@@ -34,7 +34,7 @@ export const PaginationComponent = ({
           variant={"outline"}
           className={cn(
             "h-8 w-8 !bg-transparent",
-            page === currentPage ? "!bg-[#2F2F33]" : ""
+            page === currentPage ? "!bg-gray-200 dark:!bg-[#2F2F33]" : ""
           )}
           onClick={() => onPageChange(page)}
         >
@@ -50,7 +50,7 @@ export const PaginationComponent = ({
         disabled={currentPage === totalPages}
       >
         Next
-        <ArrowRight size={16} color='white' />
+        <ArrowRight size={16} color='var(--white-text-color)' />
       </Button>
     </div>
   );
