@@ -94,9 +94,9 @@ const AmbasssadorDaoOnboardPage = () => {
   }
 
   return (
-    <div className='max-w-7xl mx-auto p-4 sm:p-8 md:p-16 lg:p-24'>
+    <div className="max-w-7xl mx-auto p-4 sm:p-8 md:p-16 lg:p-24">
       {selectionStep === "account_option" && (
-        <div className='w-full flex flex-col md:flex-row gap-8 md:gap-6'>
+        <div className="w-full flex flex-col md:flex-row gap-8 md:gap-6">
           {userTypes.map((type, idx) => (
             <div
               key={idx}
@@ -109,9 +109,9 @@ const AmbasssadorDaoOnboardPage = () => {
                 `}
               onClick={() => setUserType(type.name.toUpperCase() as any)}
             >
-              <div className='flex items-center gap-6'>
-                <div className='w-10 md:w-14 h-10 md:h-14 shrink-0 flex items-center justify-center bg-[#FB2C36] rounded-full p-2'>
-                  <Crown color='white' size={28} />
+              <div className="flex items-center gap-6">
+                <div className="w-10 md:w-14 h-10 md:h-14 shrink-0 flex items-center justify-center bg-[#FB2C36] rounded-full p-2">
+                  <Crown color="white" size={28} />
                 </div>
                 <div className='text-[var(--primary-text-color)]'>
                   <p className='font-medium text-2xl md:text-3xl'>
@@ -126,39 +126,39 @@ const AmbasssadorDaoOnboardPage = () => {
               <div className='bg-[#fff] dark:bg-[#000] rounded-md h-36 md:h-44 relative overflow-hidden'>
                 <Image
                   src={Avalance3d}
-                  objectFit='contain'
-                  alt='avalance icon'
-                  className='absolute right-0'
+                  objectFit="contain"
+                  alt="avalance icon"
+                  className="absolute right-0"
                 />
               </div>
 
               <hr className='my-6 border-[var(--default-border-color)]' />
 
-              <div className='flex flex-col space-y-2'>
+              <div className="flex flex-col space-y-2">
                 {type.perks.map((perk, idx) => (
                   <div
                     key={idx}
                     className='flex items-center gap-3 text-[var(--primary-text-color)]'
                   >
-                    <Check color='white' size={16} />
-                    <p className='text-sm'>{perk}</p>
+                    <Check color="white" size={16} />
+                    <p className="text-sm">{perk}</p>
                   </div>
                 ))}
               </div>
 
               <hr className='my-6 border-[var(--default-border-color)]' />
 
-              <div className='flex justify-center'>
+              <div className="flex justify-center">
                 <CustomButton
-                  variant='danger'
+                  variant="danger"
                   isFullWidth={false}
                   isLoading={
                     isSelectingRole && userType === type.name.toUpperCase()
                   }
                   onClick={() => handleContinue(type.name.toUpperCase() as any)}
-                  className='px-6 h-10 text-sm font-medium'
+                  className="px-6 h-10 text-sm font-medium"
                 >
-                  Continue as <span className='capitalize'>{type.name}</span>
+                  Continue as <span className="capitalize">{type.name}</span>
                 </CustomButton>
               </div>
             </div>
@@ -351,8 +351,8 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
 
   if (!isDataFetched) {
     return (
-      <div className='flex justify-center items-center h-60'>
-        <Loader2 className='animate-spin' size={30} color='#FB2C36' />
+      <div className="flex justify-center items-center h-60">
+        <Loader2 className="animate-spin" size={30} color="#FB2C36" />
       </div>
     );
   }
@@ -383,62 +383,62 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
           onSubmit={handleSubmit(onSubmit)}
           className='text-[var(--primary-text-color)] text-sm mt-6 md:mt-10 flex flex-col gap-4'
         >
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <CustomInput
-              id='firstName'
-              label='First Name'
-              placeholder='First Name'
+              id="firstName"
+              label="First Name"
+              placeholder="First Name"
               required
               {...register("first_name")}
             />
             <CustomInput
-              id='lastName'
-              label='Last Name'
-              placeholder='Last Name'
+              id="lastName"
+              label="Last Name"
+              placeholder="Last Name"
               required
               {...register("last_name")}
             />
           </div>
 
           <CustomInput
-            id='job_title'
-            label='Job Title'
-            placeholder='Job Title'
+            id="job_title"
+            label="Job Title"
+            placeholder="Job Title"
             required
             {...register("job_title")}
           />
 
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            <div className='relative'>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="relative">
               <CustomInput
-                id='userName'
-                label='User Name'
-                placeholder='User Name'
+                id="userName"
+                label="User Name"
+                placeholder="User Name"
                 required
                 {...register("username")}
-                className='relative'
+                className="relative"
                 icon={
                   <>
                     {" "}
                     {usernameStatus === "checking" && (
                       <Loader2
-                        className='absolute right-2 animate-spin'
+                        className="absolute right-2 animate-spin"
                         size={20}
-                        color='#9F9FA9'
+                        color="currentColor"
                       />
                     )}
                     {usernameStatus === "available" && (
                       <Check
-                        className='absolute right-2'
+                        className="absolute right-2"
                         size={20}
-                        color='#10B981'
+                        color="#10B981"
                       />
                     )}
                     {usernameStatus === "unavailable" && (
                       <AlertCircle
-                        className='absolute right-2'
+                        className="absolute right-2"
                         size={20}
-                        color='#FB2C36'
+                        color="#FB2C36"
                       />
                     )}
                   </>
@@ -452,24 +452,24 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             </div>
 
             <CustomSelect
-              id='location'
-              label='Location'
+              id="location"
+              label="Location"
               required
               {...register("location")}
             >
-              <option value=''>Select location</option>
+              <option value="">Select location</option>
               {countries.map((country, idx) => (
-                <option value={country.name} key={idx} className='capitalize'>
+                <option value={country.name} key={idx} className="capitalize">
                   {country.name}
                 </option>
               ))}
             </CustomSelect>
           </div>
           <div>
-            <div className='my-2'>
-              <p className='block text-sm mb-2'>
+            <div className="my-2">
+              <p className="block text-sm mb-2">
                 Your skills
-                <span className='text-[#FB2C36]'>*</span>
+                <span className="text-[#FB2C36]">*</span>
               </p>
             </div>
             <div className='w-full h-12 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
@@ -482,11 +482,11 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
                     onClick={() => removeSkill(badge)}
                   >
                     {skills?.find((skill) => skill.id === badge)?.name}
-                    <X size={16} color='#18181B' />
+                    <X size={16} color="currentColor" />
                   </div>
                 ))}
             </div>
-            <div className='flex flex-wrap gap-2 mt-4'>
+            <div className="flex flex-wrap gap-2 mt-4">
               {skills &&
                 !!skills.length &&
                 skills.map((badge, idx) => (
@@ -496,13 +496,13 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
                     onClick={() => addSkill(badge.id)}
                   >
                     {badge.name}
-                    <Plus size={16} color='#A1A1AA' />
+                    <Plus size={16} color="#A1A1AA" />
                   </div>
                 ))}
 
               {!skills?.length && (
                 <>
-                  <p className='text-center mt-1 text-sm font-thin'>
+                  <p className="text-center mt-1 text-sm font-thin">
                     No skills available
                   </p>
                 </>
@@ -511,23 +511,23 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
           </div>
           <div>
             <CustomInput
-              id='socials'
-              label='Socials'
-              placeholder='Socials'
+              id="socials"
+              label="Socials"
+              placeholder="Socials"
               value={currentSocialLink}
               onChange={(e) => setCurrentSocialLink(e.target.value)}
             />
-            <div className='flex justify-end'>
+            <div className="flex justify-end">
               <button
                 type='button'
                 className='flex items-center text-sm text-[#6b6b74] dark:text-[#A1A1AA]'
                 onClick={addSocialLink}
               >
-                <Plus size={14} color='#A1A1AA' /> Add Link
+                <Plus size={14} color="#A1A1AA" /> Add Link
               </button>
             </div>
           </div>
-          <div className='flex flex-wrap gap-2 mt-1'>
+          <div className="flex flex-wrap gap-2 mt-1">
             {socialLinks.map((link, idx) => (
               <div
                 key={idx}
@@ -535,7 +535,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
                 onClick={() => removeSocialLink(link)}
               >
                 {link}
-                <Minus size={16} color='#A1A1AA' />
+                <Minus size={16} color="#A1A1AA" />
               </div>
             ))}
           </div>
@@ -544,10 +544,10 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
           <div className='flex justify-between'>
             <CustomButton
               isLoading={isUpdatingProfile}
-              variant='danger'
-              type='submit'
+              variant="danger"
+              type="submit"
               isFullWidth={false}
-              className='px-6'
+              className="px-6"
               disabled={!socialLinks.length || !selectedSkills.length}
             >
               {isEditProfilePage ? "Update Profile" : "Create Profile"}
@@ -574,9 +574,9 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
           className='text-[var(--primary-text-color)] text-sm mt-6 md:mt-10 flex flex-col gap-4'
         >
           <CustomInput
-            id='wallet_address'
-            label='Enter Wallet Address'
-            placeholder='Enter Wallet Address'
+            id="wallet_address"
+            label="Enter Wallet Address"
+            placeholder="Enter Wallet Address"
             required
             defaultValue={userData?.wallet_address || ""}
             {...register("wallet_address")}
@@ -586,20 +586,20 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
           <div className='flex justify-between'>
             <CustomButton
               isLoading={isConnectingWallet}
-              variant='danger'
-              type='submit'
+              variant="danger"
+              type="submit"
               isFullWidth={false}
-              className='px-6'
+              className="px-6"
             >
               {isEditProfilePage ? "Update Wallet" : "Connect Wallet"}
             </CustomButton>
 
             {isEditProfilePage && (
               <CustomButton
-                variant='outlined'
-                type='button'
+                variant="outlined"
+                type="button"
                 isFullWidth={false}
-                className='px-6'
+                className="px-6"
                 onClick={() => setStage(1)}
               >
                 Back to Profile
@@ -613,6 +613,9 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
 };
 
 const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
+  const [previewLogo, setPreviewLogo] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
   const { data: userData } = useFetchUserDataQuery();
   const router = useRouter();
   const {
@@ -702,16 +705,96 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
     }
   }, [company_username, checkCompanyUsername]);
 
-  const handleProfileImageUpload = async (file: File) => {
-    setProfileImageName(file.name);
-    const url = await uploadFile(file);
-    setValue("profile_image", url.url);
+ 
+
+  //company logo upload handling
+  const handleCompanyLogoUpload = async (file: File) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/svg+xml"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only JPG, PNG, and SVG images are allowed");
+      return;
+    }
+
+    if (file.size > 1024 * 1024) {
+      toast.error("File size exceeds 1MB limit");
+      return;
+    }
+
+    try {
+      setCompanyLogoName(file.name);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewLogo(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      const url = await uploadFile(file);
+      setValue("logo", url.url);
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      toast.error("Failed to upload logo");
+    }
   };
 
-  const handleCompanyLogoUpload = async (file: File) => {
-    setCompanyLogoName(file.name);
-    const url = await uploadFile(file);
-    setValue("logo", url.url);
+  const handleLogoDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleLogoDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      await handleCompanyLogoUpload(file);
+    }
+  };
+
+  //profile image upload handling
+  const handleProfileImageUpload = async (file: File) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/svg+xml"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only JPG, PNG, and SVG images are allowed");
+      return;
+    }
+
+    if (file.size > 1024 * 1024) {
+      toast.error("File size exceeds 1MB limit");
+      return;
+    }
+
+    try {
+      setProfileImageName(file.name);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      const url = await uploadFile(file);
+      setValue("profile_image", url.url);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+    }
+  };
+
+  const handleProfileDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleProfileDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      await handleProfileImageUpload(file);
+    }
   };
 
   const onSubmit = (data: any) => {
@@ -749,53 +832,53 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
         onSubmit={handleSubmit(onSubmit)}
         className='text-[var(--primary-text-color)] text-sm mt-6 md:mt-10 flex flex-col gap-4'
       >
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <CustomInput
-            id='firstName'
-            label='First Name'
-            placeholder='First Name'
+            id="firstName"
+            label="First Name"
+            placeholder="First Name"
             required
             {...register("first_name")}
           />
           <CustomInput
-            id='lastName'
-            label='Last Name'
-            placeholder='Last Name'
+            id="lastName"
+            label="Last Name"
+            placeholder="Last Name"
             required
             {...register("last_name")}
           />
         </div>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-          <div className='relative'>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="relative">
             <CustomInput
-              id='userName'
-              label='User Name'
-              placeholder='User Name'
+              id="userName"
+              label="User Name"
+              placeholder="User Name"
               required
               {...register("username")}
-              className='relative'
+              className="relative"
               icon={
                 <>
                   {" "}
                   {usernameStatus === "checking" && (
                     <Loader2
-                      className='absolute right-2 animate-spin'
+                      className="absolute right-2 animate-spin"
                       size={20}
-                      color='#9F9FA9'
+                      color="currentColor"
                     />
                   )}
                   {usernameStatus === "available" && (
                     <Check
-                      className='absolute right-2'
+                      className="absolute right-2"
                       size={20}
-                      color='#10B981'
+                      color="#10B981"
                     />
                   )}
                   {usernameStatus === "unavailable" && (
                     <AlertCircle
-                      className='absolute right-2'
+                      className="absolute right-2"
                       size={20}
-                      color='#FB2C36'
+                      color="#FB2C36"
                     />
                   )}
                 </>
@@ -809,76 +892,96 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
           </div>
 
           <CustomSelect
-            id='location'
-            label='Location'
+            id="location"
+            label="Location"
             required
             {...register("location")}
           >
-            <option value=''>Select location</option>
+            <option value="">Select location</option>
             {countries.map((country, idx) => (
-              <option value={country.name} key={idx} className='capitalize'>
+              <option value={country.name} key={idx} className="capitalize">
                 {country.name}
               </option>
             ))}
           </CustomSelect>
         </div>
-        <div className='mb-6'>
-          <label className='block text-sm'>
+        <div className="mb-6">
+          <label className="block text-sm">
             Upload Profile Image or Avatar
-            <span className='text-[#FB2C36]'>*</span>
+            <span className="text-[#FB2C36]">*</span>
           </label>
           <p className='text-xs text-[#6b6b74] dark:text-[#A1A1AA] mb-2'>
             Add the image here. Recommended size: 512 x 512px (square format)
           </p>
+
           {profile_image ? (
-            <div className='rounded-md my-2 flex justify-between items-center border border-[var(--default-border-color)] p-3 text-sm'>
-              {profileImageName}
-              <X
-                onClick={() => {
-                  setValue("profile_image", "");
-                  setProfileImageName("");
-                  getValues("profile_image");
-                }}
-                className='cursor-pointer'
-                color='white'
-                size={16}
-              />
+            <div className="rounded-md my-2 flex flex-col border border-[var(--default-border-color)] p-3 text-sm">
+              <div className="flex justify-between items-center mb-2">
+                <span className="truncate max-w-[80%]">{profileImageName}</span>
+                <X
+                  onClick={() => {
+                    setValue("profile_image", "");
+                    setProfileImageName("");
+                    setPreviewImage(null);
+                    getValues("profile_image");
+                  }}
+                  className="cursor-pointer"
+                  color="currentColor"
+                  size={16}
+                />
+              </div>
+              {previewImage && (
+                <div className="w-24 h-24 border border-gray-700 rounded flex items-center justify-center overflow-hidden">
+                  <img
+                    src={previewImage}
+                    alt="Profile preview"
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+              )}
             </div>
           ) : (
-            <div className='border border-dashed border-[var(--default-border-color)] rounded-md p-6 flex flex-col items-center justify-center h-32'>
+            <div
+              className="border border-dashed border-[#27272A] rounded-md p-6 flex flex-col items-center justify-center h-32 cursor-pointer"
+              onDragOver={handleProfileDragOver}
+              onDrop={handleProfileDrop}
+              onClick={() =>{
+                document.getElementById("profileImage")?.click()
+              } }
+            >
               {isUploading ? (
-                <>
-                  <Loader2 className='animate-spin' color='white' size={24} />
-                </>
+                <Loader2 className="animate-spin" color="currentColor" size={24} />
               ) : (
                 <>
-                  {" "}
                   <Upload
                     size={24}
-                    className='text-[#6b6b74] dark:text-[#A1A1AA] mb-2'
-                    color='white'
+                    className="text-[#6b6b74] dark:text-[#A1A1AA]  mb-2"
+                    color="currentColor"
                   />
-                  <p className='text-sm text-[#6b6b74] dark:text-[#A1A1AA]'>
+                  <p className="text-sm text-[#6b6b74] dark:text-[#A1A1AA]">
                     Drag your file(s) or{" "}
                     <input
-                      type='file'
-                      className='hidden'
-                      id='profileImage'
+                      type="file"
+                      accept=".png,.jpg,.jpeg,.svg"
+                      className="hidden"
+                      id="profileImage"
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
                           handleProfileImageUpload(e.target.files[0]);
+                          e.target.value = '';
                         }
                       }}
                     />
                     <label
-                      htmlFor='profileImage'
-                      className='text-[var(--primary-text-color)] underline cursor-pointer'
+                      htmlFor="profileImage"
+                      className="text-[var(--primary-text-color)] underline cursor-pointer"
+                    onClick={(e) => e.stopPropagation()} 
                     >
                       browse
                     </label>
                   </p>
-                  <p className='text-xs text-[#6b6b74] dark:text-[#A1A1AA] mt-1'>
-                    Max 1 MB files are allowed
+                  <p className="text-xs text-[#6b6b74] dark:text-[#A1A1AA]  mt-1">
+                    Max 1 MB files are allowed (JPG, PNG, SVG)
                   </p>
                 </>
               )}
@@ -888,51 +991,51 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
 
         <hr />
 
-        <h3 className='text-[var(--primary-text-color)] font-medium text-xl my-6'>
+        <h3 className="text-[var(--primary-text-color)] font-medium text-xl my-6">
           About Your Company
         </h3>
 
         <hr />
 
-        <div className='mt-6 md:mt-10 flex flex-col gap-4'>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+        <div className="mt-6 md:mt-10 flex flex-col gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <CustomInput
-              id='companyName'
-              label='Company Name'
-              placeholder='Company Name'
+              id="companyName"
+              label="Company Name"
+              placeholder="Company Name"
               required
               {...register("company_name")}
             />
-            <div className='relative'>
+            <div className="relative">
               <CustomInput
-                id='companyUserName'
-                label='Company User Name'
-                placeholder='Company User Name'
+                id="companyUserName"
+                label="Company User Name"
+                placeholder="Company User Name"
                 required
                 {...register("company_user_name")}
-                className='relative'
+                className="relative"
                 icon={
                   <>
                     {" "}
                     {companyUsernameStatus === "checking" && (
                       <Loader2
-                        className='absolute right-2 animate-spin'
+                        className="absolute right-2 animate-spin"
                         size={20}
-                        color='#9F9FA9'
+                        color="currentColor"
                       />
                     )}
                     {companyUsernameStatus === "available" && (
                       <Check
-                        className='absolute right-2'
+                        className="absolute right-2"
                         size={20}
-                        color='#10B981'
+                        color="#10B981"
                       />
                     )}
                     {companyUsernameStatus === "unavailable" && (
                       <AlertCircle
-                        className='absolute right-2'
+                        className="absolute right-2"
                         size={20}
-                        color='#FB2C36'
+                        color="#FB2C36"
                       />
                     )}
                   </>
@@ -945,76 +1048,98 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
               )}
             </div>
           </div>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <CustomInput
-              id='companyUrl'
-              label='Company Url'
-              placeholder='Company Url'
+              id="companyUrl"
+              label="Company Url"
+              placeholder="Company Url"
               required
               {...register("website")}
             />
             <CustomInput
-              id='companyTwitter'
-              label='Company Twitter URL'
-              placeholder='https://x.com/company'
+              id="companyTwitter"
+              label="Company Twitter URL"
+              placeholder="https://x.com/company"
               {...register("twitter_url")}
             />
           </div>
-          <div className=''>
-            <label className='block text-sm'>
-              Company Logo<span className='text-[#FB2C36]'>*</span>
+          <div className="">
+            <label className="block text-sm">
+              Company Logo<span className="text-[#FB2C36]">*</span>
             </label>
-            <p className='text-xs text-[#6b6b74] dark:text-[#A1A1AA] mb-2'>
+            <p className="text-xs text-[#6b6b74] dark:text-[#A1A1AA] mb-2">
               Add the image here. Recommended size: 512 x 512px (square format)
             </p>
+
             {logo ? (
-              <div className='rounded-md my-2 flex justify-between items-center border border-[var(--default-border-color)] p-3 text-sm'>
-                {companyLogoName}
-                <X
-                  onClick={() => {
-                    setValue("logo", "");
-                    setCompanyLogoName("");
-                  }}
-                  className='cursor-pointer'
-                  color='white'
-                  size={16}
-                />
+              <div className="rounded-md my-2 flex flex-col border border-[var(--default-border-color)]  p-3 text-sm">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="truncate max-w-[80%]">
+                    {companyLogoName}
+                  </span>
+                  <X
+                    onClick={() => {
+                      setValue("logo", "");
+                      setCompanyLogoName("");
+                      setPreviewLogo(null);
+                    }}
+                    className="cursor-pointer"
+                    color="currentColor"
+                    size={16}
+                  />
+                </div>
+                {previewLogo && (
+                  <div className="w-24 h-24 border border-[var(--default-border-color)] rounded flex items-center justify-center overflow-hidden">
+                    <img
+                      src={previewLogo}
+                      alt="Company logo preview"
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                )}
               </div>
             ) : (
-              <div className='border border-dashed border-[var(--default-border-color)] rounded-md p-6 flex flex-col items-center justify-center h-32'>
+              <div
+                className="border border-dashed border-[var(--default-border-color)]  rounded-md p-6 flex flex-col items-center justify-center h-32 cursor-pointer"
+                onDragOver={handleLogoDragOver}
+                onDrop={handleLogoDrop}
+                onClick={() =>
+                  document.getElementById("companyLogoInput")?.click()
+                }
+              >
                 {isUploading ? (
-                  <>
-                    <Loader2 className='animate-spin' color='white' size={24} />
-                  </>
+                  <Loader2 className="animate-spin" color="currentColor" size={24} />
                 ) : (
                   <>
-                    {" "}
                     <Upload
                       size={24}
-                      className='text-[#6b6b74] dark:text-[#A1A1AA] mb-2'
-                      color='white'
+                      className="text-[#6b6b74] dark:text-[#A1A1AA] mb-2"
+                      color="currentColor"
                     />
-                    <p className='text-sm text-[#6b6b74] dark:text-[#A1A1AA]'>
-                      Drag your file(s) or{" "}
+                    <p className="text-sm text-[#6b6b74] dark:text-[#A1A1AA]">
+                      Drag your file(s) or
                       <input
-                        type='file'
-                        className='hidden'
-                        id='profileImage'
+                        type="file"
+                        accept=".png,.jpg,.jpeg,.svg"
+                        className="hidden"
+                        id="companyLogoInput"
                         onChange={(e) => {
                           if (e.target.files && e.target.files[0]) {
                             handleCompanyLogoUpload(e.target.files[0]);
+                            e.target.value = '';
                           }
                         }}
                       />
                       <label
-                        htmlFor='profileImage'
-                        className='text-[var(--primary-text-color)] underline cursor-pointer'
+                        htmlFor="companyLogoInput"
+                        className="text-[var(--primary-text-color)] underline cursor-pointer ml-1"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         browse
                       </label>
                     </p>
                     <p className='text-xs text-[#6b6b74] dark:text-[#A1A1AA] mt-1'>
-                      Max 1 MB files are allowed
+                      Max 1 MB files are allowed (JPG, PNG, SVG)
                     </p>
                   </>
                 )}
@@ -1022,28 +1147,28 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
             )}
           </div>
           <CustomInput
-            id='industry'
-            label='Industry'
-            placeholder='Industry'
+            id="industry"
+            label="Industry"
+            placeholder="Industry"
             required
             {...register("industry")}
           />
           <CustomInput
-            id='companyBio'
-            label='Company Short Bio'
-            placeholder='Company Short Bio'
+            id="companyBio"
+            label="Company Short Bio"
+            placeholder="Company Short Bio"
             required
             {...register("short_bio")}
           />
         </div>
-        <hr className='border-[var(--default-border-color)] my-6' />
-        <div className='flex'>
+        <hr className='border-[var(--default-border-color)] my-6' />        
+        <div className="flex">
           <CustomButton
             isLoading={isUpdatingProfile || isUploading}
-            variant='danger'
-            type='submit'
+            variant="danger"
+            type="submit"
             isFullWidth={false}
-            className='px-6'
+            className="px-6"
           >
             Create Sponsor
           </CustomButton>
