@@ -19,7 +19,7 @@ const GoogleCallbackRedirectPage = () => {
         if (data.role === "SPONSOR") {
           router.push("/ambassador-dao/sponsor");
         } else {
-          router.push("/ambassador-dao/jobs");
+          router.push("/ambassador-dao");
         }
       }
     }

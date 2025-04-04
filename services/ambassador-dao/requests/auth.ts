@@ -58,7 +58,7 @@ export const useVerifyPasscodeMutation = (
           if (data.user.role === "SPONSOR") {
             router.push("/ambassador-dao/sponsor");
           } else {
-            router.push("/ambassador-dao/jobs");
+            router.push("/ambassador-dao");
           }
           onClose();
         }
@@ -101,7 +101,7 @@ export const useHandleGoogleCallback = () => {
         if (data.user.role === "SPONSOR") {
           router.push("/ambassador-dao/sponsor");
         } else {
-          router.push("/ambassador-dao/jobs");
+          router.push("/ambassador-dao");
         }
       }
     },

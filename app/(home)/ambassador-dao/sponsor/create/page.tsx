@@ -24,7 +24,7 @@ function SearchParamsWrapper() {
     if (!isLoading && !user) {
       router.push("/ambassador-dao");
     } else if (user && user.role !== "SPONSOR") {
-      router.push("/ambassador-dao/jobs");
+      router.push("/ambassador-dao");
     }
   }, [user, isLoading, router]);
 
