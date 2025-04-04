@@ -106,38 +106,41 @@ export default function ShowCaseCard({
         track, technology, and winners
       </p>
       <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800 h-[2px]" />
-      <div className="flex flex-wrap items-center justify-center sm:justify-between gap-4">
-        <Tabs
-          defaultValue={
-            filters.winningProjecs ? "winingProjects" : "allProjects"
-          }
-        >
-          <TabsList className="grid w-full grid-cols-2 dark:!bg-zinc-800 bg-zinc-100">
-            <TabsTrigger
-              onClick={() => handleFilterChange("winningProjecs", "false")}
-              value="allProjects"
-              className={`${
-                filters.winningProjecs
-                  ? "!bg-transparent"
-                  : "bg-zinc-50 dark:!bg-zinc-950"
-              } border-none`}
-            >
-              All Projects
-            </TabsTrigger>
-            <TabsTrigger
-              onClick={() => handleFilterChange("winningProjecs", "true")}
-              value="winingProjects"
-              className={`${
-                filters.winningProjecs
-                  ? "bg-zinc-50 dark:!bg-zinc-950"
-                  : "!bg-transparent"
-              } border-none`}
-            >
-              Winning Projects
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <div className="relative w-full sm:w-[237px]">
+      <div className="flex flex-col md:flex-row md:flex-wrap xl:flex-nowrap items-center justify-center md:justify-between gap-4">
+        <div className="w-full md:w-[35vw] xl:w-full flex justify-center">
+          <Tabs
+            defaultValue={
+              filters.winningProjecs ? "winingProjects" : "allProjects"
+            }
+            className="w-full sm:w-[300px]"
+          >
+            <TabsList className="w-full grid grid-cols-2 dark:!bg-zinc-800 bg-zinc-100">
+              <TabsTrigger
+                onClick={() => handleFilterChange("winningProjecs", "false")}
+                value="allProjects"
+                className={`${
+                  filters.winningProjecs
+                    ? "!bg-transparent"
+                    : "bg-zinc-50 dark:!bg-zinc-950"
+                } border-none`}
+              >
+                All Projects
+              </TabsTrigger>
+              <TabsTrigger
+                onClick={() => handleFilterChange("winningProjecs", "true")}
+                value="winingProjects"
+                className={`${
+                  filters.winningProjecs
+                    ? "bg-zinc-50 dark:!bg-zinc-950"
+                    : "!bg-transparent"
+                } border-none`}
+              >
+                Winning Projects
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        <div className="relative w-full md:w-[35vw] xl:w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-[40px] w-5 text-zinc-400 stroke-zinc-700" />
           <Input
             type="text"
@@ -158,7 +161,7 @@ export default function ShowCaseCard({
           onValueChange={(value: string) => handleFilterChange("event", value)}
           value={filters.event}
         >
-          <SelectTrigger className="w-full sm:w-[237px] border border-zinc-300 dark:border-zinc-800">
+          <SelectTrigger className="w-full md:w-[35vw] xl:w-full border border-zinc-300 dark:border-zinc-800">
             <SelectValue placeholder="Select event" />
           </SelectTrigger>
           <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
@@ -174,7 +177,7 @@ export default function ShowCaseCard({
           onValueChange={(value: string) => handleFilterChange("track", value)}
           value={filters.track}
         >
-          <SelectTrigger className="w-full sm:w-[237px] border border-zinc-300 dark:border-zinc-800">
+          <SelectTrigger className="w-full md:w-[35vw] xl:w-full border border-zinc-300 dark:border-zinc-800">
             <SelectValue placeholder="Select track" />
           </SelectTrigger>
           <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
