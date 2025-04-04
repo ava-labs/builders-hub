@@ -10,10 +10,11 @@ type Props = {
 export default function Info({ project }: Props) {
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
-      <div className="flex flex-col sm:flex-row justify-between gap-12 lg:gap-24">
+      <div className="flex flex-col sm:flex-row justify-between gap-8 lg:gap-24">
         <div className="flex items-center gap-3 md:gap-4">
-          <h1 className="text-2xl md:text-5xl font-bold md:font-extrabold">
-            {project.project_name}
+          <h1 className="text-2xl md:text-5xl font-bold md:font-extrabold break-all">
+            {project.project_name.slice(0, 55)}
+            {project.project_name.length > 55 ? "..." : ""}
           </h1>
           {true && (
             <div className="p-2 bg-red-500 rounded-full">
