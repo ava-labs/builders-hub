@@ -283,6 +283,10 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
   }, [username, checkUsername, userData?.username]);
 
   const addSkill = (skill: string) => {
+    if (selectedSkills.length >= 5) {
+      toast.error("You can only select up to 5 skills");
+      return;
+    }
     if (!selectedSkills.includes(skill) && skill) {
       setSelectedSkills([...selectedSkills, skill]);
     }
@@ -440,6 +444,11 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
                   </>
                 }
               />
+              {usernameStatus === "unavailable" && (
+                <p className='text-red-500 text-xs mt-1'>
+                  Username is already taken
+                </p>
+              )}
             </div>
 
             <CustomSelect
@@ -792,6 +801,11 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                 </>
               }
             />
+            {usernameStatus === "unavailable" && (
+              <p className='text-red-500 text-xs mt-1'>
+                Username is already taken
+              </p>
+            )}
           </div>
 
           <CustomSelect
@@ -924,6 +938,11 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                   </>
                 }
               />
+              {companyUsernameStatus === "unavailable" && (
+                <p className='text-red-500 text-xs mt-1'>
+                  Company username is already taken
+                </p>
+              )}
             </div>
           </div>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>

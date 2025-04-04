@@ -309,21 +309,13 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                 >
                                   <Trash2 className='h-4 w-4' color='#9F9FA9' />
                                 </Button>
-
-                                <Button
-                                  variant='ghost'
-                                  size='sm'
-                                  className='p-1 h-auto'
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (
-                                      listing.status === "DRAFT" ||
-                                      listing.status === "IN_REVIEW"
-                                    ) {
-                                      toast.error(
-                                        "Error: Only published listings link can be copied"
-                                      );
-                                    } else {
+                                {listing.status === "PUBLISHED" && (
+                                  <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='p-1 h-auto'
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       navigator.clipboard.writeText(
                                         `${
                                           window.location.origin
@@ -334,14 +326,14 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                         }/${listing.id}`
                                       );
                                       toast.success("Link copied to clipboard");
-                                    }
-                                  }}
-                                >
-                                  <LinkIcon
-                                    className='h-4 w-4'
-                                    color='#9F9FA9'
-                                  />
-                                </Button>
+                                    }}
+                                  >
+                                    <LinkIcon
+                                      className='h-4 w-4'
+                                      color='#9F9FA9'
+                                    />
+                                  </Button>
+                                )}
                                 {/* <Button
                                   variant='ghost'
                                   size='sm'
@@ -396,18 +388,12 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                       />{" "}
                                       Delete
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      className='text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer'
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (
-                                          listing.status === "DRAFT" ||
-                                          listing.status === "IN_REVIEW"
-                                        ) {
-                                          toast.error(
-                                            "Error: Only published listings link can be copied"
-                                          );
-                                        } else {
+                                    {listing.status === "PUBLISHED" && (
+                                      <DropdownMenuItem
+                                        className='text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer'
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+
                                           navigator.clipboard.writeText(
                                             `${
                                               window.location.origin
@@ -420,15 +406,15 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                           toast.success(
                                             "Link copied to clipboard"
                                           );
-                                        }
-                                      }}
-                                    >
-                                      <LinkIcon
-                                        className='h-4 w-4 mr-2'
-                                        color='#9F9FA9'
-                                      />{" "}
-                                      Copy Link
-                                    </DropdownMenuItem>
+                                        }}
+                                      >
+                                        <LinkIcon
+                                          className='h-4 w-4 mr-2'
+                                          color='#9F9FA9'
+                                        />{" "}
+                                        Copy Link
+                                      </DropdownMenuItem>
+                                    )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
