@@ -267,8 +267,8 @@ export default function GeneralComponent({
   
   const handleSave = async () => {
     try {
-      await form.handleSubmit(save)(); // Ejecuta la validación y luego save
-    
+      const currentValues = form.getValues();
+      await save(currentValues);
       router.push(`/hackathons/${hackathon_id}`);
     } catch (error) {
       console.error("Error in handleSave:", error);

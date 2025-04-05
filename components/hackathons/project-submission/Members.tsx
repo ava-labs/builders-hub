@@ -10,7 +10,11 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu"; // For the dropdo
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 
-export default function MembersComponent({ project_id }: projectProps){
+type MembersComponentProps = projectProps & {
+  onSave?: () => Promise<void>;
+};
+
+export default function MembersComponent({ project_id, onSave }: MembersComponentProps) {
     const [members,setMembers]=useState<any[]>([])
     const [openModal, setOpenModal] = useState(false); // State for modal
     const [emails, setEmails] = useState<string[]>([]); // State for email inputs
