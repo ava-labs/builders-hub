@@ -21,3 +21,20 @@ export const POST = withAuth(async (request,context ,session) => {
   }
 
 });
+
+export const GET = withAuth(async (request,context ,session) => {
+  const { searchParams } = new URL(request.url);
+    const email = searchParams.get('invitationId');
+  if (!email) {
+    return NextResponse.json({ error: 'invitationId parameter is required' }, { status: 400 });
+  }
+
+  try {
+    // const user = await getUserByEmail(email);
+    return NextResponse.json({ exists: !!user });
+  } catch (error) {
+    console.error("Error checking user by email:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+
+});

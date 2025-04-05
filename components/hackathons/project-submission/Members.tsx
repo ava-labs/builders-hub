@@ -5,11 +5,23 @@ import { BadgeCheck, MoreHorizontal, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { projectProps } from "./SubmissionStep1";
 import axios from "axios";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu"; // For the dropdown
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
-
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
 
 
@@ -20,6 +32,7 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
     const [newEmail, setNewEmail] = useState(""); // State for new email input
     const [invitationSent, setInvitationSent] = useState(false);
     const [invalidEmails, setInvalidEmails] = useState<string[]>([]);
+  
 
     
     const handleAddEmail = async () => {
@@ -89,7 +102,7 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
 
       const handleRemoveMember = async (email: string) => {
         try {
-          await axios.delete(`/api/project/${project_id}/member`, { data: { email } });
+          await axios.delete(`/api/project/${project_id}/members`, { data: { email } });
           setMembers(members.filter((member) => member.email !== email));
           alert(`${email} has been removed`);
         } catch (error) {
@@ -99,19 +112,17 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
 
       const handleRoleChange = async (member: any, newRole: string) => {
         try {
-          // Suponiendo que tienes un endpoint para actualizar el rol en el miembro,
-          // por ejemplo, PATCH /api/project/member que reciba { member_id, role }
-          await axios.patch(`/api/project/member`, { member_id: member.id, role: newRole });
-          // Actualizar el estado local de los miembros
+          await axios.patch(`/api/project/${project_id}/members`, { member_id: member.id, role: newRole });
+ 
           setMembers((prevMembers) =>
             prevMembers.map((m) => (m.id === member.id ? { ...m, role: newRole } : m))
           );
-          alert(`Role updated to ${newRole}`);
+      
         } catch (error) {
           console.error("Error updating role:", error);
         }
       };
-      
+
 
     useEffect(() => {
         if (!project_id) return; 
@@ -291,38 +302,80 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
             </TableHeader>
             <TableBody>
               {members.map((member, index) => (
-                <TableRow key={index} className="hover:bg-[#2c2c2c]">
+                <TableRow key={index} className="dark:hover:bg-[#2c2c2c]">
                   <TableCell>{member.name}</TableCell>
                   <TableCell>{member.email}</TableCell>
-                  <TableCell>{member.role}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex items-center gap-1 p-0  hover:bg-transparent"
+                        >
+                          {member.role}
+                          <ChevronDown size={16} color="#71717a" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        className="dark:bg-zinc-800  rounded-md shadow-lg p-2"
+                        sideOffset={5}
+                      >
+                        <DropdownMenuItem
+                          className="cursor-pointer p-2 dark:hover:bg-zinc-700"
+                          onSelect={() => handleRoleChange(member, "member")}
+                        >
+                          member
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer p-2 dark:hover:bg-zinc-700"
+                          onSelect={() => handleRoleChange(member, "developer")}
+                        >
+                          developer
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer p-2 dark:hover:bg-zinc-700"
+                          onSelect={() => handleRoleChange(member, "PM")}
+                        >
+                          PM
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer p-2 dark:hover:bg-zinc-700"
+                          onSelect={() =>
+                            handleRoleChange(member, "Researcher")
+                          }
+                        >
+                          Researcher
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                   <TableCell>{member.status}</TableCell>
                   <TableCell>
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger asChild>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm">
-                          <MoreHorizontal size={16} />
+                          <MoreHorizontal size={16} color="#71717a"/>
                         </Button>
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Portal>
-                        <DropdownMenu.Content
-                          className="bg-zinc-800 text-white rounded-md shadow-lg p-2"
-                          sideOffset={5}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        className="bg-zinc-800 text-white rounded-md shadow-lg p-2"
+                        sideOffset={5}
+                      >
+                        <DropdownMenuItem
+                          className="p-2 hover:bg-zinc-700 cursor-pointer rounded"
+                          onSelect={() => handleResendInvitation(member.email)}
                         >
-                          <DropdownMenu.Item
-                            className="p-2 hover:bg-zinc-700 cursor-pointer rounded"
-                            onClick={() => handleResendInvitation(member.email)}
-                          >
-                            Resend Invitation
-                          </DropdownMenu.Item>
-                          <DropdownMenu.Item
-                            className="p-2 hover:bg-zinc-700 cursor-pointer rounded text-red-400"
-                            onClick={() => handleRemoveMember(member.email)}
-                          >
-                            Remove Member
-                          </DropdownMenu.Item>
-                        </DropdownMenu.Content>
-                      </DropdownMenu.Portal>
-                    </DropdownMenu.Root>
+                          Resend Invitation
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="p-2 hover:bg-zinc-700 cursor-pointer rounded text-red-400"
+                          onSelect={() => handleRemoveMember(member.email)}
+                        >
+                          Remove Member
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
