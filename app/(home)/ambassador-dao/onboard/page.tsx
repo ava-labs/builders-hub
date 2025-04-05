@@ -35,6 +35,7 @@ import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 import { countries } from "@/services/ambassador-dao/data/locations";
 import { useUpdateWalletAddress } from "@/services/ambassador-dao/requests/users";
 import Loader from "@/components/ambassador-dao/ui/Loader";
+import FileUploader from "@/components/ambassador-dao/ui/FileUploader";
 
 const userTypes = [
   {
@@ -113,17 +114,17 @@ const AmbasssadorDaoOnboardPage = () => {
                 <div className="w-10 md:w-14 h-10 md:h-14 shrink-0 flex items-center justify-center bg-[#FB2C36] rounded-full p-2">
                   <Crown color="white" size={28} />
                 </div>
-                <div className='text-[var(--primary-text-color)]'>
-                  <p className='font-medium text-2xl md:text-3xl'>
-                    Continue as <span className='capitalize'>{type.name}</span>
+                <div className="text-[var(--primary-text-color)]">
+                  <p className="font-medium text-2xl md:text-3xl">
+                    Continue as <span className="capitalize">{type.name}</span>
                   </p>
                   <p>{type.description}</p>
                 </div>
               </div>
 
-              <hr className='my-6 border-[var(--default-border-color)]' />
+              <hr className="my-6 border-[var(--default-border-color)]" />
 
-              <div className='bg-[#fff] dark:bg-[#000] rounded-md h-36 md:h-44 relative overflow-hidden'>
+              <div className="bg-[#fff] dark:bg-[#000] rounded-md h-36 md:h-44 relative overflow-hidden">
                 <Image
                   src={Avalance3d}
                   objectFit="contain"
@@ -132,13 +133,13 @@ const AmbasssadorDaoOnboardPage = () => {
                 />
               </div>
 
-              <hr className='my-6 border-[var(--default-border-color)]' />
+              <hr className="my-6 border-[var(--default-border-color)]" />
 
               <div className="flex flex-col space-y-2">
                 {type.perks.map((perk, idx) => (
                   <div
                     key={idx}
-                    className='flex items-center gap-3 text-[var(--primary-text-color)]'
+                    className="flex items-center gap-3 text-[var(--primary-text-color)]"
                   >
                     <Check color="white" size={16} />
                     <p className="text-sm">{perk}</p>
@@ -146,7 +147,7 @@ const AmbasssadorDaoOnboardPage = () => {
                 ))}
               </div>
 
-              <hr className='my-6 border-[var(--default-border-color)]' />
+              <hr className="my-6 border-[var(--default-border-color)]" />
 
               <div className="flex justify-center">
                 <CustomButton
@@ -166,7 +167,7 @@ const AmbasssadorDaoOnboardPage = () => {
         </div>
       )}
       {selectionStep === "account_form" && (
-        <div className='bg-[var(--default-background-color)] rounded-xl border border-[var(--default-border-color)] p-6 py-10'>
+        <div className="bg-[var(--default-background-color)] rounded-xl border border-[var(--default-border-color)] p-6 py-10">
           {userType === ("USER" as "TALENT") && (
             <TalentForm handleClose={handleClose} />
           )}
@@ -359,8 +360,8 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
 
   return (
     <div>
-      <div className='flex justify-between items-center'>
-        <h2 className='text-[var(--primary-text-color)] text-xl md:text-2xl font-medium'>
+      <div className="flex justify-between items-center">
+        <h2 className="text-[var(--primary-text-color)] text-xl md:text-2xl font-medium">
           {isEditProfilePage
             ? stage === 1
               ? "Edit Your Profile"
@@ -370,18 +371,18 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             : "Add a wallet address"}
         </h2>
       </div>
-      <p className='text-[var(--secondary-text-color)] text-sm'>
+      <p className="text-[var(--secondary-text-color)] text-sm">
         {isEditProfilePage
           ? "Update your profile information and wallet details."
           : "It takes less than a minute to start earning in global standards."}
       </p>
 
-      <hr className='border-[var(--default-border-color)] my-6' />
+      <hr className="border-[var(--default-border-color)] my-6" />
 
       {stage === 1 && (
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className='text-[var(--primary-text-color)] text-sm mt-6 md:mt-10 flex flex-col gap-4'
+          className="text-[var(--primary-text-color)] text-sm mt-6 md:mt-10 flex flex-col gap-4"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <CustomInput
@@ -445,7 +446,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
                 }
               />
               {usernameStatus === "unavailable" && (
-                <p className='text-red-500 text-xs mt-1'>
+                <p className="text-red-500 text-xs mt-1">
                   Username is already taken
                 </p>
               )}
@@ -472,13 +473,13 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
                 <span className="text-[#FB2C36]">*</span>
               </p>
             </div>
-            <div className='w-full h-12 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
+            <div className="w-full h-12 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] overflow-x-auto">
               {selectedSkills &&
                 !!selectedSkills.length &&
                 selectedSkills.map((badge, idx) => (
                   <div
                     key={idx}
-                    className='flex items-center gap-2 bg-gray-200 dark:bg-[#fff] text-[#18181B] rounded-full px-2 text-sm cursor-pointer capitalize'
+                    className="flex items-center gap-2 bg-gray-200 dark:bg-[#fff] text-[#18181B] rounded-full px-2 text-sm cursor-pointer capitalize"
                     onClick={() => removeSkill(badge)}
                   >
                     {skills?.find((skill) => skill.id === badge)?.name}
@@ -492,7 +493,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
                 skills.map((badge, idx) => (
                   <div
                     key={idx}
-                    className='flex items-center gap-2 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-full px-3 py-1 text-sm cursor-pointer capitalize'
+                    className="flex items-center gap-2 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-full px-3 py-1 text-sm cursor-pointer capitalize"
                     onClick={() => addSkill(badge.id)}
                   >
                     {badge.name}
@@ -519,8 +520,8 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             />
             <div className="flex justify-end">
               <button
-                type='button'
-                className='flex items-center text-sm text-[#6b6b74] dark:text-[#A1A1AA]'
+                type="button"
+                className="flex items-center text-sm text-[#6b6b74] dark:text-[#A1A1AA]"
                 onClick={addSocialLink}
               >
                 <Plus size={14} color="#A1A1AA" /> Add Link
@@ -531,7 +532,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             {socialLinks.map((link, idx) => (
               <div
                 key={idx}
-                className='flex items-center gap-2 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-full px-3 py-1 text-sm cursor-pointer'
+                className="flex items-center gap-2 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-full px-3 py-1 text-sm cursor-pointer"
                 onClick={() => removeSocialLink(link)}
               >
                 {link}
@@ -540,8 +541,8 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             ))}
           </div>
 
-          <hr className='border-[var(--default-border-color)] my-6' />
-          <div className='flex justify-between'>
+          <hr className="border-[var(--default-border-color)] my-6" />
+          <div className="flex justify-between">
             <CustomButton
               isLoading={isUpdatingProfile}
               variant="danger"
@@ -571,7 +572,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
       {stage === 2 && (
         <form
           onSubmit={handleSubmit(onSubmitWallet)}
-          className='text-[var(--primary-text-color)] text-sm mt-6 md:mt-10 flex flex-col gap-4'
+          className="text-[var(--primary-text-color)] text-sm mt-6 md:mt-10 flex flex-col gap-4"
         >
           <CustomInput
             id="wallet_address"
@@ -582,8 +583,8 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
             {...register("wallet_address")}
           />
 
-          <hr className='border-[var(--default-border-color)] my-6' />
-          <div className='flex justify-between'>
+          <hr className="border-[var(--default-border-color)] my-6" />
+          <div className="flex justify-between">
             <CustomButton
               isLoading={isConnectingWallet}
               variant="danger"
@@ -631,6 +632,10 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
       first_name: userData?.first_name || "",
       last_name: userData?.last_name || "",
       username: userData?.username || "",
+      location: userData?.location || "",
+      profile_image: userData?.profile_image || "",
+      logo: userData?.logo || "",
+      company_user_name: userData?.company_user_name || "",
     },
   });
 
@@ -642,6 +647,8 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
   >(null);
   const [profileImageName, setProfileImageName] = useState<string>("");
   const [companyLogoName, setCompanyLogoName] = useState<string>("");
+  const [logoSize, setLogoSize] = useState<number>();
+  const [profileImageSize, setProfileImageSize] = useState<number>();
 
   const username = watch("username");
   const company_username = watch("company_user_name");
@@ -705,9 +712,6 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
     }
   }, [company_username, checkCompanyUsername]);
 
- 
-
-  //company logo upload handling
   const handleCompanyLogoUpload = async (file: File) => {
     const allowedTypes = ["image/jpeg", "image/png", "image/svg+xml"];
     if (!allowedTypes.includes(file.type)) {
@@ -718,6 +722,8 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
     if (file.size > 1024 * 1024) {
       toast.error("File size exceeds 1MB limit");
       return;
+    }else{
+      setLogoSize(file.size);
     }
 
     try {
@@ -737,22 +743,6 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
     }
   };
 
-  const handleLogoDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleLogoDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      await handleCompanyLogoUpload(file);
-    }
-  };
-
-  //profile image upload handling
   const handleProfileImageUpload = async (file: File) => {
     const allowedTypes = ["image/jpeg", "image/png", "image/svg+xml"];
     if (!allowedTypes.includes(file.type)) {
@@ -763,7 +753,10 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
     if (file.size > 1024 * 1024) {
       toast.error("File size exceeds 1MB limit");
       return;
+    }else{
+      setProfileImageSize(file.size);
     }
+
 
     try {
       setProfileImageName(file.name);
@@ -779,21 +772,6 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
     } catch (error) {
       console.error("Error uploading image:", error);
       toast.error("Failed to upload image");
-    }
-  };
-
-  const handleProfileDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleProfileDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      await handleProfileImageUpload(file);
     }
   };
 
@@ -814,23 +792,23 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
 
   return (
     <div>
-      <div className='flex justify-between items-center'>
-        <h2 className='text-[var(--primary-text-color)] text-xl md:text-2xl font-medium'>
+      <div className="flex justify-between items-center">
+        <h2 className="text-[var(--primary-text-color)] text-xl md:text-2xl font-medium">
           Welcome to Ambassador DAO
         </h2>
       </div>
-      <p className='text-[var(--secondary-text-color)] text-sm mb-8'>
+      <p className="text-[var(--secondary-text-color)] text-sm mb-8">
         It takes less than a minute to start earning in global standards.
       </p>
       <hr />
-      <h3 className='text-[var(--primary-text-color)] font-medium text-xl my-6'>
+      <h3 className="text-[var(--primary-text-color)] font-medium text-xl my-6">
         About you
       </h3>
       <hr />
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className='text-[var(--primary-text-color)] text-sm mt-6 md:mt-10 flex flex-col gap-4'
+        className="text-[var(--primary-text-color)] text-sm mt-6 md:mt-10 flex flex-col gap-4"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <CustomInput
@@ -885,7 +863,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
               }
             />
             {usernameStatus === "unavailable" && (
-              <p className='text-red-500 text-xs mt-1'>
+              <p className="text-red-500 text-xs mt-1">
                 Username is already taken
               </p>
             )}
@@ -905,89 +883,20 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
             ))}
           </CustomSelect>
         </div>
-        <div className="mb-6">
-          <label className="block text-sm">
-            Upload Profile Image or Avatar
-            <span className="text-[#FB2C36]">*</span>
-          </label>
-          <p className='text-xs text-[#6b6b74] dark:text-[#A1A1AA] mb-2'>
-            Add the image here. Recommended size: 512 x 512px (square format)
-          </p>
-
-          {profile_image ? (
-            <div className="rounded-md my-2 flex flex-col border border-[var(--default-border-color)] p-3 text-sm">
-              <div className="flex justify-between items-center mb-2">
-                <span className="truncate max-w-[80%]">{profileImageName}</span>
-                <X
-                  onClick={() => {
-                    setValue("profile_image", "");
-                    setProfileImageName("");
-                    setPreviewImage(null);
-                    getValues("profile_image");
-                  }}
-                  className="cursor-pointer"
-                  color="currentColor"
-                  size={16}
-                />
-              </div>
-              {previewImage && (
-                <div className="w-24 h-24 border border-gray-700 rounded flex items-center justify-center overflow-hidden">
-                  <img
-                    src={previewImage}
-                    alt="Profile preview"
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              )}
-            </div>
-          ) : (
-            <div
-              className="border border-dashed border-[#27272A] rounded-md p-6 flex flex-col items-center justify-center h-32 cursor-pointer"
-              onDragOver={handleProfileDragOver}
-              onDrop={handleProfileDrop}
-              onClick={() =>{
-                document.getElementById("profileImage")?.click()
-              } }
-            >
-              {isUploading ? (
-                <Loader2 className="animate-spin" color="currentColor" size={24} />
-              ) : (
-                <>
-                  <Upload
-                    size={24}
-                    className="text-[#6b6b74] dark:text-[#A1A1AA]  mb-2"
-                    color="currentColor"
-                  />
-                  <p className="text-sm text-[#6b6b74] dark:text-[#A1A1AA]">
-                    Drag your file(s) or{" "}
-                    <input
-                      type="file"
-                      accept=".png,.jpg,.jpeg,.svg"
-                      className="hidden"
-                      id="profileImage"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          handleProfileImageUpload(e.target.files[0]);
-                          e.target.value = '';
-                        }
-                      }}
-                    />
-                    <label
-                      htmlFor="profileImage"
-                      className="text-[var(--primary-text-color)] underline cursor-pointer"
-                    onClick={(e) => e.stopPropagation()} 
-                    >
-                      browse
-                    </label>
-                  </p>
-                  <p className="text-xs text-[#6b6b74] dark:text-[#A1A1AA]  mt-1">
-                    Max 1 MB files are allowed (JPG, PNG, SVG)
-                  </p>
-                </>
-              )}
-            </div>
-          )}
-        </div>
+        <FileUploader
+          fileSize={profileImageSize}
+          singleFile={true}
+          previewUrl={previewImage || profile_image}
+          fileName={profileImageName}
+          handleFileUpload={handleProfileImageUpload}
+          isUploading={isUploading}
+          accept=".png,.jpg,.jpeg,.svg"
+          inputId="profileImage"
+          label="Upload Profile Image or Avatar"
+          required={true}
+          recommendedSize="Add the image here. Recommended size: 512 x 512px (square format)"
+          allowedFileTypes="JPG, PNG, SVG"
+        />
 
         <hr />
 
@@ -1042,7 +951,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                 }
               />
               {companyUsernameStatus === "unavailable" && (
-                <p className='text-red-500 text-xs mt-1'>
+                <p className="text-red-500 text-xs mt-1">
                   Company username is already taken
                 </p>
               )}
@@ -1063,89 +972,21 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
               {...register("twitter_url")}
             />
           </div>
-          <div className="">
-            <label className="block text-sm">
-              Company Logo<span className="text-[#FB2C36]">*</span>
-            </label>
-            <p className="text-xs text-[#6b6b74] dark:text-[#A1A1AA] mb-2">
-              Add the image here. Recommended size: 512 x 512px (square format)
-            </p>
 
-            {logo ? (
-              <div className="rounded-md my-2 flex flex-col border border-[var(--default-border-color)]  p-3 text-sm">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="truncate max-w-[80%]">
-                    {companyLogoName}
-                  </span>
-                  <X
-                    onClick={() => {
-                      setValue("logo", "");
-                      setCompanyLogoName("");
-                      setPreviewLogo(null);
-                    }}
-                    className="cursor-pointer"
-                    color="currentColor"
-                    size={16}
-                  />
-                </div>
-                {previewLogo && (
-                  <div className="w-24 h-24 border border-[var(--default-border-color)] rounded flex items-center justify-center overflow-hidden">
-                    <img
-                      src={previewLogo}
-                      alt="Company logo preview"
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div
-                className="border border-dashed border-[var(--default-border-color)]  rounded-md p-6 flex flex-col items-center justify-center h-32 cursor-pointer"
-                onDragOver={handleLogoDragOver}
-                onDrop={handleLogoDrop}
-                onClick={() =>
-                  document.getElementById("companyLogoInput")?.click()
-                }
-              >
-                {isUploading ? (
-                  <Loader2 className="animate-spin" color="currentColor" size={24} />
-                ) : (
-                  <>
-                    <Upload
-                      size={24}
-                      className="text-[#6b6b74] dark:text-[#A1A1AA] mb-2"
-                      color="currentColor"
-                    />
-                    <p className="text-sm text-[#6b6b74] dark:text-[#A1A1AA]">
-                      Drag your file(s) or
-                      <input
-                        type="file"
-                        accept=".png,.jpg,.jpeg,.svg"
-                        className="hidden"
-                        id="companyLogoInput"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            handleCompanyLogoUpload(e.target.files[0]);
-                            e.target.value = '';
-                          }
-                        }}
-                      />
-                      <label
-                        htmlFor="companyLogoInput"
-                        className="text-[var(--primary-text-color)] underline cursor-pointer ml-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        browse
-                      </label>
-                    </p>
-                    <p className='text-xs text-[#6b6b74] dark:text-[#A1A1AA] mt-1'>
-                      Max 1 MB files are allowed (JPG, PNG, SVG)
-                    </p>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+          <FileUploader
+          fileSize={logoSize}
+            singleFile={true}
+            previewUrl={previewLogo || logo}
+            fileName={companyLogoName}
+            handleFileUpload={handleCompanyLogoUpload}
+            isUploading={isUploading}
+            accept=".png,.jpg,.jpeg,.svg"
+            inputId="companyLogoInput"
+            label="Company Logo"
+            required={true}
+            recommendedSize="Add the image here. Recommended size: 512 x 512px (square format)"
+            allowedFileTypes="JPG, PNG, SVG"
+          />
           <CustomInput
             id="industry"
             label="Industry"
@@ -1161,7 +1002,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
             {...register("short_bio")}
           />
         </div>
-        <hr className='border-[var(--default-border-color)] my-6' />        
+        <hr className="border-[var(--default-border-color)] my-6" />
         <div className="flex">
           <CustomButton
             isLoading={isUpdatingProfile || isUploading}
