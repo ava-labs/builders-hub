@@ -49,8 +49,18 @@ const CustomButton: FC<ButtonProps> = ({
     >
       {isLoading ? (
         <Loader2
-          className='animate-spin'
-          color={variant === "default" ? "#fff dark:#09090B" : "#FAFAFA"}
+          className="animate-spin"
+          color={
+            variant === "default"
+              ? "var(--default-background-color)"
+              : variant === "white"
+              ? "var(--default-background-color)"
+              : variant === "danger"
+              ? "#fff"
+              : variant === "outlined"
+              ? "#000"
+              : "currentColor"
+          }
           size={20}
         />
       ) : (

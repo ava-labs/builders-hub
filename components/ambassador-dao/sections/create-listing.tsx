@@ -46,7 +46,6 @@ import toast from "react-hot-toast";
 const MarkdownEditor = dynamic(() => import("../markdown-editor"), {
   ssr: false,
 });
-const markdown = `Hello **world**!`;
 
 export default function AmbasssadorDaoSponsorsCreateListing({
   type,
@@ -436,8 +435,8 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                         <span className='text-red-500 ml-1'>*</span>
                       </label>
                       <Suspense fallback={null}>
-                        <MarkdownEditor
-                          markdown={getValues("description") ?? markdown}
+                        <MarkdownEditor 
+                          markdown={getValues("description")}
                           setValue={setValue}
                         />
                       </Suspense>
