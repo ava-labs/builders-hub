@@ -42,6 +42,7 @@ import { useForm, useFieldArray, Controller } from "react-hook-form";
 import dynamic from "next/dynamic";
 import FullScreenLoader from "../full-screen-loader";
 import { PublishOpportunityModal } from "./publish-opportunity-modal";
+import toast from "react-hot-toast";
 const MarkdownEditor = dynamic(() => import("../markdown-editor"), {
   ssr: false,
 });
@@ -169,6 +170,10 @@ export default function AmbasssadorDaoSponsorsCreateListing({
   };
 
   const onSubmitContinue = async (data: ICreateOpportunityBody) => {
+    if (getValues("total_budget") <= 0) {
+      toast.error("Total prize / reward must be greater than $0");
+      return;
+    }
     if (id) {
       await updateOpportunity(data);
       setOpportunityId(id);
@@ -182,6 +187,10 @@ export default function AmbasssadorDaoSponsorsCreateListing({
   };
 
   const onSubmitPreview = async (data: ICreateOpportunityBody) => {
+    if (getValues("total_budget") <= 0) {
+      toast.error("Total prize / reward must be greater than $0");
+      return;
+    }
     if (id) {
       const res = await updateOpportunity(data);
       router.push(

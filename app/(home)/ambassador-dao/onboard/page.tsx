@@ -158,7 +158,7 @@ const AmbasssadorDaoOnboardPage = () => {
                   onClick={() => handleContinue(type.name.toUpperCase() as any)}
                   className='px-6 h-10 text-sm font-medium'
                 >
-                  Continue as <span className='capitalize'>{type.name}</span>
+                  Continue as {type.name}
                 </CustomButton>
               </div>
             </div>
@@ -340,7 +340,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
       },
       {
         onSuccess: () => {
-          router.push("/ambassador-dao/jobs");
+          router.push("/ambassador-dao");
         },
       }
     );
