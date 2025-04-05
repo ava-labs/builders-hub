@@ -43,6 +43,7 @@ import dynamic from "next/dynamic";
 import FullScreenLoader from "../full-screen-loader";
 import { PublishOpportunityModal } from "./publish-opportunity-modal";
 import toast from "react-hot-toast";
+import DatePicker from "../DatePicker";
 const MarkdownEditor = dynamic(() => import("../markdown-editor"), {
   ssr: false,
 });
@@ -88,7 +89,6 @@ export default function AmbasssadorDaoSponsorsCreateListing({
     },
   });
 
-  // Prize distribution field array for BOUNTY type
   const {
     fields: prizeFields,
     append: appendPrize,
@@ -98,17 +98,14 @@ export default function AmbasssadorDaoSponsorsCreateListing({
     name: "prize_distribution",
   });
 
-  // Watch for form values
   const startDate = watch("start_date");
   const formType = watch("type");
   const customQuestionFields = watch("custom_questions");
 
-  // Set selected skills in form when they change
   useEffect(() => {
     setValue("skill_ids", selectedSkills);
   }, [selectedSkills, setValue]);
 
-  // Populate form with listing details when in edit mode
   useEffect(() => {
     if (id && listingDetails) {
       setValue("title", listingDetails.title);
@@ -213,13 +210,11 @@ export default function AmbasssadorDaoSponsorsCreateListing({
     setSelectedSkills(updated);
   };
 
-  // Function to add a custom question
   const addCustomQuestion = () => {
     const updatedQuestions = [...(customQuestionFields || []), ""];
     setValue("custom_questions", updatedQuestions);
   };
 
-  // Function to remove a custom question
   const removeCustomQuestion = (index: number) => {
     const updatedQuestions = customQuestionFields?.filter(
       (_, i) => i !== index
@@ -227,7 +222,6 @@ export default function AmbasssadorDaoSponsorsCreateListing({
     setValue("custom_questions", updatedQuestions);
   };
 
-  // Helper function to set end date based on weeks from start date
   const setEndDateFromWeeks = (weeks: number) => {
     if (startDate) {
       const newEndDate = addWeeks(new Date(startDate), weeks);
@@ -235,14 +229,12 @@ export default function AmbasssadorDaoSponsorsCreateListing({
     }
   };
 
-  // Calculate total budget for BOUNTY type
   const calculateTotalBudget = () => {
     const prizes = watch("prize_distribution") || [];
     const total = prizes.reduce((sum, prize) => sum + (prize.amount || 0), 0);
     setValue("total_budget", total);
   };
 
-  // Update total budget when prize amounts change
   useEffect(() => {
     const type = watch("type");
     if (type === "BOUNTY") {
@@ -259,7 +251,6 @@ export default function AmbasssadorDaoSponsorsCreateListing({
     }
   }, [watch("type")]);
 
-  // Handle unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
@@ -282,25 +273,25 @@ export default function AmbasssadorDaoSponsorsCreateListing({
       ) : (
         <>
           {" "}
-          <div className='p-4 md:p-8 m-4 md:m-8 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-md'>
-            <div className='max-w-7xl mx-auto'>
-              <div className='flex justify-between mb-8'>
+          <div className="p-4 md:p-8 m-4 md:m-8 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-md">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex justify-between mb-8">
                 <Button
-                  variant='outline'
+                  variant="outline"
                   onClick={goBack}
-                  className='text-[var(--primary-text-color)] border-[var(--default-border-color)]'
+                  className="text-[var(--primary-text-color)] border-[var(--default-border-color)]"
                 >
                   <ArrowLeft
-                    className='mr-1 h-4 w-4'
-                    color='var(--primary-text-color)'
+                    className="mr-1 h-4 w-4"
+                    color="var(--primary-text-color)"
                   />{" "}
                   Go Back
                 </Button>
 
-                <div className='flex space-x-3'>
+                <div className="flex space-x-3">
                   <CustomButton
-                    variant='white'
-                    className='px-4'
+                    variant="white"
+                    className="px-4"
                     onClick={() => {
                       setButtonState("preview");
                       handleSubmit(onSubmitPreview)();
@@ -313,8 +304,8 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     }
                   >
                     <Eye
-                      className='mr-1 h-4 w-4'
-                      color='var(--black-background-color)'
+                      className="mr-1 h-4 w-4"
+                      color="var(--black-background-color)"
                     />
                     Preview
                   </CustomButton>
@@ -325,7 +316,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     }}
                     isLoading={isPending && buttonState === "continue"}
                     variant={"danger"}
-                    className='px-4'
+                    className="px-4"
                     disabled={
                       (type === "BOUNTY" && prizeFields.length === 0) ||
                       selectedSkills.length === 0 ||
@@ -338,42 +329,41 @@ export default function AmbasssadorDaoSponsorsCreateListing({
               </div>
 
               <form onSubmit={handleSubmit(onSubmitContinue)}>
-                <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
-                  <div className='lg:col-span-2 space-y-6'>
-                    {/* Title Section */}
-                    <div className='space-y-1'>
-                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="space-y-1">
+                      <label className="flex text-[var(--primary-text-color)] text-sm font-medium">
                         Listing Title
-                        <span className='text-red-500 ml-1'>*</span>
+                        <span className="text-red-500 ml-1">*</span>
                       </label>
-                      <div className='flex items-center gap-2'>
+                      <div className="flex items-center gap-2">
                         <Controller
-                          name='type'
+                          name="type"
                           control={control}
                           render={({ field }) => (
                             <Select
                               value={field.value}
                               onValueChange={field.onChange}
-                              iconColor='var(--primary-text-color)'
+                              iconColor="var(--primary-text-color)"
                             >
-                              <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
-                                <SelectValue placeholder='Select' />
+                              <SelectTrigger className="min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2">
+                                <SelectValue placeholder="Select" />
                               </SelectTrigger>
-                              <SelectContent className='bg-[#fafafa] dark:bg-[#09090B] text-[var(--primary-text-color)]'>
-                                <SelectItem value='JOB'>
-                                  <div className='flex items-center'>
+                              <SelectContent className="bg-[#fafafa] dark:bg-[#09090B] text-[var(--primary-text-color)]">
+                                <SelectItem value="JOB">
+                                  <div className="flex items-center">
                                     <BriefcaseBusiness
-                                      className='mr-2'
-                                      color='var(--primary-text-color)'
+                                      className="mr-2"
+                                      color="var(--primary-text-color)"
                                     />
                                     Job
                                   </div>
                                 </SelectItem>
-                                <SelectItem value='BOUNTY'>
-                                  <div className='flex items-center'>
+                                <SelectItem value="BOUNTY">
+                                  <div className="flex items-center">
                                     <BriefcaseBusiness
-                                      className='mr-2'
-                                      color='var(--primary-text-color)'
+                                      className="mr-2"
+                                      color="var(--primary-text-color)"
                                     />
                                     Bounty
                                   </div>
@@ -384,95 +374,92 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                         />
 
                         <Controller
-                          name='title'
+                          name="title"
                           control={control}
                           rules={{ required: "Title is required" }}
                           render={({ field }) => (
                             <CustomInput
                               {...field}
-                              className='w-full'
-                              placeholder='Create a High-Energy Video Montage About Sendit & Earn!'
+                              className="w-full"
+                              placeholder="Create a High-Energy Video Montage About Sendit & Earn!"
                             />
                           )}
                         />
                       </div>
                       {errors.title && (
-                        <p className='text-red-500 text-xs mt-1'>
+                        <p className="text-red-500 text-xs mt-1">
                           {errors.title.message}
                         </p>
                       )}
                     </div>
 
-                    {/* Requirements Section */}
-                    <div className='space-y-2'>
-                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                    <div className="space-y-2">
+                      <label className="flex text-[var(--primary-text-color)] text-sm font-medium">
                         Requirements
-                        <span className='text-red-500 ml-1'>*</span>
+                        <span className="text-red-500 ml-1">*</span>
                       </label>
                       <Controller
-                        name='requirements'
+                        name="requirements"
                         control={control}
                         rules={{ required: "Requirements is required" }}
                         render={({ field }) => (
                           <CustomInput
                             {...field}
-                            className='w-full'
-                            placeholder='English speaking candidates only'
+                            className="w-full"
+                            placeholder="English speaking candidates only"
                           />
                         )}
                       />
                       {errors.requirements && (
-                        <p className='text-red-500 text-xs mt-1'>
+                        <p className="text-red-500 text-xs mt-1">
                           {errors.requirements.message}
                         </p>
                       )}
                     </div>
 
-                    {/* Description Section */}
-                    <div className='space-y-2'>
-                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                    <div className="space-y-2">
+                      <label className="flex text-[var(--primary-text-color)] text-sm font-medium">
                         Description
-                        <span className='text-red-500 ml-1'>*</span>
+                        <span className="text-red-500 ml-1">*</span>
                       </label>
                       <Suspense fallback={null}>
-                        <MarkdownEditor 
+                        <MarkdownEditor
                           markdown={getValues("description")}
                           setValue={setValue}
                         />
                       </Suspense>
                       {errors.description && (
-                        <p className='text-red-500 text-xs mt-1'>
+                        <p className="text-red-500 text-xs mt-1">
                           {errors.description.message}
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <div className='lg:col-span-1 space-y-6'>
-                    {/* Rewards Section - Conditional based on type */}
+                  <div className="lg:col-span-1 space-y-6">
                     {formType === "JOB" ? (
-                      <div className='space-y-1'>
-                        <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                      <div className="space-y-1">
+                        <label className="flex text-[var(--primary-text-color)] text-sm font-medium">
                           Add Rewards
-                          <span className='text-red-500 ml-1'>*</span>
+                          <span className="text-red-500 ml-1">*</span>
                         </label>
-                        <div className='flex items-center gap-2'>
+                        <div className="flex items-center gap-2">
                           <Select
-                            defaultValue='USDC'
-                            iconColor='var(--primary-text-color)'
+                            defaultValue="USDC"
+                            iconColor="var(--primary-text-color)"
                           >
-                            <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
+                            <SelectTrigger className="min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className='bg-[var(--default-background-color)] text-[var(--primary-text-color)]'>
-                              <SelectItem value='USDC'>
-                                <div className='flex items-center'>
+                            <SelectContent className="bg-[var(--default-background-color)] text-[var(--primary-text-color)]">
+                              <SelectItem value="USDC">
+                                <div className="flex items-center">
                                   <Image
                                     src={UsdcToken}
-                                    alt='usdc token'
+                                    alt="usdc token"
                                     width={20}
                                     height={20}
-                                    className='mr-2'
+                                    className="mr-2"
                                   />
                                   USDC
                                 </div>
@@ -481,45 +468,58 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           </Select>
 
                           <Controller
-                            name='total_budget'
+                            name="total_budget"
                             control={control}
                             rules={{ required: "Reward is required" }}
                             render={({ field }) => (
                               <CustomInput
                                 {...field}
-                                type='number'
-                                className='w-full'
-                                placeholder='100'
-                                onChange={(e) =>
-                                  field.onChange(Number(e.target.value))
-                                }
+                                min={1}
+                                type="number"
+                                className="w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                placeholder="100"
+                                onChange={(e) => {
+                                  const inputValue = e.target.value;
+                                  if (inputValue === "") {
+                                    field.onChange("");
+                                  } else if (+inputValue === 0) {
+                                    field.onChange("");
+                                  } else {
+                                    const numValue = Number(inputValue);
+                                    if (numValue < 1) {
+                                      field.onChange("");
+                                    } else {
+                                      field.onChange(numValue);
+                                    }
+                                  }
+                                }}
                               />
                             )}
                           />
                         </div>
                         {errors.total_budget && (
-                          <p className='text-red-500 text-xs mt-1'>
+                          <p className="text-red-500 text-xs mt-1">
                             {errors.total_budget.message}
                           </p>
                         )}
                       </div>
                     ) : (
-                      <div className='space-y-4'>
-                        <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                      <div className="space-y-4">
+                        <label className="flex text-[var(--primary-text-color)] text-sm font-medium">
                           Prize Distribution
-                          <span className='text-red-500 ml-1'>*</span>
+                          <span className="text-red-500 ml-1">*</span>
                         </label>
                         {!prizeFields.length && (
                           <>
-                            <p className='text-red-500 text-xs mt-1'>
+                            <p className="text-red-500 text-xs mt-1">
                               Please add a prize
                             </p>
                           </>
                         )}
 
                         {prizeFields.map((field, index) => (
-                          <div key={field.id} className='space-y-1'>
-                            <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                          <div key={field.id} className="space-y-1">
+                            <label className="flex text-[var(--primary-text-color)] text-sm font-medium">
                               {index === 0
                                 ? "First Prize"
                                 : index === 1
@@ -528,23 +528,23 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                 ? "Third Prize"
                                 : `${index + 1}th Prize`}
                             </label>
-                            <div className='flex items-center gap-2'>
+                            <div className="flex items-center gap-2">
                               <Select
-                                defaultValue='USDC'
+                                defaultValue="USDC"
                                 onValueChange={() => {}}
                               >
-                                <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
+                                <SelectTrigger className="min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2">
                                   <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className='bg-[var(--default-background-color)] text-[var(--primary-text-color)]'>
-                                  <SelectItem value='USDC'>
-                                    <div className='flex items-center'>
+                                <SelectContent className="bg-[var(--default-background-color)] text-[var(--primary-text-color)]">
+                                  <SelectItem value="USDC">
+                                    <div className="flex items-center">
                                       <Image
                                         src={UsdcToken}
-                                        alt='usdc token'
+                                        alt="usdc token"
                                         width={20}
                                         height={20}
-                                        className='mr-2'
+                                        className="mr-2"
                                       />
                                       USDC
                                     </div>
@@ -559,12 +559,23 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                 render={({ field }) => (
                                   <CustomInput
                                     {...field}
-                                    type='number'
-                                    className='w-full'
-                                    placeholder='100'
+                                    type="number"
+                                    min={1}
+                                    className="w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    placeholder="100"
                                     onChange={(e) => {
-                                      field.onChange(Number(e.target.value));
-                                      calculateTotalBudget();
+                                      const inputValue = e.target.value;
+                                      if (
+                                        inputValue === "" ||
+                                        +inputValue === 0 ||
+                                        +inputValue < 1
+                                      ) {
+                                        field.onChange("");
+                                      } else {
+                                        const numValue = Number(inputValue);
+                                        field.onChange(numValue);
+                                        calculateTotalBudget();
+                                      }
                                     }}
                                   />
                                 )}
@@ -572,25 +583,25 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 
                               {index > 0 && (
                                 <Button
-                                  type='button'
-                                  variant='ghost'
-                                  size='icon'
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
                                   onClick={() => removePrize(index)}
-                                  className='text-red-500 px-3'
+                                  className="text-red-500 px-3"
                                 >
-                                  <Trash2 className='h-4 w-4' color='red' />
+                                  <Trash2 className="h-4 w-4" color="red" />
                                 </Button>
                               )}
                             </div>
                           </div>
                         ))}
 
-                        <div className='flex justify-end'>
+                        <div className="flex justify-end">
                           <Button
-                            type='button'
-                            variant='ghost'
-                            size='sm'
-                            className='h-6 py-1 text-xs text-[var(--primary-text-color)] hover:bg-none'
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 py-1 text-xs text-[var(--primary-text-color)] hover:bg-none"
                             onClick={() =>
                               appendPrize({
                                 position: prizeFields.length + 1,
@@ -599,8 +610,8 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             }
                           >
                             <Plus
-                              className='h-3 w-3 mr-1'
-                              color='var(--primary-text-color)'
+                              className="h-3 w-3 mr-1"
+                              color="var(--primary-text-color)"
                             />
                             Add Individual Prize Position
                           </Button>
@@ -608,120 +619,60 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       </div>
                     )}
 
-                    {/* Start Date Section */}
-                    <div className='space-y-2'>
-                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                    <div className="space-y-2">
+                      <label className="flex text-[var(--primary-text-color)] text-sm font-medium">
                         Start Date (in America/New_York)
-                        <span className='text-red-500 ml-1'>*</span>
+                        <span className="text-red-500 ml-1">*</span>
                       </label>
-                      <div className='flex flex-col space-y-2'>
+                      <div className="flex flex-col space-y-2">
                         <Controller
-                          name='start_date'
+                          name="start_date"
                           control={control}
                           rules={{ required: "Start date is required" }}
                           render={({ field }) => (
                             <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant='outline'
-                                  className='bg-[var(--default-background-color)] border-[var(--default-border-color)] justify-between text-left font-normal'
-                                >
-                                  {field.value ? (
-                                    format(new Date(field.value), "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon
-                                    className='h-4 w-4 opacity-50'
-                                    color='var(--primary-text-color)'
-                                  />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className='w-auto p-0'
-                                align='start'
-                              >
-                                <Calendar
-                                  mode='single'
-                                  selected={
-                                    field.value
-                                      ? new Date(field.value)
-                                      : undefined
-                                  }
-                                  onSelect={(date) => {
-                                    field.onChange(date);
-                                    // Close popover when date is selected
-                                    document.body.click();
-                                  }}
-                                  initialFocus
-                                  className='text-[var(--primary-text-color)] bg-[#fafafa] dark:bg-[#09090B]'
-                                />
-                              </PopoverContent>
+                              <DatePicker
+                                value={field.value || undefined}
+                                onChange={(date) => {
+                                  field.onChange(date);
+                                  document.body.click();
+                                }}
+                              />
                             </Popover>
                           )}
                         />
                       </div>
                       {errors.start_date && (
-                        <p className='text-red-500 text-xs mt-1'>
+                        <p className="text-red-500 text-xs mt-1">
                           {errors.start_date.message}
                         </p>
                       )}
                     </div>
 
-                    {/* End Date Section */}
-                    <div className='space-y-2'>
-                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                    <div className="space-y-2">
+                      <label className="flex text-[var(--primary-text-color)] text-sm font-medium">
                         End Date (in America/New_York)
-                        <span className='text-red-500 ml-1'>*</span>
+                        <span className="text-red-500 ml-1">*</span>
                       </label>
-                      <div className='flex flex-col space-y-2'>
+                      <div className="flex flex-col space-y-2">
                         <Controller
-                          name='end_date'
+                          name="end_date"
                           control={control}
                           rules={{ required: "End date is required" }}
                           render={({ field }) => (
                             <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant='outline'
-                                  className='bg-[var(--default-background-color)] border-[var(--default-border-color)] justify-between text-left font-normal'
-                                >
-                                  {field.value ? (
-                                    format(new Date(field.value), "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon
-                                    className='h-4 w-4 opacity-50'
-                                    color='var(--primary-text-color)'
-                                  />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className='w-auto p-0'
-                                align='start'
-                              >
-                                <Calendar
-                                  mode='single'
-                                  selected={
-                                    field.value
-                                      ? new Date(field.value)
-                                      : undefined
-                                  }
-                                  onSelect={(date) => {
-                                    field.onChange(date);
-                                    // Close popover when date is selected
-                                    document.body.click();
-                                  }}
-                                  initialFocus
-                                  className='text-[var(--primary-text-color)] bg-[#fafafa] dark:bg-[#09090B]'
-                                />
-                              </PopoverContent>
+                              <DatePicker
+                                value={field.value || undefined}
+                                onChange={(date) => {
+                                  field.onChange(date);
+                                  document.body.click();
+                                }}
+                              />
                             </Popover>
                           )}
                         />
 
-                        <div className='flex space-x-2'>
+                        <div className="flex space-x-2">
                           {[
                             { label: "1 Week", weeks: 1 },
                             { label: "2 Weeks", weeks: 2 },
@@ -740,8 +691,8 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             return (
                               <Button
                                 key={period.label}
-                                type='button'
-                                variant='outline'
+                                type="button"
+                                variant="outline"
                                 className={cn(
                                   "bg-transparent border-[var(--default-border-color)] rounded-full text-xs px-3 h-8",
                                   isActive && "border-blue-500 bg-blue-500/10"
@@ -757,19 +708,18 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                         </div>
                       </div>
                       {errors.end_date && (
-                        <p className='text-red-500 text-xs mt-1'>
+                        <p className="text-red-500 text-xs mt-1">
                           {errors.end_date.message}
                         </p>
                       )}
                     </div>
 
-                    {/* Skills Section */}
-                    <div className='space-y-2'>
-                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                    <div className="space-y-2">
+                      <label className="flex text-[var(--primary-text-color)] text-sm font-medium">
                         Skills Needed
-                        <span className='text-red-500 ml-1'>*</span>
+                        <span className="text-red-500 ml-1">*</span>
                       </label>
-                      <div className='w-full min-h-10 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
+                      <div className="w-full min-h-10 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] overflow-x-auto">
                         {selectedSkills.map((skillId, idx) => {
                           const skillName =
                             skills?.find((skill) => skill.id === skillId)
@@ -777,108 +727,106 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           return (
                             <div
                               key={idx}
-                              className='flex items-center gap-2 bg-gray-200 dark:bg-[#fff] text-[#18181B] rounded-full px-2 text-xs cursor-pointer capitalize'
+                              className="flex items-center gap-2 bg-gray-200 dark:bg-[#fff] text-[#18181B] rounded-full px-2 text-xs cursor-pointer capitalize"
                               onClick={() => removeSkill(skillId)}
                             >
                               {skillName}
-                              <X size={14} color='#18181B' />
+                              <X size={14} color="#18181B" />
                             </div>
                           );
                         })}
                       </div>
-                      <div className='flex flex-wrap gap-2 mt-4'>
+                      <div className="flex flex-wrap gap-2 mt-4">
                         {skills && skills.length > 0 ? (
                           skills.map((badge, idx) => (
                             <div
                               key={idx}
-                              className='flex items-center gap-2 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-full px-3 py-1 text-xs cursor-pointer capitalize'
+                              className="flex items-center gap-2 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-full px-3 py-1 text-xs cursor-pointer capitalize"
                               onClick={() => addSkill(badge.id)}
                             >
                               {badge.name}
-                              <Plus size={14} color='#A1A1AA' />
+                              <Plus size={14} color="#A1A1AA" />
                             </div>
                           ))
                         ) : (
-                          <p className='text-center text-sm font-thin'>
+                          <p className="text-center text-sm font-thin">
                             No skills available
                           </p>
                         )}
                       </div>
                     </div>
 
-                    {/* Contact Section */}
-                    <div className='space-y-2'>
-                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                    <div className="space-y-2">
+                      <label className="flex text-[var(--primary-text-color)] text-sm font-medium">
                         Point of Contact (TG / X / Email)
-                        <span className='text-red-500 ml-1'>*</span>
+                        <span className="text-red-500 ml-1">*</span>
                       </label>
                       <Controller
-                        name='point_of_contact'
+                        name="point_of_contact"
                         control={control}
                         rules={{ required: "Contact information is required" }}
                         render={({ field }) => (
                           <CustomInput
                             {...field}
-                            type='text'
-                            className='bg-[var(--default-background-color)] border-[var(--default-border-color)]'
+                            type="text"
+                            className="bg-[var(--default-background-color)] border-[var(--default-border-color)]"
                           />
                         )}
                       />
                       {errors.point_of_contact && (
-                        <p className='text-red-500 text-xs mt-1'>
+                        <p className="text-red-500 text-xs mt-1">
                           {errors.point_of_contact.message}
                         </p>
                       )}
                     </div>
 
-                    {/* Custom Questions Section */}
-                    <div className='space-y-2'>
-                      <h3 className='text-lg font-semibold'>
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold">
                         Custom Questions
                       </h3>
 
                       {!customQuestionFields?.length && (
                         <>
-                          <p className=' text-xs mt-1'>No questions added</p>
+                          <p className=" text-xs mt-1">No questions added</p>
                         </>
                       )}
 
                       {customQuestionFields?.map((field, index) => (
-                        <div key={index} className='flex gap-2 items-center'>
+                        <div key={index} className="flex gap-2 items-center">
                           <Controller
                             name={`custom_questions.${index}`}
                             control={control}
                             render={({ field }) => (
                               <CustomInput
                                 {...field}
-                                className='bg-[var(--default-background-color)] border-[var(--default-border-color)] flex-1'
-                                placeholder='Enter your question'
+                                className="bg-[var(--default-background-color)] border-[var(--default-border-color)] flex-1"
+                                placeholder="Enter your question"
                               />
                             )}
                           />
                           <Button
-                            type='button'
-                            variant='ghost'
-                            size='icon'
+                            type="button"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => removeCustomQuestion(index)}
-                            className='text-red-500 px-2'
+                            className="text-red-500 px-2"
                           >
-                            <Trash2 className='h-4 w-4' color='red' />
+                            <Trash2 className="h-4 w-4" color="red" />
                           </Button>
                         </div>
                       ))}
 
-                      <div className='flex justify-end'>
+                      <div className="flex justify-end">
                         <Button
-                          type='button'
-                          variant='ghost'
-                          size='sm'
-                          className='h-6 py-2 text-sm text-[var(--primary-text-color)] hover:bg-none'
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 py-2 text-sm text-[var(--primary-text-color)] hover:bg-none"
                           onClick={addCustomQuestion}
                         >
                           <Plus
-                            className='h-3 w-3 mr-1'
-                            color='var(--primary-text-color)'
+                            className="h-3 w-3 mr-1"
+                            color="var(--primary-text-color)"
                           />{" "}
                           Add Question
                         </Button>

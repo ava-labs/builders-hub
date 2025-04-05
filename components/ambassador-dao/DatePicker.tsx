@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import dayjs from "dayjs";
 import {
@@ -10,27 +10,22 @@ import {
 } from "lucide-react";
 
 interface DatePickerProps {
-  value?: string;
+  value?: string | Date;
   onChange?: (date: Date) => void;
 }
 
 const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
-  const [date, setDate] = useState(value ? dayjs(value) : null);
+  const [date, setDate] = useState<dayjs.Dayjs | null>(value ? dayjs(value) : null);
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const [open, setOpen] = useState(false);
 
-  const handleSelect = (day: React.SetStateAction<dayjs.Dayjs | null>) => {
-    if (day) {
-      setDate(day);
-      if (typeof day === "function") {
-        const newDate = day(dayjs());
-        if (newDate) {
-          onChange?.(newDate.toDate());
-        }
-      } else {
-        onChange?.(day.toDate());
-      }
-    }
+  useEffect(() => {
+    setDate(value ? dayjs(value) : null);
+  }, [value]);
+
+  const handleSelect = (day: dayjs.Dayjs) => {
+    setDate(day);
+    onChange?.(day.toDate());
     setOpen(false);
   };
 
@@ -47,7 +42,6 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
     const lastDayOfMonth = currentMonth.endOf("month");
 
     let calendarStart = firstDayOfMonth.startOf("week");
-
     let calendarEnd = lastDayOfMonth.endOf("week");
 
     const days = [];
