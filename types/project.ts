@@ -2,7 +2,7 @@ import { User } from "@prisma/client";
 
 export interface Project {
   id: string;
-  hackaton_id:string,
+  hackaton_id: string,
   project_name: string;
   short_description: string;
   full_description?: string;
@@ -23,9 +23,16 @@ export interface Project {
   user_id?:string
 }
 
-
-
-export interface Member extends User{
-  role:string;
-  status:string
+export type ProjectFilters = {
+  event?: string
+  track?: string
+  page?: number
+  recordsByPage?: number
+  search?: string
+  winningProjecs?: boolean
+}
+        
+export interface Member extends User {
+  role: string;
+  status: string
 }

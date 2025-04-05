@@ -2,11 +2,9 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 generator client {
   provider = "prisma-client-js"
 }
-
 model Hackathon {
   id           String   @id @default(uuid())
   title        String
@@ -22,11 +20,9 @@ model Hackathon {
   banner       String   @default("")
   small_banner String   @default("")
   content      Json     @default("{}")
-
     registrations RegisterForm[]
     projects      Project[]
 }
-
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -39,15 +35,12 @@ model User {
   registrations           RegisterForm[]
   memberships   Member[]
 }
-
 model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
-
   @@unique([identifier, token])
 }
-
 model RegisterForm {
   id                     String   @id @default(uuid())
   hackathon_id            String
@@ -60,9 +53,9 @@ model RegisterForm {
   user                   User?     @relation(fields: [email], references: [email], onDelete: Cascade)
   github_portfolio        String?
   hackathon_participation String
-  interests              String 
-  languages              String 
-  roles                  String  
+  interests              String
+  languages              String
+  roles                  String
   name                   String
   newsletter_subscription Boolean   @default(false)
   prohibited_items        Boolean   @default(false)
@@ -72,18 +65,15 @@ model RegisterForm {
   web3_proficiency        String
   created_at              DateTime  @default(now()) @db.Timestamptz(3)
   updated_at              DateTime  @updatedAt @db.Timestamptz(3)
-
   @@unique([hackathon_id, email])
-
 }
-
 model Project {
   id              String    @id @default(uuid())
   hackaton_id     String
   hackathon       Hackathon @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
   project_name    String
   short_description String
-  full_description String?   @default("")
+  full_description String?  @default("")
   tech_stack      String?   @default("")
   github_repository String? @default("")
   demo_link       String?   @default("")
@@ -102,14 +92,13 @@ model Project {
   created_at      DateTime  @default(now()) @db.Timestamptz(3)
   updated_at      DateTime  @updatedAt @db.Timestamptz(3)
 }
-
 model Member {
   id         String  @id @default(uuid())
   user_id    String
   project_id String
   user       User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
   project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  role       String  @default("member") 
-  status     String  @default("Awaiting Confirmation") 
-  @@unique([user_id, project_id]) 
+  role       String  @default("member")
+  status     String  @default("Awaiting Confirmation")
+  @@unique([user_id, project_id])
 }
