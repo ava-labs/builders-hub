@@ -10,53 +10,73 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu"; // For the dropdo
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 
-type MembersComponentProps = projectProps & {
-  onSave?: () => Promise<void>;
-};
 
-export default function MembersComponent({ project_id, onSave }: MembersComponentProps) {
+
+
+export default function MembersComponent({project_id,hackaton_id,user_id,onProjectCreated}: projectProps) {
     const [members,setMembers]=useState<any[]>([])
     const [openModal, setOpenModal] = useState(false); // State for modal
     const [emails, setEmails] = useState<string[]>([]); // State for email inputs
     const [newEmail, setNewEmail] = useState(""); // State for new email input
     const [invitationSent, setInvitationSent] = useState(false);
-
+    const [invalidEmails, setInvalidEmails] = useState<string[]>([]);
 
     
-      const handleAddEmail = () => {
-        if (newEmail && !emails.includes(newEmail) && validateEmail(newEmail)) {
-          setEmails([...emails, newEmail]);
-          setNewEmail(""); // Clear the input after adding
+    const handleAddEmail = async () => {
+      if (newEmail && !emails.includes(newEmail) && validateEmail(newEmail)) {
+        const isRegistered = await checkEmailRegistered(newEmail);
+        setEmails((prev) => [...prev, newEmail]);
+
+        if (!isRegistered) {
+          setInvalidEmails((prev) => [...prev, newEmail]);
         }
-      };
+        setNewEmail("");
+      }
+    };
     
-      // Function to validate email format
+
       const validateEmail = (email: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
       };
     
-      // Function to remove an email from the array
+      const checkEmailRegistered = async (email: string): Promise<boolean> => {
+        try {
+
+          const response = await axios.get(`/api/users/check?email=${encodeURIComponent(email)}`);
+          return response.data.exists;
+        } catch (error) {
+          console.error("Error checking email registration:", error);
+          return false;
+        }
+      };
+
       const handleRemoveEmail = (email: string) => {
         setEmails(emails.filter((e) => e !== email));
+        setInvalidEmails(invalidEmails.filter((e) => e !== email));
       };
-    
-      // Function to handle sending invitations
+
       const handleSendInvitations = async () => {
-        if (emails.length === 0) return;
+        if (emails.length === 0  || invalidEmails.length > 0) return;
         try {
-          // await axios.post(`/api/project/${project_id}/invite`, { emails });
-        
+           await axios.post(`/api/project/invite-member`,
+             { emails:emails ,
+              hackathon_id:hackaton_id,
+               project_id :project_id,
+               user_id:user_id}
+            );
+            if ((!project_id || project_id === "") && onProjectCreated) {
+              onProjectCreated();
+            }
           setInvitationSent(true);
-          // Refetch members to update the table
+
           const response = await axios.get(`/api/project/${project_id}/members`);
           setMembers(response.data);
         } catch (error) {
           console.error("Error sending invitations:", error);
         }
       };
-    
-      // Function to resend invitation
+
       const handleResendInvitation = async (email: string) => {
         try {
           await axios.post(`/api/project/${project_id}/resend-invitation`, { email });
@@ -66,7 +86,7 @@ export default function MembersComponent({ project_id, onSave }: MembersComponen
         }
       };
     
-      // Function to remove member
+
       const handleRemoveMember = async (email: string) => {
         try {
           await axios.delete(`/api/project/${project_id}/member`, { data: { email } });
@@ -76,6 +96,22 @@ export default function MembersComponent({ project_id, onSave }: MembersComponen
           console.error("Error removing member:", error);
         }
       };
+
+      const handleRoleChange = async (member: any, newRole: string) => {
+        try {
+          // Suponiendo que tienes un endpoint para actualizar el rol en el miembro,
+          // por ejemplo, PATCH /api/project/member que reciba { member_id, role }
+          await axios.patch(`/api/project/member`, { member_id: member.id, role: newRole });
+          // Actualizar el estado local de los miembros
+          setMembers((prevMembers) =>
+            prevMembers.map((m) => (m.id === member.id ? { ...m, role: newRole } : m))
+          );
+          alert(`Role updated to ${newRole}`);
+        } catch (error) {
+          console.error("Error updating role:", error);
+        }
+      };
+      
 
     useEffect(() => {
         if (!project_id) return; 
@@ -137,7 +173,11 @@ export default function MembersComponent({ project_id, onSave }: MembersComponen
                       {emails.map((email) => (
                         <div
                           key={email}
-                          className="flex items-center bg-transparent text-white text-sm rounded-full"
+                          className={`flex items-center bg-transparent text-white text-sm rounded-full px-2 py-1 ${
+                            invalidEmails.includes(email)
+                              ? "border border-red-500"
+                              : ""
+                          }`}
                         >
                           <span className="text-zinc-400">{email}</span>
                           <Button
@@ -157,16 +197,21 @@ export default function MembersComponent({ project_id, onSave }: MembersComponen
                         type="email"
                         value={newEmail}
                         onChange={(e) => setNewEmail(e.target.value)}
-                        onKeyDown={(e) => {
+                        onKeyDown={async (e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
-                            handleAddEmail();
+                            await handleAddEmail();
                           }
                         }}
                         placeholder={emails.length === 0 ? "Add email..." : ""}
                         className="  text-sm outline-none flex-1 min-w-[120px] py-1 px-3"
                       />
                     </div>
+                    {invalidEmails.length > 0 && (
+                      <p className="text-red-500 mb-2">
+                        Some emails are not registered on the platform.
+                      </p>
+                    )}
                     <div className="flex justify-center mt-2">
                       <Button
                         onClick={handleSendInvitations}
@@ -181,11 +226,12 @@ export default function MembersComponent({ project_id, onSave }: MembersComponen
               </DialogContent>
             ) : (
               <DialogContent
-              className="dark:bg-zinc-900 
+                className="dark:bg-zinc-900 
               dark:text-white rounded-lg p-6 w-full
                max-w-md border border-zinc-400  px-4"
-               hideCloseButton={true}>
-                      <DialogClose asChild>
+                hideCloseButton={true}
+              >
+                <DialogClose asChild>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -194,42 +240,40 @@ export default function MembersComponent({ project_id, onSave }: MembersComponen
                     ✕
                   </Button>
                 </DialogClose>
-                 <DialogTitle className="text-lg font-semibold">
-                    Invitation Sent!
-                  </DialogTitle>
-              <Card className="border border-red-500 dark:bg-zinc-800 rounded-md mt-4">
-    
-              <div className="flex flex-col  px-4 py-2 gap-4">
-              <div className="flex items-center justify-center text-center">
-                <BadgeCheck width={35} height={35} color="#FF394A"/>
-                </div>
-                <p className=" text-md ">
-                  Invitation sent successfully to{" "}
-                  <span className="font-semibold gap-2 text-md">{emails.join("; ")}</span>. They
-                  will receive an email to join your team.
-                </p>
-                <div className="items-center justify-center text-center">
-                <DialogClose asChild>
-                  <Button
-                    onClick={() => {
-                      setOpenModal(false);
-                      setEmails([]);
-                      setNewEmail("");
-                      setInvitationSent(false);
-                    }}
-                    className="dark:bg-white border rounder-md max-w-16 "
-                  >
-                    Done
-                  </Button>
-                </DialogClose>
-                </div>
-            
-              </div>
-              </Card>
+                <DialogTitle className="text-lg font-semibold">
+                  Invitation Sent!
+                </DialogTitle>
+                <Card className="border border-red-500 dark:bg-zinc-800 rounded-md mt-4">
+                  <div className="flex flex-col  px-4 py-2 gap-4">
+                    <div className="flex items-center justify-center text-center">
+                      <BadgeCheck width={35} height={35} color="#FF394A" />
+                    </div>
+                    <p className=" text-md ">
+                      Invitation sent successfully to{" "}
+                      <span className="font-semibold gap-2 text-md">
+                        {emails.join("; ")}
+                      </span>
+                      . They will receive an email to join your team.
+                    </p>
+                    <div className="items-center justify-center text-center">
+                      <DialogClose asChild>
+                        <Button
+                          onClick={() => {
+                            setOpenModal(false);
+                            setEmails([]);
+                            setNewEmail("");
+                            setInvitationSent(false);
+                          }}
+                          className="dark:bg-white border rounder-md max-w-16 "
+                        >
+                          Done
+                        </Button>
+                      </DialogClose>
+                    </div>
+                  </div>
+                </Card>
               </DialogContent>
             )}
-
-         
           </Dialog>
         </div>
 

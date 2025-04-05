@@ -1,50 +1,95 @@
 import { prisma } from "@/prisma/prisma";
 import { sendInvitation } from "./SendInvitationProjectMember";
-
+import { getUserByEmail } from "./getUser";
 
 export async function generateInvitation(
   hackathonId: string,
   userId: string,
-  inviterName: string
+  inviterName: string,
+  emails: string[]
 ) {
-  const member = await prisma.member.findFirst({
+  if (!hackathonId) {
+    throw new Error("Hackathon ID is required");
+  }
+
+  const existingProject = await prisma.project.findFirst({
     where: {
-      user_id: userId,
-      project: {
-        hackathon: {
-          id: hackathonId,
+      hackaton_id: hackathonId,
+      members: {
+        some: {
+          user_id: userId,
         },
       },
     },
-    include: {
-      user: true,
-      project: true,
-    },
   });
 
-  if (!member) {
-    throw new Error("Member not found");
+  let project;
+  if (existingProject) {
+    project = existingProject;
+  } else {
+
+    project = await prisma.project.create({
+      data: {
+        hackaton_id: hackathonId,
+        // hackathon: { connect: { id: hackathonId } }, // Removed as it's not expected in the schema
+        project_name: "Untitled Project",
+        short_description: "",
+        full_description: "",
+        tech_stack: "",
+        github_repository: "",
+        demo_link: "",
+        is_preexisting_idea: false,
+        is_winner: false,
+        logo_url: "",
+        cover_url: "",
+        demo_video_link: "",
+        screenshots: [],
+        tracks: [],
+        explanation: "",
+      },
+    });
+    // Registrar al propietario en la tabla members
+    await prisma.member.create({
+      data: {
+        user_id: userId,
+        project_id: project.id,
+        role: "Member", 
+        status: "Confirmed",
+      },
+    });
   }
 
-  if (!member.user || !member.user.email) {
-    throw new Error("User email not found");
+  for (const email of emails) {
+
+    const invitedUser = await getUserByEmail(email);
+    if(!invitedUser){
+      throw new Error(`User with email ${email} not found`);
+    }
+    const member = await prisma.member.upsert({
+      where: {
+        user_id_project_id: {
+          user_id: invitedUser.id,
+          project_id: project.id,
+        },
+      },
+      update: {},
+      create: {
+        user_id: invitedUser.id,
+        project_id: project.id,
+        role: "Member",
+        status: "Pending Confirmation",
+      },
+    });
+
+
+    const baseUrl = process.env.NEXTAUTH_URL as string;
+    const inviteLink = `${baseUrl}/hackathons/project-submission?hackathonId=${hackathonId}&invitationId=${member.id}`;
+
+    await sendInvitation(
+      invitedUser.email!,
+      project.project_name,
+      inviterName,
+      inviteLink
+    );
   }
-
-  if (!member.project) {
-    throw new Error("Project not found");
-  }
-
-  // Construimos el magic link utilizando la URL base de la app y los parámetros necesarios
-  const baseUrl = process.env.NEXTAUTH_URL as string;
-  const inviteLink = `${baseUrl}/hackathons/project-submission?hackathonId=${hackathonId}&invitationId=${member.id}`;
-
-  // Enviamos la invitación utilizando la función sendInvitation
-  await sendInvitation(
-    member.user.email,
-    member.project.project_name,
-    inviterName,
-    inviteLink
-  );
-
-  return inviteLink;
 }

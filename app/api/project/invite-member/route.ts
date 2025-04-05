@@ -7,9 +7,8 @@ export const POST = withAuth(async (request,context ,session) => {
   try{
     const body = await request.json();
     console.log("body",body)
-    const newProject = await generateInvitation(body.hackathonId, body.id, session.user.name);
-  
-    return NextResponse.json({ message: 'project created', project: newProject }, { status: 201 });
+     await generateInvitation(body.hackathon_id, body.user_id, session.user.name,body.emails);
+    return NextResponse.json({ message: 'invitation sent' }, { status: 201 });
   }
   catch (error: any) {
     console.error('Error inviting members:', error);

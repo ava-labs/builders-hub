@@ -393,7 +393,7 @@ setProjectId(project.id)
           <section>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {step === 1 && <SubmitStep1 project_id={project_id} />}
+                {step === 1 && <SubmitStep1 project_id={project_id} hackaton_id={hackathon_id as string} user_id={currentUser?.id} onProjectCreated={getProject} />}
                 {step === 2 && <SubmitStep2 />}
                 {step === 3 && <SubmitStep3 />}
                 <Separator />
