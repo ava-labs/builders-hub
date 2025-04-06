@@ -287,9 +287,9 @@ function Profile() {
                       <SelectValue placeholder='Select privacy setting' />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value='public'>Public</SelectItem>
+                      <SelectItem value='public'>Public (Visible to everyone)</SelectItem>
                       <SelectItem value='private'>Private</SelectItem>
-                      <SelectItem value='friends'>Friends only</SelectItem>
+                      <SelectItem value='community'>Community-only</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormControl>
