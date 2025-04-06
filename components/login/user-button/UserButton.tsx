@@ -46,8 +46,12 @@ export function UserButton() {
     shadow-lg p-1 rounded-md w-48'
           >
             <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
               Sign Out
             </DropdownMenuItem>
+
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
