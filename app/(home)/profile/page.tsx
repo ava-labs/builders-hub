@@ -25,16 +25,23 @@ import {
   SelectTrigger,
 } from '@/components/ui/select';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MultiSelect } from '@/components/ui/multi-select';
 
 const profileSchema = z.object({
   fullName: z.string().min(1, 'Full name is required'),
   bio: z.string().max(250, 'Bio must not exceed 250 characters').optional(),
   email: z.string().email('Invalid email'),
   profilePicture: z.string().optional(),
-  accounts: z.array(z.string()).optional(),
-  emailNotifications: z.boolean().optional(),
-  profilePrivacy: z.string().optional(),
+  accounts: z.array(z.string()).default([]),
+  notifications: z.array(z.string()).default([]),
+  profilePrivacy: z.string().default('public'),
 });
+
+const notificationOptions = [
+  { label: 'Hackathon reminders', value: 'hackathon_reminders' },
+  { label: 'New opportunities', value: 'new_opportunities' },
+  { label: 'Community updates', value: 'community_updates' },
+];
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
@@ -46,8 +53,8 @@ function Profile() {
       email: '',
       bio: '',
       accounts: [],
+      notifications: [],
       profilePicture: '',
-      emailNotifications: false,
       profilePrivacy: 'public',
     },
   });
@@ -311,25 +318,18 @@ function Profile() {
 
           <FormField
             control={form.control}
-            name='emailNotifications'
+            name='notifications'
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Email Notifications</FormLabel>
                 <FormControl>
-                  <Select
-                    value={field.value ? 'enabled' : 'disabled'}
-                    onValueChange={(value) =>
-                      field.onChange(value === 'enabled')
-                    }
-                  >
-                    <SelectTrigger className='w-full'>
-                      <SelectValue placeholder='Select notification preference' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='enabled'>Enabled</SelectItem>
-                      <SelectItem value='disabled'>Disabled</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <MultiSelect
+                    options={notificationOptions}
+                    selected={field.value || []}
+                    onChange={field.onChange}
+                    placeholder="Select notifications"
+                    searchPlaceholder="Search notifications"
+                  />
                 </FormControl>
                 <FormDescription>
                   Choose from Hackathon reminders, new opportunities, and
