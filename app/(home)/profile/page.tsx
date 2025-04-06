@@ -289,7 +289,7 @@ function Profile() {
               <FormItem>
                 <FormLabel>Profile Privacy</FormLabel>
                 <FormControl>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select defaultOpen value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger className='w-full'>
                       <SelectValue placeholder='Select privacy setting' />
                     </SelectTrigger>

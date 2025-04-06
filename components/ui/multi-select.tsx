@@ -68,7 +68,7 @@ export function MultiSelect({
     <div className="relative" ref={containerRef}>
       <div
         className={cn(
-          "relative flex min-h-[44px] w-full flex-wrap items-center justify-between gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer",
+          "relative flex min-h-[44px] w-full flex-wrap items-center justify-between gap-1 rounded-md border border-input bg-background dark:bg-input/30 dark:hover:bg-input/50 px-3 py-2 text-sm ring-offset-background cursor-pointer",
           open && "border-ring"
         )}
         aria-expanded={open}
@@ -120,13 +120,13 @@ export function MultiSelect({
                   <CommandItem
                     key={option.value}
                     onSelect={() => handleSelect(option.value)}
-                    className="cursor-pointer"
+                    className="cursor-pointer dark:focus:!bg-red-500 focus:text-foreground"
                   >
                     <div
                       className={cn(
                         "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border",
                         isSelected
-                          ? "border-primary bg-primary text-primary-foreground"
+                          ? "border-background bg-background text-foreground"
                           : "border-input"
                       )}
                     >
