@@ -458,10 +458,9 @@ export const eventsMenu: LinkItemType = {
   ],
 };
 const userMenu: LinkItemType = {
-  type: 'icon',
-  icon: <UserWrapper />,
-  url: '#',
-  text: 'User',
+  type: 'custom',
+  children: <UserWrapper />,
+  secondary: true
 };
 
 const github: LinkItemType = {
