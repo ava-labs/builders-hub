@@ -35,7 +35,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { MultiSelect } from '@/components/ui/multi-select';
 import Modal from '@/components/ui/Modal';
-import UploadModal from '@/components/ui/UploadModal';
+import { UploadModal } from '@/components/ui/upload-modal';
 
 const profileSchema = z.object({
   fullName: z.string().min(1, 'Full name is required'),
@@ -383,7 +383,7 @@ function Profile() {
       <UploadModal
         isOpen={isUploadModalOpen}
         onOpenChange={setIsUploadModalOpen}
-        onFileSelect={handleFileSelect}
+        onFileSelect={(file) => file && handleFileSelect(file)}
       />
     </div>
   );
