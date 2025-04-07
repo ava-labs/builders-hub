@@ -136,7 +136,7 @@ function ProfileContent() {
             <div className="flex space-x-3 relative">
               <button
                 onClick={handleShareClick}
-                className="border border-[var(--default-border-color)] hover:bg-gray-800 text-[var(--white-text-color)] px-4 py-2 rounded-md"
+                className="border border-[var(--default-border-color)] hover:bg-[var(--default-border-color)] text-[var(--primary-text-color)] px-4 py-2 rounded-md"
               >
                 {copySuccess ? "Copied!" : "Share"}
               </button>
