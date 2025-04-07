@@ -11,7 +11,7 @@ export default function TeamMembers({ members, projectName }: Props) {
   console.log("members", members);
   return (
     <div>
-      <h2 className="text-2xl">Team</h2>
+      <h2 className="text-2xl font-bold">Team</h2>
       <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800" />
       <p className="text-lg">Meet the minds behind {projectName}</p>
       <div className="flex flex-wrap justify-center gap-8 mt-8">

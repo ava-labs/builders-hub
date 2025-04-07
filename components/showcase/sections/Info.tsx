@@ -16,7 +16,7 @@ export default function Info({ project }: Props) {
             {project.project_name.slice(0, 55)}
             {project.project_name.length > 55 ? "..." : ""}
           </h1>
-          {true && (
+          {project.prices.length > 1 && (
             <div className="p-2 bg-red-500 rounded-full">
               <Trophy
                 size={30}
@@ -39,7 +39,7 @@ export default function Info({ project }: Props) {
         </div>
       </div>
       <p className="text-zinc-900 dark:text-zinc-50">
-        {project.full_description}
+        {project.short_description}
       </p>
       <div className="flex flex-wrap gap-2">
         {project.tags?.map((tag) => (

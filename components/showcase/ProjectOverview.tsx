@@ -5,59 +5,9 @@ import Gallery from "./sections/Gallery";
 import Prices from "./sections/Prices";
 import Description from "./sections/Description";
 import TeamMembers from "./sections/TeamMembers";
-import Resources from "./sections/Resources";
-import { Project, ProjectResource } from "@/types/showcase";
+import { Project} from "@/types/showcase";
 import VideoRenderer from "./DemoVideoRenderer";
 
-const prices = [
-  {
-    icon: "crown",
-    title: "$15,000",
-    description: "Total award for this project",
-  },
-  {
-    icon: "crown",
-    title: "$15,000",
-    description: "Total award for this project",
-  },
-  {
-    icon: "crown",
-    title: "$15,000",
-    description: "Total award for this project",
-  },
-  {
-    icon: "crown",
-    title: "$15,000",
-    description: "Total award for this project",
-  },
-  {
-    icon: "crown",
-    title: "$15,000",
-    description: "Total award for this project",
-  },
-  {
-    icon: "crown",
-    title: "$15,000",
-    description: "Total award for this project",
-  },
-];
-const resources: ProjectResource[] = [
-  // {
-  //   icon: "rss",
-  //   title: "Websitesdas dadas",
-  //   link: "linksito",
-  // },
-  // {
-  //   icon: "rss",
-  //   title: "Website",
-  //   link: "linksito",
-  // },
-  // {
-  //   icon: "rss",
-  //   title: "Website",
-  //   link: "linksito",
-  // },
-];
 type Props = {
   project: Project;
 };
@@ -93,7 +43,7 @@ export default function ProjectOverview({ project }: Props) {
             <VideoRenderer link={project.demo_video_link} />
           )}
 
-          {prices && <Prices prices={prices} />}
+          {project.prices && <Prices prices={project.prices} />}
           {project.full_description && (
             <Description description={project.full_description} />
           )}

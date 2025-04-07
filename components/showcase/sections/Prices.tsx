@@ -1,4 +1,4 @@
-'use client'
+"use client";
 import {
   Carousel,
   CarouselContent,
@@ -13,13 +13,15 @@ type Props = {
   prices: ProjectPrice[];
 };
 export default function Prices({ prices }: Props) {
-  const plugin = useMemo(() =>
-    AutoScroll({
-      speed: 1,
-      stopOnInteraction: false,
-      stopOnMouseEnter: false,
-      playOnInit: true,
-    }), []
+  const plugin = useMemo(
+    () =>
+      AutoScroll({
+        speed: 1,
+        stopOnInteraction: false,
+        stopOnMouseEnter: false,
+        playOnInit: true,
+      }),
+    []
   );
   return (
     <div className="relative h-[300px]">
@@ -51,10 +53,14 @@ export default function Prices({ prices }: Props) {
                   </div>
                   <div className="mt-2 sm:mt-4 flex flex-col justify-center">
                     <h2 className="text-zinc-900 dark:text-zinc-50 text-2xl text-center font-bold">
-                      {price.title}
+                      {price.price.toLocaleString("en-US", {
+                        style: "currency",
+                        currency: "USD",
+                        maximumFractionDigits: 0,
+                      })}
                     </h2>
                     <p className="text-zinc-900 dark:text-zinc-50 text-xs xl:text-sm text-center font-light xl:font-normal">
-                      {price.description}
+                      {price.track}
                     </p>
                   </div>
                 </div>
