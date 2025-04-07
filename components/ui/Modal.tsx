@@ -1,4 +1,3 @@
-import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogClose,
@@ -7,8 +6,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import React, { ReactNode } from "react";
+} from '@/components/ui/dialog';
+import React, { ReactNode } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -18,7 +17,6 @@ interface ModalProps {
   content?: ReactNode;
   footer?: ReactNode;
   className?: string;
-  contentClassName?: string;
 }
 
 export default function Modal({
@@ -28,11 +26,10 @@ export default function Modal({
   description,
   content,
   footer,
-  className = "",
-  contentClassName = "",
+  className = '',
 }: ModalProps) {
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog  open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
         className={`
           w-[95%] max-w-[450px] sm:w-[85%] sm:max-w-[500px] md:w-[70vw] md:max-w-[550px]
@@ -45,37 +42,26 @@ export default function Modal({
         `}
       >
         <DialogHeader>
-          <DialogTitle className="text-center font-bold text-lg sm:text-left">
+          <DialogTitle className='text-center font-bold text-lg sm:text-left'>
             {title}
           </DialogTitle>
           <DialogClose />
         </DialogHeader>
 
         {description && (
-          <DialogDescription className="text-center text-base sm:text-lg">
+          <DialogDescription className='text-center text-base sm:text-lg'>
             {description}
           </DialogDescription>
         )}
 
-        {content && (
-          <Card
-            className={`
-              my-4 w-[95%] sm:w-[85%] md:w-full max-h-[190px]
-              rounded-md p-4 sm:p-6 gap-4 mx-auto
-              text-black dark:bg-zinc-800 dark:text-white
-              ${contentClassName}
-            `}
-          >
-            {content}
-          </Card>
-        )}
+        {content}
 
         {footer && (
-          <DialogFooter className="flex flex-col gap-2 w-full sm:flex-row sm:gap-4 sm:justify-center">
+          <DialogFooter className='flex flex-col gap-2 w-full sm:flex-row sm:gap-4 sm:justify-center'>
             {footer}
           </DialogFooter>
         )}
       </DialogContent>
     </Dialog>
   );
-} 
+}
