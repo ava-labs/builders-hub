@@ -17,6 +17,7 @@ import {
   imagePlugin,
   linkPlugin,
   jsxPlugin,
+  ListsToggle,
 } from "@mdxeditor/editor";
 import { FC } from "react";
 import { UseFormSetValue } from "react-hook-form";
@@ -32,10 +33,10 @@ const MarkdownEditor: FC<EditorProps> = ({ markdown, editorRef, setValue }) => {
     <MDXEditor
       autoFocus={false}
       onChange={(e) => setValue("description", e)}
-      className="custom-markdown-editor"
+      className='custom-markdown-editor'
       ref={editorRef}
       markdown={markdown}
-      placeholder="Describe your project in detail. What does it do? Who is it for?"
+      placeholder='Describe your project in detail. What does it do? Who is it for?'
       plugins={[
         jsxPlugin(),
         headingsPlugin(),
@@ -50,6 +51,7 @@ const MarkdownEditor: FC<EditorProps> = ({ markdown, editorRef, setValue }) => {
             <>
               <BoldItalicUnderlineToggles />
               <BlockTypeSelect />
+              <ListsToggle />
               <CreateLink />
               <InsertImage />
               <CodeToggle />

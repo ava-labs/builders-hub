@@ -43,6 +43,8 @@ import dynamic from "next/dynamic";
 import FullScreenLoader from "../full-screen-loader";
 import { PublishOpportunityModal } from "./publish-opportunity-modal";
 import toast from "react-hot-toast";
+import DatePicker from "../DatePicker";
+import Loader from "../ui/Loader";
 const MarkdownEditor = dynamic(() => import("../markdown-editor"), {
   ssr: false,
 });
@@ -284,6 +286,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
         <>
           {" "}
 <<<<<<< HEAD
+<<<<<<< HEAD
           <div className="p-4 md:p-8 m-4 md:m-8 bg-[#09090B] border border-[#27272A] rounded-md">
             <div className="max-w-7xl mx-auto">
               <div className="flex justify-between mb-8">
@@ -292,14 +295,22 @@ export default function AmbasssadorDaoSponsorsCreateListing({
             <div className='max-w-7xl mx-auto'>
               <div className='flex justify-between mb-8'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+          <div className='p-4 md:p-8 m-4 md:m-8 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-md'>
+            <div className='max-w-7xl mx-auto'>
+              <div className='flex justify-between mb-8'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                 <Button
-                  variant="outline"
+                  variant='outline'
                   onClick={goBack}
+<<<<<<< HEAD
 <<<<<<< HEAD
                   className="text-[#FAFAFA] border-[#27272A]"
                 >
                   <ArrowLeft className="mr-1 h-4 w-4" color="#FAFAFA" /> Go Back
 =======
+=======
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                   className='text-[var(--primary-text-color)] border-[var(--default-border-color)]'
                 >
                   <ArrowLeft
@@ -310,11 +321,16 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 >>>>>>> 4289f3331... feat: light and dark mode
                 </Button>
 
-                <div className="flex space-x-3">
+                <div className='flex space-x-3'>
                   <CustomButton
+<<<<<<< HEAD
 <<<<<<< HEAD
                     variant="default"
                     className="px-4 text-[#18181B]"
+=======
+                    variant='white'
+                    className='px-4'
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                     onClick={() => {
                       setButtonState("preview");
                       handleSubmit(onSubmitPreview)();
@@ -349,7 +365,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     }}
                     isLoading={isPending && buttonState === "continue"}
                     variant={"danger"}
-                    className="px-4"
+                    className='px-4'
                     disabled={
                       (type === "BOUNTY" && prizeFields.length === 0) ||
                       selectedSkills.length === 0 ||
@@ -362,6 +378,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
               </div>
 
               <form onSubmit={handleSubmit(onSubmitContinue)}>
+<<<<<<< HEAD
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-2 space-y-6">
                     {/* Title Section */}
@@ -372,17 +389,24 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     <div className='space-y-1'>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
+                  <div className='lg:col-span-2 space-y-6'>
+                    <div className='space-y-1'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                         Listing Title
-                        <span className="text-red-500 ml-1">*</span>
+                        <span className='text-red-500 ml-1'>*</span>
                       </label>
-                      <div className="flex items-center gap-2">
+                      <div className='flex items-center gap-2'>
                         <Controller
-                          name="type"
+                          name='type'
                           control={control}
                           render={({ field }) => (
                             <Select
                               value={field.value}
                               onValueChange={field.onChange}
+<<<<<<< HEAD
 <<<<<<< HEAD
                               iconColor="#FAFAFA"
                             >
@@ -408,13 +432,27 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                       className='mr-2'
                                       color='var(--primary-text-color)'
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                              iconColor='var(--primary-text-color)'
+                            >
+                              <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
+                                <SelectValue placeholder='Select' />
+                              </SelectTrigger>
+                              <SelectContent className='bg-[#fafafa] dark:bg-[#09090B] text-[var(--primary-text-color)]'>
+                                <SelectItem value='JOB'>
+                                  <div className='flex items-center'>
+                                    <BriefcaseBusiness
+                                      className='mr-2'
+                                      color='var(--primary-text-color)'
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                                     />
                                     Job
                                   </div>
                                 </SelectItem>
-                                <SelectItem value="BOUNTY">
-                                  <div className="flex items-center">
+                                <SelectItem value='BOUNTY'>
+                                  <div className='flex items-center'>
                                     <BriefcaseBusiness
+<<<<<<< HEAD
 <<<<<<< HEAD
                                       className="mr-2"
                                       color="#FAFAFA"
@@ -422,6 +460,10 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                       className='mr-2'
                                       color='var(--primary-text-color)'
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                                      className='mr-2'
+                                      color='var(--primary-text-color)'
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                                     />
                                     Bounty
                                   </div>
@@ -432,25 +474,26 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                         />
 
                         <Controller
-                          name="title"
+                          name='title'
                           control={control}
                           rules={{ required: "Title is required" }}
                           render={({ field }) => (
                             <CustomInput
                               {...field}
-                              className="w-full"
-                              placeholder="Create a High-Energy Video Montage About Sendit & Earn!"
+                              className='w-full'
+                              placeholder='Create a High-Energy Video Montage About Sendit & Earn!'
                             />
                           )}
                         />
                       </div>
                       {errors.title && (
-                        <p className="text-red-500 text-xs mt-1">
+                        <p className='text-red-500 text-xs mt-1'>
                           {errors.title.message}
                         </p>
                       )}
                     </div>
 
+<<<<<<< HEAD
                     {/* Requirements Section */}
 <<<<<<< HEAD
                     <div className="space-y-2">
@@ -459,28 +502,33 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     <div className='space-y-2'>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                    <div className='space-y-2'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                         Requirements
-                        <span className="text-red-500 ml-1">*</span>
+                        <span className='text-red-500 ml-1'>*</span>
                       </label>
                       <Controller
-                        name="requirements"
+                        name='requirements'
                         control={control}
                         rules={{ required: "Requirements is required" }}
                         render={({ field }) => (
                           <CustomInput
                             {...field}
-                            className="w-full"
-                            placeholder="English speaking candidates only"
+                            className='w-full'
+                            placeholder='English speaking candidates only'
                           />
                         )}
                       />
                       {errors.requirements && (
-                        <p className="text-red-500 text-xs mt-1">
+                        <p className='text-red-500 text-xs mt-1'>
                           {errors.requirements.message}
                         </p>
                       )}
                     </div>
 
+<<<<<<< HEAD
                     {/* Description Section */}
 <<<<<<< HEAD
                     <div className="space-y-2">
@@ -489,23 +537,47 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     <div className='space-y-2'>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                    <div className='space-y-2'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                         Description
-                        <span className="text-red-500 ml-1">*</span>
+                        <span className='text-red-500 ml-1'>*</span>
                       </label>
+<<<<<<< HEAD
                       <Suspense fallback={null}>
                         <MarkdownEditor 
                           markdown={getValues("description")}
                           setValue={setValue}
                         />
+=======
+                      <Suspense fallback={<Loader />}>
+                        {id ? (
+                          listingDetails &&
+                          listingDetails?.description &&
+                          getValues("description") && (
+                            <MarkdownEditor
+                              markdown={getValues("description")}
+                              setValue={setValue}
+                            />
+                          )
+                        ) : (
+                          <MarkdownEditor
+                            markdown={getValues("description")}
+                            setValue={setValue}
+                          />
+                        )}
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                       </Suspense>
                       {errors.description && (
-                        <p className="text-red-500 text-xs mt-1">
+                        <p className='text-red-500 text-xs mt-1'>
                           {errors.description.message}
                         </p>
                       )}
                     </div>
                   </div>
 
+<<<<<<< HEAD
                   <div className="lg:col-span-1 space-y-6">
                     {/* Rewards Section - Conditional based on type */}
                     {formType === "JOB" ? (
@@ -516,9 +588,16 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       <div className='space-y-1'>
                         <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                  <div className='lg:col-span-1 space-y-6'>
+                    {formType === "JOB" ? (
+                      <div className='space-y-1'>
+                        <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                           Add Rewards
-                          <span className="text-red-500 ml-1">*</span>
+                          <span className='text-red-500 ml-1'>*</span>
                         </label>
+<<<<<<< HEAD
 <<<<<<< HEAD
                         <div className="flex items-center gap-2">
                           <Select defaultValue="USDC" iconColor="#FAFAFA">
@@ -541,12 +620,25 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                               <SelectItem value='USDC'>
                                 <div className='flex items-center'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                        <div className='flex items-center gap-2'>
+                          <Select
+                            defaultValue='USDC'
+                            iconColor='var(--primary-text-color)'
+                          >
+                            <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className='bg-[var(--default-background-color)] text-[var(--primary-text-color)]'>
+                              <SelectItem value='USDC'>
+                                <div className='flex items-center'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                                   <Image
                                     src={UsdcToken}
-                                    alt="usdc token"
+                                    alt='usdc token'
                                     width={20}
                                     height={20}
-                                    className="mr-2"
+                                    className='mr-2'
                                   />
                                   USDC
                                 </div>
@@ -555,29 +647,52 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           </Select>
 
                           <Controller
-                            name="total_budget"
+                            name='total_budget'
                             control={control}
                             rules={{ required: "Reward is required" }}
                             render={({ field }) => (
                               <CustomInput
                                 {...field}
+<<<<<<< HEAD
                                 type="number"
                                 className="w-full"
                                 placeholder="100"
                                 onChange={(e) =>
                                   field.onChange(Number(e.target.value))
                                 }
+=======
+                                min={1}
+                                type='number'
+                                className='w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                                placeholder='100'
+                                onChange={(e) => {
+                                  const inputValue = e.target.value;
+                                  if (inputValue === "") {
+                                    field.onChange("");
+                                  } else if (+inputValue === 0) {
+                                    field.onChange("");
+                                  } else {
+                                    const numValue = Number(inputValue);
+                                    if (numValue < 1) {
+                                      field.onChange("");
+                                    } else {
+                                      field.onChange(numValue);
+                                    }
+                                  }
+                                }}
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                               />
                             )}
                           />
                         </div>
                         {errors.total_budget && (
-                          <p className="text-red-500 text-xs mt-1">
+                          <p className='text-red-500 text-xs mt-1'>
                             {errors.total_budget.message}
                           </p>
                         )}
                       </div>
                     ) : (
+<<<<<<< HEAD
 <<<<<<< HEAD
                       <div className="space-y-4">
                         <label className="flex text-[#FAFAFA] text-sm font-medium">
@@ -585,12 +700,16 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       <div className='space-y-4'>
                         <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                      <div className='space-y-4'>
+                        <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                           Prize Distribution
-                          <span className="text-red-500 ml-1">*</span>
+                          <span className='text-red-500 ml-1'>*</span>
                         </label>
                         {!prizeFields.length && (
                           <>
-                            <p className="text-red-500 text-xs mt-1">
+                            <p className='text-red-500 text-xs mt-1'>
                               Please add a prize
                             </p>
                           </>
@@ -598,12 +717,17 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 
                         {prizeFields.map((field, index) => (
 <<<<<<< HEAD
+<<<<<<< HEAD
                           <div key={field.id} className="space-y-1">
                             <label className="flex text-[#FAFAFA] text-sm font-medium">
 =======
                           <div key={field.id} className='space-y-1'>
                             <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                          <div key={field.id} className='space-y-1'>
+                            <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                               {index === 0
                                 ? "First Prize"
                                 : index === 1
@@ -612,11 +736,12 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                 ? "Third Prize"
                                 : `${index + 1}th Prize`}
                             </label>
-                            <div className="flex items-center gap-2">
+                            <div className='flex items-center gap-2'>
                               <Select
-                                defaultValue="USDC"
+                                defaultValue='USDC'
                                 onValueChange={() => {}}
                               >
+<<<<<<< HEAD
 <<<<<<< HEAD
                                 <SelectTrigger className="min-w-32 bg-[#09090B] border-[#27272A] focus:outline-none !h-10 my-2">
                                   <SelectValue />
@@ -632,12 +757,20 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                   <SelectItem value='USDC'>
                                     <div className='flex items-center'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                                <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className='bg-[var(--default-background-color)] text-[var(--primary-text-color)]'>
+                                  <SelectItem value='USDC'>
+                                    <div className='flex items-center'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                                       <Image
                                         src={UsdcToken}
-                                        alt="usdc token"
+                                        alt='usdc token'
                                         width={20}
                                         height={20}
-                                        className="mr-2"
+                                        className='mr-2'
                                       />
                                       USDC
                                     </div>
@@ -652,9 +785,16 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                 render={({ field }) => (
                                   <CustomInput
                                     {...field}
+<<<<<<< HEAD
                                     type="number"
                                     className="w-full"
                                     placeholder="100"
+=======
+                                    type='number'
+                                    min={1}
+                                    className='w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                                    placeholder='100'
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                                     onChange={(e) => {
                                       field.onChange(Number(e.target.value));
                                       calculateTotalBudget();
@@ -665,32 +805,38 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 
                               {index > 0 && (
                                 <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
+                                  type='button'
+                                  variant='ghost'
+                                  size='icon'
                                   onClick={() => removePrize(index)}
-                                  className="text-red-500 px-3"
+                                  className='text-red-500 px-3'
                                 >
-                                  <Trash2 className="h-4 w-4" color="red" />
+                                  <Trash2 className='h-4 w-4' color='red' />
                                 </Button>
                               )}
                             </div>
                           </div>
                         ))}
 
-                        <div className="flex justify-end">
+                        <div className='flex justify-end'>
                           <Button
+<<<<<<< HEAD
 <<<<<<< HEAD
                             type="button"
                             variant="ghost"
                             size="sm"
                             className="h-6 py-1 text-xs text-[#FAFAFA] hover:bg-none"
 =======
+=======
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                             type='button'
                             variant='ghost'
                             size='sm'
                             className='h-6 py-1 text-xs text-[var(--primary-text-color)] hover:bg-none'
+<<<<<<< HEAD
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                             onClick={() =>
                               appendPrize({
                                 position: prizeFields.length + 1,
@@ -712,6 +858,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       </div>
                     )}
 
+<<<<<<< HEAD
                     {/* Start Date Section */}
 <<<<<<< HEAD
                     <div className="space-y-2">
@@ -720,12 +867,16 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     <div className='space-y-2'>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                    <div className='space-y-2'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                         Start Date (in America/New_York)
-                        <span className="text-red-500 ml-1">*</span>
+                        <span className='text-red-500 ml-1'>*</span>
                       </label>
-                      <div className="flex flex-col space-y-2">
+                      <div className='flex flex-col space-y-2'>
                         <Controller
-                          name="start_date"
+                          name='start_date'
                           control={control}
                           rules={{ required: "Start date is required" }}
                           render={({ field }) => (
@@ -785,12 +936,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                         />
                       </div>
                       {errors.start_date && (
-                        <p className="text-red-500 text-xs mt-1">
+                        <p className='text-red-500 text-xs mt-1'>
                           {errors.start_date.message}
                         </p>
                       )}
                     </div>
 
+<<<<<<< HEAD
                     {/* End Date Section */}
 <<<<<<< HEAD
                     <div className="space-y-2">
@@ -799,12 +951,16 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     <div className='space-y-2'>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                    <div className='space-y-2'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                         End Date (in America/New_York)
-                        <span className="text-red-500 ml-1">*</span>
+                        <span className='text-red-500 ml-1'>*</span>
                       </label>
-                      <div className="flex flex-col space-y-2">
+                      <div className='flex flex-col space-y-2'>
                         <Controller
-                          name="end_date"
+                          name='end_date'
                           control={control}
                           rules={{ required: "End date is required" }}
                           render={({ field }) => (
@@ -863,7 +1019,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           )}
                         />
 
-                        <div className="flex space-x-2">
+                        <div className='flex space-x-2'>
                           {[
                             { label: "1 Week", weeks: 1 },
                             { label: "2 Weeks", weeks: 2 },
@@ -882,8 +1038,8 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             return (
                               <Button
                                 key={period.label}
-                                type="button"
-                                variant="outline"
+                                type='button'
+                                variant='outline'
                                 className={cn(
                                   "bg-transparent border-[var(--default-border-color)] rounded-full text-xs px-3 h-8",
                                   isActive && "border-blue-500 bg-blue-500/10"
@@ -899,12 +1055,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                         </div>
                       </div>
                       {errors.end_date && (
-                        <p className="text-red-500 text-xs mt-1">
+                        <p className='text-red-500 text-xs mt-1'>
                           {errors.end_date.message}
                         </p>
                       )}
                     </div>
 
+<<<<<<< HEAD
                     {/* Skills Section */}
 <<<<<<< HEAD
                     <div className="space-y-2">
@@ -913,14 +1070,22 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     <div className='space-y-2'>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                    <div className='space-y-2'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                         Skills Needed
-                        <span className="text-red-500 ml-1">*</span>
+                        <span className='text-red-500 ml-1'>*</span>
                       </label>
+<<<<<<< HEAD
 <<<<<<< HEAD
                       <div className="w-full min-h-10 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36] overflow-x-auto">
 =======
                       <div className='w-full min-h-10 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                      <div className='w-full min-h-10 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                         {selectedSkills.map((skillId, idx) => {
                           const skillName =
                             skills?.find((skill) => skill.id === skillId)
@@ -929,42 +1094,51 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             <div
                               key={idx}
 <<<<<<< HEAD
+<<<<<<< HEAD
                               className="flex items-center gap-2 bg-[#fff] text-[#18181B] rounded-full px-2 text-xs cursor-pointer capitalize"
 =======
                               className='flex items-center gap-2 bg-gray-200 dark:bg-[#fff] text-[#18181B] rounded-full px-2 text-xs cursor-pointer capitalize'
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                              className='flex items-center gap-2 bg-gray-200 dark:bg-[#fff] text-[#18181B] rounded-full px-2 text-xs cursor-pointer capitalize'
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                               onClick={() => removeSkill(skillId)}
                             >
                               {skillName}
-                              <X size={14} color="#18181B" />
+                              <X size={14} color='#18181B' />
                             </div>
                           );
                         })}
                       </div>
-                      <div className="flex flex-wrap gap-2 mt-4">
+                      <div className='flex flex-wrap gap-2 mt-4'>
                         {skills && skills.length > 0 ? (
                           skills.map((badge, idx) => (
                             <div
                               key={idx}
 <<<<<<< HEAD
+<<<<<<< HEAD
                               className="flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-xs cursor-pointer capitalize"
 =======
                               className='flex items-center gap-2 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-full px-3 py-1 text-xs cursor-pointer capitalize'
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                              className='flex items-center gap-2 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-full px-3 py-1 text-xs cursor-pointer capitalize'
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                               onClick={() => addSkill(badge.id)}
                             >
                               {badge.name}
-                              <Plus size={14} color="#A1A1AA" />
+                              <Plus size={14} color='#A1A1AA' />
                             </div>
                           ))
                         ) : (
-                          <p className="text-center text-sm font-thin">
+                          <p className='text-center text-sm font-thin'>
                             No skills available
                           </p>
                         )}
                       </div>
                     </div>
 
+<<<<<<< HEAD
                     {/* Contact Section */}
 <<<<<<< HEAD
                     <div className="space-y-2">
@@ -973,16 +1147,21 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     <div className='space-y-2'>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                    <div className='space-y-2'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                         Point of Contact (TG / X / Email)
-                        <span className="text-red-500 ml-1">*</span>
+                        <span className='text-red-500 ml-1'>*</span>
                       </label>
                       <Controller
-                        name="point_of_contact"
+                        name='point_of_contact'
                         control={control}
                         rules={{ required: "Contact information is required" }}
                         render={({ field }) => (
                           <CustomInput
                             {...field}
+<<<<<<< HEAD
 <<<<<<< HEAD
                             type="text"
                             className="bg-[#09090B] border-[#27272A]"
@@ -990,30 +1169,39 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             type='text'
                             className='bg-[var(--default-background-color)] border-[var(--default-border-color)]'
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                            type='text'
+                            className='bg-[var(--default-background-color)] border-[var(--default-border-color)]'
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                           />
                         )}
                       />
                       {errors.point_of_contact && (
-                        <p className="text-red-500 text-xs mt-1">
+                        <p className='text-red-500 text-xs mt-1'>
                           {errors.point_of_contact.message}
                         </p>
                       )}
                     </div>
 
+<<<<<<< HEAD
                     {/* Custom Questions Section */}
                     <div className="space-y-2">
                       <h3 className="text-lg font-semibold">
+=======
+                    <div className='space-y-2'>
+                      <h3 className='text-lg font-semibold'>
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                         Custom Questions
                       </h3>
 
                       {!customQuestionFields?.length && (
                         <>
-                          <p className=" text-xs mt-1">No questions added</p>
+                          <p className=' text-xs mt-1'>No questions added</p>
                         </>
                       )}
 
                       {customQuestionFields?.map((field, index) => (
-                        <div key={index} className="flex gap-2 items-center">
+                        <div key={index} className='flex gap-2 items-center'>
                           <Controller
                             name={`custom_questions.${index}`}
                             control={control}
@@ -1021,29 +1209,35 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                               <CustomInput
                                 {...field}
 <<<<<<< HEAD
+<<<<<<< HEAD
                                 className="bg-[#09090B] border-[#27272A] flex-1"
                                 placeholder="Enter your question"
 =======
                                 className='bg-[var(--default-background-color)] border-[var(--default-border-color)] flex-1'
                                 placeholder='Enter your question'
 >>>>>>> 4289f3331... feat: light and dark mode
+=======
+                                className='bg-[var(--default-background-color)] border-[var(--default-border-color)] flex-1'
+                                placeholder='Enter your question'
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                               />
                             )}
                           />
                           <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
+                            type='button'
+                            variant='ghost'
+                            size='icon'
                             onClick={() => removeCustomQuestion(index)}
-                            className="text-red-500 px-2"
+                            className='text-red-500 px-2'
                           >
-                            <Trash2 className="h-4 w-4" color="red" />
+                            <Trash2 className='h-4 w-4' color='red' />
                           </Button>
                         </div>
                       ))}
 
-                      <div className="flex justify-end">
+                      <div className='flex justify-end'>
                         <Button
+<<<<<<< HEAD
 <<<<<<< HEAD
                           type="button"
                           variant="ghost"
@@ -1054,6 +1248,8 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           <Plus className="h-3 w-3 mr-1" color="#FAFAFA" /> Add
                           Question
 =======
+=======
+>>>>>>> 3a5d216f7... fix: resolved markdown issues
                           type='button'
                           variant='ghost'
                           size='sm'
