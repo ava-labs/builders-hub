@@ -45,8 +45,8 @@ export function UserButton() {
     border border-zinc-200 dark:border-zinc-600
     shadow-lg p-1 rounded-md w-48'
           >
-            <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
-              Profile
+            <DropdownMenuItem>
+              <Link href="/profile">Settings</Link>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
               Sign Out
