@@ -23,7 +23,7 @@ Using the [`forge create`](https://book.getfoundry.sh/reference/forge/forge-crea
 
 
 ```bash
-forge create --rpc-url local-c --private-key $PK lib/ictt/contracts/src/TokenRemote/ERC20TokenRemote.sol:ERC20TokenRemote \
+forge create --rpc-url local-c --private-key $PK lib/icm-contracts/contracts/ictt/TokenRemote/ERC20TokenRemote.sol:ERC20TokenRemote \
 --constructor-args "(${TELEPORTER_REGISTRY_C_CHAIN}, ${FUNDED_ADDRESS}, ${SOURCE_BLOCKCHAIN_ID_HEX}, ${ERC20_HOME_BRIDGE_L1}, 18)" "Wrapped NATV" "WNATV" 18 --broadcast
 ```
 ```

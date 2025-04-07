@@ -31,7 +31,7 @@ Take note of the important addresses (e.g., `Teleporter Registry`, `Funded Addre
 You'll need to deploy a wrapped token contract for your native token on the C-Chain. The wrapped token will serve as the transferable asset between the chains.
 
 ```bash
-forge create --rpc-url local-c --private-key $PK lib/ictt/contracts/src/WrappedNativeToken.sol:WrappedNativeToken --broadcast
+forge create --rpc-url local-c --private-key $PK lib/icm-contracts/contracts/ictt/WrappedNativeToken.sol:WrappedNativeToken --broadcast
 ```
 
 After deployment, save the `Deployed to` address in an environment variable for future use.
@@ -48,13 +48,13 @@ Now, deploy the Interchain Token Transfer contracts on both the `C-Chain` and th
 - `NativeTokenHome` Contract on C-Chain  
 
 ```bash
-forge create --rpc-url local-c --private-key $PK lib/ictt/contracts/src/TokenHome/NativeTokenHome.sol:NativeTokenHome --constructor-args $TELEPORTER_REGISTRY_C_CHAIN $FUNDED_ADDRESS $WRAPPED_NATIVE_C_CHAIN --broadcast
+forge create --rpc-url local-c --private-key $PK lib/icm-contracts/contracts/ictt/TokenHome/NativeTokenHome.sol:NativeTokenHome --constructor-args $TELEPORTER_REGISTRY_C_CHAIN $FUNDED_ADDRESS $WRAPPED_NATIVE_C_CHAIN --broadcast
 ```
 
 - `NativeTokenRemote` Contract on `myblockchain`
 
 ```bash
-forge create --rpc-url myblockchain --private-key $PK lib/ictt/contracts/src/TokenRemote/NativeTokenRemote.sol:NativeTokenRemote --constructor-args "(${TELEPORTER_REGISTRY_L1}, ${FUNDED_ADDRESS}, ${C_CHAIN_BLOCKCHAIN_ID_HEX}, ${NATIVE_HOME_TRANSFERER_C_CHAIN})" "NATV" 700000000000000000000 0 false 0 --broadcast
+forge create --rpc-url myblockchain --private-key $PK lib/icm-contracts/contracts/ictt/TokenRemote/NativeTokenRemote.sol:NativeTokenRemote --constructor-args "(${TELEPORTER_REGISTRY_L1}, ${FUNDED_ADDRESS}, ${C_CHAIN_BLOCKCHAIN_ID_HEX}, ${NATIVE_HOME_TRANSFERER_C_CHAIN})" "NATV" 700000000000000000000 0 false 0 --broadcast
 ```
 
 _Note: Ensure that the initial amount matches the native token amount minted on the C-Chain during the wrapped token deployment._

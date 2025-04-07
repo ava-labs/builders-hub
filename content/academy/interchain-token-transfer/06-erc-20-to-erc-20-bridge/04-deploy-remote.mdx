@@ -90,7 +90,7 @@ Using the [`forge create`](https://book.getfoundry.sh/reference/forge/forge-crea
 - Token Decimals (uint8 integer representing number of decimal places for the ERC20 token being created. Most ERC20 tokens follow the Ethereum standard, which defines 18 decimal places.)
 
 ```bash
-forge create --rpc-url myblockchain --private-key $PK lib/ictt/contracts/src/TokenRemote/ERC20TokenRemote.sol:ERC20TokenRemote --optimize --optimizer-runs 200 --broadcast --constructor-args "(${TELEPORTER_REGISTRY_L1}, ${FUNDED_ADDRESS}, ${C_CHAIN_BLOCKCHAIN_ID_HEX}, ${ERC20_HOME_C_CHAIN}, 18)" "TOK" "TOK" 18
+forge create --rpc-url myblockchain --private-key $PK lib/icm-contracts/contracts/ictt/TokenRemote/ERC20TokenRemote.sol:ERC20TokenRemote --optimize --optimizer-runs 200 --broadcast --constructor-args "(${TELEPORTER_REGISTRY_L1}, ${FUNDED_ADDRESS}, ${C_CHAIN_BLOCKCHAIN_ID_HEX}, ${ERC20_HOME_C_CHAIN}, 18)" "TOK" "TOK" 18
 ```
 
 ```bash
