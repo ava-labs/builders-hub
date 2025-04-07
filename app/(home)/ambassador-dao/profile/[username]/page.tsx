@@ -81,7 +81,7 @@ function ProfileContent() {
       : "-",
     username: userDetails
       ? `@${userDetails.username || username}`
-      : `@${username}`,
+      : `${username}`,
     location: userDetails?.location || "Not specified",
     skills: userDetails?.skills || [],
     socials: userDetails?.social_links || [],
@@ -131,10 +131,6 @@ function ProfileContent() {
                 <p className="text-[var(--secondary-text-color)] text-sm">
                   {profile.username}
                 </p>
-                <p className="text-[var(--secondary-text-color)] text-xs">
-                  {" "}
-                  Base in: {profile.location}
-                </p>
               </div>
             </div>
             <div className="flex space-x-3 relative">
@@ -166,7 +162,7 @@ function ProfileContent() {
                     (skill: { name: string; id: number }, index: number) => (
                       <span
                         key={index}
-                        className="bg-[#F5F5F9] text-[#161617] px-3 py-1 rounded-full text-sm"
+                        className="text-xs px-2 bg-[#F5F5F9] text-[#161617] py-1 rounded-full"
                       >
                         {skill.name}
                       </span>
@@ -186,9 +182,9 @@ function ProfileContent() {
                   profile.socials.map((social: string, index: number) => (
                     <div
                       key={index}
-                      className="text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]"
+                      className="text-xs px-2 py-1 rounded-full text-center bg-[#F5F5F9] text-[#161617] border border-[var(--default-border-color)]"
                     >
-                      {social.slice(0, 20)}...
+                      {social.slice(0, 20)}
                     </div>
                   ))
                 ) : (

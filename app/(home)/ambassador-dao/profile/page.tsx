@@ -28,8 +28,8 @@ const AmbasssadorDaoProfilePage = () => {
   const router = useRouter();
   const { data, isLoading } = useFetchUserDataQuery();
 
-  const userNeedsOnboarding = 
-    !data?.role || 
+  const userNeedsOnboarding =
+    !data?.role ||
     (data?.role === "TALENT" && (!data?.username || !data?.wallet_address));
 
   useEffect(() => {
@@ -38,17 +38,16 @@ const AmbasssadorDaoProfilePage = () => {
     }
   }, [isLoading, userNeedsOnboarding, router]);
 
-  const { data: userStats, isLoading: isLoadingStats } = useFetchUserStatsDataQuery(
-    !userNeedsOnboarding ? data?.username : undefined
-  );
+  const { data: userStats, isLoading: isLoadingStats } =
+    useFetchUserStatsDataQuery(
+      !userNeedsOnboarding ? data?.username : undefined
+    );
 
-  const { data: userPendingRewards, isLoading: isLoadingRewards } = useFetchUserPendingRewards(
-    !userNeedsOnboarding ? true : false 
-  );
+  const { data: userPendingRewards, isLoading: isLoadingRewards } =
+    useFetchUserPendingRewards(!userNeedsOnboarding ? true : false);
 
-  const { data: opportunities, isLoading: isLoadingOpportunities } = useFetchOpportunity(
-    !userNeedsOnboarding ? {} : { enabled: false }
-  );
+  const { data: opportunities, isLoading: isLoadingOpportunities } =
+    useFetchOpportunity(!userNeedsOnboarding ? {} : { enabled: false });
 
   if (isLoading || userNeedsOnboarding) {
     return <FullScreenLoader />;
@@ -58,7 +57,7 @@ const AmbasssadorDaoProfilePage = () => {
 
   const profile = {
     name: data ? `${data.first_name || ""} ${data.last_name || ""}` : "-",
-    username: data ? `${data.username || ""}` : "-",
+    username: data ? `@${data.username}` : `-`,
     location: data?.location || "Not specified",
     skills: data?.skills || "-",
     socials: data?.social_links || null,
@@ -114,7 +113,7 @@ const AmbasssadorDaoProfilePage = () => {
               <div>
                 <h2 className="text-base font-bold">{profile.name}</h2>
                 <p className="text-[var(--secondary-text-color)] text-sm">
-                  @{profile.username}
+                  {profile.username}
                 </p>
               </div>
             </div>
@@ -154,7 +153,7 @@ const AmbasssadorDaoProfilePage = () => {
                     (skill: { name: string; id: string }) => (
                       <div
                         key={skill.id}
-                        className="text-xs px-2 py-1 bg-[var(--default-bg-color)] rounded-full text-center border border-[var(--default-border-color)]"
+                        className="text-xs px-2 py-1 bg-[#F5F5F9] text-[#161617] rounded-full text-center border border-[var(--default-border-color)]"
                       >
                         {skill.name}
                       </div>
@@ -173,10 +172,10 @@ const AmbasssadorDaoProfilePage = () => {
                 {profile?.socials?.length > 0 ? (
                   profile?.socials?.map((social: string, index: number) => (
                     <div
-                      className="text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]"
+                      className="text-xs px-2 py-1 bg-[#F5F5F9] text-[#161617] rounded-full text-center border border-[var(--default-border-color)]"
                       key={index}
                     >
-                      {social.slice(0, 20)}...
+                      {social.slice(0, 20)}
                     </div>
                   ))
                 ) : (
