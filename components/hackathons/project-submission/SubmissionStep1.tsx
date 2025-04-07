@@ -15,7 +15,8 @@ import {
 import { SubmissionForm } from "./General";
 import { MultiSelectTrack } from "./MultiSelectTrack";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
-import MembersComponent from "./Members";
+import MembersComponent from './Members';
+
 
 interface TeamMember {
   name: string;
@@ -25,8 +26,11 @@ interface TeamMember {
 }
 export interface projectProps {
   project_id: string;
+  user_id?: string;
+  hackaton_id?: string;
+  onProjectCreated?: () => void;
 }
-const SubmitStep1: FC<projectProps> = ({ project_id })=> {
+const SubmitStep1: FC<projectProps> = (project)=> {
   const form = useFormContext<SubmissionForm>();
 
 
@@ -123,7 +127,7 @@ const SubmitStep1: FC<projectProps> = ({ project_id })=> {
         <h3 className="font-medium  text-lg md:text-xl">
           Team &amp; Collaboration
         </h3>
-          <MembersComponent project_id={project_id} />
+          <MembersComponent {...project}/>
       </section>
     </div>
   );
