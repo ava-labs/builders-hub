@@ -28,10 +28,8 @@ export const PublishOpportunityModal = ({
           Publishing Confirmation
         </DialogTitle>
         <div className='text-[var(--secondary-text-color)] my-3'>
-          Do you want to publish this listing ? Approval may take xx hours, This
-          content will be visible to all users upon publishing.
+          Submit this listing for approval. It will be published once approved by the platform administrators.
         </div>
-
         <div className='flex gap-2 justify-center mt-6 md:mt-8'>
           <div className='flex justify-between space-x-3'>
             <Link href='/ambassador-dao/sponsor/listings'>
