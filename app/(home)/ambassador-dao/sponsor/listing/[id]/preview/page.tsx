@@ -16,6 +16,7 @@ import { useFetchOpportunityDetails } from "@/services/ambassador-dao/requests/o
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import React, { useState } from "react";
+import Markdown from "react-markdown";
 
 const AmbasssadorDaoSponsorsListingPreview = () => {
   const params = useParams<{ id: string }>();
@@ -109,8 +110,64 @@ const AmbasssadorDaoSponsorsListingPreview = () => {
                     <div className='block md:hidden my-6'>
                       <JobSidebar job={sidebarData} nullAction={true} />
                     </div>
-
-                    <JobDescription data={extractDescriptionData(data)} />
+                    {data.description && (
+                      <div className='mb-6 text-[var(--primary-text-color)]'>
+                        <Markdown
+                          components={{
+                            ul: ({ node, ...props }) => (
+                              <ul
+                                className='list-disc pl-6 mb-4 space-y-2'
+                                {...props}
+                              />
+                            ),
+                            ol: ({ node, ...props }) => (
+                              <ol
+                                className='list-decimal pl-6 mb-4 space-y-2'
+                                {...props}
+                              />
+                            ),
+                            h1: ({ node, ...props }) => (
+                              <h1
+                                className='text-4xl font-bold mb-4'
+                                {...props}
+                              />
+                            ),
+                            h2: ({ node, ...props }) => (
+                              <h2
+                                className='text-3xl font-semibold mb-4'
+                                {...props}
+                              />
+                            ),
+                            h3: ({ node, ...props }) => (
+                              <h3
+                                className='text-2xl font-medium mb-3'
+                                {...props}
+                              />
+                            ),
+                            h4: ({ node, ...props }) => (
+                              <h4
+                                className='text-xl font-medium mb-3'
+                                {...props}
+                              />
+                            ),
+                            h5: ({ node, ...props }) => (
+                              <h5
+                                className='text-lg font-normal mb-2'
+                                {...props}
+                              />
+                            ),
+                            h6: ({ node, ...props }) => (
+                              <h6
+                                className='text-base font-normal mb-2'
+                                {...props}
+                              />
+                            ),
+                          }}
+                        >
+                          {data?.description}
+                        </Markdown>
+                      </div>
+                    )}
                   </div>
 
                   <div className='hidden md:block md:col-span-1'>

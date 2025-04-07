@@ -400,6 +400,15 @@ nav a:not(:first-child) {
   }
 }
 
+.custom-markdown-editor {
+  ol,
+  ul,
+  menu {
+    margin-left: 24px;
+    list-style: revert;
+  }
+}
+
 .custom-markdown-editor ._contentEditable_uazmk_379 {
   min-height: 256px;
   background-color: transparent;
@@ -447,6 +456,13 @@ nav a:not(:first-child) {
 
 ._placeholder_uazmk_1084 {
   color: #6b6b74 !important;
+}
+
+._toolbarToggleItem_uazmk_206[data-state="on"],
+._toolbarButton_uazmk_237[data-state="on"],
+._toolbarToggleItem_uazmk_206:active,
+._toolbarButton_uazmk_237:active {
+  background-color: #000 !important;
 }
 
 /* For dark mode support */

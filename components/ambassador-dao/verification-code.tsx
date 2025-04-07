@@ -31,7 +31,7 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
 
   const handleContainerPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault();
-    
+
     let pastedData = "";
     try {
       pastedData = e.clipboardData?.getData("text") || "";
@@ -39,25 +39,25 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
       console.error("Error accessing clipboard data:", error);
       return;
     }
-    
+
     pastedData = pastedData.trim();
-    
+
     let filteredChars;
     if (numbersOnly) {
       filteredChars = pastedData.replace(/[^0-9]/g, "").slice(0, length);
     } else {
       filteredChars = pastedData.replace(/[^a-zA-Z0-9]/g, "").slice(0, length);
     }
-    
+
     if (filteredChars.length > 0) {
       const newCode = Array(length).fill("");
-      
+
       for (let i = 0; i < Math.min(filteredChars.length, length); i++) {
         newCode[i] = filteredChars[i];
       }
-      
+
       setCode(newCode);
-      
+
       setTimeout(() => {
         const focusIndex = Math.min(filteredChars.length, length - 1);
         inputRefs.current[focusIndex]?.focus();
@@ -70,16 +70,16 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
     index: number
   ) => {
     const value = e.target.value;
-    
+
     const char = value.slice(-1);
 
-    const isValid = numbersOnly 
-      ? /^\d$/.test(char) 
+    const isValid = numbersOnly
+      ? /^\d$/.test(char)
       : /^[a-zA-Z0-9]$/.test(char);
 
     if (char && isValid) {
       const newCode = [...code];
-      newCode[index] = char.toUpperCase(); 
+      newCode[index] = char.toUpperCase();
       setCode(newCode);
 
       if (index < length - 1) {
@@ -101,18 +101,16 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
         if (index > 0) {
           e.preventDefault();
           inputRefs.current[index - 1]?.focus();
-          
+
           const newCode = [...code];
           newCode[index - 1] = "";
           setCode(newCode);
         }
       }
-    } 
-    else if (e.key === "ArrowLeft" && index > 0) {
+    } else if (e.key === "ArrowLeft" && index > 0) {
       e.preventDefault();
       inputRefs.current[index - 1]?.focus();
-    } 
-    else if (e.key === "ArrowRight" && index < length - 1) {
+    } else if (e.key === "ArrowRight" && index < length - 1) {
       e.preventDefault();
       inputRefs.current[index + 1]?.focus();
     }
@@ -120,26 +118,28 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
 
   const handleInputPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
-    
+
     if (containerRef.current) {
-      handleContainerPaste(e as unknown as React.ClipboardEvent<HTMLDivElement>);
+      handleContainerPaste(
+        e as unknown as React.ClipboardEvent<HTMLDivElement>
+      );
     }
   };
 
   return (
-    <div 
-      ref={containerRef} 
+    <div
+      ref={containerRef}
       className={`flex gap-4 ${className}`}
       onPaste={handleContainerPaste}
-      tabIndex={-1} 
+      tabIndex={-1}
     >
       {Array.from({ length }, (_, index) => (
-        <div key={index} className="relative">
+        <div key={index} className='relative'>
           <input
             ref={(el) => {
               inputRefs.current[index] = el;
             }}
-            type="text"
+            type='text'
             inputMode={numbersOnly ? "numeric" : "text"}
             pattern={numbersOnly ? "[0-9]*" : "[a-zA-Z0-9]*"}
             maxLength={1}
@@ -151,7 +151,7 @@ export const VerificationInput: React.FC<VerificationInputProps> = ({
             className={`
               w-full h-12
               flex items-center justify-center
-              text-lg md:text-xl text-center text-white
+              text-lg md:text-xl text-center text-[var(--white-text-color)]
               bg-transparent
               border-2 rounded-lg border-[var(--default-border-color)]
               focus:outline-none focus:ring-2 focus:ring-opacity-50
