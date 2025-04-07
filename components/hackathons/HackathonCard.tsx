@@ -60,7 +60,7 @@ export default function HackathonCard({
           </p>
         </div>
         {/* Tags Section */}
-        {hackathon.tags && hackathon.tags.length > 0 && (
+        {/* {hackathon.tags && hackathon.tags.length > 0 && (
           <div className='mt-4 flex flex-wrap gap-2'>
             {hackathon.tags.map((tag: string) => (
               <Badge key={tag} className='rounded-full'>
@@ -68,7 +68,12 @@ export default function HackathonCard({
               </Badge>
             ))}
           </div>
-        )}
+        )} */}
+        <div>
+          <p className='text-xs dark:text-zinc-300 text-zinc-800'>
+            {hackathon.organizers}
+          </p>
+        </div>
         <div className='flex flex-wrap gap-y-2 justify-around items-center text-gray-300 text-sm py-[10px]'>
           <div className='flex items-center gap-1 md:gap-2'>
             <Trophy className='h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900' />

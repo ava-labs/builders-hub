@@ -11,6 +11,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import DeadLine from "../DeadLine";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
   const [search, setSearch] = useState<string>("");
@@ -115,13 +122,34 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
         <DeadLine deadline={hackathon.content.submission_deadline} />
       </div>
       <Divider />
+      {/* <div className="bg-zinc-800 rounded-lg px-16 py-2 w-1/2">
+        <Carousel className="w-full">
+          <CarouselContent>
+            {Object.entries(
+              groupActivitiesByDay(hackathon.content.schedule)
+            ).map(([formattedDate, _], index) => (
+              <CarouselItem key={index} className="basis-1/3">
+                <Card className="border-none p-0">
+                  <CardContent className="flex justify-center">
+                    <span className="text-sm font-semibold">
+                      {formattedDate}
+                    </span>
+                  </CardContent>
+                </Card>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious />
+          <CarouselNext />
+        </Carousel>
+      </div> */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
         {Object.entries(groupActivitiesByDay(hackathon.content.schedule))
           .slice(0, 2)
           .map(([formattedGroupDate, activities], index) => {
             const now = new Date();
             const nowFormattedDay = getFormattedDay(now);
-            const dateIsCurrentDate = false; //Pending to activate
+            const dateIsCurrentDate = formattedGroupDate == nowFormattedDay;
             return (
               <div key={index} className="flex flex-col gap-4">
                 <h3
@@ -164,25 +192,25 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                         <Card
                           className={`${
                             dateIsCurrentDate
-                              ? "dark:bg-zinc-900 bg-zinc-100 "
-                              : "dark:bg-zinc-950 bg-zinc-50"
+                              ? "bg-zinc-100 dark:!bg-zinc-900"
+                              : "bg-zinc-50 dark:!bg-zinc-950"
                           } ${
                             activityIsOcurring && dateIsCurrentDate
                               ? "border-2 dark:border-red-500 border-red-500"
                               : dateIsCurrentDate
-                              ? "dark:border-zinc-900 border-zinc-400"
-                              : "dark:border-zinc-800 border-zinc-300"
+                              ? "dark:!border-zinc-900 border-zinc-400"
+                              : "dark:!border-zinc-800 border-zinc-300"
                           } px-2 sm:px-4 sm:w-[40%] md:w-[173px] rounded-lg`}
                         >
                           <CardContent className="h-full relative flex flex-col gap-2 justify-center items-center p-2 sm:p-6">
-                            <div className="absolute top-4">
+                            <div className="absolute top-0">
                               {activityIsOcurring && dateIsCurrentDate && (
-                                <div className="border border-red-500 rounded-full text-sm font-medium text-center w-1/3 sm:w-auto sm:px-2">
+                                <div className="border border-red-500 rounded-full text-xs font-medium text-center w-1/3 sm:w-auto sm:px-2">
                                   Live now
                                 </div>
                               )}
                               {!activityIsOcurring && dateIsCurrentDate && (
-                                <div className="border dark:bg-zinc-800 bg-zinc-300 flex items-center justify-center gap-1 rounded-full text-sm font-medium text-center w-1/3 sm:w-auto sm:px-3 py-1">
+                                <div className="border dark:bg-zinc-800 bg-zinc-300 flex items-center justify-center gap-1 rounded-full text-xs font-medium text-center w-1/3 sm:w-auto sm:px-3 py-1 border-none">
                                   <LinkIcon
                                     size={16}
                                     className="!text-zinc-900 dark:!text-zinc-50"
@@ -218,18 +246,18 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                         <Card
                           className={`${
                             dateIsCurrentDate
-                              ? "dark:bg-zinc-900 bg-zinc-100"
-                              : "dark:bg-zinc-950 bg-zinc-50"
+                              ? "dark:!bg-zinc-900 bg-zinc-100"
+                              : "dark:!bg-zinc-950 bg-zinc-50"
                           } border ${
                             activityIsOcurring && dateIsCurrentDate
                               ? "border-2 dark:border-red-500 border-red-500"
                               : dateIsCurrentDate
-                              ? "dark:border-zinc-900 border-zinc-400"
-                              : "dark:border-zinc-800 border-zinc-300"
+                              ? "dark:!border-zinc-900 border-zinc-400"
+                              : "dark:!border-zinc-800 border-zinc-300"
                           } sm:w-[60%] md:flex-1 rounded-lg`}
                         >
                           <CardContent
-                            className={`p-3 sm:p-4 h-full flex flex-col ${
+                            className={`h-full flex flex-col ${
                               voidHost ? "justify-start" : "justify-between"
                             } gap-2`}
                           >
@@ -239,7 +267,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                                   {activity.name}
                                 </CardTitle>
                                 {activity.category && (
-                                  <Badge className="bg-zinc-600 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900 py-0.5 px-2.5 text-sm w-fit h-fit">
+                                  <Badge className="bg-zinc-600 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900 py-0.5 px-2.5 text-xs rounded-xl">
                                     {activity.category}
                                   </Badge>
                                 )}

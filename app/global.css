@@ -63,13 +63,13 @@
   padding: 0 16px;
 }
 
-svg.lucide {
+/* svg.lucide {
   color: #1f66f4;
 }
 
 .my-6 > svg.lucide {
   color: #fff;
-}
+} */
 
 .text-fd-primary {
   --tw-text-opacity: 1;
