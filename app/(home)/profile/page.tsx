@@ -1,9 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -26,6 +34,8 @@ import {
 } from '@/components/ui/select';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MultiSelect } from '@/components/ui/multi-select';
+import Modal from '@/components/ui/Modal';
+import UploadModal from '@/components/ui/UploadModal';
 
 const profileSchema = z.object({
   fullName: z.string().min(1, 'Full name is required'),
@@ -46,6 +56,7 @@ const notificationOptions = [
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 function Profile() {
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -65,6 +76,11 @@ function Profile() {
     } catch (error) {
       console.error('Error saving profile:', error);
     }
+  };
+
+  const handleFileSelect = (file: File) => {
+    const imageUrl = URL.createObjectURL(file);
+    form.setValue('profilePicture', imageUrl);
   };
 
   return (
@@ -108,23 +124,35 @@ function Profile() {
             <FormLabel>Profile Picture</FormLabel>
             <div className='flex flex-col gap-4'>
               <div className='w-24 h-24 border-2 border-dashed border-red-500 rounded-lg flex items-center justify-center'>
-                <svg
-                  xmlns='http://www.w3.org/2000/svg'
-                  width='24'
-                  height='24'
-                  viewBox='0 0 24 24'
-                  fill='none'
-                  stroke='currentColor'
-                  strokeWidth='2'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                >
-                  <rect width='18' height='18' x='3' y='3' rx='2' ry='2' />
-                  <circle cx='9' cy='9' r='2' />
-                  <path d='m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21' />
-                </svg>
+                {form.watch('profilePicture') ? (
+                  <img
+                    src={form.watch('profilePicture')}
+                    alt="Profile"
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <svg
+                    xmlns='http://www.w3.org/2000/svg'
+                    width='24'
+                    height='24'
+                    viewBox='0 0 24 24'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth='2'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                  >
+                    <rect width='18' height='18' x='3' y='3' rx='2' ry='2' />
+                    <circle cx='9' cy='9' r='2' />
+                    <path d='m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21' />
+                  </svg>
+                )}
               </div>
-              <Button className='w-fit' type='button'>
+              <Button
+                className='w-fit'
+                type='button'
+                onClick={() => setIsUploadModalOpen(true)}
+              >
                 Upload or update your profile image
               </Button>
             </div>
@@ -351,6 +379,12 @@ function Profile() {
           </div>
         </form>
       </Form>
+
+      <UploadModal
+        isOpen={isUploadModalOpen}
+        onOpenChange={setIsUploadModalOpen}
+        onFileSelect={handleFileSelect}
+      />
     </div>
   );
 }

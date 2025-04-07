@@ -17,6 +17,7 @@ interface ModalProps {
   content?: ReactNode;
   footer?: ReactNode;
   className?: string;
+  contentClassName?: string;
 }
 
 export default function Modal({
@@ -27,9 +28,10 @@ export default function Modal({
   content,
   footer,
   className = '',
+  contentClassName = '',
 }: ModalProps) {
   return (
-    <Dialog  open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
         className={`
           w-[95%] max-w-[450px] sm:w-[85%] sm:max-w-[500px] md:w-[70vw] md:max-w-[550px]
@@ -41,7 +43,7 @@ export default function Modal({
           ${className}
         `}
       >
-        <DialogHeader>
+        <DialogHeader className='gap-0'>
           <DialogTitle className='text-center font-bold text-lg sm:text-left'>
             {title}
           </DialogTitle>
@@ -49,7 +51,7 @@ export default function Modal({
         </DialogHeader>
 
         {description && (
-          <DialogDescription className='text-center text-base sm:text-lg'>
+          <DialogDescription className='text-center sm:text-left text-base sm:text-lg'>
             {description}
           </DialogDescription>
         )}
