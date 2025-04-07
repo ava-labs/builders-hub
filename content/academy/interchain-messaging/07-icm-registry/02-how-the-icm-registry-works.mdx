@@ -16,7 +16,7 @@ Internally the TeleporterRegistry maintains a mapping of TeleporterMessenger con
 
 Each registry's mapping of version to contract address is independent of registries on other blockchains, and chains can decide on their own registry mapping entries. So the contract of version 4 on one chain does not have to be equal to that version on another chain.
 
-```solidity title="/lib/icm/contracts/src/Teleporter/upgrades/TeleporterRegistry.sol"
+```solidity title="/lib/icm-contracts/contracts/teleporter/registry/TeleporterRegistry.sol"
 
 contract TeleporterRegistry {
     // .... 
@@ -33,7 +33,7 @@ contract TeleporterRegistry {
 ```
 In the `TeleporterRegistry` contract, the `latestVersion` state variable returns the highest version number that has been registered in the registry. The `getLatestTeleporter` function returns the `ITeleporterMessenger` that is registered with the corresponding version. Version zero is an invalid version, and is used to indicate that a `TeleporterMessenger` contract has not been registered yet.
 
-```solidity title="/lib/icm/contracts/src/Teleporter/upgrades/TeleporterRegistry.sol"
+```solidity title="/lib/icm-contracts/contracts/teleporter/registry/TeleporterRegistry.sol"
 contract TeleporterRegistry {
     // .... 
   
@@ -60,7 +60,7 @@ contract TeleporterRegistry {
 
 If a cross-Avalanche L1 dApps prefers a specific version, it can also call directly the `getAddressFromVersion` function:
 
-```solidity title="/lib/icm/contracts/src/Teleporter/upgrades/TeleporterRegistry.sol"
+```solidity title="/lib/icm-contracts/contracts/teleporter/registry/TeleporterRegistry.sol"
 contract TeleporterRegistry {
   	// Mappings that keep track of the protocol version and corresponding contract address.
     mapping(uint256 version => address protocolAddress) private _versionToAddress;
