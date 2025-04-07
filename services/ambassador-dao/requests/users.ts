@@ -24,16 +24,20 @@ export const useFetchPublicUserDetails = (
 
 export const useFetchPastOpportunities = (
   username: string | undefined | null,
-  type: string
+  params: {
+    per_page: number;
+    page: number;
+  }
 ) => {
   return useQuery({
     queryFn: async () => {
       const res = await axiosInstance.get(
-        `${API_DEV}/users/past-opportunities/${username}?type=${type}`
+        `${API_DEV}/users/past-activity/${username}`,
+        { params }
       );
-      return res.data.data;
+      return res.data;
     },
-    queryKey: ["past-opportunities", type],
+    queryKey: ["past-opportunities"],
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     enabled: !!username,

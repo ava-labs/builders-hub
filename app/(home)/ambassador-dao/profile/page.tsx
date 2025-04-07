@@ -3,6 +3,7 @@
 import { BriefcaseBusiness, DivideCircle, File } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import Token from "@/public/ambassador-dao-images/token.png";
+import Avatar from "@/public/ambassador-dao-images/Avatar.svg";
 import XP from "@/public/ambassador-dao-images/sparkles.png";
 import Image from "next/image";
 
@@ -58,7 +59,7 @@ const AmbasssadorDaoProfilePage = () => {
   const profile = {
     name: data ? `${data.first_name || ""} ${data.last_name || ""}` : "-",
     username: data ? `${data.username || ""}` : "-",
-    location: "United States",
+    location: data?.location || "Not specified",
     skills: data?.skills || "-",
     socials: data?.social_links || null,
     profile_image: data?.profile_image || null,
@@ -78,7 +79,7 @@ const AmbasssadorDaoProfilePage = () => {
 
   const handleShareClick = () => {
     const baseUrl = window.location.origin;
-    const shareUrl = `${baseUrl}/ambassador-dao/public-profile?username=${data?.username}`;
+    const shareUrl = `${baseUrl}/ambassador-dao/profile/username=${data?.username}`;
 
     navigator.clipboard
       .writeText(shareUrl)
@@ -103,7 +104,7 @@ const AmbasssadorDaoProfilePage = () => {
             <div className="flex items-center mb-4 md:mb-0">
               <div className="w-16 h-16 rounded-full mr-4 overflow-hidden">
                 <Image
-                  src={profile.profile_image}
+                  src={profile?.profile_image || Avatar}
                   width={40}
                   height={40}
                   alt="Profile"
@@ -113,10 +114,7 @@ const AmbasssadorDaoProfilePage = () => {
               <div>
                 <h2 className="text-base font-bold">{profile.name}</h2>
                 <p className="text-[var(--secondary-text-color)] text-sm">
-                  {profile.username}
-                </p>
-                <p className="text-[var(--secondary-text-color)] text-xs">
-                  Base in: {profile.location}
+                  @{profile.username}
                 </p>
               </div>
             </div>
@@ -137,7 +135,17 @@ const AmbasssadorDaoProfilePage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div>
+              <h3 className="text-3xl font-medium mb-2">Details</h3>
+              <div className="flex flex-wrap gap-2">
+                {profile?.location && (
+                  <p className="text-[var(--secondary-text-color)] text-xs">
+                    Base in: {profile.location}
+                  </p>
+                )}
+              </div>
+            </div>
             <div>
               <h3 className="text-3xl font-medium mb-2">Skills</h3>
               <div className="flex flex-wrap gap-2">
@@ -146,7 +154,7 @@ const AmbasssadorDaoProfilePage = () => {
                     (skill: { name: string; id: string }) => (
                       <div
                         key={skill.id}
-                        className="text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]"
+                        className="text-xs px-2 py-1 bg-[var(--default-bg-color)] rounded-full text-center border border-[var(--default-border-color)]"
                       >
                         {skill.name}
                       </div>
