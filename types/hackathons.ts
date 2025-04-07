@@ -1,4 +1,4 @@
-export type HackathonStatus = "UPCOMING" | "ONGOING" | "ENDED"
+export type HackathonStatus = "ENDED" | "!ENDED"
 export type HackathonHeader = {
   id: string
   title: string
@@ -9,6 +9,7 @@ export type HackathonHeader = {
   total_prizes: number
   participants: number
   tags: string[]
+  organizers: string 
   status: HackathonStatus
   small_banner: string
   banner: string
@@ -21,6 +22,7 @@ export type HackathonsFilters = {
   location?: string
   status?: HackathonStatus | null
   page?: number
+  recordsByPage?: number
 }
 
 export type Hackathon = {
