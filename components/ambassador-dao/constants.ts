@@ -9,7 +9,7 @@ export const jobTypes = [
   { id: "AMBASSADOR_SPECIFIC", label: "Ambassador" },
 ];
 
-export const minBudget = [
+export const budgetRange = [
   { id: "1-5000", label: "1-5000" },
   { id: "5001-10000", label: "5001-10000" },
 ];

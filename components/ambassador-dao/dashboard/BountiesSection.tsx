@@ -3,11 +3,12 @@
 import { SetStateAction } from "react";
 import { Search } from "lucide-react";
 import EmptyState from "../ui/EmptyState";
-import { jobTypes, minBudget, statusOptions } from "../constants";
+import { budgetRange, jobTypes, statusOptions } from "../constants";
 import { useFetchAllSkills } from "@/services/ambassador-dao/requests/onboard";
 import { ViewAllButton } from "./ViewAllButton";
 import { FilterDropdown } from "./FilterDropdown";
 import { BountyCard } from "./BountyCard";
+import { filter } from "@mdxeditor/editor";
 
 interface BountiesSectionProps {
   data: any[];
@@ -17,6 +18,7 @@ interface BountiesSectionProps {
     category: string;
     skillSet: string;
     min_budget: string;
+    max_budget: string;
     status: string;
   };
   searchInput: string;
@@ -39,6 +41,7 @@ const BountiesSection = ({
     updateFilters({
       query: "",
       min_budget: "",
+      max_budget: "",
       skillSet: "",
       category: "",
       status: "",
@@ -51,58 +54,69 @@ const BountiesSection = ({
     }
   };
 
+  console.log(filters)
+
   return (
-    <section className='border border-[var(--default-border-color)] rounded-md py-14 px-8'>
-      <h2 className='text-3xl font-bold mb-6'>ALL BOUNTIES</h2>
-      <div className='flex gap-4 mb-6 flex-wrap'>
+    <section className="border border-[var(--default-border-color)] rounded-md py-14 px-8">
+      <h2 className="text-3xl font-bold mb-6">ALL BOUNTIES</h2>
+      <div className="flex gap-4 mb-6 flex-wrap">
         <FilterDropdown
-          label='Skill Set'
+          label="Skill Set"
           options={skills}
           value={filters.skillSet}
           onValueChange={(value) => updateFilters({ skillSet: value })}
         />
 
         <FilterDropdown
-          label='Bounty Type'
+          label="Bounty Type"
           options={jobTypes}
           value={filters.category}
           onValueChange={(value) => updateFilters({ category: value })}
         />
 
         <FilterDropdown
-          label='Min Budget'
-          options={minBudget}
-          value={filters.min_budget}
-          onValueChange={(value) => updateFilters({ min_budget: value })}
+          label="Budget"
+          options={budgetRange}
+          value={
+            filters?.min_budget &&
+            `${filters.min_budget.toString()}-${filters?.max_budget.toString()}`
+          }
+          onValueChange={(value) => {
+            const [minBudget, maxBudget] = value
+              ?.split("-")
+              .map((value) => parseInt(value, 10));
+            updateFilters({ min_budget: minBudget, max_budget: maxBudget });
+          }}
         />
 
         <FilterDropdown
-          label='Status'
+          label="Status"
           options={statusOptions}
           value={filters.status}
           onValueChange={(value) => updateFilters({ status: value })}
         />
 
         {/* Search input */}
-        <div className='relative min-w-[200px]'>
+        <div className="relative min-w-[200px]">
           <input
-            type='text'
-            placeholder='Search Bounties'
+            type="text"
+            placeholder="Search Bounties"
             value={searchInput}
             onChange={handleSearchChange}
-            className='text-xs sm:text-sm lg:text-base h-8 sm:h-11 border border-[var(--default-border-color)] rounded-md px-4 py-2 focus:outline-none w-full'
+            className="text-xs sm:text-sm lg:text-base h-8 sm:h-11 border border-[var(--default-border-color)] rounded-md px-4 py-2 focus:outline-none w-full"
           />
-          <button className='absolute right-3 top-1/2 transform -translate-y-1/2'>
-            <Search color='#9F9FA9' className='h-3 w-3 sm:w-5 sm:h-5' />
+          <button className="absolute right-3 top-1/2 transform -translate-y-1/2">
+            <Search color="#9F9FA9" className="h-3 w-3 sm:w-5 sm:h-5" />
           </button>
         </div>
         {(filters.query ||
           filters.category ||
           filters.skillSet ||
           filters.min_budget ||
+          filters.max_budget ||
           filters.status) && (
           <span
-            className='flex cursor-pointer rounded-lg px-4 py-2 text-red-500 items-center border border-[var(--default-border-color)] text-xs sm:text-sm lg:text-base'
+            className="flex cursor-pointer rounded-lg px-4 py-2 text-red-500 items-center border border-[var(--default-border-color)] text-xs sm:text-sm lg:text-base"
             onClick={clearAllFilters}
           >
             Reset Filters
@@ -110,19 +124,19 @@ const BountiesSection = ({
         )}
       </div>
 
-      <div className='space-y-4'>
+      <div className="space-y-4">
         {data?.length > 0 ? (
           data.map((bounty) => <BountyCard key={bounty.id} bounty={bounty} />)
         ) : (
           <EmptyState
-            title='No Bounty Matches Your Filters'
-            description='Try adjusting criteria'
-            className='mt-8'
+            title="No Bounty Matches Your Filters"
+            description="Try adjusting criteria"
+            className="mt-8"
           />
         )}
       </div>
 
-      {data?.length > 0 && <ViewAllButton type='bounties' />}
+      {data?.length > 0 && <ViewAllButton type="bounties" />}
     </section>
   );
 };
