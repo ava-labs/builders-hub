@@ -1,4 +1,4 @@
-import { parseAbiItem, type PublicClient } from 'viem';
+import { parseAbiItem, type PublicClient, bytesToHex, hexToBytes } from 'viem';
 import { parseRegisterL1ValidatorMessage } from '../../coreViem/utils/convertWarp';
 import { utils } from '@avalabs/avalanchejs';
 
@@ -15,7 +15,7 @@ import { utils } from '@avalabs/avalanchejs';
  * @param messageBytes - The raw unsignedWarpMessage bytes
  * @returns The extracted message (addressedCall)
  */
-function extractAddressedCall(messageBytes: Uint8Array): Uint8Array {
+export function extractAddressedCall(messageBytes: Uint8Array): Uint8Array {
   try {
     // console.log(`Parsing UnsignedMessage of length: ${messageBytes.length} bytes`);
     
@@ -24,25 +24,25 @@ function extractAddressedCall(messageBytes: Uint8Array): Uint8Array {
       return new Uint8Array();
     }
     
-    // const codecVersion = (messageBytes[0] << 8) | messageBytes[1];
+    const codecVersion = (messageBytes[0] << 8) | messageBytes[1];
     
-    // const networkIDBytes = messageBytes.slice(2, 6);
-    // console.log(`Raw networkID bytes: 0x${Buffer.from(networkIDBytes).toString('hex')}`);
-    // const networkID = (messageBytes[2] << 24) | 
-    //                   (messageBytes[3] << 16) | 
-    //                   (messageBytes[4] << 8) | 
-    //                   messageBytes[5];
+    const networkIDBytes = messageBytes.slice(2, 6);
+    console.log(`Raw networkID bytes: 0x${Buffer.from(networkIDBytes).toString('hex')}`);
+    const networkID = (messageBytes[2] << 24) | 
+                      (messageBytes[3] << 16) | 
+                      (messageBytes[4] << 8) | 
+                      messageBytes[5];
     
-    // console.log(`UnsignedMessage -> codecVersion: ${codecVersion}, NetworkID: ${networkID}`);
+    console.log(`UnsignedMessage -> codecVersion: ${codecVersion}, NetworkID: ${networkID}`);
     
-    // const sourceChainIDBytes = messageBytes.slice(6, 38);
-    // console.log(`Raw sourceChainID bytes: 0x${Buffer.from(sourceChainIDBytes).toString('hex')}`);
-    // try {
-    //   let sourceChainIDStr = utils.base58check.encode(Buffer.from(sourceChainIDBytes));
-    //   console.log(`UnsignedMessage -> SourceChainID: ${sourceChainIDStr}`);
-    // } catch (e) {
-    //   console.log('Could not encode sourceChainID from UnsignedMessage');
-    // }
+    const sourceChainIDBytes = messageBytes.slice(6, 38);
+    console.log(`Raw sourceChainID bytes: 0x${Buffer.from(sourceChainIDBytes).toString('hex')}`);
+    try {
+      let sourceChainIDStr = utils.base58check.encode(Buffer.from(sourceChainIDBytes));
+      console.log(`UnsignedMessage -> SourceChainID: ${sourceChainIDStr}`);
+    } catch (e) {
+      console.log('Could not encode sourceChainID from UnsignedMessage');
+    }
     
     const messageLength = (messageBytes[38] << 24) | 
                           (messageBytes[39] << 16) | 
@@ -66,25 +66,40 @@ function extractAddressedCall(messageBytes: Uint8Array): Uint8Array {
   }
 }
 
+/**
+ * Encodes a non-negative integer into Protobuf Varint format.
+ * @param value - The non-negative integer to encode.
+ * @returns A Uint8Array containing the Varint bytes.
+ */
+function encodeVarint(value: number): Uint8Array {
+  const bytes: number[] = [];
+  while (value >= 0x80) {
+    bytes.push((value & 0x7f) | 0x80);
+    value >>>= 7; // Use unsigned right shift
+  }
+  bytes.push(value);
+  return new Uint8Array(bytes);
+}
+
 // Define the ABI for the SendWarpMessage event
 const sendWarpMessageEventAbi = parseAbiItem(
   'event SendWarpMessage(address indexed sourceAddress, bytes32 indexed unsignedMessageID, bytes message)'
 );
 
 /**
- * Gets the registration justification for a specific validator node by querying logs 
- * from the Warp Messenger address, decoding the SendWarpMessage event, extracting 
- * the unsigned message bytes, parsing the message chain (UnsignedMessage -> AddressedCall -> Payload),
- * and returning the raw UnsignedMessage hex data if the payload's nodeID matches the target.
+ * Gets the marshalled L1ValidatorRegistrationJustification protobuf bytes for a specific 
+ * validator node. It queries logs, finds the corresponding RegisterL1ValidatorMessage payload,
+ * and manually constructs the protobuf message with that payload in the 
+ * 'register_l1_validator_message' field (field number 2).
  * 
  * @param nodeID - The node ID of the validator to get the justification for (e.g., "NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg")
  * @param publicClient - The Viem public client to use for querying
- * @returns The raw hex string (`0x...`) of the UnsignedMessage corresponding to the validator's registration, or null if not found.
+ * @returns The marshalled L1ValidatorRegistrationJustification bytes as a Uint8Array, or null if not found.
  */
-export async function GetRegistrationJustification(
+export async function GetRegistrationJustification( 
   nodeID: string, 
   publicClient: PublicClient
-): Promise<`0x${string}` | null> {  
+): Promise<Uint8Array | null> {  // Return type is now Uint8Array | null
   const WARP_ADDRESS = '0x0200000000000000000000000000000000000005' as const;
   
   try {
@@ -94,85 +109,64 @@ export async function GetRegistrationJustification(
       fromBlock: 'earliest',
       toBlock: 'latest',
     });
-    
-    // console.log(`Found ${warpLogs.length} SendWarpMessage logs. Searching for nodeID: ${nodeID}`);
-    
+        
     if (warpLogs.length === 0) {
-      // console.log('No SendWarpMessage logs found');
       return null;
     }
         
     for (const log of warpLogs) {
       try {
-        // console.log(`\n----- Processing log from tx ${log.transactionHash} -----`);
         const decodedArgs = log.args as { sourceAddress?: `0x${string}`, unsignedMessageID?: `0x${string}`, message?: `0x${string}` };
+        const fullMessageHex = decodedArgs.message; 
 
-        const unsignedMessageHex = decodedArgs.message;
-
-        if (!unsignedMessageHex) {
-          // console.log('Could not find "message" argument in decoded log data. Skipping.');
+        if (!fullMessageHex) {
            continue;
         }
 
-        const unsignedMessageBytes = utils.hexToBuffer(unsignedMessageHex);
-                
+        const unsignedMessageBytes = utils.hexToBuffer(fullMessageHex); // Assuming hexToBuffer returns Uint8Array
         const addressedCall = extractAddressedCall(unsignedMessageBytes);
         
-        if (addressedCall.length === 0) {
-          continue;
-        }
+        if (addressedCall.length === 0) continue;
+        if (addressedCall.length < 14) continue;
 
-        // --- AddressedCall Parsing ---
-        if (addressedCall.length < 14) { 
-          continue;
-        }
-
-        // const acCodecVersion = (addressedCall[0] << 8) | addressedCall[1];
-        const acTypeID = (addressedCall[2] << 24) |
-                        (addressedCall[3] << 16) |
-                        (addressedCall[4] << 8) |
-                        addressedCall[5];
-
+        const acTypeID = (addressedCall[2] << 24) | (addressedCall[3] << 16) | (addressedCall[4] << 8) | addressedCall[5];
         const REGISTER_L1_VALIDATOR_MESSAGE_TYPE_ID = 1; 
-        if (acTypeID !== REGISTER_L1_VALIDATOR_MESSAGE_TYPE_ID) {
-           continue;
-        }
+        if (acTypeID !== REGISTER_L1_VALIDATOR_MESSAGE_TYPE_ID) continue;
 
-        const sourceAddrLen = (addressedCall[6] << 24) |
-                             (addressedCall[7] << 16) |
-                             (addressedCall[8] << 8) |
-                             addressedCall[9];
-        
+        const sourceAddrLen = (addressedCall[6] << 24) | (addressedCall[7] << 16) | (addressedCall[8] << 8) | addressedCall[9];
         const payloadLenPos = 10 + sourceAddrLen;
-        if (payloadLenPos + 4 > addressedCall.length) {
-          continue;
-        }
+        if (payloadLenPos + 4 > addressedCall.length) continue;
 
-        const payloadLen = (addressedCall[payloadLenPos] << 24) |
-                          (addressedCall[payloadLenPos + 1] << 16) |
-                          (addressedCall[payloadLenPos + 2] << 8) |
-                          addressedCall[payloadLenPos + 3];
-        
-        if (payloadLen <= 0 || payloadLenPos + 4 + payloadLen > addressedCall.length) {
-          continue;
-        }
+        const payloadLen = (addressedCall[payloadLenPos] << 24) | (addressedCall[payloadLenPos + 1] << 16) | (addressedCall[payloadLenPos + 2] << 8) | addressedCall[payloadLenPos + 3];
+        if (payloadLen <= 0 || payloadLenPos + 4 + payloadLen > addressedCall.length) continue;
 
-        const payload = addressedCall.slice(payloadLenPos + 4, payloadLenPos + 4 + payloadLen);
-        // --- End of AddressedCall Parsing ---
-                
+        const payloadBytes = addressedCall.slice(payloadLenPos + 4, payloadLenPos + 4 + payloadLen);
+                        
         try {
-          const validationData = parseRegisterL1ValidatorMessage(payload);
-          // console.log(`Successfully parsed validation data for nodeID: ${validationData.nodeID}`);
-          
+          const validationData = parseRegisterL1ValidatorMessage(payloadBytes);
+
           if (validationData.nodeID === nodeID) {
-            console.log(`Found justification for ${nodeID}: ${unsignedMessageHex}`); // Log the final justification
-            return unsignedMessageHex; 
+            // Construct the L1ValidatorRegistrationJustification protobuf message manually
+            
+            // Tag for field number 2, wire type 2 (length-delimited) = 0x12
+            const tag = new Uint8Array([0x12]); 
+            
+            // Length of the payloadBytes as Varint
+            const lengthVarint = encodeVarint(payloadBytes.length);
+            
+            // Concatenate: Tag + Length + Payload
+            const marshalledJustification = new Uint8Array(tag.length + lengthVarint.length + payloadBytes.length);
+            marshalledJustification.set(tag, 0);
+            marshalledJustification.set(lengthVarint, tag.length);
+            marshalledJustification.set(payloadBytes, tag.length + lengthVarint.length);
+
+            console.log(`Found and marshalled justification for ${nodeID}`); 
+            return marshalledJustification; // <-- Return the final bytes
           }
         } catch (error) {
-          // Ignore errors here, likely means it wasn't a RegisterL1ValidatorMessage payload we could parse
+          // Ignore parsing errors, continue searching
         }
       } catch (error) {
-        // Log errors during the processing of a specific log entry, but continue
         console.error(`Error processing log entry for tx ${log.transactionHash}:`, error);
       }
     }
@@ -181,7 +175,6 @@ export async function GetRegistrationJustification(
     return null;
 
   } catch (error) {
-    // Log errors related to the overall log fetching/decoding process
     console.error(`Error fetching or decoding logs for nodeID ${nodeID}:`, error);
     return null;
   }

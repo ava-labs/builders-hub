@@ -371,11 +371,11 @@ export default function AddValidator() {
           )
           const unsignedPChainWarpMsgHex = bytesToHex(unsignedPChainWarpMsg)
 
-          // Simulate waiting period
-          await new Promise((resolve) => setTimeout(resolve, 1000))
+          // Simulate waiting period, 15 seconds
+          // await new Promise((resolve) => setTimeout(resolve, 15000))
 
           // Ensure we have a valid justification (signed message from previous step)
-          const justification = savedSignedMessage || lastSignedMessage;
+          const justification = lastWarpMessage || registerL1ValidatorUnsignedWarpMsg
           console.log("Justification for signature aggregation:", justification ? justification.substring(0, 20) + "..." : "None");
           
           if (!justification || justification.length === 0 || /^0*$/.test(justification)) {
