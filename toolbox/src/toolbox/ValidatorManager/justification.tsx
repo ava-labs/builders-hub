@@ -1,4 +1,4 @@
-import { parseAbiItem, type PublicClient, bytesToHex, hexToBytes } from 'viem';
+import { parseAbiItem, type PublicClient } from 'viem';
 import { parseRegisterL1ValidatorMessage } from '../../coreViem/utils/convertWarp';
 import { utils } from '@avalabs/avalanchejs';
 
