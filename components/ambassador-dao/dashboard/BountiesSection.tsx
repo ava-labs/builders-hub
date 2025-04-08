@@ -16,7 +16,7 @@ interface BountiesSectionProps {
     type: string;
     query: string;
     category: string;
-    skillSet: string;
+    skill_ids: string;
     min_budget: string;
     max_budget: string;
     status: string;
@@ -42,7 +42,7 @@ const BountiesSection = ({
       query: "",
       min_budget: "",
       max_budget: "",
-      skillSet: "",
+      skill_ids: "",
       category: "",
       status: "",
     });
@@ -63,8 +63,8 @@ const BountiesSection = ({
         <FilterDropdown
           label="Skill Set"
           options={skills}
-          value={filters.skillSet}
-          onValueChange={(value) => updateFilters({ skillSet: value })}
+          value={filters.skill_ids}
+          onValueChange={(value) => updateFilters({ skill_ids: value })}
         />
 
         <FilterDropdown
@@ -111,7 +111,7 @@ const BountiesSection = ({
         </div>
         {(filters.query ||
           filters.category ||
-          filters.skillSet ||
+          filters.skill_ids ||
           filters.min_budget ||
           filters.max_budget ||
           filters.status) && (
