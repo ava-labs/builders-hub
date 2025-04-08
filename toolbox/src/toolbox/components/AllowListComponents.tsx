@@ -1,6 +1,6 @@
 import { useAllowList } from '@avalabs/builderkit';
-import { Container } from "../../components/container";
-import { Button } from "../../components/button";
+import { Container } from "./Container";
+import { Button } from "../../components/Button";
 import { useState } from "react";
 import { EVMAddressInput } from "./EVMAddressInput";
 

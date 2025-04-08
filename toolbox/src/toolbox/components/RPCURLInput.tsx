@@ -1,11 +1,6 @@
 "use client"
 
-<<<<<<< HEAD:toolbox/src/demo/components/RPCURLInput.tsx
-
-import { Input } from "../ui"
-=======
 import { Input } from "../../components/Input"
->>>>>>> origin/master:toolbox/src/toolbox/components/RPCURLInput.tsx
 import { useState, useEffect } from "react"
 import { AlertTriangle, ExternalLink } from "lucide-react"
 
