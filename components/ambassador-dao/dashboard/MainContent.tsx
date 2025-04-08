@@ -23,7 +23,7 @@ const MainContent = ({ user }: { user: any }) => {
   const [jobFilters, setJobFilters] = useState({
     type: "JOB",
     query: searchParams.get("job_query") || "",
-    skillSet: searchParams.get("job_skillSet") || "",
+    skill_ids: searchParams.get("job_skillSet") || "",
     min_budget: searchParams.get("job_min_budget") || "",
     max_budget: searchParams.get("job_max_budget") || "",
     category: searchParams.get("job_category") || "",
@@ -33,7 +33,7 @@ const MainContent = ({ user }: { user: any }) => {
   const [bountyFilters, setBountyFilters] = useState({
     type: "BOUNTY",
     query: searchParams.get("bounty_query") || "",
-    skillSet: searchParams.get("bounty_skillSet") || "",
+    skill_ids: searchParams.get("bounty_skillSet") || "",
     min_budget: searchParams.get("bounty_min_budget") || "",
     max_budget: searchParams.get("bounty_max_budget") || "",
     category: searchParams.get("bounty_category") || "",
@@ -67,7 +67,7 @@ const MainContent = ({ user }: { user: any }) => {
       const newJobFilters = {
         type: "JOB",
         query: searchParams.get("job_query") || "",
-        skillSet: searchParams.get("job_skillSet") || "",
+        skill_ids: searchParams.get("job_skill_ids") || "",
         min_budget: searchParams.get("job_min_budget") || "",
         max_budget: searchParams.get("job_max_budget") || "",
         category: searchParams.get("job_category") || "",
@@ -79,7 +79,7 @@ const MainContent = ({ user }: { user: any }) => {
       const newBountyFilters = {
         type: "BOUNTY",
         query: searchParams.get("bounty_query") || "",
-        skillSet: searchParams.get("bounty_skillSet") || "",
+        skill_ids: searchParams.get("bounty_skill_ids") || "",
         min_budget: searchParams.get("bounty_min_budget") || "",
         max_budget: searchParams.get("bounty_max_budget") || "",
         category: searchParams.get("bounty_category") || "",

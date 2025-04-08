@@ -18,7 +18,7 @@ interface JobsSectionProps {
     max_budget: string;
     category: string;
     status: string;
-    skillSet: string;
+    skill_ids: string;
   };
   searchInput: string;
   handleSearchChange: (e: {
@@ -41,7 +41,7 @@ const JobsSection = ({
       query: "",
       min_budget: "",
       max_budget: "",
-      skillSet: "",
+      skill_ids: "",
       category: "",
       status: "",
     });
@@ -60,8 +60,8 @@ const JobsSection = ({
         <FilterDropdown
           label="Skill Set"
           options={skills}
-          value={filters.skillSet}
-          onValueChange={(value) => updateFilters({ skillSet: value })}
+          value={filters.skill_ids}
+          onValueChange={(value) => updateFilters({ skill_ids: value })}
         />
 
         <FilterDropdown
@@ -102,7 +102,7 @@ const JobsSection = ({
         </div>
         {(filters.query ||
           filters.category ||
-          filters.skillSet ||
+          filters.skill_ids ||
           filters.min_budget ||
           filters.max_budget ||
           filters.status) && (
