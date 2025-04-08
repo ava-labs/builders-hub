@@ -25,6 +25,7 @@ const MainContent = ({ user }: { user: any }) => {
     query: searchParams.get("job_query") || "",
     skillSet: searchParams.get("job_skillSet") || "",
     min_budget: searchParams.get("job_min_budget") || "",
+    max_budget: searchParams.get("job_max_budget") || "",
     category: searchParams.get("job_category") || "",
     status: searchParams.get("job_status") || "",
   });
@@ -34,6 +35,7 @@ const MainContent = ({ user }: { user: any }) => {
     query: searchParams.get("bounty_query") || "",
     skillSet: searchParams.get("bounty_skillSet") || "",
     min_budget: searchParams.get("bounty_min_budget") || "",
+    max_budget: searchParams.get("bounty_max_budget") || "",
     category: searchParams.get("bounty_category") || "",
     status: searchParams.get("bounty_status") || "",
   });
@@ -67,6 +69,7 @@ const MainContent = ({ user }: { user: any }) => {
         query: searchParams.get("job_query") || "",
         skillSet: searchParams.get("job_skillSet") || "",
         min_budget: searchParams.get("job_min_budget") || "",
+        max_budget: searchParams.get("job_max_budget") || "",
         category: searchParams.get("job_category") || "",
         status: searchParams.get("job_status") || "",
       };
@@ -78,6 +81,7 @@ const MainContent = ({ user }: { user: any }) => {
         query: searchParams.get("bounty_query") || "",
         skillSet: searchParams.get("bounty_skillSet") || "",
         min_budget: searchParams.get("bounty_min_budget") || "",
+        max_budget: searchParams.get("bounty_max_budget") || "",
         category: searchParams.get("bounty_category") || "",
         status: searchParams.get("bounty_status") || "",
       };
