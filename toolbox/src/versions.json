@@ -1,3 +1,8 @@
 {
+<<<<<<< HEAD
   "avaplatform/subnet-evm": "v0.7.3"
+=======
+  "avaplatform/subnet-evm": "v0.7.3",
+  "avaplatform/icm-relayer": "v1.6.2"
+>>>>>>> origin/master
 }

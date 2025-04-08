@@ -127,6 +127,8 @@ export async function extractWarpMessageFromPChainTx(client: WalletClient<any, a
     const data = await response.json() as ConversionDataResponse
 
     if (!data?.result?.tx?.unsignedTx?.subnetID || !data?.result?.tx?.unsignedTx?.chainID || !data?.result?.tx?.unsignedTx?.address || !data?.result?.tx?.unsignedTx?.validators) {
+        console.log('txId', txId)
+        console.log('data', data)
         throw new Error("Invalid transaction data, are you sure this is a conversion transaction?");
     }
 

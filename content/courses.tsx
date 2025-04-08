@@ -100,7 +100,7 @@ const officialCourses: Course[] = [
         status: "normal",
         tools: ["Warp"],
         languages: ["Solidity"],
-        instructors: ["Owen Wahlgren"]
+        instructors: ["Owen Wahlgren", "Martin Eckardt"]
     },
     {
         name: "AvaCloud APIs",

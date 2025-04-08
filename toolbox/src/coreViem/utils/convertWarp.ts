@@ -11,7 +11,7 @@ export interface PackL1ConversionMessageArgs {
     validators: SubnetToL1ConversionValidatorData[];
 }
 
-interface SubnetToL1ConversionValidatorData {
+export interface SubnetToL1ConversionValidatorData {
     nodeID: string;
     nodePOP: {
         publicKey: string;
@@ -67,13 +67,29 @@ export function marshalSubnetToL1ConversionData(args: PackL1ConversionMessageArg
     parts.push(encodeVarBytes(utils.hexToBuffer(args.managerAddress)));
     parts.push(encodeUint32(args.validators.length));
 
-    const sortedValidators = args.validators.sort((a, b) => compareNodeIDs(a.nodeID, b.nodeID));
+    // Sort validators by nodeID
+    let sortedValidators;
+    try {
+        sortedValidators = [...args.validators].sort((a, b) => compareNodeIDs(a.nodeID, b.nodeID));
+    } catch (error: any) {
+        console.warn("Error sorting validators, using original order:", error);
+        sortedValidators = args.validators;
+    }
 
     for (const validator of sortedValidators) {
         if (!validator.nodeID || !validator.nodePOP) {
             throw new Error(`Invalid validator data: ${JSON.stringify(validator)}`);
         }
-        const nodeIDBytes = validator.nodeID.startsWith("NodeID-") ? utils.base58check.decode(validator.nodeID.split("-")[1]) : utils.hexToBuffer(validator.nodeID);
+        
+        let nodeIDBytes;
+        try {
+            nodeIDBytes = validator.nodeID.startsWith("NodeID-") 
+                ? utils.base58check.decode(validator.nodeID.split("-")[1]) 
+                : utils.hexToBuffer(validator.nodeID);
+        } catch (error: any) {
+            throw new Error(`Failed to parse nodeID '${validator.nodeID}': ${error.message}`);
+        }
+        
         parts.push(encodeVarBytes(nodeIDBytes));
         parts.push(utils.hexToBuffer(validator.nodePOP.publicKey));
         parts.push(encodeUint64(BigInt(validator.weight)));
@@ -134,8 +150,20 @@ export function newUnsignedMessage(networkID: number, sourceChainID: string, mes
 }
 
 export const compareNodeIDs = (a: string, b: string) => {
-    const aNodeID = utils.base58check.decode(a.split("-")[1]);
-    const bNodeID = utils.base58check.decode(b.split("-")[1]);
+    console.log(a, b);
+    let aNodeID: Uint8Array;
+    let bNodeID: Uint8Array;
+    
+    try {
+        // Try to parse as NodeID-{base58check}
+        aNodeID = a.startsWith("NodeID-") ? utils.base58check.decode(a.split("-")[1]) : utils.hexToBuffer(a);
+        bNodeID = b.startsWith("NodeID-") ? utils.base58check.decode(b.split("-")[1]) : utils.hexToBuffer(b);
+    } catch (error: any) {
+        // If parsing fails, convert to hex strings for comparison
+        const aHex = a.startsWith("0x") ? a : `0x${a}`;
+        const bHex = b.startsWith("0x") ? b : `0x${b}`;
+        return aHex.localeCompare(bHex);
+    }
 
     // Compare all bytes
     const minLength = Math.min(aNodeID.length, bNodeID.length);
@@ -153,7 +181,6 @@ export const compareNodeIDs = (a: string, b: string) => {
 
 
 export function packL1ConversionMessage(args: PackL1ConversionMessageArgs, networkID: number, sourceChainID: string): [Uint8Array, Uint8Array] {
-    console.log(args);
     const subnetConversionID = subnetToL1ConversionID(args);
 
     const addressedCallPayload = newSubnetToL1Conversion(subnetConversionID)
@@ -170,7 +197,7 @@ export interface PChainOwner {
 }
 
 export interface ValidationPeriod {
-    subnetID: string;
+    subnetId: string;
     nodeID: string;
     blsPublicKey: `0x${string}`;
     registrationExpiry: bigint;
@@ -200,8 +227,8 @@ export function packRegisterL1ValidatorMessage(
     // Add type ID (uint32)
     parts.push(encodeUint32(REGISTER_L1_VALIDATOR_MESSAGE_TYPE_ID));
 
-    // Add subnetID
-    parts.push(utils.base58check.decode(validationPeriod.subnetID));
+    // Add subnetId
+    parts.push(utils.base58check.decode(validationPeriod.subnetId));
 
     // Add nodeID
     const nodeIDBytes = validationPeriod.nodeID.startsWith("NodeID-") ? utils.base58check.decode(validationPeriod.nodeID.split("-")[1]) : utils.hexToBuffer(validationPeriod.nodeID);
@@ -303,4 +330,160 @@ export function parseL1ValidatorRegistration(bytes: Uint8Array): L1ValidatorRegi
         validationID,
         registered,
     };
+}
+
+/**
+ * Parses a RegisterL1ValidatorMessage from a byte array.
+ * The message format specification is:
+ *
+ * RegisterL1ValidatorMessage:
+ * +-----------------------+-------------+--------------------------------------------------------------------+
+ * |               codecID :      uint16 |                                                            2 bytes |
+ * +-----------------------+-------------+--------------------------------------------------------------------+
+ * |                typeID :      uint32 |                                                            4 bytes |
+ * +-----------------------+-------------+-------------------------------------------------------------------+
+ * |              subnetID :    [32]byte |                                                           32 bytes |
+ * +-----------------------+-------------+--------------------------------------------------------------------+
+ * |                nodeID :      []byte |                                              4 + len(nodeID) bytes |
+ * +-----------------------+-------------+--------------------------------------------------------------------+
+ * |          blsPublicKey :    [48]byte |                                                           48 bytes |
+ * +-----------------------+-------------+--------------------------------------------------------------------+
+ * |                expiry :      uint64 |                                                            8 bytes |
+ * +-----------------------+-------------+--------------------------------------------------------------------+
+ * | remainingBalanceOwner : PChainOwner |                                      8 + len(addresses) * 20 bytes |
+ * +-----------------------+-------------+--------------------------------------------------------------------+
+ * |          disableOwner : PChainOwner |                                      8 + len(addresses) * 20 bytes |
+ * +-----------------------+-------------+--------------------------------------------------------------------+
+ * |                weight :      uint64 |                                                            8 bytes |
+ * +-----------------------+-------------+--------------------------------------------------------------------+
+ *                                       | 122 + len(nodeID) + (len(addresses1) + len(addresses2)) * 20 bytes |
+ *                                       +--------------------------------------------------------------------+
+ *
+ * PChainOwner:
+ * +-----------+------------+-------------------------------+
+ * | threshold :     uint32 |                       4 bytes |
+ * +-----------+------------+-------------------------------+
+ * | addresses : [][20]byte | 4 + len(addresses) * 20 bytes |
+ * +-----------+------------+-------------------------------+
+ *                          | 8 + len(addresses) * 20 bytes |
+ *                          +-------------------------------+
+ */
+export function parseRegisterL1ValidatorMessage(input: Uint8Array): ValidationPeriod {
+    let index = 0;
+    const validation: ValidationPeriod = {
+        subnetId: '',
+        nodeID: '',
+        blsPublicKey: '0x',
+        registrationExpiry: 0n,
+        remainingBalanceOwner: { threshold: 0, addresses: [] },
+        disableOwner: { threshold: 0, addresses: [] },
+        weight: 0n
+    };
+
+    // Parse codec ID
+    const codecID = parseUint16(input, index);
+    if (codecID !== codecVersion) {
+        throw new Error(`Invalid codec ID: ${codecID}`);
+    }
+    index += 2;
+
+    // Parse type ID
+    const typeID = parseUint32(input, index);
+    if (typeID !== REGISTER_L1_VALIDATOR_MESSAGE_TYPE_ID) {
+        throw new Error(`Invalid message type: ${typeID}`);
+    }
+    index += 4;
+
+    // Parse subnetID
+    const subnetIDBytes = input.slice(index, index + 32);
+    validation.subnetId = utils.base58check.encode(subnetIDBytes);
+    index += 32;
+
+    // Parse nodeID length
+    const nodeIDLength = parseUint32(input, index);
+    index += 4;
+
+    // Parse nodeID
+    const nodeIDBytes = input.slice(index, index + nodeIDLength);
+    validation.nodeID = `NodeID-${utils.base58check.encode(nodeIDBytes)}`;
+    index += nodeIDLength;
+
+    // Parse BLS public key
+    const blsPublicKeyBytes = input.slice(index, index + 48);
+    validation.blsPublicKey = `0x${Buffer.from(blsPublicKeyBytes).toString('hex')}`;
+    index += 48;
+
+    // Parse registration expiry
+    validation.registrationExpiry = parseUint64(input, index);
+    index += 8;
+
+    // Parse remainingBalanceOwner threshold
+    validation.remainingBalanceOwner.threshold = parseUint32(input, index);
+    index += 4;
+
+    // Parse remainingBalanceOwner addresses length
+    const remainingBalanceOwnerAddressesLength = parseUint32(input, index);
+    index += 4;
+
+    // Parse remainingBalanceOwner addresses
+    validation.remainingBalanceOwner.addresses = [];
+    for (let i = 0; i < remainingBalanceOwnerAddressesLength; i++) {
+        const addrBytes = input.slice(index, index + 20);
+        const addr = `0x${Buffer.from(addrBytes).toString('hex')}`;
+        validation.remainingBalanceOwner.addresses.push(addr as `0x${string}`);
+        index += 20;
+    }
+
+    // Parse disableOwner threshold
+    validation.disableOwner.threshold = parseUint32(input, index);
+    index += 4;
+
+    // Parse disableOwner addresses length
+    const disableOwnerAddressesLength = parseUint32(input, index);
+    index += 4;
+
+    // Parse disableOwner addresses
+    validation.disableOwner.addresses = [];
+    for (let i = 0; i < disableOwnerAddressesLength; i++) {
+        const addrBytes = input.slice(index, index + 20);
+        const addr = `0x${Buffer.from(addrBytes).toString('hex')}`;
+        validation.disableOwner.addresses.push(addr as `0x${string}`);
+        index += 20;
+    }
+
+    // Validate input length
+    const expectedLength = 122 + nodeIDLength + (remainingBalanceOwnerAddressesLength + disableOwnerAddressesLength) * 20;
+    if (input.length !== expectedLength) {
+        throw new Error(`Invalid message length: got ${input.length}, expected ${expectedLength}`);
+    }
+
+    // Parse weight
+    validation.weight = parseUint64(input, index);
+
+    return validation;
+}
+
+// Helper functions for parsing numbers
+function parseUint16(input: Uint8Array, offset: number): number {
+    let result = 0;
+    for (let i = 0; i < 2; i++) {
+        result = (result << 8) | input[offset + i];
+    }
+    return result;
+}
+
+function parseUint32(input: Uint8Array, offset: number): number {
+    let result = 0;
+    for (let i = 0; i < 4; i++) {
+        result = (result << 8) | input[offset + i];
+    }
+    return result;
+}
+
+function parseUint64(input: Uint8Array, offset: number): bigint {
+    let result = 0n;
+    for (let i = 0; i < 8; i++) {
+        result = (result << 8n) | BigInt(input[offset + i]);
+    }
+    return result;
 }
