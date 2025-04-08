@@ -12,7 +12,7 @@ export const GET = withAuth(async (request,context:any) => {
     }
   
     const members = await prisma.member.findMany({
-      where: { project_id },
+      where: { project_id:project_id, status:{not: "Removed"} },
       include: {
         user: {
           select: {
@@ -32,7 +32,8 @@ export const GET = withAuth(async (request,context:any) => {
   
     return NextResponse.json(
       members.map((member) => ({
-        id: member.user.id,
+        id: member.id,
+        user_id: member.user_id,
         name: member.user.name,
         email: member.user.email,
         image: member.user.image,
@@ -50,4 +51,30 @@ export const GET = withAuth(async (request,context:any) => {
         );
   }
 
+});
+
+
+export const PATCH = withAuth(async (request: Request, context: any) => {
+  try {
+    const body = await request.json();
+    const { member_id, role } = body;
+    console.log("body", member_id);
+    if (!member_id || !role) {
+      return NextResponse.json({ error: "member_id and role are required" }, { status: 400 });
+    }
+    
+    const updatedMember = await prisma.member.update({
+      where: { id: member_id },
+      data: { role },
+    });
+    
+    return NextResponse.json(updatedMember);
+  } catch (error: any) {
+    console.error('Error updating member role:', error);
+    const wrappedError = error as Error;
+    return NextResponse.json(
+      { error: wrappedError.message || "Internal server error" },
+      { status: wrappedError.cause === 'ValidationError' ? 400 : 500 }
+    );
+  }
 });

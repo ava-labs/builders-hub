@@ -5,73 +5,133 @@ import { BadgeCheck, MoreHorizontal, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { projectProps } from "./SubmissionStep1";
 import axios from "axios";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu"; // For the dropdown
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
-export default function MembersComponent({ project_id }: projectProps){
+
+
+export default function MembersComponent({project_id,hackaton_id,user_id,onProjectCreated}: projectProps) {
     const [members,setMembers]=useState<any[]>([])
     const [openModal, setOpenModal] = useState(false); // State for modal
     const [emails, setEmails] = useState<string[]>([]); // State for email inputs
     const [newEmail, setNewEmail] = useState(""); // State for new email input
     const [invitationSent, setInvitationSent] = useState(false);
-
+    const [invalidEmails, setInvalidEmails] = useState<string[]>([]);
+  
 
     
-      const handleAddEmail = () => {
-        if (newEmail && !emails.includes(newEmail) && validateEmail(newEmail)) {
-          setEmails([...emails, newEmail]);
-          setNewEmail(""); // Clear the input after adding
-        }
-      };
+    const handleAddEmail = () => {
+      if (newEmail && !emails.includes(newEmail) && validateEmail(newEmail)) {
+        setEmails(prev => [...prev, newEmail]);
+        checkEmailRegistered(newEmail)
+          .then(isRegistered => {
+            if (!isRegistered) {
+              setInvalidEmails(prev => [...prev, newEmail]);
+            }
+          })
+          .catch(err => {
+            console.error("Error checking email registration:", err);
+          });
+        setNewEmail("");
+      }
+    };
     
-      // Function to validate email format
+
       const validateEmail = (email: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
       };
     
-      // Function to remove an email from the array
+      const checkEmailRegistered = async (email: string): Promise<boolean> => {
+        try {
+
+          const response = await axios.get(`/api/users/check?email=${encodeURIComponent(email)}`);
+          return response.data.exists;
+        } catch (error) {
+          console.error("Error checking email registration:", error);
+          return false;
+        }
+      };
+
       const handleRemoveEmail = (email: string) => {
         setEmails(emails.filter((e) => e !== email));
+        setInvalidEmails(invalidEmails.filter((e) => e !== email));
       };
-    
-      // Function to handle sending invitations
+
       const handleSendInvitations = async () => {
-        if (emails.length === 0) return;
+        if (emails.length === 0  || invalidEmails.length > 0) return;
         try {
-          // await axios.post(`/api/project/${project_id}/invite`, { emails });
-        
+           await axios.post(`/api/project/invite-member`,
+             { emails:emails ,
+              hackathon_id:hackaton_id,
+               project_id :project_id,
+               user_id:user_id}
+            );
+            if ((!project_id || project_id === "") && onProjectCreated) {
+              onProjectCreated();
+            }
           setInvitationSent(true);
-          // Refetch members to update the table
+
           const response = await axios.get(`/api/project/${project_id}/members`);
           setMembers(response.data);
         } catch (error) {
           console.error("Error sending invitations:", error);
         }
       };
-    
-      // Function to resend invitation
+
       const handleResendInvitation = async (email: string) => {
         try {
-          await axios.post(`/api/project/${project_id}/resend-invitation`, { email });
-          alert(`Invitation resent to ${email}`);
+          await axios.post(`/api/project/invite-member`,
+            { emails:[email] ,
+             hackathon_id:hackaton_id,
+              project_id :project_id,
+              user_id:user_id}
+           );
+        
         } catch (error) {
           console.error("Error resending invitation:", error);
         }
       };
     
-      // Function to remove member
-      const handleRemoveMember = async (email: string) => {
+
+      const handleRemoveMember = async (email: string,id_user:string) => {
         try {
-          await axios.delete(`/api/project/${project_id}/member`, { data: { email } });
+             await axios.patch(`/api/project/${project_id}/members/status`,
+                  { user_id: id_user ,status: "Removed" });
           setMembers(members.filter((member) => member.email !== email));
-          alert(`${email} has been removed`);
         } catch (error) {
           console.error("Error removing member:", error);
         }
       };
+
+      const handleRoleChange = async (member: any, newRole: string) => {
+        try {
+          await axios.patch(`/api/project/${project_id}/members`, { member_id: member.id, role: newRole });
+ 
+          setMembers((prevMembers) =>
+            prevMembers.map((m) => (m.id === member.id ? { ...m, role: newRole } : m))
+          );
+      
+        } catch (error) {
+          console.error("Error updating role:", error);
+        }
+      };
+
 
     useEffect(() => {
         if (!project_id) return; 
@@ -133,7 +193,11 @@ export default function MembersComponent({ project_id }: projectProps){
                       {emails.map((email) => (
                         <div
                           key={email}
-                          className="flex items-center bg-transparent text-white text-sm rounded-full"
+                          className={`flex items-center bg-transparent text-white text-sm rounded-full px-2 py-1 ${
+                            invalidEmails.includes(email)
+                              ? "border border-red-500"
+                              : ""
+                          }`}
                         >
                           <span className="text-zinc-400">{email}</span>
                           <Button
@@ -153,16 +217,21 @@ export default function MembersComponent({ project_id }: projectProps){
                         type="email"
                         value={newEmail}
                         onChange={(e) => setNewEmail(e.target.value)}
-                        onKeyDown={(e) => {
+                        onKeyDown={async (e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
-                            handleAddEmail();
+                            await handleAddEmail();
                           }
                         }}
                         placeholder={emails.length === 0 ? "Add email..." : ""}
                         className="  text-sm outline-none flex-1 min-w-[120px] py-1 px-3"
                       />
                     </div>
+                    {invalidEmails.length > 0 && (
+                      <p className="text-red-500 mb-2">
+                        Some emails are not registered on the platform.
+                      </p>
+                    )}
                     <div className="flex justify-center mt-2">
                       <Button
                         onClick={handleSendInvitations}
@@ -177,11 +246,12 @@ export default function MembersComponent({ project_id }: projectProps){
               </DialogContent>
             ) : (
               <DialogContent
-              className="dark:bg-zinc-900 
+                className="dark:bg-zinc-900 
               dark:text-white rounded-lg p-6 w-full
                max-w-md border border-zinc-400  px-4"
-               hideCloseButton={true}>
-                      <DialogClose asChild>
+                hideCloseButton={true}
+              >
+                <DialogClose asChild>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -190,42 +260,40 @@ export default function MembersComponent({ project_id }: projectProps){
                     ✕
                   </Button>
                 </DialogClose>
-                 <DialogTitle className="text-lg font-semibold">
-                    Invitation Sent!
-                  </DialogTitle>
-              <Card className="border border-red-500 dark:bg-zinc-800 rounded-md mt-4">
-    
-              <div className="flex flex-col  px-4 py-2 gap-4">
-              <div className="flex items-center justify-center text-center">
-                <BadgeCheck width={35} height={35} color="#FF394A"/>
-                </div>
-                <p className=" text-md ">
-                  Invitation sent successfully to{" "}
-                  <span className="font-semibold gap-2 text-md">{emails.join("; ")}</span>. They
-                  will receive an email to join your team.
-                </p>
-                <div className="items-center justify-center text-center">
-                <DialogClose asChild>
-                  <Button
-                    onClick={() => {
-                      setOpenModal(false);
-                      setEmails([]);
-                      setNewEmail("");
-                      setInvitationSent(false);
-                    }}
-                    className="dark:bg-white border rounder-md max-w-16 "
-                  >
-                    Done
-                  </Button>
-                </DialogClose>
-                </div>
-            
-              </div>
-              </Card>
+                <DialogTitle className="text-lg font-semibold">
+                  Invitation Sent!
+                </DialogTitle>
+                <Card className="border border-red-500 dark:bg-zinc-800 rounded-md mt-4">
+                  <div className="flex flex-col  px-4 py-2 gap-4">
+                    <div className="flex items-center justify-center text-center">
+                      <BadgeCheck width={35} height={35} color="#FF394A" />
+                    </div>
+                    <p className=" text-md ">
+                      Invitation sent successfully to{" "}
+                      <span className="font-semibold gap-2 text-md">
+                        {emails.join("; ")}
+                      </span>
+                      . They will receive an email to join your team.
+                    </p>
+                    <div className="items-center justify-center text-center">
+                      <DialogClose asChild>
+                        <Button
+                          onClick={() => {
+                            setOpenModal(false);
+                            setEmails([]);
+                            setNewEmail("");
+                            setInvitationSent(false);
+                          }}
+                          className="dark:bg-white border rounder-md max-w-16 "
+                        >
+                          Done
+                        </Button>
+                      </DialogClose>
+                    </div>
+                  </div>
+                </Card>
               </DialogContent>
             )}
-
-         
           </Dialog>
         </div>
 
@@ -243,38 +311,84 @@ export default function MembersComponent({ project_id }: projectProps){
             </TableHeader>
             <TableBody>
               {members.map((member, index) => (
-                <TableRow key={index} className="hover:bg-[#2c2c2c]">
+                <TableRow key={index} className="dark:hover:bg-[#2c2c2c]">
                   <TableCell>{member.name}</TableCell>
                   <TableCell>{member.email}</TableCell>
-                  <TableCell>{member.role}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex items-center gap-1 p-0  hover:bg-transparent"
+                        >
+                          {member.role}
+                          <ChevronDown size={16} color="#71717a" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        className="dark:bg-zinc-800  rounded-md shadow-lg p-2"
+                        sideOffset={5}
+                      >
+                        <DropdownMenuItem
+                          className="cursor-pointer p-2 dark:hover:bg-zinc-700"
+                          onSelect={() => handleRoleChange(member, "member")}
+                        >
+                          member
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer p-2 dark:hover:bg-zinc-700"
+                          onSelect={() => handleRoleChange(member, "developer")}
+                        >
+                          developer
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer p-2 dark:hover:bg-zinc-700"
+                          onSelect={() => handleRoleChange(member, "PM")}
+                        >
+                          PM
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer p-2 dark:hover:bg-zinc-700"
+                          onSelect={() =>
+                            handleRoleChange(member, "Researcher")
+                          }
+                        >
+                          Researcher
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                   <TableCell>{member.status}</TableCell>
                   <TableCell>
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal size={16} />
-                        </Button>
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Portal>
-                        <DropdownMenu.Content
+                    {(user_id !== member.user_id  ) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal size={16} color="#71717a" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
                           className="bg-zinc-800 text-white rounded-md shadow-lg p-2"
                           sideOffset={5}
                         >
-                          <DropdownMenu.Item
+                          <DropdownMenuItem
                             className="p-2 hover:bg-zinc-700 cursor-pointer rounded"
-                            onClick={() => handleResendInvitation(member.email)}
+                            onSelect={() =>
+                              handleResendInvitation(member.email)
+                            }
                           >
                             Resend Invitation
-                          </DropdownMenu.Item>
-                          <DropdownMenu.Item
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
                             className="p-2 hover:bg-zinc-700 cursor-pointer rounded text-red-400"
-                            onClick={() => handleRemoveMember(member.email)}
+                            onSelect={() => handleRemoveMember(member.email,member.user_id)}
                           >
                             Remove Member
-                          </DropdownMenu.Item>
-                        </DropdownMenu.Content>
-                      </DropdownMenu.Portal>
-                    </DropdownMenu.Root>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -282,31 +396,6 @@ export default function MembersComponent({ project_id }: projectProps){
           </Table>
         </div>
 
-        {/* <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-              <DialogContent className="bg-zinc-900 border border-zinc-400 max-w-md w-full px-4">
-                <DialogHeader className="flex flex-col ">
-                  <DialogTitle className="text-white text-lg pb-3">
-                    Delete Image
-                  </DialogTitle>
-                </DialogHeader>
-                <Card
-                  className="border border-red-500 w-[95%] sm:w-[85%] md:w-full h-auto max-h-[190px]
-  rounded-md p-4 sm:p-6 gap-4 bg-zinc-800 text-white mx-auto
-  flex flex-col items-center justify-center text-center"
-                >
-                  <BadgeAlert className="w-9 h-9" color="rgb(239 68 68)" />
-                  <DialogDescription className="text-red-500 text-md">
-                    Are you sure you want to delete this image?
-                  </DialogDescription>
-                  <Button
-                    onClick={confirmDelete}
-                    className=" bg-white hover:bg-zinc-400 text-black w-full max-w-[73px] "
-                  >
-                    Delete
-                  </Button>
-                </Card>
-              </DialogContent>
-            </Dialog> */}
       </>
     );
 }

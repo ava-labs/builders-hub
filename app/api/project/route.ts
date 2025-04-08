@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     where: {
       hackaton_id,
       members: {
-        some: { user_id },
+        some: { user_id:user_id,status: "Confirmed" },
       },
     },
   });

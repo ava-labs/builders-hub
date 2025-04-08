@@ -27,14 +27,26 @@ import { HackathonHeader } from "@/types/hackathons";
 import { Project } from "@/types/project";
 import { useSession } from "next-auth/react";
 import { User } from "next-auth";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Card } from "@/components/ui/card";
 
 export const FormSchema = z.object({
   project_name: z
     .string()
     .min(2, { message: "Project Name must be at least 2 characters" })
     .max(60, { message: "Max 60 characters allowed" }),
-  short_description: z.string().max(280, { message: "Max 280 characters allowed" }),
+  short_description: z
+    .string()
+    .max(280, { message: "Max 280 characters allowed" }),
   full_description: z.string(),
   tech_stack: z.string(),
   github_repository: z.string(),
@@ -57,25 +69,32 @@ export default function GeneralComponent({
 }) {
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [progress, setProgress] = useState<number>(0);
+  const [isValidInvitation, setValidInvitation] = useState<boolean>(false);
+  const [loadData, setLoadData] = useState<boolean>(true);
   const [project_id, setProjectId] = useState<string>("");
+  const [invitationAccepted, setInvitationAccepted] = useState(false);
+  const [project, setProject] = useState<any>();
   const [step, setStep] = useState(1);
+  const [openJoinTeam, setOpenJoinTeam] = useState(false);
+  const [teamName, setTeamName] = useState<string>("");
   const [deadline, setDeadline] = useState<number>(
     new Date().getTime() + 12 * 60 * 60 * 1000 // 12h de cuenta regresiva
   );
   const { data: session, status } = useSession();
   const currentUser: User | undefined = session?.user;
   const timeLeft: string = useCountdown(deadline);
-    const router = useRouter(); 
+  const router = useRouter();
   const [originalImages, setOriginalImages] = useState<{
     logoFile?: string;
     coverFile?: string;
     screenshots?: string[];
   }>({});
-  const step1Fields: (keyof SubmissionForm)[] = ["project_name",
-     "short_description",
-     "full_description",
-      "tracks",
-    ];
+  const step1Fields: (keyof SubmissionForm)[] = [
+    "project_name",
+    "short_description",
+    "full_description",
+    "tracks",
+  ];
   const step2Fields: (keyof SubmissionForm)[] = [
     "tech_stack",
     "github_repository",
@@ -84,8 +103,8 @@ export default function GeneralComponent({
     "is_preexisting_idea",
   ];
 
-
   let hackathon_id = searchParams?.hackaId ?? "";
+  const invitationLink = searchParams?.invitationId;
 
   const form = useForm<SubmissionForm>({
     resolver: zodResolver(FormSchema),
@@ -94,7 +113,7 @@ export default function GeneralComponent({
       short_description: "",
       full_description: "",
       tracks: [],
-      is_preexisting_idea: false, // Añadimos un valor por defecto para open_source
+      is_preexisting_idea: false,
     },
   });
 
@@ -114,9 +133,10 @@ export default function GeneralComponent({
       setHackathon(response.data);
       let deadlineValue = 0;
       if (response.data?.content?.submission_deadline) {
-        deadlineValue = new Date(response.data.content.submission_deadline).getTime();
+        deadlineValue = new Date(
+          response.data.content.submission_deadline
+        ).getTime();
       } else {
- 
       }
       setDeadline(deadlineValue);
     } catch (err) {
@@ -124,7 +144,7 @@ export default function GeneralComponent({
     }
   }
 
-  async function getProject(){
+  async function getProject() {
     try {
       const response = await axios.get(`/api/project`, {
         params: {
@@ -133,49 +153,66 @@ export default function GeneralComponent({
         },
       });
       if (response.data.project) {
-        setData(response.data.project)
-        
+        // if(loadData){
+        //   setData(response.data.project);
+        // }
+
+        setProject(response.data.project);
       }
+    } catch (err) {
+      console.error("Error fetching project:", err);
+    }
   }
-  catch (err) {
-    console.error("Error fetching project:", err);
-  }
-
-}
   async function uploadFile(file: File): Promise<string> {
-    const formData = new FormData();
+    const formData: FormData = new FormData();
     formData.append("file", file);
-    console.log("show:",file)
-    const response = await fetch("/api/upload-file", {
-      method: "POST",
-      body: formData,
-    });
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || "Error uploading file");
+    try {
+      const response = await axios.post("/api/upload-file", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      return response.data.url;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.error || error.message || "Error uploading file";
+      throw new Error(message);
+    }
+  }
+
+  async function replaceImage(
+    oldImageUrl: string,
+    newFile: File
+  ): Promise<string> {
+    const fileName: string | undefined = oldImageUrl.split("/").pop();
+
+    if (!fileName) {
+      throw new Error("Invalid old image URL");
     }
 
-    return data.url;
-  }
+    try {
+      await axios.delete("/api/upload-file/delete", {
+        params: { fileName },
+      });
 
-  async function replaceImage(oldImageUrl: string, newFile: File): Promise<string> {
-    const fileName = oldImageUrl.split('/').pop();
-    await fetch(`/api/upload-file/delete?fileName=${encodeURIComponent(fileName!)}`, {
-      method: 'DELETE',
-    });
-
-    return await uploadFile(newFile);
+      return await uploadFile(newFile);
+    } catch (error: any) {
+      const message =
+        error.response?.data?.error || error.message || "Error replacing image";
+      throw new Error(message);
+    }
   }
 
   async function saveProject(data: Project) {
     try {
       const response = await axios.post(`/api/project/`, data);
-      setProjectId(response.data.id)
+      setProjectId(response.data.id);
       console.log("Project saved successfully:", response.data);
     } catch (err) {
       console.error("API Error in saveProject:", err);
-      throw err; 
+      throw err;
     }
   }
 
@@ -183,9 +220,10 @@ export default function GeneralComponent({
     try {
       const uploadedFiles = {
         logoFileUrl:
-          data.logoFile && (!Array.isArray(data.logoFile) || data.logoFile.length > 0)
+          data.logoFile &&
+          (!Array.isArray(data.logoFile) || data.logoFile.length > 0)
             ? typeof data.logoFile === "string"
-              ? data.logoFile // No se cambió
+              ? data.logoFile
               : originalImages.logoFile
               ? await replaceImage(originalImages.logoFile, data.logoFile)
               : await uploadFile(data.logoFile)
@@ -194,7 +232,8 @@ export default function GeneralComponent({
             : null,
 
         coverFileUrl:
-          data.coverFile && (!Array.isArray(data.coverFile) || data.coverFile.length > 0)
+          data.coverFile &&
+          (!Array.isArray(data.coverFile) || data.coverFile.length > 0)
             ? typeof data.coverFile === "string"
               ? data.coverFile
               : originalImages.coverFile
@@ -205,7 +244,9 @@ export default function GeneralComponent({
             : null,
 
         screenshotsUrls:
-          data.screenshots && Array.isArray(data.screenshots) && data.screenshots.length > 0
+          data.screenshots &&
+          Array.isArray(data.screenshots) &&
+          data.screenshots.length > 0
             ? await Promise.all(
                 data.screenshots.map(async (item: any, index: any) => {
                   if (typeof item === "string") {
@@ -218,24 +259,22 @@ export default function GeneralComponent({
                   }
                 })
               )
-            : originalImages.screenshots && originalImages.screenshots.length > 0
-            ? (
-                await Promise.all(
-                  originalImages.screenshots.map(async (oldUrl) => {
-                    await deleteImage(oldUrl);
-                    return null;
-                  })
-                ),
-                []
-              )
+            : originalImages.screenshots &&
+              originalImages.screenshots.length > 0
+            ? (await Promise.all(
+                originalImages.screenshots.map(async (oldUrl) => {
+                  await deleteImage(oldUrl);
+                  return null;
+                })
+              ),
+              [])
             : [],
       };
-  
-     
+
       form.setValue("logoFile", uploadedFiles.logoFileUrl);
       form.setValue("coverFile", uploadedFiles.coverFileUrl);
       form.setValue("screenshots", uploadedFiles.screenshotsUrls);
-  
+
       setOriginalImages({
         logoFile: uploadedFiles.logoFileUrl ?? undefined,
         coverFile: uploadedFiles.coverFileUrl ?? undefined,
@@ -247,28 +286,30 @@ export default function GeneralComponent({
         cover_url: uploadedFiles.coverFileUrl ?? "",
         screenshots: uploadedFiles.screenshotsUrls,
         hackaton_id: hackathon_id as string,
-        user_id : session?.user.id??"",
-        is_winner:false,
-        id: "", 
+        user_id: session?.user.id ?? "",
+        is_winner: false,
+        id: "",
       };
-    
-      await saveProject(finalData); 
+
+      await saveProject(finalData);
     } catch (error) {
-     
-      throw error; 
+      throw error;
     }
   };
   async function deleteImage(oldImageUrl: string): Promise<void> {
     const fileName = oldImageUrl.split("/").pop();
-    await fetch(`/api/upload-file/delete?fileName=${encodeURIComponent(fileName!)}`, {
-      method: "DELETE",
-    });
+    await fetch(
+      `/api/upload-file/delete?fileName=${encodeURIComponent(fileName!)}`,
+      {
+        method: "DELETE",
+      }
+    );
   }
-  
+
   const handleSave = async () => {
     try {
-      await form.handleSubmit(save)(); // Ejecuta la validación y luego save
-    
+      const currentValues = form.getValues();
+      await save(currentValues);
       router.push(`/hackathons/${hackathon_id}`);
     } catch (error) {
       console.error("Error in handleSave:", error);
@@ -297,12 +338,13 @@ export default function GeneralComponent({
     }
   };
 
- function setData(project:any){
-  setOriginalImages({
-    logoFile: project.logo_url??undefined,
-    coverFile: project.cover_url??undefined,
-    screenshots: project.screenshots??[],
-  });
+  function setData() {
+
+    setOriginalImages({
+      logoFile: project.logo_url ?? undefined,
+      coverFile: project.cover_url ?? undefined,
+      screenshots: project.screenshots ?? [],
+    });
     form.reset({
       project_name: project.project_name,
       short_description: project.short_description,
@@ -318,17 +360,61 @@ export default function GeneralComponent({
       coverFile: project.cover_url ?? undefined,
       screenshots: project.screenshots ?? [],
     });
-setProjectId(project.id)
+    setProjectId(project.id);
   }
+
+  async function handleAcceptJoinTeam() {
+    try {
+      await axios.patch(`/api/project/${project_id}/members/status`, {
+        user_id: currentUser?.id,
+        status: "Confirmed",
+      });
+      setInvitationAccepted(true);
+      setLoadData(true);
+    } catch (error) {
+      console.error("Error joining team:", error);
+    }
+  }
+
+  async function checkInvitation() {
+    try {
+      setLoadData(false);
+      const response = await axios.get(
+        `/api/project/check-invitation?invitationId=${invitationLink}`
+      );
+      setValidInvitation(response.data?.invitation.isValid ?? false);
+      setOpenJoinTeam(response.data?.invitation.isConfirming ?? false);
+      setLoadData(!response.data?.invitation.isConfirming)
+      setTeamName(response.data?.project?.project_name ?? "");
+      setProjectId(response.data?.project?.project_id ?? "");
+    } catch (error) {
+      console.error("Error checking invitation:", error);
+      setValidInvitation(false);
+    }
+  }
+  useEffect(() => {
+    if (invitationLink) {
+      checkInvitation();
+    }
+  }, [invitationLink]);
+
+
+
   useEffect(() => {
     getHackathon();
   }, [hackathon_id]);
 
   useEffect(() => {
-    if (hackathon_id && session?.user?.id) {
+    if (hackathon_id && currentUser?.id && loadData) {
       getProject();
     }
-  }, [hackathon_id, session?.user?.id]);
+  }, [hackathon_id, currentUser?.id,loadData]);
+
+  useEffect(() => {
+    if (project && loadData) {
+      setData();
+    }
+  }, [project,loadData]);
 
   return (
     <div className="p-6 rounded-lg">
@@ -392,18 +478,27 @@ setProjectId(project.id)
         <div className="flex-1 flex flex-col gap-6">
           <section>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {step === 1 && <SubmitStep1 project_id={project_id} />}
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
+                {step === 1 && (
+                  <SubmitStep1
+                    project_id={project_id}
+                    hackaton_id={hackathon_id as string}
+                    user_id={currentUser?.id}
+                    onProjectCreated={getProject}
+                  />
+                )}
                 {step === 2 && <SubmitStep2 />}
                 {step === 3 && <SubmitStep3 />}
                 <Separator />
                 <div className="flex flex-col md:flex-row items-center justify-between mt-8">
                   <div className="flex flex-wrap gap-4 mb-4 md:mb-0">
                     <Button type="submit" variant="red" className="px-4 py-2">
-                    {step===3 ?'Final Submit':'Continue'}  
+                      {step === 3 ? "Final Submit" : "Continue"}
                     </Button>
 
-                    
                     <Button
                       type="button"
                       onClick={handleSave}
@@ -458,6 +553,46 @@ setProjectId(project.id)
           </section>
         </div>
       </div>
+
+      <Dialog open={openJoinTeam}>
+        <DialogContent
+          hideCloseButton={true}
+          className="dark:bg-zinc-900 dark:text-white rounded-lg p-6 w-full max-w-md border border-zinc-400 px-4"
+        >
+          <DialogClose asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-6 right-4 dark:text-white hover:text-red-400 p-0 h-6 w-6"
+              onClick={() => {router.push(`/hackathons/${hackathon_id}`);setOpenJoinTeam(false);}}
+            >
+              ✕
+            </Button>
+          </DialogClose>
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">
+              Join Your Team
+            </DialogTitle>
+          </DialogHeader>
+          <Card className="border border-red-500 dark:bg-zinc-800 rounded-md">
+            <div className="flex flex-col  px-6">
+              <p className="text-md dark:text-white text-gray-700 ">
+                You&apos;ve been invited to join {teamName}.
+                Accept the invitation to collaborate with your team.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center justify-center gap-4 py-6">
+              <Button
+                onClick={handleAcceptJoinTeam}
+                className="dark:bg-white dark:text-black"
+              >
+                Accept &amp; Join Team
+              </Button>
+            </div>
+          </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
