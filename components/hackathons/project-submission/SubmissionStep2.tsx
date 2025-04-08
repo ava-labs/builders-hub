@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
-import { SubmissionForm } from "./General";
+import { SubmissionForm } from "./hooks/useSubmissionForm";
+
 
 
 export default function SubmitStep2() {

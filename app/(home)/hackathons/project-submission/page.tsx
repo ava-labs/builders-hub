@@ -1,4 +1,4 @@
-import GeneralComponent from '@/components/hackathons/project-submission/General'
+
 import { SubmissionWrapper } from '@/components/hackathons/project-submission/SubmissionWrapper';
 import React from 'react'
 

@@ -49,6 +49,7 @@ export const validateProject = (projectData: Partial<Project>): Validation[] =>
 
 export async function createProject(projectData: Partial<Project>): Promise<Project> {
     const errors = validateProject(projectData);
+    console.log("errors", errors)
     if (errors.length > 0) {
         throw new ValidationError('Project validation failed', errors);
     }
@@ -63,9 +64,6 @@ export async function createProject(projectData: Partial<Project>): Promise<Proj
             },
         },
     });
-
-    console.log("projectData", projectData)
-    console.log("existingProject", existingProject)
 
     const newProjectData = await prisma.project.upsert({
         where: {

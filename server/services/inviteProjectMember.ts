@@ -39,7 +39,7 @@ export async function generateInvitation(
         github_repository: "",
         demo_link: "",
         is_preexisting_idea: false,
-        is_winner: false,
+        
         logo_url: "",
         cover_url: "",
         demo_video_link: "",
@@ -83,7 +83,7 @@ export async function generateInvitation(
 
 
     const baseUrl = process.env.NEXTAUTH_URL as string;
-    const inviteLink = `${baseUrl}/hackathons/project-submission?hackaId=${hackathonId}&invitationId=${member.id}`;
+    const inviteLink = `${baseUrl}/hackathons/project-submission?hackaId=${hackathonId}&invitationId=${member.id}#team`;
 
     await sendInvitation(
       invitedUser.email!,

@@ -26,8 +26,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, BadgeAlert } from "lucide-react";
-import { SubmissionForm } from "./General";
+
 import { Card } from "@/components/ui/card";
+import { SubmissionForm } from "./hooks/useSubmissionForm";
 
 type MediaUploaderProps = {
   name: keyof SubmissionForm;
@@ -75,17 +76,14 @@ export default function MediaUploader({
       if (!newFile) return;
       const currentValue = form.getValues(name);
       if (maxItems === 1) {
-        // Si sólo se permite un archivo, guarda directamente el File
         form.setValue(name, newFile);
       } else {
-        // Si se permiten varios, normaliza a array
         const currentFiles = Array.isArray(currentValue) ? currentValue : [currentValue];
         currentFiles[selectedIndex] = newFile;
         form.setValue(name, currentFiles);
       }
     }
   };
-  
 
   const handleDelete = (index: number) => {
     setSelectedIndex(index);

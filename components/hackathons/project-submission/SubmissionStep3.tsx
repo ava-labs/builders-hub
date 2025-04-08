@@ -3,7 +3,7 @@
 import React from "react";
 import MediaUploader from "./MediaUploader";
 import { useFormContext } from "react-hook-form";
-import { SubmissionForm } from "./General";
+import { SubmissionForm } from "./hooks/useSubmissionForm";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";

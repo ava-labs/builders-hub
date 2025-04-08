@@ -13,15 +13,16 @@ import {
 import { Check, ChevronsUpDown, X } from "lucide-react";
 
 // Opciones disponibles
-const tracks = [
-  { value: "tech", label: "Tech" },
-  { value: "design", label: "Design" },
-  { value: "business", label: "Business" },
-];
+
+export type trackProp={
+  value:string,
+  label:string
+}
 
 interface MultiSelectTrackProps {
   value: string[];
   onChange: (value: string[]) => void;
+  tracks:trackProp[]
 }
 
 // Puedes usar una función simple para concatenar clases
@@ -29,7 +30,7 @@ function cn(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-export function MultiSelectTrack({ value, onChange }: MultiSelectTrackProps) {
+export function MultiSelectTrack({ value, onChange, tracks }: MultiSelectTrackProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -65,31 +66,6 @@ export function MultiSelectTrack({ value, onChange }: MultiSelectTrackProps) {
         className="w-full p-0 "
       >
         <Command className="dark:bg-zinc-950 ">
-          {/* Mostrar los ítems seleccionados encima del buscador */}
-          {value.length > 0 && (
-            <div className="px-2 py-1 border-b border-zinc-800 ">
-              <div className="flex flex-wrap gap-2">
-                {value.map((v) => {
-                  const track = tracks.find((t) => t.value === v);
-                  return (
-                    <div
-                      key={v}
-                      className="flex items-center rounded bg-zinc-50 px-2 py-1 text-xs text-black"
-                    >
-                      {track?.label}
-                      <X
-                        className="ml-1 h-3 w-3 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelect(v);
-                        }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           <CommandInput 
             placeholder="Search track..."

@@ -10,29 +10,34 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { SubmissionForm } from "./General";
-import { MultiSelectTrack } from "./MultiSelectTrack";
+
+import { MultiSelectTrack, trackProp } from "./MultiSelectTrack";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
 import MembersComponent from './Members';
+import { SubmissionForm } from "./hooks/useSubmissionForm";
+import { Track as HackathonTrack } from "@/types/hackathons";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 
-interface TeamMember {
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-}
+
 export interface projectProps {
   project_id: string;
   user_id?: string;
   hackaton_id?: string;
   onProjectCreated?: () => void;
+  availableTracks: HackathonTrack[];
 }
-const SubmitStep1: FC<projectProps> = (project)=> {
+
+const SubmitStep1: FC<projectProps> = (project) => {
   const form = useFormContext<SubmissionForm>();
 
+  const transformedTracks:trackProp[] = project.availableTracks.map(track => ({
+    value: track.name,
+    label: track.name
+  }));
 
   return (
     <div className="flex flex-col w-full  mt-6 space-y-8">
@@ -105,26 +110,30 @@ const SubmitStep1: FC<projectProps> = (project)=> {
 
         {/* Track (MultiSelect) */}
         <FormField
-          control={form.control}
-          name="tracks"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabelWithCheck label="Tracks" checked={field.value.length>0} />
-              <FormControl>
-                <MultiSelectTrack
-                  value={field.value || []}
-                  onChange={field.onChange}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+  control={form.control}
+  name="tracks"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Tracks</FormLabel>
+      <FormControl>
+ 
+     <MultiSelect
+                    options={transformedTracks}
+                    selected={field.value || []}
+                    onChange={field.onChange}
+                    placeholder="Select tracks"
+                    searchPlaceholder="Search tracks"
+                  />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
       </section>
 
       {/* TEAM & COLLABORATION */}
       <section className="space-y-4">
-        <h3 className="font-medium  text-lg md:text-xl">
+        <h3 className="font-medium  text-lg md:text-xl" id="team">
           Team &amp; Collaboration
         </h3>
           <MembersComponent {...project}/>
