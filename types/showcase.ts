@@ -16,9 +16,11 @@ export type Project = {
   demo_video_link?: string;
   screenshots: string[];
   tracks: string[];
+  tags: string[];
   created_at: string;
-  updated_at: string; 
+  updated_at: string;
   members: Member[];
+  prices: ProjectPrice[];
   hackathon: HackathonHeader;
 };
 
@@ -34,8 +36,8 @@ export type Member = {
 
 export type ProjectPrice = {
   icon: string
-  title: string
-  description: string
+  price: number
+  track: string
 }
 
 export type ProjectResource = {

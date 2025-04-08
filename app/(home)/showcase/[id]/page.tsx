@@ -10,7 +10,7 @@ export default async function ProjectPage({
   const { id } = await params;
   const project = await getProject(id);
   return (
-    <main className="container relative max-w-[1400px]">
+    <main className="container relative max-w-[1400px] pb-16">
       <ProjectOverview project={project as unknown as Project} />
     </main>
   );
