@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from 'react';
-import { useWalletStore } from "../../../lib/walletStore";
-import { Button } from "../../../components/Button";
-import { Input } from "../../../components/Input";
-import { Container } from "../../../toolbox/components/Container";
-import { ResultField } from "../../../toolbox/components/ResultField";
-import { EVMAddressInput } from "../../../toolbox/components/EVMAddressInput";
-// import { AllowListControls } from "../../components/AllowListComponents";
+import { useWalletStore } from "../../lib/walletStore";
+import { Button } from "../../components/Button";
+import { Input } from "../../components/Input";
+import { Container } from "../components/Container";
+import { ResultField } from "../components/ResultField";
+import { EVMAddressInput } from "../components/EVMAddressInput";
 
 // Native Minter ABI
 const NATIVE_MINTER_ABI = [

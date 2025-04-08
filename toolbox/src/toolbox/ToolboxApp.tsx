@@ -265,6 +265,44 @@ const componentGroups: Record<string, ComponentType[]> = {
             component: lazy(() => import('./ICTT/RegisterWithHome')),
             fileNames: ["toolbox/src/toolbox/ICTT/RegisterWithHome.tsx"]
         }
+    ],
+    "Precompiles": [
+        {
+            id: "nativeMinter",
+            label: "Native Minter",
+            component: lazy(() => import('./Precompiles/NativeMinter')),
+            fileNames: ["toolbox/src/toolbox/Precompiles/NativeMinter.tsx"]
+        },
+        {
+            id: "deployerAllowlist",
+            label: "Deployer Allowlist",
+            component: lazy(() => import('./Precompiles/DeployerAllowlist')),
+            fileNames: ["toolbox/src/toolbox/Precompiles/DeployerAllowlist.tsx"]
+        },
+        {
+            id: "feeManager",
+            label: "Fee Manager",
+            component: lazy(() => import('./Precompiles/FeeManager')),
+            fileNames: ["toolbox/src/toolbox/Precompiles/FeeManager.tsx"]
+        },
+        {
+            id: "rewardManager",
+            label: "Reward Manager",
+            component: lazy(() => import('./Precompiles/RewardManager')),
+            fileNames: ["toolbox/src/toolbox/Precompiles/RewardManager.tsx"]
+        },
+        {
+            id: "transactionAllowlist",
+            label: "Transaction Allowlist",
+            component: lazy(() => import('./Precompiles/TransactionAllowlist')),
+            fileNames: ["toolbox/src/toolbox/Precompiles/TransactionAllowlist.tsx"]
+        },
+        {
+            id: "warpMessenger",
+            label: "Warp Messenger",
+            component: lazy(() => import('./Precompiles/WarpMessenger')),
+            fileNames: ["toolbox/src/toolbox/Precompiles/WarpMessenger.tsx"]
+        }
     ]
 };
 

@@ -1,13 +1,13 @@
-import { RequireChainFuji } from "../../ui/RequireChain";
+import { RequireChain } from "../../components/RequireChain";
 import { useRewardManager } from '@avalabs/builderkit';
 import { WagmiProvider, createConfig } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { avalancheFuji } from 'viem/chains';
 import { http } from 'viem';
-import { AllowListControls } from "../../components/AllowListComponents";
-import { Container } from "../../../components/container";
-import { Button } from "../../../components/button";
-import { Input } from "../../../components/input";
+import { AllowListControls } from "../components/AllowListComponents";
+import { Container } from "../components/Container";
+import { Button } from "../../components/Button";
+import { Input } from "../../components/Input";
 import { useState } from "react";
 
 // Reward Manager precompile address
@@ -83,7 +83,7 @@ function RewardManagerComponent() {
     };
 
     return (
-        <RequireChainFuji>
+        <RequireChain>
             <div className="space-y-6">
                 <Container
                     title="Reward Address Configuration"
@@ -165,7 +165,7 @@ function RewardManagerComponent() {
                     <AllowListControls precompileAddress={REWARD_MANAGER_ADDRESS} />
                 </Container>
             </div>
-        </RequireChainFuji>
+        </RequireChain>
     );
 }
 
