@@ -35,14 +35,18 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
   
 
     
-    const handleAddEmail = async () => {
+    const handleAddEmail = () => {
       if (newEmail && !emails.includes(newEmail) && validateEmail(newEmail)) {
-        const isRegistered = await checkEmailRegistered(newEmail);
-        setEmails((prev) => [...prev, newEmail]);
-
-        if (!isRegistered) {
-          setInvalidEmails((prev) => [...prev, newEmail]);
-        }
+        setEmails(prev => [...prev, newEmail]);
+        checkEmailRegistered(newEmail)
+          .then(isRegistered => {
+            if (!isRegistered) {
+              setInvalidEmails(prev => [...prev, newEmail]);
+            }
+          })
+          .catch(err => {
+            console.error("Error checking email registration:", err);
+          });
         setNewEmail("");
       }
     };
@@ -92,19 +96,24 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
 
       const handleResendInvitation = async (email: string) => {
         try {
-          await axios.post(`/api/project/${project_id}/resend-invitation`, { email });
-          alert(`Invitation resent to ${email}`);
+          await axios.post(`/api/project/invite-member`,
+            { emails:[email] ,
+             hackathon_id:hackaton_id,
+              project_id :project_id,
+              user_id:user_id}
+           );
+        
         } catch (error) {
           console.error("Error resending invitation:", error);
         }
       };
     
 
-      const handleRemoveMember = async (email: string) => {
+      const handleRemoveMember = async (email: string,id_user:string) => {
         try {
-          await axios.delete(`/api/project/${project_id}/members`, { data: { email } });
+             await axios.patch(`/api/project/${project_id}/members/status`,
+                  { user_id: id_user ,status: "Removed" });
           setMembers(members.filter((member) => member.email !== email));
-          alert(`${email} has been removed`);
         } catch (error) {
           console.error("Error removing member:", error);
         }
@@ -352,30 +361,34 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
                   </TableCell>
                   <TableCell>{member.status}</TableCell>
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal size={16} color="#71717a"/>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        className="bg-zinc-800 text-white rounded-md shadow-lg p-2"
-                        sideOffset={5}
-                      >
-                        <DropdownMenuItem
-                          className="p-2 hover:bg-zinc-700 cursor-pointer rounded"
-                          onSelect={() => handleResendInvitation(member.email)}
+                    {(user_id !== member.user_id  ) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal size={16} color="#71717a" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          className="bg-zinc-800 text-white rounded-md shadow-lg p-2"
+                          sideOffset={5}
                         >
-                          Resend Invitation
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="p-2 hover:bg-zinc-700 cursor-pointer rounded text-red-400"
-                          onSelect={() => handleRemoveMember(member.email)}
-                        >
-                          Remove Member
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <DropdownMenuItem
+                            className="p-2 hover:bg-zinc-700 cursor-pointer rounded"
+                            onSelect={() =>
+                              handleResendInvitation(member.email)
+                            }
+                          >
+                            Resend Invitation
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="p-2 hover:bg-zinc-700 cursor-pointer rounded text-red-400"
+                            onSelect={() => handleRemoveMember(member.email,member.user_id)}
+                          >
+                            Remove Member
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -383,31 +396,6 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
           </Table>
         </div>
 
-        {/* <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-              <DialogContent className="bg-zinc-900 border border-zinc-400 max-w-md w-full px-4">
-                <DialogHeader className="flex flex-col ">
-                  <DialogTitle className="text-white text-lg pb-3">
-                    Delete Image
-                  </DialogTitle>
-                </DialogHeader>
-                <Card
-                  className="border border-red-500 w-[95%] sm:w-[85%] md:w-full h-auto max-h-[190px]
-  rounded-md p-4 sm:p-6 gap-4 bg-zinc-800 text-white mx-auto
-  flex flex-col items-center justify-center text-center"
-                >
-                  <BadgeAlert className="w-9 h-9" color="rgb(239 68 68)" />
-                  <DialogDescription className="text-red-500 text-md">
-                    Are you sure you want to delete this image?
-                  </DialogDescription>
-                  <Button
-                    onClick={confirmDelete}
-                    className=" bg-white hover:bg-zinc-400 text-black w-full max-w-[73px] "
-                  >
-                    Delete
-                  </Button>
-                </Card>
-              </DialogContent>
-            </Dialog> */}
       </>
     );
 }

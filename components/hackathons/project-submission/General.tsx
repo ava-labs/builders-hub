@@ -69,9 +69,14 @@ export default function GeneralComponent({
 }) {
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [progress, setProgress] = useState<number>(0);
+  const [isValidInvitation, setValidInvitation] = useState<boolean>(false);
+  const [loadData, setLoadData] = useState<boolean>(true);
   const [project_id, setProjectId] = useState<string>("");
+  const [invitationAccepted, setInvitationAccepted] = useState(false);
+  const [project, setProject] = useState<any>();
   const [step, setStep] = useState(1);
   const [openJoinTeam, setOpenJoinTeam] = useState(false);
+  const [teamName, setTeamName] = useState<string>("");
   const [deadline, setDeadline] = useState<number>(
     new Date().getTime() + 12 * 60 * 60 * 1000 // 12h de cuenta regresiva
   );
@@ -108,7 +113,7 @@ export default function GeneralComponent({
       short_description: "",
       full_description: "",
       tracks: [],
-      is_preexisting_idea: false, // Añadimos un valor por defecto para open_source
+      is_preexisting_idea: false,
     },
   });
 
@@ -148,42 +153,56 @@ export default function GeneralComponent({
         },
       });
       if (response.data.project) {
-        setData(response.data.project);
+        // if(loadData){
+        //   setData(response.data.project);
+        // }
+
+        setProject(response.data.project);
       }
     } catch (err) {
       console.error("Error fetching project:", err);
     }
   }
   async function uploadFile(file: File): Promise<string> {
-    const formData = new FormData();
+    const formData: FormData = new FormData();
     formData.append("file", file);
-    console.log("show:", file);
-    const response = await fetch("/api/upload-file", {
-      method: "POST",
-      body: formData,
-    });
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || "Error uploading file");
+    try {
+      const response = await axios.post("/api/upload-file", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      return response.data.url;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.error || error.message || "Error uploading file";
+      throw new Error(message);
     }
-
-    return data.url;
   }
 
   async function replaceImage(
     oldImageUrl: string,
     newFile: File
   ): Promise<string> {
-    const fileName = oldImageUrl.split("/").pop();
-    await fetch(
-      `/api/upload-file/delete?fileName=${encodeURIComponent(fileName!)}`,
-      {
-        method: "DELETE",
-      }
-    );
+    const fileName: string | undefined = oldImageUrl.split("/").pop();
 
-    return await uploadFile(newFile);
+    if (!fileName) {
+      throw new Error("Invalid old image URL");
+    }
+
+    try {
+      await axios.delete("/api/upload-file/delete", {
+        params: { fileName },
+      });
+
+      return await uploadFile(newFile);
+    } catch (error: any) {
+      const message =
+        error.response?.data?.error || error.message || "Error replacing image";
+      throw new Error(message);
+    }
   }
 
   async function saveProject(data: Project) {
@@ -204,7 +223,7 @@ export default function GeneralComponent({
           data.logoFile &&
           (!Array.isArray(data.logoFile) || data.logoFile.length > 0)
             ? typeof data.logoFile === "string"
-              ? data.logoFile // No se cambió
+              ? data.logoFile
               : originalImages.logoFile
               ? await replaceImage(originalImages.logoFile, data.logoFile)
               : await uploadFile(data.logoFile)
@@ -319,7 +338,8 @@ export default function GeneralComponent({
     }
   };
 
-  function setData(project: any) {
+  function setData() {
+
     setOriginalImages({
       logoFile: project.logo_url ?? undefined,
       coverFile: project.cover_url ?? undefined,
@@ -345,31 +365,56 @@ export default function GeneralComponent({
 
   async function handleAcceptJoinTeam() {
     try {
-      // Lógica para unirte al equipo. Por ejemplo:
-      // await axios.post('/api/join-team', { userId, projectId });
-
-      // Cierra el diálogo después de completar la acción
-      setOpenJoinTeam(false);
+      await axios.patch(`/api/project/${project_id}/members/status`, {
+        user_id: currentUser?.id,
+        status: "Confirmed",
+      });
+      setInvitationAccepted(true);
+      setLoadData(true);
     } catch (error) {
       console.error("Error joining team:", error);
     }
   }
+
+  async function checkInvitation() {
+    try {
+      setLoadData(false);
+      const response = await axios.get(
+        `/api/project/check-invitation?invitationId=${invitationLink}`
+      );
+      setValidInvitation(response.data?.invitation.isValid ?? false);
+      setOpenJoinTeam(response.data?.invitation.isConfirming ?? false);
+      setLoadData(!response.data?.invitation.isConfirming)
+      setTeamName(response.data?.project?.project_name ?? "");
+      setProjectId(response.data?.project?.project_id ?? "");
+    } catch (error) {
+      console.error("Error checking invitation:", error);
+      setValidInvitation(false);
+    }
+  }
+  useEffect(() => {
+    if (invitationLink) {
+      checkInvitation();
+    }
+  }, [invitationLink]);
+
+
 
   useEffect(() => {
     getHackathon();
   }, [hackathon_id]);
 
   useEffect(() => {
-    if (hackathon_id && session?.user?.id) {
+    if (hackathon_id && currentUser?.id && loadData) {
       getProject();
     }
-  }, [hackathon_id, session?.user?.id]);
+  }, [hackathon_id, currentUser?.id,loadData]);
 
   useEffect(() => {
-    if (invitationLink) {
-      setOpenJoinTeam(true);
+    if (project && loadData) {
+      setData();
     }
-  }, [invitationLink]);
+  }, [project,loadData]);
 
   return (
     <div className="p-6 rounded-lg">
@@ -509,7 +554,7 @@ export default function GeneralComponent({
         </div>
       </div>
 
-      <Dialog open={openJoinTeam} onOpenChange={setOpenJoinTeam}>
+      <Dialog open={openJoinTeam}>
         <DialogContent
           hideCloseButton={true}
           className="dark:bg-zinc-900 dark:text-white rounded-lg p-6 w-full max-w-md border border-zinc-400 px-4"
@@ -519,6 +564,7 @@ export default function GeneralComponent({
               variant="ghost"
               size="icon"
               className="absolute top-6 right-4 dark:text-white hover:text-red-400 p-0 h-6 w-6"
+              onClick={() => {router.push(`/hackathons/${hackathon_id}`);setOpenJoinTeam(false);}}
             >
               ✕
             </Button>
@@ -531,14 +577,14 @@ export default function GeneralComponent({
           <Card className="border border-red-500 dark:bg-zinc-800 rounded-md">
             <div className="flex flex-col  px-6">
               <p className="text-md dark:text-white text-gray-700 ">
-                You&apos;ve been invited to join [Team Name]. Accept the
-                invitation to collaborate with your team.
+                You&apos;ve been invited to join {teamName}.
+                Accept the invitation to collaborate with your team.
               </p>
             </div>
 
             <div className="flex flex-col items-center justify-center gap-4 py-6">
               <Button
-                onClick={handleAcceptJoinTeam} // función que definas para aceptar
+                onClick={handleAcceptJoinTeam}
                 className="dark:bg-white dark:text-black"
               >
                 Accept &amp; Join Team

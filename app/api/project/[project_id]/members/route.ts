@@ -12,7 +12,7 @@ export const GET = withAuth(async (request,context:any) => {
     }
   
     const members = await prisma.member.findMany({
-      where: { project_id },
+      where: { project_id:project_id, status:{not: "Removed"} },
       include: {
         user: {
           select: {
@@ -33,6 +33,7 @@ export const GET = withAuth(async (request,context:any) => {
     return NextResponse.json(
       members.map((member) => ({
         id: member.id,
+        user_id: member.user_id,
         name: member.user.name,
         email: member.user.email,
         image: member.user.image,

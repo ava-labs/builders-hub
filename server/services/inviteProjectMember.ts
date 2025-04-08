@@ -48,7 +48,7 @@ export async function generateInvitation(
         explanation: "",
       },
     });
-    // Registrar al propietario en la tabla members
+
     await prisma.member.create({
       data: {
         user_id: userId,
@@ -72,7 +72,7 @@ export async function generateInvitation(
           project_id: project.id,
         },
       },
-      update: {},
+      update: { role: "Member", status: "Pending Confirmation" },
       create: {
         user_id: invitedUser.id,
         project_id: project.id,
@@ -83,7 +83,7 @@ export async function generateInvitation(
 
 
     const baseUrl = process.env.NEXTAUTH_URL as string;
-    const inviteLink = `${baseUrl}/hackathons/project-submission?hackathonId=${hackathonId}&invitationId=${member.id}`;
+    const inviteLink = `${baseUrl}/hackathons/project-submission?hackaId=${hackathonId}&invitationId=${member.id}`;
 
     await sendInvitation(
       invitedUser.email!,
