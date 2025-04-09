@@ -63,6 +63,22 @@ export async function generateInvitation(
     if(!invitedUser){
       throw new Error(`User with email ${email} not found`);
     }
+    if(invitedUser.id===userId){
+      continue
+    }
+
+    const existingMember = await prisma.member.findUnique({
+      where: {
+        user_id_project_id: {
+          user_id: invitedUser.id,
+          project_id: project.id,
+        },
+      },
+    });
+    if (existingMember && existingMember.status === "Confirmed") {
+      continue;
+    }
+
     const member = await prisma.member.upsert({
       where: {
         user_id_project_id: {

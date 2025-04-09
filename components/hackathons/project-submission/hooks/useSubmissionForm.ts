@@ -169,9 +169,10 @@ export const useSubmissionForm = (hackathonId: string) => {
       const currentValues = form.getValues();
       const savePrev = {...currentValues,isDraft:true}
       await saveProject(savePrev);
-
+      return Promise.resolve();
     } catch (error) {
       console.error("Error in handleSave:", error);
+      return Promise.reject(error);
     }
   };
 

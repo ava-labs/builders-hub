@@ -78,8 +78,9 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
       const handleSendInvitations = async () => {
         if (emails.length === 0  || invalidEmails.length > 0 || isValidingEmail) return;
         try {
+          
           if(onHandleSave){
-            onHandleSave();
+            await onHandleSave();
           }
           
            await axios.post(`/api/project/invite-member`,

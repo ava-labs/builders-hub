@@ -28,7 +28,7 @@ export interface projectProps {
   user_id?: string;
   hackaton_id?: string;
   onProjectCreated?: () => void;
-  onHandleSave?:()=>void;
+  onHandleSave?:()=>Promise<void>;
   availableTracks: HackathonTrack[];
 }
 
