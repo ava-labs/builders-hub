@@ -356,26 +356,26 @@ export default function ToolboxApp() {
                 <ul className="space-y-6">
                     {Object.entries(componentGroups).map(([groupName, components]) => (
                         <li key={groupName}>
-                            <div 
+                            <div
                                 onClick={() => toggleGroup(groupName)}
-                                className="flex items-center mb-3 cursor-pointer group"
+                                className="flex items-center justify-between mb-2 p-2 rounded-md cursor-pointer group hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                             >
-                                {expandedGroups[groupName] 
-                                    ? <ChevronDown className="w-4 h-4 mr-1 text-gray-400 group-hover:text-gray-600" /> 
-                                    : <ChevronRight className="w-4 h-4 mr-1 text-gray-400 group-hover:text-gray-600" />
+                                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200">{groupName}</h3>
+                                {expandedGroups[groupName]
+                                    ? <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
+                                    : <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
                                 }
-                                <h3 className="text-sm font-semibold uppercase tracking-wide">{groupName}</h3>
                             </div>
                             {expandedGroups[groupName] && (
-                                <ul className="space-y-1">
+                                <ul className="space-y-1 pl-2 border-l border-gray-200 dark:border-gray-700 ml-2">
                                     {components.map(({ id, label }) => (
                                         <li key={id}>
                                             <a
                                                 href={`#${id}`}
                                                 onClick={() => handleComponentClick(id)}
-                                                className={`block cursor-pointer w-full text-left px-3 py-2 text-sm rounded-md transition-all ${selectedTool === id
-                                                    ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-medium'
-                                                    : ' dark: hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                className={`block cursor-pointer w-full text-left px-3 py-1.5 text-sm rounded-md transition-all ${selectedTool === id
+                                                    ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 font-medium'
+                                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
                                                     }`}
                                             >
                                                 {label}
@@ -387,7 +387,7 @@ export default function ToolboxApp() {
                         </li>
                     ))}
                 </ul>
-                <div className="mt-6">
+                <div className="mt-8 border-t pt-6 dark:border-gray-700">
                     <Button
                         onClick={() => {
                             if (window.confirm("Are you sure you want to reset the state?")) {
