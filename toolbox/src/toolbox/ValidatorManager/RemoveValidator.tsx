@@ -1,28 +1,26 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useToolboxStore, useViemChainStore } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
-import { Container } from "../components/Container"
-import { cn } from "../../lib/utils"
-import { Input } from "../../components/Input"
-import { Button } from "../../components/Button"
-import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
-import { custom, fromBytes, createPublicClient, bytesToHex, hexToBytes } from "viem";
-import { pvm, utils, Context, networkIDs } from "@avalabs/avalanchejs";
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
-import { AlertCircle, CheckCircle, XCircle, Loader2 } from "lucide-react"
+import { AlertCircle, CheckCircle } from "lucide-react"
+import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
+import { bytesToHex, hexToBytes } from "viem"
+import { Context, networkIDs, pvm, utils } from "@avalabs/avalanchejs"
 import { useErrorBoundary } from "react-error-boundary"
-import { GetRegistrationJustification } from "./justification";
+import { useState } from "react"
+
+import { Button } from "../../components/Button"
+import { Container } from "../components/Container"
+import { GetRegistrationJustification } from "./justification"
+import { Input } from "../../components/Input"
+import { cn } from "../../lib/utils"
+import { getRPCEndpoint } from "../../coreViem/utils/rpc"
 import { packL1ValidatorRegistration } from "../../coreViem/utils/convertWarp"
-import { packWarpIntoAccessList } from "../InitializePoA/packWarp";
-
+import { packWarpIntoAccessList } from "../InitializePoA/packWarp"
+import { StepIndicator, StepStatus } from "../components/StepIndicator"
+import { useToolboxStore, useViemChainStore } from "../toolboxStore"
+import { useWalletStore } from "../../lib/walletStore"
+import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
+import { getValidationIdHex } from "../../coreViem/hooks/getValidationID"
 // Define interfaces for step status tracking
-interface StepStatus {
-  status: "pending" | "loading" | "success" | "error"
-  error?: string
-}
-
 interface RemovalSteps {
   getValidationID: StepStatus
   initiateRemoval: StepStatus
@@ -32,30 +30,28 @@ interface RemovalSteps {
   completeRemoval: StepStatus
 }
 
-const parseNodeID = (nodeID: string) => {
-  const nodeIDWithoutPrefix = nodeID.replace("NodeID-", "");
-  const decodedID = utils.base58.decode(nodeIDWithoutPrefix)
-  const nodeIDHex = fromBytes(decodedID, 'hex')
-  const nodeIDHexTrimmed = nodeIDHex.slice(0, -8)
-  return nodeIDHexTrimmed
-}
-
 export default function RemoveValidator() {
   const { showBoundary } = useErrorBoundary()
+  const { proxyAddress, subnetId } = useToolboxStore()
+  const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore()
+  const viemChain = useViemChainStore()
+
   const [nodeID, setNodeID] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const { proxyAddress, subnetId } = useToolboxStore()
-  const { coreWalletClient, pChainAddress, avalancheNetworkID } = useWalletStore()
-  const viemChain = useViemChainStore()
-  const [networkName, setNetworkName] = useState<"fuji" | "mainnet" | undefined>(undefined)
+  const [isLoading, setIsLoading] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isProcessComplete, setIsProcessComplete] = useState(false)
   const [validationIDHex, setValidationIDHex] = useState("")
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState("")
   const [signedWarpMessage, setSignedWarpMessage] = useState("")
   const [pChainSignature, setPChainSignature] = useState("")
+
+  const platformEndpoint = getRPCEndpoint(avalancheNetworkID !== networkIDs.MainnetID)
+  const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji"
+  const pvmApi = new pvm.PVMApi(platformEndpoint)
+
+  
   // Track steps for removal process
   const [removalSteps, setRemovalSteps] = useState<RemovalSteps>({
     getValidationID: { status: "pending" },
@@ -66,29 +62,6 @@ export default function RemoveValidator() {
     completeRemoval: { status: "pending" },
   })
 
-  // Set the network endpoint based on network ID
-  var platformEndpoint = "https://api.avax-test.network"
-  useEffect(() => {
-    if (avalancheNetworkID === networkIDs.MainnetID) {
-      platformEndpoint = "https://api.avax.network"
-      setNetworkName("mainnet")
-    } else if (avalancheNetworkID === networkIDs.FujiID) {
-      platformEndpoint = "https://api.avax-test.network"
-      setNetworkName("fuji")
-    } else {
-      showBoundary(new Error("Unsupported network with ID " + avalancheNetworkID))
-    }
-  }, [avalancheNetworkID, showBoundary])
-
-  const [publicClient, setPublicClient] = useState<any>(null)
-  
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.avalanche) {
-      setPublicClient(createPublicClient({
-        transport: custom(window.avalanche),
-      }))
-    }
-  }, [])
 
   // Update step status helper
   const updateStepStatus = (step: keyof RemovalSteps, status: StepStatus["status"], error?: string) => {
@@ -108,31 +81,6 @@ export default function RemoveValidator() {
       updateStepStatus(step as keyof RemovalSteps, "pending")
     })
   }
-
-  const fetchValidationID = async (nodeID: string) => {
-    try {
-      // Convert NodeID to bytes format
-      const nodeIDBytes = parseNodeID(nodeID)
-
-      if (!publicClient) {
-        throw new Error("Wallet connection not initialized")
-      }
-
-      // Call the registeredValidators function
-      const validationID = await publicClient.readContract({
-        address: proxyAddress as `0x${string}`,
-        abi: validatorManagerAbi.abi,
-        functionName: "registeredValidators",
-        args: [nodeIDBytes]
-      })
-      console.log("ValidationID:", validationID)
-
-      return validationID
-    } catch (error: any) {
-      throw new Error(`Failed to get validation ID: ${error.message}`)
-    }
-  }
-
   // Handle retry of a specific step
   const retryStep = async (step: keyof RemovalSteps) => {
     // Reset status of current step and all following steps
@@ -178,7 +126,7 @@ export default function RemoveValidator() {
       if (!startFromStep || startFromStep === "getValidationID") {
         updateStepStatus("getValidationID", "loading")
         try {
-          const validationIDResult = await fetchValidationID(nodeID) // Changed variable name
+          const validationIDResult = await getValidationIdHex(publicClient, proxyAddress as `0x${string}`, nodeID) // Changed variable name
           setValidationIDHex(validationIDResult as string) // Update state
           currentValidationID = validationIDResult as string; // Use immediately
           console.log("ValidationID:", validationIDResult)
@@ -279,7 +227,6 @@ export default function RemoveValidator() {
           }
           
           const context = await Context.getContextFromURI(platformEndpoint)
-          const pvmApi = new pvm.PVMApi(platformEndpoint)
           const feeState = await pvmApi.getFeeState();
           const { utxos } = await pvmApi.getUTXOs({ addresses: [pChainAddress] });
           const pChainAddressBytes = utils.bech32ToBytes(pChainAddress)
@@ -312,9 +259,6 @@ export default function RemoveValidator() {
           
           console.log("Core transaction:", coreTx)
           updateStepStatus("submitPChainTx", "success")
-          // Success and completion are moved to the final step
-          // setSuccess(`Validator ${nodeID} successfully removed.`)
-          // setIsProcessComplete(true)
         } catch (error: any) {
           const message = error instanceof Error ? error.message : String(error);
           updateStepStatus("submitPChainTx", "error", `Failed to submit P-Chain transaction: ${message}`)
@@ -335,9 +279,13 @@ export default function RemoveValidator() {
           if (!currentValidationID) { 
              throw new Error("Validation ID is missing. Please ensure the first step succeeded.")
           }
-          
+          if (!subnetId) {
+            throw new Error("Subnet ID is missing. Please ensure the first step succeeded.")
+          }
           const justification = await GetRegistrationJustification(
             nodeID,
+            currentValidationID,
+            subnetId,
             publicClient
           )
 
@@ -461,59 +409,6 @@ export default function RemoveValidator() {
     }
   }
 
-  // Step Indicator Component
-  const StepIndicator = ({
-    status,
-    label,
-    error,
-    onRetry,
-    stepKey,
-  }: {
-    status: StepStatus["status"]
-    label: string
-    error?: string
-    onRetry?: (step: keyof RemovalSteps) => void
-    stepKey: keyof RemovalSteps
-  }) => {
-    return (
-      <div 
-        className={`flex flex-col space-y-1 my-2 ${onRetry ? 'cursor-pointer' : ''}`}
-        onClick={() => onRetry && onRetry(stepKey)}
-      >
-        <div className="flex items-center space-x-2">
-          {status === "loading" && (
-            <div className="h-5 w-5 flex-shrink-0">
-              <Loader2 className="h-5 w-5 animate-spin text-red-500" />
-            </div>
-          )}
-          {status === "success" && (
-            <div className="h-5 w-5 flex-shrink-0">
-              <CheckCircle className="h-5 w-5 text-green-500 fill-green-100" />
-            </div>
-          )}
-          {status === "error" && (
-            <div className="h-5 w-5 flex-shrink-0">
-              <XCircle className="h-5 w-5 text-red-500 fill-red-100" />
-            </div>
-          )}
-          {status === "pending" && <div className="h-5 w-5 rounded-full border-2 border-zinc-200 flex-shrink-0" />}
-
-          <span
-            className={`text-sm ${status === "error" ? "text-red-600 font-medium" : "text-zinc-700 dark:text-zinc-300"}`}
-          >
-            {label}
-          </span>
-        </div>
-
-        {status === "error" && error && (
-          <div className="ml-7 p-2 bg-red-50 dark:bg-red-900/20 border-l-2 border-red-500 rounded text-xs text-red-700 dark:text-red-300">
-            {error}
-          </div>
-        )}
-      </div>
-    )
-  }
-
   return (
     <Container
       title="Remove Validator"
@@ -610,7 +505,7 @@ export default function RemoveValidator() {
 
             <StepIndicator
               status={removalSteps.submitPChainTx.status}
-              label="Submit to P-Chain"
+              label="Remove Validator from P-Chain"
               error={removalSteps.submitPChainTx.error}
               onRetry={retryStep}
               stepKey="submitPChainTx"
@@ -618,7 +513,7 @@ export default function RemoveValidator() {
 
             <StepIndicator
               status={removalSteps.pChainSignature.status}
-              label="P-Chain Warp Signature"
+              label="Aggregate Signatures for P-Chain Warp Message"
               error={removalSteps.pChainSignature.error}
               onRetry={retryStep}
               stepKey="pChainSignature"

@@ -10,31 +10,21 @@ import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/Valid
 import { packWarpIntoAccessList } from "../InitializePoA/packWarp"
 import { packL1ValidatorRegistration } from "../L1/convertWarp"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
-import { AlertCircle, CheckCircle, XCircle, Loader2 } from "lucide-react"
+import { AlertCircle, CheckCircle } from "lucide-react"
 import { Container } from "../components/Container"
 import { Input } from "../../components/Input"
 import { Button } from "../../components/Button"
-// Define interfaces for step status tracking
-interface StepStatus {
-  status: "pending" | "loading" | "success" | "error"
-  error?: string
-}
+import { StepIndicator, StepStatus } from "../components/StepIndicator"
+import { parseNodeID } from "../../coreViem/utils/ids"
+import { getRPCEndpoint } from "../../coreViem/utils/rpc"
 
+// Define interfaces for step status tracking
 interface ValidationSteps {
   initializeRegistration: StepStatus
   signMessage: StepStatus
   registerOnPChain: StepStatus
   waitForPChain: StepStatus
   finalizeRegistration: StepStatus
-}
-
-// Parse a NodeID- string to a hex string without the prefix and last 8 bytes
-const parseNodeID = (nodeID: string) => {
-  const nodeIDWithoutPrefix = nodeID.replace("NodeID-", "")
-  const decodedID = utils.base58.decode(nodeIDWithoutPrefix)
-  const nodeIDHex = fromBytes(decodedID, "hex")
-  const nodeIDHexTrimmed = nodeIDHex.slice(0, -8)
-  return nodeIDHexTrimmed
 }
 
 export default function AddValidator() {
@@ -68,7 +58,6 @@ export default function AddValidator() {
   const [savedSignedMessage, setSavedSignedMessage] = useState("")
   const [savedPChainWarpMsg, setSavedPChainWarpMsg] = useState("")
   const [_, setSavedPChainResponse] = useState<string>("")
-  const [networkName, setNetworkName] = useState<"fuji" | "mainnet" | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
   const viemChain = useViemChainStore()
   
@@ -79,20 +68,8 @@ export default function AddValidator() {
   let lastValidationID = ""; // Add a variable for validationID
   let lastPChainWarpMsg = ""; // Add a variable for P-Chain warp message
 
-  // needs to be refactored
-  const pChainChainID = "11111111111111111111111111111111LpoYY"
-  var platformEndpoint = "https://api.avax-test.network"
-  useEffect(() => {
-    if (avalancheNetworkID === networkIDs.MainnetID) {
-      platformEndpoint = "https://api.avax.network"
-      setNetworkName("mainnet")
-    } else if (avalancheNetworkID === networkIDs.FujiID) {
-      platformEndpoint = "https://api.avax-test.network"
-      setNetworkName("fuji")
-    } else {
-      showBoundary(new Error("Unsupported network with ID " + avalancheNetworkID))
-    }
-  }, [avalancheNetworkID])
+  const platformEndpoint = getRPCEndpoint(avalancheNetworkID !== networkIDs.MainnetID)
+  const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji"
   const pvmApi = new pvm.PVMApi(platformEndpoint)
 
   // Update step status helper
@@ -367,7 +344,7 @@ export default function AddValidator() {
             validationIDBytes,
             true,
             avalancheNetworkID,
-            pChainChainID,
+            "11111111111111111111111111111111LpoYY" //always from P-Chain (same on fuji and mainnet)
           )
           const unsignedPChainWarpMsgHex = bytesToHex(unsignedPChainWarpMsg)
 
@@ -467,70 +444,7 @@ export default function AddValidator() {
     return null;
   }
 
-  // Step Indicator Component, should be refactored to another component
-  const StepIndicator = ({
-    status,
-    label,
-    error,
-    onRetry,
-    step,
-  }: {
-    status: StepStatus["status"]
-    label: string
-    error?: string
-    onRetry?: () => void
-    step?: keyof ValidationSteps
-  }) => {
-    // Get any suggestion for this step
-    const suggestion = step ? getStepSuggestion(step) : null;
-    
-    return (
-      <div className="flex flex-col space-y-1 my-2">
-        <div 
-          className={`flex items-center space-x-2 ${onRetry ? 'cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700/50 p-1 -m-1 rounded-md transition-colors' : ''}`}
-          onClick={onRetry}
-        >
-          {status === "loading" && (
-            <div className="h-5 w-5 flex-shrink-0">
-              <Loader2 className="h-5 w-5 animate-spin text-red-500" />
-            </div>
-          )}
-          {status === "success" && (
-            <div className="h-5 w-5 flex-shrink-0">
-              <CheckCircle className="h-5 w-5 text-green-500 fill-green-100" />
-            </div>
-          )}
-          {status === "error" && (
-            <div className="h-5 w-5 flex-shrink-0">
-              <XCircle className="h-5 w-5 text-red-500 fill-red-100" />
-            </div>
-          )}
-          {status === "pending" && <div className="h-5 w-5 rounded-full border-2 border-zinc-200 flex-shrink-0" />}
-
-          <span
-            className={`text-sm ${status === "error" ? "text-red-600 font-medium" : "text-zinc-700 dark:text-zinc-300"}`}
-          >
-            {label}
-          </span>
-        </div>
-
-        {status === "error" && error && (
-          <div className="ml-7 p-2 bg-red-50 dark:bg-red-900/20 border-l-2 border-red-500 rounded text-xs text-red-700 dark:text-red-300">
-            {error}
-          </div>
-        )}
-        
-        {suggestion && status === "error" && (
-          <div className="ml-7 mt-1 p-2 bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500 rounded text-xs text-blue-700 dark:text-blue-300">
-            <span className="font-medium">Suggestion:</span> {suggestion}
-          </div>
-        )}
-      </div>
-    )
-  }
-
   return (
-
     <Container title="Add New Validator" description="Add a validator to your L1 by providing the required details">
       <div className="relative">
         {error && (
@@ -723,40 +637,70 @@ export default function AddValidator() {
               label="Initialize Validator Registration"
               error={validationSteps.initializeRegistration.error}
               onRetry={() => retryStep("initializeRegistration")}
-              step="initializeRegistration"
+              stepKey="initializeRegistration"
             />
+            {validationSteps.initializeRegistration.status === "error" && 
+              getStepSuggestion("initializeRegistration") && (
+              <div className="ml-7 mt-1 p-2 bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500 rounded text-xs text-blue-700 dark:text-blue-300">
+                <span className="font-medium">Suggestion:</span> {getStepSuggestion("initializeRegistration")}
+              </div>
+            )}
 
             <StepIndicator
               status={validationSteps.signMessage.status}
               label="Aggregate Signatures for Warp Message"
               error={validationSteps.signMessage.error}
               onRetry={() => retryStep("signMessage")}
-              step="signMessage"
+              stepKey="signMessage"
             />
+            {validationSteps.signMessage.status === "error" && 
+              getStepSuggestion("signMessage") && (
+              <div className="ml-7 mt-1 p-2 bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500 rounded text-xs text-blue-700 dark:text-blue-300">
+                <span className="font-medium">Suggestion:</span> {getStepSuggestion("signMessage")}
+              </div>
+            )}
 
             <StepIndicator
               status={validationSteps.registerOnPChain.status}
               label="Register Validator on P-Chain"
               error={validationSteps.registerOnPChain.error}
               onRetry={() => retryStep("registerOnPChain")}
-              step="registerOnPChain"
+              stepKey="registerOnPChain"
             />
+            {validationSteps.registerOnPChain.status === "error" && 
+              getStepSuggestion("registerOnPChain") && (
+              <div className="ml-7 mt-1 p-2 bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500 rounded text-xs text-blue-700 dark:text-blue-300">
+                <span className="font-medium">Suggestion:</span> {getStepSuggestion("registerOnPChain")}
+              </div>
+            )}
 
             <StepIndicator
               status={validationSteps.waitForPChain.status}
               label="Aggregate Signatures for P-Chain Warp Message"
               error={validationSteps.waitForPChain.error}
               onRetry={() => retryStep("waitForPChain")}
-              step="waitForPChain"
+              stepKey="waitForPChain"
             />
+            {validationSteps.waitForPChain.status === "error" && 
+              getStepSuggestion("waitForPChain") && (
+              <div className="ml-7 mt-1 p-2 bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500 rounded text-xs text-blue-700 dark:text-blue-300">
+                <span className="font-medium">Suggestion:</span> {getStepSuggestion("waitForPChain")}
+              </div>
+            )}
 
             <StepIndicator
               status={validationSteps.finalizeRegistration.status}
               label="Finalize Validator Registration"
               error={validationSteps.finalizeRegistration.error}
               onRetry={() => retryStep("finalizeRegistration")}
-              step="finalizeRegistration"
+              stepKey="finalizeRegistration"
             />
+            {validationSteps.finalizeRegistration.status === "error" && 
+              getStepSuggestion("finalizeRegistration") && (
+              <div className="ml-7 mt-1 p-2 bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500 rounded text-xs text-blue-700 dark:text-blue-300">
+                <span className="font-medium">Suggestion:</span> {getStepSuggestion("finalizeRegistration")}
+              </div>
+            )}
 
             {!isProcessComplete && (
               <Button
