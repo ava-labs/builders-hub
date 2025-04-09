@@ -264,10 +264,10 @@ export async function GetProjectByHackathonAndUser(hackaton_id:string,user_id:st
         },
       },
     });
-  
       if (!project) {
         throw new ValidationError ( "project not found",[])
       }
+      return project
 }
 
 function getProjectUser(user: any) {

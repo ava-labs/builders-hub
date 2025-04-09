@@ -153,17 +153,8 @@ export const useSubmissionForm = (hackathonId: string) => {
 
       const response = await axios.post(`/api/project/`, finalData);
       setProjectId(response.data.id);
-      toast({
-        title: "Éxito",
-        description: "Proyecto guardado correctamente",
-      });
       return response.data;
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al guardar el proyecto",
-        variant: "destructive",
-      });
       throw error;
     }
   };
