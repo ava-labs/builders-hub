@@ -7,7 +7,7 @@ icon: Terminal
 ---
 
 import { Step, Steps } from 'fumadocs-ui/components/steps';
-import GlossaryTerm from '@/components/ui/glossary-term'
+
 
 To ensure the wrapped <GlossaryTerm>token</GlossaryTerm> is bridged into the destination chain (in this case, C-Chain) you'll need to deploy a _remote_ contract that implements the `IERC20Bridge` interface, as well as inheriting the properties of `TeleporterTokenRemote`. In order for the bridged tokens to have all the normal functionality of a locally deployed ERC20 token, this remote contract must also inherit the properties of a standard `ERC20` contract.
 
