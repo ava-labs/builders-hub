@@ -2,20 +2,18 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { Form } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
 import SubmitStep1 from "./SubmissionStep1";
 import SubmitStep2 from "./SubmissionStep2";
 import SubmitStep3 from "./SubmissionStep3";
-import { useSubmissionForm, SubmissionForm } from "./hooks/useSubmissionForm";
-import { useHackathonProject } from "./hooks/useHackathonProject";
-import { JoinTeamDialog } from "./components/JoinTeamDialog";
-import { ProgressBar } from "./components/ProgressBar";
-import { StepNavigation } from "./components/StepNavigation";
+import { useSubmissionForm, SubmissionForm } from "../hooks/useSubmissionForm";
+import { useHackathonProject } from "../hooks/useHackathonProject";
+import { JoinTeamDialog } from "../components/JoinTeamDialog";
+import { ProgressBar } from "../components/ProgressBar";
+import { StepNavigation } from "../components/StepNavigation";
 import axios from "axios";
 import { Tag, Users, Pickaxe, Image } from "lucide-react";
-import { Track } from "@/types/hackathons";
 
 export default function GeneralComponent({
   searchParams,
@@ -40,6 +38,7 @@ export default function GeneralComponent({
     handleSave,
     setFormData,
     setProjectId,
+    handleSaveWithoutRoute
   } = useSubmissionForm(hackathonId as string);
 
   const {
@@ -179,6 +178,7 @@ export default function GeneralComponent({
                     hackaton_id={hackathonId as string}
                     user_id={currentUser?.id}
                     onProjectCreated={getProject}
+                    onHandleSave={handleSaveWithoutRoute}
                     availableTracks={hackathon?.content?.tracks??[]}
                   />
                 )}

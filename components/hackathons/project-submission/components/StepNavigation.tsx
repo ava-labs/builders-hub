@@ -7,8 +7,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Tag, Users, Pickaxe, Image } from "lucide-react";
-
 interface StepNavigationProps {
   currentStep: number;
   onStepChange: (step: number) => void;

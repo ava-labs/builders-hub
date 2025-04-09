@@ -1,5 +1,6 @@
 import { withAuth } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
+import { UpdateStatusMember } from "@/server/services/memberProject";
 import { NextResponse } from "next/server";
 
 export const PATCH = withAuth(async (request: Request, context: any) => {
@@ -7,14 +8,7 @@ export const PATCH = withAuth(async (request: Request, context: any) => {
     const body = await request.json();
     const { user_id,status } = body;
     const { project_id } =await context.params; 
-    if (!user_id || !project_id) {
-      return NextResponse.json({ error: "user_id and project_id are required" }, { status: 400 });
-    }
-    const updatedMember = await prisma.member.update({
-      where: { user_id_project_id: { user_id: user_id as string, project_id: project_id as string } },
-      data: { status: status },
-    });
-    
+    const updatedMember = UpdateStatusMember(user_id,project_id,status);
     return NextResponse.json(updatedMember);
   } catch (error: any) {
     console.error('Error updating member role:', error);

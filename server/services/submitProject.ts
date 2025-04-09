@@ -1,7 +1,6 @@
 import { hasAtLeastOne, requiredField, validateEntity, Validation } from './base';
 import { revalidatePath } from 'next/cache';
 import { ValidationError } from './hackathons';
-import { Prisma } from '@prisma/client';
 import { prisma } from '@/prisma/prisma';
 import { Project } from '@/types/project'; // Asumo que tienes este tipo definido
 
@@ -26,34 +25,21 @@ export const projectValidations: Validation[] = [
         message: 'Please select at least one track.',
         validation: (project: Project) => hasAtLeastOne(project, 'tracks')
     },
-    // {
-    //     field: 'github_repository',
-    //     message: 'Invalid GitHub URL format.',
-    //     validation: (project: Project) => {
-    //         if (!project.github_repository) return true; // Optional field
-    //         return /^(https?:\/\/)?github\.com\/[\w-]+\/[\w-]+$/.test(project.github_repository);
-    //     }
-    // },
-    // {
-    //     field: 'demo_link',
-    //     message: 'Invalid demo URL format.',
-    //     validation: (project: Project) => {
-    //         if (!project.demo_link) return true; // Optional field
-    //         return /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/.test(project.demo_link);
-    //     }
-    // }
+
 ];
 
 export const validateProject = (projectData: Partial<Project>): Validation[] =>
     validateEntity(projectValidations, projectData);
 
 export async function createProject(projectData: Partial<Project>): Promise<Project> {
-    const errors = validateProject(projectData);
-    console.log("errors", errors)
-    if (errors.length > 0) {
-        throw new ValidationError('Project validation failed', errors);
+    const isDraft=projectData.isDraft??false
+    if(!isDraft){
+        const errors = validateProject(projectData);
+        console.log("errors", errors)
+        if (errors.length > 0) {
+            throw new ValidationError('Project validation failed', errors);
+        }
     }
-
     const existingProject = await prisma.project.findFirst({
         where: {
             hackaton_id: projectData.hackaton_id,

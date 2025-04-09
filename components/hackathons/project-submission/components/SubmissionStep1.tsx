@@ -17,7 +17,7 @@ import {
 import { MultiSelectTrack, trackProp } from "./MultiSelectTrack";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
 import MembersComponent from './Members';
-import { SubmissionForm } from "./hooks/useSubmissionForm";
+import { SubmissionForm } from "../hooks/useSubmissionForm";
 import { Track as HackathonTrack } from "@/types/hackathons";
 import { MultiSelect } from "@/components/ui/multi-select";
 
@@ -28,6 +28,7 @@ export interface projectProps {
   user_id?: string;
   hackaton_id?: string;
   onProjectCreated?: () => void;
+  onHandleSave?:()=>void;
   availableTracks: HackathonTrack[];
 }
 

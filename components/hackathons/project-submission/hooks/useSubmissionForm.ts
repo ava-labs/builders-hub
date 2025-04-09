@@ -14,11 +14,12 @@ export const FormSchema = z.object({
     .max(60, { message: "Max 60 characters allowed" }),
   short_description: z
     .string()
+    .min(2, { message: "short description must be at least 30 characters" })
     .max(280, { message: "Max 280 characters allowed" }),
-  full_description: z.string(),
-  tech_stack: z.string(),
-  github_repository: z.string(),
-  explanation: z.string(),
+  full_description: z.string().min(2, { message: "full description must be at least 30 characters" }),
+  tech_stack: z.string().min(2, { message: "tech stack must be at least 30 characters" }),
+  github_repository: z.string().min(2, { message: "github repository is required" }),
+  explanation: z.string().min(2, { message: "explanation is required" }),
   demo_link: z.string().optional(),
   is_preexisting_idea: z.boolean(),
   logoFile: z.any().optional(),
@@ -168,10 +169,16 @@ export const useSubmissionForm = (hackathonId: string) => {
   };
 
   const handleSave = async () => {
+      await handleSaveWithoutRoute();
+      router.push(`/hackathons/${hackathonId}`);
+  };
+
+  const handleSaveWithoutRoute= async () => {
     try {
       const currentValues = form.getValues();
-      await saveProject(currentValues);
-      router.push(`/hackathons/${hackathonId}`);
+      const savePrev = {...currentValues,isDraft:true}
+      await saveProject(savePrev);
+
     } catch (error) {
       console.error("Error in handleSave:", error);
     }
@@ -209,5 +216,6 @@ export const useSubmissionForm = (hackathonId: string) => {
     handleSave,
     setFormData,
     setProjectId,
+    handleSaveWithoutRoute
   };
 }; 

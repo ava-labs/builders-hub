@@ -1,6 +1,5 @@
 'use client'
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { BadgeCheck, MoreHorizontal, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { projectProps } from "./SubmissionStep1";
@@ -25,27 +24,30 @@ import { ChevronDown } from "lucide-react";
 
 
 
-export default function MembersComponent({project_id,hackaton_id,user_id,onProjectCreated}: projectProps) {
+export default function MembersComponent({project_id,hackaton_id,user_id,onProjectCreated,onHandleSave}: projectProps) {
     const [members,setMembers]=useState<any[]>([])
     const [openModal, setOpenModal] = useState(false); // State for modal
     const [emails, setEmails] = useState<string[]>([]); // State for email inputs
     const [newEmail, setNewEmail] = useState(""); // State for new email input
     const [invitationSent, setInvitationSent] = useState(false);
     const [invalidEmails, setInvalidEmails] = useState<string[]>([]);
-  
+    const [isValidingEmail, setIsValidingEmail] = useState(false);
 
     
     const handleAddEmail = () => {
       if (newEmail && !emails.includes(newEmail) && validateEmail(newEmail)) {
+        setIsValidingEmail(true)
         setEmails(prev => [...prev, newEmail]);
         checkEmailRegistered(newEmail)
           .then(isRegistered => {
             if (!isRegistered) {
               setInvalidEmails(prev => [...prev, newEmail]);
             }
+            setIsValidingEmail(false)
           })
           .catch(err => {
             console.error("Error checking email registration:", err);
+            setIsValidingEmail(false)
           });
         setNewEmail("");
       }
@@ -74,8 +76,12 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
       };
 
       const handleSendInvitations = async () => {
-        if (emails.length === 0  || invalidEmails.length > 0) return;
+        if (emails.length === 0  || invalidEmails.length > 0 || isValidingEmail) return;
         try {
+          if(onHandleSave){
+            onHandleSave();
+          }
+          
            await axios.post(`/api/project/invite-member`,
              { emails:emails ,
               hackathon_id:hackaton_id,
@@ -235,7 +241,7 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
                     <div className="flex justify-center mt-2">
                       <Button
                         onClick={handleSendInvitations}
-                        disabled={emails.length === 0}
+                        disabled={emails.length === 0 || isValidingEmail || invalidEmails.length > 0}
                         className="dark:bg-white"
                       >
                         Send Invitation
@@ -297,23 +303,22 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
           </Dialog>
         </div>
 
-        {/* Tabla con scroll horizontal en pantallas pequeñas */}
         <div className="overflow-x-auto">
-          <Table className="border border-[#333] w-full min-w-[500px]">
+          <Table className="border border-zinc-800 w-full min-w-[500px]">
             <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead></TableHead>
+              <TableRow className=" border-b-zinc-800">
+                <TableHead className="px-4 py-4">Name</TableHead>
+                <TableHead className="px-4 py-4">Email</TableHead>
+                <TableHead className="px-4 py-4">Role</TableHead>
+                <TableHead className="px-4 py-4">Status</TableHead>
+                <TableHead className="px-4 py-4"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {members.map((member, index) => (
                 <TableRow key={index} className="dark:hover:bg-[#2c2c2c]">
-                  <TableCell>{member.name}</TableCell>
-                  <TableCell>{member.email}</TableCell>
+                  <TableCell className="px-4 py-4">{member.name}</TableCell>
+                  <TableCell >{member.email}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

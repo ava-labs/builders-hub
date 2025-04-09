@@ -6,7 +6,6 @@ import {  NextResponse } from 'next/server';
 export const POST = withAuth(async (request,context ,session) => {
   try{
     const body = await request.json();
-    console.log("body",body)
      await generateInvitation(body.hackathon_id, body.user_id, session.user.name,body.emails);
     return NextResponse.json({ message: 'invitation sent' }, { status: 201 });
   }

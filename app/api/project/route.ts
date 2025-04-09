@@ -1,5 +1,6 @@
 import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
+import { GetProjectByHackathonAndUser } from '@/server/services/projects';
 import { createProject } from '@/server/services/submitProject';
 import {  NextResponse } from 'next/server';
 
@@ -25,29 +26,20 @@ export const POST = withAuth(async (request,context ,session) => {
 
 
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const hackaton_id = searchParams.get("hackathon_id");
-  const user_id = searchParams.get("user_id");
+export const GET = withAuth(async (request: Request, context, session) => {
+  try {
+    const { searchParams } = new URL(request.url);
+    const hackaton_id = searchParams.get("hackathon_id") ?? "";
+    const user_id = searchParams.get("user_id") ?? "";
 
-  if (!hackaton_id || !user_id) {
+    const project = await GetProjectByHackathonAndUser(hackaton_id, user_id);
+    return NextResponse.json({ project });
+  } catch (error: any) {
+    console.error("Error GET /api/your-endpoint:", error);
+    const wrappedError = error as Error;
     return NextResponse.json(
-      { error: "Faltan hackaton_id o user_id" },
-      { status: 400 }
+      { error: wrappedError.message },
+      { status: wrappedError.cause === "ValidationError" ? 400 : 500 }
     );
   }
-  const project = await prisma.project.findFirst({
-    where: {
-      hackaton_id,
-      members: {
-        some: { user_id:user_id,status: "Confirmed" },
-      },
-    },
-  });
-
-  if (!project) {
-    return NextResponse.json({ error: "Proyecto no encontrado" }, { status: 404 });
-  }
-
-  return NextResponse.json({ project });
-}
+});

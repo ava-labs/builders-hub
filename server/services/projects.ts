@@ -230,6 +230,46 @@ export async function updateProject(id: string, projectData: Partial<Project>): 
   return projectData as Project;
 }
 
+export async function CheckInvitation(invitationId:string){
+ const member = await prisma.member.findFirst({
+      where: { id:invitationId },  include: {
+        project: true, 
+      },})
+
+    return {
+      invitation: {
+        isValid: !!member,
+        isConfirming: member?.status == "Pending Confirmation",
+      },
+      project: {
+        project_id: member?.project?.id,
+        project_name: member?.project?.project_name,
+      },
+    };
+
+}
+
+export async function GetProjectByHackathonAndUser(hackaton_id:string,user_id:string){
+  
+    if (hackaton_id=="" || user_id=="") {
+      throw new ValidationError(
+       "hackathon id or user id is required",[]);
+    }
+
+    const project = await prisma.project.findFirst({
+      where: {
+        hackaton_id,
+        members: {
+          some: { user_id:user_id,status: "Confirmed" },
+        },
+      },
+    });
+  
+      if (!project) {
+        throw new ValidationError ( "project not found",[])
+      }
+}
+
 function getProjectUser(user: any) {
   return {
     user_name: user.user_name,
@@ -245,3 +285,5 @@ export type GetProjectOptions = {
   track?: string;
   winningProjects?: boolean;
 }
+
+

@@ -31,7 +31,6 @@ export async function generateInvitation(
     project = await prisma.project.create({
       data: {
         hackaton_id: hackathonId,
-        // hackathon: { connect: { id: hackathonId } }, // Removed as it's not expected in the schema
         project_name: "Untitled Project",
         short_description: "",
         full_description: "",
@@ -39,7 +38,6 @@ export async function generateInvitation(
         github_repository: "",
         demo_link: "",
         is_preexisting_idea: false,
-        
         logo_url: "",
         cover_url: "",
         demo_video_link: "",

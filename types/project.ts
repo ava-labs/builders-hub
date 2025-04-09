@@ -21,6 +21,7 @@ export interface Project {
   tracks: string[];
   members?:Member[]
   user_id?:string
+  isDraft?:boolean
 }
 
 export type ProjectFilters = {

@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import General from './General';
+import General from './components/General';
 import { SessionProvider } from 'next-auth/react';
 
 

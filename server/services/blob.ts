@@ -11,12 +11,12 @@ export class BlobService {
     }
   }
 
-  // Subir un archivo al Blob Storage
+
   async uploadFile(file: File, customId?: string): Promise<{ id: string; url: string }> {
     try {
       const fileId = customId || `${Date.now()}-${file.name}`;
       const blob = await put(fileId, file, {
-        access: "public", // Cambia a "private" si necesitas restringir acceso
+        access: "public",
         token: this.token,
       });
       return {
@@ -28,7 +28,7 @@ export class BlobService {
     }
   }
 
-  // Eliminar un archivo del Blob Storage por ID
+
   async deleteFile(id: string): Promise<void> {
     try {
       await del(id, { token: this.token });
@@ -37,7 +37,6 @@ export class BlobService {
     }
   }
 
-  // Obtener metadatos de un archivo por ID
   async getFileById(id: string): Promise<HeadBlobResult> {
     try {
       const blob = await head(id, { token: this.token });

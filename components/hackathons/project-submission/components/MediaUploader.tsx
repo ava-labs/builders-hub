@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button";
 import { ImageIcon, BadgeAlert } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
-import { SubmissionForm } from "./hooks/useSubmissionForm";
+import { SubmissionForm } from "../hooks/useSubmissionForm";
 
 type MediaUploaderProps = {
   name: keyof SubmissionForm;
