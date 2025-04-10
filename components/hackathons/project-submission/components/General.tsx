@@ -50,21 +50,6 @@ export default function GeneralComponent({
     getProject,
   } = useHackathonProject(hackathonId as string);
 
-  const step1Fields: (keyof SubmissionForm)[] = [
-    "project_name",
-    "short_description",
-    "full_description",
-    "tracks",
-  ];
-
-  const step2Fields: (keyof SubmissionForm)[] = [
-    "tech_stack",
-    "github_repository",
-    "explanation",
-    "demo_link",
-    "is_preexisting_idea",
-  ];
-
   const handleStepChange = (newStep: number) => {
     if (newStep >= 1 && newStep <= 3) {
       setStep(newStep);
@@ -76,17 +61,9 @@ export default function GeneralComponent({
 
   const onSubmit = async (data: SubmissionForm) => {
     if (step < 3) {
-      let valid = false;
-      if (step === 1) {
-        valid = await form.trigger(step1Fields);
-      } else if (step === 2) {
-        valid = await form.trigger(step2Fields);
-      }
-      if (valid) {
-        setStep(step + 1);
-        if (step + 1 === 2) setProgress(70);
-        if (step + 1 === 3) setProgress(100);
-      }
+      setStep(step + 1);
+      if (step + 1 === 2) setProgress(70);
+      if (step + 1 === 3) setProgress(100);
     } else {
       try {
         await saveProject(data);
@@ -188,7 +165,7 @@ export default function GeneralComponent({
                 <StepNavigation
                   currentStep={step}
                   onStepChange={handleStepChange}
-                  onSubmit={form.handleSubmit(onSubmit)}
+                  onSubmit={onSubmit}
                   onSave={handleSave}
                   isLastStep={step === 3}
                 />

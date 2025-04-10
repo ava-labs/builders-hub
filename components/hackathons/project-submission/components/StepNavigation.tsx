@@ -7,10 +7,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useFormContext } from "react-hook-form";
+import { SubmissionForm } from "../hooks/useSubmissionForm";
+
 interface StepNavigationProps {
   currentStep: number;
   onStepChange: (step: number) => void;
-  onSubmit: () => void;
+  onSubmit: (formValues: any) => void;
   onSave: () => void;
   isLastStep: boolean;
 }
@@ -22,10 +25,46 @@ export const StepNavigation = ({
   onSave,
   isLastStep,
 }: StepNavigationProps) => {
+  const form = useFormContext<SubmissionForm>();
+
+  const step1Fields: (keyof SubmissionForm)[] = [
+    "project_name",
+    "short_description",
+    "full_description",
+    "tracks",
+  ];
+
+  const step2Fields: (keyof SubmissionForm)[] = [
+    "tech_stack",
+    "github_repository",
+    "explanation",
+    "demo_link",
+    "is_preexisting_idea",
+  ];
+
+  const handleNext = async () => {
+    if (currentStep < 3) {
+      let valid = false;
+      if (currentStep === 1) {
+        valid = await form.trigger(step1Fields);
+      } else if (currentStep === 2) {
+        valid = await form.trigger(step2Fields);
+      }
+      
+      if (valid) {
+        const formValues = form.getValues();
+        await onSubmit(formValues);
+      }
+    } else {
+      const formValues = form.getValues();
+      await onSubmit(formValues);
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row items-center justify-between mt-8">
       <div className="flex flex-wrap gap-4 mb-4 md:mb-0">
-        <Button type="submit" variant="red" className="px-4 py-2 cursor-pointer" onClick={onSubmit}>
+        <Button type="submit" variant="red" className="px-4 py-2" onClick={handleNext}>
           {isLastStep ? "Final Submit" : "Continue"}
         </Button>
 
@@ -65,7 +104,7 @@ export const StepNavigation = ({
           {currentStep < 3 && (
             <PaginationNext
               className="dark:hover:text-gray-200 cursor-pointer"
-              onClick={onSubmit}
+              onClick={handleNext}
             />
           )}
         </div>
