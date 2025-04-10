@@ -64,7 +64,7 @@ export const StepNavigation = ({
   return (
     <div className="flex flex-col md:flex-row items-center justify-between mt-8">
       <div className="flex flex-wrap gap-4 mb-4 md:mb-0">
-        <Button type="submit" variant="red" className="px-4 py-2" onClick={handleNext}>
+        <Button type="submit" variant="red" className="px-4 py-2 cursor-pointer" onClick={handleNext}>
           {isLastStep ? "Final Submit" : "Continue"}
         </Button>
 
