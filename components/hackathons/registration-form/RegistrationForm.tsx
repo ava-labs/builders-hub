@@ -71,16 +71,15 @@ export function RegisterForm({
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
   const cities = ["Bogota", "Medellin", "Valencia", "Londres", "Bilbao"];
-  let hackathon_id = searchParams?.hackaId ?? "";
+  let hackathon_id = searchParams?.hackathon ?? "";
   const utm = searchParams?.utm ?? "";
   let utmSaved = "";
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [formLoaded, setRegistrationForm] = useState<RegistrationForm | null>(
     null
   );
-  const [isDialogOpen, setIsDialogOpen] = useState(false); // Estado para controlar el Dialog
-  const router = useRouter(); // Hook para redirecciones
-
+  const [isDialogOpen, setIsDialogOpen] = useState(false); 
+  const router = useRouter(); 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -187,7 +186,7 @@ export function RegisterForm({
     }
   };
 
-  async function saveRegisterForm(data: RegisterFormValues) {
+  async function saveProject(data: RegisterFormValues) {
     try {
       await axios.post(`/api/register-form/`, data);
       localStorage.removeItem("formData");
@@ -236,7 +235,7 @@ export function RegisterForm({
         roles: data.roles ?? [],
         tools: data.tools,
       };
-      await saveRegisterForm(finalData);
+      await saveProject(finalData);
       setIsDialogOpen(true); // Abrir el diálogo después de guardar
     }
   };
@@ -331,7 +330,7 @@ export function RegisterForm({
                   variant="outline"
                   type="submit"
                   onClick={onNextStep}
-                  className="bg-red-500 hover:bg-red-600"
+                  className="bg-red-500 hover:bg-red-600 cursor-pointer"
                 >
                   Continue
                 </Button>
@@ -339,9 +338,9 @@ export function RegisterForm({
               {step !== 3 && (
                 <Button
                   type="button"
-                  variant="outline"
+                
                   onClick={onSaveLater}
-                  className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100"
+                  className="bg-white text-black border cursor-pointer border-gray-300 hover:text-black hover:bg-gray-100"
                 >
                   Save & Continue Later
                 </Button>

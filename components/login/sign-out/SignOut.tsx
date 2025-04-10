@@ -34,7 +34,7 @@ export default function SignOutComponent({
         <Button
           onClick={onConfirm}
           className='
-          w-full sm:w-auto px-4 py-2
+          w-full sm:w-auto px-4 py-2 cursor-pointer
         '
         >
           Yes, Sign Out
