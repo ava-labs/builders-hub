@@ -2,66 +2,20 @@
 
 import { useState } from 'react';
 import { useWalletStore } from "../../lib/walletStore";
+import { useViemChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Container } from "../components/Container";
 import { ResultField } from "../components/ResultField";
 import { EVMAddressInput } from "../components/EVMAddressInput";
-
-// Native Minter ABI
-const NATIVE_MINTER_ABI = [
-    {
-        inputs: [
-            { name: "addr", type: "address" },
-            { name: "amount", type: "uint256" }
-        ],
-        name: "mintNativeCoin",
-        outputs: [],
-        stateMutability: "nonpayable",
-        type: "function"
-    },
-    {
-        inputs: [{ name: "addr", type: "address" }],
-        name: "setAdmin",
-        outputs: [],
-        stateMutability: "nonpayable",
-        type: "function"
-    },
-    {
-        inputs: [{ name: "addr", type: "address" }],
-        name: "setEnabled",
-        outputs: [],
-        stateMutability: "nonpayable",
-        type: "function"
-    },
-    {
-        inputs: [{ name: "addr", type: "address" }],
-        name: "setManager",
-        outputs: [],
-        stateMutability: "nonpayable",
-        type: "function"
-    },
-    {
-        inputs: [{ name: "addr", type: "address" }],
-        name: "setNone",
-        outputs: [],
-        stateMutability: "nonpayable",
-        type: "function"
-    },
-    {
-        inputs: [{ name: "addr", type: "address" }],
-        name: "readAllowList",
-        outputs: [{ name: "role", type: "uint256" }],
-        stateMutability: "view",
-        type: "function"
-    }
-] as const;
+import nativeMinterAbi from "../../../contracts/precompiles/NativeMinter.json";
 
 // Default Native Minter address
 const DEFAULT_NATIVE_MINTER_ADDRESS = "0x0200000000000000000000000000000000000001";
 
 export default function NativeMinter() {
     const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } = useWalletStore();
+    const viemChain = useViemChainStore();
     const [nativeMinterAddress, setNativeMinterAddress] = useState<string>(DEFAULT_NATIVE_MINTER_ADDRESS);
     const [amount, setAmount] = useState<number>(100);
     const [recipient, setRecipient] = useState<string>("");
@@ -167,37 +121,16 @@ export default function NativeMinter() {
             // Convert amount to Wei
             const amountInWei = BigInt(amount) * BigInt(10 ** 18);
 
-            // Prepare transaction arguments
-            const txArgs = [recipient as `0x${string}`, amountInWei] as const;
-
-            // First check if the account has permission to mint
-            const role = await publicClient.readContract({
+            // Call the mintNativeCoin function using the contract ABI
+            const hash = await coreWalletClient.writeContract({
                 address: nativeMinterAddress as `0x${string}`,
-                abi: NATIVE_MINTER_ABI,
-                functionName: "readAllowList",
-                args: [walletEVMAddress as `0x${string}`]
-            });
-
-            // Role 2 is admin, role 1 is enabled
-            if (role !== 2n && role !== 1n) {
-                setError("Your account does not have permission to mint tokens. Please ensure you are an admin or enabled address.");
-                return;
-            }
-
-            // Simulate transaction first
-            const sim = await publicClient.simulateContract({
-                address: nativeMinterAddress as `0x${string}`,
-                abi: NATIVE_MINTER_ABI,
+                abi: nativeMinterAbi.abi,
                 functionName: "mintNativeCoin",
-                args: txArgs,
-                gas: BigInt(1_000_000),
-                account: walletEVMAddress as `0x${string}`
+                args: [recipient, amountInWei],
+                account: walletEVMAddress as `0x${string}`,
+                chain: viemChain,
+                gas: BigInt(1_000_000)
             });
-
-            console.log("Simulated transaction:", sim);
-
-            // Send transaction
-            const hash = await coreWalletClient.writeContract(sim.request);
 
             // Wait for transaction confirmation
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
