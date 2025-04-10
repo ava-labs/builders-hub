@@ -6,13 +6,15 @@ authors: [ashucoder9]
 icon: BookOpen
 ---
 
-When building a VM, it is possible to define certain parameters that can change the behavior of the VM. In our soda dispenser analogy these may be the products and prices offered by the dispenser. We might want to have two dispenser blockchains that offer different products and prices. If the VM is built in a way that it has parameters for the products and prices, it can be easily reused for different use items.
+
+
+When building a <GlossaryTerm>VM</GlossaryTerm>, it is possible to define certain parameters that can change the behavior of the VM. In our soda dispenser analogy these may be the products and prices offered by the dispenser. We might want to have two dispenser blockchains that offer different products and prices. If the VM is built in a way that it has parameters for the products and prices, it can be easily reused for different use items.
 
 ![](/course-images/avalanche-fundamentals/33.png)
 
-This is a massive advantage over one-chain-fits-all systems, where the parameters have to be a compromise between all network participants. In Avalanche it is possible to have different blockchain with the same VM, but different parameters. 
+This is a massive advantage over one-chain-fits-all systems, where the parameters have to be a compromise between all network participants. In <GlossaryTerm>Avalanche</GlossaryTerm> it is possible to have different <GlossaryTerm>blockchain</GlossaryTerm> with the same VM, but different parameters. 
 
-Using VM Configuration we can easily create EVM-chains for different use cases such as trading a cheap gaming NFT or valuable Real estate on chain. These blockchains may differ in fees (low fees for cheap NFTs, high fees for valuable goods) and security levels (low security for cheap NFTs, high security for valuable goods). 
+Using VM Configuration we can easily create <GlossaryTerm>EVM</GlossaryTerm>-chains for different use cases such as trading a cheap gaming <GlossaryTerm>NFT</GlossaryTerm> or valuable Real estate on chain. These blockchains may differ in fees (low fees for cheap NFTs, high fees for valuable goods) and security levels (low security for cheap NFTs, high security for valuable goods). 
 
 <Quiz quizId="116"/>
 
@@ -20,7 +22,7 @@ Examples of the configurable parameters of the subnetEVM include:
 
 **trxAllowList:** Define a whitelist of accounts that restrict which account's transactions are accepted by the VM.
 
-**contractDeployerAllowlist:** Defined a whitelist of accounts that restricts which account can deploy contracts on the blockchain
+**contractDeployerAllowlist:** Defined a whitelist of accounts that restricts which account can deploy <GlossaryTerm>smart contract</GlossaryTerm>s on the blockchain
 
 Using these parameters we VM can adapt the VM to our requirements without writing a single line of code. This is by far the easiest, but also least flexible way to customize a VM to one's requirements.
 

@@ -6,9 +6,11 @@ authors: [ashucoder9]
 icon: BookOpen
 ---
 
-There is only a single native token to a chain. However, to allow to represent a wide range of assets on EVM-chains, the ERC-20 token standard was developed. "ERC" stands for Ethereum Request for Comment, and "20" is the proposal identifier.
 
-ERC-20 tokens are fungible, meaning each token is identical and can be exchanged on a one-to-one basis. These tokens are typically created and managed through smart contracts that adhere to the ERC-20 standard, which defines a set of rules and functions that ensure interoperability between different tokens and decentralized applications (DApps). 
+
+There is only a single native token to a chain. However, to allow to represent a wide range of assets on EVM-chains, the ERC-20 token standard was developed. "ERC" stands for <GlossaryTerm>Ethereum</GlossaryTerm> Request for Comment, and "20" is the proposal identifier.
+
+ERC-20 tokens are <GlossaryTerm>fungible</GlossaryTerm>, meaning each token is identical and can be exchanged on a one-to-one basis. These tokens are typically created and managed through <GlossaryTerm>Smart Contract</GlossaryTerm>s that adhere to the ERC-20 standard, which defines a set of rules and functions that ensure interoperability between different tokens and <GlossaryTerm>decentralized applications</GlossaryTerm> (DApps). 
 
 At the base of an ERC-20 token smart contract, there is a simple mapping of addresses to numbers, which represent the amount of tokens an address holds (balance). 
 
@@ -22,7 +24,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
 ```
 These addresses may belong to EOA or contract accounts. Both of these can hold and transfer ERC-20 tokens. 
 
-ERC-20 tokens can represent various assets, from digital currencies to tokenized assets, and they play a crucial role in the crypto ecosystem by enabling the creation of decentralized applications with diverse functionalities, such as token sales, decentralized finance (DeFi) protocols, and more.
+ERC-20 tokens can represent various assets, from digital currencies to tokenized assets, and they play a crucial role in the crypto ecosystem by enabling the creation of decentralized applications with diverse functionalities, such as token sales, <GlossaryTerm>decentralized finance</GlossaryTerm> (DeFi) protocols, and more.
 
 ## Interface
 
@@ -54,7 +56,7 @@ Click [here](https://eips.ethereum.org/EIPS/eip-20) to review the ERC20 standard
 
 ## Transfer Tokens
 
-Transferring ERC-20 tokens between accounts involves calling the 'transfer' function, specifying the recipient’s address and the amount to transfer. 
+Transferring ERC-20 tokens between accounts involves calling the 'transfer' function, specifying the recipient's address and the amount to transfer. 
 
 To facilitate more complex interactions, such as those involving smart contracts, the ERC-20 standard includes the `approve()` and `transferFrom()` functions. We will check how to implement those so smart contracts can use funds according to its code.
 

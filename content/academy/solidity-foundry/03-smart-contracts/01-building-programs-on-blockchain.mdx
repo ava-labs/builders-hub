@@ -6,18 +6,20 @@ authors: [Andrea Vargas, Ash]
 icon: Book
 ---
 
-First off, thank you for enrolling in this course! We assume that you are taking this course in order to learn how to write smart contracts. This begs the question - what are smart contracts?
 
-From a high-level, you may have heard that smart contracts are just code that automate a process. Want to create a decentralized insurance protocol? You can build a smart contract for that. Want to create and distribute NFTs? You can also build a smart contract for that as well. So while we might understand the capabilities of a smart contract, this course will be focused on defining the actual code (and therefore, business logic) required for such intents.
 
-## The EVM Model
+First off, thank you for enrolling in this course! We assume that you are taking this course in order to learn how to write <GlossaryTerm>Smart Contract</GlossaryTerm>s. This begs the question - what are smart contracts?
+
+From a high-level, you may have heard that smart contracts are just code that automate a process. Want to create a decentralized insurance protocol? You can build a smart contract for that. Want to create and distribute <GlossaryTerm>NFT</GlossaryTerm>s? You can also build a smart contract for that as well. So while we might understand the capabilities of a smart contract, this course will be focused on defining the actual code (and therefore, business logic) required for such intents.
+
+## The <GlossaryTerm>EVM</GlossaryTerm> Model
 In this course, we will learn Solidity, a high-level programming language that we will use to design smart contracts. Before we delve into learning Solidity, it is important to understand how our smart contracts operate in the grand scheme of things.
 
 Smart contracts are defined by the following: their behaviors and their state. Focusing first on the behaviors of a smart contract, this is simply the functions that one can call on the smart contracts. Examples of such behaviors can be found below:
 
-- __Tokens__: behaviors include creating tokens, transferring them, getting the balances of token holders
-- __Decentralized Exchange__: behaviors include swapping tokens, adding liquidity to a pool, getting the adresses of both tokens of a liquidity pools
-- __DAO__: behaviors include submitting a proposal, voting on a proposal, checking if someone is a governance member
+- __<GlossaryTerm>Token</GlossaryTerm>s__: behaviors include creating tokens, transferring them, getting the balances of token holders
+- __<GlossaryTerm>Decentralized Exchange</GlossaryTerm>__: behaviors include swapping tokens, adding <GlossaryTerm>liquidity</GlossaryTerm> to a pool, getting the adresses of both tokens of a liquidity pools
+- __<GlossaryTerm>DAO</GlossaryTerm>__: behaviors include submitting a proposal, voting on a proposal, checking if someone is a governance member
 
 We now focus on the state of a contract. Abstractly, we can define the state of a contract as being the values and stateful data structures that are associated with said contract. Examples of the state of a smart contract are listed below:
 
@@ -25,4 +27,4 @@ We now focus on the state of a contract. Abstractly, we can define the state of 
 - __Decentralized Exchange__: the number of tokens of a liquidity pool, the amount of tokens a liquidity provider is entitled to
 - __DAO__: a list of all governance members, a list of all outstanding proposals
 
-Understanding what a smart contract under the EVM model consists of, we are now ready to understand the relationship between Solidity and the underlying blockchain.
+Understanding what a smart contract under the EVM model consists of, we are now ready to understand the relationship between Solidity and the underlying <GlossaryTerm>blockchain</GlossaryTerm>.

@@ -6,19 +6,21 @@ authors: [ashucoder9]
 icon: BookOpen
 ---
 
-Let’s look at how VMs work in blockchain. Each validator operates an instance of our hypothetical soda dispenser. So, they have their own instance of a machine running on their server. They do this so they do not have to trust a single party with the operation of a soda dispenser,  and to make it easy for everyone to verify the outcome of operations.
 
-When a user wishes to execute an operation on this distributed soda dispenser, they transmit the transaction to the network. The validators then reach consensus on the sequence in which transactions are carried out. In Avalanche, validators use Avalanche Consensus, which we talked about earlier.
+
+Let's look at how VMs work in <GlossaryTerm>blockchain</GlossaryTerm>. Each validator operates an instance of our hypothetical soda dispenser. So, they have their own instance of a machine running on their server. They do this so they do not have to trust a single party with the operation of a soda dispenser,  and to make it easy for everyone to verify the outcome of operations.
+
+When a user wishes to execute an operation on this distributed soda dispenser, they transmit the transaction to the network. The validators then reach consensus on the sequence in which transactions are carried out. In Avalanche, validators use <GlossaryTerm>Avalanche Consensus</GlossaryTerm>, which we talked about earlier.
 
 <Quiz quizId="112"/>
 
-Next, each validator executes the operation on their instance of the VM independently. Because each instance of our Virtual Machine behaves identically, validators maintain a uniform view of the machine’s state, so they balance and the number of available soda per flavor.
+Next, each validator executes the operation on their instance of the VM independently. Because each instance of our Virtual Machine behaves identically, validators maintain a uniform view of the machine's state, so they balance and the number of available soda per flavor.
 
 ![](/course-images/avalanche-fundamentals/28.png)
 
 Subsequently, each validator executes the operation on their instance independently. Again, because each instance behaves identically, validators maintain a uniform view of the system's state, encompassing balance and available soda quantities. 
 
-Let’s take the example further. Assume we have 100 validators in our Soda Dispenser Avalanche L1. I submit multiple operations to the validators:
+Let's take the example further. Assume we have 100 validators in our Soda Dispenser <GlossaryTerm>Avalanche L1</GlossaryTerm>. I submit multiple operations to the validators:
 
 - Insert a quarter
 - A little while later, I Insert another quarter
@@ -26,6 +28,6 @@ Let’s take the example further. Assume we have 100 validators in our Soda Disp
 
 Each of the validators executes the operations on their own machine. After the first quarter the state of the machine states that the balance is 25 cents. After the second operation the balance is 50 cents. After choosing lemonade, the balance goes back to zero and the amount of available lemonades decreases from 8 to 7 on each instance running on each validators server.
 
-This is the fundamental principle of Blockchains in Avalanche: A collective of validators operate identical virtual machines, come to consensus on the order of transactions, execute them, and have a uniform view on the machine's current state.
+This is the fundamental principle of <GlossaryTerm>Blockchain</GlossaryTerm>s in Avalanche: A collective of validators operate identical virtual machines, come to consensus on the order of transactions, execute them, and have a uniform view on the machine's current state.
 
 <Quiz quizId="113"/>

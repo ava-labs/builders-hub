@@ -6,15 +6,17 @@ authors: [owenwahlgren]
 icon: SquareMousePointer
 ---
 
+
+
 The node you have just launched is tracking the Subnet but is not yet a validator. In fact, since the Subnet
 does not have any validators yet it cannot process any transactions. In this step we will do two
 things at once:
 
-1. Convert the Subnet to an L1
+1. Convert the Subnet to an <GlossaryTerm>Avalanche L1</GlossaryTerm>
 2. Add your node as a validator
 
-Converting a Subnet to an L1 requires the Subnet owner issuing a `ConvertSubnetToL1Tx` transaction
-on the P-Chain. This transaction establishes a new validator set for your blockchain and transforms
+Converting a Subnet to an <GlossaryTerm>Avalanche L1</GlossaryTerm> requires the Subnet owner issuing a `ConvertSubnetToL1Tx` transaction
+on the <GlossaryTerm>Platform Chain</GlossaryTerm>. This transaction establishes a new validator set for your blockchain and transforms
 it from a Subnet into a sovereign L1 chain. The `ConvertSubnetToL1Tx` transaction is a one-time
 transaction that can only be executed once by the Subnet owner(s). 
 

@@ -16,6 +16,7 @@ import "fumadocs-twoslash/twoslash.css";
 import { Popup, PopupContent, PopupTrigger } from "fumadocs-twoslash/ui";
 import YouTube from "@/components/content-design/youtube";
 import Gallery from "@/components/content-design/gallery";
+import { GlossaryTerm } from "@/components/ui/glossary-term";
 import { cn } from "@/utils/cn";
 import { BadgeCheck } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -49,6 +50,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     YouTube,
     Gallery,
     Mermaid,
+    GlossaryTerm,
     InstallTabs: ({
       items,
       children,

@@ -8,11 +8,12 @@ icon: Terminal
 
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-To ensure the wrapped token is bridged into the destination chain (in this case, C-Chain) you'll need to deploy a _remote_ contract that implements the `IERC20Bridge` interface, as well as inheriting the properties of `TeleporterTokenRemote`. In order for the bridged tokens to have all the normal functionality of a locally deployed ERC20 token, this remote contract must also inherit the properties of a standard `ERC20` contract.
+
+To ensure the wrapped <GlossaryTerm>token</GlossaryTerm> is bridged into the destination chain (in this case, C-Chain) you'll need to deploy a _remote_ contract that implements the `IERC20Bridge` interface, as well as inheriting the properties of `TeleporterTokenRemote`. In order for the bridged tokens to have all the normal functionality of a locally deployed ERC20 token, this remote contract must also inherit the properties of a standard `ERC20` contract.
 
 <Steps>
 <Step>
-### Get the `Teleporter Registry` address of your Avalanche L1
+### Get the `Teleporter Registry` address of your <GlossaryTerm>Avalanche L1</GlossaryTerm>
 
 ```bash
 avalanche blockchain describe myblockchain
@@ -40,7 +41,7 @@ export TELEPORTER_REGISTRY_L1=0x82EeEf8e31D4Bf95916219D7949D66c468Ac0681
 </Step>
 
 <Step>
-### Get the Source Blockchain ID
+### Get the Source <GlossaryTerm>Blockchain</GlossaryTerm> ID
 
 Get the `Source Blockchain ID` in hexidecimal format from the output of `avalanche blockchain describe myblockchain` above, which in this example is the BlockchainID of your Avalanche L1:
 
@@ -77,11 +78,11 @@ export SOURCE_BLOCKCHAIN_ID_HEX=<BlockchainID (HEX)>
 </Step>
 
 <Step>
-### Deploy the Remote Contract
+### Deploy the Remote <GlossaryTerm>Smart Contract</GlossaryTerm>
 
 Using the [`forge create`](https://book.getfoundry.sh/reference/forge/forge-create) command, we will deploy the `ERC20TokenRemote.sol` contract, passing in the following constructor arguments:
 
-- Interchain Messaging Registry Address **(for C-Chain)**
+- <GlossaryTerm>Interchain Messaging</GlossaryTerm> Registry Address **(for <GlossaryTerm>C-Chain</GlossaryTerm>)**
 - Interchain Messaging Manager (our funded address)
 - Source Blockchain ID (hexidecimal representation of our Avalanche L1's Blockchain ID)
 - Token Home Address (address of NativeTokenHome.sol deployed on Avalanche L1 in the last step)

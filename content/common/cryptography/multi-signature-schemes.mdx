@@ -1,4 +1,6 @@
-Multi-signature schemes, also known as multi-sigs, are cryptographic methods enabling multiple parties to collectively authorize a specific action or operation, typically by requiring a predefined number of authorized participants to provide their digital signatures. In a multi-signature scheme, each authorized party possesses their own private key, and to validate the action. A specified subset of these parties must produce their unique signatures.
+
+
+Multi-signature schemes, also known as <GlossaryTerm>Multi-signature</GlossaryTerm>, are cryptographic methods enabling multiple parties to collectively authorize a specific action or operation, typically by requiring a predefined number of authorized participants to provide their digital signatures. In a multi-signature scheme, each authorized party possesses their own <GlossaryTerm>Private Key</GlossaryTerm>, and to validate the action. A specified subset of these parties must produce their unique signatures.
 
 ![](/common-images/cryptography/multi-signature-schemes.png)
 
@@ -8,7 +10,7 @@ Multi-signature schemes enhance security by reducing the reliance on a single en
 
 ## BLS  Multi-Signature Scheme
 
-The [BLS (Boneh-Lynn-Shacham) multi-signature scheme](https://iacr.org/archive/asiacrypt2001/22480516.pdf) is notable for its compact size, making it a highly efficient for blockchain application. Furthermore, it supports signature and public key aggregation.  
+The [BLS (Boneh-Lynn-Shacham) multi-signature scheme](https://iacr.org/archive/asiacrypt2001/22480516.pdf) is notable for its compact size, making it a highly efficient for <GlossaryTerm>Blockchain</GlossaryTerm> application. Furthermore, it supports signature and public key aggregation.  
 
 - Signature aggregation compresses all signatures into a single short signature, which makes the transportation and verification much more efficient.
 - Public Key aggregation allows the verification algorithm to only use a short aggregated public key. 

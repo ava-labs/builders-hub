@@ -6,9 +6,11 @@ authors: [ashucoder9]
 icon: BookOpen
 ---
 
-Protocols in the Avalanche family operate through repeated sub-sampled voting. When a validator is determining whether a block should be accepted, it asks a small, random subset of validators on their preferences. Based on the responses the validator gets, it might change its own preference.
 
-Let's visualize this with an example. You are a validator in a set of validators that is performing the Avalanche Consensus protocol to agree on whether to send the funds to Charlie (yellow) or to Bob (blue). It is important to understand that none of the validators really cares whether it is going to be yellow or blue, as long as all correctly operating validators decide for the same outcome at the end of the process. The starting preference is chosen random by each validator.
+
+Protocols in the <GlossaryTerm>Avalanche Consensus</GlossaryTerm> family operate through repeated sub-sampled voting. When a <GlossaryTerm>validator</GlossaryTerm> is determining whether a <GlossaryTerm>Block</GlossaryTerm> should be accepted, it asks a small, random subset of validators on their preferences. Based on the responses the validator gets, it might change its own preference.
+
+Let's visualize this with an example. You are a validator in a set of validators that is performing the <GlossaryTerm>Snowman Consensus</GlossaryTerm> protocol to agree on whether to send the funds to Charlie (yellow) or to Bob (blue). It is important to understand that none of the validators really cares whether it is going to be yellow or blue, as long as all correctly operating validators decide for the same outcome at the end of the process. The starting preference is chosen random by each validator.
 
 ## Changing Preference
 
@@ -16,7 +18,7 @@ You start by sampling the current preference of five other nodes and they reply:
 
 ![](/course-images/avalanche-fundamentals/5.png)
 
-Avalanche consensus dictates, that a validator changes its preference if a α-majority of the sampled validators agrees on another option and it goes along with this popular choice. 
+Avalanche Consensus dictates, that a validator changes its preference if a α-majority of the sampled validators agrees on another option and it goes along with this popular choice. 
 
 Let's set the alpha value to 3 in our example, meaning that we change our preference when 3 out of 5 sampled nodes have another preference. Since 3 out of 5 have replied with blue (Bob) we are changing our own preference to Bob. 
 
@@ -52,7 +54,7 @@ With these parameters we can illustrate the consensus algorithm as pseudo code:
 
 ## Finalization
 
-In the common case when a transaction has no conflicts, finalization happens very quickly. When conflicts exist, honest validators quickly cluster around conflicting transactions, entering a positive feedback loop until all correct validators prefer that transaction. This leads to the acceptance of non-conflicting transactions and the rejection of conflicting transactions.
+In the common case when a <GlossaryTerm>transaction</GlossaryTerm> has no conflicts, finalization happens very quickly. When conflicts exist, honest validators quickly cluster around conflicting transactions, entering a positive feedback loop until all correct validators prefer that transaction. This leads to the acceptance of non-conflicting transactions and the rejection of conflicting transactions.
 
 Avalanche Consensus guarantees (with high probability based on system parameters) that if any honest validator accepts a transaction, all honest validators will come to the same conclusion.
 

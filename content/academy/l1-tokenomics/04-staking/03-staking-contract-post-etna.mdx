@@ -7,7 +7,8 @@ icon: Book
 ---
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 
-The contracts in the [`validator-manager`](https://github.com/ava-labs/teleporter/tree/validator-manager/contracts/validator-manager) branch define the Validator Manager used to manage Subnet-only Validators, as defined in [ACP-77](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets). `ValidatorManager.sol` is the top-level abstract contract that provides the basic functionality. The other contracts are related as follows:
+
+The contracts in the [`validator-manager`](https://github.com/ava-labs/teleporter/tree/validator-manager/contracts/validator-manager) branch define the Validator Manager used to manage Subnet-only Validators, as defined in <GlossaryTerm>ACP-77</GlossaryTerm>. `ValidatorManager.sol` is the top-level abstract contract that provides the basic functionality. The other contracts are related as follows:
 
 <Mermaid chart={`classDiagram
     class ValidatorManager {
@@ -44,7 +45,7 @@ The contracts in the [`validator-manager`](https://github.com/ava-labs/teleporte
 `} />
 ## Deploying
 
-Three concrete `ValidatorManager` contracts are provided - `PoAValidatorManager`, `NativeTokenStakingManager`, and `ERC20TokenStakingManager`. `NativeTokenStakingManager`, and `ERC20TokenStakingManager` implement `PoSValidatorManager`, which itself implements `ValidatorManager`. These are implemented as [upgradeable](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable) contracts. There are numerous [guides](https://blog.chain.link/upgradable-smart-contracts/) for deploying upgradeable smart contracts, but the general steps are as follows:
+Three concrete `ValidatorManager` contracts are provided - `PoAValidatorManager`, `NativeTokenStakingManager`, and `ERC20TokenStakingManager`. `NativeTokenStakingManager`, and `ERC20TokenStakingManager` implement `PoSValidatorManager`, which itself implements `ValidatorManager`. These are implemented as [upgradeable](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable) contracts. There are numerous [guides](https://blog.chain.link/upgradable-smart-contracts/) for deploying upgradeable <GlossaryTerm>Smart Contract</GlossaryTerm>s, but the general steps are as follows:
 <Steps>
 <Step>
 Deploy the implementation contract

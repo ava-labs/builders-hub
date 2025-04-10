@@ -6,11 +6,12 @@ authors: [ashucoder9]
 icon: Terminal
 ---
 
+
 In this step, we will again utilize the precompile generation script to generate all the Go files based on the ABI for your calculator.
 
 ## Run Generation Script
 
-Change to the root directory of your precompile-evm project and run the command to generate the go files:
+Change to the root directory of your <GlossaryTerm>precompile</GlossaryTerm>-evm project and run the command to generate the go files:
 
 ```bash
 # Change to root
@@ -22,7 +23,7 @@ cd ..
 
 Now you should have a new directory called `calculatorplus` in the root directory of your project.
 
-If you check our the generated contract.go file you will see right away that it is much longer than in our hash function precompile from earlier. This is due to the fact that our calculator precompile has more functions and parameters. Browse through the code and see if you can spot the new elements:
+If you check our the generated contract.go file you will see right away that it is much longer than in our hash function <GlossaryTerm>precompile</GlossaryTerm> from earlier. This is due to the fact that our calculator <GlossaryTerm>precompile</GlossaryTerm> has more functions and parameters. Browse through the code and see if you can spot the new elements:
 
 ```go title="contract.go"
 // Code generated
@@ -300,4 +301,3 @@ func createCalculatorplusPrecompile() contract.StatefulPrecompiledContract {
     }
     return statefulContract
 }
-```
