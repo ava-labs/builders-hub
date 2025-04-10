@@ -42,13 +42,27 @@ Set up the remote transferer contracts for transferring tokens between the C-Cha
    
 - `NativeTokenRemote` Contract on `myblockchain` 
 ```bash 
-forge create --rpc-url myblockchain --private-key $PK lib/icm-contracts/contracts/ictt/TokenRemote/NativeTokenRemote.sol:NativeTokenRemote --constructor-args "($TELEPORTER_REGISTRY_L1, $FUNDED_ADDRESS, $C_CHAIN_BLOCKCHAIN_ID_HEX, $USDC_HOME_C_CHAIN, 6)" "USDC" 100000000000000000000 0 --broadcast
+forge create --rpc-url myblockchain --private-key $PK lib/icm-contracts/contracts/ictt/TokenRemote/NativeTokenRemote.sol:NativeTokenRemote --optimize --optimizer-runs 200 --broadcast --constructor-args "($TELEPORTER_REGISTRY_L1, $FUNDED_ADDRESS, "1", $C_CHAIN_BLOCKCHAIN_ID_HEX, $USDC_HOME_C_CHAIN, 6)" "USDC" 100000000000000000000 0
 ```
 
 _Note: When deploying the `NativeTokenRemote` contract on the L1, ensure that the **initial amount** matches the native token amount that was minted when the blockchain was created. This ensures consistency between the native token supply and the remote token counterpart._
 
+```
+[⠊] Compiling...
+[⠊] Compiling 34 files with Solc 0.8.25
+[⠒] Solc 0.8.25 finished in 2.00s
+Compiler run successful!
+Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+Deployed to: 0xe17bDC68168d07c1776c362d596adaa5d52A1De7
+Transaction hash: 0x26326b925a210e99e274739dc2ca017ff19447b6e6b1dfb875740d55d5031ad6
+```
+
+<Callout title="Note" type="info">
+The address `0xe17bDC68168d07c1776c362d596adaa5d52A1De7` is your receiver contract address.
+</Callout>
+
 ```bash
-export NATIVE_TOKEN_REMOTE_L1="Deployed To Address"
+export NATIVE_TOKEN_REMOTE_L1=0x...
 ```
 </Step>
 <Step>

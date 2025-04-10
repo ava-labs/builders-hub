@@ -23,8 +23,7 @@ Using the [`forge create`](https://book.getfoundry.sh/reference/forge/forge-crea
 
 
 ```bash
-forge create --rpc-url local-c --private-key $PK lib/icm-contracts/contracts/ictt/TokenRemote/ERC20TokenRemote.sol:ERC20TokenRemote \
---constructor-args "(${TELEPORTER_REGISTRY_C_CHAIN}, ${FUNDED_ADDRESS}, ${SOURCE_BLOCKCHAIN_ID_HEX}, ${ERC20_HOME_BRIDGE_L1}, 18)" "Wrapped NATV" "WNATV" 18 --broadcast
+forge create --rpc-url local-c --private-key $PK lib/icm-contracts/contracts/ictt/TokenRemote/ERC20TokenRemote.sol:ERC20TokenRemote --optimize --optimizer-runs 200 --broadcast --constructor-args "(${TELEPORTER_REGISTRY_C_CHAIN}, ${FUNDED_ADDRESS}, "1", ${SOURCE_BLOCKCHAIN_ID_HEX}, ${ERC20_HOME_BRIDGE_L1}, 18)" "Wrapped NATV" "WNATV" 18 
 ```
 ```
 [⠊] Compiling...
@@ -39,8 +38,12 @@ Transaction hash: 0x3d437a3421f7b2b1bf0276e9a80f57815291e62313584ff48afb69fb206b
 <Step>
 ### Save the ERC20 Token Remote Address
 
+<Callout title="Note" type="info">
+The address `0x5DB9A7629912EBF95876228C24A848de0bfB43A9` is your receiver contract address.
+</Callout>
+
 ```bash
-export ERC20_TOKEN_REMOTE_C_CHAIN=0x5DB9A7629912EBF95876228C24A848de0bfB43A9
+export ERC20_TOKEN_REMOTE_C_CHAIN=0x...
 ```
 </Step>
 <Step>

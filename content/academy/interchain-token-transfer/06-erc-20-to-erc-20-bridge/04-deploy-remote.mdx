@@ -32,10 +32,14 @@ avalanche blockchain describe myblockchain
 <Step>
 ### Save the `Teleporter Registry Address`
 
+<Callout title="Note" type="info">
+The address `0x82EeEf8e31D4Bf95916219D7949D66c468Ac0681` is your receiver contract address.
+</Callout>
+
 Most other environment variables we will need are already set in the devcontainer.
 
 ```bash
-export TELEPORTER_REGISTRY_L1=0x82EeEf8e31D4Bf95916219D7949D66c468Ac0681
+export TELEPORTER_REGISTRY_L1=0x...
 ```
 </Step>
 
@@ -71,6 +75,10 @@ Get the `Source Blockchain ID` in hexidecimal format from the output of `avalanc
 <Step>
 ### Save the Source Blockchain ID
 
+<Callout title="Note" type="info">
+The address `0xa37b5143f12ecf020ec893e4a8f48159e470b47fd9ff293ab0a808be47a4f67c` is the BlockchainID (HEX)
+</Callout>
+
 ```bash
 export SOURCE_BLOCKCHAIN_ID_HEX=<BlockchainID (HEX)>
 ```
@@ -90,7 +98,7 @@ Using the [`forge create`](https://book.getfoundry.sh/reference/forge/forge-crea
 - Token Decimals (uint8 integer representing number of decimal places for the ERC20 token being created. Most ERC20 tokens follow the Ethereum standard, which defines 18 decimal places.)
 
 ```bash
-forge create --rpc-url myblockchain --private-key $PK lib/icm-contracts/contracts/ictt/TokenRemote/ERC20TokenRemote.sol:ERC20TokenRemote --optimize --optimizer-runs 200 --broadcast --constructor-args "(${TELEPORTER_REGISTRY_L1}, ${FUNDED_ADDRESS}, ${C_CHAIN_BLOCKCHAIN_ID_HEX}, ${ERC20_HOME_C_CHAIN}, 18)" "TOK" "TOK" 18
+forge create --rpc-url myblockchain --private-key $PK lib/icm-contracts/contracts/ictt/TokenRemote/ERC20TokenRemote.sol:ERC20TokenRemote --optimize --optimizer-runs 200 --broadcast --constructor-args "(${TELEPORTER_REGISTRY_L1}, ${FUNDED_ADDRESS}, "1", ${C_CHAIN_BLOCKCHAIN_ID_HEX}, ${ERC20_HOME_C_CHAIN}, 18)" "TOK" "TOK" 18
 ```
 
 ```bash

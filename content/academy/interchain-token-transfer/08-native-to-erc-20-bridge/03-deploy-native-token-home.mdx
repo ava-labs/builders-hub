@@ -29,9 +29,13 @@ avalanche blockchain describe myblockchain
 <Step>
 ### Save the `Teleporter Registry Address`
 
+<Callout title="Note" type="info">
+The address `0xB4DC3d786D658d118631F5C6B75CB5935be8407C` is your receiver contract address.
+</Callout>
+
 Most other environment variables we will need are already set in the devcontainer or from the [previous section](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/01-erc-20-to-erc-20-bridge).
 ```bash
-export TELEPORTER_REGISTRY_L1=0xa3493940a13b426BD2f7dA6E55A39c060C0e6020
+export TELEPORTER_REGISTRY_L1=0x...
 ```
 </Step>
 <Step>
@@ -66,8 +70,12 @@ export TELEPORTER_REGISTRY_L1=0xa3493940a13b426BD2f7dA6E55A39c060C0e6020
 
 ### Save the `Blockchain ID (hex)`
 
+<Callout title="Note" type="info">
+The address `0xcdd5b2b99ae462c32a8e4ea47e94f2c7804519353558fd4127cf7ae11d8a6e52` is your receiver contract address.
+</Callout>
+
 ```bash
-export SOURCE_BLOCKCHAIN_ID_HEX=0xcdd5b2b99ae462c32a8e4ea47e94f2c7804519353558fd4127cf7ae11d8a6e52
+export SOURCE_BLOCKCHAIN_ID_HEX=0x...
 ```
 
 </Step>
@@ -81,8 +89,9 @@ Using the [`forge create`](https://book.getfoundry.sh/reference/forge/forge-crea
 - Wrapped Token Address (deployed in the last step)
 
 ```bash
-forge create --rpc-url myblockchain --private-key $PK lib/icm-contracts/contracts/ictt/TokenHome/NativeTokenHome.sol:NativeTokenHome --constructor-args $TELEPORTER_REGISTRY_L1 $FUNDED_ADDRESS $WRAPPED_ERC20_L1 --broadcast
+forge create --rpc-url myblockchain --private-key $PK lib/icm-contracts/contracts/ictt/TokenHome/NativeTokenHome.sol:NativeTokenHome --optimize --optimizer-runs 200 --broadcast --constructor-args $TELEPORTER_REGISTRY_L1 $FUNDED_ADDRESS "1" $WRAPPED_ERC20_L1 
 ```
+
 ```
 [⠊] Compiling...
 [⠊] Compiling 22 files with Solc 0.8.18
@@ -96,8 +105,12 @@ Transaction hash: 0x91c60be19a69aadb1415112dd42302764b30bc48f09957c3a191021d70cc
 <Step>
 ### Save the Native Token Home Address
 
+<Callout title="Note" type="info">
+The address `0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25` is your receiver contract address.
+</Callout>
+
 ```bash 
-export ERC20_HOME_BRIDGE_L1=0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25
+export ERC20_HOME_BRIDGE_L1=0x...
 ```
 </Step>
 </Steps>
