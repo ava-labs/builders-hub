@@ -45,7 +45,7 @@ export default function OverviewBanner({ hackathon, id }: Props) {
           <Link href={
               hackathon.content.join_custom_link
                 ? hackathon.content.join_custom_link
-                : `/hackathons/registration-form?hackaId=${id}`
+                : `/hackathons/registration-form?hackathon=${id}`
              } target={hackathon.content.join_custom_link? '_blank': '_self'}> { hackathon.content.join_custom_text?? "Join now"} </Link>
         </Button>
         <div className="flex flex-col">

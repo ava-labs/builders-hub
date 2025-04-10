@@ -223,6 +223,9 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
                         id="email-input"
                         type="email"
                         value={newEmail}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck="false"
                         onChange={(e) => setNewEmail(e.target.value)}
                         onKeyDown={async (e) => {
                           if (e.key === "Enter" || e.key === " ") {

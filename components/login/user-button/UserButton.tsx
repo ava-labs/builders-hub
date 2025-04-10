@@ -47,7 +47,7 @@ export function UserButton() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-white text-black dark:bg-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-600 shadow-lg p-1 rounded-md w-48">
-            <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
+            <DropdownMenuItem onClick={() => setIsDialogOpen(true)} className="cursor-pointer">
               Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>

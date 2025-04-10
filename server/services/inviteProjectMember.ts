@@ -97,7 +97,7 @@ export async function generateInvitation(
 
 
     const baseUrl = process.env.NEXTAUTH_URL as string;
-    const inviteLink = `${baseUrl}/hackathons/project-submission?hackaId=${hackathonId}&invitationId=${member.id}#team`;
+    const inviteLink = `${baseUrl}/hackathons/project-submission?hackathon=${hackathonId}&invitation=${member.id}#team`;
 
     await sendInvitation(
       invitedUser.email!,

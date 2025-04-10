@@ -78,7 +78,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   const projects = await prisma.project.findMany({
     include: {
       members: true,
-      prices: true,
+     
       hackathon: true,
     },
     where: filters,
@@ -107,7 +107,7 @@ export async function getProject(id: string) {
           user: true,
         },
       },
-      prices: true,
+     
       hackathon: true,
     },
     where: { id },
@@ -157,13 +157,13 @@ export async function createProject(projectData: Partial<Project>): Promise<Proj
       tech_stack: projectData.tech_stack ?? '',
       tracks: projectData.tracks ?? [],
       hackaton_id: projectData.hackaton_id ?? '',
-      prices: {
-        create: projectData.prices?.map((price) => ({
-          icon: price.icon,
-          price: price.price,
-          track: price.track,
-        })),
-      },
+      // prices: {
+      //   create: projectData.prices?.map((price) => ({
+      //     icon: price.icon,
+      //     price: price.price,
+      //     track: price.track,
+      //   })),
+      // },
       members: {
         create: projectData.members?.map((member) => ({
           user_id: member.user_id,
@@ -215,13 +215,13 @@ export async function updateProject(id: string, projectData: Partial<Project>): 
           status: member.status,
         })),
       },
-      prices: {
-        create: projectData.prices?.map((price) => ({
-          icon: price.icon,
-          price: price.price,
-          track: price.track,
-        })),
-      },
+      // prices: {
+      //   create: projectData.prices?.map((price) => ({
+      //     icon: price.icon,
+      //     price: price.price,
+      //     track: price.track,
+      //   })),
+      // },
       updated_at: new Date(),
     },
   });
