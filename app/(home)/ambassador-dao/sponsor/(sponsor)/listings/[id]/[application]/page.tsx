@@ -157,6 +157,7 @@ const AmbasssadorDaoSingleApplicationPage = () => {
         onClose={() => setIsRejectApplicantModalOpen(false)}
         applicantName={`${application?.applicant.first_name} ${application?.applicant.last_name}`}
         applicationId={params.application}
+        opportunityId={params.id}
       />
 
       <AcceptApplicantModal
@@ -164,6 +165,7 @@ const AmbasssadorDaoSingleApplicationPage = () => {
         onClose={() => setIsAcceptApplicantModalOpen(false)}
         applicantName={`${application?.applicant.first_name} ${application?.applicant.last_name}`}
         applicationId={params.application}
+        opportunityId={params.id}
       />
 
       {application && (

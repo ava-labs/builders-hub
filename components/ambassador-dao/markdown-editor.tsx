@@ -12,9 +12,7 @@ import {
   thematicBreakPlugin,
   BlockTypeSelect,
   CreateLink,
-  InsertImage,
   CodeToggle,
-  imagePlugin,
   linkPlugin,
   jsxPlugin,
   ListsToggle,
@@ -43,7 +41,6 @@ const MarkdownEditor: FC<EditorProps> = ({ markdown, editorRef, setValue }) => {
         listsPlugin(),
         quotePlugin(),
         thematicBreakPlugin(),
-        imagePlugin(),
         linkPlugin(),
         toolbarPlugin({
           toolbarClassName: "my-classname",
@@ -53,7 +50,6 @@ const MarkdownEditor: FC<EditorProps> = ({ markdown, editorRef, setValue }) => {
               <BlockTypeSelect />
               <ListsToggle />
               <CreateLink />
-              <InsertImage />
               <CodeToggle />
             </>
           ),

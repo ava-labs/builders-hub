@@ -31,8 +31,8 @@ export interface ISponsorStats {
   total_listings: number;
   total_submissions: number;
   total_rewards: number;
+  total_applications: number;
 }
-
 
 export interface IClaimXP {
   project_name: string;
