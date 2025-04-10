@@ -14,6 +14,7 @@ import { ProgressBar } from "../components/ProgressBar";
 import { StepNavigation } from "../components/StepNavigation";
 import axios from "axios";
 import { Tag, Users, Pickaxe, Image } from "lucide-react";
+import InvalidInvitationComponent from './InvalidInvitationDialog';
 
 export default function GeneralComponent({
   searchParams,
@@ -23,8 +24,8 @@ export default function GeneralComponent({
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(40);
   const [openJoinTeam, setOpenJoinTeam] = useState(false);
+  const [openInvalidInvitation, setOpenInvalidInvitation] = useState(false);
   const [teamName, setTeamName] = useState<string>("");
-  const [isValidInvitation, setValidInvitation] = useState<boolean>(false);
   const { data: session } = useSession();
   const currentUser = session?.user;
   const hackathonId = searchParams?.hackathon ?? "";
@@ -77,9 +78,14 @@ export default function GeneralComponent({
     try {
       setLoadData(false);
       const response = await axios.get(
-        `/api/project/check-invitation?invitationId=${invitationLink}`
+        `/api/project/check-invitation?invitation=${invitationLink}&user_id=${currentUser?.id}`
       );
-      setValidInvitation(response.data?.invitation.isValid ?? false);
+      console.log("respuesta es", response)
+      if(!response.data?.invitation.exists){
+        setOpenInvalidInvitation(!response.data?.invitation.isValid)
+        return
+      }
+
       setProjectId(response.data?.project?.project_id ?? "");
       setOpenJoinTeam(response.data?.invitation.isConfirming ?? false);
       setLoadData(!response.data?.invitation.isConfirming);
@@ -87,15 +93,15 @@ export default function GeneralComponent({
 
     } catch (error) {
       console.error("Error checking invitation:", error);
-      setValidInvitation(false);
+     
     }
   }
 
   useEffect(() => {
-    if (invitationLink) {
+    if (invitationLink && currentUser) {
       checkInvitation();
     }
-  }, [invitationLink]);
+  }, [invitationLink,currentUser]);
 
   useEffect(() => {
     if (project && loadData) {
@@ -178,10 +184,17 @@ export default function GeneralComponent({
       <JoinTeamDialog
         open={openJoinTeam}
         onOpenChange={setOpenJoinTeam}
+        setLoadData={setLoadData}
         teamName={teamName}
         projectId={projectId}
         hackathonId={hackathonId as string}
         currentUserId={currentUser?.id}
+      />
+
+      <InvalidInvitationComponent
+      hackathonId={hackathonId as string}
+      open={openInvalidInvitation}
+      onOpenChange={setOpenInvalidInvitation}
       />
     </div>
   );

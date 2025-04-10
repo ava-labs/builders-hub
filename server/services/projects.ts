@@ -230,9 +230,9 @@ export async function updateProject(id: string, projectData: Partial<Project>): 
   return projectData as Project;
 }
 
-export async function CheckInvitation(invitationId:string){
+export async function CheckInvitation(invitationId:string,user_id:string){
  const member = await prisma.member.findFirst({
-      where: { id:invitationId },  include: {
+      where: { id:invitationId,user_id:user_id },  include: {
         project: true, 
       },})
 
@@ -240,6 +240,7 @@ export async function CheckInvitation(invitationId:string){
       invitation: {
         isValid: !!member,
         isConfirming: member?.status == "Pending Confirmation",
+        exists: member?true:false
       },
       project: {
         project_id: member?.project?.id,

@@ -17,14 +17,23 @@ export const FormSchema = z.object({
     .max(280, { message: "Max 280 characters allowed" }),
   full_description: z.string().min(2, { message: "full description must be at least 30 characters" }),
   tech_stack: z.string().min(2, { message: "tech stack must be at least 30 characters" }),
-  github_repository: z.string().min(2, { message: "github repository is required" }),
+  github_repository: z.string()
+    .min(2, { message: "github repository is required" })
+    .refine((val) => val.includes('github.com'), { message: "Please enter a valid GitHub repository URL" }),
   explanation: z.string().optional(),
-  demo_link: z.string().optional(),
+  demo_link: z.string().url({ message: "Please enter a valid URL" }).optional().or(z.literal("")),
   is_preexisting_idea: z.boolean(),
   logoFile: z.any().optional(),
   coverFile: z.any().optional(),
   screenshots: z.any().optional(),
-  demoVideoLink: z.string().optional(),
+  demoVideoLink: z.string()
+    .url({ message: "Please enter a valid URL" })
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => {
+      if (!val) return true;
+      return val.includes('youtube.com') || val.includes('youtu.be') || val.includes('loom.com');
+    }, { message: "Please enter a valid YouTube or Loom URL" }),
   tracks: z.array(z.string()).min(1, "track are required"),
 }).refine((data) => {
   if (data.is_preexisting_idea) {
