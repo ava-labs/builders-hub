@@ -27,8 +27,8 @@ export default function GeneralComponent({
   const [isValidInvitation, setValidInvitation] = useState<boolean>(false);
   const { data: session } = useSession();
   const currentUser = session?.user;
-  const hackathonId = searchParams?.hackaId ?? "";
-  const invitationLink = searchParams?.invitationId;
+  const hackathonId = searchParams?.hackathon ?? "";
+  const invitationLink = searchParams?.invitation;
 
   const {
     form,
