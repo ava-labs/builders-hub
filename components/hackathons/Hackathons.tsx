@@ -23,6 +23,9 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "../ui/pagination";
+import OverviewBanner from "./hackathon/sections/OverviewBanner";
+import Link from "next/link";
+import Image from "next/image";
 
 function buildQueryString(
   filters: HackathonsFilters,
@@ -158,16 +161,44 @@ export default function Hackathons({
       handleSearchChange(searchValue);
     }
   };
-
+  const topMostHackathon = upcomingHackathons.find((x) => x.top_most);
+  
   return (
     <section className="px-8 py-6">
-      {/* Hackathons List */}
-      <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50">
+      {topMostHackathon && (
+        <div className="w-full flex flex-col gap-8 justify-center">
+          <div className="sm:block relative w-full">
+            <OverviewBanner
+              hackathon={topMostHackathon}
+              id={topMostHackathon.id}
+            />
+            <Link
+              href={`/hackathons/${topMostHackathon.id}`
+              }
+            >
+              <Image
+                src={topMostHackathon.banner}
+                alt="Hackathon background"
+                width={1270}
+                height={760}
+                className="w-full h-full"
+                priority
+              />
+            </Link>
+          </div>
+        </div>
+      )}
+
+      <h2
+        className={`font-medium text-3xl text-zinc-900 dark:text-zinc-50 ${
+          topMostHackathon ? "mt-12" : ""
+        }`}
+      >
         Upcoming
       </h2>
       <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
       <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
-        {upcomingHackathons.map((hackathon: any) => (
+        {upcomingHackathons.filter(x=> !x.top_most) .map((hackathon: any) => (
           <HackathonCard key={hackathon.id} hackathon={hackathon} />
         ))}
       </div>
@@ -197,7 +228,7 @@ export default function Hackathons({
           </button>
         </div>
         <div className="flex flex-row gap-4 items-center">
-          <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
+          {/* <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
             {totalPastHackathons ?? ""}{" "}
             {totalPastHackathons > 1
               ? "Hackathons"
@@ -205,7 +236,7 @@ export default function Hackathons({
               ? "No Hackathons"
               : "Hackathon"}{" "}
             found
-          </h3>
+          </h3> */}
           <Select
             onValueChange={(value: string) =>
               handleFilterChange("location", value)
@@ -223,8 +254,8 @@ export default function Hackathons({
           </Select>
         </div>
       </div>
-      <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-      <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
+      {/* <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" color="transparent" /> */}
+      <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2 my-8">
         {pastHackathons.map((hackathon: any) => (
           <HackathonCard key={hackathon.id} hackathon={hackathon} />
         ))}

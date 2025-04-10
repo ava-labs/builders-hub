@@ -16,6 +16,7 @@ export type HackathonHeader = {
   icon: string
   timezone: string
   content: Hackathon
+  top_most: boolean
 }
 
 export type HackathonsFilters = {
