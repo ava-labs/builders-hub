@@ -9,6 +9,7 @@ interface IDeleteProps {
   onClose: () => void;
   applicantName: string;
   applicationId: string;
+  opportunityId: string;
 }
 
 export const AcceptApplicantModal = ({
@@ -16,10 +17,11 @@ export const AcceptApplicantModal = ({
   onClose,
   applicantName,
   applicationId,
+  opportunityId,
 }: IDeleteProps) => {
   const [feedback, setFeedback] = useState("");
   const { mutateAsync: reviewApplicant, isPending } =
-    useReviewApplicantMutation(applicationId);
+    useReviewApplicantMutation(applicationId, opportunityId);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

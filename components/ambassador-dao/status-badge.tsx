@@ -3,27 +3,26 @@ export const StatusBadge = ({ status }: { status: string }) => {
     switch (status) {
       case "Draft":
       case "DRAFT":
+      case "PENDING":
+      case "SUBMITTED":
+      case "APPLIED":
+      case "Pending Review":
         return "bg-[#6D6D6D] text-white";
       case "Live Job":
       case "OPEN":
         return "bg-[#155DFC] text-white";
       case "In Review":
       case "IN_REVIEW":
-      case "Payment Pending":
-      case "Pending Reviews":
+      case "IN_PROGRESS":
         return "bg-[#00D492] text-white";
       case "Complete":
       case "COMPLETED":
-      case "SUBMITTED":
       case "VERIFIED":
       case "APPROVED":
       case "ACCEPTED":
       case "REWARDED":
       case "PUBLISHED":
         return "bg-[#00A63E] text-white";
-      case "PENDING":
-      case "APPLIED":
-        return "bg-[#4361FF1A] text-[#155DFC]"; // Same as "Payment Pending"
       case "REJECTED":
       case "WITHDRAWN":
       case "SUSPENDED":

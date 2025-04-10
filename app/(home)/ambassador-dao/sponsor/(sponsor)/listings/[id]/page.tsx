@@ -254,7 +254,13 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                       </div>
                     </div>
 
-                    <StatusBadge status={application.status ?? "N/A"} />
+                    <StatusBadge
+                      status={
+                        application.status === "APPLIED"
+                          ? "Pending Review"
+                          : application.status ?? "N/A"
+                      }
+                    />
                   </div>
 
                   <div className='flex justify-between gap-3'>
@@ -416,7 +422,13 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
                       </div>
                     </div>
 
-                    <StatusBadge status={submission.status ?? "N/A"} />
+                    <StatusBadge
+                      status={
+                        submission.status === "SUBMITTED"
+                          ? "Pending Review"
+                          : submission.status ?? "N/A"
+                      }
+                    />
                   </div>
 
                   <div className='flex justify-between gap-3'>

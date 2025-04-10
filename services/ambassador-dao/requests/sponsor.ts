@@ -69,7 +69,10 @@ export const useDeleteOpportunityMutation = (id: string) => {
   });
 };
 
-export const useReviewApplicantMutation = (applicationId: string) => {
+export const useReviewApplicantMutation = (
+  applicationId: string,
+  opportunityId: string
+) => {
   const queryclient = useQueryClient();
   const router = useRouter();
   return useMutation({
@@ -91,7 +94,7 @@ export const useReviewApplicantMutation = (applicationId: string) => {
       queryclient.invalidateQueries({
         queryKey: ["singleListingsApplication"],
       });
-      router.push("/ambassador-dao/sponsor/listings");
+      router.push(`/ambassador-dao/sponsor/listings/${opportunityId}`);
     },
     onError: (err) => errorMsg(err),
   });
@@ -147,7 +150,7 @@ export const useCompleteJobMutation = (
       queryclient.invalidateQueries({
         queryKey: ["singleListingsApplication"],
       });
-      router.push("/ambassador-dao/sponsor/listings");
+      router.push(`/ambassador-dao/sponsor/listings/${opportunityId}`);
     },
     onError: (err) => errorMsg(err),
   });

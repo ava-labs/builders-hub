@@ -16,18 +16,16 @@ const OnboardModal: React.FC<OnboardModalProps> = ({ isOpen, onClose }) => {
       isOpen={isOpen}
       onClose={onClose}
       title='Action required!'
-      description='Complete your onboarding'
+      description='Complete User Profile'
       maxWidth='max-w-lg'
     >
       <div className='px-6 pb-6'>
         <p className='text-sm text-[var(--white-text-color)] mb-4'>
-          TODO: Generate a better copy here. You need to complete your
-          onboarding process to have access to the full actions of the platform.
+          To continue your job application, please fill in your user details to
+          start applying for jobs immediately.
         </p>
         <Link href='/ambassador-dao/onboard'>
-          <CustomButton variant='danger'>
-            Complete your onboarding process first!
-          </CustomButton>
+          <CustomButton variant='danger'>Complete onboarding!</CustomButton>
         </Link>
       </div>
     </Modal>
