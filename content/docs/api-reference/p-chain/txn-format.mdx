@@ -2332,6 +2332,7 @@ Let's make a signed transaction that uses the unsigned transaction and credentia
     0x6f, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76,
     0x77, 0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7d, 0x7e,
     0x7f, 0x00,
+]
 ```
 
 ## UTXO
@@ -2797,4 +2798,186 @@ Let's make a rewards owner:
   0xde, 0x35, 0x23, 0xa2, 0x4a, 0x46, 0x1c, 0x89,
   0x43, 0xab, 0x08, 0x59,
 ]
+```
+
+## Unsigned Convert Subnet To L1 TX
+
+### What Unsigned Convert Subnet To L1 TX Contains
+
+An unsigned convert subnet to L1 TX contains a `BaseTx`, `Subnet`, `ChainID`, `Address`, `Validators`, and `SubnetAuth`. The `TypeID` for this type is `0x00000030`.
+
+- **`BaseTx`**
+- **`Subnet`** ID of the Subnet to transform into an L1. Must not be the Primary Network ID.
+- **`ChainID`** BlockchainID where the validator manager lives.
+- **`Address`** Address of the validator manager.
+- **`Validators`** Initial continuous-fee-paying validators for the L1.
+- **`SubnetAuth`** Authorizes this conversion. Must be signed by the Subnet's owner.
+
+### Gantt Unsigned Convert Subnet To L1 TX Specification
+
+```text
++------------+------------------+----------------------------------+
+| base_tx    : BaseTx           |              size(base_tx) bytes |
++------------+------------------+----------------------------------+
+| subnet     : [32]byte         |                         32 bytes |
++------------+------------------+----------------------------------+
+| chain_id   : [32]byte         |                         32 bytes |
++------------+------------------+----------------------------------+
+| address    : []byte           |             4 + len(address) bytes |
++------------+------------------+----------------------------------+
+| validators : []L1Validator    |         4 + size(validators) bytes |
++------------+------------------+----------------------------------+
+| subnet_auth: SubnetAuth       | 4 bytes + len(sig_indices) bytes |
++------------+------------------+----------------------------------+
+| 76 + size(base_tx) + len(address) + size(validators) + len(sig_indices) bytes |
++----------------------------------------------------------------------------+
+```
+
+### Proto Unsigned Convert Subnet To L1 TX Specification
+
+```text
+message ConvertSubnetToL1Tx {
+    BaseTx base_tx = 1;              // size(base_tx)
+    SubnetID subnet = 2;             // 32 bytes
+    ChainID chain_id = 3;            // 32 bytes
+    bytes address = 4;               // 4 + len(address) bytes
+    repeated L1Validator validators = 5; // 4 + size(validators) bytes
+    SubnetAuth subnet_auth = 6;      // 4 bytes + len(sig_indices)
+}
+```
+
+## Unsigned Register L1 Validator TX
+
+### What Unsigned Register L1 Validator TX Contains
+
+An unsigned register L1 validator TX contains a `BaseTx`, `Balance`, `Signer` and `Message`. The `TypeID` for this type is `0x00000031`.
+
+- **`BaseTx`**
+- **`Balance`** is the amount of AVAX being provided for fees, where `Balance <= sum($AVAX inputs) - sum($AVAX outputs) - TxFee`.
+- **`Signer`** is a BLS signature proving ownership of the BLS public key specified in the Message for this validator.
+- **`Message`** is a RegisterL1ValidatorMessage payload delivered as a Warp Message.
+
+### Gantt Unsigned Register L1 Validator TX Specification
+
+```text
++------------+------------------+----------------------------------+
+| base_tx    : BaseTx           |              size(base_tx) bytes |
++------------+------------------+----------------------------------+
+| balance    : uint64           |                          8 bytes |
++------------+------------------+----------------------------------+
+| signer     : [96]byte         |                         96 bytes |
++------------+------------------+----------------------------------+
+| message    : WarpMessage      |             size(message) bytes |
++------------+------------------+----------------------------------+
+| 104 + size(base_tx) + size(message) bytes                       |
++------------------------------------------------------------------+
+```
+
+### Proto Unsigned Register L1 Validator TX Specification
+
+```text
+message RegisterL1ValidatorTx {
+    BaseTx base_tx = 1;        // size(base_tx)
+    uint64 balance = 2;        // 8 bytes
+    bytes signer = 3;          // 96 bytes
+    WarpMessage message = 4;   // size(message) bytes
+}
+```
+
+## Unsigned Set L1 Validator Weight TX
+
+### What Unsigned Set L1 Validator Weight TX Contains
+
+An unsigned set L1 validator weight TX contains a `BaseTx` and `Message`. The `TypeID` for this type is `0x00000032`.
+
+- **`BaseTx`**
+- **`Message`** An L1ValidatorWeightMessage payload delivered as a Warp Message. Contains the validationID, nonce, and new weight for a validator.
+
+### Gantt Unsigned Set L1 Validator Weight TX Specification
+
+```text
++------------+------------------+----------------------------------+
+| base_tx    : BaseTx           |              size(base_tx) bytes |
++------------+------------------+----------------------------------+
+| message    : WarpMessage      |             size(message) bytes |
++------------+------------------+----------------------------------+
+| size(base_tx) + size(message) bytes                             |
++------------------------------------------------------------------+
+```
+
+### Proto Unsigned Set L1 Validator Weight TX Specification
+
+```text
+message SetL1ValidatorWeightTx {
+    BaseTx base_tx = 1;        // size(base_tx)
+    WarpMessage message = 2;   // size(message) bytes
+}
+```
+
+## Unsigned Disable L1 Validator TX
+
+### What Unsigned Disable L1 Validator TX Contains
+
+An unsigned disable L1 validator TX contains a `BaseTx`, `ValidationID` and `DisableAuth`. The `TypeID` for this type is `0x00000033`.
+
+- **`BaseTx`**
+- **`ValidationID`** ID corresponding to the validator to be disabled.
+- **`DisableAuth`** Authorizes this validator to be disabled. Must be signed by the DisableOwner specified when the validator was added.
+
+### Gantt Unsigned Disable L1 Validator TX Specification
+
+```text
++----------------+------------------+----------------------------------+
+| base_tx        : BaseTx           |              size(base_tx) bytes |
++----------------+------------------+----------------------------------+
+| validation_id  : [32]byte         |                         32 bytes |
++----------------+------------------+----------------------------------+
+| disable_auth   : Verifiable       |        size(disable_auth) bytes  |
++----------------+------------------+----------------------------------+
+| 32 + size(base_tx) + size(disable_auth) bytes                       |
++----------------------------------------------------------------------+
+```
+
+### Proto Unsigned Disable L1 Validator TX Specification
+
+```text
+message DisableL1ValidatorTx {
+    BaseTx base_tx = 1;            // size(base_tx)
+    bytes validation_id = 2;       // 32 bytes
+    Verifiable disable_auth = 3;   // size(disable_auth) bytes
+}
+```
+
+## Unsigned Increase L1 Validator Balance TX
+
+### What Unsigned Increase L1 Validator Balance TX Contains
+
+An unsigned increase L1 validator balance TX contains a `BaseTx`, `ValidationID` and `Balance`. The `TypeID` for this type is `0x00000034`.
+
+- **`BaseTx`**
+- **`ValidationID`** ID corresponding to the validator.
+- **`Balance`** Additional AVAX amount to add to the validator's balance where `Balance <= sum($AVAX inputs) - sum($AVAX outputs) - TxFee`.
+
+### Gantt Unsigned Increase L1 Validator Balance TX Specification
+
+```text
++----------------+------------------+----------------------------------+
+| base_tx        : BaseTx           |              size(base_tx) bytes |
++----------------+------------------+----------------------------------+
+| validation_id  : [32]byte         |                         32 bytes |
++----------------+------------------+----------------------------------+
+| balance        : uint64           |                          8 bytes |
++----------------+------------------+----------------------------------+
+| 40 + size(base_tx) bytes                                            |
++----------------------------------------------------------------------+
+```
+
+### Proto Unsigned Increase L1 Validator Balance TX Specification
+
+```text
+message IncreaseL1ValidatorBalanceTx {
+    BaseTx base_tx = 1;       // size(base_tx)
+    bytes validation_id = 2;  // 32 bytes
+    uint64 balance = 3;       // 8 bytes
+}
 ```
