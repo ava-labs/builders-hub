@@ -93,14 +93,14 @@ CREATE TABLE "Project" (
 );
 
 -- CreateTable
-CREATE TABLE "Price" (
+CREATE TABLE "Prize" (
     "id" TEXT NOT NULL,
     "icon" TEXT NOT NULL,
-    "price" INTEGER NOT NULL,
+    "prize" INTEGER NOT NULL,
     "track" TEXT NOT NULL,
     "project_id" TEXT NOT NULL,
 
-    CONSTRAINT "Price_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Prize_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -142,7 +142,7 @@ ALTER TABLE "RegisterForm" ADD CONSTRAINT "RegisterForm_hackathon_id_fkey" FOREI
 ALTER TABLE "Project" ADD CONSTRAINT "Project_hackaton_id_fkey" FOREIGN KEY ("hackaton_id") REFERENCES "Hackathon"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Price" ADD CONSTRAINT "Price_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Prize" ADD CONSTRAINT "Prize_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Member" ADD CONSTRAINT "Member_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
