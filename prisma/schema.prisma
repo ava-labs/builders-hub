@@ -115,7 +115,7 @@ model Member {
   user_id    String
   project_id String
   role       String  @default("member")
-  status     String  @default("Awaiting Confirmation")
+  status     String  @default("Pending Confirmation")
   project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
   user       User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
