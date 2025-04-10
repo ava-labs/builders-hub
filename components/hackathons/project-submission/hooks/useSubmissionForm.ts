@@ -18,7 +18,7 @@ export const FormSchema = z.object({
   full_description: z.string().min(2, { message: "full description must be at least 30 characters" }),
   tech_stack: z.string().min(2, { message: "tech stack must be at least 30 characters" }),
   github_repository: z.string().min(2, { message: "github repository is required" }),
-  explanation: z.string().min(2, { message: "explanation is required" }),
+  explanation: z.string().optional(),
   demo_link: z.string().optional(),
   is_preexisting_idea: z.boolean(),
   logoFile: z.any().optional(),
@@ -26,6 +26,14 @@ export const FormSchema = z.object({
   screenshots: z.any().optional(),
   demoVideoLink: z.string().optional(),
   tracks: z.array(z.string()).min(1, "track are required"),
+}).refine((data) => {
+  if (data.is_preexisting_idea) {
+    return data.explanation && data.explanation.length >= 2;
+  }
+  return true;
+}, {
+  message: "explanation is required when the idea is pre-existing",
+  path: ["explanation"]
 });
 
 export type SubmissionForm = z.infer<typeof FormSchema>;
