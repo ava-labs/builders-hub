@@ -165,10 +165,17 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
 
         <hr className='border-[var(--default-border-color)] my-8' />
 
-        <div className='grid grid-cols-3 gap-4 text-center'>
+        <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-center'>
+          <StatCard
+            value={stats?.total_submissions ?? 0}
+            label='Submissions Received'
+          />
+          <StatCard
+            value={stats?.total_applications ?? 0}
+            label='Applications Received'
+          />
           <StatCard value={stats?.total_rewards ?? 0} label='Rewarded' />
           <StatCard value={stats?.total_listings ?? 0} label='Listings' />
-          <StatCard value={stats?.total_submissions ?? 0} label='Submissions' />
         </div>
       </div>
       {/* Listings Section */}
@@ -186,12 +193,13 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
               <SelectTrigger className='w-36 bg-[var(--default-background-color)] border-[var(--default-border-color)]'>
                 <SelectValue placeholder='Everything' />
               </SelectTrigger>
-              <SelectContent className='bg-[#27272A] border-[var(--default-border-color)]'>
+              <SelectContent className='bg-[#fafafa] dark:bg-[#09090B] border-[var(--default-border-color)]'>
                 <SelectItem value='ALL'>Everything</SelectItem>
                 <SelectItem value='DRAFT'>Draft</SelectItem>
                 <SelectItem value='OPEN'>Open</SelectItem>
+                <SelectItem value='PUBLISHED'>Published</SelectItem>
                 <SelectItem value='IN_REVIEW'>In Review</SelectItem>
-                <SelectItem value='in-COMPLETED'>Completed</SelectItem>
+                <SelectItem value='COMPLETED'>Completed</SelectItem>
               </SelectContent>
             </Select>
 

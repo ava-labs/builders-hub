@@ -45,6 +45,7 @@ import { PublishOpportunityModal } from "./publish-opportunity-modal";
 import toast from "react-hot-toast";
 import DatePicker from "../DatePicker";
 import Loader from "../ui/Loader";
+import { Textarea } from '@/components/ui/textarea';
 const MarkdownEditor = dynamic(() => import("../markdown-editor"), {
   ssr: false,
 });
@@ -299,7 +300,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     }}
                     isLoading={isPending && buttonState === "preview"}
                     disabled={
-                      (type === "BOUNTY" && prizeFields.length === 0) ||
+                      (formType === "BOUNTY" && prizeFields.length === 0) ||
                       selectedSkills.length === 0 ||
                       isPending
                     }
@@ -319,7 +320,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     variant={"danger"}
                     className='px-4'
                     disabled={
-                      (type === "BOUNTY" && prizeFields.length === 0) ||
+                      (formType === "BOUNTY" && prizeFields.length === 0) ||
                       selectedSkills.length === 0 ||
                       isPending
                     }
@@ -404,7 +405,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                         control={control}
                         rules={{ required: "Requirements is required" }}
                         render={({ field }) => (
-                          <CustomInput
+                          <Textarea
                             {...field}
                             className='w-full'
                             placeholder='English speaking candidates only'
@@ -482,7 +483,13 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           <Controller
                             name='total_budget'
                             control={control}
-                            rules={{ required: "Reward is required" }}
+                            rules={{
+                              required: "Reward is required",
+                              min: {
+                                value: 1,
+                                message: "Reward must be greater than $0",
+                              },
+                            }}
                             render={({ field }) => (
                               <CustomInput
                                 {...field}
@@ -567,12 +574,19 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                               <Controller
                                 name={`prize_distribution.${index}.amount`}
                                 control={control}
-                                rules={{ required: "Prize amount is required" }}
+                                rules={{
+                                  required: "Prize amount is required",
+                                  min: {
+                                    value: 1,
+                                    message: "Reward must be greater than $0",
+                                  },
+                                }}
                                 render={({ field }) => (
                                   <CustomInput
                                     {...field}
                                     type='number'
                                     min={1}
+                                    required={true}
                                     className='w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
                                     placeholder='100'
                                     onChange={(e) => {
@@ -804,27 +818,36 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       )}
 
                       {customQuestionFields?.map((field, index) => (
-                        <div key={index} className='flex gap-2 items-center'>
-                          <Controller
-                            name={`custom_questions.${index}`}
-                            control={control}
-                            render={({ field }) => (
-                              <CustomInput
-                                {...field}
-                                className='bg-[var(--default-background-color)] border-[var(--default-border-color)] flex-1'
-                                placeholder='Enter your question'
-                              />
-                            )}
-                          />
-                          <Button
-                            type='button'
-                            variant='ghost'
-                            size='icon'
-                            onClick={() => removeCustomQuestion(index)}
-                            className='text-red-500 px-2'
-                          >
-                            <Trash2 className='h-4 w-4' color='red' />
-                          </Button>
+                        <div key={index}>
+                          <div className='flex gap-2 items-center'>
+                            <Controller
+                              name={`custom_questions.${index}`}
+                              rules={{ required: "Question is required" }}
+                              control={control}
+                              render={({ field }) => (
+                                <CustomInput
+                                  {...field}
+                                  required={true}
+                                  className='bg-[var(--default-background-color)] border-[var(--default-border-color)] flex-1'
+                                  placeholder='Enter your question'
+                                />
+                              )}
+                            />
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon'
+                              onClick={() => removeCustomQuestion(index)}
+                              className='text-red-500 px-2'
+                            >
+                              <Trash2 className='h-4 w-4' color='red' />
+                            </Button>
+                          </div>
+                          {errors.custom_questions && (
+                            <p className='text-red-500 text-xs mt-1'>
+                              {errors.custom_questions.message}
+                            </p>
+                          )}
                         </div>
                       ))}
 

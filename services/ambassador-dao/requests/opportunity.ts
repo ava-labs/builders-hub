@@ -8,7 +8,7 @@ import {
 } from "../interfaces/opportunity";
 import { useRouter } from "next/navigation";
 import axiosInstance from "./axios";
-import axios from 'axios';
+import axios from "axios";
 
 export const useFetchOpportunity = (filters = {}) => {
   return useQuery({
@@ -35,16 +35,13 @@ export const useFetchOpportunityDetails = (opportunity_id: string) => {
         );
         return res.data.data;
       } catch (error) {
-        if (
-          axios.isAxiosError(error) &&
-          error.response?.status === 404
-        ) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
           router.push("/404");
         }
         throw error;
       }
     },
-    staleTime: Infinity,
+    staleTime: 0,
   });
 };
 

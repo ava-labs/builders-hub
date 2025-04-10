@@ -233,8 +233,9 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
         )}
       </div>
 
-      {bounty.category === "AMBASSADOR_SPECIFIC" &&
-      userData?.role !== "AMBASSADOR" ? null : bounty.status === "PUBLISHED" ? (
+      {(bounty.category === "AMBASSADOR_SPECIFIC" &&
+        userData?.role !== "AMBASSADOR") ||
+      userData?.role === "SPONSOR" ? null : bounty.status === "PUBLISHED" ? (
         <button
           disabled={data?.has_submitted || timeLeft === "Expired"}
           className={`w-full font-medium py-3 rounded-md transition ${

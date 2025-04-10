@@ -21,18 +21,13 @@ export const categories = [
 
 export const opportunityApplicationStatusOptions = [
   { value: "ALL", label: "Everything" },
-  { value: "APPLIED", label: "Applied" },
-  { value: "IN_REVIEW", label: "In Review" },
   { value: "REJECTED", label: "Rejected" },
   { value: "APPROVED", label: "Approved" },
-  { value: "COMPLETED", label: "Completed" },
   { value: "WITHDRAWN", label: "Withdrawn" },
 ];
 
 export const opportunitySubmissionStatusOptions = [
   { value: "ALL", label: "Everything" },
-  { value: "SUBMITTED", label: "Submitted" },
-  { value: "IN_REVIEW", label: "In Review" },
   { value: "REJECTED", label: "Rejected" },
   { value: "ACCEPTED", label: "Accepted" },
   { value: "REWARDED", label: "Rewarded" },

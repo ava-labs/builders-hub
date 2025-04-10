@@ -137,8 +137,9 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
         )}
       </div>
 
-      {job.category === "AMBASSADOR_SPECIFIC" &&
-      userData?.role !== "AMBASSADOR" ? null : job.status === "PUBLISHED" ? (
+      {(job.category === "AMBASSADOR_SPECIFIC" &&
+        userData?.role !== "AMBASSADOR") ||
+      userData?.role === "SPONSOR" ? null : job.status === "PUBLISHED" ? (
         <button
           disabled={data?.has_applied || timeLeft === "Expired"}
           className={`w-full font-medium py-3 rounded-md transition ${
