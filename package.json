@@ -52,7 +52,7 @@
     "lucide-react": "^0.482.0",
     "mermaid": "^11.4.1",
     "new-github-issue-url": "^1.1.0",
-    "next": "^15.2.2",
+    "next": "^15.2.3",
     "pdf-lib": "^1.17.1",
     "posthog-js": "^1.230.2",
     "prismjs": "^1.30.0",
