@@ -1,0 +1,64 @@
+---
+title: Quadrata
+category: KYC / Identity Verification
+available: ["C-Chain"]
+description: Quadrata provides a privacy-preserving identity and compliance layer for Web3 applications through their Passport Network, ideal for txAllowlist implementations.
+logo: /images/quadrata.png
+developer: Quadrata
+website: https://quadrata.com/
+documentation: https://docs.quadrata.com/
+---
+
+## Overview
+
+Quadrata is a Passport Network that brings identity and compliance solutions to decentralized applications on public blockchains. Through its innovative approach, Quadrata enables Web3 applications to access KYC/AML status, country of residence, credit reputation, and accredited investor status while preserving user privacy. Quadrata's soulbound tokens provide a portable digital identity that can be seamlessly integrated with txAllowlist precompiles to create compliant, permissioned environments on Avalanche.
+
+## Features
+
+- **Privacy-Preserving KYC**: Verification without storing personal identifiable information (PII) on-chain.
+- **Soulbound Token Passport**: Non-transferable NFT that attaches to the user's wallet and contains verified credentials.
+- **AML Screening**: Includes anti-money laundering checks to ensure compliance with regulations.
+- **Global Verification**: Provides country verification to help applications comply with regional restrictions.
+- **Portable Identity**: Users can verify once and use their Quadrata Passport across multiple integrated applications.
+- **Business Verification (KYB)**: Offers verification for business entities as well as individuals.
+- **Age Verification**: Supports age verification for age-restricted applications.
+- **Wallet Screening**: Analyzes wallet history and transactions for risk assessment.
+
+## Getting Started
+
+To integrate Quadrata into your Avalanche-based application, follow these steps:
+
+1. **Schedule a Demo**: Connect with the Quadrata team through their [website](https://quadrata.com/#schedule-demo) to discuss your specific needs.
+2. **Integration Planning**: Work with Quadrata to design the optimal integration for your application.
+3. **Technical Implementation**: Follow the integration guides in the [documentation](https://docs.quadrata.com/) to implement Quadrata's verification system.
+4. **Testing**: Thoroughly test the integration to ensure it works as expected.
+5. **Launch**: Deploy the integration and begin accepting users with Quadrata Passports.
+
+## Integration with txAllowlist
+
+Quadrata works exceptionally well with Avalanche's txAllowlist precompile for creating permissioned networks:
+
+1. **Passport Verification**: Users obtain a Quadrata Passport through the verification process.
+2. **Smart Contract Integration**: Your application's smart contracts can check for the presence and validity of a user's Quadrata Passport.
+3. **Allowlist Management**: Upon confirming a valid Passport, the user's address can be added to the txAllowlist.
+4. **Compliant Transactions**: Only users with verified Passports can transact on the chain, ensuring regulatory compliance.
+
+This creates a seamless verification flow where users' privacy is preserved while still maintaining compliance standards.
+
+## Documentation
+
+For comprehensive integration guides and technical documentation, visit [Quadrata's Documentation](https://docs.quadrata.com/).
+
+## Use Cases
+
+Quadrata's identity verification solutions are ideal for various Avalanche applications:
+
+- **DeFi Protocols**: Ensure regulatory compliance for lending, borrowing, and trading platforms.
+- **Enterprise Solutions**: Create permissioned networks for enterprise use cases with proper identity verification.
+- **Compliant DAOs**: Build decentralized autonomous organizations that meet regulatory requirements.
+- **Regulated Marketplaces**: Develop NFT marketplaces or trading platforms that need to verify user identities.
+- **Cross-Chain Applications**: Utilize Quadrata's portable identity across multiple chains or subnets.
+
+## Conclusion
+
+Quadrata provides a robust identity verification solution that balances regulatory compliance with user privacy. By using soulbound tokens as digital passports, Quadrata creates a portable identity system that integrates seamlessly with Avalanche's txAllowlist functionality. This combination enables developers to build compliant applications without compromising on decentralization principles or user experience. 

@@ -1,0 +1,61 @@
+---
+title: Sumsub
+category: KYC / Identity Verification
+available: ["C-Chain"]
+description: Sumsub is a comprehensive identity verification platform that offers KYC/AML solutions for compliant user onboarding, perfect for txAllowlist implementations.
+logo: /images/sumsub.png
+developer: Sumsub
+website: https://sumsub.com/
+documentation: https://docs.sumsub.com/
+---
+
+## Overview
+
+Sumsub is a powerful identity verification platform that provides comprehensive KYC (Know Your Customer) and AML (Anti-Money Laundering) solutions for blockchain projects. It offers a streamlined verification process to help businesses ensure regulatory compliance while maintaining a seamless user experience. Sumsub's solutions can be particularly valuable for projects implementing txAllowlist precompiles that need to verify user identities before granting transaction permissions.
+
+## Features
+
+- **Automated Verification Checks**: Sumsub provides a suite of automated verification tools including ID verification, proof of address checks, and watchlist screening.
+- **Multi-Channel Verification**: Offers various verification methods including document verification, biometric verification, and liveness detection.
+- **AML Screening**: Screens users against global sanctions lists, PEP (Politically Exposed Persons) databases, and adverse media listings.
+- **Customizable Workflows**: Build custom verification flows tailored to your specific risk profile and regional requirements.
+- **No-Code Integration**: Integrates easily with your platform through WebSDK, MobileSDK, or API connections.
+- **Global Compliance**: Ensures compliance with regulations across different jurisdictions worldwide.
+- **Fraud Prevention**: Advanced fraud detection technologies to prevent identity theft and account takeovers.
+
+## Getting Started
+
+To integrate Sumsub into your Avalanche-based application, follow these steps:
+
+1. **Sign Up**: Create an account on the [Sumsub website](https://sumsub.com/).
+2. **Configure Verification Flow**: Set up your verification requirements and customize the user flow.
+3. **Integrate**: Choose your preferred integration method (WebSDK, MobileSDK, or API) and follow the implementation guides in the [documentation](https://docs.sumsub.com/).
+4. **Test**: Use Sumsub's testing environment to ensure the integration works as expected.
+5. **Go Live**: Once testing is complete, move to the production environment and begin verifying users.
+
+## Integration with txAllowlist
+
+Sumsub is an excellent choice for projects implementing txAllowlist precompiles on Avalanche. The txAllowlist precompile restricts who can issue transactions to the chain, making it ideal for permissioned networks where user verification is required. By integrating Sumsub:
+
+1. **KYC/AML Verification**: Users complete verification through Sumsub's interface.
+2. **Allowlist Approval**: Upon successful verification, your backend can automatically add the user's address to the txAllowlist.
+3. **Transaction Permission**: Verified users can then submit transactions to the chain, while unverified users are blocked.
+
+This creates a compliant, permissioned environment where only KYC-verified users can interact with your blockchain.
+
+## Documentation
+
+For detailed integration guides, API references, and customization options, visit the [Sumsub Documentation](https://docs.sumsub.com/).
+
+## Use Cases
+
+Sumsub is ideal for a variety of Avalanche-based applications requiring identity verification:
+
+- **Financial Services**: DeFi protocols requiring regulatory compliance.
+- **Enterprise Blockchains**: Private or consortium networks that need to verify participant identities.
+- **Regulated Markets**: Applications operating in jurisdictions with strict KYC requirements.
+- **High-Value Transactions**: Platforms handling significant asset values that need enhanced security.
+
+## Conclusion
+
+Sumsub provides a robust, flexible identity verification solution that integrates seamlessly with Avalanche's txAllowlist functionality. By combining these technologies, developers can build compliant applications that maintain high security standards while providing a smooth onboarding experience for legitimate users. 
