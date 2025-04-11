@@ -22,11 +22,11 @@ interface AvalancheResponse {
 // Helper function for delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export default function CrossChainTransfer({ 
+export default function CrossChainTransfer({
   suggestedAmount = "0.0",
   onAmountChange,
   onTransferComplete
-}: { 
+}: {
   suggestedAmount?: string;
   onAmountChange?: (amount: string) => void;
   onTransferComplete?: () => void;
@@ -108,7 +108,7 @@ export default function CrossChainTransfer({
   const handleAmountChange = (newAmount: string) => {
     setAmount(newAmount);
     onAmountChange?.(newAmount);
-    
+
     // If amount is valid, move to step 3
     if (Number(newAmount) > 0) {
       setCurrentStep(2);
@@ -314,11 +314,11 @@ export default function CrossChainTransfer({
 
       // Add a short delay to ensure transaction is processed before refreshing balances
       await delay(2000);
-      
+
       // Refresh balances multiple times after import to catch updates
       // Sometimes the balance update takes a moment to propagate
       const refreshIntervals = [2000, 4000, 8000];
-      
+
       // Schedule multiple refreshes
       for (const interval of refreshIntervals) {
         setTimeout(async () => {
@@ -330,7 +330,7 @@ export default function CrossChainTransfer({
           }
         }, interval);
       }
-      
+
       onTransferComplete?.();
     } catch (error) {
       console.error("Error sending import transaction:", error);
@@ -372,7 +372,7 @@ export default function CrossChainTransfer({
               <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100">Select Chains</h3>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Choose which chain to transfer from and to</p>
             </div>
-            
+
             {/* Source Chain */}
             <div className="col-span-5 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-4 border border-zinc-200 dark:border-zinc-700 hover:shadow-md transition-shadow cursor-pointer">
               <div className="flex flex-col items-center space-y-2">
@@ -395,13 +395,13 @@ export default function CrossChainTransfer({
                   )}
                 </div>
                 <div className="text-xs text-zinc-500 dark:text-zinc-400 text-center">
-                  {sourceChain === "c-chain" 
-                    ? "EVM-compatible chain for smart contracts" 
+                  {sourceChain === "c-chain"
+                    ? "EVM-compatible chain for smart contracts"
                     : "Native chain for staking & validators"}
                 </div>
                 <div className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  {sourceChain === "c-chain" 
-                    ? `${availableBalance.toFixed(4)} AVAX` 
+                  {sourceChain === "c-chain"
+                    ? `${availableBalance.toFixed(4)} AVAX`
                     : `${pChainAvailableBalance.toFixed(4)} AVAX`}
                 </div>
               </div>
@@ -416,33 +416,33 @@ export default function CrossChainTransfer({
                 aria-label="Swap source and destination chains"
               >
                 <div className="relative flex items-center justify-center">
-                  <svg 
+                  <svg
                     className="w-6 h-6 text-zinc-400 group-hover:text-red-500 transition-all duration-300 group-hover:scale-110 transform rotate-90"
-                    viewBox="0 0 24 24" 
-                    fill="none" 
+                    viewBox="0 0 24 24"
+                    fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                   >
-                    <path 
-                      d="M7 16L12 21L17 16" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
+                    <path
+                      d="M7 16L12 21L17 16"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
                       strokeLinejoin="round"
                       className="group-hover:translate-y-0.5 transition-transform duration-300"
                     />
-                    <path 
-                      d="M17 8L12 3L7 8" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
+                    <path
+                      d="M17 8L12 3L7 8"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
                       strokeLinejoin="round"
                       className="group-hover:-translate-y-0.5 transition-transform duration-300"
                     />
-                    <path 
-                      d="M12 3V21" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
+                    <path
+                      d="M12 3V21"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
                       strokeLinejoin="round"
                       className="group-hover:scale-y-110 origin-center transition-transform duration-300"
                     />
@@ -474,13 +474,13 @@ export default function CrossChainTransfer({
                   )}
                 </div>
                 <div className="text-xs text-zinc-500 dark:text-zinc-400 text-center">
-                  {destinationChain === "c-chain" 
-                    ? "EVM-compatible chain for smart contracts" 
+                  {destinationChain === "c-chain"
+                    ? "EVM-compatible chain for smart contracts"
                     : "Native chain for staking & validators"}
                 </div>
                 <div className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  {destinationChain === "c-chain" 
-                    ? `${availableBalance.toFixed(4)} AVAX` 
+                  {destinationChain === "c-chain"
+                    ? `${availableBalance.toFixed(4)} AVAX`
                     : `${pChainAvailableBalance.toFixed(4)} AVAX`}
                 </div>
               </div>

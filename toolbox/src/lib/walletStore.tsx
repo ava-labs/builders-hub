@@ -16,11 +16,13 @@ export const useWalletStore = create(
         walletEVMAddress: "",
         avalancheNetworkID: networkIDs.FujiID as typeof networkIDs.FujiID | typeof networkIDs.MainnetID,
         pChainAddress: "",
+        isTestnet: undefined as boolean | undefined,
     }, set => ({
         setCoreWalletClient: (coreWalletClient: ReturnType<typeof createCoreWalletClient>) => set({ coreWalletClient }),
         setWalletChainId: (walletChainId: number) => set({ walletChainId }),
         setWalletEVMAddress: (walletEVMAddress: string) => set({ walletEVMAddress }),
         setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => set({ avalancheNetworkID }),
         setPChainAddress: (pChainAddress: string) => set({ pChainAddress }),
+        setIsTestnet: (isTestnet: boolean) => set({ isTestnet }),
     })),
 )
