@@ -337,7 +337,7 @@ export const ConnectWallet = ({ children, required }: { children: React.ReactNod
               <div className="flex items-center">
                 <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mr-2">EVM:</span>
                 <div className="font-mono text-xs text-zinc-800 dark:text-zinc-200 truncate">
-                  {truncateAddress(walletEVMAddress)}
+                  {walletEVMAddress}
                 </div>
               </div>
               <button
@@ -355,7 +355,7 @@ export const ConnectWallet = ({ children, required }: { children: React.ReactNod
                 <div className="flex items-center">
                   <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mr-2">P-Chain:</span>
                   <div className="font-mono text-xs text-zinc-800 dark:text-zinc-200 truncate">
-                    {truncateAddress(pChainAddress)}
+                    {pChainAddress}
                   </div>
                 </div>
                 <button

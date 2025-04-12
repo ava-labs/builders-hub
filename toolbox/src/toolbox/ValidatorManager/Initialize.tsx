@@ -106,8 +106,8 @@ export default function Initialize() {
     return (
         <RequireChainToolboxL1>
             <Container
-                title="Initialize Validator Manager"
-                description="This will initialize the ValidatorManager contract."
+                title="Initial Validator Manager Configuration"
+                description="This will initialize the ValidatorManager contract with the initial configuration."
             >
                 <div className="space-y-4">
                     <div className="space-y-2">

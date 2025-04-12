@@ -20,7 +20,7 @@ export default function Page(): React.ReactElement {
                     </p>
                     <p className="m-12 text-center ">
                         <Link
-                            href="https://github.com/ava-labs/avalanche-academy/tree/dev/content/guides"
+                            href="https://github.com/ava-labs/builders-hub/tree/master/content/guides"
                             target='_blank'
                             className={buttonVariants({ size: 'lg', variant: 'default' })}
                         >

@@ -188,7 +188,7 @@ export default function AvalanchegoDocker() {
 
     return (
         <Container
-            title="Avalanchego in Docker"
+            title="Node Setup with Docker"
             description="This will start a Docker container running an RPC or validator node that tracks your subnet."
         >
             <div className="space-y-4">
@@ -257,7 +257,7 @@ export default function AvalanchegoDocker() {
                 )}
 
                 <div className="mt-4">
-                    <h3 className="text-md font-medium mb-2">Docker Installation</h3>
+                    <h3 className="text-md font-medium mb-2">Docker Installation Command:</h3>
                     <p className="mb-4">
                         We will retrieve the binary images of{" "}
                         <a
@@ -295,7 +295,7 @@ export default function AvalanchegoDocker() {
                 </div>
 
                 <div className="mt-4">
-                    <h3 className="text-md font-medium mb-2">Node Command:</h3>
+                    <h3 className="text-md font-medium mb-2">Node Setup Command:</h3>
                     <CodeHighlighter
                         code={rpcCommand}
                         lang="bash"

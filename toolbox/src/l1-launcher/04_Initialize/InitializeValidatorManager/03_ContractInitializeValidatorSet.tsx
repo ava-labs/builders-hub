@@ -3,7 +3,7 @@ import { hexToBytes, AbiEvent, Abi, decodeErrorResult } from 'viem';
 import { useWalletStore } from '../../../lib/walletStore';
 import { useL1LauncherStore, useViemChainStore } from '../../L1LauncherStore';
 import { utils } from '@avalabs/avalanchejs';
-import { packWarpIntoAccessList } from '../../../toolbox/InitializePoA/packWarp';
+import { packWarpIntoAccessList } from '../../../toolbox/ValidatorManager/packWarp';
 import { Success } from '../../../components/Success';
 import { Button } from '../../../components/Button';
 import { useErrorBoundary } from 'react-error-boundary';

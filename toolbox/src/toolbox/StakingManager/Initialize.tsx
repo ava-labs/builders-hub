@@ -150,7 +150,7 @@ export default function Initialize() {
     return (
         <RequireChainToolboxL1>
             <Container
-                title="Initialize Staking Manager"
+                title="Set Initial Staking Manager Configuration"
                 description="This will initialize the NativeTokenStakingManager contract."
             >
                 <div className="space-y-4">

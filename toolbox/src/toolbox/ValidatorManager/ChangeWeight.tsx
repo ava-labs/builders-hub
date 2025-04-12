@@ -21,7 +21,7 @@ import { getRPCEndpoint } from "../../coreViem/utils/rpc"
 import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
 import { GetRegistrationJustification } from "./justification"
 import { packL1ValidatorWeightMessage } from "../../coreViem/utils/convertWarp"
-import { packWarpIntoAccessList } from "../InitializePoA/packWarp"
+import { packWarpIntoAccessList } from "./packWarp"
 import { getValidationIdHex } from "../../coreViem/hooks/getValidationID"
 
 interface ChangeWeightSteps {

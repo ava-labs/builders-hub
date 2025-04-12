@@ -21,43 +21,21 @@ const componentGroups: Record<string, ComponentType[]> = {
     "Wallet": [
         {
             id: 'switchChain',
-            label: "Switch Chain",
+            label: "Add L1 to Wallet",
             component: lazy(() => import('./Wallet/SwitchChain')),
             fileNames: ["toolbox/src/toolbox/Wallet/SwitchChain.tsx"]
         },
         {
-            id: 'addL1s',
-            label: "Add L1s",
-            component: lazy(() => import('./Wallet/AddL1s')),
-            fileNames: []
-        },
-        {
             id: 'crossChainTransfer',
-            label: "Cross Chain Transfer",
+            label: "C- & P-Chain Bridge",
             component: lazy(() => import('./Wallet/CrossChainTransfer')),
             fileNames: ["toolbox/src/toolbox/Wallet/CrossChainTransfer.tsx"]
         },
         {
-            id: 'balanceTopup',
-            label: "Validator Balance Topup",
-            component: lazy(() => import('./ValidatorManager/BalanceTopup')),
-            fileNames: ["toolbox/src/toolbox/ValidatorManager/BalanceTopup.tsx"]
-        }
-    ],
-    'Conversion': [
-        {
-            id: 'formatConverter',
-            label: "Format Converter",
-            component: lazy(() => import('./Conversion/FormatConverter')),
-            fileNames: [],
-            skipWalletConnection: true,
-        },
-        {
-            id: 'unitConverter',
-            label: "Unit Converter",
-            component: lazy(() => import('./Conversion/UnitConverter')),
-            fileNames: [],
-            skipWalletConnection: true,
+            id: 'addL1s',
+            label: "Add popular L1s",
+            component: lazy(() => import('./Wallet/AddL1s')),
+            fileNames: []
         }
     ],
     'Create an L1': [
@@ -75,7 +53,7 @@ const componentGroups: Record<string, ComponentType[]> = {
         },
         {
             id: 'convertToL1',
-            label: "Convert to L1",
+            label: "Convert Subnet to L1",
             component: lazy(() => import('./L1/ConvertToL1')),
             fileNames: ["toolbox/src/toolbox/L1/ConvertToL1.tsx"]
         },
@@ -87,68 +65,94 @@ const componentGroups: Record<string, ComponentType[]> = {
         },
         {
             id: 'genesisBuilder',
-            label: "Genesis Builder",
+            label: "EVM Genesis Builder",
             component: lazy(() => import('./L1/GenesisBuilder')),
             fileNames: ["toolbox/src/toolbox/L1/GenesisBuilder.tsx"]
         }
     ],
-    "Deploy ValidatorManager": [
+    "Nodes": [
+        {
+            id: "avalanchegoDocker",
+            label: "Node Setup with Docker",
+            component: lazy(() => import('./Nodes/AvalanchegoDocker')),
+            fileNames: ["toolbox/src/toolbox/Nodes/AvalanchegoDocker.tsx"],
+            skipWalletConnection: true,
+        },
+        {
+            id: 'balanceTopup',
+            label: "L1 Validator Balance Topup",
+            component: lazy(() => import('./Nodes/BalanceTopup')),
+            fileNames: ["toolbox/src/toolbox/Nodes/BalanceTopup.tsx"]
+        },
+        {
+            id: "rpcMethodsCheck",
+            label: "RPC Methods Check",
+            component: lazy(() => import('./Nodes/RPCMethodsCheck')),
+            fileNames: ["toolbox/src/toolbox/Nodes/RPCMethodsCheck.tsx"],
+            skipWalletConnection: true,
+        },
+        {
+            id: "performanceMonitor",
+            label: "Performance Monitor",
+            component: lazy(() => import('./Nodes/PerformanceMonitor')),
+            fileNames: ["toolbox/src/toolbox/Nodes/PerformanceMonitor.tsx"],
+            skipWalletConnection: true,
+        }
+    ],
+    "Validator Manager Setup": [
         {
             id: "deployValidatorMessages",
-            label: "Validator Messages Library",
+            label: "Deploy Validator Messages Library",
             component: lazy(() => import('./ValidatorManager/DeployValidatorMessages')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/DeployValidatorMessages.tsx"]
         },
         {
             id: "deployValidatorManager",
-            label: "Deploy Validator Manager",
+            label: "Deploy Validator Manager Contract",
             component: lazy(() => import('./ValidatorManager/DeployValidatorManager')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/DeployValidatorManager.tsx"]
         },
         {
             id: "upgradeProxy",
-            label: "Upgrade Proxy",
+            label: "Upgrade Proxy Contract",
             component: lazy(() => import('./ValidatorManager/UpgradeProxy')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/UpgradeProxy.tsx"]
         },
         {
             id: "readContract",
-            label: "Read Contract",
+            label: "Read Proxy Contract",
             component: lazy(() => import('./ValidatorManager/ReadContract')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/ReadContract.tsx"]
-        }
-    ],
-    "Initialize ValidatorManager": [
+        },
         {
             id: "initialize",
-            label: "Initialize",
-            component: lazy(() => import('./InitializePoA/Initialize')),
-            fileNames: ["toolbox/src/toolbox/InitializePoA/Initialize.tsx"]
+            label: "Set Initial Configuration",
+            component: lazy(() => import('./ValidatorManager/Initialize')),
+            fileNames: ["toolbox/src/toolbox/ValidatorManager/Initialize.tsx"]
         },
         {
             id: "initValidatorSet",
             label: "Initialize Validator Set",
-            component: lazy(() => import('./InitializePoA/InitValidatorSet')),
-            fileNames: ["toolbox/src/toolbox/InitializePoA/InitValidatorSet.tsx"]
+            component: lazy(() => import('./ValidatorManager/InitValidatorSet')),
+            fileNames: ["toolbox/src/toolbox/ValidatorManager/InitValidatorSet.tsx"]
         }
     ],
-
-    "ValidatorManager Functions": [
+    "Validator Manager Operations": [
         {
             id: "addValidator",
-            label: "Add Validator",
+            label: "Add L1 Validator",
             component: lazy(() => import('./ValidatorManager/AddValidator')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/AddValidator.tsx"]
         },
         {
             id: "removeValidator",
-            label: "Remove Validator",
+            label: "Remove L1 Validator",
             component: lazy(() => import('./ValidatorManager/RemoveValidator')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/RemoveValidator.tsx"]
         },
         {
             id: "changeWeight",
-            label: "Change Weight",
+            label: "Change L1 Validator Weight",
             component: lazy(() => import('./ValidatorManager/ChangeWeight')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeight.tsx"]
         }
@@ -167,57 +171,34 @@ const componentGroups: Record<string, ComponentType[]> = {
             fileNames: ["toolbox/src/toolbox/StakingManager/DeployStakingManager.tsx"]
         },
         {
-            id: "transferOwnership",
-            label: "Transfer Ownership",
-            component: lazy(() => import('./StakingManager/TransferOwnership')),
-            fileNames: ["toolbox/src/toolbox/StakingManager/TransferOwnership.tsx"]
-        },
-        {
             id: "initializeStakingManager",
-            label: "Initialize Staking Manager",
+            label: "Set Initial Configuration",
             component: lazy(() => import('./StakingManager/Initialize')),
             fileNames: ["toolbox/src/toolbox/StakingManager/Initialize.tsx"]
         },
-    ],
-    "Nodes": [
         {
-            id: "rpcMethodsCheck",
-            label: "RPC Methods Check",
-            component: lazy(() => import('./Nodes/RPCMethodsCheck')),
-            fileNames: ["toolbox/src/toolbox/Nodes/RPCMethodsCheck.tsx"],
-            skipWalletConnection: true,
-        },
-        {
-            id: "avalanchegoDocker",
-            label: "Avalanchego in Docker",
-            component: lazy(() => import('./Nodes/AvalanchegoDocker')),
-            fileNames: ["toolbox/src/toolbox/Nodes/AvalanchegoDocker.tsx"],
-            skipWalletConnection: true,
-        },
-        {
-            id: "performanceMonitor",
-            label: "Performance Monitor",
-            component: lazy(() => import('./Nodes/PerformanceMonitor')),
-            fileNames: ["toolbox/src/toolbox/Nodes/PerformanceMonitor.tsx"],
-            skipWalletConnection: true,
+            id: "transferOwnership",
+            label: "Transfer Validator Manager Ownership",
+            component: lazy(() => import('./StakingManager/TransferOwnership')),
+            fileNames: ["toolbox/src/toolbox/StakingManager/TransferOwnership.tsx"]
         }
     ],
     "ICM": [
         {
             id: "teleporterMessenger",
-            label: "Teleporter Messenger",
+            label: "Deploy Teleporter Messenger",
             component: lazy(() => import('./ICM/TeleporterMessenger')),
             fileNames: ["toolbox/src/toolbox/ICM/TeleporterMessenger.tsx"]
         },
         {
             id: "teleporterRegistry",
-            label: "Teleporter Registry",
+            label: "Deploy Teleporter Registry",
             component: lazy(() => import('./ICM/TeleporterRegistry')),
             fileNames: ["toolbox/src/toolbox/ICM/TeleporterRegistry.tsx"]
         },
         {
             id: "icmRelayer",
-            label: "ICM Relayer",
+            label: "ICM Relayer Setup",
             component: lazy(() => import('./ICM/ICMRelayer')),
             fileNames: ["toolbox/src/toolbox/ICM/ICMRelayer.tsx"]
         },
@@ -243,29 +224,45 @@ const componentGroups: Record<string, ComponentType[]> = {
     "ICTT": [
         {
             id: "deployExampleERC20",
-            label: "Example ERC20",
+            label: "Deploy Example ERC20",
             component: lazy(() => import('./ICTT/DeployExampleERC20')),
             fileNames: ["toolbox/src/toolbox/ICTT/DeployExampleERC20.tsx"]
         },
         {
             id: "deployERC20TokenHome",
-            label: "ERC20 Token Home",
+            label: "Deploy ERC20 Token Home Contract",
             component: lazy(() => import('./ICTT/DeployERC20TokenHome')),
             fileNames: ["toolbox/src/toolbox/ICTT/DeployERC20TokenHome.tsx"]
         },
         {
             id: "deployERC20TokenRemote",
-            label: "ERC20 Token Remote",
+            label: "Deploy ERC20 Token Remote Contract",
             component: lazy(() => import('./ICTT/DeployERC20TokenRemote')),
             fileNames: ["toolbox/src/toolbox/ICTT/DeployERC20TokenRemote.tsx"]
         },
         {
             id: "registerWithHome",
-            label: "Register with Home",
+            label: "Register Token Remote with Home",
             component: lazy(() => import('./ICTT/RegisterWithHome')),
             fileNames: ["toolbox/src/toolbox/ICTT/RegisterWithHome.tsx"]
         }
-    ]
+    ],
+    'Conversion Utils': [
+        {
+            id: 'formatConverter',
+            label: "Format Converter",
+            component: lazy(() => import('./Conversion/FormatConverter')),
+            fileNames: [],
+            skipWalletConnection: true,
+        },
+        {
+            id: 'unitConverter',
+            label: "AVAX Unit Converter",
+            component: lazy(() => import('./Conversion/UnitConverter')),
+            fileNames: [],
+            skipWalletConnection: true,
+        }
+    ],
 };
 
 // Loading component for Suspense

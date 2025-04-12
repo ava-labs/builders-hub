@@ -166,7 +166,7 @@ export default function ValidatorBalanceIncrease() {
 
   return (
     <Container
-      title="Validator Balance Increase"
+      title="L1 Validator Balance Topup"
       description="Transfer tokens from C-Chain to P-Chain and increase validator balance."
     >
       <RequireChain chain={avalancheFuji}>
@@ -269,7 +269,7 @@ export default function ValidatorBalanceIncrease() {
                   </span>
                 ) : (
                   <>
-                    Increase Validator Balance →
+                    Increase Validator Balance
                   </>
                 )}
               </Button>
