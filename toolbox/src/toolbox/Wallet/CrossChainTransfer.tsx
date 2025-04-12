@@ -10,8 +10,6 @@ import { JsonRpcProvider } from "ethers"
 import { bytesToHex } from "viem"
 
 import { useErrorBoundary } from "react-error-boundary"
-import { RequireChain } from "../../components/RequireChain"
-import { avalancheFuji } from "viem/chains"
 import { getRPCEndpoint } from "../../coreViem/utils/rpc"
 
 // Define the type for window.avalanche response
