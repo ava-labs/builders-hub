@@ -3,67 +3,69 @@ title: Avalanche L1s
 description: Explore the multi-chain architecture of Avalanche ecosystem.
 ---
 
-An Avalanche L1 is a sovereign network which defines its own rules regarding its membership and token economics. It is composed of a dynamic subset of Avalanche validators working together to achieve consensus on the state of one or more blockchains. Each blockchain is validated by exactly one Avalanche L1, while an Avalanche L1 can validate many blockchains.
 
-Avalanche's [Primary Network](/docs/quick-start/primary-network) is a special Avalanche L1 running three blockchains:
 
-- The Platform Chain [(P-Chain)](/docs/quick-start/primary-network#p-chain)
-- The Contract Chain [(C-Chain)](/docs/quick-start/primary-network#c-chain)
-- The Exchange Chain [(X-Chain)](/docs/quick-start/primary-network#x-chain)
+An <GlossaryTerm>Avalanche L1</GlossaryTerm> is a sovereign network which defines its own rules regarding its membership and token economics. It is composed of a dynamic subset of <GlossaryTerm>Avalanche</GlossaryTerm> <GlossaryTerm>validator</GlossaryTerm>s working together to achieve <GlossaryTerm>consensus</GlossaryTerm> on the state of one or more <GlossaryTerm>blockchain</GlossaryTerm>s. Each <GlossaryTerm>blockchain</GlossaryTerm> is validated by exactly one <GlossaryTerm>Avalanche L1</GlossaryTerm>, while an <GlossaryTerm>Avalanche L1</GlossaryTerm> can validate many <GlossaryTerm>blockchain</GlossaryTerm>s.
+
+<GlossaryTerm>Avalanche</GlossaryTerm>'s [<GlossaryTerm>Primary Network</GlossaryTerm>](/docs/quick-start/primary-network) is a special <GlossaryTerm>Avalanche L1</GlossaryTerm> running three <GlossaryTerm>blockchain</GlossaryTerm>s:
+
+- The <GlossaryTerm>Platform Chain</GlossaryTerm> [(<GlossaryTerm>P-Chain</GlossaryTerm>)](/docs/quick-start/primary-network#p-chain)
+- The <GlossaryTerm>Contract Chain</GlossaryTerm> [(<GlossaryTerm>C-Chain</GlossaryTerm>)](/docs/quick-start/primary-network#c-chain)
+- The <GlossaryTerm>Exchange Chain</GlossaryTerm> [(<GlossaryTerm>X-Chain</GlossaryTerm>)](/docs/quick-start/primary-network#x-chain)
 
 ![image](/images/subnet1.png)
 
 <Callout title="Note">
-Every validator of an Avalanche L1 **must** sync the P-Chain of the Primary Network for interoperability.
+Every <GlossaryTerm>validator</GlossaryTerm> of an <GlossaryTerm>Avalanche L1</GlossaryTerm> **must** sync the <GlossaryTerm>P-Chain</GlossaryTerm> of the <GlossaryTerm>Primary Network</GlossaryTerm> for interoperability.
 </Callout>
 
-Node operators that validate an Avalanche L1 with multiple chains do not need to run multiple machines for validation. For example, the Primary Network is an Avalanche L1 with three coexisting chains, all of which can be validated by a single node, or a single machine.
+<GlossaryTerm>Node</GlossaryTerm> operators that validate an <GlossaryTerm>Avalanche L1</GlossaryTerm> with multiple chains do not need to run multiple machines for validation. For example, the <GlossaryTerm>Primary Network</GlossaryTerm> is an <GlossaryTerm>Avalanche L1</GlossaryTerm> with three coexisting chains, all of which can be validated by a single <GlossaryTerm>node</GlossaryTerm>, or a single machine.
 
 ## Advantages
 
 ### Independent Networks
 
-- Avalanche L1s use virtual machines to specify their own execution logic, determine their own fee regime, maintain their own state, facilitate their own networking, and provide their own security.
-- Each Avalanche L1's performance is isolated from other Avalanche L1s in the ecosystem, so increased usage on one Avalanche L1 won't affect another.
-- Avalanche L1s can have their own token economics with their own native tokens, fee markets, and incentives determined by the Avalanche L1 deployer.
-- One Avalanche L1 can host multiple blockchains with customized [virtual machines](/docs/quick-start/virtual-machines).
+- <GlossaryTerm>Avalanche L1</GlossaryTerm>s use <GlossaryTerm>virtual machine</GlossaryTerm>s to specify their own execution logic, determine their own fee regime, maintain their own state, facilitate their own networking, and provide their own security.
+- Each <GlossaryTerm>Avalanche L1</GlossaryTerm>'s performance is isolated from other <GlossaryTerm>Avalanche L1</GlossaryTerm>s in the ecosystem, so increased usage on one <GlossaryTerm>Avalanche L1</GlossaryTerm> won't affect another.
+- <GlossaryTerm>Avalanche L1</GlossaryTerm>s can have their own token economics with their own native <GlossaryTerm>token</GlossaryTerm>s, fee markets, and incentives determined by the <GlossaryTerm>Avalanche L1</GlossaryTerm> deployer.
+- One <GlossaryTerm>Avalanche L1</GlossaryTerm> can host multiple <GlossaryTerm>blockchain</GlossaryTerm>s with customized [<GlossaryTerm>virtual machine</GlossaryTerm>s](/docs/quick-start/virtual-machines).
 
 ### Native Interoperability
 
-Avalanche Warp Messaging enables native cross-Avalanche L1 communication and allows Virtual Machine (VM) developers to implement arbitrary communication protocols between any two Avalanche L1s.
+<GlossaryTerm>Avalanche</GlossaryTerm> Warp Messaging enables native cross-<GlossaryTerm>Avalanche L1</GlossaryTerm> communication and allows <GlossaryTerm>Virtual Machine</GlossaryTerm> (VM) developers to implement arbitrary communication protocols between any two <GlossaryTerm>Avalanche L1</GlossaryTerm>s.
 
 ### Accommodate App-Specific Requirements
 
-Different blockchain-based applications may require validators to have certain properties such as large amounts of RAM or CPU power.
+Different <GlossaryTerm>blockchain</GlossaryTerm>-based applications may require <GlossaryTerm>validator</GlossaryTerm>s to have certain properties such as large amounts of RAM or CPU power.
 
-an Avalanche L1 could require that validators meet certain [hardware requirements](/docs/nodes/run-a-node/manually#hardware-and-os-requirements) so that the application doesn't suffer from low performance due to slow validators.
+an <GlossaryTerm>Avalanche L1</GlossaryTerm> could require that <GlossaryTerm>validator</GlossaryTerm>s meet certain [hardware requirements](/docs/nodes/run-a-node/manually#hardware-and-os-requirements) so that the application doesn't suffer from low performance due to slow <GlossaryTerm>validator</GlossaryTerm>s.
 
 ### Launch Networks Designed With Compliance
 
-Avalanche's L1 architecture makes regulatory compliance manageable. As mentioned above, an Avalanche L1 may require validators to meet a set of requirements.
+<GlossaryTerm>Avalanche</GlossaryTerm>'s L1 architecture makes regulatory compliance manageable. As mentioned above, an <GlossaryTerm>Avalanche L1</GlossaryTerm> may require <GlossaryTerm>validator</GlossaryTerm>s to meet a set of requirements.
 
-Some examples of requirements the creators of an Avalanche L1 may choose include:
+Some examples of requirements the creators of an <GlossaryTerm>Avalanche L1</GlossaryTerm> may choose include:
 
-- Validators must be located in a given country.
-- Validators must pass KYC/AML checks.
-- Validators must hold a certain license.
+- <GlossaryTerm>Validator</GlossaryTerm>s must be located in a given country.
+- <GlossaryTerm>Validator</GlossaryTerm>s must pass KYC/AML checks.
+- <GlossaryTerm>Validator</GlossaryTerm>s must hold a certain license.
 
 ### Control Privacy of On-Chain Data
 
-Avalanche L1s are ideal for organizations interested in keeping their information private.
+<GlossaryTerm>Avalanche L1</GlossaryTerm>s are ideal for organizations interested in keeping their information private.
 
-Institutions conscious of their stakeholders' privacy can create a private Avalanche L1 where the contents of the blockchains would be visible only to a set of pre-approved validators.
+Institutions conscious of their stakeholders' privacy can create a private <GlossaryTerm>Avalanche L1</GlossaryTerm> where the contents of the <GlossaryTerm>blockchain</GlossaryTerm>s would be visible only to a set of pre-approved <GlossaryTerm>validator</GlossaryTerm>s.
 
 Define this at creation with a [single parameter](/docs/nodes/configure/avalanche-l1-configs#private-avalanche-l1).
 
 ### Validator Sovereignty
 
-In a heterogeneous network of blockchains, some validators will not want to validate certain blockchains because they simply have no interest in those blockchains.
+In a heterogeneous network of <GlossaryTerm>blockchain</GlossaryTerm>s, some <GlossaryTerm>validator</GlossaryTerm>s will not want to validate certain <GlossaryTerm>blockchain</GlossaryTerm>s because they simply have no interest in those <GlossaryTerm>blockchain</GlossaryTerm>s.
 
-The Avalanche L1 model enables validators to concern themselves only with blockchain networks they choose to participate in. This greatly reduces the computational burden on validators.
+The <GlossaryTerm>Avalanche L1</GlossaryTerm> model enables <GlossaryTerm>validator</GlossaryTerm>s to concern themselves only with <GlossaryTerm>blockchain</GlossaryTerm> networks they choose to participate in. This greatly reduces the computational burden on <GlossaryTerm>validator</GlossaryTerm>s.
 
 ## Develop Your Own Avalanche L1
 
-Avalanche L1s on Avalanche are deployed by default with [Subnet-EVM](https://github.com/ava-labs/subnet-evm#subnet-evm), a fork of go-ethereum. It implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
+<GlossaryTerm>Avalanche L1</GlossaryTerm>s on <GlossaryTerm>Avalanche</GlossaryTerm> are deployed by default with [Subnet-EVM](https://github.com/ava-labs/subnet-evm#subnet-evm), a fork of go-ethereum. It implements the <GlossaryTerm>Ethereum</GlossaryTerm> <GlossaryTerm>Virtual Machine</GlossaryTerm> and supports Solidity <GlossaryTerm>smart contract</GlossaryTerm>s as well as most other <GlossaryTerm>Ethereum</GlossaryTerm> client functionality.
 
-To get started, check out our [L1 Launcher](/tools/l1-launcher) or the tutorials in the [Avalanche CLI](/docs/tooling/create-avalanche-l1) section.
+To get started, check out our [L1 Launcher](/tools/l1-launcher) or the tutorials in the [<GlossaryTerm>Avalanche</GlossaryTerm> CLI](/docs/tooling/create-avalanche-l1) section.

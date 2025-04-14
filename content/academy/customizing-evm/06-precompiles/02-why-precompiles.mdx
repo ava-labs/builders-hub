@@ -6,13 +6,14 @@ authors: [ashucoder9]
 icon: BookOpen
 ---
 
+
 Adding precompiles to the EVM offers several significant advantages, which we will outline in this chapter.
 
 ## Performance Optimization
 
-Precompiles primarily optimize the performance of specific computations. Introducing a new precompile can greatly reduce the computational resources required for certain tasks, thereby enhancing the performance of smart contracts and decentralized applications (DApps) that rely on these tasks.
+Precompiles primarily optimize the performance of specific computations. Introducing a new precompile can greatly reduce the computational resources required for certain tasks, thereby enhancing the performance of <GlossaryTerm>Smart Contract</GlossaryTerm>s and <GlossaryTerm>Decentralized Application</GlossaryTerm>s (DApps) that rely on these tasks.
 
-For instance, the SHA256 hash function (0x02) and the RIPEMD160 hash function (0x03) serve as examples of precompiles that significantly boost performance. Implementing these functions within a smart contract would be computationally expensive and slow, whereas as precompiles, they execute quickly and efficiently.
+For instance, the SHA256 <GlossaryTerm>Hash</GlossaryTerm> function (0x02) and the RIPEMD160 hash function (0x03) serve as examples of precompiles that significantly boost performance. Implementing these functions within a smart contract would be computationally expensive and slow, whereas as precompiles, they execute quickly and efficiently.
 
 ## Security
 
@@ -26,7 +27,7 @@ Precompiles are implemented in Go, allowing access to the rich ecosystem of exis
 
 Consider the implementation of the SHA256 hash algorithm to understand the complexity involved in reimplementing it in Solidity.
 
-## Gas Efficiency
+## <GlossaryTerm>Gas</GlossaryTerm> Efficiency
 
 Introducing a new precompile to the EVM can enhance gas efficiency for specific computations, thereby lowering execution costs. This makes it feasible to incorporate more complex operations into smart contracts, expanding their functionality without significantly increasing transaction costs.
 

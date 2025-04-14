@@ -1,15 +1,16 @@
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-> In the following commands, make sure to substitute the name of your Avalanche L1 for `<name>` (including the `<>`). You can choose whatever name you want, but I recommend using `myblockchain` as the name to avoid the need for some manual configuration.
+
+> In the following commands, make sure to substitute the name of your <GlossaryTerm>Avalanche L1</GlossaryTerm> for `<n>` (including the `<>`). You can choose whatever name you want, but I recommend using `myblockchain` as the name to avoid the need for some manual configuration.
 
 <Steps>
 <Step>
  
 ### Start Avalanche L1 Configuration
-To create an Avalanche L1 configuration run the following command:
+To create an <GlossaryTerm>Avalanche L1</GlossaryTerm> configuration run the following command:
 
 ```bash
-avalanche blockchain create <name> --sovereign=false
+avalanche blockchain create <n> --sovereign=false
 ```
 
 For example:
@@ -23,7 +24,7 @@ avalanche blockchain create myblockchain --sovereign=false
 <Step>
  
 ### Select Virtual Machine
-You will be prompted a wizard to configure your Avalanche L1. In the first question, select `Subnet-EVM`:
+You will be prompted a wizard to configure your <GlossaryTerm>Avalanche L1</GlossaryTerm>. In the first question, select `Subnet-EVM`:
 
 ```bash
 ? Which Virtual Machine would you like to use?: 
@@ -62,10 +63,10 @@ subnet-evm-v0.6.8 installation successful
 ✓ Successfully created blockchain configuration
 ```
 
-This command creates the config files `genesis.json` and `sidecar.json` inside: `~/.avalanche-cli/subnets/<name>`. If you want, you can retrieve the current config with the following command:
+This command creates the config files `genesis.json` and `sidecar.json` inside: `~/.avalanche-cli/subnets/<n>`. If you want, you can retrieve the current config with the following command:
 
 ```bash
-avalanche blockchain describe <name>
+avalanche blockchain describe <n>
 ```
 
 </Step>
@@ -75,7 +76,7 @@ avalanche blockchain describe <name>
 ### To deploy your Avalanche L1, run
 
 ```bash
-avalanche blockchain deploy <name>
+avalanche blockchain deploy <n>
 ```
 
 So in our case:
@@ -245,7 +246,7 @@ fuji-c = "https://api.avax-test.network/ext/bc/C/rpc"
  
 ### Make RPC-Endpoint publicly accessible
 
-The final part of the output shows the wallet connection details. You can use these to connect your wallet like Core or Metasmask to you newly created Avalanche L1.
+The final part of the output shows the wallet connection details. You can use these to connect your wallet like Core or Metasmask to you newly created <GlossaryTerm>Avalanche L1</GlossaryTerm>.
 
 import PublishPort from "@/content/common/codespaces/publish-port.mdx";
 

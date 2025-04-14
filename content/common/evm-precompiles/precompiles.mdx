@@ -1,11 +1,13 @@
+
+
 Precompiled contracts are a way to execute code written in the low-level coding language Go from the EVM. Go is much faster and more efficient than Solidity.
 
 If you are familiar with Python programming, you might be familiar with a similar concept. Many Python functions and libraries are written in the programming language C, since it is much more efficient than Python. Python developers can import these precompile modules and call these functions just as if they were written in Python. The only difference is that the modules are faster and more efficient.
 
 ![Precompiles](/common-images/evm-precompiles/precompiles.png)
 
-Precompiles can be called from a Solidity smart contract in the same way, as if they were another contract written in Solidity. The EVM keeps a list of addresses reserved and mapped to the precompiles. When a smart contract calls a function of a contract with an address on that list, the EVM executes the precompile written in Go instead of the smart contract.
-For instance, if we mapped the address 0x030...01 to the SHA256 precompile that hashes its input using the SHA256 Hash Function, we can call the Precompile like this:
+Precompiles can be called from a Solidity <GlossaryTerm>Smart Contract</GlossaryTerm> in the same way, as if they were another contract written in Solidity. The EVM keeps a list of addresses reserved and mapped to the precompiles. When a smart contract calls a function of a contract with an address on that list, the EVM executes the precompile written in Go instead of the smart contract.
+For instance, if we mapped the address 0x030...01 to the SHA256 precompile that <GlossaryTerm>Hash</GlossaryTerm>es its input using the SHA256 Hash Function, we can call the Precompile like this:
 
 ```solidity
 // SPDX-License-Identifier: MIT

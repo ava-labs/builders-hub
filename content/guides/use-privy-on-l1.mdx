@@ -6,6 +6,8 @@ authors: [satatocom]
 topics: [Avalanche L1, Avalanche Starter Kit, Magic Link, Social Login, Embedded Wallets]
 ---
 
+
+
 In this guide, you will learn how to use Privy to easily onboard your users and create transactions without the need for any Web3 wallet.
 
 ## What is Privy?
@@ -56,7 +58,7 @@ npm i ethers@latest
 
 ### Define Your Avalanche L1
 
-In this guide, we are using the `Echo L1` as an example Avalanche L1. However, you can use any Avalanche L1 that has a public RPC URL. If the L1 has an explorer page, you can see better what is happening, but it is not required.
+In this guide, we are using the `Echo L1` as an example <GlossaryTerm>Avalanche L1</GlossaryTerm>. However, you can use any <GlossaryTerm>Avalanche L1</GlossaryTerm> that has a public RPC URL. If the L1 has an explorer page, you can see better what is happening, but it is not required.
 
 ```typescript
 export const echo = defineChain({
@@ -163,7 +165,7 @@ As you can see, Privy has generated an embedded wallet for our user. We’ve dis
 <span>{balance} ECH</span>
 ```
 
-We’ve used the user object of Privy to retrieve the user ID and wallet address. To fetch the user’s balance, we need to create an HTTP client for our Avalanche L1, which we’ve already defined earlier.
+We've used the user object of Privy to retrieve the user ID and wallet address. To fetch the user's balance, we need to create an HTTP client for our <GlossaryTerm>Avalanche L1</GlossaryTerm>, which we've already defined earlier.
 
 ```typescript
 const client = createPublicClient({
@@ -186,7 +188,7 @@ const { logout } = useLogout();
 
 ### Fund the New Wallet Using the Faucet
 
-We’ve funded the new wallet that was generated for our user with some ECH tokens from the [Echo AWM Testnet Faucet](https://test.core.app/tools/testnet-faucet/?subnet=echo&token=echo).
+We've funded the new wallet that was generated for our user with some ECH tokens from the [Echo AWM Testnet Faucet](https://test.core.app/tools/testnet-faucet/?subnet=echo&token=echo).
 
 ![](/guide-images/use-privy-on-l1/4.png)
 

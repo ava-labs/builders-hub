@@ -1,11 +1,12 @@
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/utils/cn';
 
+
 Signature schemes are cryptographic schemes, that allow us to sign some piece of data, and someone else can verify our signature. Think of signature schemes as a very modern version of signing for example a contract, which does not rely on your unique hand movement, but on math. There are many different signature schemes. They vary in efficiency and security. 
 
 The main goal of signature schemes is to ensure the authenticity, non-repudiation, and integrity of digital messages.
 
-- **Authenticity:** Authenticity ensures that the signature authenticates the origin of the message and verifies that it was indeed created by the claimed sender. A valid signature on a message proves that the signer owns the private key associated with the public key used for the signature.
+- **Authenticity:** Authenticity ensures that the signature authenticates the origin of the message and verifies that it was indeed created by the claimed sender. A valid signature on a message proves that the signer owns the <GlossaryTerm>Private Key</GlossaryTerm> associated with the <GlossaryTerm>Public Key</GlossaryTerm> used for the signature.
 
 - **Non-Repudiation:** Non-repudiation ensures that the signer cannot deny their involvement in the transaction. In other words, they cannot later claim that they didn't authorize or sign the message. Therefore, signing the message is a binding commitment.
 

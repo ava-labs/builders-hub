@@ -6,6 +6,8 @@ authors: [0xstt]
 icon: Book
 ---
 
+
+
 ## Configuration Format
 
 The fees are configured in the `chainConfig` in the `feeConfig` field:
@@ -36,13 +38,13 @@ The fees are configured in the `chainConfig` in the `feeConfig` field:
 }
 ```
 
-## Gas Configuration Parameters
+## <GlossaryTerm>Gas</GlossaryTerm> Configuration Parameters
 
 ### `gasLimit`
 
-Sets the maximum amount of gas consumed per block. This restriction caps the computational capacity of a single block and thereby limits the maximum gas usage allowed for any single transaction. For reference, the C-Chain value is set to 15,000,000.
+Sets the maximum amount of gas consumed per <GlossaryTerm>block</GlossaryTerm>. This restriction caps the computational capacity of a single block and thereby limits the maximum gas usage allowed for any single transaction. For reference, the <GlossaryTerm>C-Chain</GlossaryTerm> value is set to 15,000,000.
 
-You might notice that the `gasLimit` field appears twice. This is because Avalanche introduced its own fee configuration under the `feeConfig` key while maintaining compatibility with the standard EVM configuration. Ensure that both fields have the same decimal and hexadecimal equivalent values.
+You might notice that the `gasLimit` field appears twice. This is because <GlossaryTerm>Avalanche</GlossaryTerm> introduced its own fee configuration under the `feeConfig` key while maintaining compatibility with the standard EVM configuration. Ensure that both fields have the same decimal and hexadecimal equivalent values.
 
 ### `targetBlockRate`
 

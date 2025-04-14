@@ -7,9 +7,10 @@ topics: [ Avalanche Network Upgrade, Etna Upgrade, Validators, Layer 1, L1, L1 V
 comments: true
 ---
 
+
 ## What are L1 Validators?
 
-Introduced with ACP-77, [Avalanche L1 Validators](https://build.avax.network/guides/subnet-vs-l1-validators) enable the creation of sovereign L1
+Introduced with <GlossaryTerm>ACP-77</GlossaryTerm>, [Avalanche L1 Validators](https://build.avax.network/guides/subnet-vs-l1-validators) enable the creation of sovereign L1
 networks with minimal dependency on the Avalanche Primary Network. Unlike Subnet validators, L1 validators do not stake AVAX, but instead pay a
 continuous dynamic fee called the L1 Validator Fee.
 
@@ -29,7 +30,7 @@ disk, and any messages from them will be invalid until they are revived. Inactiv
 AvalancheGo calculates the accrued fees for a block based on the formula: fee rate (in nAVAX/sec) \* duration since the prior block (in seconds) for
 every block. For each L1 validator, AvalancheGo tracks a value called the
 [`endAccumulatedFee`](https://github.com/ava-labs/avalanchego/blob/ab4619873028fd975dfa6e89e53e555dd53e0cdb/vms/platformvm/state/l1_validator.go#L116-L124), which represents the total fees that will accumulate
-in the future at the current rate. Once this value is reached, the validator will be marked as “inactive” due to the fact that its balance will not
+in the future at the current rate. Once this value is reached, the validator will be marked as "inactive" due to the fact that its balance will not
 cover the fees accrued until this final block.
 
 When a validator registers with `RegisterL1ValidatorTx`, the balance of AVAX is allocated to that validator, and is continuously charged by the
