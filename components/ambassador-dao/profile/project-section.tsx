@@ -33,7 +33,7 @@ export default function ProjectSection() {
     category: category.category,
     date: new Date().toLocaleString(),
     query: searchQuery,
-    page: 1,
+    page: currentPage,
   });
 
   const projectTabs = [

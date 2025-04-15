@@ -212,7 +212,7 @@ export const useSubmitJobApplication = (opportunity_id: string) => {
         `${API_DEV}/opportunity/${opportunity_id}/apply`,
         args
       );
-      return res.data.data as any;
+      return res.data as any;
     },
     onSuccess: (data) => {
       toast.success(data?.message);

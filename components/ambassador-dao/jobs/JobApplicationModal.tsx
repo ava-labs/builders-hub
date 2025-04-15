@@ -264,7 +264,7 @@ const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
 
           <button
             type='submit'
-            disabled={isSubmitting}
+            disabled={isSubmitting || isUploading}
             className='px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-800 disabled:cursor-not-allowed text-white font-medium rounded-md transition flex items-center gap-2 justify-center'
           >
             {isSubmitting && (

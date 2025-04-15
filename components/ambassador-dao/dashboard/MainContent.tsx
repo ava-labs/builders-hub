@@ -11,7 +11,6 @@ import BountiesSection from "./BountiesSection";
 import { GoBackButton } from "./BackButton";
 import SideContent from "./SideContent";
 import { Pagination } from "../ui/Pagination";
-import page from "@/app/(home)/ambassador-dao/edit-profile/page";
 
 const MainContent = ({ user }: { user: any }) => {
   const pathname = usePathname();
