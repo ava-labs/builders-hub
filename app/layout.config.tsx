@@ -38,6 +38,8 @@ import L1LauncherPreview from '@/public/nav-banner/l1-launcher-preview.png';
 import L1ToolboxPreview from '@/public/nav-banner/l1-toolbox-preview.png';
 import { SiGithub } from '@icons-pack/react-simple-icons';
 import UserWrapper from '@/components/login/user-button/UserWrapper';
+import CustomButton from "@/components/ambassador-dao/custom-button";
+import { AuthButton } from '@/components/ambassador-dao/auth-button';
 
 export const integrationsMenu: LinkItemType = {
   type: 'menu',
@@ -127,12 +129,12 @@ export const docsMenu: LinkItemType = {
             />
           </div>
         ),
-        className: 'md:row-span-2',
+        className: "md:row-span-2",
       },
       icon: <Sprout />,
-      text: 'Avalanche Protocol',
-      description: 'Learn about the Avalanche Protocol',
-      url: '/docs/quick-start',
+      text: "Avalanche Protocol",
+      description: "Learn about the Avalanche Protocol",
+      url: "/docs/quick-start",
     },
     {
       icon: <Logs />,
@@ -151,7 +153,7 @@ export const docsMenu: LinkItemType = {
         'Learn about hardware requirements, staking mechanisms, rewards, and best practices for running validator infra on Avalanche.',
       url: '/docs/nodes',
       menu: {
-        className: 'lg:col-start-2',
+        className: "lg:col-start-2",
       },
     },
     {
@@ -312,7 +314,7 @@ export const toolsMenu: LinkItemType = {
         'Spin up short-lived test environments for building dApps using interoperability features like ICM and ICTT.',
       url: 'https://github.com/ava-labs/avalanche-starter-kit',
       menu: {
-        className: 'lg:col-start-3 lg:row-start-2',
+        className: "lg:col-start-3 lg:row-start-2",
       },
     },
   ],
@@ -483,6 +485,11 @@ const hackathons: LinkItemType = {
   active: 'nested-url',
 };
 
+export const ambassadorMenu: LinkItemType = {
+  text: "Ambassador DAO",
+  url: "/ambassador-dao",
+};
+
 export const baseOptions: BaseLayoutProps = {
   // githubUrl: 'https://github.com/ava-labs/builders-hub',
   nav: {
@@ -505,5 +512,10 @@ export const baseOptions: BaseLayoutProps = {
     userMenu,
     // hackathons,
     //userMenu,
+    ambassadorMenu,
+    {
+      type: "custom",
+      children: <AuthButton />,
+    },
   ],
 };

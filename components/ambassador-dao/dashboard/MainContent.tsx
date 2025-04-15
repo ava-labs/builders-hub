@@ -1,0 +1,302 @@
+"use client";
+
+import { useState, useEffect, SetStateAction } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useFetchOpportunity } from "@/services/ambassador-dao/requests/opportunity";
+import Loader from "@/components/ambassador-dao/ui/Loader";
+import { useDebounce } from "@/components/ambassador-dao/hooks/useDebounce";
+import { AuthModal } from "../sections/auth-modal";
+import JobsSection from "./JobSection";
+import BountiesSection from "./BountiesSection";
+import { GoBackButton } from "./BackButton";
+import SideContent from "./SideContent";
+import { Pagination } from "../ui/Pagination";
+
+const MainContent = ({ user }: { user: any }) => {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const type = searchParams.get("type");
+  const [openAuthModal, setOpenAuthModal] = useState(false);
+  const [currentJobPage, setCurrentJobPage] = useState(1);
+  const [currentBountyPage, setCurrentBountyPage] = useState(1);
+
+  const [isFiltering, setIsFiltering] = useState(false);
+
+  const [jobFilters, setJobFilters] = useState({
+    type: "JOB",
+    query: searchParams.get("job_query") || "",
+    skill_ids: searchParams.get("job_skillSet") || "",
+    min_budget: searchParams.get("job_min_budget") || "",
+    max_budget: searchParams.get("job_max_budget") || "",
+    category: searchParams.get("job_category") || "",
+    status: searchParams.get("job_status") || "",
+    page: currentJobPage,
+  });
+
+  const [bountyFilters, setBountyFilters] = useState({
+    type: "BOUNTY",
+    query: searchParams.get("bounty_query") || "",
+    skill_ids: searchParams.get("bounty_skillSet") || "",
+    min_budget: searchParams.get("bounty_min_budget") || "",
+    max_budget: searchParams.get("bounty_max_budget") || "",
+    category: searchParams.get("bounty_category") || "",
+    status: searchParams.get("bounty_status") || "",
+  });
+
+  const [searchJobInput, setSearchJobInput] = useState(
+    searchParams.get("job_query") || ""
+  );
+  const debouncedJobSearch = useDebounce(searchJobInput, 1000);
+
+  const [searchBountyInput, setSearchBountyInput] = useState(
+    searchParams.get("bounty_query") || ""
+  );
+  const debouncedBountySearch = useDebounce(searchBountyInput, 1000);
+
+  useEffect(() => {
+    if (debouncedJobSearch !== jobFilters.query) {
+      updateJobFilters({ query: debouncedJobSearch });
+    }
+  }, [debouncedJobSearch]);
+
+  useEffect(() => {
+    if (debouncedBountySearch !== bountyFilters.query) {
+      updateBountyFilters({ query: debouncedBountySearch });
+    }
+  }, [debouncedBountySearch]);
+
+  useEffect(() => {
+    if (!isFiltering) {
+      const newJobFilters = {
+        type: "JOB",
+        query: searchParams.get("job_query") || "",
+        skill_ids: searchParams.get("job_skill_ids") || "",
+        min_budget: searchParams.get("job_min_budget") || "",
+        max_budget: searchParams.get("job_max_budget") || "",
+        category: searchParams.get("job_category") || "",
+        status: searchParams.get("job_status") || "",
+        page: currentJobPage,
+      };
+
+      setJobFilters(newJobFilters);
+
+      const newBountyFilters = {
+        type: "BOUNTY",
+        query: searchParams.get("bounty_query") || "",
+        skill_ids: searchParams.get("bounty_skill_ids") || "",
+        min_budget: searchParams.get("bounty_min_budget") || "",
+        max_budget: searchParams.get("bounty_max_budget") || "",
+        category: searchParams.get("bounty_category") || "",
+        status: searchParams.get("bounty_status") || "",
+        page: currentBountyPage,
+      };
+
+      setBountyFilters(newBountyFilters);
+    }
+  }, [searchParams, isFiltering]);
+
+  const apiJobFilters = Object.fromEntries(
+    Object.entries(jobFilters).filter(([_, value]) => value)
+  );
+
+  const apiBountyFilters = Object.fromEntries(
+    Object.entries(bountyFilters).filter(([_, value]) => value)
+  );
+
+  const { data: jobsData, isLoading: isJobsLoading } = useFetchOpportunity({
+    ...apiJobFilters,
+    entity: "jobs",
+  });
+
+  const { data: bountiesData, isLoading: isBountiesLoading } =
+    useFetchOpportunity({
+      ...apiBountyFilters,
+      entity: "bounties",
+    });
+
+  const updateJobFilters = (
+    newFilterValues: { [s: string]: unknown } | ArrayLike<unknown>
+  ) => {
+    setIsFiltering(true);
+
+    const updatedJobFilters = {
+      ...jobFilters,
+      ...Object.fromEntries(
+        Object.entries(newFilterValues as object).map(([key, value]) => [
+          key,
+          value,
+        ])
+      ),
+    };
+    setJobFilters(updatedJobFilters);
+
+    const params = new URLSearchParams(searchParams.toString());
+
+    Object.entries(newFilterValues as object).forEach(([key, value]) => {
+      if (value) {
+        params.set(`job_${key}`, String(value));
+      } else {
+        params.delete(`job_${key}`);
+      }
+    });
+
+    window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+
+    setIsFiltering(false);
+  };
+
+  const updateBountyFilters = (
+    newFilterValues: { [s: string]: unknown } | ArrayLike<unknown>
+  ) => {
+    setIsFiltering(true);
+
+    const updatedBountyFilters = {
+      ...bountyFilters,
+      ...Object.fromEntries(
+        Object.entries(newFilterValues as object).map(([key, value]) => [
+          key,
+          value,
+        ])
+      ),
+    };
+    setBountyFilters(updatedBountyFilters);
+
+    const params = new URLSearchParams(searchParams.toString());
+
+    Object.entries(newFilterValues as object).forEach(([key, value]) => {
+      if (value) {
+        params.set(`bounty_${key}`, String(value));
+      } else {
+        params.delete(`bounty_${key}`);
+      }
+    });
+
+    window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+
+    setIsFiltering(false);
+  };
+
+  const handleJobSearchChange = (e: {
+    target: { value: SetStateAction<string> };
+  }) => {
+    setSearchJobInput(e.target.value);
+  };
+
+  const handleBountySearchChange = (e: {
+    target: { value: SetStateAction<string> };
+  }) => {
+    setSearchBountyInput(e.target.value);
+  };
+
+  const handleJobPageChange = (page: number) => {
+    setCurrentJobPage(page);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(page));
+    window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+  };
+
+  const handleBountyPageChange = (page: number) => {
+    setCurrentBountyPage(page);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(page));
+    window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+  };
+
+  const jobs = jobsData?.data || [];
+  const bounties = bountiesData?.data || [];
+
+  const renderContent = () => {
+    if (type === "jobs") {
+      return (
+        <>
+          <JobsSection
+            isLoading={isJobsLoading}
+            data={jobs}
+            filters={jobFilters}
+            searchInput={searchJobInput}
+            handleSearchChange={handleJobSearchChange}
+            updateFilters={updateJobFilters}
+          />
+
+          {jobsData?.metadata?.last_page > 1 && (
+            <Pagination
+              metadata={jobsData.metadata}
+              onPageChange={handleJobPageChange}
+            />
+          )}
+        </>
+      );
+    }
+
+    if (type === "bounties") {
+      return (
+        <>
+          <BountiesSection
+            isLoading={isBountiesLoading}
+            data={bounties}
+            filters={bountyFilters}
+            searchInput={searchBountyInput}
+            handleSearchChange={handleBountySearchChange}
+            updateFilters={updateBountyFilters}
+          />
+
+          {bountiesData?.metadata?.last_page > 1 && (
+            <Pagination
+              metadata={bountiesData.metadata}
+              onPageChange={handleBountyPageChange}
+            />
+          )}
+        </>
+      );
+    }
+
+    return (
+      <>
+        <div className={isJobsLoading ? "min-h-32" : ""}>
+          <JobsSection
+            isLoading={isJobsLoading}
+            data={jobs?.slice(0, 4)}
+            filters={jobFilters}
+            searchInput={searchJobInput}
+            handleSearchChange={handleJobSearchChange}
+            updateFilters={updateJobFilters}
+          />
+        </div>
+
+        <div className={isBountiesLoading ? "min-h-32" : ""}>
+          <BountiesSection
+            isLoading={isBountiesLoading}
+            data={bounties?.slice(0, 4)}
+            filters={bountyFilters}
+            searchInput={searchBountyInput}
+            handleSearchChange={handleBountySearchChange}
+            updateFilters={updateBountyFilters}
+          />
+        </div>
+      </>
+    );
+  };
+
+  return (
+    <>
+      <GoBackButton />
+      <div className="grid grid-cols-1 xl:grid-cols-9 xl:gap-x-8 gap-y-8">
+        <div className="lg:col-span-6 order-2 xl:order-1">
+          {renderContent()}
+        </div>
+        <div className="order-1 xl:order-2 col-span-3">
+          <SideContent user={user} />
+        </div>
+      </div>
+      <AuthModal
+        isOpen={openAuthModal}
+        onClose={() => setOpenAuthModal(false)}
+        stopRedirection={true}
+      />
+    </>
+  );
+};
+
+export default MainContent;

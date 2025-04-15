@@ -1,4 +1,4 @@
-import { createMDX } from 'fumadocs-mdx/next';
+import { createMDX } from "fumadocs-mdx/next";
 
 const withMDX = createMDX();
 
@@ -24,6 +24,24 @@ const config = {
       {
         protocol: 'https',
         hostname: 'abs.twimg.com', 
+      },
+      {
+        protocol: "https",
+        hostname: "*.s3.amazonaws.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "ava.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "s3.eu-west-2.amazonaws.com",
+        port: "",
+        pathname: "/**",
       },
     ],
   },
