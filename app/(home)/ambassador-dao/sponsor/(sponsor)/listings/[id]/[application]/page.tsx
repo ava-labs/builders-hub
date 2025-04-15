@@ -97,8 +97,7 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                     ) : (
                       <>
                         {application.status !== "REJECTED" &&
-                          application.status !== "COMPLETED" &&
-                          application.status !== "APPLIED" && (
+                          application.status !== "COMPLETED" && (
                             <div className='flex items-center gap-2'>
                               <CustomButton
                                 isFullWidth={false}
@@ -237,9 +236,9 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                                 {file.original_name}
                               </p>
                             </div>
-                            <p className='text-[var(--primary-text-color)] font-semibold cursor-pointer'>
+                            {/* <p className='text-[var(--primary-text-color)] font-semibold cursor-pointer'>
                               Download
-                            </p>
+                            </p> */}
                           </div>
                         ))}
                       </div>
