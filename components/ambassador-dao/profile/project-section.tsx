@@ -3,18 +3,19 @@ import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import DatePicker from "../DatePicker";
 import { FilterDropdown } from "../dashboard/FilterDropdown";
-import { categories, jobTypes } from "../constants";
+import { jobTypes } from "../constants";
 import Token from "@/public/ambassador-dao-images/token.png";
 import { useFetchUserProjects } from "@/services/ambassador-dao/requests/users";
 import Loader from "../ui/Loader";
 import { Pagination } from "../ui/Pagination";
+import { useDebounce } from "../hooks/useDebounce";
 
 export default function ProjectSection() {
   const navigationTabs = ["Bounties", "Jobs"];
 
   const [activeTab, setActiveTab] = useState("Bounties");
   const [activeProjectTab, setActiveProjectTab] = useState("APPLIED");
-  const [date, setDate] = useState(null);
+  const [date, setDate] = useState<string | null>(null);
   const [category, setCategory] = useState({
     category: jobTypes[0].id,
   });
@@ -22,6 +23,10 @@ export default function ProjectSection() {
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   const jobType = activeTab === "Bounties" ? "BOUNTY" : "JOB";
+
+
+  const debouncedJobSearch = useDebounce(searchQuery, 1000);
+console.log(debouncedJobSearch)
 
   const {
     data: userProjects,
@@ -31,10 +36,12 @@ export default function ProjectSection() {
     type: jobType,
     status: activeProjectTab,
     category: category.category,
-    date: new Date().toLocaleString(),
-    query: searchQuery,
+    date_applied_start: date ? date : undefined,
+    query:  debouncedJobSearch,
     page: currentPage,
   });
+
+
 
   const projectTabs = [
     { id: "APPLIED", count: 0, bgColor: "bg-[#161617]" },
@@ -44,7 +51,7 @@ export default function ProjectSection() {
 
   useEffect(() => {
     refetch();
-  }, [activeTab, activeProjectTab, date, category, searchQuery, refetch]);
+  }, [activeTab, activeProjectTab, date, category, debouncedJobSearch, refetch]);
 
   const resetFilters = () => {
     setDate(null);
@@ -73,7 +80,7 @@ export default function ProjectSection() {
     <div className="border rounded-lg p-6 mb-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-medium">My Projects</h2>
-        {(date || searchQuery) && (
+        {(date || debouncedJobSearch) && (
           <button
             onClick={resetFilters}
             className="text-xs sm:text-sm text-red-500 hover:text-red-600"
@@ -172,9 +179,8 @@ export default function ProjectSection() {
         </div>
 
         <div className="space-y-4 col-span-4">
-          {isLoadingUserProjects ? (
-            <Loader />
-          ) : userProjects?.data && userProjects?.data?.length > 0 ? (
+          {isLoadingUserProjects && <Loader/>}
+          {!isLoadingUserProjects && userProjects?.data && userProjects?.data?.length > 0 && (
             userProjects?.data?.map(
               (project: {
                 opportunity: {
@@ -275,7 +281,8 @@ export default function ProjectSection() {
                 </div>
               )
             )
-          ) : (
+          )} 
+          {!isLoadingUserProjects && userProjects?.data.length === 0 && (
             <div className="flex flex-col items-center justify-center h-40 text-[var(--secondary-text-color)]">
               <Search size={48} className="mb-2 opacity-30" />
               <p>No projects found matching your filters</p>

@@ -16,6 +16,7 @@ import { ArrowRight } from "lucide-react";
 import { Pagination } from "@/components/ambassador-dao/ui/Pagination";
 import Loader from "@/components/ambassador-dao/ui/Loader";
 import EmptyState from "@/components/ambassador-dao/ui/EmptyState";
+import { truncateAddress } from "@/utils/truncateAddress";
 
 function ProfileContent() {
   const pathname = usePathname();
@@ -83,9 +84,11 @@ function ProfileContent() {
       ? `@${userDetails.username || username}`
       : `${username}`,
     location: userDetails?.location || "Not specified",
+    tier: userDetails?.tier?.name || "",
     skills: userDetails?.skills || [],
     socials: userDetails?.social_links || [],
     profile_image: userDetails?.profile_image || null,
+    wallet_address: userDetails?.wallet_address,
     stats: {
       earned: userStats?.total_earnings || 0,
       submissions: userStats?.total_submissions || 0,
@@ -116,20 +119,35 @@ function ProfileContent() {
       <div className="max-w-6xl mx-auto p-6">
         <div className="border rounded-lg p-6 mb-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b-2 pb-8">
-            <div className="flex items-center mb-4 md:mb-0">
+          <div className="flex items-center mb-4 md:mb-0">
               <div className="w-16 h-16 rounded-full mr-4 overflow-hidden">
                 <Image
-                  src={profile.profile_image || Avatar}
+                  src={profile?.profile_image || Avatar}
                   width={40}
                   height={40}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div>
-                <h2 className="text-base font-bold">{profile.name}</h2>
-                <p className="text-[var(--secondary-text-color)] text-sm">
-                  {profile.username}
+              <div className="flex flex-col space-y-2">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <h2 className="text-sm md:text-base !text-white font-medium">
+                    {profile.name}
+                  </h2>
+                  <p className="text-[var(--secondary-text-color)] text-sm">
+                    {profile.username}
+                  </p>
+                  {profile?.tier && <div className="block sm:flex justify-start items-start bg-[#FB2C3633] rounded-[4px]">
+                    <p className="text-[#FB2C36] text-xs px-3 py-1 font-medium">
+                      {profile?.tier}
+                    </p>
+                  </div>}
+                </div>
+                <p
+                  className="text-[#FB2C36] ] text-sm underline"
+                  title={profile?.wallet_address}
+                >
+                  {truncateAddress(profile.wallet_address)}
                 </p>
               </div>
             </div>

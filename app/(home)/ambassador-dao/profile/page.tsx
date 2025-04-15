@@ -4,7 +4,6 @@ import {
   ArrowRight,
   BriefcaseBusiness,
   Copy,
-  DivideCircle,
   Edit,
   File,
 } from "lucide-react";
@@ -132,11 +131,11 @@ const AmbasssadorDaoProfilePage = () => {
                   <p className="text-[var(--secondary-text-color)] text-sm">
                     {profile.username}
                   </p>
-                  <div className="block sm:flex justify-start items-start bg-[#FB2C3633] rounded-[4px]">
+                  {profile?.tier && <div className="block sm:flex justify-start items-start bg-[#FB2C3633] rounded-[4px]">
                     <p className="text-[#FB2C36] text-xs px-3 py-1 font-medium">
                       {profile?.tier}
                     </p>
-                  </div>
+                  </div>}
                 </div>
                 <p
                   className="text-[#FB2C36] ] text-sm underline"
