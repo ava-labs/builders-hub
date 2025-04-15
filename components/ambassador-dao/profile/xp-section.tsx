@@ -238,18 +238,18 @@ export default function XpSection({ data }: any) {
                       </div>
 
                       <div className='flex sm:flex-col space-x-3'>
-                        <div className='flex items-center text-xs py-2'>
+                      {opportunity?.total_budget > 0 && <div className='flex items-center text-xs py-2'>
                           <Image src={Token} alt='$' />
                           <span className='text-[var(--white-text-color)] ml-2'>
                             {opportunity.total_budget} USDC
                           </span>
-                        </div>
-                        <div className='flex items-center text-xs  py-2 rounded-full'>
+                        </div>}
+                        {opportunity?.xp_allocated > 0 && <div className='flex items-center text-xs  py-2 rounded-full'>
                           <Image src={XP} alt='$' />
                           <span className='text-[var(--white-text-color)] ml-2'>
                             {opportunity.xp_allocated} XP
                           </span>
-                        </div>
+                        </div>}
                       </div>
                     </div>
                   </div>

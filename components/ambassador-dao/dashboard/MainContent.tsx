@@ -211,19 +211,14 @@ const MainContent = ({ user }: { user: any }) => {
     if (type === "jobs") {
       return (
         <>
-          {isJobsLoading ? (
-            <div className="min-h-64 flex items-center justify-center">
-              <Loader />
-            </div>
-          ) : (
-            <JobsSection
-              data={jobs}
-              filters={jobFilters}
-              searchInput={searchJobInput}
-              handleSearchChange={handleJobSearchChange}
-              updateFilters={updateJobFilters}
-            />
-          )}
+          <JobsSection
+            isLoading={isJobsLoading}
+            data={jobs}
+            filters={jobFilters}
+            searchInput={searchJobInput}
+            handleSearchChange={handleJobSearchChange}
+            updateFilters={updateJobFilters}
+          />
 
           {jobsData?.metadata?.last_page > 1 && (
             <Pagination
@@ -238,19 +233,14 @@ const MainContent = ({ user }: { user: any }) => {
     if (type === "bounties") {
       return (
         <>
-          {isBountiesLoading ? (
-            <div className="min-h-64 flex items-center justify-center">
-              <Loader />
-            </div>
-          ) : (
-            <BountiesSection
-              data={bounties}
-              filters={bountyFilters}
-              searchInput={searchBountyInput}
-              handleSearchChange={handleBountySearchChange}
-              updateFilters={updateBountyFilters}
-            />
-          )}
+          <BountiesSection
+            isLoading={isBountiesLoading}
+            data={bounties}
+            filters={bountyFilters}
+            searchInput={searchBountyInput}
+            handleSearchChange={handleBountySearchChange}
+            updateFilters={updateBountyFilters}
+          />
 
           {bountiesData?.metadata?.last_page > 1 && (
             <Pagination
@@ -265,35 +255,25 @@ const MainContent = ({ user }: { user: any }) => {
     return (
       <>
         <div className={isJobsLoading ? "min-h-32" : ""}>
-          {isJobsLoading ? (
-            <div className="flex items-center justify-center h-[400px] py-14 mb-12">
-              <Loader />
-            </div>
-          ) : (
-            <JobsSection
-              data={jobs?.slice(0, 4)}
-              filters={jobFilters}
-              searchInput={searchJobInput}
-              handleSearchChange={handleJobSearchChange}
-              updateFilters={updateJobFilters}
-            />
-          )}
+          <JobsSection
+            isLoading={isJobsLoading}
+            data={jobs?.slice(0, 4)}
+            filters={jobFilters}
+            searchInput={searchJobInput}
+            handleSearchChange={handleJobSearchChange}
+            updateFilters={updateJobFilters}
+          />
         </div>
 
         <div className={isBountiesLoading ? "min-h-32" : ""}>
-          {isBountiesLoading ? (
-            <div className="flex items-center justify-center h-[400px] py-14 mb-12">
-              <Loader />
-            </div>
-          ) : (
-            <BountiesSection
-              data={bounties?.slice(0, 4)}
-              filters={bountyFilters}
-              searchInput={searchBountyInput}
-              handleSearchChange={handleBountySearchChange}
-              updateFilters={updateBountyFilters}
-            />
-          )}
+          <BountiesSection
+            isLoading={isBountiesLoading}
+            data={bounties?.slice(0, 4)}
+            filters={bountyFilters}
+            searchInput={searchBountyInput}
+            handleSearchChange={handleBountySearchChange}
+            updateFilters={updateBountyFilters}
+          />
         </div>
       </>
     );

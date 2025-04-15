@@ -97,7 +97,7 @@ const LeaderboardCard = () => {
 const SideContent = ({ user }: { user: any }) => {
   return (
     <div className='lg:col-span-1'>
-      {user.role !== "AMBASSADOR" && <AmbassadorCard />}
+      {user?.role !== "AMBASSADOR" && <AmbassadorCard />}
       <LeaderboardCard />
       {user && <UserProfileCard userData={user} />}
     </div>

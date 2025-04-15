@@ -33,7 +33,7 @@ export const BountyCard = ({ bounty }: IBountyDataType) => {
       <div>
         <div className="flex justify-between mb-4">
           <div>
-            <div className="flex items-center gap-2 md:gap-5">
+            <div className="flex items-start gap-2 md:gap-5">
               <Image
                 src={created_by?.company_profile?.logo}
                 alt="logo"
@@ -42,7 +42,7 @@ export const BountyCard = ({ bounty }: IBountyDataType) => {
                 height={60}
               />
               <div>
-                <h3 className="text-lg font-medium text-red-500">{title}</h3>
+                <h3 className="text-lg font-medium text-red-500 truncate max-w-[150px] sm:max-w-[350px]">{title}</h3>
                 <p className="text-gray-400">
                   {created_by?.company_profile?.name}
                 </p>
@@ -69,13 +69,13 @@ export const BountyCard = ({ bounty }: IBountyDataType) => {
           </div>
           <div className="flex flex-col gap-3">
             {parseFloat(total_budget) > 0 && (
-              <span className="text-[var(--white-text-color)] flex items-center gap-1 shrink-0">
+              <span className="text-[var(--white-text-color)] flex items-center gap-1 shrink-0 text-xs">
                 <Image src={Token} alt="$" />
-                {parseFloat(total_budget).toLocaleString()}
+                {parseFloat(total_budget).toLocaleString()} USDC
               </span>
             )}
             {xp_allocated > 0 && (
-              <span className="text-[var(--white-text-color)] flex items-center gap-1">
+              <span className="text-[var(--white-text-color)] flex items-center gap-1 shrink-0 text-xs">
                 <Image src={XP} alt="$" />
                 {xp_allocated} XP
               </span>

@@ -44,13 +44,18 @@ export const useFetchPastOpportunities = (
   });
 };
 
-export const useFetchUserPendingRewards = (needsOnboarding?: boolean) => {
+export const useFetchUserPendingRewards = (
+  page: number,
+  needsOnboarding?: boolean
+) => {
   return useQuery({
     queryFn: async () => {
-      const res = await axiosInstance.get(`${API_DEV}/users/pending-rewards`);
+      const res = await axiosInstance.get(`${API_DEV}/users/pending-rewards`, {
+        params: { page, per_page: 3 },
+      });
       return res.data as any;
     },
-    queryKey: ["pendingRewards"],
+    queryKey: ["pendingRewards", page],
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     enabled: needsOnboarding,
