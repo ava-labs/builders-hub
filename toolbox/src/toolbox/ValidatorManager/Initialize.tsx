@@ -77,14 +77,22 @@ export default function Initialize() {
 
         setIsInitializing(true);
         try {
+            // Make sure subnet ID is properly formatted
+            const formattedSubnetId = subnetIDHex.startsWith('0x') ? subnetIDHex : `0x${subnetIDHex}`;
+            
+            // Format the admin address properly
+            const formattedAdmin = adminAddress as `0x${string}`;
+            
+            // Create settings object with exact types from the ABI
             const settings = {
-                admin: adminAddress,
-                subnetId: subnetIDHex,
+                admin: formattedAdmin,
+                subnetID: formattedSubnetId, // Note: ABI shows it as subnetID (capital ID), not subnetId
                 churnPeriodSeconds: BigInt(churnPeriodSeconds),
-                maximumChurnPercentage: Number(maximumChurnPercentage)
+                maximumChurnPercentage: Number(maximumChurnPercentage) 
             };
-
-
+            
+            console.log("Settings object:", settings);
+            
             const hash = await coreWalletClient.writeContract({
                 address: proxyAddress as `0x${string}`,
                 abi: ValidatorManagerABI.abi,
@@ -93,10 +101,10 @@ export default function Initialize() {
                 chain: viemChain,
             });
 
-
             await publicClient.waitForTransactionReceipt({ hash });
             await checkIfInitialized();
         } catch (error) {
+            console.error('Error initializing:', error);
             showBoundary(error);
         } finally {
             setIsInitializing(false);
