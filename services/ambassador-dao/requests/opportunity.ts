@@ -11,6 +11,7 @@ import axiosInstance from "./axios";
 import axios from "axios";
 
 export const useFetchOpportunity = (filters = {}) => {
+  console.log(filters)
   return useQuery({
     queryKey: ["opportunity", filters],
     queryFn: async () => {

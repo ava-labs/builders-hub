@@ -150,7 +150,7 @@ const ClaimXPModal: React.FC<XPModalProps> = ({ isOpen, onClose, id }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title='Claim XP'>
+    <Modal isOpen={isOpen} onClose={onClose} title='Verify Event And Claim XP' description="Upload your offline activity data to earn XP.">
       <div className='p-6'>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className='space-y-6'>

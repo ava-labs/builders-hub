@@ -233,7 +233,7 @@ function ProfileContent() {
         </div>
 
         <div className="border w-full rounded-lg p-6 mb-6">
-          <h2 className="text-2xl font-medium my-4">Portfolio</h2>
+          <h2 className="text-2xl font-medium my-4">User Activity</h2>
           <hr className="mb-8 mt-10" />
           {isLoadingPastActivities && <Loader />}
           {!isLoadingPastActivities && userPastActivity?.data?.length === 0 && (
@@ -253,7 +253,7 @@ function ProfileContent() {
                     title: string;
                     description: string;
                   };
-                  actions: string;
+                  action: string;
                   image: string;
                 },
                 index: number
@@ -282,8 +282,7 @@ function ProfileContent() {
                     <div className="mt-4 flex justify-between items-center">
                       <h3 className="font-medium text-[var(--primary-text-color)] text-2xl">
                         {username}{" "}
-                        {activity?.actions ||
-                          "Hired for a job -   Job with a very long description of 1000 char"}
+                        {activity?.action}
                       </h3>
                       <p className="var(--secondary-text-color) text-sm flex items-center">
                         View
