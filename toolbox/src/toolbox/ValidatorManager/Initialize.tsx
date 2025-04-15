@@ -77,10 +77,7 @@ export default function Initialize() {
 
         setIsInitializing(true);
         try {
-            // Make sure subnet ID is properly formatted
             const formattedSubnetId = subnetIDHex.startsWith('0x') ? subnetIDHex : `0x${subnetIDHex}`;
-            
-            // Format the admin address properly
             const formattedAdmin = adminAddress as `0x${string}`;
             
             // Create settings object with exact types from the ABI
