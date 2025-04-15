@@ -870,223 +870,105 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       </div>
                     )}
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-                    {/* Start Date Section */}
-<<<<<<< HEAD
-                    <div className="space-y-2">
-                      <label className="flex text-[#FAFAFA] text-sm font-medium">
-=======
-                    <div className='space-y-2'>
-=======
-                    {/* <div className='space-y-2'>
->>>>>>> bbf5ad0e5... fix: fixed all urgent bugs
-                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
->>>>>>> 4289f3331... feat: light and dark mode
-=======
-                    <div className='space-y-2'>
-                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
->>>>>>> 3a5d216f7... fix: resolved markdown issues
-                        Start Date (in America/New_York)
-                        <span className='text-red-500 ml-1'>*</span>
-                      </label>
-                      <div className='flex flex-col space-y-2'>
-                        <Controller
-                          name='start_date'
-                          control={control}
-                          rules={{ required: "Start date is required" }}
-                          render={({ field }) => (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-<<<<<<< HEAD
-                                  variant="outline"
-                                  className="bg-[#09090B] border-[#27272A] justify-between text-left font-normal"
-=======
-                                  variant='outline'
-                                  className='bg-[var(--default-background-color)] border-[var(--default-border-color)] justify-between text-left font-normal'
->>>>>>> 4289f3331... feat: light and dark mode
-                                >
-                                  {field.value ? (
-                                    format(new Date(field.value), "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon
-<<<<<<< HEAD
-                                    className="h-4 w-4 opacity-50"
-                                    color="#FAFAFA"
-=======
-                                    className='h-4 w-4 opacity-50'
-                                    color='var(--primary-text-color)'
->>>>>>> 4289f3331... feat: light and dark mode
+                    {formType === "BOUNTY" && (
+                      <>
+                        <div className='space-y-2'>
+                          <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                            Start Date (in America/New_York)
+                            <span className='text-red-500 ml-1'>*</span>
+                          </label>
+                          <div className='flex flex-col space-y-2'>
+                            <Controller
+                              name='start_date'
+                              control={control}
+                              rules={{ required: "Start date is required" }}
+                              render={({ field }) => (
+                                <Popover>
+                                  <DatePicker
+                                    value={field.value || undefined}
+                                    onChange={(date) => {
+                                      field.onChange(date);
+                                      document.body.click();
+                                    }}
                                   />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-auto p-0"
-                                align="start"
-                              >
-                                <Calendar
-                                  mode="single"
-                                  selected={
-                                    field.value
-                                      ? new Date(field.value)
-                                      : undefined
-                                  }
-                                  onSelect={(date) => {
-                                    field.onChange(date);
-                                    // Close popover when date is selected
-                                    document.body.click();
-                                  }}
-                                  initialFocus
-<<<<<<< HEAD
-                                  className="text-[#FAFAFA] bg-[#09090B]"
-=======
-                                  className='text-[var(--primary-text-color)] bg-[#fafafa] dark:bg-[#09090B]'
->>>>>>> 4289f3331... feat: light and dark mode
-                                />
-                              </PopoverContent>
-                            </Popover>
+                                </Popover>
+                              )}
+                            />
+                          </div>
+                          {errors.start_date && (
+                            <p className='text-red-500 text-xs mt-1'>
+                              {errors.start_date.message}
+                            </p>
                           )}
-                        />
-                      </div>
-                      {errors.start_date && (
-                        <p className='text-red-500 text-xs mt-1'>
-                          {errors.start_date.message}
-                        </p>
-                      )}
-                    </div> */}
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-                    {/* End Date Section */}
-<<<<<<< HEAD
-                    <div className="space-y-2">
-                      <label className="flex text-[#FAFAFA] text-sm font-medium">
-=======
-                    <div className='space-y-2'>
-=======
-                    {/* <div className='space-y-2'>
->>>>>>> bbf5ad0e5... fix: fixed all urgent bugs
-                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
->>>>>>> 4289f3331... feat: light and dark mode
-=======
-                    <div className='space-y-2'>
-                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
->>>>>>> 3a5d216f7... fix: resolved markdown issues
-                        End Date (in America/New_York)
-                        <span className='text-red-500 ml-1'>*</span>
-                      </label>
-                      <div className='flex flex-col space-y-2'>
-                        <Controller
-                          name='end_date'
-                          control={control}
-                          rules={{ required: "End date is required" }}
-                          render={({ field }) => (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-<<<<<<< HEAD
-                                  variant="outline"
-                                  className="bg-[#09090B] border-[#27272A] justify-between text-left font-normal"
-=======
-                                  variant='outline'
-                                  className='bg-[var(--default-background-color)] border-[var(--default-border-color)] justify-between text-left font-normal'
->>>>>>> 4289f3331... feat: light and dark mode
-                                >
-                                  {field.value ? (
-                                    format(new Date(field.value), "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon
-<<<<<<< HEAD
-                                    className="h-4 w-4 opacity-50"
-                                    color="#FAFAFA"
-=======
-                                    className='h-4 w-4 opacity-50'
-                                    color='var(--primary-text-color)'
->>>>>>> 4289f3331... feat: light and dark mode
-                                  />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-auto p-0"
-                                align="start"
-                              >
-                                <Calendar
-                                  mode="single"
-                                  selected={
-                                    field.value
-                                      ? new Date(field.value)
-                                      : undefined
-                                  }
-                                  onSelect={(date) => {
-                                    field.onChange(date);
-                                    // Close popover when date is selected
-                                    document.body.click();
-                                  }}
-                                  initialFocus
-<<<<<<< HEAD
-                                  className="text-[#FAFAFA] bg-[#09090B]"
-=======
-                                  className='text-[var(--primary-text-color)] bg-[#fafafa] dark:bg-[#09090B]'
->>>>>>> 4289f3331... feat: light and dark mode
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          )}
-                        />
-
-                        <div className='flex space-x-2'>
-                          {[
-                            { label: "1 Week", weeks: 1 },
-                            { label: "2 Weeks", weeks: 2 },
-                            { label: "3 Weeks", weeks: 3 },
-                          ].map((period, i) => {
-                            const endDate = watch("end_date");
-                            const isActive =
-                              startDate &&
-                              endDate &&
-                              Math.round(
-                                (new Date(endDate).getTime() -
-                                  new Date(startDate).getTime()) /
-                                  (7 * 24 * 60 * 60 * 1000)
-                              ) === period.weeks;
-
-                            return (
-                              <Button
-                                key={period.label}
-                                type='button'
-                                variant='outline'
-                                className={cn(
-                                  "bg-transparent border-[var(--default-border-color)] rounded-full text-xs px-3 h-8",
-                                  isActive && "border-blue-500 bg-blue-500/10"
-                                )}
-                                onClick={() =>
-                                  setEndDateFromWeeks(period.weeks)
-                                }
-                              >
-                                {period.label}
-                              </Button>
-                            );
-                          })}
                         </div>
-                      </div>
-                      {errors.end_date && (
-                        <p className='text-red-500 text-xs mt-1'>
-                          {errors.end_date.message}
-                        </p>
-                      )}
-                    </div> */}
+                        <div className='space-y-2'>
+                          <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                            End Date (in America/New_York)
+                            <span className='text-red-500 ml-1'>*</span>
+                          </label>
+                          <div className='flex flex-col space-y-2'>
+                            <Controller
+                              name='end_date'
+                              control={control}
+                              rules={{ required: "End date is required" }}
+                              render={({ field }) => (
+                                <Popover>
+                                  <DatePicker
+                                    value={field.value || undefined}
+                                    onChange={(date) => {
+                                      field.onChange(date);
+                                      document.body.click();
+                                    }}
+                                  />
+                                </Popover>
+                              )}
+                            />
 
-<<<<<<< HEAD
-                    {/* Skills Section */}
-<<<<<<< HEAD
-                    <div className="space-y-2">
-                      <label className="flex text-[#FAFAFA] text-sm font-medium">
-=======
+                            <div className='flex space-x-2'>
+                              {[
+                                { label: "1 Week", weeks: 1 },
+                                { label: "2 Weeks", weeks: 2 },
+                                { label: "3 Weeks", weeks: 3 },
+                              ].map((period, i) => {
+                                const endDate = watch("end_date");
+                                const isActive =
+                                  startDate &&
+                                  endDate &&
+                                  Math.round(
+                                    (new Date(endDate).getTime() -
+                                      new Date(startDate).getTime()) /
+                                      (7 * 24 * 60 * 60 * 1000)
+                                  ) === period.weeks;
+
+                                return (
+                                  <Button
+                                    key={period.label}
+                                    type='button'
+                                    variant='outline'
+                                    className={cn(
+                                      "bg-transparent border-[var(--default-border-color)] rounded-full text-xs px-3 h-8",
+                                      isActive &&
+                                        "border-blue-500 bg-blue-500/10"
+                                    )}
+                                    onClick={() =>
+                                      setEndDateFromWeeks(period.weeks)
+                                    }
+                                  >
+                                    {period.label}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          {errors.end_date && (
+                            <p className='text-red-500 text-xs mt-1'>
+                              {errors.end_date.message}
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    )}
+
                     <div className='space-y-2'>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
 >>>>>>> 4289f3331... feat: light and dark mode

@@ -223,7 +223,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
 >>>>>>> 4289f3331... feat: light and dark mode
           </span>
         </div>
-        {/* <div className='flex flex-col justify-center'>
+        <div className='flex flex-col justify-center'>
           <span className='text-[var(--white-text-color)] flex items-center'>
             <Hourglass size={16} className='inline mr-1' color='#9F9FA9' />
             <span>{timeLeft}</span>
@@ -231,7 +231,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
           <span className='text-[var(--secondary-text-color)] text-sm'>
             Remaining
           </span>
-        </div> */}
+        </div>
       </div>
 
       <div className='mb-6'>
