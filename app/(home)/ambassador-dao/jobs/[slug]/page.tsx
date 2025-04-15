@@ -101,7 +101,7 @@ const Reply: React.FC<ReplyProps> = ({ reply, isOptimistic = false }) => {
     >
       <div className='flex gap-3'>
         <div className='w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center'>
-          <span className='text-[var(--white-text-color)] text-xs'>
+          <span className='text-white text-xs'>
             {reply?.author?.first_name?.substring(0, 2).toUpperCase()}
           </span>
         </div>
@@ -461,7 +461,7 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
       <div className='p-4 border border-[var(--default-border-color)] rounded-lg my-2 relative'>
         <div className='flex gap-3 w-full'>
           <div className='w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center'>
-            <span className='text-[var(--white-text-color)] text-sm'>
+            <span className='text-white text-sm'>
               {comment?.author?.first_name?.substring(0, 2).toUpperCase()}
             </span>
           </div>

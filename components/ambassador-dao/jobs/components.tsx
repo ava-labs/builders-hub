@@ -105,16 +105,11 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
             />
             <span>{job?.proposalsCount}</span>
           </span>
-<<<<<<< HEAD
-          <span className="text-gray-400 text-sm">
-            {job?.proposalsCount > 1 ? "Applications" : "Application"}
-=======
           <span className='text-[var(--secondary-text-color)] text-sm'>
             Applications
->>>>>>> 4289f3331... feat: light and dark mode
           </span>
         </div>
-        <div className='flex flex-col justify-center'>
+        {/* <div className='flex flex-col justify-center'>
           <span className='text-[var(--white-text-color)] flex items-center'>
             <Hourglass size={16} className='inline mr-1' color='#9F9FA9' />
             <span>{timeLeft}</span>
@@ -122,7 +117,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
           <span className='text-[var(--secondary-text-color)] text-sm'>
             Remaining
           </span>
-        </div>
+        </div> */}
       </div>
 
       <div className='mb-6'>
@@ -138,7 +133,9 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
             ))}
           </div>
         ) : (
-          <div>No skills available</div>
+          <div className='text-[var(--secondary-text-color)] text-sm'>
+            No skills available
+          </div>
         )}
       </div>
 
@@ -146,12 +143,16 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
         userData?.role !== "AMBASSADOR") ||
       userData?.role === "SPONSOR" ? null : job.status === "PUBLISHED" ? (
         <button
-          disabled={data?.has_applied || timeLeft === "Expired"}
+          disabled={data?.has_applied}
           className={`w-full font-medium py-3 rounded-md transition ${
+<<<<<<< HEAD
             data?.has_applied || timeLeft === "Expired"
 <<<<<<< HEAD
               ? "bg-gray-400 text-white cursor-not-allowed"
 =======
+=======
+            data?.has_applied
+>>>>>>> bbf5ad0e5... fix: fixed all urgent bugs
               ? "bg-gray-400 text-[var(--white-text-color)] cursor-not-allowed"
 >>>>>>> 4289f3331... feat: light and dark mode
               : "bg-red-500 hover:bg-red-600 text-white"
@@ -173,7 +174,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
               return;
             }
 
-            if (!data?.has_applied && timeLeft !== "Expired") {
+            if (!data?.has_applied) {
               setIsModalOpen(true);
             }
           }}
@@ -188,8 +189,6 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
 >>>>>>> 4289f3331... feat: light and dark mode
           ) : data?.has_applied ? (
             "Already Applied"
-          ) : timeLeft === "Expired" ? (
-            "Expired"
           ) : (
             "APPLY"
           )}
@@ -248,17 +247,23 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
               <BriefcaseBusiness size={16} color='#9F9FA9' />
               <span className='capitalize'>{job.type?.toLowerCase()}</span>
             </div>
-            <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
+            {/* <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
               <Hourglass size={16} color='#9F9FA9' />
               <span>
                 {getTimeLeft(job?.deadline) === "Expired"
                   ? "Closed"
                   : `Due in: ${getTimeLeft(job?.deadline)}`}
               </span>
+<<<<<<< HEAD
             </div>
 <<<<<<< HEAD
             <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
               <FileText size={16} color="#9F9FA9" />
+=======
+            </div> */}
+            <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
+              <FileText size={16} color='#9F9FA9' />
+>>>>>>> bbf5ad0e5... fix: fixed all urgent bugs
               <span>
                 {job._count?.applications}{" "}
                 {job?._count?.applications > 1 ? "Applications" : "Application"}

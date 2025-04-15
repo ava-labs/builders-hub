@@ -94,7 +94,6 @@ export const CreateListingModal = ({
           </div>
         </DialogContent>
       </Dialog>
-      );
     </div>
   );
 };

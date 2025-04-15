@@ -14,6 +14,7 @@ import Image from "next/image";
 import { Hourglass, Link } from "lucide-react";
 import { useFetchUserStatsDataQuery } from "@/services/ambassador-dao/requests/auth";
 import CustomSelect from "../select";
+import { Outline } from "../ui/Outline";
 
 interface IDeleteProps {
   isOpen: boolean;
@@ -108,7 +109,7 @@ export const SumbissionReviewDetailsModal = ({
                         alt='user profile'
                         width={60}
                         height={60}
-                        className='shrink-0 rounded-full'
+                        className='shrink-0 rounded-full object-cover w-14 h-14'
                       />
                     </div>
                     <div>
@@ -124,6 +125,8 @@ export const SumbissionReviewDetailsModal = ({
                           <Hourglass color='#9F9FA9' className='w-3 h-3 mr-1' />
                           Submitted:{" "}
                           {new Date(submission.created_at).toLocaleDateString()}
+                          at{" "}
+                          {new Date(submission.created_at).toLocaleTimeString()}
                         </div>
                       </div>
                     </div>
@@ -160,7 +163,7 @@ export const SumbissionReviewDetailsModal = ({
                     Experience
                   </p>
                   <p className='text-[var(--secondary-text-color)] text-sm'>
-                    -- years
+                    {submission.submitter.years_of_experience ?? "--"} years
                   </p>
                 </div>
                 <div className=''>
@@ -181,51 +184,101 @@ export const SumbissionReviewDetailsModal = ({
                 </div>
               </div>
 
-              <div>
-                <p className='text-[#FB2C36] font-semibold'>Submission Link</p>
-                <div className='space-y-3 mt-2'>
-                  {!submission.files.length && (
-                    <div className='text-[var(--secondary-text-color)] text-sm'>
-                      No files uploaded
-                    </div>
-                  )}
-                  {submission.files.map((file) => (
-                    <div className='flex flex-col md:flex-row gap-2 justify-between'>
-                      <div className='flex gap-2 items-center'>
-                        <Link size={16} color='#9F9FA9' />
-                        <p className='font-semibold text-[var(--primary-text-color)]'>
-                          {file.original_name}
-                          <span className='text-[var(--secondary-text-color)]'>
-                            --mb
-                          </span>
+              <div className='space-y-3'>
+                <div>
+                  <p className='text-[var(--primary-text-color)] font-semibold'>
+                    Submission Details
+                  </p>
+                  <p className='text-[var(--secondary-text-color)]'>
+                    {submission.content}
+                  </p>
+                </div>
+
+                {submission.link && (
+                  <div>
+                    <p className='text-[var(--primary-text-color)] font-semibold'>
+                      Link to submission
+                    </p>
+                    <a
+                      href={submission.link}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='mt-2'
+                    >
+                      <Outline label={`${submission.link.slice(0, 40)}...`} />
+                    </a>
+                  </div>
+                )}
+
+                <div>
+                  <p className='text-[var(--primary-text-color)] font-medium'>
+                    Attachments
+                  </p>
+                  <div className='space-y-3 mt-2'>
+                    {!submission.files.length && (
+                      <div className='text-[var(--secondary-text-color)] text-sm'>
+                        No files uploaded
+                      </div>
+                    )}
+                    {submission.files.map((file) => (
+                      <div className='flex flex-col md:flex-row gap-2 justify-between border border-[var(--default-border-color)] p-2 rounded-md my-1'>
+                        <div className='flex gap-2 items-center'>
+                          <Link size={16} color='var(--primary-text-color' />
+                          <p className='font-semibold text-[var(--primary-text-color)]'>
+                            {file.original_name}
+                          </p>
+                        </div>
+                        <p className='text-[var(--primary-text-color)] font-semibold cursor-pointer'>
+                          Download
                         </p>
                       </div>
-                      <p className='text-[var(--primary-text-color)]'>
-                        Download
-                      </p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
+
+                {submission.tweet_link && (
+                  <div>
+                    <p className='text-[var(--primary-text-color)] font-semibold'>
+                      Tweet Link
+                    </p>
+                    <a
+                      href={submission.tweet_link}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='mt-2'
+                    >
+                      <Outline
+                        label={`${submission.tweet_link.slice(0, 40)}...`}
+                      />
+                    </a>
+                  </div>
+                )}
               </div>
 
               {selectedAction === "NONE" && (
-                <div className='flex gap-2 justify-between mt-6 md:mt-8'>
-                  <CustomButton
-                    variant='outlined'
-                    className='px-4 w-full'
-                    onClick={() => setSelectedAction("REJECT")}
-                  >
-                    Reject Submission
-                  </CustomButton>
+                <>
+                  {" "}
+                  {submission.status !== "ACCEPTED" &&
+                    submission.status !== "REJECTED" && (
+                      <div className='flex gap-2 justify-between mt-6 md:mt-8'>
+                        <CustomButton
+                          variant='outlined'
+                          className='px-4 w-full'
+                          onClick={() => setSelectedAction("REJECT")}
+                        >
+                          Reject Submission
+                        </CustomButton>
 
-                  <CustomButton
-                    variant='danger'
-                    className='px-4 w-full'
-                    onClick={() => setSelectedAction("ACCEPT")}
-                  >
-                    Accept Submission
-                  </CustomButton>
-                </div>
+                        <CustomButton
+                          variant='danger'
+                          className='px-4 w-full'
+                          onClick={() => setSelectedAction("ACCEPT")}
+                        >
+                          Accept Submission
+                        </CustomButton>
+                      </div>
+                    )}
+                </>
               )}
 
               {selectedAction === "ACCEPT" && (

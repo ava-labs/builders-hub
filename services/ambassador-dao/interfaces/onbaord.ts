@@ -23,6 +23,7 @@ export interface IUpdateTalentProfileBody {
   skills_ids: string[];
   social_links: string[];
   wallet_address: string;
+  years_of_experience: string;
 }
 
 export interface ISkillsResponse {

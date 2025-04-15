@@ -65,7 +65,7 @@ const BountySubmissionModal: React.FC<BountySubmissionModalProps> = ({
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className='space-y-6'>
             <div className='space-y-2'>
-              <label className='block text-white'>
+              <label className='block text-[var(--white-text-color)]'>
                 Link to Your Submission
                 <span className='text-red-500'>*</span>
               </label>
@@ -93,7 +93,7 @@ const BountySubmissionModal: React.FC<BountySubmissionModalProps> = ({
             </div>
 
             <div className='space-y-2'>
-              <label className='block text-white'>Tweet Link</label>
+              <label className='block text-[var(--white-text-color)]'>Tweet Link</label>
               <input
                 type='url'
                 placeholder="Add a tweet's link"

@@ -59,7 +59,7 @@ export const FilterDropdown = ({
                 <Select.Item
                   key={index}
                   value={option.id}
-                  className='relative flex items-center px-6 py-2 rounded hover:bg-gray-700 focus:bg-gray-700 focus:outline-none select-none data-[highlighted]:bg-gray-700 data-[highlighted]:outline-none'
+                  className='relative flex items-center px-6 py-2 rounded hover:bg-gray-100 focus:bg-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700 focus:outline-none select-none data-[highlighted]:bg-gray-700 data-[highlighted]:outline-none'
                 >
                   <Select.ItemText>
                     {option?.label || option?.name}

@@ -69,7 +69,7 @@ const LeaderboardPage = () => {
           leaderboardData?.data.map((user, index) => (
             <div
               key={user.id}
-              className={`grid grid-cols-12 px-4 py-3 my-4 rounded-xl items-center bg-[#171717]`}
+              className={`grid grid-cols-12 px-4 py-3 my-4 rounded-xl items-center bg-gray-300 dark:bg-[#171717]`}
               style={{
                 background:
                   (currentPage - 1) * 10 + index + 1 === 1
@@ -78,7 +78,7 @@ const LeaderboardPage = () => {
                     ? "linear-gradient(90.26deg, rgba(172, 166, 190, 0.24) 0%, #171717 50.23%)"
                     : (currentPage - 1) * 10 + index + 1 === 3
                     ? "linear-gradient(90.26deg, rgba(233, 125, 102, 0.24) 0%, #171717 50.23%)"
-                    : "#171717",
+                    : "",
               }}
             >
               <div className='col-span-3 md:col-span-1'>

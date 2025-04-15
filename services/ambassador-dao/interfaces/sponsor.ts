@@ -136,6 +136,7 @@ export interface IOppotunityApplicationsResponse {
             name: string;
           }[]
         | undefined;
+      years_of_experience: string;
       social_links: string[];
       job_title: string;
     };
@@ -179,6 +180,7 @@ export interface IOppotunitySubmissionsResponse {
             name: string;
           }[]
         | undefined;
+      years_of_experience: string;
       job_title: string;
     };
     files: string[];
@@ -204,7 +206,6 @@ export interface ISingleOppotunityApplicationResponse {
     question: string;
     answer: string;
   }[];
-  telegram_username: string;
   feedback: string | null;
   user_id: string;
   opportunity_id: string;
@@ -213,11 +214,13 @@ export interface ISingleOppotunityApplicationResponse {
     user_id: string;
     type: "JOB" | "BOUNTY";
   };
+  telegram_username: string;
   files: {
     id: string;
     filename: string;
     original_name: string;
   }[];
+  applicant_number_of_completed_jobs: string;
   applicant: {
     id: string;
     first_name: string;
@@ -234,6 +237,7 @@ export interface ISingleOppotunityApplicationResponse {
     }[];
     socials: string[];
     social_links: string[];
+    years_of_experience: string;
     job_title: string;
   };
 }
@@ -264,6 +268,8 @@ export interface ISingleOppotunitySubmissionResponse {
     filename: string;
     original_name: string;
   }[];
+  link: string;
+  tweet_link: string;
   submitter: {
     id: string;
     first_name: string;
@@ -278,6 +284,7 @@ export interface ISingleOppotunitySubmissionResponse {
       id: string;
       name: string;
     }[];
+    years_of_experience: string;
     socials: string[];
     social_links: string[];
     job_title: string;

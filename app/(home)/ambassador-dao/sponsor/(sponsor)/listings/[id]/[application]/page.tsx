@@ -1,7 +1,7 @@
 "use client";
 import Loader from "@/components/ambassador-dao/ui/Loader";
 import { useFetchSingleListingApplication } from "@/services/ambassador-dao/requests/sponsor";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Hourglass, Link as LinkIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -59,12 +59,28 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                       <div>
                         <h3 className='text-lg font-medium text-[var(--primary-text-color)]'>
                           {application.applicant.first_name}{" "}
-                          {application.applicant.last_name}
+                          {application.applicant.last_name}{" "}
+                          <span className='text-[var(--secondary-text-color)] font-light text-sm'>
+                            ( @{application.applicant.username})
+                          </span>
                         </h3>
-                        <p className='text-[var(--secondary-text-color)] font-light text-sm'>
-                          @{application.applicant.username}
-                        </p>
-                        <p className='text-[var(--secondary-text-color)] font-light text-sm'>
+                        <div className='flex items-center space-x-3 overflow-x-auto'>
+                          <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
+                            <Hourglass
+                              color='#9F9FA9'
+                              className='w-3 h-3 mr-1'
+                            />
+                            Submitted:{" "}
+                            {new Date(
+                              application.created_at
+                            ).toLocaleDateString()}{" "}
+                            at{" "}
+                            {new Date(
+                              application.created_at
+                            ).toLocaleTimeString()}
+                          </div>
+                        </div>
+                        <p className='text-[var(--secondary-text-color)] font-light text-xs'>
                           Based in {application.applicant.location ?? "--"}
                         </p>
                       </div>
@@ -79,23 +95,62 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                         Complete Job
                       </CustomButton>
                     ) : (
-                      <div className='flex items-center gap-2'>
-                        <CustomButton
-                          isFullWidth={false}
-                          className='!text-[#FF394A] !bg-transparent border !border-[#FF394A] px-4'
-                          onClick={() => setIsRejectApplicantModalOpen(true)}
-                        >
-                          Reject Applicant
-                        </CustomButton>
-                        <CustomButton
-                          isFullWidth={false}
-                          className='!text-[#fff] !bg-[#FF394A] px-4'
-                          onClick={() => setIsAcceptApplicantModalOpen(true)}
-                        >
-                          Select Applicant
-                        </CustomButton>
-                      </div>
+                      <>
+                        {application.status !== "REJECTED" &&
+                          application.status !== "COMPLETED" && (
+                            <div className='flex items-center gap-2'>
+                              <CustomButton
+                                isFullWidth={false}
+                                className='!text-[#FF394A] !bg-transparent border !border-[#FF394A] px-4'
+                                onClick={() =>
+                                  setIsRejectApplicantModalOpen(true)
+                                }
+                              >
+                                Reject Applicant
+                              </CustomButton>
+                              <CustomButton
+                                isFullWidth={false}
+                                className='!text-[#fff] !bg-[#FF394A] px-4'
+                                onClick={() =>
+                                  setIsAcceptApplicantModalOpen(true)
+                                }
+                              >
+                                Select Applicant
+                              </CustomButton>
+                            </div>
+                          )}
+                      </>
                     )}
+                  </div>
+
+                  <hr className='my-4 md:my-8' />
+
+                  <div className='grid grid-cols-1 md:grid-cols-3 gap-2'>
+                    <div className=''>
+                      <p className='text-[var(--primary-text-color)] font-semibold'>
+                        Experience
+                      </p>
+                      <p className='text-[var(--secondary-text-color)] text-sm'>
+                        {application.applicant.years_of_experience ?? "--"}{" "}
+                        years
+                      </p>
+                    </div>
+                    <div className=''>
+                      <p className='text-[var(--primary-text-color)] font-semibold'>
+                        Success Rate
+                      </p>
+                      <p className='text-[var(--secondary-text-color)] text-sm'>
+                        --%
+                      </p>
+                    </div>
+                    <div className=''>
+                      <p className='text-[var(--primary-text-color)] font-semibold'>
+                        Completed Jobs
+                      </p>
+                      <p className='text-[var(--secondary-text-color)] text-sm'>
+                        {application.applicant_number_of_completed_jobs ?? "--"}
+                      </p>
+                    </div>
                   </div>
 
                   <hr className='my-4 md:my-8' />
@@ -125,13 +180,21 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                       <div className='flex flex-wrap gap-2'>
                         {application?.applicant?.social_links?.map(
                           (social: string, index: number) => (
-                            <div
+                            <a
                               key={index}
+                              href={social}
+                              target='_blank'
+                              rel='noopener noreferrer'
                               className='text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]'
                             >
                               {social.slice(0, 20)}...
-                            </div>
+                            </a>
                           )
+                        )}
+                        {application.telegram_username && (
+                          <div className='text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]'>
+                            Telegram: @{application.telegram_username}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -139,13 +202,91 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                 </div>
 
                 <div className='border border-[var(--default-border-color)] p-2 rounded-lg md:p-4 transition-colors'>
+                  <h3 className='text-3xl font-medium mb-2'>Application</h3>
+                  <hr className='my-4 md:my-6' />
+
+                  <div className='space-y-3 md:space-y-5'>
+                    <div>
+                      <p className='text-[var(--primary-text-color)] text-lg font-medium'>
+                        Application Details
+                      </p>
+                      <p className='text-[var(--secondary-text-color)]'>
+                        {application.cover_letter ?? "--"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className='text-[var(--primary-text-color)] text-lg font-medium'>
+                        Attachments
+                      </p>
+                      <div className='space-y-3 mt-2'>
+                        {!application.files.length && (
+                          <div className='text-[var(--secondary-text-color)] text-sm'>
+                            No files uploaded
+                          </div>
+                        )}
+                        {application.files.map((file) => (
+                          <div className='flex flex-col md:flex-row gap-2 justify-between border border-[var(--default-border-color)] p-2 rounded-md my-1'>
+                            <div className='flex gap-2 items-center'>
+                              <LinkIcon
+                                size={16}
+                                color='var(--primary-text-color'
+                              />
+                              <p className='font-semibold text-[var(--primary-text-color)]'>
+                                {file.original_name}
+                              </p>
+                            </div>
+                            <p className='text-[var(--primary-text-color)] font-semibold cursor-pointer'>
+                              Download
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {application.extra_data && (
+                      <div>
+                        <p className='text-[var(--primary-text-color)] text-lg font-medium'>
+                          Extra data
+                        </p>
+                        <p className='text-[var(--secondary-text-color)]'>
+                          {application.extra_data}
+                        </p>
+                      </div>
+                    )}
+
+                    {!!application.custom_answers.length && (
+                      <div>
+                        <p className='text-[var(--primary-text-color)] text-lg font-medium'>
+                          Answers to Questions
+                        </p>
+                        <div className='space-y-3 mt-2'>
+                          {application.custom_answers.map(
+                            (answer: { question: string; answer: string }) => (
+                              <div className=' border border-[var(--default-border-color)] p-2 rounded-md'>
+                                <p className='text-[var(--primary-text-color)] font-semibold'>
+                                  {answer.question}
+                                </p>
+                                <p className='text-[var(--secondary-text-color)]'>
+                                  {answer.answer}
+                                </p>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* <div className='border border-[var(--default-border-color)] p-2 rounded-lg md:p-4 transition-colors'>
                   <h3 className='text-3xl font-medium mb-2'>Portfolio</h3>
-                  <hr className='my-4 md:my-8' />
+                  <hr className='my-4 md:my-6' />
 
                   <p className='text-grey-600'>
                     TODO: Figure out how to show portfolio
                   </p>
-                </div>
+                </div> */}
               </div>
             )}
           </>
