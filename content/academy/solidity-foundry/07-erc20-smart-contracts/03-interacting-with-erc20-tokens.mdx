@@ -5,8 +5,11 @@ updated: 2024-06-28
 authors: [Andrea Vargas, Ash, martineckardt]
 icon: Book
 ---
-In this section, we will go through an example of how to interact with an ERC-20 from another contract. 
+
+In this section, we will go through an example of how to interact with an ERC-20 from another contract.
+
 ## Read Operations
+
 Before calling any operations of an ERC-20 contract, we will need to have the following available:
 
 - The ERC-20 interface
@@ -15,39 +18,24 @@ Before calling any operations of an ERC-20 contract, we will need to have the fo
 Our starting Solidity file, therefore, will the following code:
 
 ```solidity
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-​
 interface IERC20 {
-​
-​
     function name() external view returns (string memory);
-​
     function symbol() external view returns (string memory);
-​
     function decimals() external view returns (uint8);
-​
     function totalSupply() external view returns (uint256);
-​
     function balanceOf(address _owner) external view returns (uint256 balance);
-​
     function transfer(address _to, uint256 _value) external returns (bool success);
-​
     function transferFrom(address _from, address _to, uint256 _value) external returns (bool success);
-​
     function approve(address _spender, uint256 _value) external returns (bool success);
-​
     function allowance(address _owner, address _spender) external view returns (uint256 remaining);
-​
 }
 ```
 
-```solidity​
+```solidity
 contract Test {
-​
     address tokenAddress;
-​
 }
 ```
 
@@ -55,13 +43,11 @@ As a starter, let's write a function that gets the name of the token:
 
 ```solidity
 contract Test {
-​
     address tokenAddress;
   
     function getName() public view returns(string memory) {
       return IERC20(tokenAddress).name();
     }
-​
 }
 ```
 
@@ -84,7 +70,6 @@ In this example, we will look at calling the transferFrom function of an ERC-20 
 
 ```solidity
 contract Test {
-​
     address tokenAddress;
     address from;
     address to;
@@ -97,7 +82,6 @@ contract Test {
     function doTransferFrom() public returns(bool) {
         return IERC20(tokenAddress).transferFrom(from, to, amt);
     }
-​
 }
 ```
 
@@ -105,7 +89,6 @@ In addition to adding additional state variables for context, we have also added
 
 ```solidity
 contract Test {
-​
     address token;
     address from;
     address to;
@@ -121,7 +104,6 @@ contract Test {
         }
         return IERC20(token).transferFrom(from, to, amt);
     }
-​
 }
 ```
 

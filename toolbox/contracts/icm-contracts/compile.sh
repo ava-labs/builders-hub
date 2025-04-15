@@ -6,7 +6,7 @@ SCRIPT_DIR=$(dirname "$0")
 SCRIPT_DIR=$(cd "$SCRIPT_DIR" && pwd)
 
 ICM_COMMIT="48fe488"
-SUBNET_EVM_VERSION="v0.7.1"
+SUBNET_EVM_VERSION="v0.7.2-fuji"
 
 # Get current user and group IDs
 CURRENT_UID=$(id -u)

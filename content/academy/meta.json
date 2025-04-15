@@ -1,3 +1,3 @@
 {
-  "pages": ["blockchain-fundamentals", "avalanche-fundamentals", "multi-chain-architecture", "interchain-messaging", "interchain-token-transfer", "customizing-evm", "avacloudapis", "solidity-foundry", "icm-chainlink", "l1-tokenomics"]
+  "pages": ["blockchain-fundamentals", "avalanche-fundamentals", "multi-chain-architecture", "interchain-messaging", "interchain-token-transfer", "customizing-evm", "avacloudapis", "solidity-foundry", "icm-chainlink", "l1-tokenomics", "l1-validator-management"]
 }

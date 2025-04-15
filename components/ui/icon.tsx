@@ -7,7 +7,7 @@ export function create({
   icon?: LucideIcon;
 }): React.ReactElement {
   return (
-    <div className="rounded-md border p-1 shadow-sm">
+    <div className="rounded-md border p-1 shadow-xs">
       {Icon ? <Icon /> : <TerminalIcon />}
     </div>
   );

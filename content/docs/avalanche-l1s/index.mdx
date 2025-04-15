@@ -3,57 +3,54 @@ title: Getting Started
 description: As you begin your Avalanche L1 journey, it's useful to look at the lifecycle of taking an Avalanche L1 from idea to production.
 ---
 
-Figure Out Your Needs[​](#figure-out-your-needs "Direct link to heading")
--------------------------------------------------------------------------
+## Figure Out Your Needs
 
 The first step of planning your Avalanche L1 is determining your application's needs. What features do you need that the Avalanche C-Chain doesn't provide? 
 
-### When to Choose an Avalanche L1[​](#when-to-choose-an-avalanche-l1 "Direct link to heading")
+### When to Choose an Avalanche L1
 
 Building your own Avalanche L1 is a great choice when your project demands capabilities beyond those offered by the C-Chain. For instance, if you need the flexibility to use a custom gas token, require strict access control (for example, by only permitting users who are KYC-verified), or wish to implement a unique transaction fee model, then an Avalanche L1 can provide the necessary options. In addition, if having a completely sovereign network with its own governance and consensus mechanisms is central to your vision, an Avalanche L1 is likely the best path forward.
 
-### Decide What Type of Avalanche L1 You Want[​](#decide-what-type-of-avalanche-l1-you-want "Direct link to heading")
+### Decide What Type of Avalanche L1 You Want
 
 After confirming that an Avalanche L1 suits your project's requirements, the next step is to select the type of virtual machine (VM) that will power your blockchain. Broadly, you can choose among three options.
 
-#### EVM-Based Avalanche L1s[​](#evm-based-avalanche-l1s "Direct link to heading")
+#### EVM-Based Avalanche L1s
 
 EVM-based Avalanche L1s are essentially forks of the Avalanche C-Chain. They support Solidity smart contracts and standard [Ethereum APIs](/docs/api-reference/c-chain/api#ethereum-apis). Ava Labs' implementation, [Subnet-EVM](https://github.com/ava-labs/subnet-evm), is the most mature option available. It is recognized for its robust developer tooling and regular updates, making it the safest and most popular choice for building your blockchain.
 
-#### Experimental Avalanche L1s[​](#experimental-avalanche-l1s "Direct link to heading")
+#### Experimental Avalanche L1s
 
 Experimental Avalanche L1s are proof-of-concept virtual machines developed by Ava Labs to showcase novel capabilities that extend beyond the traditional EVM. Examples include [TimestampVM Go](/docs/virtual-machines/golang-vms/simple-golang-vm) and [TimestampVMRust](/docs/virtual-machines/timestamp-vm/introduction). They are designed to inspire innovative ideas but are not intended for production environments since their performance and security have not undergone full-scale audits.
 
-#### Custom Avalanche L1s[​](#custom-avalanche-l1s "Direct link to heading")
+#### Custom Avalanche L1s
 
 Custom Avalanche L1s offer an open-ended interface that enables you to build any virtual machine you envision. Whether you fork an existing VM such as Subnet-EVM, integrate a non-Avalanche-native VM like Solana's, or build a completely new VM using any programming language you prefer, the choice is yours. For guidance on how to get started with VM development, see [Introduction to VMs](/docs/virtual-machines).
 
-### Determine Tokenomics[​](#determine-tokenomics "Direct link to heading")
+### Determine Tokenomics
 
 Avalanche L1s are powered by gas tokens, and building your own blockchain gives you the flexibility to determine which token to use and how to distribute it. Whether you decide to leverage AVAX, adapt an existing C-Chain token, or launch a new token entirely, you'll need to plan the allocation of tokens for validator rewards, establish an emission schedule, and decide whether transaction fees should be burned or redistributed as block rewards.
 
-### Decide how to Customize Your Avalanche L1[​](#decide-how-to-customize-your-avalanche-l1 "Direct link to heading")
+### Decide how to Customize Your Avalanche L1
 
 Once you have selected your virtual machine, further customization may be necessary to align the blockchain with your specific needs. This might involve configuring the token allocation in the genesis block, setting gas fee rates, or making changes to the VM's behavior through precompiles. Such customizations often require careful iterative testing to perfect. For detailed instructions, refer to [Customize Your EVM-Powered Avalanche L1](/docs/avalanche-l1s/upgrade/customize-avalanche-l1).
 
-### Learn Avalanche-CLI[​](#learn-avalanche-cli "Direct link to heading")
----------------------------------------------------------------------
+## Learn Avalanche-CLI
 
 After defining your requirements, the next step is to get acquainted with Avalanche-CLI. This tool is essential for rapid prototyping and deployment, covering the full lifecycle from development to production. Begin your journey by following the [Avalanche-CLI Installation and Setup](https://build.avax.network/docs/tooling/get-avalanche-cli) instructions.
 
-### Deploy Your Avalanche L1 Locally[​](#deploy-your-avalanche-l1-locally "Direct link to heading")
+### Deploy Your Avalanche L1 Locally
 
 The first stage of development involves deploying your Avalanche L1 on your local machine or on a private cloud server (such as Amazon EC2). This environment lets you lock in customizations and build your full-stack decentralized application without the limitations of a public network. Local deployments also offer rapid update cycles.
 
-### Deploy Your Avalanche L1 to Fuji[​](#deploy-your-avalanche-l1-to-fuji "Direct link to heading")
+### Deploy Your Avalanche L1 to Fuji
 
 Next, move your Avalanche L1 and decentralized application to the Fuji Testnet. This public testing environment allows you to simulate running validator nodes, coordinate among network participants, and monitor network health. It also offers a chance to practice managing transactions with hardware wallets. However, bear in mind that update cycles on Fuji Testnet run slower than on local setups, typically taking from hours to days.
 
-### Deploy Your Avalanche L1 to Mainnet[​](#deploy-your-avalanche-l1-to-mainnet "Direct link to heading")
+### Deploy Your Avalanche L1 to Mainnet
 
 The final step is launching your Avalanche L1 on Mainnet, making your network available to real users. Although some changes may still be possible at this stage, any modifications usually take longer to implement, so your focus should shift toward maintaining network stability and scheduling routine upgrades.
 
-### Start Developing Custom VMs[​](#start-developing-custom-vms "Direct link to heading")
--------------------------------------------------------------------------------------
+## Start Developing Custom VMs
 
 If you've mastered Subnet-EVM and are looking for an additional challenge, consider building a custom VM. Beyond the conventional EVM, you might consider porting a virtual machine from an existing blockchain, such as Bitcoin's or Solana's, to Avalanche. Alternatively, you might develop a custom virtual machine designed exclusively for your application's needs. This approach enables you to optimize performance for specialized functions, whether you are creating a decentralized exchange, implementing a centralized limit order book, or addressing another unique requirement. Another approach is to design an entirely more efficient implementation of the EVM, further expanding the possibilities on Avalanche L1s.

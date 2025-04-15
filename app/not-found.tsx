@@ -17,7 +17,7 @@ function createGitHubIssueURL(path: string | null) {
     `Please provide any additional context about what you were looking for.`
   );
   
-  return `https://github.com/ava-labs/avalanche-docs/issues/new?title=${title}&body=${body}&labels=bug`;
+  return `https://github.com/ava-labs/builders-hub/issues/new?title=${title}&body=${body}&labels=bug`;
 }
 
 export default function NotFound() {

@@ -28,7 +28,10 @@
   "dependencies": {
     "@avalabs/avacloud-sdk": "^0.9.0",
     "@avalabs/avalanchejs": "^4.1.2-alpha.4",
+    "@radix-ui/react-label": "^2.1.2",
+    "@radix-ui/react-radio-group": "^1.2.3",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "boring-name-generator": "^1.0.3",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
     "ethers": "^6.13.5",
@@ -38,6 +41,7 @@
     "react-dom": "^19.0.0",
     "react-error-boundary": "^5.0.0",
     "react-syntax-highlighter": "^15.6.1",
+    "recharts": "^2.15.1",
     "tailwind-merge": "^3.0.1",
     "viem": "^2.23.0",
     "vitest": "^3.0.5",
@@ -59,7 +63,7 @@
     "tailwindcss": "3",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.18.2",
-    "vite": "^6.0.12",
+    "vite": "^6.0.14",
     "vite-plugin-dts": "^4.5.0"
   }
 }

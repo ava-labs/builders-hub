@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import { getGuidePages } from '@/utils/content-loader/guide-loader';
+import { guide } from '@/lib/source';
 import { buttonVariants } from '@/components/ui/button';
-import { SiX } from '@icons-pack/react-simple-icons';
+import { Twitter } from 'lucide-react';
 
 export default function Page(): React.ReactElement {
-    const guides = [...getGuidePages()].sort(
+    const guides = [...guide.getPages()].sort(
         (a, b) =>
             new Date(b.data.date ?? b.file.name).getTime() -
             new Date(a.data.date ?? a.file.name).getTime(),
@@ -20,7 +20,7 @@ export default function Page(): React.ReactElement {
                     </p>
                     <p className="m-12 text-center ">
                         <Link
-                            href="https://github.com/ava-labs/avalanche-academy/tree/dev/content/guides"
+                            href="https://github.com/ava-labs/builders-hub/tree/master/content/guides"
                             target='_blank'
                             className={buttonVariants({ size: 'lg', variant: 'default' })}
                         >
@@ -33,7 +33,7 @@ export default function Page(): React.ReactElement {
                         <Link
                             key={guide.url}
                             href={guide.url}
-                            className="flex flex-col gap-2 bg-card p-4 rounded-lg transition-shadow shadow hover:shadow-lg dark:bg-card-dark dark:border dark:border-slate-500"
+                            className="flex flex-col gap-2 bg-card p-4 rounded-lg transition-shadow shadow-sm hover:shadow-lg dark:bg-card-dark dark:border dark:border-slate-500"
                         >
                             <p className="text-xs text-muted-foreground">
                                 {new Date(guide.data.date ?? guide.file.name).toDateString()}
@@ -63,8 +63,8 @@ export default function Page(): React.ReactElement {
                                         key={author}
                                         className="text-sm text-muted-foreground transition-colors flex flex-row items-center gap-2 group"
                                     >
-                                        <SiX size={12} />
-                                        <span className="flex-grow truncate">{author}</span>
+                                        <Twitter size={12} />
+                                        <span className="grow truncate">{author}</span>
                                     </div>
                                 ))}
                             </div>

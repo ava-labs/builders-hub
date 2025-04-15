@@ -7,7 +7,7 @@ This is accomplished using a community-owned docusaurus plugin called [docusauru
 
 ## Requirements and Caveats
 
-- Each file imported in this matter **must be added** to the .gitignore to avoid storing directly in the avalanche-docs repository, and formatting/conflict issues.
+- Each file imported in this matter **must be added** to the .gitignore to avoid storing directly in the builders-hub repository, and formatting/conflict issues.
 - All links included in imported files **must be tested**. For troubleshooting, see [The replaceRelativeLinks Function](#the-replacerelativelinks-function) section.
 - Markdown ([.md]) docs are imported _in their entirety._ Importing a single subsection or excluding certain information _is not possible._
 - These docs _by default_ will not be able to be translated by the github-translation-bot we employ.

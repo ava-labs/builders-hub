@@ -1,0 +1,54 @@
+---
+title: Convert a Subnet to an L1
+description: Learn how to convert a subnet to an L1 on the P-Chain.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: SquareMousePointer
+---
+
+The node you have just launched is tracking the Subnet but is not yet a validator. In fact, since the Subnet
+does not have any validators yet it cannot process any transactions. In this step we will do two
+things at once:
+
+1. Convert the Subnet to an L1
+2. Add your node as a validator
+
+Converting a Subnet to an L1 requires the Subnet owner issuing a `ConvertSubnetToL1Tx` transaction
+on the P-Chain. This transaction establishes a new validator set for your blockchain and transforms
+it from a Subnet into a sovereign L1 chain. The `ConvertSubnetToL1Tx` transaction is a one-time
+transaction that can only be executed once by the Subnet owner(s). 
+
+After the conversion the subnet owner looses all privileges and the L1 is controlled by a validator
+manager contract, that manages the validator set. You will learn more about this in the next
+chapter. 
+
+The `ConvertSubnetToL1Tx` has the following parameters:
+
+- **Subnet ID** - The unique identifier of your Subnet
+- **Validator Manager Blockchain ID** - The ID of the blockchain where the Validator Manager
+  contract will be deployed. This blockchain can belong to the L1, be the C-Chain or belong to any
+  other L1 in the Avalanche network
+- **Validator Manager Address** - The address of the contract on that blockchain
+- **Validators** - The initial set of validators for the L1
+
+<Callout type="info">
+The **Validator Manager Address** is initially set to an OpenZeppelin [TransparentUpgradeableProxy](https://docs.openzeppelin.com/contracts/4.x/api/proxy) contract pre-deployed in the `genesis.json`. After conversion, you'll deploy the actual `ValidatorManager` implementation contract and update the proxy to point to it.
+</Callout>
+
+## Conversion Tool
+
+Use the following tool to convert your Subnet to an L1:
+
+import ToolboxMdxWrapper from "../../../../toolbox/src/toolbox/components/ToolboxMdxWrapper.tsx"
+import ConvertToL1 from "../../../../toolbox/src/toolbox/L1/ConvertToL1.tsx"
+
+<ToolboxMdxWrapper>
+    <ConvertToL1 />
+</ToolboxMdxWrapper>
+
+<Callout type="warn">
+If converting a pre-existing Subnet with validators, you must establish a completely new validator set for the L1 conversion. The existing Subnet validators cannot be automatically transferred.
+</Callout>
+
+
+

@@ -12,7 +12,7 @@ import {
   Pre,
 } from "fumadocs-ui/components/codeblock";
 import type { ReactNode } from "react";
-import 'fumadocs-twoslash/twoslash.css';
+import "fumadocs-twoslash/twoslash.css";
 import { Popup, PopupContent, PopupTrigger } from "fumadocs-twoslash/ui";
 import YouTube from "@/components/content-design/youtube";
 import Gallery from "@/components/content-design/gallery";

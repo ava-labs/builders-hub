@@ -60,7 +60,7 @@ function Courses(props: { title: string; description: string; courses: any[] }):
               <img
                 src={`/course-banner/${course.slug}.jpg`}
                 alt=""
-                className="w-full aspect-[3/2] object-cover rounded-lg mb-5"
+                className="w-full aspect-3/2 object-cover rounded-lg mb-5"
               />
               <div className="flex flex-wrap items-center gap-4 text-xs">
                 <span className="text-gray-500">{course.duration}</span>
