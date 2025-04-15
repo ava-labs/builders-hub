@@ -45,7 +45,7 @@ import { PublishOpportunityModal } from "./publish-opportunity-modal";
 import toast from "react-hot-toast";
 import DatePicker from "../DatePicker";
 import Loader from "../ui/Loader";
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea } from "@/components/ui/textarea";
 const MarkdownEditor = dynamic(() => import("../markdown-editor"), {
   ssr: false,
 });
@@ -398,12 +398,10 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     <div className='space-y-2'>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         Requirements
-                        <span className='text-red-500 ml-1'>*</span>
                       </label>
                       <Controller
                         name='requirements'
                         control={control}
-                        rules={{ required: "Requirements is required" }}
                         render={({ field }) => (
                           <Textarea
                             {...field}
@@ -645,7 +643,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       </div>
                     )}
 
-                    <div className='space-y-2'>
+                    {/* <div className='space-y-2'>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         Start Date (in America/New_York)
                         <span className='text-red-500 ml-1'>*</span>
@@ -673,9 +671,9 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           {errors.start_date.message}
                         </p>
                       )}
-                    </div>
+                    </div> */}
 
-                    <div className='space-y-2'>
+                    {/* <div className='space-y-2'>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         End Date (in America/New_York)
                         <span className='text-red-500 ml-1'>*</span>
@@ -738,7 +736,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           {errors.end_date.message}
                         </p>
                       )}
-                    </div>
+                    </div> */}
 
                     <div className='space-y-2'>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
@@ -806,67 +804,69 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       )}
                     </div>
 
-                    <div className='space-y-2'>
-                      <h3 className='text-lg font-semibold'>
-                        Custom Questions
-                      </h3>
+                    {formType !== "BOUNTY" && (
+                      <div className='space-y-2'>
+                        <h3 className='text-lg font-semibold'>
+                          Custom Questions
+                        </h3>
 
-                      {!customQuestionFields?.length && (
-                        <>
-                          <p className=' text-xs mt-1'>No questions added</p>
-                        </>
-                      )}
+                        {!customQuestionFields?.length && (
+                          <>
+                            <p className=' text-xs mt-1'>No questions added</p>
+                          </>
+                        )}
 
-                      {customQuestionFields?.map((field, index) => (
-                        <div key={index}>
-                          <div className='flex gap-2 items-center'>
-                            <Controller
-                              name={`custom_questions.${index}`}
-                              rules={{ required: "Question is required" }}
-                              control={control}
-                              render={({ field }) => (
-                                <CustomInput
-                                  {...field}
-                                  required={true}
-                                  className='bg-[var(--default-background-color)] border-[var(--default-border-color)] flex-1'
-                                  placeholder='Enter your question'
-                                />
-                              )}
-                            />
-                            <Button
-                              type='button'
-                              variant='ghost'
-                              size='icon'
-                              onClick={() => removeCustomQuestion(index)}
-                              className='text-red-500 px-2'
-                            >
-                              <Trash2 className='h-4 w-4' color='red' />
-                            </Button>
+                        {customQuestionFields?.map((field, index) => (
+                          <div key={index}>
+                            <div className='flex gap-2 items-center'>
+                              <Controller
+                                name={`custom_questions.${index}`}
+                                rules={{ required: "Question is required" }}
+                                control={control}
+                                render={({ field }) => (
+                                  <CustomInput
+                                    {...field}
+                                    required={true}
+                                    className='bg-[var(--default-background-color)] border-[var(--default-border-color)] flex-1'
+                                    placeholder='Enter your question'
+                                  />
+                                )}
+                              />
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='icon'
+                                onClick={() => removeCustomQuestion(index)}
+                                className='text-red-500 px-2'
+                              >
+                                <Trash2 className='h-4 w-4' color='red' />
+                              </Button>
+                            </div>
+                            {errors.custom_questions && (
+                              <p className='text-red-500 text-xs mt-1'>
+                                {errors.custom_questions.message}
+                              </p>
+                            )}
                           </div>
-                          {errors.custom_questions && (
-                            <p className='text-red-500 text-xs mt-1'>
-                              {errors.custom_questions.message}
-                            </p>
-                          )}
-                        </div>
-                      ))}
+                        ))}
 
-                      <div className='flex justify-end'>
-                        <Button
-                          type='button'
-                          variant='ghost'
-                          size='sm'
-                          className='h-6 py-2 text-sm text-[var(--primary-text-color)] hover:bg-none'
-                          onClick={addCustomQuestion}
-                        >
-                          <Plus
-                            className='h-3 w-3 mr-1'
-                            color='var(--primary-text-color)'
-                          />{" "}
-                          Add Question
-                        </Button>
+                        <div className='flex justify-end'>
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='sm'
+                            className='h-6 py-2 text-sm text-[var(--primary-text-color)] hover:bg-none'
+                            onClick={addCustomQuestion}
+                          >
+                            <Plus
+                              className='h-3 w-3 mr-1'
+                              color='var(--primary-text-color)'
+                            />{" "}
+                            Add Question
+                          </Button>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </form>

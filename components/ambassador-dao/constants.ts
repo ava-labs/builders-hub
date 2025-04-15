@@ -24,6 +24,7 @@ export const opportunityApplicationStatusOptions = [
   { value: "REJECTED", label: "Rejected" },
   { value: "APPROVED", label: "Approved" },
   { value: "WITHDRAWN", label: "Withdrawn" },
+  { value: "APPLIED", label: "Pending Review" },
 ];
 
 export const opportunitySubmissionStatusOptions = [

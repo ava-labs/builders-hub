@@ -1,28 +1,16 @@
-"use client";
-
-import { useState, Suspense, Key, useEffect, useRef } from "react";
-import { ArrowLeft, MessagesSquare, MoreVertical } from "lucide-react";
-import { useRouter, useParams } from "next/navigation";
+import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 import {
   useDeleteOpportunityComment,
   useEditOpportunityComment,
   useFetchOpportunityComment,
-  useFetchOpportunityDetails,
+  useFetchOpportunityCommentReplies,
   useReplyOpportunityComment,
   useSubmitOpportunityComment,
-  useFetchOpportunityCommentReplies,
 } from "@/services/ambassador-dao/requests/opportunity";
-import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
-
-import Loader from "@/components/ambassador-dao/ui/Loader";
-import { Pagination } from "@/components/ambassador-dao/ui/Pagination";
-import { AuthModal } from "@/components/ambassador-dao/sections/auth-modal";
-import {
-  BountyHeader,
-  BountySidebar,
-  BountyDescription,
-} from "@/components/ambassador-dao/bounty/components";
-import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
+import { useEffect, useRef, useState } from "react";
+import { AuthModal } from "./auth-modal";
+import { Loader, MessagesSquare, MoreVertical } from "lucide-react";
+import { Pagination } from "../ui/Pagination";
 
 interface CommentAuthor {
   id: string;
@@ -53,40 +41,6 @@ interface CommentProps {
   comment: Comment;
   opportunityId: string;
 }
-
-interface BountySidebarProps {
-  bounty: {
-    id: string;
-    category: string;
-    total_budget: number;
-    deadline: string;
-    proposalsCount: number;
-    skills: Array<{ name: string }>;
-    custom_questions: any[];
-    prize_distribution?: Array<{
-      amount: number;
-      position: number;
-    }>;
-  };
-}
-
-const GoBackButton = () => {
-  const router = useRouter();
-
-  const handleGoBack = () => {
-    router.push("/ambassador-dao?type=bounties");
-  };
-
-  return (
-    <button
-      onClick={handleGoBack}
-      className='flex items-center gap-2 text-[var(--primary-text-color)] hover:text-[var(--white-text-color)] mb-6 bg-[var(--default-background-color)] py-2 px-4 rounded-md border border-[var(--default-border-color)]'
-    >
-      <ArrowLeft size={16} color='var(--primary-text-color)' />
-      <span>Go Back</span>
-    </button>
-  );
-};
 
 interface ReplyProps {
   reply: CommentReply;
@@ -557,7 +511,7 @@ interface CommentsSectionProps {
   id: string;
 }
 
-const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
+export const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
   const [newComment, setNewComment] = useState<string>("");
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [optimisticComments, setOptimisticComments] = useState<Comment[]>([]);
@@ -676,13 +630,50 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
   };
 
   return (
-    <div className='mt-8 border-t border-[var(--default-border-color)] pt-6'>
-      <div className='flex items-center gap-2 mb-4'>
+    <div className='space-y-3'>
+      <div className='flex items-center gap-2'>
         <MessagesSquare size={16} color='#9F9FA9' />
         <h2 className='text-lg font-semibold'>
           {(metadata.total || 0) + optimisticComments.length} Comments
         </h2>
       </div>
+
+      {isLoadingComments ? (
+        <div className='flex justify-center my-8'>
+          <Loader />
+        </div>
+      ) : (
+        <>
+          <div className='space-y-4 mt-6'>
+            {displayComments.length === 0 ? (
+              <p className='text-[var(--secondary-text-color)] text-center py-8'>
+                No comments yet. Be the first to comment!
+              </p>
+            ) : (
+              displayComments.map((comment, index) => (
+                <Comment
+                  key={`comment-${comment.id}-${index}`}
+                  comment={comment}
+                  opportunityId={id}
+                />
+              ))
+            )}
+          </div>
+
+          {metadata.last_page > 1 && (
+            <Pagination
+              metadata={metadata}
+              onPageChange={handlePageChange}
+              className='my-8'
+            />
+          )}
+
+          <AuthModal
+            isOpen={openAuthModal}
+            onClose={() => setOpenAuthModal(false)}
+          />
+        </>
+      )}
 
       <form onSubmit={handleSubmitComment} className='mt-6 relative'>
         <textarea
@@ -723,140 +714,6 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
           </>
         )}
       </form>
-
-      {isLoadingComments ? (
-        <div className='flex justify-center my-8'>
-          <Loader />
-        </div>
-      ) : (
-        <>
-          <div className='space-y-4 mt-6'>
-            {displayComments.length === 0 ? (
-              <p className='text-[var(--secondary-text-color)] text-center py-8'>
-                No comments yet. Be the first to comment!
-              </p>
-            ) : (
-              displayComments.map((comment, index) => (
-                <Comment
-                  key={`comment-${comment.id}-${index}`}
-                  comment={comment}
-                  opportunityId={id}
-                />
-              ))
-            )}
-          </div>
-
-          {metadata.last_page > 1 && (
-            <Pagination
-              metadata={metadata}
-              onPageChange={handlePageChange}
-              className='my-8'
-            />
-          )}
-
-          <AuthModal
-            isOpen={openAuthModal}
-            onClose={() => setOpenAuthModal(false)}
-          />
-        </>
-      )}
     </div>
   );
 };
-
-const AmbasssadorDaoSingleBountyPage = () => {
-  const params = useParams<{ slug: string }>();
-  const slug = params?.slug as string;
-
-  const { data, isLoading: isFetchingOpportunityDetails } =
-    useFetchOpportunityDetails(slug);
-
-  const headerData = {
-    id: data?.id,
-    title: data?.title,
-    companyName: data?.created_by?.company_profile?.name || "Unknown",
-    companyLogo: data?.created_by?.company_profile?.logo,
-    createdBy: `${data?.created_by?.first_name} ${data?.created_by?.last_name}`,
-    type: data?.type,
-    deadline: data?.end_date,
-    proposalsCount: data?.max_winners || 0,
-    skills: data?.skills || [],
-    _count: data?._count || 0,
-  };
-
-  const extractDescriptionData = (apiResponse: {
-    description: string;
-    title: string;
-  }) => {
-    const descriptionParagraphs = apiResponse?.description
-      ? apiResponse.description
-          .split("\n\n")
-          .filter((para) => para.trim() !== "")
-      : [];
-
-    const titleParagraph = apiResponse?.title
-      ? apiResponse?.title
-      : "About the Job";
-
-    const contentParagraphs = descriptionParagraphs;
-
-    return {
-      title: titleParagraph,
-      content: contentParagraphs,
-    };
-  };
-
-  const sidebarData = {
-    id: data?.id,
-    category: data?.category,
-    status: data?.status,
-    total_budget: data?.total_budget || 0,
-    deadline: data?.end_date,
-    proposalsCount: data?._count?.submissions,
-    skills: data?.skills || [],
-    custom_questions: data?.custom_questions || [],
-    prize_distribution: data?.prize_distribution,
-  };
-
-  if (isFetchingOpportunityDetails) {
-    return <FullScreenLoader />;
-  }
-
-  return (
-    <div className='text-[var(--white-text-color)] min-h-screen bg-[var(--black-background-color)]'>
-      <div className='max-w-7xl mx-auto my-6'>
-        <GoBackButton />
-      </div>
-      {!isFetchingOpportunityDetails && (
-        <div className='max-w-7xl mx-auto px-4 py-8 border border-[var(--default-border-color)] bg-[var(--default-background-color)] rounded-lg shadow-sm my-6'>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
-            <div className='md:col-span-2 flex flex-col'>
-              <BountyHeader bounty={headerData} />
-
-              <div className='block md:hidden my-6'>
-                <BountySidebar bounty={sidebarData} />
-              </div>
-
-              <BountyDescription data={extractDescriptionData(data)} />
-              <CommentsSection id={slug} />
-            </div>
-
-            <div className='hidden md:block md:col-span-1'>
-              <BountySidebar bounty={sidebarData} />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const BountyDetailsWithSuspense = () => {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <AmbasssadorDaoSingleBountyPage />
-    </Suspense>
-  );
-};
-
-export default BountyDetailsWithSuspense;

@@ -33,7 +33,7 @@ export const BountyCard = ({ bounty }: IBountyDataType) => {
       <div>
         <div className='flex justify-between mb-4'>
           <div>
-            <div className='flex items-center gap-2 md:gap-5'>
+            <div className='flex items-start gap-2 md:gap-5'>
               <Image
                 src={created_by?.company_profile?.logo}
                 alt='logo'
@@ -51,13 +51,13 @@ export const BountyCard = ({ bounty }: IBountyDataType) => {
                     <Lightbulb color='#9F9FA9' className='w-3 h-3 mr-1' />
                     Bounty
                   </div>
-                  <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
+                  {/* <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
                     <Hourglass color='#9F9FA9' className='w-3 h-3 mr-1' />
 
                     {getTimeLeft(end_date) === "Expired"
                       ? "Closed"
                       : `Due in: ${getTimeLeft(end_date)}`}
-                  </div>
+                  </div> */}
                   <div className='flex items-center text-sm text-gray-400'>
                     <FileText color='#9F9FA9' className='w-3 h-3 mr-1' />
                     {_count?.submissions}{" "}
@@ -68,7 +68,7 @@ export const BountyCard = ({ bounty }: IBountyDataType) => {
             </div>
           </div>
           <div className='flex flex-col gap-3'>
-            <span className='text-[var(--white-text-color)] flex items-center gap-1'>
+            <span className='text-[var(--white-text-color)] flex items-center gap-1 shrink-0'>
               <Image src={Token} alt='$' />
               {parseFloat(total_budget).toLocaleString()}
             </span>

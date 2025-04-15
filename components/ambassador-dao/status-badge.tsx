@@ -14,15 +14,16 @@ export const StatusBadge = ({ status }: { status: string }) => {
       case "In Review":
       case "IN_REVIEW":
       case "IN_PROGRESS":
-        return "bg-[#00D492] text-white";
-      case "Complete":
+        return "bg-yellow-500 text-white";
       case "COMPLETED":
+      case "Complete":
+      case "REWARDED":
+        return "bg-[#00A63E] text-white";
+      case "PUBLISHED":
       case "VERIFIED":
       case "APPROVED":
       case "ACCEPTED":
-      case "REWARDED":
-      case "PUBLISHED":
-        return "bg-[#00A63E] text-white";
+        return "bg-[#00D492] text-white";
       case "REJECTED":
       case "WITHDRAWN":
       case "SUSPENDED":

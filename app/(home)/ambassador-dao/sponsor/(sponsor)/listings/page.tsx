@@ -250,7 +250,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                         <TableRow className='border-[var(--default-border-color)] hover:bg-transparent whitespace-nowrap p-3 text-[var(--secondary-text-color)]'>
                           <TableHead>Listing Name</TableHead>
                           <TableHead>Submissions</TableHead>
-                          <TableHead>Deadline</TableHead>
+                          {/* <TableHead>Deadline</TableHead> */}
                           <TableHead>Price</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className='text-right'>Actions</TableHead>
@@ -275,9 +275,9 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                 ? listing._count.submissions ?? "0"
                                 : listing._count.applications ?? "0"}
                             </TableCell>
-                            <TableCell>
+                            {/* <TableCell>
                               {new Date(listing.end_date).toLocaleDateString()}
-                            </TableCell>
+                            </TableCell> */}
                             <TableCell>
                               {listing.total_budget.toLocaleString()}
                             </TableCell>
