@@ -92,7 +92,7 @@ export const useReviewApplicantMutation = (
         queryKey: ["singleListingsApplications"],
       });
       queryclient.invalidateQueries({
-        queryKey: ["singleListingsApplication"],
+        queryKey: ["singleListingApplication"],
       });
       router.push(`/ambassador-dao/sponsor/listings/${opportunityId}`);
     },
@@ -148,7 +148,7 @@ export const useCompleteJobMutation = (
         queryKey: ["singleListingsApplications"],
       });
       queryclient.invalidateQueries({
-        queryKey: ["singleListingsApplication"],
+        queryKey: ["singleListingApplication"],
       });
       router.push(`/ambassador-dao/sponsor/listings/${opportunityId}`);
     },

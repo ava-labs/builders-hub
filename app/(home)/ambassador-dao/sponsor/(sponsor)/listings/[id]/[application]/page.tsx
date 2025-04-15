@@ -97,7 +97,8 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                     ) : (
                       <>
                         {application.status !== "REJECTED" &&
-                          application.status !== "COMPLETED" && (
+                          application.status !== "COMPLETED" &&
+                          application.status !== "APPLIED" && (
                             <div className='flex items-center gap-2'>
                               <CustomButton
                                 isFullWidth={false}
