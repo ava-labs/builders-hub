@@ -47,7 +47,7 @@ export const useVerifyPasscodeMutation = (
     },
     onSuccess: (data) => {
       queryclient.invalidateQueries({ queryKey: ["fetchUserProfile"] });
-      toast.loading("Verification successful, redirecting you to dashboard...");
+      toast.success("Verification successful, redirecting you to dashboard...");
       if (!data.user.role || !data.user.first_name) {
         router.push("/ambassador-dao/onboard");
         onClose();
@@ -63,7 +63,6 @@ export const useVerifyPasscodeMutation = (
           onClose();
         }
       }
-      toast.remove();
     },
     onError: (err) => errorMsg(err),
   });
