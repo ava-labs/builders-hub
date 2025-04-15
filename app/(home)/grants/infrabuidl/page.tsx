@@ -1,11 +1,9 @@
 "use client"
-
 import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { Loader2 } from "lucide-react"
-
 import { Button } from "@/components/ui/button"
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -48,33 +46,41 @@ const formSchema = z.object({
   // Team Information
   teamBackground: z.string().min(10, "Please provide background about your team"),
   willingToKYB: z.boolean().optional(),
+  
+  // Required consent fields
+  privacyPolicyRead: z.boolean().refine(val => val === true, {
+    message: "You must agree to the privacy policy to submit the form",
+  }),
+  marketingConsent: z.boolean().optional(),
 })
 
 const HUBSPOT_FIELD_MAPPING = {
   firstName: "firstname",
   lastName: "lastname",
   email: "email",
-  telegram: "telegram_handle", 
-  xProfile: "twitter_handle", 
-  projectName: "project_name",
-  projectWebsite: "website",
-  projectXHandle: "project_twitter_handle",
-  projectGitHub: "github_repo",
-  projectDescription: "project_description",
-  projectType: "project_type",
-  competitors: "competitors",
-  eligibilityReason: "eligibility_reason",
-  hasToken: "has_token",
-  tokenOnAvalanche: "token_on_avalanche",
-  grantSize: "grant_size",
-  userOnboarding: "user_onboarding_estimate",
-  networkKPIs: "network_kpis",
-  previousFunding: "previous_funding",
-  fundingAmount: "funding_amount",
-  additionalValue: "additional_value",
-  teamBackground: "team_background",
-  willingToKYB: "willing_to_kyb"
-}
+  projectName: "0-2/project",
+  projectWebsite: "0-2/website",
+  projectXHandle: "0-2/twitterhandle",
+  projectGitHub: "0-2/link_github",
+  projectDescription: "0-2/project_description",
+  projectType: "0-2/project_vertical",
+  competitors: "0-2/company_competitors",
+  eligibilityReason: "0-2/company_whyyou",
+  hasToken: "0-2/launching_token",
+  tokenOnAvalanche: "0-2/token_launch_on_avalanche",
+  grantSize: "0-2/grant_size_and_budget_breakdown",
+  userOnboarding: "0-2/new_user_onboard_number",
+  networkKPIs: "0-2/project_kpi",
+  previousFunding: "0-2/ava_funding_check",
+  fundingAmount: "0-2/ava_funding_amount",
+  additionalValue: "0-2/retro9000_additional_value_or_features",
+  teamBackground: "0-2/team_background",
+  willingToKYB: "0-2/kyb_willingness",
+  telegram: "telegram_handle",
+  xProfile: "twitterhandle",
+  privacyPolicyRead: "gdpr",
+  marketingConsent: "marketing_consent"
+};
 
 export default function GrantsForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -106,43 +112,60 @@ export default function GrantsForm() {
       additionalValue: "",
       teamBackground: "",
       willingToKYB: false,
+      privacyPolicyRead: false,
+      marketingConsent: false,
     },
   })
 
 async function onSubmit(values: z.infer<typeof formSchema>) {
-  setIsSubmitting(true)
+  setIsSubmitting(true);
   
   try {
-    const hubspotFormData: Record<string, string | number | boolean> = {}
+    const hubspotFormData: Record<string, string | number | boolean> = {};
+
     Object.entries(values).forEach(([key, value]) => {
-      const hubspotFieldName = HUBSPOT_FIELD_MAPPING[key as keyof typeof HUBSPOT_FIELD_MAPPING] || key
-      hubspotFormData[hubspotFieldName] = value
-    })
+      const hubspotFieldName = HUBSPOT_FIELD_MAPPING[key as keyof typeof HUBSPOT_FIELD_MAPPING] || key;
+      if (value === "" && key !== "firstName" && key !== "email" && !key.includes("required")) {
+        return;
+      }
+
+      if (typeof value === 'boolean') {
+        if (key !== 'privacyPolicyRead' && key !== 'marketingConsent') {
+          hubspotFormData[hubspotFieldName] = value ? "Yes" : "No";
+        } else {
+          hubspotFormData[hubspotFieldName] = value;
+        }
+      } else {
+        hubspotFormData[hubspotFieldName] = value;
+      }
+    });
     
+    console.log("HubSpot form data after mapping:", hubspotFormData);
+
     const response = await fetch('/api/hubspot', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(hubspotFormData)
-    })
-    
-    const result = await response.json()
-    
-    if (!response.ok) {
-      throw new Error(result.message || 'Something went wrong')
+    });
+
+    console.log("API Response status:", response.status);
+    const result = await response.json();
+    console.log("API Response data:", result);
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Failed to submit to HubSpot');
     }
 
-    setSubmissionStatus('success')
-    alert("Your grant application has been successfully submitted.")
-    form.reset()
+    setSubmissionStatus('success');
+    alert("Your grant application has been successfully submitted.");
+    form.reset();
   } catch (error) {
-    console.error("Form submission error:", error)
-    
-    setSubmissionStatus('error')
-    alert("There was an error submitting your application. Please try again.")
+    setSubmissionStatus('error');
+    alert(`Error submitting application: ${error instanceof Error ? error.message : 'Unknown error'}`);
   } finally {
-    setIsSubmitting(false)
+    setIsSubmitting(false);
   }
 }
 
@@ -887,6 +910,65 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
             </div>
           </div>
 
+          {/* Record Consent */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 mb-8">
+            <div className="space-y-1 mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">Consent</h2>
+              <p className="text-sm text-gray-500">Legal requirements</p>
+            </div>
+
+            <div className="space-y-6">
+              <FormField
+                control={form.control}
+                name="privacyPolicyRead"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="border-gray-300"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="font-normal">
+                        I have read the privacy policy <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormDescription className="text-xs text-gray-500">
+                        By checking this box, you confirm that you have read and agree to our privacy policy.
+                      </FormDescription>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="marketingConsent"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="border-gray-300"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="font-normal">
+                        I would like to receive marketing emails from the Avalanche Foundation
+                      </FormLabel>
+                      <FormDescription className="text-xs text-gray-500">
+                        Check this box if you wish to receive marketing communications from us.
+                      </FormDescription>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
           <div className="pt-4">
             <Button type="submit" disabled={isSubmitting} className="px-8 py-2">
               {isSubmitting ? (
