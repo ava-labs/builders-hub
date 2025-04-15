@@ -28,6 +28,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
 import { truncateAddress } from "@/utils/truncateAddress";
+import Loader from "@/components/ambassador-dao/ui/Loader";
 
 const AmbasssadorDaoProfilePage = () => {
   const [copySuccess, setCopySuccess] = useState(false);
@@ -52,7 +53,10 @@ const AmbasssadorDaoProfilePage = () => {
     );
 
   const { data: userPendingRewards, isLoading: isLoadingRewards } =
-    useFetchUserPendingRewards(!userNeedsOnboarding ? true : false);
+    useFetchUserPendingRewards(
+      currentPage,
+      !userNeedsOnboarding ? true : false
+    );
 
   const { data: opportunities, isLoading: isLoadingOpportunities } =
     useFetchOpportunity(!userNeedsOnboarding ? {} : { enabled: false });
@@ -122,7 +126,9 @@ const AmbasssadorDaoProfilePage = () => {
               </div>
               <div className="flex flex-col space-y-2">
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <h2 className="text-sm md:text-base !text-white font-medium">{profile.name}</h2>
+                  <h2 className="text-sm md:text-base !text-white font-medium">
+                    {profile.name}
+                  </h2>
                   <p className="text-[var(--secondary-text-color)] text-sm">
                     {profile.username}
                   </p>
@@ -132,7 +138,10 @@ const AmbasssadorDaoProfilePage = () => {
                     </p>
                   </div>
                 </div>
-                <p className="text-[#FB2C36] ] text-sm underline" title={profile?.wallet_address}>
+                <p
+                  className="text-[#FB2C36] ] text-sm underline"
+                  title={profile?.wallet_address}
+                >
                   {truncateAddress(profile.wallet_address)}
                 </p>
               </div>
@@ -273,7 +282,13 @@ const AmbasssadorDaoProfilePage = () => {
           </div>
 
           <div className="space-y-4">
-            {userPendingRewards?.data?.map((project: any, index: number) => (
+          {isLoadingRewards && (
+              <div className="flex items-center justify-center">
+                <Loader />
+              </div>
+            )}
+
+            {!isLoadingRewards && userPendingRewards?.data?.map((project: any, index: number) => (
               <div
                 key={index}
                 className="bg-[#161617] rounded-lg p-4 cursor-pointer"
@@ -297,10 +312,10 @@ const AmbasssadorDaoProfilePage = () => {
                       />
                     </div>
                     <div>
-                      <h3 className="text-red-500 font-medium truncate max-w-[150px]">
+                      <h3 className="text-red-500 font-medium truncate max-w-[150px] sm:max-w-[350px]">
                         {project?.submission?.opportunity?.title}
                       </h3>
-                      <p className="text-[var(--secondary-text-color)] text-xs truncate max-w-[150px]">
+                      <p className="text-[var(--secondary-text-color)] text-xs truncate max-w-[150px] sm:max-w-[350px]">
                         {project?.submission?.opportunity?.description}
                       </p>
                     </div>
@@ -352,7 +367,9 @@ const AmbasssadorDaoProfilePage = () => {
               </div>
             ))}
 
-            {userPendingRewards?.data.length === 0 && (
+           
+
+            {!isLoadingRewards && userPendingRewards?.data.length === 0 && (
               <div className="flex items-center justify-center">
                 No data available
               </div>

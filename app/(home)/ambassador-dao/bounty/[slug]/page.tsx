@@ -774,6 +774,7 @@ const AmbasssadorDaoSingleBountyPage = () => {
   const headerData = {
     id: data?.id,
     title: data?.title,
+    requirements: data?.requirements,
     companyName: data?.created_by?.company_profile?.name || "Unknown",
     companyLogo: data?.created_by?.company_profile?.logo,
     createdBy: `${data?.created_by?.first_name} ${data?.created_by?.last_name}`,
@@ -831,8 +832,12 @@ const AmbasssadorDaoSingleBountyPage = () => {
         <div className='max-w-7xl mx-auto px-4 py-8 border border-[var(--default-border-color)] bg-[var(--default-background-color)] rounded-lg shadow-sm my-6'>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
             <div className='md:col-span-2 flex flex-col'>
+             
               <BountyHeader bounty={headerData} />
-
+              <div className="border text-[var(--white-text-color)] border-[var(--default-border-color)] p-4 mb-6 rounded-md">
+                <h2 className="mb-2 font-medium">Requirements</h2>
+                {headerData?.requirements}
+              </div>
               <div className='block md:hidden my-6'>
                 <BountySidebar bounty={sidebarData} />
               </div>

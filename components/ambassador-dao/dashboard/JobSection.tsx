@@ -8,9 +8,11 @@ import { useFetchAllSkills } from "@/services/ambassador-dao/requests/onboard";
 import { ViewAllButton } from "./ViewAllButton";
 import { FilterDropdown } from "./FilterDropdown";
 import { JobCard } from "./JobCard";
+import Loader from "../ui/Loader";
 
 interface JobsSectionProps {
   data: any[];
+  isLoading: boolean;
   filters: {
     type: string;
     query: string;
@@ -29,6 +31,7 @@ interface JobsSectionProps {
 
 const JobsSection = ({
   data,
+  isLoading,
   filters,
   searchInput,
   handleSearchChange,
@@ -74,7 +77,10 @@ const JobsSection = ({
         <FilterDropdown
           label="Budget"
           options={budgetRange}
-          value={filters?.min_budget && `${filters.min_budget.toString()}-${filters?.max_budget.toString()}`}
+          value={
+            filters?.min_budget &&
+            `${filters.min_budget.toString()}-${filters?.max_budget.toString()}`
+          }
           onValueChange={(value) => {
             const [minBudget, maxBudget] = value
               ?.split("-")
@@ -116,9 +122,17 @@ const JobsSection = ({
       </div>
 
       <div className="space-y-4">
-        {data?.length > 0 ? (
-          data.map((job) => <JobCard key={job.id} job={job} />)
-        ) : (
+        {isLoading && (
+          <div className="min-h-64 flex items-center justify-center">
+            <Loader />
+          </div>
+        )}
+
+        {!isLoading &&
+          data?.length > 0 &&
+          data.map((job) => <JobCard key={job.id} job={job} />)}
+
+        {!isLoading && data?.length === 0 && (
           <EmptyState
             title="No Job Matches Your Filters"
             description="Try adjusting criteria"

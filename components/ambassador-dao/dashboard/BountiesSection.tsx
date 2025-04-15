@@ -9,9 +9,11 @@ import { ViewAllButton } from "./ViewAllButton";
 import { FilterDropdown } from "./FilterDropdown";
 import { BountyCard } from "./BountyCard";
 import { filter } from "@mdxeditor/editor";
+import Loader from "../ui/Loader";
 
 interface BountiesSectionProps {
   data: any[];
+  isLoading: boolean;
   filters: {
     type: string;
     query: string;
@@ -30,6 +32,7 @@ interface BountiesSectionProps {
 
 const BountiesSection = ({
   data,
+  isLoading,
   filters,
   searchInput,
   handleSearchChange,
@@ -54,7 +57,6 @@ const BountiesSection = ({
     }
   };
 
-  console.log(filters)
 
   return (
     <section className="border border-[var(--default-border-color)] rounded-md py-14 px-8">
@@ -125,9 +127,17 @@ const BountiesSection = ({
       </div>
 
       <div className="space-y-4">
-        {data?.length > 0 ? (
-          data.map((bounty) => <BountyCard key={bounty.id} bounty={bounty} />)
-        ) : (
+        {isLoading && (
+          <div className="flex items-center justify-center h-[400px] py-14 mb-12">
+            <Loader />
+          </div>
+        )}
+
+        {!isLoading &&
+          data?.length > 0 &&
+          data.map((bounty) => <BountyCard key={bounty.id} bounty={bounty} />)}
+
+        {!isLoading && data?.length === 0 && (
           <EmptyState
             title="No Bounty Matches Your Filters"
             description="Try adjusting criteria"
