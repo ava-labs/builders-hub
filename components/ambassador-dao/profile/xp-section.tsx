@@ -203,7 +203,7 @@ export default function XpSection({ data }: any) {
                                     {opportunity?.type?.toLowerCase()}
                                   </span>
                                 </div>
-                                <div className='flex items-center text-xs text-[var(--secondary-text-color)]'>
+                                {/* <div className='flex items-center text-xs text-[var(--secondary-text-color)]'>
                                   <Hourglass
                                     size={12}
                                     className='mr-1'
@@ -217,7 +217,7 @@ export default function XpSection({ data }: any) {
                                           opportunity?.end_date
                                         )}`}
                                   </span>
-                                </div>
+                                </div> */}
                                 <div className='flex items-center text-xs text-[var(--secondary-text-color)]'>
                                   <File
                                     size={12}

@@ -165,19 +165,19 @@ const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Submit Your Application"
+      title='Submit Your Application'
       description="Don't start working just yet! Apply first, and then begin working only once you've been hired for the project by the sponsor. Please note that the sponsor might contact you to assess fit before picking the winner."
     >
-      <div className="p-6">
+      <div className='p-6'>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="block text-white">
-                Your telegram<span className="text-red-500">*</span>
+          <div className='space-y-6'>
+            <div className='space-y-2'>
+              <label className='block text-[var(--primary-text-color)]'>
+                Your telegram username<span className='text-red-500'>*</span>
               </label>
               <input
-                type="text"
-                placeholder="Your telegram"
+                type='text'
+                placeholder='Your telegram'
                 className={`w-full bg-[#fff] dark:bg-[#000] border ${
                   errors.telegram_username
                     ? "border-red-500"
@@ -188,17 +188,17 @@ const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
                 })}
               />
               {errors.telegram_username && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className='text-red-500 text-sm mt-1'>
                   {errors.telegram_username.message}
                 </p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-white">
+            <div className='space-y-2'>
+              <label className='block text-[var(--primary-text-color)]'>
                 Resumes Or Cover Letters
               </label>
-              <p className="text-sm text-[var(--secondary-text-color)] mb-2">
+              <p className='text-sm text-[var(--secondary-text-color)] mb-2'>
                 Upload your cover letter or resume here. Max 3 documents
               </p>
 
@@ -208,22 +208,22 @@ const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
                 handleFileUpload={handleFileUpload}
                 removeFile={removeFile}
                 isUploading={isUploading}
-                accept=".pdf,.doc,.docx"
+                accept='.pdf,.doc,.docx'
                 maxFiles={3}
-                inputId="fileInput"
-                allowedFileTypes="PDF, DOC, DOCX"
+                inputId='fileInput'
+                allowedFileTypes='PDF, DOC, DOCX'
               />
             </div>
 
             {customQuestions &&
               customQuestions.map((q, index) => (
-                <div key={index} className="space-y-2">
-                  <label className="block text-white">
+                <div key={index} className='space-y-2'>
+                  <label className='block text-[var(--primary-text-color)]'>
                     {q}
-                    <span className="text-red-500">*</span>
+                    <span className='text-red-500'>*</span>
                   </label>
                   <textarea
-                    placeholder="Answer question here"
+                    placeholder='Answer question here'
                     rows={2}
                     className={`w-full bg-[#fff] dark:bg-[#000] border ${
                       errors.custom_question_answers &&
@@ -240,33 +240,35 @@ const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
                   />
                   {errors.custom_question_answers &&
                     errors.custom_question_answers[index] && (
-                      <p className="text-red-500 text-sm mt-1">
+                      <p className='text-red-500 text-sm mt-1'>
                         {errors.custom_question_answers[index]?.answer?.message}
                       </p>
                     )}
                 </div>
               ))}
 
-            <div className="space-y-2">
-              <label className="block text-white">Anything Else?</label>
+            <div className='space-y-2'>
+              <label className='block text-[var(--primary-text-color)]'>
+                Anything Else?
+              </label>
               <textarea
-                placeholder="Add info or link..."
+                placeholder='Add info or link...'
                 rows={3}
-                className="w-full bg-[#fff] dark:bg-[#000] border border-[var(--default-border-color)] rounded-md p-3 text-[var(--white-text-color)] placeholder-gray-500 focus:outline-none"
+                className='w-full bg-[#fff] dark:bg-[#000] border border-[var(--default-border-color)] rounded-md p-3 text-[var(--white-text-color)] placeholder-gray-500 focus:outline-none'
                 {...register("cover_letter")}
               />
             </div>
           </div>
 
-          <hr className="border-[var(--default-border-color)] my-6" />
+          <hr className='border-[var(--default-border-color)] my-6' />
 
           <button
-            type="submit"
+            type='submit'
             disabled={isSubmitting}
-            className="px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-800 disabled:cursor-not-allowed text-white font-medium rounded-md transition flex items-center gap-2 justify-center"
+            className='px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-800 disabled:cursor-not-allowed text-white font-medium rounded-md transition flex items-center gap-2 justify-center'
           >
             {isSubmitting && (
-              <Loader2 className="animate-spin h-4 w-4" color="currentColor" />
+              <Loader2 className='animate-spin h-4 w-4' color='currentColor' />
             )}
             {isSubmitting ? "Submitting..." : "Submit"}
           </button>

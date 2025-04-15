@@ -46,11 +46,6 @@ const AmbasssadorDaoSponsorsLayout = ({
                 label='My Listing'
               />
 
-              <SidebarItem
-                href='#'
-                icon={<History className='h-5 w-5' />}
-                label='Get Help'
-              />
               {user.status === "VERIFIED" && (
                 <CustomButton
                   variant='danger'

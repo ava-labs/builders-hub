@@ -105,7 +105,7 @@ export const useUpdateWalletAddress = () => {
     },
     onSuccess: (data) => {
       toast.success(data.message);
-      queryclient.invalidateQueries({ queryKey: ["fetchUserDetails"] });
+      queryclient.invalidateQueries({ queryKey: ["fetchUserProfile"] });
     },
     onError: (err) => errorMsg(err),
   });

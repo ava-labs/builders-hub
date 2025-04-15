@@ -23,7 +23,7 @@ export const JobCard = ({ job }: IJobDataType) => {
       <div>
         <div className='flex justify-between mb-4'>
           <div>
-            <div className='flex items-center gap-2 md:gap-5'>
+            <div className='flex items-start gap-2 md:gap-5'>
               <Image
                 src={created_by?.company_profile?.logo}
                 alt=''
@@ -44,22 +44,23 @@ export const JobCard = ({ job }: IJobDataType) => {
                     />
                     Jobs
                   </div>
-                  <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
+                  {/* <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
                     <Hourglass color='#9F9FA9' className='w-3 h-3 mr-1' />
                     {getTimeLeft(end_date) === "Expired"
                       ? "Closed"
                       : `Due in: ${getTimeLeft(end_date)}`}
-                  </div>
+                  </div> */}
                   <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
                     <FileText color='#9F9FA9' className='w-3 h-3 mr-1' />
-                    {_count?.applications} {_count?.applications > 1 ? "Applications" : "Application"}
+                    {_count?.applications}{" "}
+                    {_count?.applications > 1 ? "Applications" : "Application"}
                   </div>
                 </div>
               </div>
             </div>
           </div>
           <div className='flex items-center'>
-            <span className='text-[var(--white-text-color)] flex items-center gap-1'>
+            <span className='text-[var(--white-text-color)] flex items-center gap-1 shrink-0'>
               <Image src={Token} alt='$' />
               {parseFloat(total_budget).toLocaleString()} USDC
             </span>
@@ -67,7 +68,7 @@ export const JobCard = ({ job }: IJobDataType) => {
         </div>
       </div>
 
-      <div className='mt-4 grid grid-cols-8 gap-2'>
+      <div className='mt-4 flex flex-wrap gap-3 items-center'>
         {skills?.map((skill, index) => (
           <div key={index}>
             <Outline label={skill.name} />

@@ -91,14 +91,14 @@ export const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
               <BriefcaseBusiness size={16} color='#9F9FA9' />
               <span className='capitalize'>{bounty.type?.toLowerCase()}</span>
             </div>
-            <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
+            {/* <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
               <Hourglass size={16} color='#9F9FA9' />
               <span>
                 {getTimeLeft(bounty?.deadline) === "Expired"
                   ? "Closed"
                   : `Due in: ${getTimeLeft(bounty?.deadline)}`}
               </span>
-            </div>
+            </div> */}
             <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
               <FileText size={16} color='#9F9FA9' />
               <span>
@@ -205,7 +205,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
             {bounty?.proposalsCount > 1 ? "Proposals" : "Proposal"}
           </span>
         </div>
-        <div className='flex flex-col justify-center'>
+        {/* <div className='flex flex-col justify-center'>
           <span className='text-[var(--white-text-color)] flex items-center'>
             <Hourglass size={16} className='inline mr-1' color='#9F9FA9' />
             <span>{timeLeft}</span>
@@ -213,7 +213,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
           <span className='text-[var(--secondary-text-color)] text-sm'>
             Remaining
           </span>
-        </div>
+        </div> */}
       </div>
 
       <div className='mb-6'>
@@ -229,7 +229,9 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
             ))}
           </div>
         ) : (
-          <div>No skills available</div>
+          <div className='text-[var(--secondary-text-color)] text-sm'>
+            No skills available
+          </div>
         )}
       </div>
 
@@ -237,9 +239,9 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
         userData?.role !== "AMBASSADOR") ||
       userData?.role === "SPONSOR" ? null : bounty.status === "PUBLISHED" ? (
         <button
-          disabled={data?.has_submitted || timeLeft === "Expired"}
+          disabled={data?.has_submitted}
           className={`w-full font-medium py-3 rounded-md transition ${
-            data?.has_submitted || timeLeft === "Expired"
+            data?.has_submitted
               ? "bg-gray-400 text-[var(--white-text-color)] cursor-not-allowed"
               : "bg-red-500 hover:bg-red-600 text-white"
           }`}
@@ -259,7 +261,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
               return;
             }
 
-            if (!data?.has_submitted && timeLeft !== "Expired") {
+            if (!data?.has_submitted) {
               setIsModalOpen(true);
             }
           }}
@@ -270,8 +272,6 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
             </div>
           ) : data?.has_submitted ? (
             "Already Submitted"
-          ) : timeLeft === "Expired" ? (
-            "Expired"
           ) : (
             "Participate"
           )}

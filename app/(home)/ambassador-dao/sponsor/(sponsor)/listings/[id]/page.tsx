@@ -7,6 +7,7 @@ import {
   BriefcaseBusiness,
   FileText,
   Hourglass,
+  MessagesSquare,
 } from "lucide-react";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
@@ -37,11 +38,19 @@ import {
 } from "@/components/ambassador-dao/constants";
 import { SumbissionReviewDetailsModal } from "@/components/ambassador-dao/sections/submission-review-details";
 import { MarkSubmissionAsPaidModal } from "@/components/ambassador-dao/sections/mark-as-paid";
+import { useFetchOpportunityComment } from "@/services/ambassador-dao/requests/opportunity";
+import { CommentsModal } from "@/components/ambassador-dao/sections/comments-modal";
 const AmbasssadorDaoSponsorsListingsSubmissions = () => {
   const params = useParams<{ id: string }>();
 
   const { data: listing, isLoading } = useFetchSingleListing(params.id);
 
+  const { data: commentsData } = useFetchOpportunityComment(params.id, {
+    page: 1,
+    per_page: 10,
+  });
+
+  const [commentsModal, setCommentsModal] = useState(false);
   return (
     <div className='space-y-6'>
       <Link
@@ -57,9 +66,9 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
       ) : (
         <>
           {listing && (
-            <div className='border border-[var(--default-border-color)] p-2 rounded-lg md:p-4 transition-colors cursor-pointer'>
+            <div className='border border-[var(--default-border-color)] p-2 rounded-lg md:p-4 transition-colors'>
               <div className='flex flex-col md:flex-row gap-3 items-start justify-between mb-4'>
-                <div className='flex md:items-center gap-3'>
+                <div className='flex gap-3'>
                   <div>
                     <Image
                       src={listing.created_by.company_profile.logo}
@@ -85,10 +94,10 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                         />
                         {listing.type.toLowerCase()}
                       </div>
-                      <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
+                      {/* <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
                         <Hourglass color='#9F9FA9' size={14} className='mr-1' />
                         Due in {getTimeLeft(listing.end_date)}
-                      </div>
+                      </div> */}
                       <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
                         <FileText color='#9F9FA9' size={14} className='mr-1' />
                         {listing.type === "JOB"
@@ -107,7 +116,7 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                   </div>
                 </div>
 
-                <div className='flex items-center gap-2'>
+                <div className='flex items-center gap-2 shrink-0'>
                   <Image
                     src={USDCICON}
                     alt='USDC'
@@ -121,12 +130,32 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                 </div>
               </div>
 
-              <div className='flex gap-2 items-center overflow-x-auto py-2'>
-                {listing.skills.map((skill, index) => (
-                  <div key={index}>
-                    <Outline label={skill.name} />
-                  </div>
-                ))}
+              <div className='flex gap-3 flex-col md:flex-row md:justify-between md:items-center'>
+                <div className='flex gap-2 items-center overflow-x-auto py-2'>
+                  {listing.skills.map((skill, index) => (
+                    <div key={index}>
+                      <Outline label={skill.name} />
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  {!!commentsData?.data?.length && (
+                    <CustomButton
+                      className='px-4 !bg-transparent border border-[var(--default-border-color)] gap-2'
+                      onClick={() => {
+                        setCommentsModal(true);
+                      }}
+                    >
+                      <MessagesSquare
+                        size={16}
+                        color='var(--white-text-color)'
+                      />
+                      <p className='text-sm text-[var(--white-text-color)]'>
+                        Comments ({commentsData?.metadata?.total || 0})
+                      </p>
+                    </CustomButton>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -138,6 +167,14 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
           )}
         </>
       )}
+
+      <CommentsModal
+        id={params.id}
+        isOpen={commentsModal}
+        onClose={() => {
+          setCommentsModal(false);
+        }}
+      />
     </div>
   );
 };
@@ -187,7 +224,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
             <SelectTrigger className='w-36 bg-[var(--default-background-color)] border-[var(--default-border-color)]'>
               <SelectValue placeholder='Everything' />
             </SelectTrigger>
-            <SelectContent className='bg-[#27272A] border-[var(--default-border-color)]'>
+            <SelectContent className='bg-[var(--default-background-color)] border-[var(--default-border-color)]'>
               {opportunityApplicationStatusOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -215,7 +252,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
               {listingApplications?.data.map((application) => (
                 <div
                   key={application.id}
-                  className='bg-[var(--default-background-color)] p-2 rounded-lg md:p-4 hover:border-black transition-colors'
+                  className='bg-[var(--default-background-color)] border border-[var(--default-border-color)] p-2 rounded-lg md:p-4 hover:border-black dark:hover:border-white transition-colors'
                 >
                   <div className='flex flex-col md:flex-row gap-3 md:items-center justify-between mb-4'>
                     <div className='flex md:items-center gap-3'>
@@ -227,7 +264,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                           alt='user profile'
                           width={60}
                           height={60}
-                          className='shrink-0 rounded-full'
+                          className='shrink-0 rounded-full object-cover w-14 h-14'
                         />
                       </div>
                       <div>
@@ -396,7 +433,7 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
                           alt='user profile'
                           width={60}
                           height={60}
-                          className='shrink-0 rounded-full'
+                          className='shrink-0 rounded-full object-cover w-14 h-14'
                         />
                       </div>
                       <div>
