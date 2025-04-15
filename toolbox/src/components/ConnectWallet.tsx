@@ -175,10 +175,6 @@ export const ConnectWallet = ({ children, required }: { children: React.ReactNod
     }
   }
 
-  const truncateAddress = (address: string) => {
-    return `${address.substring(0, 12)}...${address.substring(address.length - 4)}`
-  }
-
   // Server-side rendering fallback
   if (!isBrowser) {
     return (
