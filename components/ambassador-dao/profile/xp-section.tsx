@@ -1,7 +1,7 @@
 import Image from "next/image";
 import React from "react";
 import Trophy from "@/public/ambassador-dao-images/trophy.png";
-import { ChevronRight, File, Hourglass, Lightbulb } from "lucide-react";
+import { ArrowRight, ChevronRight, File, Hourglass, Lightbulb } from "lucide-react";
 import Token from "@/public/ambassador-dao-images/token.png";
 import XP from "@/public/ambassador-dao-images/sparkles.png";
 
@@ -10,9 +10,9 @@ import { getTimeLeft } from "@/utils/timeFormatting";
 
 export default function XpSection({ data }: any) {
   return (
-    <div className='border rounded-lg p-6 mb-6 bg-[#fff] dark:bg-[#000]'>
-      <div className='flex justify-between items-center mb-4'>
-        <h2 className='text-2xl font-bold'>XP Progression</h2>
+    <div className='border rounded-lg p-4 mb-6 bg-[#fff] dark:bg-[#000]'>
+      <div className='flex gap-4 items-center mb-4'>
+        <h2 className='text-2xl font-medium'>XP Progression</h2>
         <div className='text-green-500 text-sm'>
           +{data.monthlyGrowth} XP this month
         </div>
@@ -23,7 +23,7 @@ export default function XpSection({ data }: any) {
           <span className='text-sm'>Advocate</span>
           <span className='text-sm'>Ambassador</span>
         </div>
-        <div className='relative h-2 bg-gray-800 rounded-full'>
+        <div className='relative h-2 bg-[#2F2F33] rounded-full'>
           {(() => {
             const currentXP = data.currentXP;
             let progressPercentage = 0;
@@ -48,7 +48,7 @@ export default function XpSection({ data }: any) {
 
             return (
               <div
-                className='absolute left-0 top-0 h-full bg-red-500 rounded-full'
+                className='absolute left-0 top-0 h-full bg-[#F5F5F9] rounded-full'
                 style={{
                   width: `${progressPercentage}%`,
                 }}
@@ -155,13 +155,13 @@ export default function XpSection({ data }: any) {
 
         <div className='col-span-2'>
           <div className='flex justify-between items-center mb-4'>
-            <h3 className='text-xl font-medium'>Available Opportunities</h3>
+            <h3 className='text-md sm:text-xl font-medium'>Available Opportunities</h3>
             {data?.availableOpportunities?.length > 1 && (
               <a
                 href='/ambassador-dao'
-                className='text-sm text-red-500 flex items-center'
+                className='text-xs sm:text-sm text-[#F5F5F9] flex items-center'
               >
-                View All <ChevronRight size={16} />
+                View All <ArrowRight size={16} color="#F5F5F9" />
               </a>
             )}
           </div>
@@ -175,7 +175,7 @@ export default function XpSection({ data }: any) {
                     key={opportunity.id}
                     className='bg-[#161617] rounded-lg p-4'
                   >
-                    <div className='flex items-start justify-between'>
+                    <div className='flex flex-col sm:flex-row items-start justify-between'>
                       <div>
                         <div className='flex overflow-hidden'>
                           <img
@@ -184,7 +184,7 @@ export default function XpSection({ data }: any) {
                             className='w-10 h-10 object-cover bg-blue-500 rounded-full mr-3'
                           />
                           <div className='flex-1'>
-                            <h4 className='text-red-500 font-bold'>
+                            <h4 className='text-[#F5F5F9] font-medium'>
                               {opportunity.title}
                             </h4>
                             <p className='text-[var(--secondary-text-color)] text-xs mb-3'>
@@ -192,7 +192,7 @@ export default function XpSection({ data }: any) {
                             </p>
 
                             <div className='flex justify-between'>
-                              <div className='flex items-center space-x-4'>
+                              <div className='flex flex-wrap items-start sm:items-center space-x-4'>
                                 <div className='flex items-center text-xs text-[var(--secondary-text-color)]'>
                                   <Lightbulb
                                     size={12}
@@ -209,7 +209,7 @@ export default function XpSection({ data }: any) {
                                     className='mr-1'
                                     color='#9F9FA9'
                                   />
-                                  <span>
+                                  <span className="w-max">
                                     {getTimeLeft(opportunity?.end_date) ===
                                     "Expired"
                                       ? "Closed"
@@ -224,7 +224,7 @@ export default function XpSection({ data }: any) {
                                     className='mr-1'
                                     color='#9F9FA9'
                                   />
-                                  <span>
+                                  <span className="w-max">
                                     {opportunity._count?.submissions || 0}{" "}
                                     {opportunity?._count?.submissions > 1
                                       ? "Proposals"
@@ -237,7 +237,7 @@ export default function XpSection({ data }: any) {
                         </div>
                       </div>
 
-                      <div className='flex flex-col space-x-3'>
+                      <div className='flex sm:flex-col space-x-3'>
                         <div className='flex items-center text-xs py-2'>
                           <Image src={Token} alt='$' />
                           <span className='text-[var(--white-text-color)] ml-2'>

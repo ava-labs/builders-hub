@@ -11,11 +11,6 @@ import { Pagination } from "../ui/Pagination";
 
 export default function ProjectSection() {
   const navigationTabs = ["Bounties", "Jobs"];
-  const projectTabs = [
-    { id: "APPLIED", count: 4, bgColor: "bg-[#161617]" },
-    { id: "WON", count: 4, bgColor: "bg-[#27272A]" },
-    { id: "CLOSED", count: 4, bgColor: "bg-[#27272A]" },
-  ];
 
   const [activeTab, setActiveTab] = useState("Bounties");
   const [activeProjectTab, setActiveProjectTab] = useState("APPLIED");
@@ -40,6 +35,12 @@ export default function ProjectSection() {
     query: searchQuery,
     page: 1,
   });
+
+  const projectTabs = [
+    { id: "APPLIED", count: 0, bgColor: "bg-[#161617]" },
+    { id: "WON", count: 0, bgColor: "bg-[#27272A]" },
+    { id: "CLOSED", count: 0, bgColor: "bg-[#27272A]" },
+  ];
 
   useEffect(() => {
     refetch();
@@ -69,28 +70,43 @@ export default function ProjectSection() {
   };
 
   return (
-    <div className='border rounded-lg p-6 mb-6'>
-      <div className='flex justify-between items-center mb-4'>
-        <h2 className='text-2xl font-bold'>My Projects</h2>
+    <div className="border rounded-lg p-6 mb-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-medium">My Projects</h2>
         {(date || searchQuery) && (
           <button
             onClick={resetFilters}
-            className='text-sm text-red-500 hover:text-red-600'
+            className="text-xs sm:text-sm text-red-500 hover:text-red-600"
           >
             Reset Filters
           </button>
         )}
-      </div>
-
-      <div className='flex justify-between mb-4 border-b border-[var(--default-border-color)] pb-8'>
-        <div>
+        <div className="sm:hidden flex">
           {navigationTabs.map((tab) => (
             <button
               key={tab}
-              className={`px-4 py-2 ${
+              className={`px-1 py-2 border-b text-xs font-bold h-[38px] ${
+                activeTab === tab
+                  ? "border-[#FB2C36] text-[#FB2C36]"
+                  : " border-transparent text-[var(--secondary-text-color)] bg-[#0000000D]"
+              }`}
+              onClick={() => handleTabChange(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-between mb-4 border-b border-[var(--default-border-color)] pb-8">
+        <div className="hidden sm:flex">
+          {navigationTabs.map((tab) => (
+            <button
+              key={tab}
+              className={`px-4 py-2 h-[38px] ${
                 activeTab === tab
                   ? "bg-red-500 text-white"
-                  : "text-[var(--secondary-text-color)]"
+                  : "text-[var(--secondary-text-color)] bg-[#0000000D] shadow-sm"
               } rounded-md`}
               onClick={() => handleTabChange(tab)}
             >
@@ -99,63 +115,63 @@ export default function ProjectSection() {
           ))}
         </div>
 
-        <div className='flex gap-4 mb-6 flex-wrap'>
+        <div className="flex gap-4 mb-6 flex-wrap">
           <DatePicker
             value={date || undefined}
             onChange={(newDate) => setDate(newDate as unknown as null)}
           />
 
           <FilterDropdown
-            label='Category'
+            label="Category"
             options={jobTypes}
             value={category?.category}
             onValueChange={(value) => setCategory({ category: value })}
           />
 
-          <div className='relative min-w-[200px]'>
+          <div className="relative min-w-[200px]">
             <input
-              type='text'
+              type="text"
               placeholder={`Search ${activeTab}`}
-              className='text-xs sm:text-sm lg:text-base h-8 sm:h-11 border border-[var(--default-border-color)] rounded-md px-4 py-2 focus:outline-none w-full'
+              className="text-sm lg:text-base h-11 border border-[var(--default-border-color)] rounded-md px-4 py-2 focus:outline-none w-full"
               value={searchQuery}
               onChange={handleSearchChange}
             />
-            <button className='absolute right-3 top-1/2 transform -translate-y-1/2'>
-              <Search color='#9F9FA9' className='h-3 w-3 sm:w-5 sm:h-5' />
+            <button className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <Search color="#9F9FA9" className="h-3 w-3 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
       </div>
 
-      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6'>
-        <div className='flex flex-col mb-2 md:mb-0'>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+        <div className="flex flex-row sm:flex-col mb-2 md:mb-0 max-w-[180px] gap-2">
           {projectTabs?.map((tab) => (
             <button
               key={tab.id}
-              className={`flex justify-between items-center px-4 py-2 rounded-xl ${
+              className={`flex justify-between items-center px-2 sm:px-4 py-3 rounded-xl ${
                 tab.bgColor
-              } max-w-[360px] h-[74px] mb-2 ${
+              } max-w-[360px] max-h-[74px] sm:h-[74px] mb-2 ${
                 activeProjectTab === tab.id ? "bg-red-500" : "bg-transparent"
               }`}
               onClick={() => handleProjectTabChange(tab.id)}
             >
               <span
-                className={`${
+                className={`capitalize text-xs sm:!text-lg ${
                   activeProjectTab === tab.id
                     ? "text-[var(--primary-text-color)]"
                     : "text-[var(--secondary-text-color)]"
                 }`}
               >
-                {tab.id}
+                {tab?.id?.toLowerCase()}
               </span>
-              <span className='ml-1 bg-white text-[#161617] text-xs px-2 py-1 rounded-full'>
+              <span className="ml-1 bg-white text-[#161617] text-xs px-2 py-1 rounded-full">
                 {tab.count}
               </span>
             </button>
           ))}
         </div>
 
-        <div className='space-y-4 col-span-2'>
+        <div className="space-y-4 col-span-4">
           {isLoadingUserProjects ? (
             <Loader />
           ) : userProjects?.data && userProjects?.data?.length > 0 ? (
@@ -167,6 +183,7 @@ export default function ProjectSection() {
                   title: string;
                   name: any;
                   description: string;
+                  amount: number;
                   type: string;
                   _count: any;
                   rewards: any;
@@ -177,67 +194,81 @@ export default function ProjectSection() {
               }) => (
                 <div
                   key={project?.opportunity?.id}
-                  className='bg-[#161617] shadow-sm rounded-lg p-4'
+                  className="bg-[#161617] shadow-sm rounded-lg p-4"
                 >
-                  <div className='flex flex-col md:flex-row justify-between'>
-                    <div className='flex'>
-                      <div className='w-10 h-10 bg-blue-500 rounded-full mr-3 overflow-hidden'>
-                        <img
+                  <div className="flex flex-col md:flex-row justify-between">
+                    <div className="flex">
+                      <div className="w-10 h-10 bg-blue-500 rounded-full mr-3 overflow-hidden">
+                        <Image
                           src={project?.opportunity?.created_by?.profile_image}
-                          alt='Project'
-                          className='w-full h-full object-cover'
+                          alt="Project"
+                          className="w-full h-full object-cover"
+                          width={48}
+                          height={48}
                         />
                       </div>
                       <div>
-                        <h3 className='text-red-500 font-bold'>
+                        <h3 className="text-[#FF394A] font-medium truncate max-w-[150px] w-full sm:max-w-[240px] text-sm sm:text-base">
                           {project?.opportunity?.title}
                         </h3>
-                        <p className='text-[var(--secondary-text-color)] text-xs'>
-                          {project?.opportunity?.description ||
-                            "Lorem ipsum omo nla, wa sere eje mi"}
+                        <p className="text-[var(--secondary-text-color)] text-sm sm:text-base w-full truncate max-w-[150px] sm:max-w-[240px]">
+                          {project?.opportunity?.description || "kjdhghsgkjhsdakdshjjsdkdhfsbdfjhhasdhjadjaj"}
                         </p>
                       </div>
                     </div>
-                    <div className='flex mt-4 md:mt-0 items-center space-x-6'>
-                      <div className='flex flex-col justify-center gap-1'>
-                        <BriefcaseBusiness color='#9F9FA9' size={12} />
-                        <p className='text-[var(--secondary-text-color)] text-xs capitalize'>
-                          {project?.opportunity?.type.toLowerCase() || jobType}
-                        </p>
-                      </div>
-                      <div className='flex flex-col justify-center gap-1'>
-                        <File color='#9F9FA9' size={12} />
-                        <p className='text-[var(--secondary-text-color)] text-xs'>
-                          {(() => {
-                            const appCount =
-                              project?.opportunity?._count?.applications || 0;
-                            const subCount =
-                              project?.opportunity?._count?.submissions || 0;
+                    <div className="flex flex-col sm:flex-row mt-4 md:mt-0 items-start sm:items-center space-x-2 sm:space-x-8 space-y-4 sm:space-y-0">
+                      <div className="flex gap-2">
+                        <div className="flex flex-col justify-center gap-2">
+                          <BriefcaseBusiness color="#9F9FA9" size={12} />
+                          <p className="text-[var(--secondary-text-color)] text-xs capitalize">
+                            {project?.opportunity?.type.toLowerCase() ||
+                              jobType}
+                          </p>
+                        </div>
+                        <div className="flex flex-col justify-center gap-2">
+                          <File color="#9F9FA9" size={12} />
+                          <p className="text-[var(--secondary-text-color)] text-xs flex w-max">
+                            {(() => {
+                              const appCount =
+                                project?.opportunity?._count?.applications || 0;
+                              const subCount =
+                                project?.opportunity?._count?.submissions || 0;
 
-                            if (appCount > 0) {
-                              return `${appCount} ${
-                                appCount === 1 ? "Application" : "Applications"
-                              }`;
-                            } else {
-                              return `${subCount} ${
-                                subCount === 1 ? "Proposal" : "Proposals"
-                              }`;
-                            }
-                          })()}
-                        </p>
+                              if (appCount > 0) {
+                                return `${appCount} ${
+                                  appCount === 1
+                                    ? "Application"
+                                    : "Applications"
+                                }`;
+                              } else {
+                                return `${subCount} ${
+                                  subCount === 1 ? "Proposal" : "Proposals"
+                                }`;
+                              }
+                            })()}
+                          </p>
+                        </div>
                       </div>
-                      {project?.opportunity?.rewards && (
-                        <div className='text-center flex items-center text-xs gap-1'>
-                          <Image src={Token} alt='$' />
-                          <span className='text-white'>
-                            {project?.opportunity?.rewards[0]?.amount} USDC
+
+                      <div className="flex justify-center gap-2">
+                        <div className="text-center flex items-center text-xs gap-1">
+                          <Image src={Token} alt="$" />
+                          <span className="text-white">
+                            {project?.opportunity?.amount} USDC
                           </span>
                         </div>
-                      )}
-                      <div>
-                        <span className='bg-blue-600 text-[var(--white-text-color)] text-xs px-3 py-1 rounded-full'>
-                          {project?.status || activeProjectTab}
-                        </span>
+
+                        <div>
+                          <span
+                            className={`${
+                              project?.status === "ACCEPTED"
+                                ? "bg-[#155DFC]"
+                                : "bg-[#FB2C36]"
+                            } text-[var(--white-text-color)] text-xs px-3 py-1 rounded-full`}
+                          >
+                            {project?.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -245,8 +276,8 @@ export default function ProjectSection() {
               )
             )
           ) : (
-            <div className='flex flex-col items-center justify-center h-40 text-[var(--secondary-text-color)]'>
-              <Search size={48} className='mb-2 opacity-30' />
+            <div className="flex flex-col items-center justify-center h-40 text-[var(--secondary-text-color)]">
+              <Search size={48} className="mb-2 opacity-30" />
               <p>No projects found matching your filters</p>
             </div>
           )}
@@ -255,7 +286,7 @@ export default function ProjectSection() {
             <Pagination
               metadata={userProjects?.metadata}
               onPageChange={handlePageChange}
-              className='my-8'
+              className="my-8"
             />
           )}
         </div>

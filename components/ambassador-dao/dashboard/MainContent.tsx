@@ -11,13 +11,16 @@ import BountiesSection from "./BountiesSection";
 import { GoBackButton } from "./BackButton";
 import SideContent from "./SideContent";
 import { Pagination } from "../ui/Pagination";
+import page from "@/app/(home)/ambassador-dao/edit-profile/page";
 
 const MainContent = ({ user }: { user: any }) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
   const [openAuthModal, setOpenAuthModal] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentJobPage, setCurrentJobPage] = useState(1);
+  const [currentBountyPage, setCurrentBountyPage] = useState(1);
+
   const [isFiltering, setIsFiltering] = useState(false);
 
   const [jobFilters, setJobFilters] = useState({
@@ -28,6 +31,7 @@ const MainContent = ({ user }: { user: any }) => {
     max_budget: searchParams.get("job_max_budget") || "",
     category: searchParams.get("job_category") || "",
     status: searchParams.get("job_status") || "",
+    page: currentJobPage,
   });
 
   const [bountyFilters, setBountyFilters] = useState({
@@ -72,6 +76,7 @@ const MainContent = ({ user }: { user: any }) => {
         max_budget: searchParams.get("job_max_budget") || "",
         category: searchParams.get("job_category") || "",
         status: searchParams.get("job_status") || "",
+        page: currentJobPage,
       };
 
       setJobFilters(newJobFilters);
@@ -84,6 +89,7 @@ const MainContent = ({ user }: { user: any }) => {
         max_budget: searchParams.get("bounty_max_budget") || "",
         category: searchParams.get("bounty_category") || "",
         status: searchParams.get("bounty_status") || "",
+        page: currentBountyPage,
       };
 
       setBountyFilters(newBountyFilters);
@@ -113,7 +119,7 @@ const MainContent = ({ user }: { user: any }) => {
     newFilterValues: { [s: string]: unknown } | ArrayLike<unknown>
   ) => {
     setIsFiltering(true);
-    
+
     const updatedJobFilters = {
       ...jobFilters,
       ...Object.fromEntries(
@@ -135,12 +141,8 @@ const MainContent = ({ user }: { user: any }) => {
       }
     });
 
-    window.history.replaceState(
-      null, 
-      '', 
-      `${pathname}?${params.toString()}`
-    );
-    
+    window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+
     setIsFiltering(false);
   };
 
@@ -148,7 +150,7 @@ const MainContent = ({ user }: { user: any }) => {
     newFilterValues: { [s: string]: unknown } | ArrayLike<unknown>
   ) => {
     setIsFiltering(true);
-    
+
     const updatedBountyFilters = {
       ...bountyFilters,
       ...Object.fromEntries(
@@ -170,12 +172,8 @@ const MainContent = ({ user }: { user: any }) => {
       }
     });
 
-    window.history.replaceState(
-      null, 
-      '', 
-      `${pathname}?${params.toString()}`
-    );
-    
+    window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+
     setIsFiltering(false);
   };
 
@@ -191,12 +189,20 @@ const MainContent = ({ user }: { user: any }) => {
     setSearchBountyInput(e.target.value);
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    
+  const handleJobPageChange = (page: number) => {
+    setCurrentJobPage(page);
+
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(page));
-    window.history.replaceState(null, '', `${pathname}?${params.toString()}`);
+    window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+  };
+
+  const handleBountyPageChange = (page: number) => {
+    setCurrentBountyPage(page);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(page));
+    window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
   };
 
   const jobs = jobsData?.data || [];
@@ -221,9 +227,9 @@ const MainContent = ({ user }: { user: any }) => {
           )}
 
           {jobsData?.metadata?.last_page > 1 && (
-            <Pagination 
+            <Pagination
               metadata={jobsData.metadata}
-              onPageChange={handlePageChange}
+              onPageChange={handleJobPageChange}
             />
           )}
         </>
@@ -246,11 +252,11 @@ const MainContent = ({ user }: { user: any }) => {
               updateFilters={updateBountyFilters}
             />
           )}
-          
+
           {bountiesData?.metadata?.last_page > 1 && (
-            <Pagination 
+            <Pagination
               metadata={bountiesData.metadata}
-              onPageChange={handlePageChange}
+              onPageChange={handleBountyPageChange}
             />
           )}
         </>

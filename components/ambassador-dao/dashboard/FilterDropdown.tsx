@@ -16,7 +16,7 @@ export const FilterDropdown = ({
   return (
     <Select.Root onValueChange={onValueChange} value={value}>
       <Select.Trigger
-        className='text-xs sm:text-sm lg:text-base focus:outline-none h-8 sm:h-11 w-max flex items-center justify-between border border-[var(--default-border-color)] text-[var(--white-text-color)] rounded-md px-2 outline-none data-[placeholder]:text-[var(--secondary-text-color)]'
+        className='text-xs sm:text-sm lg:text-base focus:outline-none h-11 w-max flex items-center justify-between border border-[var(--default-border-color)] text-[var(--white-text-color)] rounded-md px-2 outline-none data-[placeholder]:text-[var(--secondary-text-color)]'
         aria-label={label}
       >
         <Select.Value placeholder={label} />
