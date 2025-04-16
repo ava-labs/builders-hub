@@ -3,50 +3,24 @@
 import { useToolboxStore } from "../toolboxStore"
 import { useWalletStore } from "../../lib/walletStore"
 import { useState, useEffect } from "react"
-import { Calendar, Clock, ChevronRight, Users, ChevronLeft, Coins, Database, Globe, Info } from "lucide-react"
+import { Calendar, Clock, Users, Coins, Database, Globe, Info } from "lucide-react"
 import { Container } from "../components/Container"
 import { Input } from "../../components/Input"
 import { Button } from "../../components/Button"
 import { networkIDs } from "@avalabs/avalanchejs"
-
-interface Validator {
-  validationId: string
-  nodeId: string
-  subnetId: string
-  weight: number
-  remainingBalance: number
-  creationTimestamp: number
-  blsCredentials?: Record<string, any>
-  remainingBalanceOwner?: {
-    addresses: string[]
-    threshold: number
-  }
-  deactivationOwner?: {
-    addresses: string[]
-    threshold: number
-  }
-  connected?: boolean // Adding this for UI compatibility
-}
-
-interface L1ValidatorsResponse {
-  nextPageToken?: string
-  validators: Validator[]
-}
+import { GlobalParamNetwork, L1ValidatorDetailsFull } from "@avalabs/avacloud-sdk/models/components"
+import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
 
 export default function QueryValidatorList() {
   const { subnetId, setSubnetID } = useToolboxStore()
   const { avalancheNetworkID, setAvalancheNetworkID } = useWalletStore()
-  const [validators, setValidators] = useState<Validator[]>([])
+  const [validators, setValidators] = useState<L1ValidatorDetailsFull[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [selectedValidator, setSelectedValidator] = useState<Validator | null>(null)
-  const [nextPageToken, setNextPageToken] = useState<string | null>(null)
-  const [prevPageTokens, setPrevPageTokens] = useState<string[]>([])
-  const [currentPage, setCurrentPage] = useState(1)
-  const pageSize = 5
+  const [selectedValidator, setSelectedValidator] = useState<L1ValidatorDetailsFull | null>(null)
 
   // Network names for display
-  const networkNames: Record<number, string> = {
+  const networkNames: Record<number, GlobalParamNetwork> = {
     [networkIDs.MainnetID]: "mainnet",
     [networkIDs.FujiID]: "fuji",
   }
@@ -55,16 +29,10 @@ export default function QueryValidatorList() {
     fetchValidators()
   }, [avalancheNetworkID, subnetId])
 
-  async function fetchValidators(pageToken?: string, isForwardNavigation = true) {
+  async function fetchValidators() {
     setIsLoading(true)
     setError(null)
-
-    // Only reset selected validator when doing a new search, not when paginating
-    if (!pageToken) {
-      setSelectedValidator(null)
-      setPrevPageTokens([])
-      setCurrentPage(1)
-    }
+    setSelectedValidator(null)
 
     try {
       const network = networkNames[Number(avalancheNetworkID)]
@@ -72,77 +40,24 @@ export default function QueryValidatorList() {
         throw new Error("Invalid network selected")
       }
 
-      const baseUrl = `https://glacier-api.avax.network/v1/networks/${network}/l1Validators`
+      const result = await new AvaCloudSDK().data.primaryNetwork.listL1Validators({
+        network: network,
+        subnetId,
+      });
 
-      // Build query parameters
-      const queryParams = new URLSearchParams()
-      if (subnetId) {
-        queryParams.append("subnetId", subnetId)
+      // Handle pagination
+      let validators: L1ValidatorDetailsFull[] = []
+
+      for await (const page of result) {
+        validators.push(...page.result.validators)
+        setValidators(validators)
       }
-
-      // Add page token if provided
-      if (pageToken) {
-        queryParams.append("pageToken", pageToken)
-      }
-
-      // Add page size
-      queryParams.append("pageSize", pageSize.toString())
-
-      // Construct final URL with query parameters
-      const url = `${baseUrl}${queryParams.toString() ? `?${queryParams.toString()}` : ""}`
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`)
-      }
-
-      const data: L1ValidatorsResponse = await response.json()
-
-      // Store the next page token if it exists
-      setNextPageToken(data.nextPageToken || null)
-
-      // Update pagination state
-      if (isForwardNavigation && pageToken) {
-        // When moving forward, store the previous page token
-        setPrevPageTokens((prev) => [...prev, pageToken])
-        setCurrentPage((prev) => prev + 1)
-      } else if (!isForwardNavigation && prevPageTokens.length > 0) {
-        // When moving backward, remove the last token
-        setPrevPageTokens((prev) => prev.slice(0, -1))
-        setCurrentPage((prev) => prev - 1)
-      }
-
-      // Update validator list
-      setValidators(data.validators || [])
     } catch (error: any) {
       setError(error.message || "Failed to fetch validators")
       setValidators([])
       console.error("Error fetching validators:", error)
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  function handleNextPage() {
-    if (nextPageToken) {
-      fetchValidators(nextPageToken, true)
-    }
-  }
-
-  function handlePrevPage() {
-    if (prevPageTokens.length > 0) {
-      // Get the token for the previous page
-      const prevPageToken = prevPageTokens[prevPageTokens.length - 2]
-      fetchValidators(prevPageToken, false)
-    } else {
-      // If no previous tokens, go back to first page
-      fetchValidators()
     }
   }
 
@@ -169,7 +84,7 @@ export default function QueryValidatorList() {
     )
   }
 
-  const handleViewDetails = (validator: Validator) => {
+  const handleViewDetails = (validator: L1ValidatorDetailsFull) => {
     setSelectedValidator(validator)
   }
 
@@ -255,9 +170,8 @@ export default function QueryValidatorList() {
               <h3 className="text-lg font-semibold text-zinc-800 dark:text-white flex items-center">Validator List</h3>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">Page {currentPage}</span>
               <span className="bg-zinc-200 dark:bg-zinc-700 text-xs font-medium px-2 py-1 rounded-full text-zinc-700 dark:text-zinc-300">
-                {validators.length}
+                {validators.length} Validators
               </span>
             </div>
           </div>
@@ -266,7 +180,8 @@ export default function QueryValidatorList() {
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
             </div>
-          ) : validators.length > 0 ? (
+          ) : <></> }
+          {validators.length > 0 ? (
             <div className="space-y-4">
               <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
@@ -318,42 +233,6 @@ export default function QueryValidatorList() {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              </div>
-
-              {/* Pagination Controls */}
-              <div className="mt-6 flex flex-col items-center">
-                <div className="inline-flex shadow-sm rounded-md">
-                  <button
-                    onClick={handlePrevPage}
-                    disabled={currentPage === 1 || isLoading}
-                    className={`relative inline-flex items-center px-4 py-2 rounded-l-md border ${currentPage === 1 || isLoading
-                      ? "border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600 bg-zinc-50 dark:bg-zinc-800 cursor-not-allowed"
-                      : "border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700"
-                      } text-sm font-medium`}
-                  >
-                    <ChevronLeft size={16} className="mr-1" />
-                    Prev
-                  </button>
-                  <div className="relative inline-flex items-center px-4 py-2 border-t border-b border-zinc-300 dark:border-zinc-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-sm font-medium">
-                    {currentPage}
-                  </div>
-                  <button
-                    onClick={handleNextPage}
-                    disabled={!nextPageToken || isLoading}
-                    className={`relative inline-flex items-center px-4 py-2 rounded-r-md border ${!nextPageToken || isLoading
-                      ? "border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600 bg-zinc-50 dark:bg-zinc-800 cursor-not-allowed"
-                      : "border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700"
-                      } text-sm font-medium`}
-                  >
-                    Next
-                    <ChevronRight size={16} className="ml-1" />
-                  </button>
-                </div>
-
-                {/* Pagination Status */}
-                <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                  Page {currentPage} • {validators.length} validators {nextPageToken && "• More available"}
                 </div>
               </div>
             </div>

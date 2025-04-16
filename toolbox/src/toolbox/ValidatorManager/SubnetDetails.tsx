@@ -19,40 +19,20 @@ import { networkIDs } from "@avalabs/avalanchejs"
 import { Input } from "../../components/Input"
 import { Button } from "../../components/Button"
 import { Container } from "../components/Container"
-interface SubnetDetails {
-  createBlockTimestamp: number
-  createBlockIndex: string
-  subnetId: string
-  ownerAddresses: string[]
-  threshold: number
-  locktime: number
-  subnetOwnershipInfo: {
-    locktime: number
-    threshold: number
-    addresses: string[]
-  }
-  isL1: boolean
-  l1ConversionTransactionHash?: string
-  l1ValidatorManagerDetails?: {
-    blockchainId: string
-    contractAddress: string
-  }
-  blockchains: {
-    blockchainId: string
-  }[]
-}
+import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
+import { GlobalParamNetwork, Subnet} from "@avalabs/avacloud-sdk/models/components"
 
 export default function SubnetDetails() {
   const { subnetId, setSubnetID } = useToolboxStore()
   const { avalancheNetworkID, setAvalancheNetworkID } = useWalletStore()
-  const [subnetDetails, setSubnetDetails] = useState<SubnetDetails | null>(null)
+  const [subnetDetails, setSubnetDetails] = useState<Subnet | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
 
   // Network names for display
-  const networkNames: Record<number, string> = {
+  const networkNames: Record<number, GlobalParamNetwork> = {
     [networkIDs.MainnetID]: "mainnet",
     [networkIDs.FujiID]: "fuji",
   }
@@ -79,14 +59,12 @@ export default function SubnetDetails() {
         throw new Error("Invalid network selected")
       }
 
-      const response = await fetch(`https://glacier-api.avax.network/v1/networks/${network}/subnets/${subnetId}`)
+      const subnet = await new AvaCloudSDK().data.primaryNetwork.getSubnetById({
+        network: network,
+        subnetId,
+      });
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      setSubnetDetails(data)
+      setSubnetDetails(subnet)
       setSuccess(true)
     } catch (error: any) {
       setError(error.message || "Failed to fetch subnet details")
