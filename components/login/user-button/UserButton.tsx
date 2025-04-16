@@ -12,7 +12,7 @@ import Image from "next/image";
 import Link from "next/link";
 import SignOutComponent from "../sign-out/SignOut";
 import { useState } from "react";
-import { UserRound } from "lucide-react";
+import { UserRound, CircleUserRound } from "lucide-react";
 
 export function UserButton() {
   const { data: session, status } = useSession();

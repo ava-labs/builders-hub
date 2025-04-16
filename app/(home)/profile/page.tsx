@@ -36,15 +36,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MultiSelect } from '@/components/ui/multi-select';
 import Modal from '@/components/ui/Modal';
 import { UploadModal } from '@/components/ui/upload-modal';
+import { SessionProvider } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
+import { Profile } from '@/types/profile';
+import { updateProfile } from '@/server/services/profile';
+import axios from 'axios';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 const profileSchema = z.object({
-  fullName: z.string().min(1, 'Full name is required'),
+  name: z.string().min(1, 'Full name is required'),
   bio: z.string().max(250, 'Bio must not exceed 250 characters').optional(),
   email: z.string().email('Invalid email'),
-  profilePicture: z.string().optional(),
-  accounts: z.array(z.string()).default([]),
-  notifications: z.array(z.string()).default([]),
-  profilePrivacy: z.string().default('public'),
+  notification_email: z.string().email('Invalid email'),
+  image: z.string().optional(),
+  social_media: z.array(z.string()).default([]),
+  notification_options: z.array(z.string()).default([]),
+  profile_privacy: z.string().default('public'),
 });
 
 const notificationOptions = [
@@ -55,24 +63,73 @@ const notificationOptions = [
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-function Profile() {
+function ProfileForm() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      fullName: '',
+      name: '',
       email: '',
+      notification_email: '',
       bio: '',
-      accounts: [],
-      notifications: [],
-      profilePicture: '',
-      profilePrivacy: 'public',
+      social_media: [],
+      notification_options: [],
+      image: '',
+      profile_privacy: '',
     },
   });
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  let readonly = false;
+
+  if (!session || status != "authenticated") {
+    readonly = true;
+  } else {
+    form.setValue("email", session.user.email!);
+  }
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        if (!session?.user.email) return;
+        const response = await axios.get(`/api/profile?email=${session?.user.email}`);
+
+        if (response.status != 200) {
+           console.error("Error loading profile:", response.data);
+           return;
+        }
+
+        const profile = response.data as Profile;
+        form.reset({
+          name: profile.name || "",
+          email: profile.email,
+          notification_email: profile.notification_email || "",
+          bio: profile.bio || "",
+          social_media: profile.social_media || [],
+          notification_options: profile.notification_options || [],
+          image: profile.image || "",
+          profile_privacy: profile.profile_privacy || "",
+        });
+      } catch (error) {
+        console.error("Error loading profile:", error);
+      }
+    }
+
+    fetchProfile();
+  }, [session]);
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      console.log(data);
+      const response = await axios.put(`/api/profile?email=${data.email}`, { ...data });
+
+      if (response.status != 200) {
+        throw new Error(`Error while saving profile: ${response.data}`)
+      }
+
+      const updatedProfile = response.data as Profile;
+      console.log(updatedProfile);
+
+      router.push("/")
     } catch (error) {
       console.error('Error saving profile:', error);
     }
@@ -80,19 +137,20 @@ function Profile() {
 
   const handleFileSelect = (file: File) => {
     const imageUrl = URL.createObjectURL(file);
-    form.setValue('profilePicture', imageUrl);
+    form.setValue('image', imageUrl);
   };
 
   return (
     <div className='container mx-auto py-8 flex flex-col gap-4'>
+    {/*
       <div>
         <h2 className='text-2xl font-semibold mb-2'>Settings</h2>
         <p className='text-sm text-muted-foreground'>
           Edit and manage all aspects of your hackathon in one place.
         </p>
       </div>
-
       <Separator className='my-6' />
+    */}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
@@ -106,12 +164,12 @@ function Profile() {
 
           <FormField
             control={form.control}
-            name='fullName'
+            name='name'
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Full Name in Hackathon</FormLabel>
                 <FormControl>
-                  <Input placeholder='Enter your full name' {...field} />
+                  <Input placeholder='Enter your full name' disabled={readonly} {...field} />
                 </FormControl>
                 <FormDescription>
                   This name will be displayed on your profile and submissions.
@@ -124,9 +182,9 @@ function Profile() {
             <FormLabel>Profile Picture</FormLabel>
             <div className='flex flex-col gap-4'>
               <div className='w-24 h-24 border-2 border-dashed border-red-500 rounded-lg flex items-center justify-center'>
-                {form.watch('profilePicture') ? (
+                {form.watch('image') ? (
                   <img
-                    src={form.watch('profilePicture')}
+                    src={form.watch('image')}
                     alt="Profile"
                     className="w-full h-full object-cover rounded-lg"
                   />
@@ -152,6 +210,7 @@ function Profile() {
                 className='w-fit'
                 type='button'
                 onClick={() => setIsUploadModalOpen(true)}
+                disabled={readonly}
               >
                 Upload or update your profile image
               </Button>
@@ -176,6 +235,7 @@ function Profile() {
                   <Textarea
                     placeholder='Tell others about yourself in a few words'
                     className='resize-none h-24'
+                    disabled={readonly}
                     maxLength={250}
                     {...field}
                   />
@@ -204,19 +264,32 @@ function Profile() {
               <FormItem>
                 <FormLabel>Email Address</FormLabel>
                 <FormControl>
-                  <Input placeholder='your@email.com' type='email' {...field} />
+                  <Input placeholder='your@email.com' disabled={true} type='email' {...field} />
                 </FormControl>
-                <FormDescription>
+                {/*<FormDescription>
                   To update your email, a verification code will be sent to your
                   current email.
-                </FormDescription>
+                </FormDescription>*/}
               </FormItem>
             )}
           />
 
           <FormField
             control={form.control}
-            name='accounts'
+            name='notification_email'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notification Email Address</FormLabel>
+                <FormControl>
+                  <Input placeholder='your@email.com' disabled={readonly} type='email' {...field} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name='social_media'
             render={({ field }) => (
               <FormItem>
                 <div>
@@ -296,6 +369,7 @@ function Profile() {
                 <Button
                   type='button'
                   className='w-fit justify-start mt-2'
+                  disabled={readonly}
                   onClick={(e) => {
                     e.preventDefault();
                     field.onChange([...(field.value || []), '']);
@@ -312,12 +386,12 @@ function Profile() {
 
           <FormField
             control={form.control}
-            name='profilePrivacy'
+            name='profile_privacy'
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Profile Privacy</FormLabel>
                 <FormControl>
-                  <Select defaultOpen value={field.value} onValueChange={field.onChange}>
+                  <Select defaultOpen disabled={readonly} value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger className='w-full'>
                       <SelectValue placeholder='Select privacy setting' />
                     </SelectTrigger>
@@ -346,7 +420,7 @@ function Profile() {
 
           <FormField
             control={form.control}
-            name='notifications'
+            name='notification_options'
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Email Notifications</FormLabel>
@@ -370,10 +444,10 @@ function Profile() {
           <Separator className='mb-6' />
 
           <div className='flex justify-start items-center gap-4 pt-6'>
-            <Button type='submit' className='py-2 px-4' variant='red'>
+            <Button type='submit' className='py-2 px-4' variant='red' disabled={readonly}>
               Save Changes
             </Button>
-            <Button type='button' className='py-2 px-4' variant='outline'>
+            <Button type='button' className='py-2 px-4' variant='outline' onClick={() => router.push("/")}>
               Cancel Changes
             </Button>
           </div>
@@ -389,4 +463,13 @@ function Profile() {
   );
 }
 
-export default Profile;
+// TODO: Nombre provisional
+function ProfilePage() {
+    return (
+      <SessionProvider>
+        <ProfileForm />
+      </SessionProvider>
+    );
+}
+
+export default ProfilePage;
