@@ -73,7 +73,7 @@ export default function XpSection({ data }: any) {
       </div>
 
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-        <div className='flex flex-col space-y-12 lg:space-y-13 relative'>
+        <div className='flex flex-col space-y-12 relative'>
           <div
             className='absolute left-4 top-4 -bottom-2 lg:bottom-1 w-0.5 bg-gradient-to-b from-red-500 via-red-500 to-gray-700'
             style={{
