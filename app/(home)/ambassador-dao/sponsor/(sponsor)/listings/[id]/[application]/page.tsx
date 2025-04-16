@@ -237,9 +237,15 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                                 {file.original_name}
                               </p>
                             </div>
-                            {/* <p className='text-[var(--primary-text-color)] font-semibold cursor-pointer'>
-                              Download
-                            </p> */}
+                            <p className='text-[var(--primary-text-color)] font-semibold cursor-pointer'>
+                              <a
+                                href={`https://s3.eu-west-2.amazonaws.com/ambassador-dao-public-assets/${file.path}`}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                              >
+                                Download
+                              </a>
+                            </p>
                           </div>
                         ))}
                       </div>
