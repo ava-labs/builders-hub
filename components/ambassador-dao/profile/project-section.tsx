@@ -44,9 +44,9 @@ console.log(debouncedJobSearch)
 
 
   const projectTabs = [
-    { id: "APPLIED", count: 0, bgColor: "bg-[#161617]" },
-    { id: "WON", count: 0, bgColor: "bg-[#27272A]" },
-    { id: "CLOSED", count: 0, bgColor: "bg-[#27272A]" },
+    { id: "APPLIED", count: userProjects?.data?.stats.applied, bgColor: "bg-[#161617]" },
+    { id: "WON", count: userProjects?.data?.stats.won, bgColor: "bg-[#27272A]" },
+    { id: "CLOSED", count: userProjects?.data?.stats.closed, bgColor: "bg-[#27272A]" },
   ];
 
   useEffect(() => {
@@ -171,17 +171,17 @@ console.log(debouncedJobSearch)
               >
                 {tab?.id?.toLowerCase()}
               </span>
-              <span className="ml-1 bg-white text-[#161617] text-xs px-2 py-1 rounded-full">
+              {!isLoadingUserProjects &&<span className="ml-1 bg-white text-[#161617] text-xs px-2.5 py-0.5 rounded-full">
                 {tab.count}
-              </span>
+              </span>}
             </button>
           ))}
         </div>
 
         <div className="space-y-4 col-span-4">
           {isLoadingUserProjects && <Loader/>}
-          {!isLoadingUserProjects && userProjects?.data && userProjects?.data?.length > 0 && (
-            userProjects?.data?.map(
+          {!isLoadingUserProjects && userProjects?.data && (userProjects?.data?.opportunities?.length || userProjects?.data?.submissions?.length ) > 0 && (
+            (userProjects?.data?.opportunities || userProjects?.data?.submissions)?.map(
               (project: {
                 opportunity: {
                   id: React.Key;
@@ -282,7 +282,7 @@ console.log(debouncedJobSearch)
               )
             )
           )} 
-          {!isLoadingUserProjects && userProjects?.data.length === 0 && (
+          {!isLoadingUserProjects && (userProjects?.data?.opportunities || userProjects?.data?.submissions).length === 0 && (
             <div className="flex flex-col items-center justify-center h-40 text-[var(--secondary-text-color)]">
               <Search size={48} className="mb-2 opacity-30" />
               <p>No projects found matching your filters</p>
