@@ -221,6 +221,7 @@ export interface ISingleOppotunityApplicationResponse {
     id: string;
     filename: string;
     original_name: string;
+    path: string;
   }[];
   applicant_number_of_completed_jobs: string;
   applicant: {
