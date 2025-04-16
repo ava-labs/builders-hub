@@ -193,8 +193,15 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                         )}
                         {application.telegram_username && (
                           <div className='text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]'>
-                            Telegram:{" "}
-                            {application.telegram_username.slice(0, 20)}...
+                            <a
+                              href={application.telegram_username}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]'
+                            >
+                              Telegram:{" "}
+                              {application.telegram_username.slice(0, 20)}...
+                            </a>
                           </div>
                         )}
                       </div>
