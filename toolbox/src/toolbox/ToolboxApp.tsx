@@ -68,6 +68,12 @@ const componentGroups: Record<string, ComponentType[]> = {
             label: "EVM Genesis Builder",
             component: lazy(() => import('./L1/GenesisBuilder')),
             fileNames: ["toolbox/src/toolbox/L1/GenesisBuilder.tsx"]
+        },
+        {
+            id: 'queryL1Details',
+            label: "Query L1 Details",
+            component: lazy(() => import('./L1/QueryL1Details')),
+            fileNames: ["toolbox/src/toolbox/L1/QueryL1Details.tsx"]
         }
     ],
     "Nodes": [
@@ -155,7 +161,13 @@ const componentGroups: Record<string, ComponentType[]> = {
             label: "Change L1 Validator Weight",
             component: lazy(() => import('./ValidatorManager/ChangeWeight')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeight.tsx"]
-        }
+        },
+        {
+            id: "queryL1ValidatorSet",
+            label: "Query L1 Validator Set",
+            component: lazy(() => import('./ValidatorManager/QueryL1ValidatorSet')),
+            fileNames: ["toolbox/src/toolbox/ValidatorManager/QueryL1ValidatorSet.tsx"]
+        },
     ],
     "Deploy StakingManager": [
         {

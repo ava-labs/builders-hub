@@ -11,7 +11,7 @@ import { networkIDs } from "@avalabs/avalanchejs"
 import { GlobalParamNetwork, L1ValidatorDetailsFull } from "@avalabs/avacloud-sdk/models/components"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
 
-export default function QueryValidatorList() {
+export default function QueryL1ValidatorSet() {
   const { subnetId, setSubnetID } = useToolboxStore()
   const { avalancheNetworkID, setAvalancheNetworkID } = useWalletStore()
   const [validators, setValidators] = useState<L1ValidatorDetailsFull[]>([])
@@ -89,7 +89,7 @@ export default function QueryValidatorList() {
   }
 
   return (
-    <Container title="L1 Validators" description="Query the validators of an L1 from the Avalanche API">
+    <Container title="L1 Validators" description="Query the validators of an L1 from the P-Chain using the Avalanche API">
       <div className="bg-white dark:bg-zinc-900 rounded-lg p-6 border border-zinc-200 dark:border-zinc-800 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-900/10 dark:to-transparent pointer-events-none"></div>
 

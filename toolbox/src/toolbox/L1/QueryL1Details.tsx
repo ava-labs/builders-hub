@@ -13,23 +13,21 @@ import {
   Users,
   Database,
   ExternalLink,
-  ChevronRight,
 } from "lucide-react"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { Input } from "../../components/Input"
 import { Button } from "../../components/Button"
 import { Container } from "../components/Container"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
-import { GlobalParamNetwork, Subnet} from "@avalabs/avacloud-sdk/models/components"
+import { GlobalParamNetwork, Subnet } from "@avalabs/avacloud-sdk/models/components"
 
-export default function SubnetDetails() {
+export default function QueryL1Details() {
   const { subnetId, setSubnetID } = useToolboxStore()
   const { avalancheNetworkID, setAvalancheNetworkID } = useWalletStore()
   const [subnetDetails, setSubnetDetails] = useState<Subnet | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [expandedSection, setExpandedSection] = useState<string | null>(null)
 
   // Network names for display
   const networkNames: Record<number, GlobalParamNetwork> = {
@@ -79,16 +77,8 @@ export default function SubnetDetails() {
     return new Date(timestamp * 1000).toLocaleString()
   }
 
-  function toggleSection(section: string) {
-    if (expandedSection === section) {
-      setExpandedSection(null)
-    } else {
-      setExpandedSection(section)
-    }
-  }
-
   return (
-    <Container title="Subnet Details" description="Query the data of the Subnet from the Avalanche API">
+    <Container title="Subnet Details" description="Query the data of the Subnet from the P-Chain using the Avalanche API">
       <div className="relative">
         {/* Background gradient effect - blue for both light and dark mode */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-900/10 dark:to-cyan-900/5 pointer-events-none"></div>
@@ -218,73 +208,60 @@ export default function SubnetDetails() {
                   {/* Basic Info Section */}
                   <div
                     className="bg-zinc-50 dark:bg-zinc-800/70 rounded-md border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer"
-                    onClick={() => toggleSection("basic")}
                   >
                     <div className="flex items-center justify-between p-2">
                       <div className="flex items-center">
                         <Clock className="h-4 w-4 text-blue-500 dark:text-blue-400 mr-2" />
                         <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-200">Basic Information</h4>
                       </div>
-                      <ChevronRight
-                        className={`h-4 w-4 text-zinc-500 dark:text-zinc-400 transition-transform ${expandedSection === "basic" ? "rotate-90" : ""}`}
-                      />
                     </div>
-
-                    {expandedSection === "basic" && (
-                      <div className="p-2 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80">
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <span className="text-zinc-500 dark:text-zinc-400">Created:</span>
-                            <p className="font-mono text-zinc-900 dark:text-zinc-100">
-                              {formatTimestamp(subnetDetails.createBlockTimestamp)}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-zinc-500 dark:text-zinc-400">Block Index:</span>
-                            <p className="font-mono text-zinc-900 dark:text-zinc-100">
-                              {subnetDetails.createBlockIndex}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-zinc-500 dark:text-zinc-400">Threshold:</span>
-                            <p className="font-mono text-zinc-900 dark:text-zinc-100">{subnetDetails.threshold}</p>
-                          </div>
-                          <div>
-                            <span className="text-zinc-500 dark:text-zinc-400">Locktime:</span>
-                            <p className="font-mono text-zinc-900 dark:text-zinc-100">{subnetDetails.locktime}</p>
-                          </div>
+                    <div className="p-2 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80">
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-zinc-500 dark:text-zinc-400">Created:</span>
+                          <p className="font-mono text-zinc-900 dark:text-zinc-100">
+                            {formatTimestamp(subnetDetails.createBlockTimestamp)}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-zinc-500 dark:text-zinc-400">Block Index:</span>
+                          <p className="font-mono text-zinc-900 dark:text-zinc-100">
+                            {subnetDetails.createBlockIndex}
+                          </p>
                         </div>
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   {/* L1 Specific Information */}
                   {subnetDetails.isL1 && (
                     <div
                       className="bg-zinc-50 dark:bg-zinc-800/70 rounded-md border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer"
-                      onClick={() => toggleSection("l1")}
                     >
                       <div className="flex items-center justify-between p-2">
                         <div className="flex items-center">
                           <Database className="h-4 w-4 text-blue-500 dark:text-blue-400 mr-2" />
                           <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-200">L1 Details</h4>
                         </div>
-                        <ChevronRight
-                          className={`h-4 w-4 text-zinc-500 dark:text-zinc-400 transition-transform ${expandedSection === "l1" ? "rotate-90" : ""}`}
-                        />
-                      </div>
 
-                      {expandedSection === "l1" && (
-                        <div className="p-2 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80">
-                          {subnetDetails.l1ConversionTransactionHash && (
-                            <div className="mb-2">
-                              <span className="text-zinc-500 dark:text-zinc-400 text-xs">Transaction Hash:</span>
+                      </div>
+                      <div className="p-2 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80">
+                        {subnetDetails.l1ValidatorManagerDetails && (
+                          <div className="space-y-2">
+                            <div>
+                              <span className="text-zinc-500 dark:text-zinc-400 text-xs">Validator Manager Blockchain ID:</span>
+                              <p className="font-mono text-xs text-zinc-900 dark:text-zinc-100 mt-1">
+                                {subnetDetails.l1ValidatorManagerDetails.blockchainId}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-zinc-500 dark:text-zinc-400 text-xs">Validator Manager Contract Address:</span>
                               <div className="flex items-center mt-1">
                                 <p className="font-mono text-xs text-zinc-900 dark:text-zinc-100 truncate">
-                                  {subnetDetails.l1ConversionTransactionHash}
+                                  {subnetDetails.l1ValidatorManagerDetails.contractAddress}
                                 </p>
                                 <a
-                                  href={`https://subnets.avax.network/c-chain/tx/${subnetDetails.l1ConversionTransactionHash}`}
+                                  href={`https://subnets.avax.network/c-chain/address/${subnetDetails.l1ValidatorManagerDetails.contractAddress}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="ml-1 p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
@@ -293,43 +270,34 @@ export default function SubnetDetails() {
                                 </a>
                               </div>
                             </div>
-                          )}
+                          </div>
+                        )}
 
-                          {subnetDetails.l1ValidatorManagerDetails && (
-                            <div className="space-y-2">
-                              <div>
-                                <span className="text-zinc-500 dark:text-zinc-400 text-xs">Blockchain ID:</span>
-                                <p className="font-mono text-xs text-zinc-900 dark:text-zinc-100 mt-1">
-                                  {subnetDetails.l1ValidatorManagerDetails.blockchainId}
-                                </p>
-                              </div>
-                              <div>
-                                <span className="text-zinc-500 dark:text-zinc-400 text-xs">Contract Address:</span>
-                                <div className="flex items-center mt-1">
-                                  <p className="font-mono text-xs text-zinc-900 dark:text-zinc-100 truncate">
-                                    {subnetDetails.l1ValidatorManagerDetails.contractAddress}
-                                  </p>
-                                  <a
-                                    href={`https://subnets.avax.network/c-chain/address/${subnetDetails.l1ValidatorManagerDetails.contractAddress}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="ml-1 p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-                                  >
-                                    <ExternalLink className="h-3 w-3 text-blue-500 dark:text-blue-400" />
-                                  </a>
-                                </div>
-                              </div>
+                        {subnetDetails.l1ConversionTransactionHash && (
+                          <div className="mb-2">
+                            <span className="text-zinc-500 dark:text-zinc-400 text-xs">L1 Conversion P-Chain Transaction ID:</span>
+                            <div className="flex items-center mt-1">
+                              <p className="font-mono text-xs text-zinc-900 dark:text-zinc-100 truncate">
+                                {subnetDetails.l1ConversionTransactionHash}
+                              </p>
+                              <a
+                                href={`https://subnets.avax.network/p-chain/tx/${subnetDetails.l1ConversionTransactionHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-1 p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                              >
+                                <ExternalLink className="h-3 w-3 text-blue-500 dark:text-blue-400" />
+                              </a>
                             </div>
-                          )}
-                        </div>
-                      )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* Subnet Ownership */}
                   <div
                     className="bg-zinc-50 dark:bg-zinc-800/70 rounded-md border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer"
-                    onClick={() => toggleSection("ownership")}
                   >
                     <div className="flex items-center justify-between p-2">
                       <div className="flex items-center">
@@ -340,51 +308,46 @@ export default function SubnetDetails() {
                         <span className="bg-zinc-200 dark:bg-zinc-700 text-xs font-medium px-2 py-0.5 rounded-full text-zinc-700 dark:text-zinc-200 mr-2">
                           {subnetDetails.subnetOwnershipInfo.addresses.length}
                         </span>
-                        <ChevronRight
-                          className={`h-4 w-4 text-zinc-500 dark:text-zinc-400 transition-transform ${expandedSection === "ownership" ? "rotate-90" : ""}`}
-                        />
+
                       </div>
                     </div>
 
-                    {expandedSection === "ownership" && (
-                      <div className="p-2 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80">
-                        <div className="grid grid-cols-2 gap-2 text-xs mb-2">
-                          <div>
-                            <span className="text-zinc-500 dark:text-zinc-400">Threshold:</span>
-                            <p className="font-mono text-zinc-900 dark:text-zinc-100">
-                              {subnetDetails.subnetOwnershipInfo.threshold}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-zinc-500 dark:text-zinc-400">Locktime:</span>
-                            <p className="font-mono text-zinc-900 dark:text-zinc-100">
-                              {subnetDetails.subnetOwnershipInfo.locktime}
-                            </p>
-                          </div>
+                    <div className="p-2 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80">
+                      <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                        <div>
+                          <span className="text-zinc-500 dark:text-zinc-400">Threshold:</span>
+                          <p className="font-mono text-zinc-900 dark:text-zinc-100">
+                            {subnetDetails.subnetOwnershipInfo.threshold}
+                          </p>
                         </div>
-
-                        <div className="mt-2">
-                          <span className="text-zinc-500 dark:text-zinc-400 text-xs">Owner Addresses:</span>
-                          <div className="max-h-32 overflow-y-auto mt-1 rounded border border-zinc-200 dark:border-zinc-700">
-                            {subnetDetails.subnetOwnershipInfo.addresses.map((address, index) => (
-                              <div
-                                key={index}
-                                className="p-1.5 font-mono text-xs text-zinc-900 dark:text-zinc-100 break-all bg-white dark:bg-zinc-900/80 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0"
-                              >
-                                {address}
-                              </div>
-                            ))}
-                          </div>
+                        <div>
+                          <span className="text-zinc-500 dark:text-zinc-400">Locktime:</span>
+                          <p className="font-mono text-zinc-900 dark:text-zinc-100">
+                            {subnetDetails.subnetOwnershipInfo.locktime}
+                          </p>
                         </div>
                       </div>
-                    )}
+
+                      <div className="mt-2">
+                        <span className="text-zinc-500 dark:text-zinc-400 text-xs">Owner Addresses:</span>
+                        <div className="max-h-32 overflow-y-auto mt-1 rounded border border-zinc-200 dark:border-zinc-700">
+                          {subnetDetails.subnetOwnershipInfo.addresses.map((address, index) => (
+                            <div
+                              key={index}
+                              className="p-1.5 font-mono text-xs text-zinc-900 dark:text-zinc-100 break-all bg-white dark:bg-zinc-900/80 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0"
+                            >
+                              {address}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Blockchains */}
                   {subnetDetails.blockchains && subnetDetails.blockchains.length > 0 && (
                     <div
                       className="bg-zinc-50 dark:bg-zinc-800/70 rounded-md border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer"
-                      onClick={() => toggleSection("blockchains")}
                     >
                       <div className="flex items-center justify-between p-2">
                         <div className="flex items-center">
@@ -395,41 +358,28 @@ export default function SubnetDetails() {
                           <span className="bg-zinc-200 dark:bg-zinc-700 text-xs font-medium px-2 py-0.5 rounded-full text-zinc-700 dark:text-zinc-200 mr-2">
                             {subnetDetails.blockchains.length}
                           </span>
-                          <ChevronRight
-                            className={`h-4 w-4 text-zinc-500 dark:text-zinc-400 transition-transform ${expandedSection === "blockchains" ? "rotate-90" : ""}`}
-                          />
                         </div>
                       </div>
 
-                      {expandedSection === "blockchains" && (
-                        <div className="p-2 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80">
-                          <div className="space-y-1.5">
-                            {subnetDetails.blockchains.map((blockchain, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center p-1.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-md border border-zinc-200 dark:border-zinc-700"
-                              >
-                                <div className="bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold p-1 rounded-md mr-2 min-w-[20px] text-center">
-                                  #{index + 1}
-                                </div>
-                                <div className="flex-1 overflow-hidden">
-                                  <p className="font-mono text-xs text-zinc-900 dark:text-zinc-100 truncate">
-                                    {blockchain.blockchainId}
-                                  </p>
-                                </div>
-                                <a
-                                  href={`https://subnets.avax.network/subnet/${subnetDetails.subnetId}/blockchain/${blockchain.blockchainId}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="ml-1 p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-                                >
-                                  <ExternalLink className="h-3 w-3 text-blue-500 dark:text-blue-400" />
-                                </a>
+                      <div className="p-2 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80">
+                        <div className="space-y-1.5">
+                          {subnetDetails.blockchains.map((blockchain, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center p-1.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-md border border-zinc-200 dark:border-zinc-700"
+                            >
+                              <div className="bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold p-1 rounded-md mr-2 min-w-[20px] text-center">
+                                #{index + 1}
                               </div>
-                            ))}
-                          </div>
+                              <div className="flex-1 overflow-hidden">
+                                <p className="font-mono text-xs text-zinc-900 dark:text-zinc-100 truncate">
+                                  {blockchain.blockchainId}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      )}
+                      </div>
                     </div>
                   )}
                 </div>
