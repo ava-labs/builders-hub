@@ -67,7 +67,7 @@ export const useFetchUserProjects = (params: {
   status: string;
   category: string;
   query: string;
-  date: string | undefined;
+  date_applied_start: string | undefined;
   page: number;
 }) => {
   return useQuery({
@@ -77,7 +77,7 @@ export const useFetchUserProjects = (params: {
       });
       return res.data;
     },
-    queryKey: ["userProjects"],
+    queryKey: ["userProjects", params],
     staleTime: Infinity,
     refetchOnWindowFocus: false,
   });

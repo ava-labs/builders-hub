@@ -3,7 +3,6 @@
 import { useState, useEffect, SetStateAction } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useFetchOpportunity } from "@/services/ambassador-dao/requests/opportunity";
-import Loader from "@/components/ambassador-dao/ui/Loader";
 import { useDebounce } from "@/components/ambassador-dao/hooks/useDebounce";
 import { AuthModal } from "../sections/auth-modal";
 import JobsSection from "./JobSection";
