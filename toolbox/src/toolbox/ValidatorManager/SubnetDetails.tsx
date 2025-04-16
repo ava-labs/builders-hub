@@ -110,11 +110,10 @@ export default function SubnetDetails() {
   }
 
   return (
-    <Container title="Subnet Details" description="View information about an Avalanche subnet" logoSrc="/images/avacloud.png" logoAlt="AvaCloud Logo" logoColorTheme="blue">
+    <Container title="Subnet Details" description="Query the data of the Subnet from the Avalanche API">
       <div className="relative">
         {/* Background gradient effect - blue for both light and dark mode */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-900/10 dark:to-cyan-900/5 pointer-events-none"></div>
-
         <div className="relative">
           {error && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">

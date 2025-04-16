@@ -174,7 +174,7 @@ export default function QueryValidatorList() {
   }
 
   return (
-    <Container title="L1 Validators" description="Query validators on the Avalanche network" logoSrc="/images/avacloud.png" logoAlt="AvaCloud Logo" logoColorTheme="blue">
+    <Container title="L1 Validators" description="Query the validators of an L1 from the Avalanche API">
       <div className="bg-white dark:bg-zinc-900 rounded-lg p-6 border border-zinc-200 dark:border-zinc-800 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-900/10 dark:to-transparent pointer-events-none"></div>
 
