@@ -173,10 +173,10 @@ const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
           <div className='space-y-6'>
             <div className='space-y-2'>
               <label className='block text-[var(--primary-text-color)]'>
-                Your telegram username<span className='text-red-500'>*</span>
+                Your telegram link<span className='text-red-500'>*</span>
               </label>
               <input
-                type='text'
+                type='url'
                 placeholder='Your telegram'
                 className={`w-full bg-[#fff] dark:bg-[#000] border ${
                   errors.telegram_username
@@ -184,7 +184,7 @@ const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
                     : "border-[var(--default-border-color)]"
                 } rounded-md p-3 text-[var(--white-text-color)] placeholder-gray-500 focus:outline-none`}
                 {...register("telegram_username", {
-                  required: "Telegram username is required",
+                  required: "A link to your telegram is required",
                 })}
               />
               {errors.telegram_username && (
