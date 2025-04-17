@@ -250,7 +250,7 @@ export default function ProjectSection() {
                         </p>
                       </div>
                     </div>
-                    <div className="col-span-2 flex flex-wrap sm:flex-nowrap items-center gap-2 sm:justify-around">
+                    <div className="col-span-2 flex flex-wrap sm:flex-nowrap items-center gap-2 sm:justify-around pt-1 sm:pt-3 sm:-ml-8 xl:pt-0 xl:-ml-0">
                       <div className="flex gap-1 flex-row sm:flex-col sm:items-center">
                         <BriefcaseBusiness size={14} color="#9F9FA9" />
                         <span className="text-xs text-[var(--secondary-text-color)] capitalize">
