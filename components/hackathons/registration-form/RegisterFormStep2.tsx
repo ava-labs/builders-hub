@@ -66,7 +66,6 @@ export function RegisterFormStep2() {
   const hackathonParticipationOptions = [
     { value: "yes", label: "Yes" },
     { value: "no", label: "No" },
-    { value: "firstTime", label: "First Time" },
   ];
 
   const formatSelectedValues = (values: string[] | undefined) => {

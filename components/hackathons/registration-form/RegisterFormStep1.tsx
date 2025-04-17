@@ -35,10 +35,9 @@ import {
 import { cn } from "@/utils/cn";
 
 interface Step1Props {
-  cities: string[];
   user?: User; // Optional User prop
 }
-export default function RegisterFormStep1({ cities, user }: Step1Props) {
+export default function RegisterFormStep1({ user }: Step1Props) {
   const form = useFormContext<RegisterFormValues>();
   const [open, setOpen] = useState<boolean>(false);
   const [selectedCity, setSelectedCity] = useState<string>("");
