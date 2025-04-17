@@ -5,266 +5,33 @@ description: List of default precompiles supported by Subnet-EVM on Avalanche L1
 
 ## Available Subnet-EVM Precompiles
 
-Below are listed out the default Subnet-EVM precompile interfaces.
+The Subnet-EVM provides several precompiled contracts that you can use in your Avalanche L1 blockchain. Each precompile has its own page with detailed documentation:
 
-<Accordions>
-<Accordion title="IAllowList.sol">
-```solidity
-//SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+- [AllowList Interface](/docs/virtual-machines/default-precompiles/allowlist) - A reusable interface for permission management
+- [Native Minter](/docs/virtual-machines/default-precompiles/nativeminter) - Mint additional native tokens
+- [Fee Manager](/docs/virtual-machines/default-precompiles/feemanager) - Configure fee parameters
+- [Reward Manager](/docs/virtual-machines/default-precompiles/rewardmanager) - Configure fee reward mechanisms
+- [Warp Messenger](/docs/virtual-machines/default-precompiles/warpmessenger) - Perform cross-chain operations
 
-interface IAllowList {
-  event RoleSet(uint256 indexed role, address indexed account, address indexed sender, uint256 oldRole);
+## Precompile Addresses and Configuration
 
-  // Set [addr] to have the admin role over the precompile contract.
-  function setAdmin(address addr) external;
+If a precompile is enabled within the `genesis.json` using the respective `ConfigKey`, you can interact with the precompile using Foundry or other tools such as Remix.
 
-  // Set [addr] to be enabled on the precompile contract.
-  function setEnabled(address addr) external;
-
-  // Set [addr] to have the manager role over the precompile contract.
-  function setManager(address addr) external;
-
-  // Set [addr] to have no role for the precompile contract.
-  function setNone(address addr) external;
-
-  // Read the status of [addr].
-  function readAllowList(address addr) external view returns (uint256 role);
-}
-```
-</ Accordion>
-
-<Accordion title="INativeMinter.sol">
-```solidity
-//SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
-
-interface INativeMinter {
-  event NativeCoinMinted(address indexed sender, address indexed recipient, uint256 amount);
-  // Mint [amount] number of native coins and send to [addr]
-  function mintNativeCoin(address addr, uint256 amount) external;
-
-  // IAllowList
-  event RoleSet(uint256 indexed role, address indexed account, address indexed sender, uint256 oldRole);
-
-  // Set [addr] to have the admin role over the precompile contract.
-  function setAdmin(address addr) external;
-
-  // Set [addr] to be enabled on the precompile contract.
-  function setEnabled(address addr) external;
-
-  // Set [addr] to have the manager role over the precompile contract.
-  function setManager(address addr) external;
-
-  // Set [addr] to have no role for the precompile contract.
-  function setNone(address addr) external;
-
-  // Read the status of [addr].
-  function readAllowList(address addr) external view returns (uint256 role);
-}
-```
-</Accordion>
-
-
-<Accordion title="IFeeManager.sol">
-```solidity
-//SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
-
-interface IFeeManager {
-  struct FeeConfig {
-    uint256 gasLimit;
-    uint256 targetBlockRate;
-    uint256 minBaseFee;
-    uint256 targetGas;
-    uint256 baseFeeChangeDenominator;
-    uint256 minBlockGasCost;
-    uint256 maxBlockGasCost;
-    uint256 blockGasCostStep;
-  }
-  event FeeConfigChanged(address indexed sender, FeeConfig oldFeeConfig, FeeConfig newFeeConfig);
-
-  // Set fee config fields to contract storage
-  function setFeeConfig(
-    uint256 gasLimit,
-    uint256 targetBlockRate,
-    uint256 minBaseFee,
-    uint256 targetGas,
-    uint256 baseFeeChangeDenominator,
-    uint256 minBlockGasCost,
-    uint256 maxBlockGasCost,
-    uint256 blockGasCostStep
-  ) external;
-
-  // Get fee config from the contract storage
-  function getFeeConfig()
-    external
-    view
-    returns (
-      uint256 gasLimit,
-      uint256 targetBlockRate,
-      uint256 minBaseFee,
-      uint256 targetGas,
-      uint256 baseFeeChangeDenominator,
-      uint256 minBlockGasCost,
-      uint256 maxBlockGasCost,
-      uint256 blockGasCostStep
-    );
-
-  // Get the last block number changed the fee config from the contract storage
-  function getFeeConfigLastChangedAt() external view returns (uint256 blockNumber);
-
-  // IAllowList
-  event RoleSet(uint256 indexed role, address indexed account, address indexed sender, uint256 oldRole);
-
-  // Set [addr] to have the admin role over the precompile contract.
-  function setAdmin(address addr) external;
-
-  // Set [addr] to be enabled on the precompile contract.
-  function setEnabled(address addr) external;
-
-  // Set [addr] to have the manager role over the precompile contract.
-  function setManager(address addr) external;
-
-  // Set [addr] to have no role for the precompile contract.
-  function setNone(address addr) external;
-
-  // Read the status of [addr].
-  function readAllowList(address addr) external view returns (uint256 role);
-}
-```
-</ Accordion>
-
-
-<Accordion title="IRewardManager.sol">
-```solidity
-//SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
-
-interface IRewardManager {
-  // RewardAddressChanged is the event logged whenever reward address is modified
-  event RewardAddressChanged(
-    address indexed sender,
-    address indexed oldRewardAddress,
-    address indexed newRewardAddress
-  );
-
-  // FeeRecipientsAllowed is the event logged whenever fee recipient is modified
-  event FeeRecipientsAllowed(address indexed sender);
-
-  // RewardsDisabled is the event logged whenever rewards are disabled
-  event RewardsDisabled(address indexed sender);
-
-  // setRewardAddress sets the reward address to the given address
-  function setRewardAddress(address addr) external;
-
-  // allowFeeRecipients allows block builders to claim fees
-  function allowFeeRecipients() external;
-
-  // disableRewards disables block rewards and starts burning fees
-  function disableRewards() external;
-
-  // currentRewardAddress returns the current reward address
-  function currentRewardAddress() external view returns (address rewardAddress);
-
-  // areFeeRecipientsAllowed returns true if fee recipients are allowed
-  function areFeeRecipientsAllowed() external view returns (bool isAllowed);
-
-  // IAllowList
-  event RoleSet(uint256 indexed role, address indexed account, address indexed sender, uint256 oldRole);
-
-  // Set [addr] to have the admin role over the precompile contract.
-  function setAdmin(address addr) external;
-
-  // Set [addr] to be enabled on the precompile contract.
-  function setEnabled(address addr) external;
-
-  // Set [addr] to have the manager role over the precompile contract.
-  function setManager(address addr) external;
-
-  // Set [addr] to have no role for the precompile contract.
-  function setNone(address addr) external;
-
-  // Read the status of [addr].
-  function readAllowList(address addr) external view returns (uint256 role);
-}
-```
-</Accordion>
-
-<Accordion title="IWarpMessenger.sol">
-```solidity
-// (c) 2022-2023, Ava Labs, Inc. All rights reserved.
-// See the file LICENSE for licensing terms.
-
-// SPDX-License-Identifier: MIT
-
-pragma solidity ^0.8.24;
-
-struct WarpMessage {
-  bytes32 sourceChainID;
-  address originSenderAddress;
-  bytes payload;
-}
-
-struct WarpBlockHash {
-  bytes32 sourceChainID;
-  bytes32 blockHash;
-}
-
-interface IWarpMessenger {
-  event SendWarpMessage(address indexed sender, bytes32 indexed messageID, bytes message);
-
-  // sendWarpMessage emits a request for the subnet to send a warp message from [msg.sender]
-  // with the specified parameters.
-  // This emits a SendWarpMessage log from the precompile. When the corresponding block is accepted
-  // the Accept hook of the Warp precompile is invoked with all accepted logs emitted by the Warp
-  // precompile.
-  // Each validator then adds the UnsignedWarpMessage encoded in the log to the set of messages
-  // it is willing to sign for an off-chain relayer to aggregate Warp signatures.
-  function sendWarpMessage(bytes calldata payload) external returns (bytes32 messageID);
-
-  // getVerifiedWarpMessage parses the pre-verified warp message in the
-  // predicate storage slots as a WarpMessage and returns it to the caller.
-  // If the message exists and passes verification, returns the verified message
-  // and true.
-  // Otherwise, returns false and the empty value for the message.
-  function getVerifiedWarpMessage(uint32 index) external view returns (WarpMessage calldata message, bool valid);
-
-  // getVerifiedWarpBlockHash parses the pre-verified WarpBlockHash message in the
-  // predicate storage slots as a WarpBlockHash message and returns it to the caller.
-  // If the message exists and passes verification, returns the verified message
-  // and true.
-  // Otherwise, returns false and the empty value for the message.
-  function getVerifiedWarpBlockHash(
-    uint32 index
-  ) external view returns (WarpBlockHash calldata warpBlockHash, bool valid);
-
-  // getBlockchainID returns the snow.Context BlockchainID of this chain.
-  // This blockchainID is the hash of the transaction that created this blockchain on the P-Chain
-  // and is not related to the Ethereum ChainID.
-  function getBlockchainID() external view returns (bytes32 blockchainID);
-}
-```
-</Accordion>
-</ Accordions>
-
-
-## Interacting with Precompiles
-
-If a precompile is enabled within the `genesis.json` using the respective `ConfigKey` we can interact with the precompile using Foundry or other tools such as Remix.
-Below are listed out the addresses and `ConfigKey` of default precompiles we can enable in Subnet-EVM. The address and `ConfigKey` [are defined in the `module.go` of each precompile contract.](https://github.com/ava-labs/subnet-evm/tree/master/precompile/contracts)
-
+Below are the addresses and `ConfigKey` values of default precompiles available in Subnet-EVM. The address and `ConfigKey` [are defined in the `module.go` of each precompile contract](https://github.com/ava-labs/subnet-evm/tree/master/precompile/contracts).
 
 | Precompile             | ConfigKey | Address                                     |
 |------------------------|-----------|---------------------------------------------|
-| Deployer Allow List    |    `contractDeployerAllowListConfig`       | `0x0200000000000000000000000000000000000000`|
-| Native Minter          |     `contractNativeMinterConfig`      | `0x0200000000000000000000000000000000000001`|
-| Transaction Allow List |       `txAllowListConfig`    | `0x0200000000000000000000000000000000000002`|
-| Fee Manager            |       `feeManagerConfig`    | `0x0200000000000000000000000000000000000003`|
-| Reward Manager         |      `rewardManagerConfig`     | `0x0200000000000000000000000000000000000004`|
-| Warp Messenger         |       `warpConfig`    | `0x0200000000000000000000000000000000000005`|
+| Deployer Allow List    | `contractDeployerAllowListConfig` | `0x0200000000000000000000000000000000000000`|
+| Native Minter          | `contractNativeMinterConfig`      | `0x0200000000000000000000000000000000000001`|
+| Transaction Allow List | `txAllowListConfig`               | `0x0200000000000000000000000000000000000002`|
+| Fee Manager            | `feeManagerConfig`                | `0x0200000000000000000000000000000000000003`|
+| Reward Manager         | `rewardManagerConfig`             | `0x0200000000000000000000000000000000000004`|
+| Warp Messenger         | `warpConfig`                      | `0x0200000000000000000000000000000000000005`|
+
+## Example Interaction
 
 For example, if `contractDeployerAllowListConfig` is enabled in the `genesis.json`:
+
 ```json title="genesis.json"
  "contractDeployerAllowListConfig": {
       "adminAddresses": [ // Addresses that can manage (add/remove) enabled addresses. They are also enabled themselves for contract deployment.
@@ -277,7 +44,8 @@ For example, if `contractDeployerAllowListConfig` is enabled in the `genesis.jso
       ]
     },
 ```
-We can then add an `Enabled` address to the Deployer Allow List by interacting with the `IAllowList` interface at `0x0200000000000000000000000000000000000000`
+
+We can then add an `Enabled` address to the Deployer Allow List by interacting with the `IAllowList` interface at `0x0200000000000000000000000000000000000000`:
 
 ```bash
 cast send 0x0200000000000000000000000000000000000000 setEnabled(address addr) <ADDRESS_TO_ENABLE> --rpc-url $MY_L1_RPC --private-key $ADMIN_PRIVATE_KEY

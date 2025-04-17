@@ -1,0 +1,43 @@
+---
+title: Create a Blockchain
+description: Create a blockchain on the P-Chain.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: SquareMousePointer
+---
+
+Now that we have the genesis file created, we can add a chain to the Subnet that you've created
+earlier. You will do this by issuing a `CreateChainTx` on the P-Chain. This will create the P-Chain
+record for your blockchain and associate it with the Subnet. The `CreateChainTx` transaction has the
+following parameters:
+
+- `name`: The name of the chain
+- `subnetID`: The ID of the Subnet you want to add the chain to
+- `vmID`: The ID of the Virtual Machine that will be used to run the chain
+- `genesisData`: The genesis configuration of the chain
+
+The blockchain will be uniquely identified by the transaction hash of the `CreateChainTx` transaction.
+
+### Virtual Machine (VM) Configuration
+
+When creating your blockchain, you'll need to specify the appropriate Virtual Machine ID:
+
+- For standard [Subnet-EVM](https://github.com/ava-labs/subnet-evm) chains, use the default VM ID: `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`
+- If you're deploying a custom VM (such as `subnet-evm` with custom precompiles or a `hypersdk`-based chain), you must specify the correct custom VM ID
+
+### Creating Your Blockchain
+
+Use the interactive tool below to complete the blockchain creation process:
+
+import ToolboxMdxWrapper from "../../../../toolbox/src/toolbox/components/ToolboxMdxWrapper.tsx"
+import CreateChain from "../../../../toolbox/src/toolbox/L1/CreateChain.tsx"
+
+<ToolboxMdxWrapper>
+    <CreateChain />
+</ToolboxMdxWrapper>
+
+When the transaction was submitted successfully, you can head to the [P-Chain Explorer for the Fuji
+testnet](https://subnets-test.avax.network/p-chain) and search for the transaction hash to verify
+the creation of the blockchain.
+
+An endpoint to query the blockchain details via the Avalanche API will be available shortly.

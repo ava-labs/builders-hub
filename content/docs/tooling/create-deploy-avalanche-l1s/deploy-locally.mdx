@@ -41,129 +41,141 @@ If all works as expected, the command output should look something like this:
 ✔ Local Network
 Deploying [myblockchain] to Local Network
 
-Network has already been booted.
-Using [P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p] to be set as a change owner for leftover AVAX
-Installing avalanchego-v1.12.1...
-avalanchego-v1.12.1 installation successful
-Backend controller started, pid: 33210, output at: /Users/l1-dev/.avalanche-cli/local/myblockchain-local-node-local-network/server.log
+AvalancheGo path: /Users/felipe.madero/.avalanche-cli/bin/avalanchego/avalanchego-v1.13.0/avalanchego
 
-AvalancheGo path: /Users/l1-dev/.avalanche-cli/bin/avalanchego/avalanchego-v1.12.1/avalanchego
+Booting Network. Wait until healthy...
 
-✓ Local cluster myblockchain-local-node-local-network not found. Creating...
-Starting local avalanchego node using root: /Users/l1-dev/.avalanche-cli/local/myblockchain-local-node-local-network ...
-✓ Booting Network. Wait until healthy...
-Waiting for P-Chain to be bootstrapped
-✓ Avalanchego started and ready to use from /Users/l1-dev/.avalanche-cli/local/myblockchain-local-node-local-network
-
-Node logs directory: /Users/l1-dev/.avalanche-cli/local/myblockchain-local-node-local-network/node1/logs
+Node logs directory: /Users/felipe.madero/.avalanche-cli/runs/network_20250410_104205/<NodeID>/logs
 
 Network ready to use.
 
-URI: http://127.0.0.1:60538
-NodeID: NodeID-ABuKofpRtHhFwAm4FXQNSpCR9jqtXWUwa
+Using [P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p] to be set as a change owner for leftover AVAX
+AvalancheGo path: /Users/felipe.madero/.avalanche-cli/bin/avalanchego/avalanchego-v1.13.0/avalanchego
+
+✓ Local cluster myblockchain-local-node-local-network not found. Creating...
+Starting local avalanchego node using root: /Users/felipe.madero/.avalanche-cli/local/myblockchain-local-node-local-network ...
+✓ Booting Network. Wait until healthy...
+✓ Avalanchego started and ready to use from /Users/felipe.madero/.avalanche-cli/local/myblockchain-local-node-local-network
+
+Node logs directory: /Users/felipe.madero/.avalanche-cli/local/myblockchain-local-node-local-network/<NodeID>/logs
+
+Network ready to use.
+
+URI: http://127.0.0.1:60172
+NodeID: NodeID-NuQc8BQ8mV9TVksgMtpyc57VnWzU2J6aN
 
 Your blockchain control keys: [P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p]
-Your subnet auth keys for chain creation: [P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p]
+Your blockchain auth keys for chain creation: [P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p]
 CreateSubnetTx fee: 0.000010278 AVAX
-Subnet has been created with ID: fvx83jt2BWyibBRL4SRMa6WzjWp7GSFUeUUeoeBe1AqJ5Ey5w
+Blockchain has been created with ID: 2W9boARgCWL25z6pMFNtkCfNA5v28VGg9PmBgUJfuKndEdhrvw
 Now creating blockchain...
-CreateChainTx fee: 0.000095680 AVAX
-+--------------------+----------------------------------------------------+
-| DEPLOYMENT RESULTS |                                                    |
-+--------------------+----------------------------------------------------+
-| Chain Name         | myblockchain                                       |
-+--------------------+----------------------------------------------------+
-| Subnet ID          | fvx83jt2BWyibBRL4SRMa6WzjWp7GSFUeUUeoeBe1AqJ5Ey5w  |
-+--------------------+----------------------------------------------------+
-| VM ID              | qDNV9vtxZYYNqm7TN1mYBuaaknLdefDbFK8bFmMLTJQJKaWjV  |
-+--------------------+----------------------------------------------------+
-| Blockchain ID      | 2QGB9GbEhsFJLSRVii2mKs8dxugHzmK98G5391P2bvXSCb4sED |
-+--------------------+                                                    +
-| P-Chain TXID       |                                                    |
-+--------------------+----------------------------------------------------+
+CreateChainTx fee: 0.000129564 AVAX
++--------------------------------------------------------------------+
+|                         DEPLOYMENT RESULTS                         |
++---------------+----------------------------------------------------+
+| Chain Name    | myblockchain                                       |
++---------------+----------------------------------------------------+
+| Subnet ID     | 2W9boARgCWL25z6pMFNtkCfNA5v28VGg9PmBgUJfuKndEdhrvw |
++---------------+----------------------------------------------------+
+| VM ID         | qDNV9vtxZYYNqm7TN1mYBuaaknLdefDbFK8bFmMLTJQJKaWjV  |
++---------------+----------------------------------------------------+
+| Blockchain ID | Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y  |
++---------------+                                                    |
+| P-Chain TXID  |                                                    |
++---------------+----------------------------------------------------+
 Now calling ConvertSubnetToL1Tx...
 ConvertSubnetToL1Tx fee: 0.000036992 AVAX
-ConvertSubnetToL1Tx ID: 2n6L5gfEFayPEWhc7XcpumfwHeqjyZLrcrFjvU5EugcXZ2xAAW
-Waiting for L1 to be converted into sovereign blockchain ... 100% [===============]           
+ConvertSubnetToL1Tx ID: 2d2EE7AorEhfKLBtnDGnAtcDYMGfPbWnHYDpNDm3SopYg6VtpV
+Waiting for the Subnet to be converted into a sovereign L1 ... 100% [===============]
 
-Restarting node node1 to track subnet
-Waiting for blockchain myblockchain to be bootstrapped
-Waiting for rpc http://127.0.0.1:60538/ext/bc/2QGB9GbEhsFJLSRVii2mKs8dxugHzmK98G5391P2bvXSCb4sED/rpc to be available
-✓ myblockchain-local-node-local-network successfully tracking myblockchain
+Validator Manager Protocol: ACP99
+Restarting node NodeID-NuQc8BQ8mV9TVksgMtpyc57VnWzU2J6aN to track newly deployed subnet/s
+Waiting for blockchain Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y to be bootstrapped
+✓ Local Network successfully tracking myblockchain
 ✓ Checking if node is healthy...
 ✓ Node is healthy after 0 seconds
 Initializing Proof of Authority Validator Manager contract on blockchain myblockchain ...
 ✓ Proof of Authority Validator Manager contract successfully initialized on blockchain myblockchain
 
-RPC Endpoint: http://127.0.0.1:60538/ext/bc/2QGB9GbEhsFJLSRVii2mKs8dxugHzmK98G5391P2bvXSCb4sED/rpc
-ICM Messenger successfully deployed to myblockchain (0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf)
-ICM Registry successfully deployed to myblockchain (0x695Ea5FbeBBdc99cA679F5fD7768f179d2281d74)
-ICM Messenger has already been deployed to c-chain
-Relayer is not deployed due to there is already a local relayer deployed for Local Network
-To deploy relayer, call `avalanche interchain relayer deploy`
-✓ L1 is successfully deployed on Local Network
+Your L1 is ready for on-chain interactions.
 
-+---------------------------------------------------------------------------------------------------------------------------------+
-|                                                           MYBLOCKCHAIN                                                          |
-+---------------+-----------------------------------------------------------------------------------------------------------------+
-| Name          | myblockchain                                                                                                    |
-+---------------+-----------------------------------------------------------------------------------------------------------------+
-| VM ID         | qDNV9vtxZYYNqm7TN1mYBuaaknLdefDbFK8bFmMLTJQJKaWjV                                                               |
-+---------------+-----------------------------------------------------------------------------------------------------------------+
-| VM Version    | v0.7.0                                                                                                          |
-+---------------+-----------------------------------------------------------------------------------------------------------------+
-| Validation    | Proof Of Authority                                                                                              |
-+---------------+--------------------------+--------------------------------------------------------------------------------------+
-| Local Network | ChainID                  | 111                                                                                  |
-|               +--------------------------+--------------------------------------------------------------------------------------+
-|               | SubnetID                 | fvx83jt2BWyibBRL4SRMa6WzjWp7GSFUeUUeoeBe1AqJ5Ey5w                                    |
-|               +--------------------------+--------------------------------------------------------------------------------------+
-|               | BlockchainID (CB58)      | 2QGB9GbEhsFJLSRVii2mKs8dxugHzmK98G5391P2bvXSCb4sED                                   |
-|               +--------------------------+--------------------------------------------------------------------------------------+
-|               | BlockchainID (HEX)       | 0xb883b54815c84a3f0903dbccd289ed5563395dd61c189db626e2d2680546b990                   |
-|               +--------------------------+--------------------------------------------------------------------------------------+
-|               | RPC Endpoint             | http://127.0.0.1:60538/ext/bc/2QGB9GbEhsFJLSRVii2mKs8dxugHzmK98G5391P2bvXSCb4sED/rpc |
-+---------------+--------------------------+--------------------------------------------------------------------------------------+
+RPC Endpoint: http://127.0.0.1:60172/ext/bc/Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y/rpc
+ICM Messenger successfully deployed to myblockchain (0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf)
+ICM Registry successfully deployed to myblockchain (0xEc7018552DC7E197Af85f157515f5976b1A15B12)
+ICM Messenger successfully deployed to c-chain (0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf)
+ICM Registry successfully deployed to c-chain (0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25)
+✓ ICM is successfully deployed
+
+Generating relayer config file at /Users/felipe.madero/.avalanche-cli/runs/network_20250410_104205/icm-relayer-config.json
+Relayer version icm-relayer-v1.6.2
+Executing Relayer
+✓ Relayer is successfully deployed
+
++--------------------------------------------------------------------------------------------------------------------------------+
+|                                                          MYBLOCKCHAIN                                                          |
++---------------+----------------------------------------------------------------------------------------------------------------+
+| Name          | myblockchain                                                                                                   |
++---------------+----------------------------------------------------------------------------------------------------------------+
+| VM ID         | qDNV9vtxZYYNqm7TN1mYBuaaknLdefDbFK8bFmMLTJQJKaWjV                                                              |
++---------------+----------------------------------------------------------------------------------------------------------------+
+| VM Version    | v0.7.3                                                                                                         |
++---------------+----------------------------------------------------------------------------------------------------------------+
+| Validation    | Proof Of Authority                                                                                             |
++---------------+--------------------------+-------------------------------------------------------------------------------------+
+| Local Network | ChainID                  | 888                                                                                 |
+|               +--------------------------+-------------------------------------------------------------------------------------+
+|               | SubnetID                 | 2W9boARgCWL25z6pMFNtkCfNA5v28VGg9PmBgUJfuKndEdhrvw                                  |
+|               +--------------------------+-------------------------------------------------------------------------------------+
+|               | Owners (Threhold=1)      | P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p                                     |
+|               +--------------------------+-------------------------------------------------------------------------------------+
+|               | BlockchainID (CB58)      | Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y                                   |
+|               +--------------------------+-------------------------------------------------------------------------------------+
+|               | BlockchainID (HEX)       | 0x48644613a5ef255fa171bf4773df668b57ea0ea9593df8927a6d9f32376a9c6f                  |
+|               +--------------------------+-------------------------------------------------------------------------------------+
+|               | RPC Endpoint             | http://127.0.0.1:60172/ext/bc/Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y/rpc |
++---------------+--------------------------+-------------------------------------------------------------------------------------+
 
 +------------------------------------------------------------------------------------+
 |                                         ICM                                        |
 +---------------+-----------------------+--------------------------------------------+
 | Local Network | ICM Messenger Address | 0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf |
 |               +-----------------------+--------------------------------------------+
-|               | ICM Registry Address  | 0x695Ea5FbeBBdc99cA679F5fD7768f179d2281d74 |
+|               | ICM Registry Address  | 0xEc7018552DC7E197Af85f157515f5976b1A15B12 |
 +---------------+-----------------------+--------------------------------------------+
 
-+---------------------------+
-|           TOKEN           |
-+--------------+------------+
-| Token Name   | TUTORIAL Token |
-+--------------+------------+
-| Token Symbol | TUTORIAL       |
-+--------------+------------+
++--------------------------+
+|           TOKEN          |
++--------------+-----------+
+| Token Name   | TST Token |
++--------------+-----------+
+| Token Symbol | TST       |
++--------------+-----------+
 
-+----------------------------------------------------------------------------------------------------------------------------------------+
-|                                                        INITIAL TOKEN ALLOCATION                                                        |
-+-------------------------+------------------------------------------------------------------+---------------+---------------------------+
-| DESCRIPTION             | ADDRESS AND PRIVATE KEY                                          | AMOUNT (TUTORIAL) | AMOUNT (WEI)              |
-+-------------------------+------------------------------------------------------------------+---------------+---------------------------+
-| Used by ICM             | 0x001CBe3650FAD190d9ccBd57b289124F5131AA57                       | 600           | 600000000000000000000     |
-| cli-teleporter-deployer | d00b93e1526d05a30b681911a3e0f5e5528add205880c1cafa4f84cdb2746b00 |               |                           |
-+-------------------------+------------------------------------------------------------------+---------------+---------------------------+
-| Main funded account     | 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC                       | 1000000       | 1000000000000000000000000 |
-| ewoq                    | 56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027 |               |                           |
-+-------------------------+------------------------------------------------------------------+---------------+---------------------------+
++---------------------------------------------------------------------------------------------------------------------------------------+
+|                                                        INITIAL TOKEN ALLOCATION                                                       |
++-------------------------+------------------------------------------------------------------+--------------+---------------------------+
+| DESCRIPTION             | ADDRESS AND PRIVATE KEY                                          | AMOUNT (TST) | AMOUNT (WEI)              |
++-------------------------+------------------------------------------------------------------+--------------+---------------------------+
+| Main funded account     | 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC                       | 1000000      | 1000000000000000000000000 |
+| ewoq                    | 56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027 |              |                           |
++-------------------------+------------------------------------------------------------------+--------------+---------------------------+
+| Used by ICM             | 0xf34408C05e3B339B1c89d15163d4B9D96845597A                       | 600          | 600000000000000000000     |
+| cli-teleporter-deployer | 30d57c7b6e7e393e2e4ce8166768b497cc37930361a15b1c647d6e665d88afff |              |                           |
++-------------------------+------------------------------------------------------------------+--------------+---------------------------+
 
-+-----------------------------------------------------------------------------------------------------------------+
-|                                                 SMART CONTRACTS                                                 |
-+-----------------------+--------------------------------------------+--------------------------------------------+
-| DESCRIPTION           | ADDRESS                                    | DEPLOYER                                   |
-+-----------------------+--------------------------------------------+--------------------------------------------+
-| Proxy Admin           | 0xC0fFEE1234567890aBCdeF1234567890abcDef34 | 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC |
-+-----------------------+--------------------------------------------+--------------------------------------------+
-| PoA Validator Manager | 0x0C0DEbA5E0000000000000000000000000000000 |                                            |
-+-----------------------+--------------------------------------------+--------------------------------------------+
-| Transparent Proxy     | 0x0Feedc0de0000000000000000000000000000000 |                                            |
-+-----------------------+--------------------------------------------+--------------------------------------------+
++----------------------------------------------------------------------------------------------------------------------------------+
+|                                                          SMART CONTRACTS                                                         |
++----------------------------------------+--------------------------------------------+--------------------------------------------+
+| DESCRIPTION                            | ADDRESS                                    | DEPLOYER                                   |
++----------------------------------------+--------------------------------------------+--------------------------------------------+
+| Validator Messages Lib                 | 0x9C00629cE712B0255b17A4a657171Acd15720B8C |                                            |
++----------------------------------------+--------------------------------------------+--------------------------------------------+
+| Proxy Admin                            | 0xC0fFEE1234567890aBCdeF1234567890abcDef34 | 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC |
++----------------------------------------+--------------------------------------------+--------------------------------------------+
+| ACP99 Compatible PoA Validator Manager | 0x0C0DEbA5E0000000000000000000000000000000 |                                            |
++----------------------------------------+--------------------------------------------+--------------------------------------------+
+| Transparent Proxy                      | 0x0Feedc0de0000000000000000000000000000000 |                                            |
++----------------------------------------+--------------------------------------------+--------------------------------------------+
 
 +----------------------------------------------------------------------+
 |                      INITIAL PRECOMPILE CONFIGS                      |
@@ -173,29 +185,43 @@ To deploy relayer, call `avalanche interchain relayer deploy`
 | Warp       | n/a             | n/a               | n/a               |
 +------------+-----------------+-------------------+-------------------+
 
-+--------------------------------------------------------------------------+
-|                                   NODES                                  |
-+-------+------------------------------------------+-----------------------+
-| NAME  | NODE ID                                  | LOCALHOST ENDPOINT    |
-+-------+------------------------------------------+-----------------------+
-| node1 | NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg | http://127.0.0.1:9650 |
-+-------+------------------------------------------+-----------------------+
-| node2 | NodeID-MFrZFVCXPv5iCn6M9K6XduxGTYp891xXZ | http://127.0.0.1:9652 |
-+-------+------------------------------------------+-----------------------+
++-------------------------------------------------------------------------------------------------+
+|                                      MYBLOCKCHAIN RPC URLS                                      |
++-----------+-------------------------------------------------------------------------------------+
+| Localhost | http://127.0.0.1:60172/ext/bc/Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y/rpc |
++-----------+-------------------------------------------------------------------------------------+
 
-+--------------------------------------------------------------------------------------------------------+
-|                                            WALLET CONNECTION                                           |
-+-----------------+--------------------------------------------------------------------------------------+
-| Network RPC URL | http://127.0.0.1:60538/ext/bc/2QGB9GbEhsFJLSRVii2mKs8dxugHzmK98G5391P2bvXSCb4sED/rpc |
-+-----------------+--------------------------------------------------------------------------------------+
-| Network Name    | myblockchain                                                                         |
-+-----------------+--------------------------------------------------------------------------------------+
-| Chain ID        | 111                                                                                  |
-+-----------------+--------------------------------------------------------------------------------------+
-| Token Symbol    | TUTORIAL                                                                                 |
-+-----------------+--------------------------------------------------------------------------------------+
-| Token Name      | TUTORIAL Token                                                                           |
-+-----------------+--------------------------------------------------------------------------------------+
++------------------------------------------------------------------+
+|                           PRIMARY NODES                          |
++------------------------------------------+-----------------------+
+| NODE ID                                  | LOCALHOST ENDPOINT    |
++------------------------------------------+-----------------------+
+| NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg | http://127.0.0.1:9650 |
++------------------------------------------+-----------------------+
+| NodeID-MFrZFVCXPv5iCn6M9K6XduxGTYp891xXZ | http://127.0.0.1:9652 |
++------------------------------------------+-----------------------+
++----------------------------------------------------------------------------------+
+|                                     L1 NODES                                     |
++------------------------------------------+------------------------+--------------+
+| NODE ID                                  | LOCALHOST ENDPOINT     | L1           |
++------------------------------------------+------------------------+--------------+
+| NodeID-NuQc8BQ8mV9TVksgMtpyc57VnWzU2J6aN | http://127.0.0.1:60172 | myblockchain |
++------------------------------------------+------------------------+--------------+
+
++-------------------------------------------------------------------------------------------------------+
+|                                           WALLET CONNECTION                                           |
++-----------------+-------------------------------------------------------------------------------------+
+| Network RPC URL | http://127.0.0.1:60172/ext/bc/Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y/rpc |
++-----------------+-------------------------------------------------------------------------------------+
+| Network Name    | myblockchain                                                                        |
++-----------------+-------------------------------------------------------------------------------------+
+| Chain ID        | 888                                                                                 |
++-----------------+-------------------------------------------------------------------------------------+
+| Token Symbol    | TST                                                                                 |
++-----------------+-------------------------------------------------------------------------------------+
+| Token Name      | TST Token                                                                           |
++-----------------+-------------------------------------------------------------------------------------+
+✓ L1 is successfully deployed on Local Network
 ```
 
 You can use the deployment details to connect to and interact with your Avalanche L1.
@@ -222,7 +248,12 @@ Make sure to substitute the name of your Avalanche L1 if you used a different on
 
 Next, select `Local Network`.
 
-This command boots a five node Avalanche network on your machine. It needs to download the latest versions of AvalancheGo and Subnet-EVM. The command may take a couple minutes to run.
+This command boots a three node Avalanche network on your machine:
+
+- Two nodes to act as primary validators for the local network, that will validate the local P and C chains (unrelated to testnet/mainnet)..
+- One node to act as sovereign validator for the new L1 that is deployed into the local network.
+
+The command needs to download the latest versions of AvalancheGo and Subnet-EVM. It may take a couple minutes to run.
 
 Note: If you run `bash` on your shell and are running Avalanche-CLI on ARM64 on Mac, you will require Rosetta 2 to be able to deploy Avalanche L1s locally. You can download Rosetta 2 using `softwareupdate --install-rosetta` .
 
@@ -234,15 +265,76 @@ avalanche blockchain deploy myblockchain
 # output
 ✔ Local Network
 Deploying [myblockchain] to Local Network
-Backend controller started, pid: 53868, output at: /Users/l1-developer/.avalanche-cli/runs/server_20241120_183019/avalanche-cli-backend.log
+
+AvalancheGo path: /Users/felipe.madero/.avalanche-cli/bin/avalanchego/avalanchego-v1.13.0/avalanchego
 
 Booting Network. Wait until healthy...
-Node logs directory: /Users/l1-developer/.avalanche-cli/runs/network_20241120_183020/node<i>/logs
+
+Node logs directory: /Users/felipe.madero/.avalanche-cli/runs/network_20250410_104205/<NodeID>/logs
+
 Network ready to use.
 
-Deploying Blockchain. Wait until network acknowledges...
+Using [P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p] to be set as a change owner for leftover AVAX
+AvalancheGo path: /Users/felipe.madero/.avalanche-cli/bin/avalanchego/avalanchego-v1.13.0/avalanchego
 
-Blockchain ready to use
+✓ Local cluster myblockchain-local-node-local-network not found. Creating...
+Starting local avalanchego node using root: /Users/felipe.madero/.avalanche-cli/local/myblockchain-local-node-local-network ...
+✓ Booting Network. Wait until healthy...
+✓ Avalanchego started and ready to use from /Users/felipe.madero/.avalanche-cli/local/myblockchain-local-node-local-network
+
+Node logs directory: /Users/felipe.madero/.avalanche-cli/local/myblockchain-local-node-local-network/<NodeID>/logs
+
+Network ready to use.
+
+URI: http://127.0.0.1:60172
+NodeID: NodeID-NuQc8BQ8mV9TVksgMtpyc57VnWzU2J6aN
+
+Your blockchain control keys: [P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p]
+Your blockchain auth keys for chain creation: [P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p]
+CreateSubnetTx fee: 0.000010278 AVAX
+Blockchain has been created with ID: 2W9boARgCWL25z6pMFNtkCfNA5v28VGg9PmBgUJfuKndEdhrvw
+Now creating blockchain...
+CreateChainTx fee: 0.000129564 AVAX
++--------------------------------------------------------------------+
+|                         DEPLOYMENT RESULTS                         |
++---------------+----------------------------------------------------+
+| Chain Name    | myblockchain                                       |
++---------------+----------------------------------------------------+
+| Subnet ID     | 2W9boARgCWL25z6pMFNtkCfNA5v28VGg9PmBgUJfuKndEdhrvw |
++---------------+----------------------------------------------------+
+| VM ID         | qDNV9vtxZYYNqm7TN1mYBuaaknLdefDbFK8bFmMLTJQJKaWjV  |
++---------------+----------------------------------------------------+
+| Blockchain ID | Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y  |
++---------------+                                                    |
+| P-Chain TXID  |                                                    |
++---------------+----------------------------------------------------+
+Now calling ConvertSubnetToL1Tx...
+ConvertSubnetToL1Tx fee: 0.000036992 AVAX
+ConvertSubnetToL1Tx ID: 2d2EE7AorEhfKLBtnDGnAtcDYMGfPbWnHYDpNDm3SopYg6VtpV
+Waiting for the Subnet to be converted into a sovereign L1 ... 100% [===============]
+
+Validator Manager Protocol: ACP99
+Restarting node NodeID-NuQc8BQ8mV9TVksgMtpyc57VnWzU2J6aN to track newly deployed subnet/s
+Waiting for blockchain Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y to be bootstrapped
+✓ Local Network successfully tracking myblockchain
+✓ Checking if node is healthy...
+✓ Node is healthy after 0 seconds
+Initializing Proof of Authority Validator Manager contract on blockchain myblockchain ...
+✓ Proof of Authority Validator Manager contract successfully initialized on blockchain myblockchain
+
+Your L1 is ready for on-chain interactions.
+
+RPC Endpoint: http://127.0.0.1:60172/ext/bc/Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y/rpc
+ICM Messenger successfully deployed to myblockchain (0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf)
+ICM Registry successfully deployed to myblockchain (0xEc7018552DC7E197Af85f157515f5976b1A15B12)
+ICM Messenger successfully deployed to c-chain (0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf)
+ICM Registry successfully deployed to c-chain (0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25)
+✓ ICM is successfully deployed
+
+Generating relayer config file at /Users/felipe.madero/.avalanche-cli/runs/network_20250410_104205/icm-relayer-config.json
+Relayer version icm-relayer-v1.6.2
+Executing Relayer
+✓ Relayer is successfully deployed
 
 +--------------------------------------------------------------------------------------------------------------------------------+
 |                                                          MYBLOCKCHAIN                                                          |
@@ -251,51 +343,64 @@ Blockchain ready to use
 +---------------+----------------------------------------------------------------------------------------------------------------+
 | VM ID         | qDNV9vtxZYYNqm7TN1mYBuaaknLdefDbFK8bFmMLTJQJKaWjV                                                              |
 +---------------+----------------------------------------------------------------------------------------------------------------+
-| VM Version    | v0.6.12                                                                                                        |
+| VM Version    | v0.7.3                                                                                                         |
 +---------------+----------------------------------------------------------------------------------------------------------------+
 | Validation    | Proof Of Authority                                                                                             |
 +---------------+--------------------------+-------------------------------------------------------------------------------------+
 | Local Network | ChainID                  | 888                                                                                 |
 |               +--------------------------+-------------------------------------------------------------------------------------+
-|               | SubnetID                 | 26eqgD4Kt1MvTKXC9BDjEwBAfhcBcHCKj2EXjR2UuFpSWoAHhw                                  |
+|               | SubnetID                 | 2W9boARgCWL25z6pMFNtkCfNA5v28VGg9PmBgUJfuKndEdhrvw                                  |
 |               +--------------------------+-------------------------------------------------------------------------------------+
 |               | Owners (Threhold=1)      | P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p                                     |
 |               +--------------------------+-------------------------------------------------------------------------------------+
-|               | BlockchainID (CB58)      | 2BK8CKA4Vfvi69TBTc5GW94JQ9nPiL8xPpPNeeckb9UFSPYedD                                  |
+|               | BlockchainID (CB58)      | Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y                                   |
 |               +--------------------------+-------------------------------------------------------------------------------------+
-|               | BlockchainID (HEX)       | 0x9b1ca24503853edd6b6ac083f78adc8c36df74a85027e1b30535cc1032287805                  |
+|               | BlockchainID (HEX)       | 0x48644613a5ef255fa171bf4773df668b57ea0ea9593df8927a6d9f32376a9c6f                  |
 |               +--------------------------+-------------------------------------------------------------------------------------+
-|               | RPC Endpoint             | http://127.0.0.1:9650/ext/bc/2BK8CKA4Vfvi69TBTc5GW94JQ9nPiL8xPpPNeeckb9UFSPYedD/rpc |
+|               | RPC Endpoint             | http://127.0.0.1:60172/ext/bc/Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y/rpc |
 +---------------+--------------------------+-------------------------------------------------------------------------------------+
 
-+---------------------------+
-|           TOKEN           |
-+--------------+------------+
++------------------------------------------------------------------------------------+
+|                                         ICM                                        |
++---------------+-----------------------+--------------------------------------------+
+| Local Network | ICM Messenger Address | 0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf |
+|               +-----------------------+--------------------------------------------+
+|               | ICM Registry Address  | 0xEc7018552DC7E197Af85f157515f5976b1A15B12 |
++---------------+-----------------------+--------------------------------------------+
+
++--------------------------+
+|           TOKEN          |
++--------------+-----------+
 | Token Name   | TST Token |
-+--------------+------------+
++--------------+-----------+
 | Token Symbol | TST       |
-+--------------+------------+
++--------------+-----------+
 
-+------------------------------------------------------------------------------------------------------------------------------------+
-|                                                      INITIAL TOKEN ALLOCATION                                                      |
-+---------------------+------------------------------------------------------------------+---------------+---------------------------+
-| DESCRIPTION         | ADDRESS AND PRIVATE KEY                                          | AMOUNT (OWEN) | AMOUNT (WEI)              |
-+---------------------+------------------------------------------------------------------+---------------+---------------------------+
-| Main funded account | 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC                       | 1000000       | 1000000000000000000000000 |
-| ewoq                | 56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027 |               |                           |
-+---------------------+------------------------------------------------------------------+---------------+---------------------------+
++---------------------------------------------------------------------------------------------------------------------------------------+
+|                                                        INITIAL TOKEN ALLOCATION                                                       |
++-------------------------+------------------------------------------------------------------+--------------+---------------------------+
+| DESCRIPTION             | ADDRESS AND PRIVATE KEY                                          | AMOUNT (TST) | AMOUNT (WEI)              |
++-------------------------+------------------------------------------------------------------+--------------+---------------------------+
+| Main funded account     | 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC                       | 1000000      | 1000000000000000000000000 |
+| ewoq                    | 56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027 |              |                           |
++-------------------------+------------------------------------------------------------------+--------------+---------------------------+
+| Used by ICM             | 0xf34408C05e3B339B1c89d15163d4B9D96845597A                       | 600          | 600000000000000000000     |
+| cli-teleporter-deployer | 30d57c7b6e7e393e2e4ce8166768b497cc37930361a15b1c647d6e665d88afff |              |                           |
++-------------------------+------------------------------------------------------------------+--------------+---------------------------+
 
-+-----------------------------------------------------------------------------------------------------------------+
-|                                                 SMART CONTRACTS                                                 |
-+-----------------------+--------------------------------------------+--------------------------------------------+
-| DESCRIPTION           | ADDRESS                                    | DEPLOYER                                   |
-+-----------------------+--------------------------------------------+--------------------------------------------+
-| PoA Validator Manager | 0x0C0DEbA5E0000000000000000000000000000000 |                                            |
-+-----------------------+--------------------------------------------+--------------------------------------------+
-| Transparent Proxy     | 0x0Feedc0de0000000000000000000000000000000 |                                            |
-+-----------------------+--------------------------------------------+--------------------------------------------+
-| Proxy Admin           | 0xC0fFEE1234567890aBCdeF1234567890abcDef34 | 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC |
-+-----------------------+--------------------------------------------+--------------------------------------------+
++----------------------------------------------------------------------------------------------------------------------------------+
+|                                                          SMART CONTRACTS                                                         |
++----------------------------------------+--------------------------------------------+--------------------------------------------+
+| DESCRIPTION                            | ADDRESS                                    | DEPLOYER                                   |
++----------------------------------------+--------------------------------------------+--------------------------------------------+
+| Validator Messages Lib                 | 0x9C00629cE712B0255b17A4a657171Acd15720B8C |                                            |
++----------------------------------------+--------------------------------------------+--------------------------------------------+
+| Proxy Admin                            | 0xC0fFEE1234567890aBCdeF1234567890abcDef34 | 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC |
++----------------------------------------+--------------------------------------------+--------------------------------------------+
+| ACP99 Compatible PoA Validator Manager | 0x0C0DEbA5E0000000000000000000000000000000 |                                            |
++----------------------------------------+--------------------------------------------+--------------------------------------------+
+| Transparent Proxy                      | 0x0Feedc0de0000000000000000000000000000000 |                                            |
++----------------------------------------+--------------------------------------------+--------------------------------------------+
 
 +----------------------------------------------------------------------+
 |                      INITIAL PRECOMPILE CONFIGS                      |
@@ -308,38 +413,40 @@ Blockchain ready to use
 +-------------------------------------------------------------------------------------------------+
 |                                      MYBLOCKCHAIN RPC URLS                                      |
 +-----------+-------------------------------------------------------------------------------------+
-| Localhost | http://127.0.0.1:9650/ext/bc/2BK8CKA4Vfvi69TBTc5GW94JQ9nPiL8xPpPNeeckb9UFSPYedD/rpc |
+| Localhost | http://127.0.0.1:60172/ext/bc/Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y/rpc |
 +-----------+-------------------------------------------------------------------------------------+
 
-+--------------------------------------------------------------------------+
-|                                   NODES                                  |
-+-------+------------------------------------------+-----------------------+
-| NAME  | NODE ID                                  | LOCALHOST ENDPOINT    |
-+-------+------------------------------------------+-----------------------+
-| node1 | NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg | http://127.0.0.1:9650 |
-+-------+------------------------------------------+-----------------------+
-| node2 | NodeID-MFrZFVCXPv5iCn6M9K6XduxGTYp891xXZ | http://127.0.0.1:9652 |
-+-------+------------------------------------------+-----------------------+
-| node3 | NodeID-NFBbbJ4qCmNaCzeW7sxErhvWqvEQMnYcN | http://127.0.0.1:9654 |
-+-------+------------------------------------------+-----------------------+
-| node4 | NodeID-GWPcbFJZFfZreETSoWjPimr846mXEKCtu | http://127.0.0.1:9656 |
-+-------+------------------------------------------+-----------------------+
-| node5 | NodeID-P7oB2McjBGgW2NXXWVYjV8JEDFoW9xDE5 | http://127.0.0.1:9658 |
-+-------+------------------------------------------+-----------------------+
++------------------------------------------------------------------+
+|                           PRIMARY NODES                          |
++------------------------------------------+-----------------------+
+| NODE ID                                  | LOCALHOST ENDPOINT    |
++------------------------------------------+-----------------------+
+| NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg | http://127.0.0.1:9650 |
++------------------------------------------+-----------------------+
+| NodeID-MFrZFVCXPv5iCn6M9K6XduxGTYp891xXZ | http://127.0.0.1:9652 |
++------------------------------------------+-----------------------+
++----------------------------------------------------------------------------------+
+|                                     L1 NODES                                     |
++------------------------------------------+------------------------+--------------+
+| NODE ID                                  | LOCALHOST ENDPOINT     | L1           |
++------------------------------------------+------------------------+--------------+
+| NodeID-NuQc8BQ8mV9TVksgMtpyc57VnWzU2J6aN | http://127.0.0.1:60172 | myblockchain |
++------------------------------------------+------------------------+--------------+
 
 +-------------------------------------------------------------------------------------------------------+
 |                                           WALLET CONNECTION                                           |
 +-----------------+-------------------------------------------------------------------------------------+
-| Network RPC URL | http://127.0.0.1:9650/ext/bc/2BK8CKA4Vfvi69TBTc5GW94JQ9nPiL8xPpPNeeckb9UFSPYedD/rpc |
+| Network RPC URL | http://127.0.0.1:60172/ext/bc/Yt9d8RRW9JcoqfvyefqJJMX14HawtBc28J9CQspQKPkdonp1y/rpc |
 +-----------------+-------------------------------------------------------------------------------------+
 | Network Name    | myblockchain                                                                        |
 +-----------------+-------------------------------------------------------------------------------------+
 | Chain ID        | 888                                                                                 |
 +-----------------+-------------------------------------------------------------------------------------+
-| Token Symbol    | TST                                                                                |
+| Token Symbol    | TST                                                                                 |
 +-----------------+-------------------------------------------------------------------------------------+
-| Token Name      | TST Token                                                                          |
+| Token Name      | TST Token                                                                           |
 +-----------------+-------------------------------------------------------------------------------------+
+✓ L1 is successfully deployed on Local Network
 ```
 
 To manage the newly deployed local Avalanche network, see [the `avalanche network` command tree](/docs/tooling/cli-commands#avalanche-network).
@@ -360,7 +467,7 @@ RPC URL:          http://127.0.0.1:9650/ext/bc/2BK8CKA4Vfvi69TBTc5GW94JQ9nPiL8xP
 Funded address:   0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC with 1000000 (10^18) - private key: 56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027
 Network name:     myblockchain
 Chain ID:         888
-Currency Symbol:  TUTORIAL
+Currency Symbol:  TST
 ```
 
 This tutorial uses Core.

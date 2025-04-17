@@ -1,3 +1,5 @@
+import { deduplicateEthRequestAccounts } from '../ui/deduplicateEthRequestAccounts';
+
 declare global {
     interface Window {
         ethereum?: {
@@ -22,11 +24,8 @@ export async function getWalletAddress() {
 }
 
 
-import { secp256k1, UnsignedTx, utils } from '@avalabs/avalanchejs';
+import { secp256k1, UnsignedTx } from '@avalabs/avalanchejs';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
-import { Address } from 'micro-eth-signer';
-import { keccak256, toRlp, toBytes } from 'viem'
-import { deduplicateEthRequestAccounts } from '../../L1Launcher/config/store';
 
 
 export function newPrivateKey(): string {

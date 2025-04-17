@@ -1,0 +1,76 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Hackathon {
+  id           String   @id @default(uuid())
+  title        String
+  description  String
+  start_date   DateTime @default(now()) @db.Timestamptz(3)
+  end_date     DateTime @default(now()) @db.Timestamptz(3)
+  location     String
+  total_prizes Int
+  participants Int
+  tags         String[]
+  timezone     String   @default("UTC")
+  icon         String   @default("")
+  banner       String   @default("")
+  small_banner String   @default("")
+  content      Json     @default("{}")
+
+    registrations RegisterForm[]
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  user_name     String?
+  integration   String?
+  authentication_mode String?
+  email         String?   @unique
+  last_login     DateTime?
+  image         String?
+  registrations           RegisterForm[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model RegisterForm {
+  id                     String   @id @default(uuid())
+  hackathon_id            String
+  hackathon              Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
+  utm                    String
+  city                   String
+  company_name            String?
+  dietary                String?
+  email                  String    @unique
+  user                   User?     @relation(fields: [email], references: [email], onDelete: Cascade)
+  github_portfolio        String?
+  hackathon_participation String
+  interests              String 
+  languages              String 
+  roles                  String  
+  name                   String
+  newsletter_subscription Boolean   @default(false)
+  prohibited_items        Boolean   @default(false)
+  role                   String
+  terms_event_conditions   Boolean   @default(false)
+  tools                  String
+  web3_proficiency        String
+  created_at              DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at              DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@unique([hackathon_id, email])
+
+}
