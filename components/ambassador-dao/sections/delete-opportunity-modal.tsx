@@ -1,5 +1,9 @@
 import React from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ambassador-dao/dialog";
 import CustomButton from "../custom-button";
 import { useDeleteOpportunityMutation } from "@/services/ambassador-dao/requests/sponsor";
 

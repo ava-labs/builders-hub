@@ -1,4 +1,8 @@
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ambassador-dao/dialog";
 import { Mail } from "lucide-react";
 import React, { useState, useEffect, Suspense } from "react";
 import { VerificationInput } from "../verification-code";
