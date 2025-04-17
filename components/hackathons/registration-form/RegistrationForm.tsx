@@ -234,9 +234,9 @@ export function RegisterForm({
     }
   }, [status, currentUser, form]);
 
-  useEffect(() => {
-    setDataFromLocalStorage();
-  }, [hackathon_id]);
+  // useEffect(() => {
+  //   setDataFromLocalStorage();
+  // }, [hackathon_id]);
 
   const onSaveLater = () => {
     const formValues = {
