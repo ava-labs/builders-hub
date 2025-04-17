@@ -227,16 +227,20 @@ export function RegisterForm({
 
   useEffect(() => {
     if (status === "authenticated" && currentUser) {
-      form.reset({
-        name: currentUser.name || "",
-        email: currentUser.email || "",
-      });
+      const values = form.getValues();
+      const isEmpty = !values.name && !values.email;
+      if (isEmpty) {
+        form.reset({
+          name: currentUser.name || "",
+          email: currentUser.email || "",
+        });
+      }
     }
   }, [status, currentUser, form]);
 
-  // useEffect(() => {
-  //   setDataFromLocalStorage();
-  // }, [hackathon_id]);
+  useEffect(() => {
+    setDataFromLocalStorage();
+  }, [hackathon_id]);
 
   const onSaveLater = () => {
     const formValues = {
