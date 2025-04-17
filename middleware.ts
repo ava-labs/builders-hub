@@ -46,5 +46,7 @@ export const config = {
     matcher: [
       "/hackathons/registration-form/:path*",
       "/hackathons/project-submission/:path*",
-      "/login/:path*"],
+      "/login/:path*",
+      "/profile/:path*",
+    ],
 };

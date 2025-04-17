@@ -38,6 +38,11 @@ model User {
   user_name           String?
   memberships         Member[]
   registrations       RegisterForm?
+  notification_email  String?
+  notification_options String[]
+  profile_privacy      String?
+  bio                  String?
+  social_media          String[]
 }
 
 model VerificationToken {
