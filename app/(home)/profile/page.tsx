@@ -6,9 +6,9 @@ import { getProfile } from "@/server/services/profile";
 
 export default async function ProfileWrapper() {
   const session = await getAuthSession();
-  const profileData = await getProfile(session!.user.email!);
+  const profileData = await getProfile(session!.user.id!);
 
   return (
-    <ProfileForm initialData={ profileData }/>
+    <ProfileForm initialData={ profileData } id={session!.user.id!}/>
   );
 }

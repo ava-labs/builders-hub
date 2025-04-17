@@ -5,14 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-} from "@/components/ui/dialog";
-import {
   Form,
   FormControl,
   FormField,
@@ -24,7 +16,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Separator } from '@/components/ui/separator';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Loader2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -39,6 +31,8 @@ import { UploadModal } from '@/components/ui/upload-modal';
 import { Profile } from '@/types/profile';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { Toaster } from '../ui/toaster';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Full name is required'),
@@ -59,68 +53,97 @@ const notificationOptions = [
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-export default function ProfileForm({ initialData }: { initialData: Partial<ProfileFormValues> } ) {
+export default function ProfileForm({
+  initialData,
+  id,
+}: {
+  initialData: Partial<ProfileFormValues>;
+  id: string;
+}) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: initialData,
   });
   const router = useRouter();
   const formData = useRef(new FormData());
+  const { toast } = useToast();
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      if (initialData.image) {
+      setIsSaving(true);
+
+      if (!form.formState.isDirty) {
+        toast({
+          title: 'Profile updated',
+          description: 'Your profile has been updated successfully.',
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      const hasImageChanged = formData.current.has('file');
+
+      if (hasImageChanged && initialData.image) {
         const encodedUrl = encodeURIComponent(initialData.image);
-        await axios.delete(`/api/file?url=${encodedUrl}`)
+        await axios.delete(`/api/file?url=${encodedUrl}`);
       }
 
-      const fileResponse = await axios.post("/api/file", formData.current, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        }
+      if (hasImageChanged) {
+        const fileResponse = await axios
+          .post('/api/file', formData.current, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          })
+          .catch((error) => {
+            throw new Error(`Error uploading image: ${error.message}`);
+          });
+
+        data.image = fileResponse.data.url;
+        console.log(fileResponse.data.url);
+      } else {
+        data.image = initialData.image;
+      }
+
+      const updateProfileResponse = await axios
+        .put(`/api/profile/${id}`, { ...data })
+        .catch((error) => {
+          throw new Error(`Error while saving profile: ${error.message}`);
+        });
+
+      form.reset(updateProfileResponse.data);
+
+      toast({
+        title: 'Profile updated',
+        description: 'Your profile has been updated successfully.',
       });
-
-      if (fileResponse.status != 200) throw new Error(`Error uploading image: ${fileResponse.data}`);
-
-      data.image = fileResponse.data.url;
-
-      const profileResponse = await axios.put(`/api/profile?email=${data.email}`, { ...data });
-
-      if (profileResponse.status != 200) {
-        throw new Error(`Error while saving profile: ${profileResponse.data}`)
-      }
-
-      const updatedProfile = profileResponse.data as Profile;
-
-      console.log(updatedProfile);
-      console.log(fileResponse.data.url);
-
-      router.push("/")
     } catch (error) {
-      console.error('Error saving profile:', error);
+      console.error(error);
+      toast({
+        title: 'Error',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'An error occurred while saving the profile.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleFileSelect = (file: File) => {
-    formData.current.set("file", file);
+    formData.current.set('file', file);
     console.log(formData);
     const imageUrl = URL.createObjectURL(file);
-    form.setValue("image", imageUrl);
+    form.setValue('image', imageUrl);
   };
 
   return (
     <div className='container mx-auto py-8 flex flex-col gap-4'>
-    {/*
-      <div>
-        <h2 className='text-2xl font-semibold mb-2'>Settings</h2>
-        <p className='text-sm text-muted-foreground'>
-          Edit and manage all aspects of your hackathon in one place.
-        </p>
-      </div>
-      <Separator className='my-6' />
-    */}
-
+      <Toaster />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
           <div>
@@ -154,8 +177,8 @@ export default function ProfileForm({ initialData }: { initialData: Partial<Prof
                 {form.watch('image') ? (
                   <img
                     src={form.watch('image')}
-                    alt="Profile"
-                    className="w-full h-full object-cover rounded-lg"
+                    alt='Profile'
+                    className='w-full h-full object-cover rounded-lg'
                   />
                 ) : (
                   <svg
@@ -231,12 +254,13 @@ export default function ProfileForm({ initialData }: { initialData: Partial<Prof
               <FormItem>
                 <FormLabel>Email Address</FormLabel>
                 <FormControl>
-                  <Input placeholder='your@email.com' disabled={true} type='email' {...field} />
+                  <Input
+                    placeholder='your@email.com'
+                    disabled={true}
+                    type='email'
+                    {...field}
+                  />
                 </FormControl>
-                {/*<FormDescription>
-                  To update your email, a verification code will be sent to your
-                  current email.
-                </FormDescription>*/}
               </FormItem>
             )}
           />
@@ -357,12 +381,14 @@ export default function ProfileForm({ initialData }: { initialData: Partial<Prof
               <FormItem>
                 <FormLabel>Profile Privacy</FormLabel>
                 <FormControl>
-                  <Select defaultOpen value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger className='w-full'>
                       <SelectValue placeholder='Select privacy setting' />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value='public'>Public (Visible to everyone)</SelectItem>
+                      <SelectItem value='public'>
+                        Public (Visible to everyone)
+                      </SelectItem>
                       <SelectItem value='private'>Private</SelectItem>
                       <SelectItem value='community'>Community-only</SelectItem>
                     </SelectContent>
@@ -395,8 +421,8 @@ export default function ProfileForm({ initialData }: { initialData: Partial<Prof
                     options={notificationOptions}
                     selected={field.value || []}
                     onChange={field.onChange}
-                    placeholder="Select notifications"
-                    searchPlaceholder="Search notifications"
+                    placeholder='Select notifications'
+                    searchPlaceholder='Search notifications'
                   />
                 </FormControl>
                 <FormDescription>
@@ -410,10 +436,28 @@ export default function ProfileForm({ initialData }: { initialData: Partial<Prof
           <Separator className='mb-6' />
 
           <div className='flex justify-start items-center gap-4 pt-6'>
-            <Button type='submit' className='py-2 px-4' variant='red'>
-              Save Changes
+            <Button
+              type='submit'
+              className='py-2 px-4'
+              variant='red'
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
             </Button>
-            <Button type='button' className='py-2 px-4' variant='outline' onClick={() => router.push("/")}>
+            <Button
+              type='button'
+              className='py-2 px-4'
+              variant='outline'
+              onClick={() => router.push('/')}
+              disabled={isSaving}
+            >
               Cancel Changes
             </Button>
           </div>
