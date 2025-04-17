@@ -14,6 +14,7 @@ import { ProgressBar } from "../components/ProgressBar";
 import { StepNavigation } from "../components/StepNavigation";
 import axios from "axios";
 import { Tag, Users, Pickaxe, Image } from "lucide-react";
+import InvalidInvitationComponent from './InvalidInvitationDialog';
 
 export default function GeneralComponent({
   searchParams,
@@ -23,12 +24,12 @@ export default function GeneralComponent({
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(40);
   const [openJoinTeam, setOpenJoinTeam] = useState(false);
+  const [openInvalidInvitation, setOpenInvalidInvitation] = useState(false);
   const [teamName, setTeamName] = useState<string>("");
-  const [isValidInvitation, setValidInvitation] = useState<boolean>(false);
   const { data: session } = useSession();
   const currentUser = session?.user;
-  const hackathonId = searchParams?.hackaId ?? "";
-  const invitationLink = searchParams?.invitationId;
+  const hackathonId = searchParams?.hackathon ?? "";
+  const invitationLink = searchParams?.invitation;
 
   const {
     form,
@@ -50,21 +51,6 @@ export default function GeneralComponent({
     getProject,
   } = useHackathonProject(hackathonId as string);
 
-  const step1Fields: (keyof SubmissionForm)[] = [
-    "project_name",
-    "short_description",
-    "full_description",
-    "tracks",
-  ];
-
-  const step2Fields: (keyof SubmissionForm)[] = [
-    "tech_stack",
-    "github_repository",
-    "explanation",
-    "demo_link",
-    "is_preexisting_idea",
-  ];
-
   const handleStepChange = (newStep: number) => {
     if (newStep >= 1 && newStep <= 3) {
       setStep(newStep);
@@ -76,17 +62,9 @@ export default function GeneralComponent({
 
   const onSubmit = async (data: SubmissionForm) => {
     if (step < 3) {
-      let valid = false;
-      if (step === 1) {
-        valid = await form.trigger(step1Fields);
-      } else if (step === 2) {
-        valid = await form.trigger(step2Fields);
-      }
-      if (valid) {
-        setStep(step + 1);
-        if (step + 1 === 2) setProgress(70);
-        if (step + 1 === 3) setProgress(100);
-      }
+      setStep(step + 1);
+      if (step + 1 === 2) setProgress(70);
+      if (step + 1 === 3) setProgress(100);
     } else {
       try {
         await saveProject(data);
@@ -100,9 +78,14 @@ export default function GeneralComponent({
     try {
       setLoadData(false);
       const response = await axios.get(
-        `/api/project/check-invitation?invitationId=${invitationLink}`
+        `/api/project/check-invitation?invitation=${invitationLink}&user_id=${currentUser?.id}`
       );
-      setValidInvitation(response.data?.invitation.isValid ?? false);
+      console.log("respuesta es", response)
+      if(!response.data?.invitation.exists){
+        setOpenInvalidInvitation(!response.data?.invitation.isValid)
+        return
+      }
+
       setProjectId(response.data?.project?.project_id ?? "");
       setOpenJoinTeam(response.data?.invitation.isConfirming ?? false);
       setLoadData(!response.data?.invitation.isConfirming);
@@ -110,15 +93,15 @@ export default function GeneralComponent({
 
     } catch (error) {
       console.error("Error checking invitation:", error);
-      setValidInvitation(false);
+     
     }
   }
 
   useEffect(() => {
-    if (invitationLink) {
+    if (invitationLink && currentUser) {
       checkInvitation();
     }
-  }, [invitationLink]);
+  }, [invitationLink,currentUser]);
 
   useEffect(() => {
     if (project && loadData) {
@@ -188,7 +171,7 @@ export default function GeneralComponent({
                 <StepNavigation
                   currentStep={step}
                   onStepChange={handleStepChange}
-                  onSubmit={form.handleSubmit(onSubmit)}
+                  onSubmit={onSubmit}
                   onSave={handleSave}
                   isLastStep={step === 3}
                 />
@@ -201,10 +184,17 @@ export default function GeneralComponent({
       <JoinTeamDialog
         open={openJoinTeam}
         onOpenChange={setOpenJoinTeam}
+        setLoadData={setLoadData}
         teamName={teamName}
         projectId={projectId}
         hackathonId={hackathonId as string}
         currentUserId={currentUser?.id}
+      />
+
+      <InvalidInvitationComponent
+      hackathonId={hackathonId as string}
+      open={openInvalidInvitation}
+      onOpenChange={setOpenInvalidInvitation}
       />
     </div>
   );

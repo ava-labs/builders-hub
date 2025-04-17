@@ -98,14 +98,14 @@ model Project {
   tags                String[]  @default([])
   is_winner           Boolean?  @default(false)
   members             Member[]
-  prices              Price[]
+  prizes              Prize[]
   hackathon           Hackathon @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
 }
 
-model Price {
+model Prize {
   id         String  @id @default(uuid())
   icon       String
-  price      Int
+  prize      Int
   track      String
   project_id String
   Project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
@@ -116,7 +116,7 @@ model Member {
   user_id    String
   project_id String
   role       String  @default("member")
-  status     String  @default("Awaiting Confirmation")
+  status     String  @default("Pending Confirmation")
   project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
   user       User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 

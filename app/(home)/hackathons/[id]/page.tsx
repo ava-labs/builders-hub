@@ -63,7 +63,7 @@ export default async function HackathonPage({
             href={
               hackathon.content.join_custom_link
                 ? hackathon.content.join_custom_link
-                : `/hackathons/registration-form?hackaId=${id}`
+                : `/hackathons/registration-form?hackathon=${id}`
             }
             target={hackathon.content.join_custom_link ? '_blank' : '_self'}
           >
@@ -82,7 +82,7 @@ export default async function HackathonPage({
               href={
                 hackathon.content.join_custom_link
                   ? hackathon.content.join_custom_link
-                  : `/hackathons/registration-form?hackaId=${id}`
+                  : `/hackathons/registration-form?hackathon=${id}`
               }
               target={hackathon.content.join_custom_link ? '_blank' : '_self'}
             >

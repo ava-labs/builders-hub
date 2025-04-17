@@ -120,7 +120,7 @@ export default async function Submission({
             href={
               hackathon.content.submission_custom_link
                 ? hackathon.content.submission_custom_link
-                : `/hackathons/project-submission?hackaId=${hackathon.id}`
+                : `/hackathons/project-submission?hackathon=${hackathon.id}`
             }
             target={
               hackathon.content.submission_custom_link ? '_blank' : '_self'
