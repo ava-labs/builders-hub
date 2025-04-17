@@ -57,7 +57,7 @@ export const useSubmissionForm = (hackathonId: string) => {
     formData.append("file", file);
 
     try {
-      const response = await axios.post("/api/upload-file", formData, {
+      const response = await axios.post("/api/file", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -74,7 +74,7 @@ export const useSubmissionForm = (hackathonId: string) => {
     if (!fileName) throw new Error("Invalid old image URL");
 
     try {
-      await axios.delete("/api/upload-file/delete", { params: { fileName } });
+      await axios.delete("/api/file", { params: { fileName } });
       return await uploadFile(newFile);
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || "Error replacing image";
@@ -84,7 +84,7 @@ export const useSubmissionForm = (hackathonId: string) => {
 
   const deleteImage = async (oldImageUrl: string): Promise<void> => {
     const fileName = oldImageUrl.split("/").pop();
-    await fetch(`/api/upload-file/delete?fileName=${encodeURIComponent(fileName!)}`, {
+    await fetch(`/api/file?fileName=${encodeURIComponent(fileName!)}`, {
       method: "DELETE",
     });
   };

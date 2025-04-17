@@ -72,10 +72,10 @@ export default function ProfileForm({ initialData }: { initialData: Partial<Prof
     try {
       if (initialData.image) {
         const encodedUrl = encodeURIComponent(initialData.image);
-        await axios.delete(`/api/upload-file/delete?url=${encodedUrl}`)
+        await axios.delete(`/api/file?url=${encodedUrl}`)
       }
 
-      const fileResponse = await axios.post("/api/upload-file", formData.current, {
+      const fileResponse = await axios.post("/api/file", formData.current, {
         headers: {
           "Content-Type": "multipart/form-data",
         }
