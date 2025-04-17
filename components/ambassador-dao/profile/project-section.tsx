@@ -5,6 +5,8 @@ import DatePicker from "../DatePicker";
 import { FilterDropdown } from "../dashboard/FilterDropdown";
 import { jobTypes } from "../constants";
 import Token from "@/public/ambassador-dao-images/token.png";
+import XP from "@/public/ambassador-dao-images/sparkles.png";
+
 import { useFetchUserProjects } from "@/services/ambassador-dao/requests/users";
 import Loader from "../ui/Loader";
 import { Pagination } from "../ui/Pagination";
@@ -24,9 +26,8 @@ export default function ProjectSection() {
 
   const jobType = activeTab === "Bounties" ? "BOUNTY" : "JOB";
 
-
   const debouncedJobSearch = useDebounce(searchQuery, 1000);
-console.log(debouncedJobSearch)
+  console.log(debouncedJobSearch);
 
   const {
     data: userProjects,
@@ -37,21 +38,38 @@ console.log(debouncedJobSearch)
     status: activeProjectTab,
     category: category.category,
     date_applied_start: date ? date : undefined,
-    query:  debouncedJobSearch,
+    query: debouncedJobSearch,
     page: currentPage,
   });
 
-
-
   const projectTabs = [
-    { id: "APPLIED", count: userProjects?.data?.stats.applied, bgColor: "bg-[#161617]" },
-    { id: "WON", count: userProjects?.data?.stats.won, bgColor: "bg-[#27272A]" },
-    { id: "CLOSED", count: userProjects?.data?.stats.closed, bgColor: "bg-[#27272A]" },
+    {
+      id: "APPLIED",
+      count: userProjects?.data?.stats.applied,
+      bgColor: "bg-[#161617]",
+    },
+    {
+      id: "WON",
+      count: userProjects?.data?.stats.won,
+      bgColor: "bg-[#27272A]",
+    },
+    {
+      id: "CLOSED",
+      count: userProjects?.data?.stats.closed,
+      bgColor: "bg-[#27272A]",
+    },
   ];
 
   useEffect(() => {
     refetch();
-  }, [activeTab, activeProjectTab, date, category, debouncedJobSearch, refetch]);
+  }, [
+    activeTab,
+    activeProjectTab,
+    date,
+    category,
+    debouncedJobSearch,
+    refetch,
+  ]);
 
   const resetFilters = () => {
     setDate(null);
@@ -105,7 +123,7 @@ console.log(debouncedJobSearch)
         </div>
       </div>
 
-      <div className="flex justify-between mb-4 border-b border-[var(--default-border-color)] pb-8">
+      <div className="flex justify-between mb-8 border-b border-[var(--default-border-color)] pb-2">
         <div className="hidden sm:flex">
           {navigationTabs.map((tab) => (
             <button
@@ -171,17 +189,25 @@ console.log(debouncedJobSearch)
               >
                 {tab?.id?.toLowerCase()}
               </span>
-              {!isLoadingUserProjects &&<span className="ml-1 bg-white text-[#161617] text-xs px-2.5 py-0.5 rounded-full">
-                {tab.count}
-              </span>}
+              {!isLoadingUserProjects && (
+                <span className="ml-1 bg-white text-[#161617] text-xs px-2.5 py-0.5 rounded-full">
+                  {tab.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
         <div className="space-y-4 col-span-4">
-          {isLoadingUserProjects && <Loader/>}
-          {!isLoadingUserProjects && userProjects?.data && (userProjects?.data?.opportunities?.length || userProjects?.data?.submissions?.length ) > 0 && (
-            (userProjects?.data?.opportunities || userProjects?.data?.submissions)?.map(
+          {isLoadingUserProjects && <Loader />}
+          {!isLoadingUserProjects &&
+            userProjects?.data &&
+            (userProjects?.data?.opportunities?.length ||
+              userProjects?.data?.submissions?.length) > 0 &&
+            (
+              userProjects?.data?.opportunities ||
+              userProjects?.data?.submissions
+            )?.map(
               (project: {
                 opportunity: {
                   id: React.Key;
@@ -189,7 +215,8 @@ console.log(debouncedJobSearch)
                   title: string;
                   name: any;
                   description: string;
-                  amount: number;
+                  total_budget: number;
+                  xp_allocated: number;
                   type: string;
                   _count: any;
                   rewards: any;
@@ -200,10 +227,10 @@ console.log(debouncedJobSearch)
               }) => (
                 <div
                   key={project?.opportunity?.id}
-                  className="bg-[#161617] shadow-sm rounded-lg p-4"
+                  className="bg-[#161617] shadow-sm rounded-lg p-4 border border-[var(--default-border-color)]"
                 >
-                  <div className="flex flex-col md:flex-row justify-between">
-                    <div className="flex">
+                  <div className="grid grid-cols-1 xl:grid-cols-3 space-y-2 md:space-y-0">
+                    <div className="flex items-start col-span-1">
                       <div className="w-10 h-10 bg-blue-500 rounded-full mr-3 overflow-hidden">
                         <Image
                           src={project?.opportunity?.created_by?.profile_image}
@@ -218,76 +245,78 @@ console.log(debouncedJobSearch)
                           {project?.opportunity?.title}
                         </h3>
                         <p className="text-[var(--secondary-text-color)] text-sm sm:text-base w-full truncate max-w-[150px] sm:max-w-[240px]">
-                          {project?.opportunity?.description || "kjdhghsgkjhsdakdshjjsdkdhfsbdfjhhasdhjadjaj"}
+                          {project?.opportunity?.description ||
+                            "kjdhghsgkjhsdakdshjjsdkdhfsbdfjhhasdhjadjaj"}
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row mt-4 md:mt-0 items-start sm:items-center space-x-2 sm:space-x-8 space-y-4 sm:space-y-0">
-                      <div className="flex gap-2">
-                        <div className="flex flex-col justify-center gap-2">
-                          <BriefcaseBusiness color="#9F9FA9" size={12} />
-                          <p className="text-[var(--secondary-text-color)] text-xs capitalize">
-                            {project?.opportunity?.type.toLowerCase() ||
-                              jobType}
-                          </p>
-                        </div>
-                        <div className="flex flex-col justify-center gap-2">
-                          <File color="#9F9FA9" size={12} />
-                          <p className="text-[var(--secondary-text-color)] text-xs flex w-max">
-                            {(() => {
-                              const appCount =
-                                project?.opportunity?._count?.applications || 0;
-                              const subCount =
-                                project?.opportunity?._count?.submissions || 0;
-
-                              if (appCount > 0) {
-                                return `${appCount} ${
-                                  appCount === 1
-                                    ? "Application"
-                                    : "Applications"
-                                }`;
-                              } else {
-                                return `${subCount} ${
-                                  subCount === 1 ? "Proposal" : "Proposals"
-                                }`;
-                              }
-                            })()}
-                          </p>
-                        </div>
+                    <div className="col-span-2 flex flex-wrap sm:flex-nowrap items-center gap-2 sm:justify-around">
+                      <div className="flex gap-1 flex-row sm:flex-col sm:items-center">
+                        <BriefcaseBusiness size={14} color="#9F9FA9" />
+                        <span className="text-xs text-[var(--secondary-text-color)] capitalize">
+                          {project?.opportunity?.type?.toLowerCase() || jobType}
+                        </span>
                       </div>
 
-                      <div className="flex justify-center gap-2">
-                        <div className="text-center flex items-center text-xs gap-1">
-                          <Image src={Token} alt="$" />
-                          <span className="text-white">
-                            {project?.opportunity?.amount} USDC
-                          </span>
-                        </div>
+                      <div className="flex gap-1 flex-row sm:flex-col sm:items-center">
+                        <File color="#9F9FA9" size={12} />
+                        <p className="text-[var(--secondary-text-color)] text-xs flex w-max">
+                          {(() => {
+                            const appCount =
+                              project?.opportunity?._count?.applications || 0;
+                            const subCount =
+                              project?.opportunity?._count?.submissions || 0;
 
-                        <div>
-                          <span
-                            className={`${
-                              project?.status === "ACCEPTED"
-                                ? "bg-[#155DFC]"
-                                : "bg-[#FB2C36]"
-                            } text-[var(--white-text-color)] text-xs px-3 py-1 rounded-full`}
-                          >
-                            {project?.status}
-                          </span>
-                        </div>
+                            if (appCount > 0) {
+                              return `${appCount} ${
+                                appCount === 1 ? "Application" : "Applications"
+                              }`;
+                            } else {
+                              return `${subCount} ${
+                                subCount === 1 ? "Proposal" : "Proposals"
+                              }`;
+                            }
+                          })()}
+                        </p>
                       </div>
+
+                      <div className="flex flex-wrap sm:flex-nowrap flex-row space-x-3">
+                        {project?.opportunity?.total_budget > 0 && (
+                          <div className="flex items-center text-xs">
+                            <Image src={Token} alt="$" />
+                            <span className="text-[var(--white-text-color)] ml-1 w-max">
+                              {`${project?.opportunity?.total_budget} USDC`}
+                            </span>
+                          </div>
+                        )}
+                        {project?.opportunity?.xp_allocated > 0 && (
+                          <div className="flex justify-start text-xs sm:px-2 py-3 rounded-full">
+                            <Image src={XP} alt="$" />
+                            <span className="text-white">
+                              {project?.opportunity?.xp_allocated} XP
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <button className="bg-blue-600 text-[var(--white-text-color)] text-xs px-3 py-1 rounded-full w-max">
+                        {project.status}
+                      </button>
                     </div>
                   </div>
                 </div>
               )
-            )
-          )} 
-          {!isLoadingUserProjects && (userProjects?.data?.opportunities || userProjects?.data?.submissions).length === 0 && (
-            <div className="flex flex-col items-center justify-center h-40 text-[var(--secondary-text-color)]">
-              <Search size={48} className="mb-2 opacity-30" />
-              <p>No projects found matching your filters</p>
-            </div>
-          )}
+            )}
+          {!isLoadingUserProjects &&
+            (
+              userProjects?.data?.opportunities ||
+              userProjects?.data?.submissions
+            ).length === 0 && (
+              <div className="flex flex-col items-center justify-center h-40 text-[var(--secondary-text-color)]">
+                <Search size={48} className="mb-2 opacity-30" />
+                <p>No projects found matching your filters</p>
+              </div>
+            )}
 
           {userProjects?.metadata.last_page > 1 && (
             <Pagination
