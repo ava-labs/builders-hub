@@ -5,14 +5,14 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function DELETE(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const fileName = searchParams.get("fileName");
+  const url = searchParams.get("url");
   
-  if (!fileName) {
-    return NextResponse.json({ error: "fileName is required" }, { status: 400 });
+  if (!fileName && !url) {
+    return NextResponse.json({ error: "fileName or URL is required" }, { status: 400 });
   }
   
   try {
-   
-    await del(fileName, {
+    await del(fileName || url!, {
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
     

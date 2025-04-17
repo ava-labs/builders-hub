@@ -70,13 +70,22 @@ export default function ProfileForm({ initialData }: { initialData: Partial<Prof
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      console.log(formData);
-      const profileResponse = await axios.put(`/api/profile?email=${data.email}`, { ...data });
+      if (initialData.image) {
+        const encodedUrl = encodeURIComponent(initialData.image);
+        await axios.delete(`/api/upload-file/delete?url=${encodedUrl}`)
+      }
+
       const fileResponse = await axios.post("/api/upload-file", formData.current, {
         headers: {
           "Content-Type": "multipart/form-data",
         }
       });
+
+      if (fileResponse.status != 200) throw new Error(`Error uploading image: ${fileResponse.data}`);
+
+      data.image = fileResponse.data.url;
+
+      const profileResponse = await axios.put(`/api/profile?email=${data.email}`, { ...data });
 
       if (profileResponse.status != 200) {
         throw new Error(`Error while saving profile: ${profileResponse.data}`)
@@ -94,10 +103,10 @@ export default function ProfileForm({ initialData }: { initialData: Partial<Prof
   };
 
   const handleFileSelect = (file: File) => {
-    const imageUrl = URL.createObjectURL(file);
     formData.current.set("file", file);
     console.log(formData);
-    form.setValue('image', imageUrl);
+    const imageUrl = URL.createObjectURL(file);
+    form.setValue("image", imageUrl);
   };
 
   return (
