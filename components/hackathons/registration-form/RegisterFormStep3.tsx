@@ -36,7 +36,7 @@ export function RegisterFormStep3() {
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
-                  className="border-zinc-400 bg-white data-[state=checked]:bg-white  data-[state=checked]:text-white rounded "
+                  className="border-zinc-400 bg-white data-[state=checked]:bg-white  data-[state=checked]:text-black rounded "
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
@@ -60,7 +60,7 @@ export function RegisterFormStep3() {
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
-                  className="border-zinc-400 bg-white data-[state=checked]:bg-white data-[state=checked]:text-white rounded"
+                  className="border-zinc-400 bg-white data-[state=checked]:bg-white data-[state=checked]:text-black rounded"
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
@@ -82,7 +82,7 @@ export function RegisterFormStep3() {
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
-                  className="border-zinc-400 bg-white data-[state=checked]:bg-white data-[state=checked]:text-white rounded"
+                  className="border-zinc-400 bg-white data-[state=checked]:bg-white data-[state=checked]:text-black rounded"
                 />
               </FormControl>
               <div className="space-y-1 leading-none">

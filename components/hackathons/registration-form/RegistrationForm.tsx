@@ -257,6 +257,7 @@ export function RegisterForm({
       );
     }
     router.push(`/hackathons/${hackathon_id}`);
+  
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
@@ -387,11 +388,14 @@ export function RegisterForm({
                   isLoading={isSavingLater}
                   loadingText="Saving..."
                   type="button"
-                  onClick={async () => {
-                    setIsSavingLater(true);
+                  onClick={() => {
+                    console.log("seteo en true")
+                    
                     try {
-                      await onSaveLater();
+                      setIsSavingLater(true);
+                        onSaveLater();
                     } finally {
+                      console.log("seteo en false")
                       setIsSavingLater(false);
                     }
                   }}
