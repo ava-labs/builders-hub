@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-// import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import CustomButton from "../custom-button";
 import { useReviewApplicantMutation } from "@/services/ambassador-dao/requests/sponsor";
 import CustomInput from "../input";
-import { Dialog, DialogContent, DialogTitle } from "../ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface IDeleteProps {
   isOpen: boolean;
