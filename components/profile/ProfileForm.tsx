@@ -74,7 +74,9 @@ export default function ProfileForm({
     try {
       setIsSaving(true);
 
-      if (!form.formState.isDirty) {
+      const hasImageChanged = formData.current.has('file');
+
+      if (!form.formState.isDirty && !hasImageChanged) {
         toast({
           title: 'Profile updated',
           description: 'Your profile has been updated successfully.',
@@ -83,7 +85,6 @@ export default function ProfileForm({
         return;
       }
 
-      const hasImageChanged = formData.current.has('file');
 
       if (hasImageChanged && initialData.image) {
         const encodedUrl = encodeURIComponent(initialData.image);
@@ -114,6 +115,7 @@ export default function ProfileForm({
         });
 
       form.reset(updateProfileResponse.data);
+      formData.current = new FormData();
 
       toast({
         title: 'Profile updated',
