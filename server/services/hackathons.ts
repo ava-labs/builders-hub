@@ -33,7 +33,8 @@ export class ValidationError extends Error {
 
 
 export function getHackathonLite(hackathon: any): HackathonHeader {
-    delete hackathon.content
+    if (!hackathon.top_most)
+        delete hackathon.content
     return hackathon;
 }
 

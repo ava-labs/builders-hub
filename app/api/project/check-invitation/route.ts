@@ -4,7 +4,8 @@ import { CheckInvitation } from "@/server/services/projects";
 
 export const GET = withAuth(async (request, context, session) => {
   const { searchParams } = new URL(request.url);
-  const invitationId = searchParams.get("invitationId");
+  const invitationId = searchParams.get("invitation");
+  const user_id = searchParams.get("user_id");
   if (!invitationId) {
     return NextResponse.json(
       { error: "invitationId parameter is required" },
@@ -13,7 +14,7 @@ export const GET = withAuth(async (request, context, session) => {
   }
 
   try {
-    const member = await CheckInvitation(invitationId);
+    const member = await CheckInvitation(invitationId,user_id as string);
     return NextResponse.json(member, { status: 200 });
   } catch (error) {
     console.error("Error checking user by email:", error);

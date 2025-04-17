@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 interface JoinTeamDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  setLoadData?: (accepted: boolean) => void;
   teamName: string;
   projectId: string;
   hackathonId: string;
@@ -26,6 +27,7 @@ export const JoinTeamDialog = ({
   projectId,
   hackathonId,
   currentUserId,
+  setLoadData
 }: JoinTeamDialogProps) => {
   const router = useRouter();
 
@@ -36,7 +38,10 @@ export const JoinTeamDialog = ({
         status: "Confirmed",
       });
       onOpenChange(false);
-
+      if(setLoadData){
+        setLoadData(true);
+      }
+      
     } catch (error) {
       console.error("Error joining team:", error);
     }

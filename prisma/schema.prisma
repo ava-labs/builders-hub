@@ -24,6 +24,7 @@ model Hackathon {
   participants  Int
   projects      Project[]
   registrations RegisterForm[]
+  top_most      Boolean        @default(false) 
 }
 
 model User {

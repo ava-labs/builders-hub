@@ -4,11 +4,10 @@ import {
   getFilteredHackathons,
   GetHackathonsOptions,
 } from '@/server/services/hackathons';
-import { PrismaClient } from '@prisma/client';
 import { HackathonStatus } from '@/types/hackathons';
 import { env } from 'process';
 
-const prisma = new PrismaClient();
+
 
 export async function GET(req: NextRequest) {
   try {

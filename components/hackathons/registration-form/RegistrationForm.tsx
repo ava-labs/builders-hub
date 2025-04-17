@@ -23,15 +23,16 @@ import { User } from "next-auth";
 import axios from "axios";
 import { HackathonHeader } from "@/types/hackathons";
 import { RegistrationForm } from "@/types/registrationForm";
-import { useRouter } from "next/navigation"; // Para redirecciones en App Router
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"; // Componente Dialog de shadcn/ui
+} from "@/components/ui/dialog";
 
+// Esquema de validación
 export const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
@@ -47,7 +48,24 @@ export const registerSchema = z.object({
     .string()
     .min(1, "Hackathon participation is required"),
   dietary: z.string().optional().default(""),
-  github_portfolio: z.string().optional().default(""),
+  github_portfolio: z
+    .string()
+    .min(2, { message: "GitHub repository is required" })
+    .url({ message: "Please enter a valid URL" })
+    .refine((val) => val.includes("github.com"), {
+      message: "Please enter a valid GitHub repository URL",
+    })
+    .refine(
+      (val) => {
+        const githubRepoRegex =
+          /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+        return githubRepoRegex.test(val);
+      },
+      {
+        message:
+          "The URL must be a valid GitHub repository (e.g., https://github.com/username/repository)",
+      }
+    ),
   terms_event_conditions: z.boolean().refine((value) => value === true, {
     message: "You must accept the Event Terms and Conditions to continue.",
   }),
@@ -70,7 +88,6 @@ export function RegisterForm({
   const currentUser: User | undefined = session?.user;
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
-  const cities = ["Bogota", "Medellin", "Valencia", "Londres", "Bilbao"];
   let hackathon_id = searchParams?.hackathon ?? "";
   const utm = searchParams?.utm ?? "";
   let utmSaved = "";
@@ -78,8 +95,10 @@ export function RegisterForm({
   const [formLoaded, setRegistrationForm] = useState<RegistrationForm | null>(
     null
   );
-  const [isDialogOpen, setIsDialogOpen] = useState(false); 
-  const router = useRouter(); 
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const router = useRouter();
+
+
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -87,7 +106,7 @@ export function RegisterForm({
       email: currentUser?.email || "",
       company_name: "",
       role: "",
-      city: "",
+      city: "Mata",
       dietary: "",
       interests: [],
       web3_proficiency: "",
@@ -101,6 +120,26 @@ export function RegisterForm({
       prohibited_items: false,
     },
   });
+
+    function setDataFromLocalStorage(){
+    if (typeof window !== "undefined") {
+      const savedData = localStorage.getItem(`formData_${hackathon_id}`);
+    
+      if (savedData) {
+        const {utm:utm_local,hackathon_id:hackathon_id_local} = JSON.parse(savedData);
+        try {
+          const parsedData: RegisterFormValues = JSON.parse(savedData);
+          
+          form.reset(parsedData);
+          utmSaved = utm_local || utmSaved;
+          hackathon_id = hackathon_id_local || hackathon_id;
+       
+        } catch (err) {
+          console.error("Error parsing localStorage data:", err);
+        }
+      }
+    }
+  }
 
   async function getHackathon() {
     if (!hackathon_id) return;
@@ -146,10 +185,10 @@ export function RegisterForm({
         hackathon_id = loadedData.hackathon_id;
         form.reset(parsedData);
         setRegistrationForm(loadedData);
-      } else {
-        loadFormFromLocalStorage();
-      }
+      } 
+      setDataFromLocalStorage();
     } catch (err) {
+      setDataFromLocalStorage();
       console.error("API Error:", err);
     }
   }
@@ -168,28 +207,12 @@ export function RegisterForm({
     return [];
   };
 
-  const loadFormFromLocalStorage = () => {
-    const savedData = localStorage.getItem("formData");
-    if (savedData) {
-      try {
-        const dataJson = JSON.parse(savedData);
-        const parsedData: RegisterFormValues = JSON.parse(savedData);
-        form.reset(parsedData);
-        utmSaved = dataJson.utm;
-        hackathon_id = dataJson.hackathon_id;
-        console.log("Form loaded from localStorage:", parsedData);
-      } catch (err) {
-        console.error("Error parsing localStorage data:", err);
-      }
-    } else {
-      console.log("No form data found in localStorage");
-    }
-  };
-
   async function saveProject(data: RegisterFormValues) {
     try {
       await axios.post(`/api/register-form/`, data);
-      localStorage.removeItem("formData");
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("formData");
+      }
     } catch (err) {
       console.error("API Error:", err);
     }
@@ -204,12 +227,20 @@ export function RegisterForm({
 
   useEffect(() => {
     if (status === "authenticated" && currentUser) {
-      form.reset({
-        name: currentUser.name || "",
-        email: currentUser.email || "",
-      });
+      const values = form.getValues();
+      const isEmpty = !values.name && !values.email;
+      if (isEmpty) {
+        form.reset({
+          name: currentUser.name || "",
+          email: currentUser.email || "",
+        });
+      }
     }
   }, [status, currentUser, form]);
+
+  useEffect(() => {
+    setDataFromLocalStorage();
+  }, [hackathon_id]);
 
   const onSaveLater = () => {
     const formValues = {
@@ -217,7 +248,9 @@ export function RegisterForm({
       hackathon_id: hackathon_id,
       utm: utm != "" ? utm : utmSaved,
     };
-    localStorage.setItem("formData", JSON.stringify(formValues));
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`formData_${hackathon_id}`, JSON.stringify(formValues));
+    }
     router.push(`/hackathons/${hackathon_id}`);
   };
 
@@ -236,7 +269,7 @@ export function RegisterForm({
         tools: data.tools,
       };
       await saveProject(finalData);
-      setIsDialogOpen(true); // Abrir el diálogo después de guardar
+      setIsDialogOpen(true);
     }
   };
 
@@ -308,7 +341,7 @@ export function RegisterForm({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {step === 1 && (
-            <RegisterFormStep1 cities={cities} user={session?.user} />
+            <RegisterFormStep1  user={session?.user} />
           )}
           {step === 2 && <RegisterFormStep2 />}
           {step === 3 && <RegisterFormStep3 />}
@@ -317,17 +350,17 @@ export function RegisterForm({
             <div className="order-2 md:order-1 flex gap-x-4">
               {step === 3 && (
                 <Button
-                  variant="outline"
+                  variant="red"
                   type="submit"
                   onClick={form.handleSubmit(onSubmit)}
-                  className="bg-red-500 hover:bg-red-600"
+                  className="bg-red-500 hover:bg-red-600 cursor-pointer"
                 >
                   Save & Exit
                 </Button>
               )}
               {step !== 3 && (
                 <Button
-                  variant="outline"
+                  variant="red"
                   type="submit"
                   onClick={onNextStep}
                   className="bg-red-500 hover:bg-red-600 cursor-pointer"
@@ -338,7 +371,6 @@ export function RegisterForm({
               {step !== 3 && (
                 <Button
                   type="button"
-                
                   onClick={onSaveLater}
                   className="bg-white text-black border cursor-pointer border-gray-300 hover:text-black hover:bg-gray-100"
                 >
