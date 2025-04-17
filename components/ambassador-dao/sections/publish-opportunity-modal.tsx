@@ -1,5 +1,9 @@
 import React from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ambassador-dao/dialog";
 import CustomButton from "../custom-button";
 import { usePublishOpportunityMutation } from "@/services/ambassador-dao/requests/sponsor";
 import Link from "next/link";
@@ -28,7 +32,8 @@ export const PublishOpportunityModal = ({
           Publishing Confirmation
         </DialogTitle>
         <div className='text-[var(--secondary-text-color)] my-3'>
-          Submit this listing for approval. It will be published once approved by the platform administrators.
+          Submit this listing for approval. It will be published once approved
+          by the platform administrators.
         </div>
         <div className='flex gap-2 justify-center mt-6 md:mt-8'>
           <div className='flex justify-between space-x-3'>
