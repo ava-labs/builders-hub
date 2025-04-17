@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  ArrowRight,
-  BriefcaseBusiness,
-  Copy,
-  Edit,
-  File,
-} from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, Copy, Edit, File } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import Token from "@/public/ambassador-dao-images/token.png";
 import Avatar from "@/public/ambassador-dao-images/Avatar.svg";
@@ -131,11 +125,13 @@ const AmbasssadorDaoProfilePage = () => {
                   <p className="text-[var(--secondary-text-color)] text-sm">
                     {profile.username}
                   </p>
-                  {profile?.tier && <div className="block sm:flex justify-start items-start bg-[#FB2C3633] rounded-[4px]">
-                    <p className="text-[#FB2C36] text-xs px-3 py-1 font-medium">
-                      {profile?.tier}
-                    </p>
-                  </div>}
+                  {profile?.tier && (
+                    <div className="block sm:flex justify-start items-start bg-[#FB2C3633] rounded-[4px]">
+                      <p className="text-[#FB2C36] text-xs px-3 py-1 font-medium">
+                        {profile?.tier}
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <p
                   className="text-[#FB2C36] ] text-sm underline"
@@ -281,92 +277,94 @@ const AmbasssadorDaoProfilePage = () => {
           </div>
 
           <div className="space-y-4">
-          {isLoadingRewards && (
+            {isLoadingRewards && (
               <div className="flex items-center justify-center">
                 <Loader />
               </div>
             )}
 
-            {!isLoadingRewards && userPendingRewards?.data?.map((project: any, index: number) => (
-              <div
-                key={index}
-                className="bg-[#161617] rounded-lg p-4 cursor-pointer"
-                onClick={() => {
-                  router.push(
-                    `/ambassador-dao/${project?.submission?.opportunity?.type?.toLowerCase()}/${
-                      project?.submission?.opportunity?.id
-                    }`
-                  );
-                }}
-              >
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-                  <div className="flex items-start">
-                    <div className="w-10 h-10 bg-blue-500 rounded-full mr-3 overflow-hidden">
-                      <Image
-                        src="/api/placeholder/40/40"
-                        alt="Project"
-                        width={40}
-                        height={40}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-red-500 font-medium truncate max-w-[150px] sm:max-w-[350px]">
-                        {project?.submission?.opportunity?.title}
-                      </h3>
-                      <p className="text-[var(--secondary-text-color)] text-xs truncate max-w-[150px] sm:max-w-[350px]">
-                        {project?.submission?.opportunity?.description}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-16">
-                    <div className="flex gap-1 flex-row sm:flex-col sm:items-center">
-                      <BriefcaseBusiness size={14} color="#9F9FA9" />
-                      <span className="text-xs text-[var(--secondary-text-color)] capitalize">
-                        {project?.submission?.opportunity?.type?.toLowerCase()}
-                      </span>
+            {!isLoadingRewards &&
+              userPendingRewards?.data?.map((project: any, index: number) => (
+                <div
+                  key={index}
+                  className="bg-[#161617] rounded-lg p-4 cursor-pointer border border-[#27272A]"
+                  onClick={() => {
+                    router.push(
+                      `/ambassador-dao/${project?.submission?.opportunity?.type?.toLowerCase()}/${
+                        project?.submission?.opportunity?.id
+                      }`
+                    );
+                  }}
+                >
+                  <div className="grid grid-cols-1 lg:grid-cols-3 space-y-2 md:space-y-0">
+                    <div className="flex items-start col-span-1">
+                      <div className="w-10 h-10 bg-blue-500 rounded-full mr-3 overflow-hidden">
+                        <Image
+                          src="/api/placeholder/40/40"
+                          alt="Project"
+                          width={40}
+                          height={40}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <h3 className="text-red-500 font-medium truncate max-w-[150px] lg:max-w-[250px]">
+                          {project?.submission?.opportunity?.title}
+                        </h3>
+                        <p className="text-[var(--secondary-text-color)] text-xs truncate max-w-[150px] lg:max-w-[250px]">
+                          {project?.submission?.opportunity?.description}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="flex gap-1 flex-row sm:flex-col sm:items-center">
-                      <File size={14} color="#9F9FA9" />
-                      <span className="text-xs text-[var(--secondary-text-color)]">
-                        {project?.submission?.opportunity?._count
-                          ?.submissions ||
-                          project?.submission?.opportunity?._count
-                            ?.applications}{" "}
-                        proposals
-                      </span>
-                    </div>
+                    <div className="col-span-2 flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-8 sm:justify-around">
+                      <div className="flex gap-1 flex-row sm:flex-col sm:items-center">
+                        <BriefcaseBusiness size={14} color="#9F9FA9" />
+                        <span className="text-xs text-[var(--secondary-text-color)] capitalize">
+                          {project?.submission?.opportunity?.type?.toLowerCase()}
+                        </span>
+                      </div>
 
-                    <div className="flex flex-wrap sm:flex-nowrap flex-row space-x-3">
-                      {project?.submission?.opportunity?.total_budget > 0 && (
-                        <div className="flex items-center text-xs">
-                          <Image src={Token} alt="$" />
-                          <span className="text-[var(--white-text-color)] ml-1 w-max">
-                            {`${project?.submission?.opportunity?.total_budget} USDC`}
-                          </span>
-                        </div>
+                      <div className="flex gap-1 flex-row sm:flex-col sm:items-center">
+                        <File size={14} color="#9F9FA9" />
+                        <span className="text-xs text-[var(--secondary-text-color)]">
+                          {project?.submission?.opportunity?._count
+                            ?.submissions ||
+                            project?.submission?.opportunity?._count
+                              ?.applications}{" "}
+                          proposals
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap sm:flex-nowrap flex-row space-x-3">
+                        {project?.submission?.opportunity?.total_budget > 0 && (
+                          <div className="flex items-center text-xs">
+                            <Image src={Token} alt="$" />
+                            <span className="text-[var(--white-text-color)] ml-1 w-max">
+                              {`${project?.submission?.opportunity?.total_budget} USDC`}
+                            </span>
+                          </div>
+                        )}
+                        {project?.submission?.opportunity?.xp_allocated > 0 && (
+                          <div className="flex justify-start text-xs sm:px-2 py-3 rounded-full">
+                            <Image src={XP} alt="$" />
+                            <span className="text-white">
+                              {project?.submission?.opportunity?.xp_allocated}{" "}
+                              XP
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {project?.submission?.status && (
+                        <button className="bg-blue-600 text-[var(--white-text-color)] text-xs px-3 py-1 rounded-full w-max">
+                          {project?.submission?.status}
+                        </button>
                       )}
-                      {project?.submission?.opportunity?.xp_allocated > 0 && (
-                        <div className="flex justify-start text-xs sm:px-2 py-3 rounded-full">
-                          <Image src={XP} alt="$" />
-                          <span className="text-white">
-                            {project?.submission?.opportunity?.xp_allocated} XP
-                          </span>
-                        </div>
-                      )}
                     </div>
-
-                    <button className="bg-blue-600 text-[var(--white-text-color)] text-xs px-3 py-1 rounded-full w-max">
-                      Reward Pending
-                    </button>
                   </div>
                 </div>
-              </div>
-            ))}
-
-           
+              ))}
 
             {!isLoadingRewards && userPendingRewards?.data.length === 0 && (
               <div className="flex items-center justify-center">
