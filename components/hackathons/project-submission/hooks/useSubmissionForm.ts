@@ -17,9 +17,25 @@ export const FormSchema = z.object({
     .max(280, { message: "Max 280 characters allowed" }),
   full_description: z.string().min(2, { message: "full description must be at least 30 characters" }),
   tech_stack: z.string().min(2, { message: "tech stack must be at least 30 characters" }),
-  github_repository: z.string()
-    .min(2, { message: "github repository is required" })
-    .refine((val) => val.includes('github.com'), { message: "Please enter a valid GitHub repository URL" }),
+  github_repository: z
+  .string()
+  .min(2, { message: "GitHub repository is required" })
+  .url({ message: "Please enter a valid URL" })
+  .refine((val) => val.includes("github.com"), {
+    message: "Please enter a valid GitHub repository URL",
+  })
+  .refine(
+    (val) => {
+     
+      const githubRepoRegex =
+        /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+      return githubRepoRegex.test(val);
+    },
+    {
+      message:
+        "The URL must be a valid GitHub repository (e.g., https://github.com/username/repository)",
+    }
+  ),
   explanation: z.string().optional(),
   demo_link: z.string().url({ message: "Please enter a valid URL" }).optional().or(z.literal("")),
   is_preexisting_idea: z.boolean(),
