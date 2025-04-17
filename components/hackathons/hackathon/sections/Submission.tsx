@@ -1,15 +1,11 @@
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-} from "@/components/ambassador-dao/dialog";
-import { Separator } from "@/components/ui/separator";
-import { HackathonHeader } from "@/types/hackathons";
-import { Calendar, Trophy, Rocket, Check } from "lucide-react";
-import { MDXRemote } from "next-mdx-remote/rsc";
-import Link from "next/link";
-import React from "react";
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { HackathonHeader } from '@/types/hackathons';
+import { Calendar, Trophy, Rocket, Check } from 'lucide-react';
+import { MDXRemote } from 'next-mdx-remote/rsc';
+import Link from 'next/link';
+import React from 'react';
 
 export default async function Submission({
   hackathon,
@@ -34,23 +30,23 @@ export default async function Submission({
           />
           <h3 className='text-xl font-semibold mb-2'>Deadline</h3>
           <p className='text-sm'>
-            Submissions close on{" "}
+            Submissions close on{' '}
             <b>
-              {new Intl.DateTimeFormat("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
+              {new Intl.DateTimeFormat('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
                 timeZone: hackathon.timezone,
               }).format(new Date(hackathon.content.submission_deadline))}
             </b>
-            , at{" "}
+            , at{' '}
             <b>
-              {new Intl.DateTimeFormat("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
+              {new Intl.DateTimeFormat('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
                 hour12: true,
                 timeZone: hackathon.timezone,
-              }).format(new Date(hackathon.content.submission_deadline))}{" "}
+              }).format(new Date(hackathon.content.submission_deadline))}{' '}
               {hackathon.timezone}
             </b>
             .
@@ -66,8 +62,7 @@ export default async function Submission({
             Requirements
           </h3>
           <p className='text-sm text-zinc-50'>
-            Your project must include a GitHub repo, slides for your pitch, and
-            any additional content.
+            Your project must include a GitHub repo, slides for your pitch, and any additional content.
           </p>
         </div>
 
@@ -93,8 +88,7 @@ export default async function Submission({
           </h3>
           <p className='text-sm text-zinc-50'>
             Submit your project through the Avalanche Builders Hub, add your
-            team members, and upload your GitHub repo, presentation slides along
-            with any other file that support your submission.
+            team members, and upload your GitHub repo, presentation slides along with any other file that support your submission.
           </p>
         </div>
       </div>
@@ -102,10 +96,7 @@ export default async function Submission({
       <div className='flex justify-center mt-8 gap-4'>
         <Dialog>
           <DialogTrigger asChild>
-            <Button
-              variant='red'
-              className='w-2/5 md:w-1/3 lg:w-1/4 cursor-pointer'
-            >
+            <Button  variant='red' className='w-2/5 md:w-1/3 lg:w-1/4 cursor-pointer'>
               View full guidelines
             </Button>
           </DialogTrigger>
@@ -132,7 +123,7 @@ export default async function Submission({
                 : `/hackathons/submit-project?hackaId=${hackathon.id}`
             }
             target={
-              hackathon.content.submission_custom_link ? "_blank" : "_self"
+              hackathon.content.submission_custom_link ? '_blank' : '_self'
             }
             className='text-s sm:text-base'
           >

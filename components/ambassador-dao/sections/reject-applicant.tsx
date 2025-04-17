@@ -1,9 +1,5 @@
 import React, { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ambassador-dao/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import CustomButton from "../custom-button";
 import { useReviewApplicantMutation } from "@/services/ambassador-dao/requests/sponsor";
 import CustomInput from "../input";
