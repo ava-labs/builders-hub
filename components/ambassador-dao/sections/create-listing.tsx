@@ -86,6 +86,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
       file_ids: [],
       custom_questions: [],
       point_of_contact: "",
+      point_of_contact_email: "",
       prize_distribution: type === "BOUNTY" ? [{ position: 1, amount: 0 }] : [],
       should_publish: false,
     },
@@ -126,6 +127,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
       setValue("file_ids", listingDetails.files);
       setValue("custom_questions", listingDetails.custom_questions || []);
       setValue("point_of_contact", listingDetails.point_of_contact);
+      setValue("point_of_contact_email", listingDetails.point_of_contact_email);
       if (listingDetails.prize_distribution) {
         setValue("prize_distribution", listingDetails.prize_distribution);
       }
@@ -785,9 +787,11 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                     </div>
 
                     <div className='space-y-2'>
+                      <p className='flex text-[var(--primary-text-color)] text-base font-medium'>
+                        Point of Contact
+                      </p>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
-                        Point of Contact (TG / X / Email)
-                        <span className='text-red-500 ml-1'>*</span>
+                        (TG / X / Discord) Link
                       </label>
                       <Controller
                         name='point_of_contact'
@@ -796,7 +800,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                         render={({ field }) => (
                           <CustomInput
                             {...field}
-                            type='text'
+                            type='url'
                             className='bg-[var(--default-background-color)] border-[var(--default-border-color)]'
                           />
                         )}
@@ -804,6 +808,27 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       {errors.point_of_contact && (
                         <p className='text-red-500 text-xs mt-1'>
                           {errors.point_of_contact.message}
+                        </p>
+                      )}
+
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                        Email
+                      </label>
+                      <Controller
+                        name='point_of_contact_email'
+                        control={control}
+                        rules={{ required: "Contact information is required" }}
+                        render={({ field }) => (
+                          <CustomInput
+                            {...field}
+                            type='email'
+                            className='bg-[var(--default-background-color)] border-[var(--default-border-color)]'
+                          />
+                        )}
+                      />
+                      {errors.point_of_contact_email && (
+                        <p className='text-red-500 text-xs mt-1'>
+                          {errors.point_of_contact_email.message}
                         </p>
                       )}
                     </div>

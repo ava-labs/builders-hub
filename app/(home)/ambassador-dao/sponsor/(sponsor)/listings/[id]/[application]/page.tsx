@@ -193,7 +193,15 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                         )}
                         {application.telegram_username && (
                           <div className='text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]'>
-                            Telegram: @{application.telegram_username}
+                            <a
+                              href={application.telegram_username}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]'
+                            >
+                              Telegram:{" "}
+                              {application.telegram_username.slice(0, 20)}...
+                            </a>
                           </div>
                         )}
                       </div>
@@ -236,9 +244,15 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                                 {file.original_name}
                               </p>
                             </div>
-                            {/* <p className='text-[var(--primary-text-color)] font-semibold cursor-pointer'>
-                              Download
-                            </p> */}
+                            <p className='text-[var(--primary-text-color)] font-semibold cursor-pointer'>
+                              <a
+                                href={`https://s3.eu-west-2.amazonaws.com/ambassador-dao-public-assets/${file.path}`}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                              >
+                                Download
+                              </a>
+                            </p>
                           </div>
                         ))}
                       </div>

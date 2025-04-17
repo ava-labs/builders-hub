@@ -12,6 +12,7 @@ export interface ICreateOpportunityBody {
   file_ids?: string[];
   custom_questions?: string[];
   point_of_contact: string;
+  point_of_contact_email: string;
   prize_distribution?: {
     position: number;
     endPosition?: number;
@@ -47,6 +48,7 @@ export interface IOpportunityListing {
   max_winners: number;
   updated_at: Date;
   point_of_contact: string;
+  point_of_contact_email: string;
   skills: {
     id: string;
     name: string;
@@ -219,6 +221,7 @@ export interface ISingleOppotunityApplicationResponse {
     id: string;
     filename: string;
     original_name: string;
+    path: string;
   }[];
   applicant_number_of_completed_jobs: string;
   applicant: {

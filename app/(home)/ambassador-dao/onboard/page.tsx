@@ -627,6 +627,9 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
 const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
   const [previewLogo, setPreviewLogo] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
 
   const { data: userData } = useFetchUserDataQuery();
   const router = useRouter();
@@ -738,12 +741,14 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
     }
 
     try {
+      setIsUploadingLogo(true)
       setCompanyLogoName(file.name);
 
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewLogo(reader.result as string);
       };
+      setIsUploadingLogo(false)
       reader.readAsDataURL(file);
 
       const url = await uploadFile(file);
@@ -767,14 +772,15 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
     } else {
       setProfileImageSize(file.size);
     }
-
     try {
+    setIsUploadingProfileImage(true)
       setProfileImageName(file.name);
 
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewImage(reader.result as string);
       };
+      setIsUploadingProfileImage(false)
       reader.readAsDataURL(file);
 
       const url = await uploadFile(file);
@@ -783,6 +789,16 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
       console.error("Error uploading image:", error);
       toast.error("Failed to upload image");
     }
+  };
+
+  const removeFile = () => {
+    setValue("profile_image", "");
+    setPreviewImage("");
+  };
+
+  const removeLogoFile = () => {
+    setValue("logo", "");
+    setPreviewLogo("");
   };
 
   const onSubmit = (data: any) => {
@@ -896,10 +912,11 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
         <FileUploader
           fileSize={profileImageSize}
           singleFile={true}
+          removeFile={removeFile}
           previewUrl={previewImage || profile_image}
           fileName={profileImageName}
           handleFileUpload={handleProfileImageUpload}
-          isUploading={isUploading}
+          isUploading={isUploadingProfileImage && isUploading}
           accept='.png,.jpg,.jpeg,.svg'
           inputId='profileImage'
           label='Upload Profile Image or Avatar'
@@ -986,10 +1003,11 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
           <FileUploader
             fileSize={logoSize}
             singleFile={true}
+            removeFile={removeLogoFile}
             previewUrl={previewLogo || logo}
             fileName={companyLogoName}
             handleFileUpload={handleCompanyLogoUpload}
-            isUploading={isUploading}
+            isUploading={isUploadingLogo && isUploading}
             accept='.png,.jpg,.jpeg,.svg'
             inputId='companyLogoInput'
             label='Company Logo'
