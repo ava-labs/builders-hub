@@ -120,14 +120,16 @@ export function RegisterForm({
       prohibited_items: false,
     },
   });
-  useEffect(() => {
+
+    function setDataFromLocalStorage(){
     if (typeof window !== "undefined") {
-      const savedData = localStorage.getItem("formData");
+      const savedData = localStorage.getItem(`formData_${hackathon_id}`);
     
       if (savedData) {
         const {utm:utm_local,hackathon_id:hackathon_id_local} = JSON.parse(savedData);
         try {
           const parsedData: RegisterFormValues = JSON.parse(savedData);
+          
           form.reset(parsedData);
           utmSaved = utm_local || utmSaved;
           hackathon_id = hackathon_id_local || hackathon_id;
@@ -137,7 +139,7 @@ export function RegisterForm({
         }
       }
     }
-  }, [form]);
+  }
 
   async function getHackathon() {
     if (!hackathon_id) return;
@@ -184,7 +186,9 @@ export function RegisterForm({
         form.reset(parsedData);
         setRegistrationForm(loadedData);
       } 
+      setDataFromLocalStorage();
     } catch (err) {
+      setDataFromLocalStorage();
       console.error("API Error:", err);
     }
   }
@@ -223,12 +227,20 @@ export function RegisterForm({
 
   useEffect(() => {
     if (status === "authenticated" && currentUser) {
-      form.reset({
-        name: currentUser.name || "",
-        email: currentUser.email || "",
-      });
+      const values = form.getValues();
+      const isEmpty = !values.name && !values.email;
+      if (isEmpty) {
+        form.reset({
+          name: currentUser.name || "",
+          email: currentUser.email || "",
+        });
+      }
     }
   }, [status, currentUser, form]);
+
+  useEffect(() => {
+    setDataFromLocalStorage();
+  }, [hackathon_id]);
 
   const onSaveLater = () => {
     const formValues = {
@@ -237,7 +249,7 @@ export function RegisterForm({
       utm: utm != "" ? utm : utmSaved,
     };
     if (typeof window !== "undefined") {
-      localStorage.setItem("formData", JSON.stringify(formValues));
+      localStorage.setItem(`formData_${hackathon_id}`, JSON.stringify(formValues));
     }
     router.push(`/hackathons/${hackathon_id}`);
   };
