@@ -65,7 +65,9 @@ export default function ProfileForm({
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: initialData,
+    reValidateMode: 'onSubmit',
   });
+  const { formState, reset } = form;
   const router = useRouter();
   const formData = useRef(new FormData());
   const { toast } = useToast();
@@ -73,18 +75,16 @@ export default function ProfileForm({
   const onSubmit = async (data: ProfileFormValues) => {
     try {
       setIsSaving(true);
-
-      const hasImageChanged = formData.current.has('file');
-
-      if (!form.formState.isDirty && !hasImageChanged) {
+      if (!formState.isDirty) {
         toast({
-          title: 'Profile updated',
-          description: 'Your profile has been updated successfully.',
+          title: 'No changes made',
+          description: 'Your profile has not been updated.',
         });
         setIsSaving(false);
         return;
       }
 
+      const hasImageChanged = formData.current.has('file');
 
       if (hasImageChanged && initialData.image) {
         const encodedUrl = encodeURIComponent(initialData.image);
@@ -114,7 +114,7 @@ export default function ProfileForm({
           throw new Error(`Error while saving profile: ${error.message}`);
         });
 
-      form.reset(updateProfileResponse.data);
+      reset(updateProfileResponse.data);
       formData.current = new FormData();
 
       toast({
@@ -140,9 +140,8 @@ export default function ProfileForm({
     formData.current.set('file', file);
     console.log(formData);
     const imageUrl = URL.createObjectURL(file);
-    form.setValue('image', imageUrl);
+    form.setValue('image', imageUrl, { shouldDirty: true });
   };
-
   return (
     <div className='container mx-auto py-8 flex flex-col gap-4'>
       <Toaster />
@@ -163,7 +162,14 @@ export default function ProfileForm({
               <FormItem>
                 <FormLabel>Full Name in Hackathon</FormLabel>
                 <FormControl>
-                  <Input placeholder='Enter your full name' {...field} />
+                  <Input 
+                    placeholder='Enter your full name' 
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      form.setValue('name', e.target.value, { shouldDirty: true });
+                    }}
+                  />
                 </FormControl>
                 <FormDescription>
                   This name will be displayed on your profile and submissions.
@@ -230,6 +236,10 @@ export default function ProfileForm({
                     className='resize-none h-24'
                     maxLength={250}
                     {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      form.setValue('bio', e.target.value, { shouldDirty: true });
+                    }}
                   />
                 </FormControl>
                 <FormDescription>
@@ -274,7 +284,15 @@ export default function ProfileForm({
               <FormItem>
                 <FormLabel>Notification Email Address</FormLabel>
                 <FormControl>
-                  <Input placeholder='your@email.com' type='email' {...field} />
+                  <Input 
+                    placeholder='your@email.com' 
+                    type='email' 
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      form.setValue('notification_email', e.target.value, { shouldDirty: true });
+                    }}
+                  />
                 </FormControl>
               </FormItem>
             )}
@@ -323,7 +341,9 @@ export default function ProfileForm({
                               onChange={(e) => {
                                 const newAccounts = [...(field.value || [])];
                                 newAccounts[index] = e.target.value;
-                                field.onChange(newAccounts);
+                                field.onChange(newAccounts, {
+                                  shouldDirty: true,
+                                });
                               }}
                               placeholder='https://'
                             />
@@ -335,7 +355,9 @@ export default function ProfileForm({
                                 const newAccounts =
                                   field.value?.filter((_, i) => i !== index) ||
                                   [];
-                                field.onChange(newAccounts);
+                                field.onChange(newAccounts, {
+                                  shouldDirty: true,
+                                });
                               }}
                               className='p-2 hover:bg-gray-100 rounded-full dark:hover:bg-gray-800 cursor-pointer'
                             >
