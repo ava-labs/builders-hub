@@ -341,7 +341,7 @@ export function RegisterForm({
                   variant="red"
                   type="submit"
                   onClick={form.handleSubmit(onSubmit)}
-                  className="bg-red-500 hover:bg-red-600"
+                  className="bg-red-500 hover:bg-red-600 cursor-pointer"
                 >
                   Save & Exit
                 </Button>
