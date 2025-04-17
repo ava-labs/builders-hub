@@ -107,9 +107,9 @@ export const integrationsMenu: LinkItemType = {
 };
   
 export const docsMenu: LinkItemType = {
-  type: "menu",
-  text: "Documentation",
-  url: "/docs",
+  type: 'menu',
+  text: 'Documentation',
+  url: '/docs',
   items: [
     {
       menu: {
@@ -141,7 +141,7 @@ export const docsMenu: LinkItemType = {
         "Build your own sovereign Layer 1 blockchain using Avalanche's battle-tested infrastructure and tooling.",
       url: '/docs/avalanche-l1s',
       menu: {
-        className: "lg:col-start-2",
+        className: 'lg:col-start-2',
       },
     },
     {
@@ -161,7 +161,7 @@ export const docsMenu: LinkItemType = {
         "Explore Avalanche's native cross-chain protocols that enable seamless asset and data transfer across different Avalanche L1s.",
       url: '/docs/cross-chain',
       menu: {
-        className: "lg:col-start-3 lg:row-start-1",
+        className: 'lg:col-start-3 lg:row-start-1',
       },
     },
     {
@@ -171,16 +171,16 @@ export const docsMenu: LinkItemType = {
         'Explore our in-depth documentation, guides, and resources to bring your ideas to life.',
       url: '/docs',
       menu: {
-        className: "lg:col-start-3",
+        className: 'lg:col-start-3',
       },
     },
   ],
 };
 
 export const academyMenu: LinkItemType = {
-  type: "menu",
-  text: "Academy",
-  url: "/academy",
+  type: 'menu',
+  text: 'Academy',
+  url: '/academy',
   items: [
     {
       menu: {
@@ -198,7 +198,7 @@ export const academyMenu: LinkItemType = {
             />
           </div>
         ),
-        className: "md:row-span-2",
+        className: 'md:row-span-2',
       },
       icon: <Sprout />,
       text: 'Avalanche Fundamentals',
@@ -233,7 +233,7 @@ export const academyMenu: LinkItemType = {
         'Learn how to customize the Ethereum Virtual Machine and add your own custom precompiles.',
       url: '/academy/customizing-evm',
       menu: {
-        className: "lg:col-start-3 lg:row-start-1",
+        className: 'lg:col-start-3 lg:row-start-1',
       },
     },
     {
@@ -243,7 +243,7 @@ export const academyMenu: LinkItemType = {
         'Supercharge your learning journey with expert-curated courses offered by Avalanche Academy and earn certificates.',
       url: '/academy',
       menu: {
-        className: "lg:col-start-3",
+        className: 'lg:col-start-3',
       },
     },
   ],
@@ -265,12 +265,12 @@ export const consoleMenu: LinkItemType = {
               height={140}
               className='rounded-t-lg object-cover'
               style={{
-                maskImage: "linear-gradient(to bottom,white 60%,transparent)",
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
             />
           </div>
         ),
-        className: "md:row-span-2 lg:col-span-1",
+        className: 'md:row-span-2 lg:col-span-1',
       },
       icon: <Waypoints />,
       text: 'Console',
@@ -284,8 +284,25 @@ export const consoleMenu: LinkItemType = {
         'Set up Interchain Messaging (ICM) for your L1.',
       url: '/console/icm/setup',
       menu: {
-        className: "lg:col-start-2 lg:row-start-1",
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src={L1LauncherPreview}
+              alt='L1 Launcher Preview'
+              className='rounded-t-lg object-cover'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2 lg:col-span-1',
       },
+      icon: <Server />,
+      text: 'L1 Launcher (Beta)',
+      description:
+        'Launch your self-hosted Testnet or Mainnet L1 on your own infrastructure.',
+      url: '/tools/l1-launcher',
     },
     {
       icon: <ArrowLeftRight />,
@@ -294,7 +311,7 @@ export const consoleMenu: LinkItemType = {
         'Set up cross-L1 bridges using the Interchain Token Transfer protocol.',
       url: '/console/ictt/setup',
       menu: {
-        className: "lg:col-start-2 lg:row-start-2",
+        className: 'lg:col-start-3 lg:row-start-1',
       },
     },
     {
@@ -311,9 +328,9 @@ export const consoleMenu: LinkItemType = {
 };
 
 export const grantsMenu: LinkItemType = {
-  type: "menu",
-  text: "Grants",
-  url: "/grants",
+  type: 'menu',
+  text: 'Grants',
+  url: '/grants',
   items: [
     {
       menu: {
@@ -331,7 +348,7 @@ export const grantsMenu: LinkItemType = {
             />
           </div>
         ),
-        className: "md:row-span-2",
+        className: 'md:row-span-2',
       },
       icon: <BriefcaseBusiness />,
       text: 'Codebase',
@@ -346,7 +363,7 @@ export const grantsMenu: LinkItemType = {
         "Strengthening Avalanche's infrastructure. Build the foundation for next-gen blockchain applications.",
       url: '/grants/infrabuidl',
       menu: {
-        className: "lg:col-start-2",
+        className: 'lg:col-start-2',
       },
     },
     {
@@ -356,7 +373,7 @@ export const grantsMenu: LinkItemType = {
         'Supports projects that fuse artificial intelligence (AI) with decentralized infrastructure.',
       url: '/grants/infrabuidlai',
       menu: {
-        className: "lg:col-start-2",
+        className: 'lg:col-start-2',
       },
     },
     {
@@ -366,7 +383,7 @@ export const grantsMenu: LinkItemType = {
         'Build innovative projects on Avalanche. Get rewarded for your creativity.',
       url: 'https://retro9000.avax.network',
       menu: {
-        className: "lg:col-start-3 lg:row-start-1",
+        className: 'lg:col-start-3 lg:row-start-1',
       },
     },
     {
@@ -376,16 +393,16 @@ export const grantsMenu: LinkItemType = {
         'A $200M+ fund investing in promising Avalanche projects. Fuel your growth with institutional support.',
       url: 'https://www.blizzard.fund/',
       menu: {
-        className: "lg:col-start-3",
+        className: 'lg:col-start-3',
       },
     },
   ],
 };
 
 export const eventsMenu: LinkItemType = {
-  type: "menu",
-  text: "Events",
-  url: "/events",
+  type: 'menu',
+  text: 'Events',
+  url: '/events',
   items: [
     {
       menu: {
@@ -403,7 +420,7 @@ export const eventsMenu: LinkItemType = {
             />
           </div>
         ),
-        className: "md:row-span-2",
+        className: 'md:row-span-2',
       },
       icon: <Ticket />,
       text: 'Hackathons',
@@ -427,7 +444,7 @@ export const eventsMenu: LinkItemType = {
             />
           </div>
         ),
-        className: "md:row-span-2",
+        className: 'md:row-span-2',
       },
       icon: <Ticket />,
       text: 'Avalanche Calendar',
@@ -451,7 +468,7 @@ export const eventsMenu: LinkItemType = {
             />
           </div>
         ),
-        className: "md:row-span-2",
+        className: 'md:row-span-2',
       },
       icon: <Earth />,
       text: 'Community driven events',
@@ -460,6 +477,27 @@ export const eventsMenu: LinkItemType = {
       url: 'https://lu.ma/Team1?utm_source=builder_hub',
     },
   ],
+};
+const userMenu: LinkItemType = {
+  type: 'icon',
+  icon: <UserWrapper />,
+  url: '#',
+  text: 'User',
+};
+
+const github: LinkItemType = {
+  type: 'icon',
+  icon: <SiGithub />,
+  url: 'https://github.com/ava-labs/avalanche-docs',
+  text: 'Github',
+  active: 'none',
+};
+
+const hackathons: LinkItemType = {
+  icon: <Cog />,
+  text: 'Hackathons',
+  url: '/hackathons',
+  active: 'nested-url',
 };
 
 export const ambassadorMenu: LinkItemType = {
@@ -484,6 +522,10 @@ export const baseOptions: BaseLayoutProps = {
     eventsMenu,
     grantsMenu,
     integrationsMenu,
+    // hackathons,
+    userMenu,
+    // hackathons,
+    //userMenu,
     ambassadorMenu,
   ],
 };

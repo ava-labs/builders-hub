@@ -1,0 +1,19 @@
+{
+    "title": "L1 Validator Management",
+    "icon": "UserPen",
+    "root": true,
+    "pages": [
+      "index",
+      "---Review---",
+      "...01-recap",
+      "---Create L1---",
+      "...02-l1-creation",
+      "---Validator Manager---",
+      "...03-deploy-validator-manager",
+      "---Validator Management---",
+      "...04-validator-management",
+      "---Staking Manager---",
+      "...05-pos-staking-manager"
+    ]
+  }
+  

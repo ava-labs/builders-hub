@@ -1,0 +1,20 @@
+---
+title: Initialize Validator Manager Settings
+description: Interactive tool to initialize your Validator Manager contract.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: Code
+---
+
+import ToolboxMdxWrapper from "../../../../toolbox/src/toolbox/components/ToolboxMdxWrapper.tsx"
+import Initialize from "../../../../toolbox/src/toolbox/ValidatorManager/Initialize.tsx"
+
+After deploying the ValidatorManager contracts and upgrading the proxy, you'll need to initialize it with your desired configuration settings. These settings control how validators are managed on your network, including churn rate limitations and administrative controls.
+
+<Callout type="info">
+For a complete explanation of the ValidatorManagerSettings and how they impact your network, refer to the [Proof of Authority](/academy/l1-validator-management/03-deploy-validator-manager/00-proof-of-authority) section.
+</Callout>
+
+<ToolboxMdxWrapper>
+    <Initialize />
+</ToolboxMdxWrapper>
