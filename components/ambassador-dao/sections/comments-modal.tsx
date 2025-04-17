@@ -1,8 +1,4 @@
-import {
-  DialogContent,
-  Dialog,
-  DialogTitle,
-} from "@/components/ambassador-dao/dialog";
+import { DialogContent, Dialog, DialogTitle } from "@/components/ui/dialog";
 import Image from "next/image";
 import React, { useState } from "react";
 import Avalance3d from "@/public/images/avalance3d.svg";
