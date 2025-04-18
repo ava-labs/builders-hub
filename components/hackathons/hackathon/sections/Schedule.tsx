@@ -137,7 +137,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
         <DeadLine deadline={hackathon.content.submission_deadline} />
       </div>
       <Divider />
-      <div className='bg-zinc-800 backdrop-blur-sm rounded-lg py-1 w-fit flex items-center gap-2'>
+      <div className='bg-zinc-200 dark:bg-zinc-800 backdrop-blur-sm rounded-lg py-1 w-fit flex items-center gap-2'>
         <button
           onClick={() => {
             const days = Object.keys(groupActivitiesByDay(hackathon.content.schedule));
@@ -146,7 +146,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
               setSelectedDay(days[currentIndex - 1]);
             }
           }}
-          className='text-zinc-400 hover:text-zinc-300 px-2 cursor-pointer'
+          className='text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-300 px-2 cursor-pointer'
         >
           <CircleArrowLeft strokeWidth={1} className='h-8 w-8' />
         </button>
@@ -163,8 +163,8 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                   key={index}
                   className={`border-none cursor-pointer transition-all select-none ${
                     selectedDay === formattedDate
-                      ? 'bg-black text-white'
-                      : 'bg-transparent text-zinc-500 hover:text-zinc-300'
+                      ? ' bg-zinc-500 text-white dark:bg-black dark:text-white'
+                      : 'bg-transparent text-zinc-600 hover:text-zinc-800 dark:text-zinc-500 dark:hover:text-zinc-300'
                   } rounded-lg`}
                   onClick={() => setSelectedDay(formattedDate)}
                 >
@@ -185,7 +185,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
               setSelectedDay(days[currentIndex + 1]);
             }
           }}
-          className='text-zinc-400 hover:text-zinc-300 px-2 cursor-pointer'
+          className='text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-300 px-2 cursor-pointer'
         >
           <CircleArrowRight strokeWidth={1} className='h-8 w-8' />
         </button>
