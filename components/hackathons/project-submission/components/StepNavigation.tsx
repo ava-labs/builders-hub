@@ -56,11 +56,8 @@ export const StepNavigation = ({
 
       if (valid) {
         const formValues = form.getValues();
-        await onSubmit(formValues);
+        onSubmit(formValues);
       }
-    } else {
-      const formValues = form.getValues();
-      await onSubmit(formValues);
     }
   };
 
@@ -70,7 +67,7 @@ export const StepNavigation = ({
         <LoadingButton
           isLoading={isSubmitting}
           loadingText="Saving..."
-          type="submit"
+          type={isLastStep ? "submit" : "button"} 
           variant="red"
           className="px-4 py-2 cursor-pointer"
           onClick={() => {
@@ -90,7 +87,6 @@ export const StepNavigation = ({
           loadingText="Saving..."
           type="button"
           onClick={() => {
-            
             try {
               setIsSavingLater(true);
               onSave();
