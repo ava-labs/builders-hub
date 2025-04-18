@@ -28,7 +28,6 @@ export const StepNavigation = ({
   isLastStep,
 }: StepNavigationProps) => {
   const form = useFormContext<SubmissionForm>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingLater, setIsSavingLater] = useState(false);
   const step1Fields: (keyof SubmissionForm)[] = [
     "project_name",
@@ -65,21 +64,16 @@ export const StepNavigation = ({
     <div className="flex flex-col md:flex-row items-center justify-between mt-8">
       <div className="flex flex-wrap gap-4 mb-4 md:mb-0">
         <LoadingButton
-          isLoading={isSubmitting}
+          isLoading={form.formState.isSubmitting}
           loadingText="Saving..."
-          type={isLastStep ? "submit" : "button"} 
+          type={isLastStep ? 'submit' : 'button'}
           variant="red"
           className="px-4 py-2 cursor-pointer"
           onClick={() => {
-            setIsSubmitting(true);
-            try {
-              handleNext();
-            } finally {
-              setIsSubmitting(false);
-            }
+            handleNext();
           }}
         >
-          {isLastStep ? "Final Submit" : "Continue"}
+          {isLastStep ? 'Final Submit' : 'Continue'}
         </LoadingButton>
 
         <LoadingButton

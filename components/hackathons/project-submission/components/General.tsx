@@ -19,6 +19,8 @@ import { StepNavigation } from '../components/StepNavigation';
 import axios from 'axios';
 import { Tag, Users, Pickaxe, Image } from 'lucide-react';
 import InvalidInvitationComponent from './InvalidInvitationDialog';
+import { useToast } from '@/hooks/use-toast';
+import { Toaster } from '@/components/ui/toaster';
 
 export default function GeneralComponent({
   searchParams,
@@ -34,11 +36,11 @@ export default function GeneralComponent({
   const currentUser = session?.user;
   const hackathonId = searchParams?.hackathon ?? '';
   const invitationLink = searchParams?.invitation;
+  const { toast } = useToast();
 
   const {
     form,
     projectId,
-    originalImages,
     saveProject,
     handleSave,
     setFormData,
@@ -64,53 +66,6 @@ export default function GeneralComponent({
       'demoVideoLink',
       'tracks',
     ];
-  };
-
-  const calculateProgress = () => {
-    console.log('calculateProgress called');
-    const formValues = form.getValues();
-    const allFields = getAllFields();
-    const totalFields = allFields.length;
-    let completedFields = 0;
-
-    console.log('=== Debug Progress Calculation ===');
-    console.log('Form Values:', formValues);
-    console.log('Total Fields:', totalFields);
-
-    allFields.forEach((field) => {
-      const value = formValues[field as keyof typeof formValues];
-      console.log(`\nField: ${field}`);
-      console.log('Value:', value);
-      console.log('Type:', typeof value);
-
-      if (Array.isArray(value)) {
-        console.log('Is Array:', true);
-        console.log('Array Length:', value?.length);
-        if (value && value.length > 0) {
-          completedFields++;
-          console.log('Counted as completed (array)');
-        }
-      } else if (typeof value === 'string' && value.trim() !== '') {
-        completedFields++;
-        console.log('Counted as completed (string)');
-      } else if (typeof value === 'boolean' && value === true) {
-        completedFields++;
-        console.log('Counted as completed (boolean)');
-      } else if (value !== undefined && value !== null && value !== '') {
-        completedFields++;
-        console.log('Counted as completed (other)');
-      } else {
-        console.log('Not counted as completed');
-      }
-    });
-
-    const progress = Math.round((completedFields / totalFields) * 100);
-    console.log('\nFinal Calculation:');
-    console.log('Completed Fields:', completedFields);
-    console.log('Progress:', progress + '%');
-    console.log('=== End Debug ===\n');
-
-    return progress;
   };
 
   useEffect(() => {
@@ -162,8 +117,19 @@ export default function GeneralComponent({
     } else {
       try {
         await saveProject(data);
+        toast({
+          title: 'Project saved',
+          description: 'Your project has been saved successfully.',
+        });
       } catch (error) {
         console.error('Error uploading files or saving project:', error);
+        toast({
+          title: 'Error',
+          description: error instanceof Error 
+            ? error.message 
+            : 'An error occurred while saving the project.',
+          variant: 'destructive',
+        });
       }
     }
   };
@@ -174,7 +140,6 @@ export default function GeneralComponent({
       const response = await axios.get(
         `/api/project/check-invitation?invitation=${invitationLink}&user_id=${currentUser?.id}`
       );
-      console.log('respuesta es', response);
       if (!response.data?.invitation.exists) {
         setOpenInvalidInvitation(!response.data?.invitation.isValid);
         return;
@@ -186,6 +151,13 @@ export default function GeneralComponent({
       setTeamName(response.data?.project?.project_name ?? '');
     } catch (error) {
       console.error('Error checking invitation:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error 
+          ? error.message 
+          : 'An error occurred while checking the invitation.',
+        variant: 'destructive',
+      });
     }
   }
 
@@ -203,6 +175,7 @@ export default function GeneralComponent({
 
   return (
     <div className='p-4 sm:p-6 rounded-lg max-w-7xl mx-auto'>
+      <Toaster  />
       <div className='mb-4'>
         <h2 className='text-lg sm:text-xl font-semibold break-words'>
           Submit Your Project {hackathon?.title ? ' - ' + hackathon?.title : ''}

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 export const FormSchema = z.object({
   project_name: z
@@ -66,6 +67,7 @@ export type SubmissionForm = z.infer<typeof FormSchema>;
 export const useSubmissionForm = (hackathonId: string) => {
   const { data: session } = useSession();
   const router = useRouter();
+  const { toast } = useToast();
   const [originalImages, setOriginalImages] = useState<{
     logoFile?: string;
     coverFile?: string;
@@ -94,9 +96,18 @@ export const useSubmissionForm = (hackathonId: string) => {
           "Content-Type": "multipart/form-data",
         },
       });
+      toast({
+        title: 'File uploaded',
+        description: 'The file has been uploaded successfully.',
+      });
       return response.data.url;
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || "Error uploading file";
+      toast({
+        title: 'Error uploading file',
+        description: message,
+        variant: 'destructive',
+      });
       throw new Error(message);
     }
   };
@@ -107,18 +118,44 @@ export const useSubmissionForm = (hackathonId: string) => {
 
     try {
       await axios.delete("/api/file", { params: { fileName } });
-      return await uploadFile(newFile);
+      const newUrl = await uploadFile(newFile);
+      toast({
+        title: 'Image replaced',
+        description: 'The image has been replaced successfully.',
+      });
+      return newUrl;
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || "Error replacing image";
+      toast({
+        title: 'Error replacing image',
+        description: message,
+        variant: 'destructive',
+      });
       throw new Error(message);
     }
   };
 
   const deleteImage = async (oldImageUrl: string): Promise<void> => {
     const fileName = oldImageUrl.split("/").pop();
-    await fetch(`/api/file?fileName=${encodeURIComponent(fileName!)}`, {
-      method: "DELETE",
-    });
+    if (!fileName) throw new Error("Invalid old image URL");
+    
+    try {
+      await fetch(`/api/file?fileName=${encodeURIComponent(fileName!)}`, {
+        method: "DELETE",
+      });
+      toast({
+        title: 'Image deleted',
+        description: 'The image has been deleted successfully.',
+      });
+    } catch (error: any) {
+      const message = error.response?.data?.error || error.message || "Error deleting image";
+      toast({
+        title: 'Error deleting image',
+        description: message,
+        variant: 'destructive',
+      });
+      throw new Error(message);
+    }
   };
 
   const saveProject = async (data: SubmissionForm) => {
@@ -185,15 +222,32 @@ export const useSubmissionForm = (hackathonId: string) => {
 
       const response = await axios.post(`/api/project/`, finalData);
       setProjectId(response.data.id);
+      
       return response.data;
     } catch (error) {
+      console.error("Error in saveProject:", error);
       throw error;
     }
   };
 
   const handleSave = async () => {
+    try {
       await handleSaveWithoutRoute();
+      toast({
+        title: 'Project saved',
+        description: 'Your project has been saved successfully.',
+      });
       router.push(`/hackathons/${hackathonId}`);
+    } catch (error) {
+      console.error("Error in handleSave:", error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error 
+          ? error.message 
+          : 'An error occurred while saving the project.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleSaveWithoutRoute= async () => {
@@ -201,9 +255,20 @@ export const useSubmissionForm = (hackathonId: string) => {
       const currentValues = form.getValues();
       const savePrev = {...currentValues,isDraft:true}
       await saveProject(savePrev);
+      toast({
+        title: 'Project saved',
+        description: 'Your project has been saved successfully.',
+      });
       return Promise.resolve();
     } catch (error) {
       console.error("Error in handleSave:", error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error 
+          ? error.message 
+          : 'An error occurred while saving the project.',
+        variant: 'destructive',
+      });
       return Promise.reject(error);
     }
   };
