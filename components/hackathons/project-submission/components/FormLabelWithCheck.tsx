@@ -18,7 +18,6 @@ export const FormLabelWithCheck: FC<FormLabelWithCheckProps> = ({
   return (
     <div className='w-full flex  px-4 py-2 rounded-md text-sm  dark:bg-zinc-800 '>
       <Checkbox
-        disabled
         checked={checked}
         tabIndex={-1}
         className={cn(
