@@ -51,7 +51,7 @@ export const FormSchema = z
     logoFile: z.any().optional(),
     coverFile: z.any().optional(),
     screenshots: z.any().optional(),
-    demoVideoLink: z
+    demo_video_link: z
       .string()
       .url({ message: 'Please enter a valid URL' })
       .optional()
@@ -321,16 +321,16 @@ export const useSubmissionForm = (hackathonId: string) => {
       screenshots: project.screenshots ?? [],
     });
     form.reset({
-      project_name: project.project_name,
-      short_description: project.short_description,
-      full_description: project.full_description,
-      tech_stack: project.tech_stack,
-      github_repository: project.github_repository,
-      explanation: project.explanation,
-      demo_link: project.demo_link,
-      is_preexisting_idea: project.is_preexisting_idea,
-      demoVideoLink: project.demo_video_link,
-      tracks: project.tracks,
+      project_name: project.project_name ?? '',
+      short_description: project.short_description ?? '',
+      full_description: project.full_description ?? '',
+      tech_stack: project.tech_stack ?? [],
+      github_repository: project.github_repository ?? '',
+      explanation: project.explanation ?? '',
+      demo_link: project.demo_link ?? '',
+      is_preexisting_idea: !!project.is_preexisting_idea,
+      demo_video_link: project.demo_video_link ?? '',
+      tracks: project.tracks ?? [],
       logoFile: project.logo_url ?? undefined,
       coverFile: project.cover_url ?? undefined,
       screenshots: project.screenshots ?? [],

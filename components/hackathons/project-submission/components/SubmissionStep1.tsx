@@ -1,6 +1,6 @@
 'use client';
 
-import React, { FC } from 'react';
+import React, { FC, useLayoutEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,22 @@ const SubmitStep1: FC<projectProps> = (project) => {
       label: track.name,
     })
   );
+
+  const fullDescription = form.watch('full_description');
+  const shortDescription = form.watch('short_description');
+
+  useLayoutEffect(() => {
+    const textareas = ['full_description', 'short_description'];
+    
+    textareas.forEach(name => {
+      const el = document.querySelector(`textarea[name="${name}"]`);
+      if (el) {
+        (el as HTMLTextAreaElement).style.height = '0px';
+        (el as HTMLTextAreaElement).style.height =
+          (el as HTMLTextAreaElement).scrollHeight + 'px';
+      }
+    });
+  }, [fullDescription, shortDescription]);
 
   return (
     <div className='flex flex-col w-full  mt-6 space-y-8'>
@@ -83,8 +99,13 @@ const SubmitStep1: FC<projectProps> = (project) => {
               />
               <FormControl>
                 <Textarea
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = '0px';
+                    target.style.height = target.scrollHeight + 'px';
+                  }}
                   placeholder='Write a short and engaging overview...'
-                  className='w-full dark:bg-zinc-950'
+                  className='w-full h-9 dark:bg-zinc-950'
                   {...field}
                 />
               </FormControl>
@@ -106,7 +127,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
               <FormControl>
                 <Textarea
                   placeholder='Describe your project in detail...'
-                  className='w-full dark:bg-zinc-950'
+                  className='w-full h-9 dark:bg-zinc-950'
                   {...field}
                 />
               </FormControl>

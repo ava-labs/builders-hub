@@ -63,7 +63,7 @@ export default function GeneralComponent({
       'logoFile',
       'coverFile',
       'screenshots',
-      'demoVideoLink',
+      'demo_video_link',
       'tracks',
     ];
   };
