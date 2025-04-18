@@ -488,7 +488,7 @@ export default function ProfileForm({
               onClick={() => router.push('/')}
               disabled={isSaving}
             >
-              Cancel Changes
+              Cancel
             </Button>
           </div>
         </form>
