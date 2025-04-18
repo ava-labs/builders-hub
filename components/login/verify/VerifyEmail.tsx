@@ -60,7 +60,7 @@ export function VerifyEmail({
         callbackUrl: callbackUrl,
       });
       if (result?.error) {
-        console.log("resutlado",result)
+        console.error("Error: ",result)
         switch (result?.error) {
           case "INVALID":
             setSentTries((prev) => prev + 1);
