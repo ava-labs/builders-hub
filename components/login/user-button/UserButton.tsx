@@ -15,7 +15,7 @@ import { useState } from 'react';
 import { CircleUserRound, UserRound } from 'lucide-react';
 
 export function UserButton() {
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSession() ?? {};
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isAuthenticated = status === 'authenticated';
   const handleSignOut = (): void => {
