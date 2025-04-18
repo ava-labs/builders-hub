@@ -16,7 +16,7 @@ interface StepNavigationProps {
   currentStep: number;
   onStepChange: (step: number) => void;
   onSubmit: (formValues: any) => void;
-  onSave: () => void;
+  onSave: () => Promise<void>;
   isLastStep: boolean;
 }
 
@@ -80,10 +80,10 @@ export const StepNavigation = ({
           isLoading={isSavingLater}
           loadingText="Saving..."
           type="button"
-          onClick={() => {
+          onClick={async () => {
             try {
               setIsSavingLater(true);
-              onSave();
+              await onSave();
             } finally {
               setIsSavingLater(false);
             }
