@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import SubmitStep1 from './SubmissionStep1';
 import SubmitStep2 from './SubmissionStep2';
 import SubmitStep3 from './SubmissionStep3';
-import { useSubmissionForm, SubmissionForm } from '../hooks/useSubmissionForm';
+import { useSubmissionForm, SubmissionForm, FormSchema } from '../hooks/useSubmissionForm';
 import { useHackathonProject } from '../hooks/useHackathonProject';
 import { JoinTeamDialog } from '../components/JoinTeamDialog';
 import { ProgressBar } from '../components/ProgressBar';
@@ -22,7 +22,7 @@ export default function GeneralComponent({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const [step, setStep] = useState(1);
-  const [progress, setProgress] = useState(40);
+  const [progress, setProgress] = useState(0);
   const [openJoinTeam, setOpenJoinTeam] = useState(false);
   const [openInvalidInvitation, setOpenInvalidInvitation] = useState(false);
   const [teamName, setTeamName] = useState<string>('');
@@ -45,20 +45,58 @@ export default function GeneralComponent({
   const { hackathon, project, timeLeft, loadData, setLoadData, getProject } =
     useHackathonProject(hackathonId as string);
 
+  const getAllFields = () => {
+    return [
+      'project_name',
+      'short_description',
+      'full_description',
+      'tech_stack',
+      'github_repository',
+      'explanation',
+      'demo_link',
+      'is_preexisting_idea',
+      'logoFile',
+      'coverFile',
+      'screenshots',
+      'demoVideoLink',
+      'tracks'
+    ];
+  };
+
+  const calculateProgress = () => {
+    const formValues = form.getValues();
+    const allFields = getAllFields();
+    const totalFields = allFields.length;
+    let completedFields = 0;
+
+    allFields.forEach(field => {
+      const value = formValues[field as keyof typeof formValues];
+      if (Array.isArray(value)) {
+        if (value.length > 0) completedFields++;
+      } else if (value !== undefined && value !== null && value !== '') {
+        completedFields++;
+      }
+    });
+
+    return Math.round((completedFields / totalFields) * 100);
+  };
+
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      setProgress(calculateProgress());
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
   const handleStepChange = (newStep: number) => {
     if (newStep >= 1 && newStep <= 3) {
       setStep(newStep);
-      if (newStep === 2) setProgress(70);
-      if (newStep === 3) setProgress(100);
-      if (newStep === 1) setProgress(40);
     }
   };
 
   const onSubmit = async (data: SubmissionForm) => {
     if (step < 3) {
       setStep(step + 1);
-      if (step + 1 === 2) setProgress(70);
-      if (step + 1 === 3) setProgress(100);
     } else {
       try {
         await saveProject(data);
