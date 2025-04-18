@@ -96,8 +96,8 @@ export default function HackathonCard({
         </div>
         <Button
           asChild
-          variant='secondary'
-          className='w-full bg-red-500 py-2 px-4'
+          variant='red'
+          className='w-full py-2 px-4'
         >
           <Link
             className='text-sm text-zinc-50'

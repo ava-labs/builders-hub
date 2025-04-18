@@ -245,6 +245,7 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
                     <div className="flex justify-center mt-2">
                       <Button
                         onClick={handleSendInvitations}
+                        type="button"
                         disabled={emails.length === 0 || isValidingEmail || invalidEmails.length > 0}
                         className="dark:bg-white"
                       >
@@ -308,9 +309,9 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
         </div>
 
         <div className="overflow-x-auto">
-          <Table className="border border-zinc-800 w-full min-w-[500px]">
+          <Table className="border border-zinc-200 dark:border-zinc-800 w-full min-w-[500px]">
             <TableHeader>
-              <TableRow className=" border-b-zinc-800">
+              <TableRow className=" border-b-zinc-200 dark:border-b-zinc-800">
                 <TableHead className="px-4 py-4">Name</TableHead>
                 <TableHead className="px-4 py-4">Email</TableHead>
                 <TableHead className="px-4 py-4">Role</TableHead>
@@ -378,7 +379,7 @@ export default function MembersComponent({project_id,hackaton_id,user_id,onProje
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
-                          className="bg-zinc-800 text-white rounded-md shadow-lg p-2"
+                          className="dark:bg-zinc-800 dark:text-white rounded-md shadow-lg p-2"
                           sideOffset={5}
                         >
                           <DropdownMenuItem
