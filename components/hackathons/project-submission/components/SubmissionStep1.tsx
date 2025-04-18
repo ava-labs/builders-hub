@@ -62,7 +62,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
               <FormControl>
                 <Input
                   placeholder='Enter your project name'
-                  className='text-zinc-400 w-full dark:bg-zinc-950'
+                  className='w-full dark:bg-zinc-950'
                   {...field}
                 />
               </FormControl>
@@ -84,7 +84,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
               <FormControl>
                 <Textarea
                   placeholder='Write a short and engaging overview...'
-                  className='text-zinc-400 w-full dark:bg-zinc-950'
+                  className='w-full dark:bg-zinc-950'
                   {...field}
                 />
               </FormControl>
@@ -106,7 +106,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
               <FormControl>
                 <Textarea
                   placeholder='Describe your project in detail...'
-                  className='text-zinc-400 h-24 w-full dark:bg-zinc-950'
+                  className='w-full dark:bg-zinc-950'
                   {...field}
                 />
               </FormControl>

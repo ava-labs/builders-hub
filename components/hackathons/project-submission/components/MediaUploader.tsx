@@ -40,6 +40,7 @@ type MediaUploaderProps = {
   width?: string;
   height?: string;
   extraText?: string;
+  buttonText?: string;
 };
 
 export default function MediaUploader({
@@ -52,6 +53,7 @@ export default function MediaUploader({
   width = 'sm:max-w-[128px]',
   height = 'sm:max-h-[128px]',
   extraText = '',
+  buttonText = 'Upload',
 }: MediaUploaderProps) {
   const form = useFormContext<SubmissionForm>();
 
@@ -196,7 +198,7 @@ export default function MediaUploader({
                 disabled={fileArray.length >= maxItems}
               >
                 <PlusCircleIcon className='w-4 h-4' />
-                Upload {label.split(' ')[0]}
+                {buttonText}
               </Button>
             </div>
 

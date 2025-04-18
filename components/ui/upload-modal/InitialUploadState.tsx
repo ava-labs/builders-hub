@@ -16,7 +16,7 @@ export function InitialUploadState({ onFileSelect }: InitialUploadStateProps) {
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
       <div 
-        className="border-2 border-dashed border-red-500 rounded-lg p-8 text-center cursor-pointer hover:bg-zinc-800/50"
+        className="border-2 border-dashed border-red-500 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-100/50 dark:hover:bg-zinc-800/50"
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
@@ -46,14 +46,14 @@ export function InitialUploadState({ onFileSelect }: InitialUploadStateProps) {
             />
           </svg>
           <div>
-            <span className="text-zinc-400">Drag your file(s) or </span>
+            <span className="text-gray-500 dark:text-zinc-400">Drag your file(s) or </span>
             <span className="text-red-500">browse</span>
           </div>
-          <span className="text-sm text-zinc-500">Max 1MB for PNG/JPG files</span>
+          <span className="text-sm text-gray-400 dark:text-zinc-500">Max 1MB for PNG/JPG files</span>
         </label>
       </div>
       
-      <div className="text-zinc-500 text-sm text-center">
+      <div className="text-gray-400 dark:text-zinc-500 text-sm text-center">
         Supports JPG, PNG (max 1MB) and SVG (any size)
       </div>
     </div>
