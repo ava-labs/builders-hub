@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -72,10 +72,17 @@ export default function ProfileForm({
   const formData = useRef(new FormData());
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (initialData) {
+      form.reset(initialData);
+    }
+  }, [initialData]);
+
   const onSubmit = async (data: ProfileFormValues) => {
     try {
+      const isDirty = Object.keys(formState.dirtyFields).length > 0;
       setIsSaving(true);
-      if (!formState.isDirty) {
+      if (!isDirty) {
         toast({
           title: 'No changes made',
           description: 'Your profile has not been updated.',
