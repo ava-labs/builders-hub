@@ -45,13 +45,15 @@ export function UserButton() {
     border border-zinc-200 dark:border-zinc-600
     shadow-lg p-1 rounded-md w-48'
           >
-            <DropdownMenuItem>
-              <Link href="/profile">Profile</Link>
+            <DropdownMenuItem asChild className='cursor-pointer'>
+              <Link href='/profile'>Profile</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
+            <DropdownMenuItem
+              onClick={() => setIsDialogOpen(true)}
+              className='cursor-pointer'
+            >
               Sign Out
             </DropdownMenuItem>
-
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
@@ -60,10 +62,11 @@ export function UserButton() {
           variant='ghost'
           className='rounded-full h-10 w-10 ml-4 cursor-pointer p-0'
         >
-          <Link
-            href='/login'
-          >
-            <CircleUserRound className='!h-8 !w-8 stroke-zinc-900 dark:stroke-white' strokeWidth={0.85} />
+          <Link href='/login'>
+            <CircleUserRound
+              className='!h-8 !w-8 stroke-zinc-900 dark:stroke-white'
+              strokeWidth={0.85}
+            />
           </Link>
         </Button>
       )}
