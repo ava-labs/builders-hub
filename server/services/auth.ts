@@ -28,6 +28,7 @@ export async function upsertUser(user: User, account: Account | null, profile: P
     },
     create: {
       email: user.email,
+      notification_email: user.email,
       name: user.name || "",
       image: user.image || "",
       authentication_mode: account?.provider ?? "",
