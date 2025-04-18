@@ -32,7 +32,7 @@ export const FormSchema = z
       })
       .refine(
         (val) => {
-          const githubRepoRegex = /^(?:https?:\/\/)?(?:www\.)?github\.com\/[a-zA-Z0-9_-]+\/?$/;
+          const githubRepoRegex = /^(?:https?:\/\/)?(?:www\.)?github\.com\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/;
 
           return githubRepoRegex.test(val);
         },
