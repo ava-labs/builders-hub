@@ -20,7 +20,7 @@ function isValidURLOrPath(url: string): boolean {
     new URL(url)
     return true
   } catch {
-    if (url.startsWith("{") && url.endsWith("}")) { // is a a JSX component, ignore
+    if (url.startsWith("{") && url.endsWith("}")) { // is a JSX component, ignore
       return false;
     }
     else if (url.indexOf('.') > -1) { // is a url or misconfigured path
