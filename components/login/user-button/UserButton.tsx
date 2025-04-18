@@ -21,9 +21,10 @@ export function UserButton() {
   const handleSignOut = (): void => {
     signOut();
   };
+  console.debug('session', session, isAuthenticated);
   return (
     <>
-      {isAuthenticated && session?.user?.image ? (
+      {isAuthenticated ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -31,13 +32,20 @@ export function UserButton() {
               size='icon'
               className='rounded-full h-10 w-10 ml-4 cursor-pointer p-1'
             >
-              <Image
-                src={session.user.image}
-                alt='User Avatar'
-                width={32}
-                height={32}
-                className='rounded-full'
-              />
+              {session.user.image ? (
+                <Image
+                  src={session.user.image}
+                  alt='User Avatar'
+                  width={32}
+                  height={32}
+                  className='rounded-full'
+                />
+              ) : (
+                <CircleUserRound
+                  className='!h-8 !w-8 stroke-zinc-900 dark:stroke-white'
+                  strokeWidth={0.85}
+                />
+              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
