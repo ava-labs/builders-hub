@@ -21,7 +21,7 @@ import { Tag, Users, Pickaxe, Image } from 'lucide-react';
 import InvalidInvitationComponent from './InvalidInvitationDialog';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
-
+import { useRouter } from 'next/navigation';
 export default function GeneralComponent({
   searchParams,
 }: {
@@ -37,6 +37,7 @@ export default function GeneralComponent({
   const hackathonId = searchParams?.hackathon ?? '';
   const invitationLink = searchParams?.invitation;
   const { toast } = useToast();
+  const router = useRouter();
 
   const {
     form,
@@ -112,26 +113,32 @@ export default function GeneralComponent({
   };
 
   const onSubmit = async (data: SubmissionForm) => {
+    try {
+      await saveProject(data);
+      toast({
+        title: 'Project submitted',
+        description:
+          'Your project has been successfully submitted. You will be redirected to the project showcase page.',
+      });
+      setTimeout(() => {
+        router.push(`/showcase/${projectId}`);
+      }, 3000);
+    } catch (error) {
+      console.error('Error uploading files or saving project:', error);
+      toast({
+        title: 'Error',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'An error occurred while saving the project.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const onNextStep = async () => {
     if (step < 3) {
       setStep(step + 1);
-    } else {
-      try {
-        await saveProject(data);
-        toast({
-          title: 'Project saved',
-          description: 'Your project has been saved successfully.',
-        });
-      } catch (error) {
-        console.error('Error uploading files or saving project:', error);
-        toast({
-          title: 'Error',
-          description:
-            error instanceof Error
-              ? error.message
-              : 'An error occurred while saving the project.',
-          variant: 'destructive',
-        });
-      }
     }
   };
 
@@ -288,9 +295,9 @@ export default function GeneralComponent({
                 <StepNavigation
                   currentStep={step}
                   onStepChange={handleStepChange}
-                  onSubmit={onSubmit}
                   onSave={handleSave}
                   isLastStep={step === 3}
+                  onNextStep={onNextStep}
                 />
               </form>
             </Form>

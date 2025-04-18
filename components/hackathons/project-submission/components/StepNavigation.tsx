@@ -15,17 +15,17 @@ import { LoadingButton } from "@/components/ui/loading-button";
 interface StepNavigationProps {
   currentStep: number;
   onStepChange: (step: number) => void;
-  onSubmit: (formValues: any) => void;
   onSave: () => Promise<void>;
   isLastStep: boolean;
+  onNextStep: () => void;
 }
 
 export const StepNavigation = ({
   currentStep,
   onStepChange,
-  onSubmit,
   onSave,
   isLastStep,
+  onNextStep,
 }: StepNavigationProps) => {
   const form = useFormContext<SubmissionForm>();
   const [isSavingLater, setIsSavingLater] = useState(false);
@@ -54,8 +54,7 @@ export const StepNavigation = ({
       }
 
       if (valid) {
-        const formValues = form.getValues();
-        onSubmit(formValues);
+        onNextStep();
       }
     }
   };
@@ -69,8 +68,11 @@ export const StepNavigation = ({
           type={isLastStep ? 'submit' : 'button'}
           variant="red"
           className="px-4 py-2 cursor-pointer"
-          onClick={() => {
-            handleNext();
+          onClick={(e) => {
+            if (!isLastStep) {
+              e.preventDefault();
+              handleNext();
+            }
           }}
         >
           {isLastStep ? 'Final Submit' : 'Continue'}

@@ -116,10 +116,6 @@ export const useSubmissionForm = (hackathonId: string) => {
           'Content-Type': 'multipart/form-data',
         },
       });
-      toast({
-        title: 'File uploaded',
-        description: 'The file has been uploaded successfully.',
-      });
       return response.data.url;
     } catch (error: any) {
       const message =
