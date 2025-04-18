@@ -7,7 +7,11 @@ import { Separator } from '@/components/ui/separator';
 import SubmitStep1 from './SubmissionStep1';
 import SubmitStep2 from './SubmissionStep2';
 import SubmitStep3 from './SubmissionStep3';
-import { useSubmissionForm, SubmissionForm, FormSchema } from '../hooks/useSubmissionForm';
+import {
+  useSubmissionForm,
+  SubmissionForm,
+  FormSchema,
+} from '../hooks/useSubmissionForm';
 import { useHackathonProject } from '../hooks/useHackathonProject';
 import { JoinTeamDialog } from '../components/JoinTeamDialog';
 import { ProgressBar } from '../components/ProgressBar';
@@ -54,36 +58,94 @@ export default function GeneralComponent({
       'github_repository',
       'explanation',
       'demo_link',
-      'is_preexisting_idea',
       'logoFile',
       'coverFile',
       'screenshots',
       'demoVideoLink',
-      'tracks'
+      'tracks',
     ];
   };
 
   const calculateProgress = () => {
+    console.log('calculateProgress called');
     const formValues = form.getValues();
     const allFields = getAllFields();
     const totalFields = allFields.length;
     let completedFields = 0;
 
-    allFields.forEach(field => {
+    console.log('=== Debug Progress Calculation ===');
+    console.log('Form Values:', formValues);
+    console.log('Total Fields:', totalFields);
+
+    allFields.forEach((field) => {
       const value = formValues[field as keyof typeof formValues];
+      console.log(`\nField: ${field}`);
+      console.log('Value:', value);
+      console.log('Type:', typeof value);
+
       if (Array.isArray(value)) {
-        if (value.length > 0) completedFields++;
+        console.log('Is Array:', true);
+        console.log('Array Length:', value?.length);
+        if (value && value.length > 0) {
+          completedFields++;
+          console.log('Counted as completed (array)');
+        }
+      } else if (typeof value === 'string' && value.trim() !== '') {
+        completedFields++;
+        console.log('Counted as completed (string)');
+      } else if (typeof value === 'boolean' && value === true) {
+        completedFields++;
+        console.log('Counted as completed (boolean)');
       } else if (value !== undefined && value !== null && value !== '') {
         completedFields++;
+        console.log('Counted as completed (other)');
+      } else {
+        console.log('Not counted as completed');
       }
     });
 
-    return Math.round((completedFields / totalFields) * 100);
+    const progress = Math.round((completedFields / totalFields) * 100);
+    console.log('\nFinal Calculation:');
+    console.log('Completed Fields:', completedFields);
+    console.log('Progress:', progress + '%');
+    console.log('=== End Debug ===\n');
+
+    return progress;
   };
 
   useEffect(() => {
-    const subscription = form.watch(() => {
-      setProgress(calculateProgress());
+    const subscription = form.watch((value, { name, type }) => {
+      if (type === 'change') {
+        const formValues = form.getValues();
+        const allFields = getAllFields();
+        const totalFields = allFields.length;
+        let completedFields = 0;
+
+        allFields.forEach((field) => {
+          const fieldValue = formValues[field as keyof typeof formValues];
+          if (Array.isArray(fieldValue)) {
+            if (fieldValue && fieldValue.length > 0) {
+              completedFields++;
+            }
+          } else if (
+            typeof fieldValue === 'string' &&
+            fieldValue.trim() !== ''
+          ) {
+            completedFields++;
+          } else if (typeof fieldValue === 'boolean' && fieldValue === true) {
+            completedFields++;
+          } else if (
+            fieldValue !== undefined &&
+            fieldValue !== null &&
+            fieldValue !== '' &&
+            fieldValue !== false
+          ) {
+            completedFields++;
+          }
+        });
+
+        setProgress(Math.round((completedFields / totalFields) * 100));
+      }
     });
     return () => subscription.unsubscribe();
   }, [form]);
