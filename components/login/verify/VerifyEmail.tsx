@@ -60,7 +60,7 @@ export function VerifyEmail({
         callbackUrl: callbackUrl,
       });
       if (result?.error) {
-        console.error("Error: ",result)
+        console.error("Error: ", result);
         switch (result?.error) {
           case "INVALID":
             setSentTries((prev) => prev + 1);
@@ -105,7 +105,7 @@ export function VerifyEmail({
       await axios.post("/api/send-otp", {
         email: email,
       });
-    
+
       setResendCooldown(60);
       setExpired(false);
       setSentTries(0);
@@ -182,15 +182,14 @@ export function VerifyEmail({
                 Verify & Continue
               </LoadingButton>
             )}
-            {sentTries > 3 && (
-              <Button
-                type="submit"
-                className="w-full px-4 py-2 gap-2 bg-zinc-50 Dark:text-zinc-800  hover:bg-primary/90"
-                onClick={onBack}
-              >
-                Go back
-              </Button>
-            )}
+
+            <Button
+              type="submit"
+              className="w-full px-4 py-2 gap-2 bg-zinc-50 Dark:text-zinc-800  hover:bg-primary/90"
+              onClick={onBack}
+            >
+              Go back
+            </Button>
           </form>
         </Form>
         {sentTries <= 3 && (

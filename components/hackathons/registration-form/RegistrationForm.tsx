@@ -334,7 +334,7 @@ export function RegisterForm({
   return (
     <div className="w-full items-center justify-center">
       <h2 className="text-2xl font-bold mb-6 text-foreground">
-        {hackathon
+        Registration form for {hackathon
           ? `${hackathon.title} (Step ${step}/3)`
           : `Builders Hub - Registration Page (Step ${step}/3)`}
       </h2>
