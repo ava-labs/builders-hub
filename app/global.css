@@ -121,11 +121,6 @@ nav a:not(:first-child) {
   background-color: #4bccff96;
 }
 
-.bg-zinc-100 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(229 229 229);
-}
-
 .border-avax-red {
   --tw-border-opacity: 1;
   border-color: #e84142;
@@ -417,7 +412,7 @@ html body[data-scroll-locked] {
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0 0 0);
   --card-foreground: oklch(0.984 0.003 247.858);
-  --popover:  oklch(0 0 0);
+  --popover: oklch(0 0 0);
   --popover-foreground: oklch(0.984 0.003 247.858);
   --primary: oklch(0.929 0.013 255.508);
   --primary-foreground: oklch(0.208 0.042 265.755);
@@ -525,7 +520,7 @@ html body[data-scroll-locked] {
     );
   }
 
-  .bg-repeat-gradient-to-br {
+    .bg-repeat-gradient-to-br {
     background-image: repeating-linear-gradient(
       to bottom right,
       var(--tw-gradient-stops)

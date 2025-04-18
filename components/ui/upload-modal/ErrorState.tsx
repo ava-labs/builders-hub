@@ -8,7 +8,7 @@ interface ErrorStateProps {
 
 export function ErrorState({ message, subMessage, onReplace }: ErrorStateProps) {
   return (
-    <div className='flex flex-col items-center justify-center gap-3 border-2 border-red-500 rounded-lg p-8 text-center cursor-pointer bg-zinc-800 animate-in fade-in slide-in-from-bottom-4'>
+    <div className='flex flex-col items-center justify-center gap-3 border-2 border-red-500 rounded-lg p-8 text-center cursor-pointer bg-gray-100 dark:bg-zinc-800 animate-in fade-in slide-in-from-bottom-4'>
       <div className='flex items-center justify-center'>
         <div className='w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center'>
           <svg className='w-6 h-6 text-red-500' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
@@ -19,7 +19,7 @@ export function ErrorState({ message, subMessage, onReplace }: ErrorStateProps) 
       <div className='space-y-1'>
         <p className='text-red-500 text-lg'>{message}</p>
         {subMessage && (
-          <p className='text-sm text-zinc-400'>{subMessage}</p>
+          <p className='text-sm text-gray-500 dark:text-zinc-400'>{subMessage}</p>
         )}
       </div>
       <Button 

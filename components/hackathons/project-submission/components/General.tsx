@@ -125,9 +125,10 @@ export default function GeneralComponent({
         console.error('Error uploading files or saving project:', error);
         toast({
           title: 'Error',
-          description: error instanceof Error 
-            ? error.message 
-            : 'An error occurred while saving the project.',
+          description:
+            error instanceof Error
+              ? error.message
+              : 'An error occurred while saving the project.',
           variant: 'destructive',
         });
       }
@@ -153,9 +154,10 @@ export default function GeneralComponent({
       console.error('Error checking invitation:', error);
       toast({
         title: 'Error',
-        description: error instanceof Error 
-          ? error.message 
-          : 'An error occurred while checking the invitation.',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'An error occurred while checking the invitation.',
         variant: 'destructive',
       });
     }
@@ -175,7 +177,7 @@ export default function GeneralComponent({
 
   return (
     <div className='p-4 sm:p-6 rounded-lg max-w-7xl mx-auto'>
-      <Toaster  />
+      <Toaster />
       <div className='mb-4'>
         <h2 className='text-lg sm:text-xl font-semibold break-words'>
           Submit Your Project {hackathon?.title ? ' - ' + hackathon?.title : ''}
@@ -190,50 +192,74 @@ export default function GeneralComponent({
 
       <div className='flex flex-col sm:flex-row mt-6 gap-4 sm:gap-4 sm:space-x-12'>
         {/* Sidebar for mobile */}
-        <div className='flex sm:hidden justify-center items-center gap-4 py-4 border-b border-zinc-800'>
+        <div className='flex sm:hidden justify-center items-center gap-4 py-4 border-b border-zinc-200 dark:border-zinc-800'>
           <Tag
-            className='cursor-pointer'
-            color={step === 1 ? '#F5F5F9' : '#4F4F55'}
+            className={`cursor-pointer ${
+              step === 1
+                ? 'text-zinc-900 dark:text-[#F5F5F9]'
+                : 'text-zinc-500 dark:text-[#4F4F55]'
+            }`}
             onClick={() => handleStepChange(1)}
           />
           <Users
-            className='cursor-pointer'
-            color={step === 1 ? '#F5F5F9' : '#4F4F55'}
+            className={`cursor-pointer ${
+              step === 1
+                ? 'text-zinc-900 dark:text-[#F5F5F9]'
+                : 'text-zinc-500 dark:text-[#4F4F55]'
+            }`}
             onClick={() => handleStepChange(1)}
           />
           <Pickaxe
-            className='cursor-pointer'
-            color={step === 2 ? '#F5F5F9' : '#4F4F55'}
+            className={`cursor-pointer ${
+              step === 2
+                ? 'text-zinc-900 dark:text-[#F5F5F9]'
+                : 'text-zinc-500 dark:text-[#4F4F55]'
+            }`}
             onClick={() => handleStepChange(2)}
           />
           <Image
-            className='cursor-pointer'
-            color={step === 3 ? '#F5F5F9' : '#4F4F55'}
+            className={`cursor-pointer ${
+              step === 3
+                ? 'text-zinc-900 dark:text-[#F5F5F9]'
+                : 'text-zinc-500 dark:text-[#4F4F55]'
+            }`}
             onClick={() => handleStepChange(3)}
           />
         </div>
 
         {/* Sidebar for desktop */}
-        <aside className='w-16 flex-col items-center dark:bg-zinc-900 border border-zinc-800 px-2 py-2 gap-2 hidden sm:flex'>
+        <aside className='w-16 flex-col items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-2 py-2 gap-2 hidden sm:flex'>
           <div className='p-2 space-y-4'>
             <Tag
-              className='cursor-pointer'
-              color={step === 1 ? '#F5F5F9' : '#4F4F55'}
+              className={`cursor-pointer ${
+                step === 1
+                  ? 'text-zinc-900 dark:text-[#F5F5F9]'
+                  : 'text-zinc-500 dark:text-[#4F4F55]'
+              }`}
               onClick={() => handleStepChange(1)}
             />
             <Users
-              className='cursor-pointer'
-              color={step === 1 ? '#F5F5F9' : '#4F4F55'}
+              className={`cursor-pointer ${
+                step === 1
+                  ? 'text-zinc-900 dark:text-[#F5F5F9]'
+                  : 'text-zinc-500 dark:text-[#4F4F55]'
+              }`}
               onClick={() => handleStepChange(1)}
             />
             <Pickaxe
-              className='cursor-pointer'
-              color={step === 2 ? '#F5F5F9' : '#4F4F55'}
+              className={`cursor-pointer ${
+                step === 2
+                  ? 'text-zinc-900 dark:text-[#F5F5F9]'
+                  : 'text-zinc-500 dark:text-[#4F4F55]'
+              }`}
               onClick={() => handleStepChange(2)}
             />
             <Image
-              className='cursor-pointer'
-              color={step === 3 ? '#F5F5F9' : '#4F4F55'}
+              className={`cursor-pointer ${
+                step === 3
+                  ? 'text-zinc-900 dark:text-[#F5F5F9]'
+                  : 'text-zinc-500 dark:text-[#4F4F55]'
+              }`}
               onClick={() => handleStepChange(3)}
             />
           </div>

@@ -1,21 +1,21 @@
 // MediaUploader.tsx
-"use client";
+'use client';
 
-import React, { useRef, useState } from "react";
-import { useFormContext } from "react-hook-form";
+import React, { useRef, useState } from 'react';
+import { useFormContext } from 'react-hook-form';
 import {
   FormField,
   FormItem,
   FormLabel,
   FormControl,
   FormMessage,
-} from "@/components/ui/form";
+} from '@/components/ui/form';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -23,12 +23,12 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { ImageIcon, BadgeAlert } from "lucide-react";
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { ImageIcon, BadgeAlert, PlusCircleIcon } from 'lucide-react';
 
-import { Card } from "@/components/ui/card";
-import { SubmissionForm } from "../hooks/useSubmissionForm";
+import { Card } from '@/components/ui/card';
+import { SubmissionForm } from '../hooks/useSubmissionForm';
 
 type MediaUploaderProps = {
   name: keyof SubmissionForm;
@@ -40,6 +40,7 @@ type MediaUploaderProps = {
   width?: string;
   height?: string;
   extraText?: string;
+  buttonText?: string;
 };
 
 export default function MediaUploader({
@@ -48,11 +49,11 @@ export default function MediaUploader({
   maxItems,
   maxSizeMB,
   recommendedSize,
-  accept = "image/png, image/jpeg, image/svg+xml",
-  width = "sm:max-w-[128px]",
-  height = "sm:max-h-[128px]",
-  extraText=""
-
+  accept = 'image/png, image/jpeg, image/svg+xml',
+  width = 'sm:max-w-[128px]',
+  height = 'sm:max-h-[128px]',
+  extraText = '',
+  buttonText = 'Upload',
 }: MediaUploaderProps) {
   const form = useFormContext<SubmissionForm>();
 
@@ -78,7 +79,9 @@ export default function MediaUploader({
       if (maxItems === 1) {
         form.setValue(name, newFile);
       } else {
-        const currentFiles = Array.isArray(currentValue) ? currentValue : [currentValue];
+        const currentFiles = Array.isArray(currentValue)
+          ? currentValue
+          : [currentValue];
         currentFiles[selectedIndex] = newFile;
         form.setValue(name, currentFiles);
       }
@@ -93,7 +96,9 @@ export default function MediaUploader({
   const confirmDelete = () => {
     if (selectedIndex === null) return;
     const currentValue = form.getValues(name);
-    const currentFiles = Array.isArray(currentValue) ? currentValue : [currentValue];
+    const currentFiles = Array.isArray(currentValue)
+      ? currentValue
+      : [currentValue];
     currentFiles.splice(selectedIndex, 1);
     form.setValue(name, currentFiles.length === 0 ? null : currentFiles);
     setDeleteDialogOpen(false);
@@ -115,39 +120,42 @@ export default function MediaUploader({
         const fileArray = Array.isArray(value) ? value : value ? [value] : [];
 
         return (
-          <FormItem className="space-y-2">
-            <FormLabel className="text-sm text-foreground font-semibold">
+          <FormItem className='space-y-2'>
+            <FormLabel className='text-sm text-foreground font-semibold'>
               {label}
             </FormLabel>
 
             <div
               className={`grid gap-2  ${
                 maxItems > 1
-                  ? "grid-cols-2 sm:grid-cols-3 md:inline-flex "
-                  : "inline-flex"
+                  ? 'grid-cols-2 sm:grid-cols-3 md:inline-flex '
+                  : 'inline-flex'
               }`}
             >
               {fileArray.length === 0 ? (
                 <div
-                  className={`relative border-2 py-4 px-4 bg-zinc-800  border-dashed border-red-500 rounded-md w-full flex items-center justify-center ${sizeClasses}`}
+                  className={`relative border-2 py-4 px-4 dark:bg-zinc-800  border-dashed border-red-500 rounded-md w-full flex items-center justify-center ${sizeClasses}`}
                 >
-                  <div className="bg-white w-full  h-full flex items-center justify-center rounded-md">
+                  <div className='bg-white w-full  h-full flex items-center justify-center rounded-md'>
                     <ImageIcon
-                      className="text-red-500"
+                      className='text-red-500'
                       size={64}
-                      color="black"
+                      color='black'
                     />
                   </div>
                 </div>
               ) : (
                 fileArray.map((file, index) => {
                   let previewUrl: string;
-                  if (typeof file === "string") {
+                  if (typeof file === 'string') {
                     previewUrl = file;
                   } else if (file instanceof Blob) {
                     previewUrl = URL.createObjectURL(file);
                   } else {
-                    console.error("El elemento no es un Blob ni una cadena válida:", file);
+                    console.error(
+                      'The element is neither a Blob nor a valid string:',
+                      file
+                    );
                     return null;
                   }
                   return (
@@ -159,8 +167,8 @@ export default function MediaUploader({
                         >
                           <img
                             src={previewUrl}
-                            alt="Preview"
-                            className="w-full h-full object-contain rounded-md"
+                            alt='Preview'
+                            className='w-full h-full object-contain rounded-md'
                           />
                         </div>
                       </DropdownMenuTrigger>
@@ -181,23 +189,24 @@ export default function MediaUploader({
               )}
             </div>
 
-            <div className="flex flex-col">
+            <div className='flex flex-col'>
               <Button
-                variant="secondary"
-                type="button"
+                variant='outline'
+                type='button'
                 onClick={handleUploadClick}
-                className="flex gap-2 w-max max-w-[137px] bg-white text-black hover:bg-gray-200"
+                className='flex gap-2 w-fit dark:bg-white dark:text-black dark:hover:bg-gray-200 dark:hover:text-black'
                 disabled={fileArray.length >= maxItems}
               >
-                Upload {label.split(" ")[0]}
+                <PlusCircleIcon className='w-4 h-4' />
+                {buttonText}
               </Button>
             </div>
 
             <FormControl>
               <input
                 ref={uploadInputRef}
-                type="file"
-                className="hidden"
+                type='file'
+                className='hidden'
                 accept={accept}
                 multiple={maxItems > 1}
                 onChange={(e) => {
@@ -206,7 +215,7 @@ export default function MediaUploader({
                   const files = Array.from(e.target.files);
 
                   if (maxItems === 1) {
-                    field.onChange(files[0]); // 👈 pasa solo el File
+                    field.onChange(files[0]);
                   } else {
                     const existingFiles = Array.isArray(field.value)
                       ? field.value
@@ -215,7 +224,7 @@ export default function MediaUploader({
                       0,
                       maxItems
                     );
-                    field.onChange(totalFiles); // 👈 pasa File[]
+                    field.onChange(totalFiles);
                   }
                 }}
               />
@@ -223,13 +232,13 @@ export default function MediaUploader({
 
             <input
               ref={replaceInputRef}
-              type="file"
-              className="hidden"
+              type='file'
+              className='hidden'
               accept={accept}
               onChange={handleReplaceChange}
             />
 
-            <p className="text-sm text-zinc-400 leading-tight mt-2">
+            <p className='text-sm text-zinc-400 leading-tight mt-2'>
               {extraText && (
                 <>
                   {extraText}
@@ -246,24 +255,24 @@ export default function MediaUploader({
 
             {/* Dialogs */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-              <DialogContent className="bg-zinc-900 border border-zinc-400 max-w-md w-full px-4">
-                <DialogHeader className="flex flex-col ">
-                  <DialogTitle className="text-white text-lg pb-3">
+              <DialogContent className='bg-zinc-900 border border-zinc-400 max-w-md w-full px-4'>
+                <DialogHeader className='flex flex-col '>
+                  <DialogTitle className='text-white text-lg pb-3'>
                     Delete Image
                   </DialogTitle>
                 </DialogHeader>
                 <Card
-                  className="border border-red-500 w-[95%] sm:w-[85%] md:w-full h-auto max-h-[190px]
+                  className='border border-red-500 w-[95%] sm:w-[85%] md:w-full h-auto max-h-[190px]
   rounded-md p-4 sm:p-6 gap-4 bg-zinc-800 text-white mx-auto
-  flex flex-col items-center justify-center text-center"
+  flex flex-col items-center justify-center text-center'
                 >
-                  <BadgeAlert className="w-9 h-9" color="rgb(239 68 68)" />
-                  <DialogDescription className="text-red-500 text-md">
+                  <BadgeAlert className='w-9 h-9' color='rgb(239 68 68)' />
+                  <DialogDescription className='text-red-500 text-md'>
                     Are you sure you want to delete this image?
                   </DialogDescription>
                   <Button
                     onClick={confirmDelete}
-                    className=" bg-white hover:bg-zinc-400 text-black w-full max-w-[73px] "
+                    className=' bg-white hover:bg-zinc-400 text-black w-full max-w-[73px] '
                   >
                     Delete
                   </Button>
@@ -272,24 +281,30 @@ export default function MediaUploader({
             </Dialog>
 
             <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-              <DialogContent className="bg-zinc-900 max-w-[600px] w-full px-4">
+              <DialogContent className='bg-zinc-900 max-w-[600px] w-full px-4'>
                 <DialogHeader>
                   <DialogTitle>View Image</DialogTitle>
                 </DialogHeader>
                 {(() => {
-  if (selectedIndex === null) return null;
-  const value = form.getValues(name);
-  const files = Array.isArray(value) ? value : value ? [value] : [];
-  const file = files[selectedIndex];
-  if (!file) return null;
-  const previewUrl =
-    typeof file === "string" ? file : URL.createObjectURL(file as Blob);
+                  if (selectedIndex === null) return null;
+                  const value = form.getValues(name);
+                  const files = Array.isArray(value)
+                    ? value
+                    : value
+                    ? [value]
+                    : [];
+                  const file = files[selectedIndex];
+                  if (!file) return null;
+                  const previewUrl =
+                    typeof file === 'string'
+                      ? file
+                      : URL.createObjectURL(file as Blob);
                   return (
-                    <div className="flex justify-center">
+                    <div className='flex justify-center'>
                       <img
                         src={previewUrl}
-                        alt="Full Preview"
-                        className="max-h-[80vh] object-contain"
+                        alt='Full Preview'
+                        className='max-h-[80vh] object-contain'
                       />
                     </div>
                   );

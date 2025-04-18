@@ -44,7 +44,7 @@ export default function SubmitStep2() {
               <FormControl>
                 <Textarea
                   placeholder="Describe the tech stack, APIs, and integrations used."
-                  className=" h-[180px] resize-none text-zinc-400 dark:bg-zinc-950"
+                  className=" h-[180px] resize-none dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
@@ -71,7 +71,7 @@ export default function SubmitStep2() {
                 <Input
                   placeholder="Paste GitHub link (e.g., https://github.com/user/repo)"
                   {...field}
-                  className="text-zinc-400 dark:bg-zinc-950"
+                  className="dark:bg-zinc-950"
                 />
               </FormControl>
               <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
@@ -92,7 +92,7 @@ export default function SubmitStep2() {
               <FormControl>
                 <Input
                   placeholder="Paste Demo link (e.g., https://yoursite.com)"
-                  className="text-zinc-400 dark:bg-zinc-950"
+                  className="dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
@@ -122,17 +122,17 @@ export default function SubmitStep2() {
           render={({ field }) => (
             <FormItem className="flex items-center justify-between p-4 border rounded">
               <div className="space-y-1">
-                <FormLabel className="text-white">
+                <FormLabel>
                   Is this project based on a pre-existing idea?
                 </FormLabel>
-                <p className="text-sm text-zinc-400 whitespace-pre-line italic">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line italic">
                   If your project is built upon an existing idea, you must
                   disclose which components were developed specifically during
                   the      {"\n"}
                   hackathon.      {"\n"}
           
                 </p>
-                <p className="text-sm text-zinc-400 whitespace-pre-line ">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line ">
             
                    Judges may not have enough time to fully verify
                   the implementation during evaluation, but prize distribution
@@ -161,11 +161,11 @@ export default function SubmitStep2() {
               <FormControl>
                 <Textarea
                   placeholder="Provide a detailed breakdown of the new features, functionalities, or improvements developed during this event."
-                  className=" h-15 resize-none text-zinc-400 placeholder-zinc-400 dark:bg-zinc-950"
+                  className=" h-15 resize-none dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
-              <p className="text-zinc-400 text-sm  tracking-[0%] font-aeonik whitespace-pre-line">
+              <p className="text-zinc-600 dark:text-zinc-400 text-sm  tracking-[0%] font-aeonik whitespace-pre-line">
                 Clearly specify what was created during the hackathon.{"\n"}
                 Differentiate between pre-existing work and new contributions.
                 {"\n"}

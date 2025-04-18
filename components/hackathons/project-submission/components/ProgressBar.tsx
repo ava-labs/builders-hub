@@ -24,7 +24,7 @@ export const ProgressBar = ({ progress, timeLeft }: ProgressBarProps) => {
         variant="outline"
         className="flex items-center gap-2 border-red-500 px-3 py-1"
       >
-        <Hourglass size={16} color="#F5F5F9" />
+        <Hourglass size={16}  />
         <span>Deadline: {timeLeft} remaining</span>
       </Badge>
     </div>

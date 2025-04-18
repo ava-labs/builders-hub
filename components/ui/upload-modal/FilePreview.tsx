@@ -25,21 +25,21 @@ export function FilePreview({ name, size, url, onEdit, onDelete }: FilePreviewPr
   };
 
   return (
-    <div className="bg-zinc-800 rounded-lg p-3 flex items-center justify-between">
+    <div className="bg-gray-100 dark:bg-zinc-800 rounded-lg p-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-zinc-700 rounded flex items-center justify-center overflow-hidden">
+        <div className="w-10 h-10 bg-gray-200 dark:bg-zinc-700 rounded flex items-center justify-center overflow-hidden">
           <img src={url} alt={name} className="w-full h-full object-contain" />
         </div>
         <div className="flex flex-col">
-          <span className="text-sm text-white">{truncateFileName(name)}</span>
-          <span className="text-xs text-zinc-400">{formatFileSize(size)}</span>
+          <span className="text-sm text-black dark:text-white">{truncateFileName(name)}</span>
+          <span className="text-xs text-gray-500 dark:text-zinc-400">{formatFileSize(size)}</span>
         </div>
       </div>
       <div className="flex gap-2">
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-full hover:bg-zinc-600"
+          className="h-8 w-8 rounded-full hover:bg-gray-200 dark:hover:bg-zinc-600"
           onClick={onEdit}
           title="Replace image"
         >

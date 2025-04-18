@@ -219,7 +219,7 @@ export default function UploadModal({
     if (uploadState.fileInfo && uploadState.status !== 'error') {
       return (
         <div className="w-full">
-          <p className="text-sm font-medium text-white mb-2">
+          <p className="text-sm font-medium text-black dark:text-white mb-2">
             {uploadState.status === 'success' ? 'Upload Successful!' : 'Current Image'}
           </p>
           <FilePreview 
@@ -234,10 +234,10 @@ export default function UploadModal({
     if (uploadState.status !== 'uploading' && uploadState.status !== 'error') {
       return (
         <div className="w-full space-y-2">
-          <p className="text-sm font-medium text-white">Upload from URL</p>
-          <div className="flex items-center gap-2 p-4 bg-zinc-800 rounded-md">
+          <p className="text-sm font-medium text-black dark:text-white">Upload from URL</p>
+          <div className="flex items-center gap-2 p-4 bg-gray-100 dark:bg-zinc-800 rounded-md">
             <svg
-              className="w-5 h-5 text-zinc-400"
+              className="w-5 h-5 text-gray-500 dark:text-zinc-400"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -253,12 +253,12 @@ export default function UploadModal({
             <Input
               type="text"
               placeholder="Add file URL"
-              className="border-none !bg-transparent text-white h-8 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="border-none !bg-transparent text-black dark:text-white h-8 focus-visible:ring-0 focus-visible:ring-offset-0"
               value={fileUrl}
               onChange={(e) => setFileUrl(e.target.value)}
             />
             <Button 
-              className="bg-black text-white hover:bg-zinc-800 rounded-md px-4 py-1"
+              className="bg-gray-900 dark:bg-black text-white hover:bg-gray-800 dark:hover:bg-zinc-800 rounded-md px-4 py-1"
               disabled={!fileUrl}
               onClick={handleUrlUpload}
             >
@@ -299,7 +299,7 @@ export default function UploadModal({
       description="Add the image here. Recommended size: 512 x 512px (square format)"
       content={renderContent()}
       footer={renderFooter()}
-      className="bg-zinc-900 text-white"
+      className="bg-white dark:bg-zinc-900 text-black dark:text-white"
       contentClassName="py-4"
     />
   );

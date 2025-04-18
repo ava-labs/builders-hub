@@ -31,6 +31,7 @@ export default function SubmitStep3() {
         recommendedSize="512 x 512"
         width="max-w-[128px]"
         height="max-h-[128px]"
+        buttonText="Upload Logo"
       />
 
       <MediaUploader
@@ -41,6 +42,7 @@ export default function SubmitStep3() {
         width="max-w-[200px]"
         height="max-h-[120px]"
         recommendedSize="840 x 300"
+        buttonText="Upload Cover Image"
       />
 
       <MediaUploader
@@ -52,6 +54,7 @@ export default function SubmitStep3() {
         height="max-h-[128px]"
         recommendedSize="No specific size required, but ensure clarity and readability"
         extraText="Upload up to 5 screenshots that showcase your project."
+        buttonText="Upload Screenshots"
       />
 
       {/* Demo Video */}
@@ -68,11 +71,11 @@ export default function SubmitStep3() {
               <FormControl>
                 <Input
                   placeholder="Paste your video link (e.g., YouTube, Vimeo, or other supported platform)"
-                  className="text-white dark:bg-zinc-950"
+                  className="dark:bg-zinc-950"
                   {...field}
                 />
               </FormControl>
-              <p className="text-sm text-zinc-400 ">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 ">
                 Showcase your project in action with a short demo video. Ensure
                 the link is accessible and not set to private. <br />
                 Video requirements: <br />
