@@ -8,7 +8,6 @@ type Props = {
 };
 
 export default function TeamMembers({ members, projectName }: Props) {
-  console.log("members", members);
   return (
     <div>
       <h2 className="text-2xl font-bold">Team</h2>

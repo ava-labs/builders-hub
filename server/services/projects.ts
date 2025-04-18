@@ -121,7 +121,7 @@ export async function getProject(id: string) {
     members:
       project.members.map((member) => ({
         ...member, user: {
-          user_name: member.user.user_name,
+          user_name: member.user.user_name || member.user.name || '',
           image: member.user.image
         } as User
       })),
