@@ -31,6 +31,7 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '../ui/toaster';
+import { useSession } from 'next-auth/react';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Full name is required'),
@@ -63,7 +64,7 @@ export default function ProfileForm({
   const router = useRouter();
   const formData = useRef(new FormData());
   const { toast } = useToast();
-
+  const { update } = useSession();
   useEffect(() => {
     if (initialData) {
       form.reset(initialData);
@@ -131,6 +132,7 @@ export default function ProfileForm({
         variant: 'destructive',
       });
     } finally {
+      await update();
       setIsSaving(false);
     }
   };
