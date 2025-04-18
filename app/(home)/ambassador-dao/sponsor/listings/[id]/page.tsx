@@ -207,7 +207,7 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
   const [exporting, setExporting] = useState(false);
   const queryClient = useQueryClient();
 
-  const { isSuccess, isLoading, isPending, error } = useExportCsv(
+  const { isSuccess, isLoading, error } = useExportCsv(
     exporting,
     listingId
   );
@@ -245,9 +245,9 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
           <button
             onClick={handleExport}
             className="border text-sm border-[var(--default-border-color)] bg-[var(--default-background-color)] text-[var(--primary-text-color)] rounded-md px-4 py-2 hover:bg-[var(--primary-hover-color)] transition-all duration-300 ease-in-out cursor-pointer"
-            disabled={isLoading || isPending}
+            disabled={isLoading}
           >
-            {isLoading || isPending ? (
+            {isLoading ? (
               <div className="flex justify-center items-center h-5">
                 <div className="relative">
                   <div className="absolute inset-0 animate-ping rounded-full opacity-50"></div>
@@ -428,7 +428,7 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
     const [exporting, setExporting] = useState(false);
     const queryClient = useQueryClient();
   
-    const { isSuccess, isLoading, isPending, error } = useExportCsv(
+    const { isSuccess, isLoading, error } = useExportCsv(
       exporting,
       listingId
     );
@@ -463,9 +463,9 @@ const BountySubmissions = ({ listingId }: { listingId: string }) => {
         <button
             onClick={handleExport}
             className="border text-sm border-[var(--default-border-color)] bg-[var(--default-background-color)] text-[var(--primary-text-color)] rounded-md px-4 py-2 hover:bg-[var(--primary-hover-color)] transition-all duration-300 ease-in-out cursor-pointer"
-            disabled={isLoading || isPending}
+            disabled={isLoading}
           >
-            {isLoading || isPending ? (
+            {isLoading ? (
               <div className="flex justify-center items-center h-5">
                 <div className="relative">
                   <div className="absolute inset-0 animate-ping rounded-full opacity-50"></div>
