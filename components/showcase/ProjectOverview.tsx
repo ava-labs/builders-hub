@@ -2,7 +2,7 @@ import Image from "next/image";
 import { Separator } from "../ui/separator";
 import Info from "./sections/Info";
 import Gallery from "./sections/Gallery";
-import Prices from "./sections/Prices";
+import Prizes from "./sections/Prizes";
 import Description from "./sections/Description";
 import TeamMembers from "./sections/TeamMembers";
 import { Project} from "@/types/showcase";
@@ -43,7 +43,7 @@ export default function ProjectOverview({ project }: Props) {
             <VideoRenderer link={project.demo_video_link} />
           )}
 
-          {project.prices?.length > 1 && <Prices prices={project.prices} />}
+          {project.prizes?.length > 1 && <Prizes prizes={project.prizes} />}
           {project.full_description && (
             <Description description={project.full_description} />
           )}

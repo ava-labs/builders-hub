@@ -16,7 +16,7 @@ export default function Info({ project }: Props) {
             {project.project_name.slice(0, 55)}
             {project.project_name.length > 55 ? "..." : ""}
           </h1>
-          {project.prices.length > 1 && (
+          {project.prizes.length > 1 && (
             <div className="p-2 bg-red-500 rounded-full">
               <Trophy
                 size={30}

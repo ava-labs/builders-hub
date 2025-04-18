@@ -5,14 +5,14 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import AutoScroll from "embla-carousel-auto-scroll";
-import { ProjectPrice } from "@/types/showcase";
+import { ProjectPrize } from "@/types/showcase";
 import { DynamicIcon } from "lucide-react/dynamic";
 import { useMemo } from "react";
 
 type Props = {
-  prices: ProjectPrice[];
+  prizes: ProjectPrize[];
 };
-export default function Prices({ prices }: Props) {
+export default function Prices({ prizes }: Props) {
   const plugin = useMemo(
     () =>
       AutoScroll({
@@ -35,7 +35,7 @@ export default function Prices({ prices }: Props) {
           }}
         >
           <CarouselContent>
-            {prices.map((price, index) => (
+            {prizes.map((prize, index) => (
               <CarouselItem
                 key={index}
                 className="basis-1/2 sm:basis-1/3 md:basis-1/5 items-center justify-center flex"
@@ -46,21 +46,21 @@ export default function Prices({ prices }: Props) {
                 >
                   <div className="p-2 bg-zinc-900 dark:bg-zinc-50 rounded-full">
                     <DynamicIcon
-                      name={price.icon as any}
+                      name={prize.icon as any}
                       size={20}
                       className="!text-zinc-300 dark:!text-zinc-700"
                     />
                   </div>
                   <div className="mt-2 sm:mt-4 flex flex-col justify-center">
                     <h2 className="text-zinc-900 dark:text-zinc-50 text-2xl text-center font-bold">
-                      {price.price.toLocaleString("en-US", {
+                      {prize.price.toLocaleString("en-US", {
                         style: "currency",
                         currency: "USD",
                         maximumFractionDigits: 0,
                       })}
                     </h2>
                     <p className="text-zinc-900 dark:text-zinc-50 text-xs xl:text-sm text-center font-light xl:font-normal">
-                      {price.track}
+                      {prize.track}
                     </p>
                   </div>
                 </div>

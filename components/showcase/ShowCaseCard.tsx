@@ -94,9 +94,6 @@ export default function ShowCaseCard({
       handleFilterChange("search", searchValue);
     }
   };
-  useEffect(() => {
-    console.debug("filters: ", filters);
-  }, [filters]);
 
   return (
     <Card className="bg-zinc-50 dark:bg-zinc-950 relative border border-zinc-300 dark:border-zinc-800 p-4 sm:p-8">

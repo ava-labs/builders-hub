@@ -20,7 +20,7 @@ export type Project = {
   created_at: string;
   updated_at: string;
   members: Member[];
-  prices: ProjectPrice[];
+  prizes: ProjectPrize[];
   hackathon: HackathonHeader;
 };
 
@@ -34,7 +34,7 @@ export type Member = {
   user: User;
 };
 
-export type ProjectPrice = {
+export type ProjectPrize = {
   icon: string
   price: number
   track: string

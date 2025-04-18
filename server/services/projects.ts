@@ -109,6 +109,7 @@ export async function getProject(id: string) {
       },
      
       hackathon: true,
+      prizes: true,
     },
     where: { id },
   });
