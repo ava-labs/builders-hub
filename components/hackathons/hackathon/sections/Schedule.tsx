@@ -137,7 +137,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
         <DeadLine deadline={hackathon.content.submission_deadline} />
       </div>
       <Divider />
-      <div className='bg-zinc-200 dark:bg-zinc-800 backdrop-blur-sm rounded-lg py-1 w-fit flex items-center gap-2'>
+      <div className='bg-zinc-200 dark:bg-zinc-800 backdrop-blur-sm rounded-lg py-1 sm:w-fit w-full sm:max-w-none flex items-center gap-2'>
         <button
           onClick={() => {
             const days = Object.keys(groupActivitiesByDay(hackathon.content.schedule));
@@ -146,36 +146,38 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
               setSelectedDay(days[currentIndex - 1]);
             }
           }}
-          className='text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-300 px-2 cursor-pointer'
+          className='hidden sm:block text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-300 px-2 cursor-pointer min-w-[32px]'
         >
-          <CircleArrowLeft strokeWidth={1} className='h-8 w-8' />
+          <CircleArrowLeft strokeWidth={1} className='h-6 w-6 sm:h-8 sm:w-8' />
         </button>
-        <div className='flex items-center'>
-          {Object.entries(groupActivitiesByDay(hackathon.content.schedule)).map(
-            ([formattedDate, activities], index) => {
-              const date = new Date(activities[0].date);
-              const month = date
-                .toLocaleString('en-US', { month: 'long' })
-                .toUpperCase();
-              const day = date.getDate();
-              return (
-                <div
-                  key={index}
-                  className={`border-none cursor-pointer transition-all select-none ${
-                    selectedDay === formattedDate
-                      ? ' bg-zinc-500 text-white dark:bg-black dark:text-white'
-                      : 'bg-transparent text-zinc-600 hover:text-zinc-800 dark:text-zinc-500 dark:hover:text-zinc-300'
-                  } rounded-lg`}
-                  onClick={() => setSelectedDay(formattedDate)}
-                >
-                  <div className='flex items-center gap-1 py-1.5 px-3'>
-                    <span className='text-sm font-medium'>{month}</span>
-                    <span className='text-sm font-medium'>{day}</span>
+        <div className='flex items-center overflow-x-auto no-scrollbar w-full sm:w-auto'>
+          <div className='flex w-full sm:w-auto divide-x divide-zinc-300 dark:divide-zinc-700'>
+            {Object.entries(groupActivitiesByDay(hackathon.content.schedule)).map(
+              ([formattedDate, activities], index) => {
+                const date = new Date(activities[0].date);
+                const month = date
+                  .toLocaleString('en-US', { month: 'long' })
+                  .toUpperCase();
+                const day = date.getDate();
+                return (
+                  <div
+                    key={index}
+                    className={`border-none cursor-pointer transition-all select-none flex-1 sm:flex-initial ${
+                      selectedDay === formattedDate
+                        ? 'bg-zinc-500 text-white dark:bg-black dark:text-white'
+                        : 'bg-transparent text-zinc-600 hover:text-zinc-800 dark:text-zinc-500 dark:hover:text-zinc-300'
+                    } rounded-lg whitespace-nowrap`}
+                    onClick={() => setSelectedDay(formattedDate)}
+                  >
+                    <div className='flex items-center justify-center gap-1 py-1.5 px-2 sm:px-3'>
+                      <span className='text-xs sm:text-sm font-medium'>{month}</span>
+                      <span className='text-xs sm:text-sm font-medium'>{day}</span>
+                    </div>
                   </div>
-                </div>
-              );
-            }
-          )}
+                );
+              }
+            )}
+          </div>
         </div>
         <button
           onClick={() => {
@@ -185,9 +187,9 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
               setSelectedDay(days[currentIndex + 1]);
             }
           }}
-          className='text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-300 px-2 cursor-pointer'
+          className='hidden sm:block text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-300 px-2 cursor-pointer min-w-[32px]'
         >
-          <CircleArrowRight strokeWidth={1} className='h-8 w-8' />
+          <CircleArrowRight strokeWidth={1} className='h-6 w-6 sm:h-8 sm:w-8' />
         </button>
       </div>
       <div className='grid grid-cols-1 xl:grid-cols-2 gap-5'>
