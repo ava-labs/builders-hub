@@ -59,7 +59,7 @@ export const registerSchema = z.object({
     .refine(
       (val) => {
         const githubRepoRegex =
-          /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+          /^(?:https?:\/\/)?(?:www\.)?github\.com\/[a-zA-Z0-9_-]+\/?$/;
         return githubRepoRegex.test(val);
       },
       {
@@ -108,7 +108,7 @@ export function RegisterForm({
       email: currentUser?.email || "",
       company_name: "",
       role: "",
-      city: "Mata",
+      city: "",
       dietary: "",
       interests: [],
       web3_proficiency: "",
@@ -257,7 +257,6 @@ export function RegisterForm({
       );
     }
     router.push(`/hackathons/${hackathon_id}`);
-  
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
@@ -389,13 +388,13 @@ export function RegisterForm({
                   loadingText="Saving..."
                   type="button"
                   onClick={() => {
-                    console.log("seteo en true")
-                    
+                    console.log("seteo en true");
+
                     try {
                       setIsSavingLater(true);
-                        onSaveLater();
+                      onSaveLater();
                     } finally {
-                      console.log("seteo en false")
+                      console.log("seteo en false");
                       setIsSavingLater(false);
                     }
                   }}
