@@ -89,7 +89,7 @@ export function VerifyEmail({
         window.location.href = result.url;
       }
     } catch (error) {
-      setMessage("wut");
+      setMessage("Error to sent OTP try again.");
     } finally {
       setIsVerifying(false);
     }
@@ -110,7 +110,7 @@ export function VerifyEmail({
       setExpired(false);
       setSentTries(0);
     } catch (error) {
-      setMessage("ErrError to sent OTP try againo.");
+      setMessage("Error sending OTP. Please try again.");
     } finally {
       setIsResending(false);
     }
