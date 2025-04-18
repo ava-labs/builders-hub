@@ -36,7 +36,9 @@ import {
 import CustomButton from "@/components/ambassador-dao/custom-button";
 import Image from "next/image";
 import { PaginationComponent } from "@/components/ambassador-dao/pagination";
-import { useFetchAllListings } from "@/services/ambassador-dao/requests/sponsor";
+import {
+  useFetchAllListings,
+} from "@/services/ambassador-dao/requests/sponsor";
 import {
   useFetchSponsorStatsDataQuery,
   useFetchUserDataQuery,
@@ -104,35 +106,36 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
 
   const { data: stats } = useFetchSponsorStatsDataQuery();
 
+
   return (
-    <div className='space-y-6'>
+    <div className="space-y-6">
       {/* Under review */}
       {user?.status === "PENDING" && (
-        <div className='bg-[#155DFC] rounded-md p-3 md:p-6'>
-          <p className='text-[var(--primary-text-color)] text-sm'>
+        <div className="bg-[#155DFC] rounded-md p-3 md:p-6">
+          <p className="text-[var(--primary-text-color)] text-sm">
             Under review
           </p>
-          <p className='text-[var(--secondary-text-color)] text-sm font-light'>
+          <p className="text-[var(--secondary-text-color)] text-sm font-light">
             Your account is under review, and will be approved shortly.
           </p>
         </div>
       )}
       {/* Dashboard rejected */}
       {user?.status === "REJECTED" && (
-        <div className='bg-[#FB2C36] rounded-md p-3 md:p-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between'>
+        <div className="bg-[#FB2C36] rounded-md p-3 md:p-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
           <div>
-            <p className='text-[var(--primary-text-color)] text-sm'>
+            <p className="text-[var(--primary-text-color)] text-sm">
               Uh oh! Something went wrong.
             </p>
-            <p className='text-[#E5E7EB] text-sm font-light'>
+            <p className="text-[#E5E7EB] text-sm font-light">
               Review and resubmit your company details again for approval.
               (TODO: Allow resubmission after admin rejection)
             </p>
           </div>
           <CustomButton
-            variant='outlined'
+            variant="outlined"
             isFullWidth={false}
-            className='font-medium px-3 whitespace-nowrap'
+            className="font-medium px-3 whitespace-nowrap"
             onClick={() => router.push("/ambassador-dao/onboard")}
           >
             Try Again
@@ -141,20 +144,20 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
       )}
 
       {/* User Profile */}
-      <div className='border border-[var(--default-border-color)] rounded-md p-3 md:p-6'>
-        <div className='flex items-center space-x-4'>
-          <div className='w-12 h-12 rounded-full bg-gray-700 overflow-hidden'>
+      <div className="border border-[var(--default-border-color)] rounded-md p-3 md:p-6">
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 rounded-full bg-gray-700 overflow-hidden">
             <img
               src={user?.profile_image ?? DefaultAvatar}
               alt={user?.first_name ?? "Profile image"}
-              className='w-full h-full object-cover'
+              className="w-full h-full object-cover"
             />
           </div>
           <div>
-            <h2 className='text-lg font-medium text-[var(--primary-text-color)]'>
+            <h2 className="text-lg font-medium text-[var(--primary-text-color)]">
               {user?.first_name} {user?.last_name}
             </h2>
-            <p className='text-sm text-[var(--secondary-text-color)] font-light'>
+            <p className="text-sm text-[var(--secondary-text-color)] font-light">
               Sponsor since{" "}
               {user?.created_at
                 ? new Date(user?.created_at).getFullYear()
@@ -163,49 +166,50 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
           </div>
         </div>
 
-        <hr className='border-[var(--default-border-color)] my-8' />
+        <hr className="border-[var(--default-border-color)] my-8" />
 
-        <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-center'>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <StatCard
             value={stats?.total_submissions ?? 0}
-            label='Submissions Received'
+            label="Submissions Received"
           />
           <StatCard
             value={stats?.total_applications ?? 0}
-            label='Applications Received'
+            label="Applications Received"
           />
-          <StatCard value={stats?.total_rewards ?? 0} label='Rewarded' />
-          <StatCard value={stats?.total_listings ?? 0} label='Listings' />
+          <StatCard value={stats?.total_rewards ?? 0} label="Rewarded" />
+          <StatCard value={stats?.total_listings ?? 0} label="Listings" />
         </div>
       </div>
       {/* Listings Section */}
-      <div className='border border-[var(--default-border-color)] rounded-md p-3 md:p-6'>
-        <div className='flex justify-between items-center mb-6'>
-          <h2 className='text-xl font-medium text-[var(--primary-text-color)]'>
+      <div className="border border-[var(--default-border-color)] rounded-md p-3 md:p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-medium text-[var(--primary-text-color)]">
             My Listing
           </h2>
-          <div className='flex space-x-2'>
+          <div className="flex space-x-2">
+          
             <Select
-              defaultValue='ALL'
+              defaultValue="ALL"
               onValueChange={setStatus}
-              iconColor='var(--primary-text-color)'
+              iconColor="var(--primary-text-color)"
             >
-              <SelectTrigger className='w-36 bg-[var(--default-background-color)] border-[var(--default-border-color)]'>
-                <SelectValue placeholder='Everything' />
+              <SelectTrigger className="w-36 bg-[var(--default-background-color)] border-[var(--default-border-color)]">
+                <SelectValue placeholder="Everything" />
               </SelectTrigger>
-              <SelectContent className='bg-[#fafafa] dark:bg-[#09090B] border-[var(--default-border-color)]'>
-                <SelectItem value='ALL'>Everything</SelectItem>
-                <SelectItem value='DRAFT'>Draft</SelectItem>
-                <SelectItem value='OPEN'>Open</SelectItem>
-                <SelectItem value='PUBLISHED'>Published</SelectItem>
-                <SelectItem value='IN_REVIEW'>In Review</SelectItem>
-                <SelectItem value='COMPLETED'>Completed</SelectItem>
+              <SelectContent className="bg-[#fafafa] dark:bg-[#09090B] border-[var(--default-border-color)]">
+                <SelectItem value="ALL">Everything</SelectItem>
+                <SelectItem value="DRAFT">Draft</SelectItem>
+                <SelectItem value="OPEN">Open</SelectItem>
+                <SelectItem value="PUBLISHED">Published</SelectItem>
+                <SelectItem value="IN_REVIEW">In Review</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
               </SelectContent>
             </Select>
 
             <Input
-              placeholder='Search...'
-              className='bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:ring-[#27272A] hidden md:block'
+              placeholder="Search..."
+              className="bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:ring-[#27272A] hidden md:block"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -213,7 +217,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
         </div>
 
         {/* Tabs */}
-        <div className='flex gap-2 whitespace-nowrap overflow-x-auto'>
+        <div className="flex gap-2 whitespace-nowrap overflow-x-auto">
           <TabButton
             active={type === "all"}
             onClick={() => handleTabChange("all")}
@@ -234,40 +238,40 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
           </TabButton>
         </div>
 
-        <hr className='border-[var(--default-border-color)] my-6' />
+        <hr className="border-[var(--default-border-color)] my-6" />
 
         {/* Listings Table */}
-        <div className='w-full'>
+        <div className="w-full">
           {isLoading ? (
             <Loader />
           ) : (
             <>
               {!!listings?.data?.length ? (
                 <>
-                  <div className='overflow-x-auto'>
+                  <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow className='border-[var(--default-border-color)] hover:bg-transparent whitespace-nowrap p-3 text-[var(--secondary-text-color)]'>
+                        <TableRow className="border-[var(--default-border-color)] hover:bg-transparent whitespace-nowrap p-3 text-[var(--secondary-text-color)]">
                           <TableHead>Listing Name</TableHead>
                           <TableHead>Submissions</TableHead>
                           {/* <TableHead>Deadline</TableHead> */}
                           <TableHead>Price</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead className='text-right'>Actions</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {listings?.data.map((listing) => (
                           <TableRow
                             key={listing.id}
-                            className='border-[var(--default-border-color)] hover:bg-gray-200 dark:hover:bg-[#27272A]/50 whitespace-nowrap p-3 text-[var(--white-text-color)] cursor-pointer'
+                            className="border-[var(--default-border-color)] hover:bg-gray-200 dark:hover:bg-[#27272A]/50 whitespace-nowrap p-3 text-[var(--white-text-color)] cursor-pointer"
                             onClick={() => {
                               router.push(
                                 `/ambassador-dao/sponsor/listings/${listing.id}`
                               );
                             }}
                           >
-                            <TableCell className='font-medium'>
+                            <TableCell className="font-medium">
                               {listing.title}
                             </TableCell>
                             <TableCell>
@@ -284,44 +288,44 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                             <TableCell>
                               <StatusBadge status={listing.status} />
                             </TableCell>
-                            <TableCell className='text-right'>
+                            <TableCell className="text-right">
                               {/* Desktop actions */}
-                              <div className='hidden sm:flex justify-end space-x-2'>
+                              <div className="hidden sm:flex justify-end space-x-2">
                                 {listing.status === "DRAFT" && (
                                   <Link
                                     href={`/ambassador-dao/sponsor/listing/${listing.id}/update?type=${listing.type}`}
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <Button
-                                      variant='ghost'
-                                      size='sm'
-                                      className='p-1 h-auto'
+                                      variant="ghost"
+                                      size="sm"
+                                      className="p-1 h-auto"
                                     >
                                       <PenLine
-                                        className='h-4 w-4'
-                                        color='#9F9FA9'
+                                        className="h-4 w-4"
+                                        color="#9F9FA9"
                                       />
                                     </Button>
                                   </Link>
                                 )}
 
                                 <Button
-                                  variant='ghost'
-                                  size='sm'
-                                  className='p-1 h-auto'
+                                  variant="ghost"
+                                  size="sm"
+                                  className="p-1 h-auto"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedListingId(listing.id);
                                     setIsDeleteModalOpen(true);
                                   }}
                                 >
-                                  <Trash2 className='h-4 w-4' color='#9F9FA9' />
+                                  <Trash2 className="h-4 w-4" color="#9F9FA9" />
                                 </Button>
                                 {listing.status === "PUBLISHED" && (
                                   <Button
-                                    variant='ghost'
-                                    size='sm'
-                                    className='p-1 h-auto'
+                                    variant="ghost"
+                                    size="sm"
+                                    className="p-1 h-auto"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       navigator.clipboard.writeText(
@@ -337,8 +341,8 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                     }}
                                   >
                                     <LinkIcon
-                                      className='h-4 w-4'
-                                      color='#9F9FA9'
+                                      className="h-4 w-4"
+                                      color="#9F9FA9"
                                     />
                                   </Button>
                                 )}
@@ -351,31 +355,31 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                 </Button> */}
                               </div>
                               {/* Mobile dropdown */}
-                              <div className='sm:hidden'>
+                              <div className="sm:hidden">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button
-                                      variant='ghost'
-                                      size='sm'
-                                      className='p-1 h-auto'
+                                      variant="ghost"
+                                      size="sm"
+                                      className="p-1 h-auto"
                                       onClick={(e) => e.stopPropagation()}
                                     >
-                                      <MoreHorizontal className='h-4 w-4' />
+                                      <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent
-                                    align='end'
-                                    className='bg-gray-800 border-[var(--default-border-color)]'
+                                    align="end"
+                                    className="bg-gray-800 border-[var(--default-border-color)]"
                                   >
                                     {listing.status === "DRAFT" && (
                                       <Link
                                         href={`/ambassador-dao/sponsor/listing/${listing.id}/update?type=${listing.type}`}
                                         onClick={(e) => e.stopPropagation()}
                                       >
-                                        <DropdownMenuItem className='text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer'>
+                                        <DropdownMenuItem className="text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer">
                                           <PenLine
-                                            className='h-4 w-4 mr-2'
-                                            color='#9F9FA9'
+                                            className="h-4 w-4 mr-2"
+                                            color="#9F9FA9"
                                           />{" "}
                                           Edit
                                         </DropdownMenuItem>
@@ -383,7 +387,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                     )}
 
                                     <DropdownMenuItem
-                                      className='text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer'
+                                      className="text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedListingId(listing.id);
@@ -391,14 +395,14 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                       }}
                                     >
                                       <Trash2
-                                        className='h-4 w-4 mr-2'
-                                        color='#9F9FA9'
+                                        className="h-4 w-4 mr-2"
+                                        color="#9F9FA9"
                                       />{" "}
                                       Delete
                                     </DropdownMenuItem>
                                     {listing.status === "PUBLISHED" && (
                                       <DropdownMenuItem
-                                        className='text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer'
+                                        className="text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer"
                                         onClick={(e) => {
                                           e.stopPropagation();
 
@@ -417,8 +421,8 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                         }}
                                       >
                                         <LinkIcon
-                                          className='h-4 w-4 mr-2'
-                                          color='#9F9FA9'
+                                          className="h-4 w-4 mr-2"
+                                          color="#9F9FA9"
                                         />{" "}
                                         Copy Link
                                       </DropdownMenuItem>
@@ -440,18 +444,18 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                   />
                 </>
               ) : (
-                <div className='max-w-lg mx-auto p-2 my-6'>
+                <div className="max-w-lg mx-auto p-2 my-6">
                   <Image
                     src={Avalance3d}
-                    objectFit='contain'
-                    alt='avalance icon'
+                    objectFit="contain"
+                    alt="avalance icon"
                   />
 
-                  <div className='my-2'>
-                    <h2 className='text-[var(--white-text-color)] text-2xl text-center font-medium'>
+                  <div className="my-2">
+                    <h2 className="text-[var(--white-text-color)] text-2xl text-center font-medium">
                       Create your first listing
                     </h2>
-                    <p className='text-[var(--secondary-text-color)] text-sm text-center'>
+                    <p className="text-[var(--secondary-text-color)] text-sm text-center">
                       and start getting contributions
                     </p>
                   </div>
@@ -481,10 +485,10 @@ interface StatCardProps {
 function StatCard({ value, label }: StatCardProps) {
   return (
     <div>
-      <p className='text-2xl md:text-3xl font-semibold text-[var(--primary-text-color)]'>
+      <p className="text-2xl md:text-3xl font-semibold text-[var(--primary-text-color)]">
         {value}
       </p>
-      <p className='text-[var(--secondary-text-color)] font-light text-sm sm:text-base'>
+      <p className="text-[var(--secondary-text-color)] font-light text-sm sm:text-base">
         {label}
       </p>
     </div>

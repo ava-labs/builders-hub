@@ -390,3 +390,41 @@ export const useFetchUnclaimedRewards = (id: string | undefined) => {
     enabled: !!id,
   });
 };
+
+
+
+
+export const useExportCsv = (exporting: boolean, id: string) => {
+  return useQuery({
+    queryKey: ["exportCsv", id],
+    queryFn: async () => {
+      const res = await axiosInstance.get(
+        `${API_DEV}/opportunity/${id}/export`,
+        { responseType: "blob" }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+
+      const contentDisposition = res.headers["content-disposition"];
+      const filename = contentDisposition
+        ? contentDisposition.split("filename=")[1].replace(/"/g, "")
+        : `opportunity-${id}-export.csv`;
+
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+
+      return true;
+    },
+    staleTime: 0,
+    gcTime: 0,
+    enabled: !!id && exporting,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+};
