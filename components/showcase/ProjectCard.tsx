@@ -19,7 +19,7 @@ export function ProjectCard({ project }: Props) {
           {project.project_name.slice(0, 25)}
           {project.project_name.length > 25 ? "..." : ""}
         </h3>
-        {project.prices?.length > 1 && (
+        {project.prizes?.length > 1 && (
           <div className="p-2 bg-red-500 rounded-full">
             <Trophy size={18} color="white" />
           </div>

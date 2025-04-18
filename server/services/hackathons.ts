@@ -217,7 +217,7 @@ export async function updateHackathon(id: string, hackathonData: Partial<Hackath
     const content = { ...hackathonData.content } as Prisma.JsonObject
     await prisma.hackathon.update({
         where: { id },
-        data: {
+        data: {      
             id: hackathonData.id,
             title: hackathonData.title!,
             description: hackathonData.description!,
@@ -230,6 +230,9 @@ export async function updateHackathon(id: string, hackathonData: Partial<Hackath
             icon: hackathonData.icon!,
             banner: hackathonData.banner!,
             small_banner: hackathonData.small_banner!,
+            participants: hackathonData.participants!,
+            top_most: hackathonData.top_most!,
+            organizers: hackathonData.organizers!,
             content: content
 
         },
