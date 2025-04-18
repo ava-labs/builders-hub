@@ -121,7 +121,7 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
                 <div>
                   <footer className="pt-10">
                     <p className="text-zinc-400 items-center justify-center w-full max-w-[400px] text-center text-sm font-medium">
-                      By clicking continue, you agree to our{" "}
+                      By signing in, you agree to our{" "}
                       <Link
                         href="https://www.avax.network/terms-of-use"
                         target="_blank"
