@@ -1,32 +1,36 @@
-"use client";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Divider } from "@/components/ui/divider";
-import { SearchEventInput } from "@/components/ui/search-event-input";
-import { TimeZoneSelect } from "@/components/ui/timezone-select";
-import { HackathonHeader, ScheduleActivity } from "@/types/hackathons";
-import { Link as LinkIcon, MapPin } from "lucide-react";
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { Separator } from "@/components/ui/separator";
-import DeadLine from "../DeadLine";
+'use client';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Divider } from '@/components/ui/divider';
+import { SearchEventInput } from '@/components/ui/search-event-input';
+import { TimeZoneSelect } from '@/components/ui/timezone-select';
+import { HackathonHeader, ScheduleActivity } from '@/types/hackathons';
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+  Link as LinkIcon,
+  MapPin,
+  CircleArrowRight,
+  CircleArrowLeft,
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Separator } from '@/components/ui/separator';
+import DeadLine from '../DeadLine';
+import { Button } from '@/components/ui/button';
 
 function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
-  const [search, setSearch] = useState<string>("");
-  const [timeZone, setTimeZone] = useState<string>("");
+  const [search, setSearch] = useState<string>('');
+  const [timeZone, setTimeZone] = useState<string>('');
+  const [selectedDay, setSelectedDay] = useState<string>('');
 
   useEffect(() => {
     if (hackathon.timezone) {
       setTimeZone(hackathon.timezone);
     }
+    // Set initial selected day to the first day in schedule
+    const groupedActivities = groupActivitiesByDay(hackathon.content.schedule);
+    const firstDay = Object.keys(groupedActivities)[0];
+    setSelectedDay(firstDay);
   }, [hackathon]);
 
   const defineTimeZone = (formatDateParams: any) => {
@@ -34,18 +38,29 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
     return formatDateParams;
   };
 
+  function getOrdinalSuffix(day: number): string {
+    if (day > 3 && day < 21) return 'th';
+    switch (day % 10) {
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
+    }
+  }
+
   function getFormattedDay(date: Date) {
-    return `${date.toLocaleString(
-      "en-US",
+    const day = date.getDate();
+    const suffix = getOrdinalSuffix(day);
+    return `${day}${suffix} ${date.toLocaleString(
+      'en-US',
       defineTimeZone({
-        day: "numeric",
+        weekday: 'long',
       })
-    )}TH ${date.toLocaleString(
-      "en-US",
-      defineTimeZone({
-        weekday: "long",
-      })
-    )}`;
+    )}`.toLocaleUpperCase();
   }
 
   function groupActivitiesByDay(
@@ -74,7 +89,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
   }
 
   function getDateRange(activities: ScheduleActivity[]): string {
-    if (!activities.length) return "No dates available";
+    if (!activities.length) return 'No dates available';
 
     const dates = activities.map((activity) => new Date(activity.date));
 
@@ -86,11 +101,11 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
     );
 
     const formatter = new Intl.DateTimeFormat(
-      "en-US",
+      'en-US',
       defineTimeZone({
-        month: "long",
-        day: "numeric",
-        year: "numeric",
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
       })
     );
 
@@ -103,58 +118,95 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
     )}`;
   }
   return (
-    <section className="flex flex-col gap-6">
+    <section className='flex flex-col gap-6'>
       <h2
-        className="text-4xl font-bold mb-2 md:text-4xl sm:text-3xl"
-        id="schedule"
+        className='text-4xl font-bold mb-2 md:text-4xl sm:text-3xl'
+        id='schedule'
       >
         Schedule
       </h2>
-      <Separator className="my-2 sm:my-8 bg-zinc-300 dark:bg-zinc-800" />
-      <span className="dark:text-zinc-50 text-zinc-900 text-lg font-medium sm:text-base">
+      <Separator className='my-2 sm:my-8 bg-zinc-300 dark:bg-zinc-800' />
+      <span className='dark:text-zinc-50 text-zinc-900 text-lg font-medium sm:text-base'>
         {getDateRange(hackathon.content.schedule)}
       </span>
-      <div className="flex flex-col lg:flex-row justify-between gap-4 md:gap-10 mt-4 min-w-full">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-start lg:justify-center gap-4 md:gap-10 w-full md:w-auto">
+      <div className='flex flex-col lg:flex-row justify-between gap-4 md:gap-10 mt-4 min-w-full'>
+        <div className='flex flex-col md:flex-row items-start md:items-center justify-start lg:justify-center gap-4 md:gap-10 w-full md:w-auto'>
           <SearchEventInput setSearch={setSearch} />
           <TimeZoneSelect timeZone={timeZone} setTimeZone={setTimeZone} />
         </div>
         <DeadLine deadline={hackathon.content.submission_deadline} />
       </div>
       <Divider />
-      {/* <div className="bg-zinc-800 rounded-lg px-16 py-2 w-1/2">
-        <Carousel className="w-full">
-          <CarouselContent>
-            {Object.entries(
-              groupActivitiesByDay(hackathon.content.schedule)
-            ).map(([formattedDate, _], index) => (
-              <CarouselItem key={index} className="basis-1/3">
-                <Card className="border-none p-0">
-                  <CardContent className="flex justify-center">
-                    <span className="text-sm font-semibold">
-                      {formattedDate}
-                    </span>
-                  </CardContent>
-                </Card>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselPrevious />
-          <CarouselNext />
-        </Carousel>
-      </div> */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+      <div className='bg-zinc-200 dark:bg-zinc-800 backdrop-blur-sm rounded-lg py-1 sm:w-fit w-full sm:max-w-none flex items-center gap-2'>
+        <button
+          onClick={() => {
+            const days = Object.keys(groupActivitiesByDay(hackathon.content.schedule));
+            const currentIndex = days.findIndex(day => day === selectedDay);
+            if (currentIndex > 0) {
+              setSelectedDay(days[currentIndex - 1]);
+            }
+          }}
+          className='hidden sm:block text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-300 px-2 cursor-pointer min-w-[32px]'
+        >
+          <CircleArrowLeft strokeWidth={1} className='h-6 w-6 sm:h-8 sm:w-8' />
+        </button>
+        <div className='flex items-center overflow-x-auto no-scrollbar w-full sm:w-auto'>
+          <div className='flex w-full sm:w-auto divide-x divide-zinc-300 dark:divide-zinc-700'>
+            {Object.entries(groupActivitiesByDay(hackathon.content.schedule)).map(
+              ([formattedDate, activities], index) => {
+                const date = new Date(activities[0].date);
+                const month = date
+                  .toLocaleString('en-US', { month: 'long' })
+                  .toUpperCase();
+                const day = date.getDate();
+                return (
+                  <div
+                    key={index}
+                    className={`border-none cursor-pointer transition-all select-none flex-1 sm:flex-initial ${
+                      selectedDay === formattedDate
+                        ? 'bg-zinc-500 text-white dark:bg-black dark:text-white'
+                        : 'bg-transparent text-zinc-600 hover:text-zinc-800 dark:text-zinc-500 dark:hover:text-zinc-300'
+                    } rounded-lg whitespace-nowrap`}
+                    onClick={() => setSelectedDay(formattedDate)}
+                  >
+                    <div className='flex items-center justify-center gap-1 py-1.5 px-2 sm:px-3'>
+                      <span className='text-xs sm:text-sm font-medium'>{month}</span>
+                      <span className='text-xs sm:text-sm font-medium'>{day}</span>
+                    </div>
+                  </div>
+                );
+              }
+            )}
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            const days = Object.keys(groupActivitiesByDay(hackathon.content.schedule));
+            const currentIndex = days.findIndex(day => day === selectedDay);
+            if (currentIndex < days.length - 1) {
+              setSelectedDay(days[currentIndex + 1]);
+            }
+          }}
+          className='hidden sm:block text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-300 px-2 cursor-pointer min-w-[32px]'
+        >
+          <CircleArrowRight strokeWidth={1} className='h-6 w-6 sm:h-8 sm:w-8' />
+        </button>
+      </div>
+      <div className='grid grid-cols-1 xl:grid-cols-2 gap-5'>
         {Object.entries(groupActivitiesByDay(hackathon.content.schedule))
-          .slice(0, 2)
+          .filter(([date], index, array) => {
+            const selectedIndex = array.findIndex(([d]) => d === selectedDay);
+            return index === selectedIndex || index === selectedIndex + 1;
+          })
           .map(([formattedGroupDate, activities], index) => {
             const now = new Date();
             const nowFormattedDay = getFormattedDay(now);
             const dateIsCurrentDate = formattedGroupDate == nowFormattedDay;
             return (
-              <div key={index} className="flex flex-col gap-4">
+              <div key={index} className='flex flex-col gap-4'>
                 <h3
                   className={`text-2xl text-center p-4 rounded-md text-zinc-900 font-black mb-4 ${
-                    dateIsCurrentDate ? "bg-red-500" : "bg-red-300"
+                    dateIsCurrentDate ? 'bg-red-500' : 'bg-red-300'
                   } sm:text-xl`}
                 >
                   {formattedGroupDate}
@@ -187,55 +239,55 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                     return (
                       <div
                         key={index}
-                        className="flex flex-col sm:flex-row gap-3 sm:h-[220px] md:h-[180px]"
+                        className='flex flex-col sm:flex-row gap-3 sm:h-[220px] md:h-[180px]'
                       >
                         <Card
                           className={`${
                             dateIsCurrentDate
-                              ? "bg-zinc-100 dark:!bg-zinc-900"
-                              : "bg-zinc-50 dark:!bg-zinc-950"
+                              ? 'bg-zinc-100 dark:!bg-zinc-900'
+                              : 'bg-zinc-50 dark:!bg-zinc-950'
                           } ${
                             activityIsOcurring && dateIsCurrentDate
-                              ? "border-2 dark:border-red-500 border-red-500"
+                              ? 'border-2 dark:border-red-500 border-red-500'
                               : dateIsCurrentDate
-                              ? "dark:!border-zinc-900 border-zinc-400"
-                              : "dark:!border-zinc-800 border-zinc-300"
+                              ? 'dark:!border-zinc-900 border-zinc-400'
+                              : 'dark:!border-zinc-800 border-zinc-300'
                           } px-2 sm:px-4 sm:w-[40%] md:w-[173px] rounded-lg`}
                         >
-                          <CardContent className="h-full relative flex flex-col gap-2 justify-center items-center p-2 sm:p-6">
-                            <div className="absolute top-0">
+                          <CardContent className='h-full relative flex flex-col gap-2 justify-center items-center p-2 sm:p-6'>
+                            <div className='absolute top-0'>
                               {activityIsOcurring && dateIsCurrentDate && (
-                                <div className="border border-red-500 rounded-full text-xs font-medium text-center w-1/3 sm:w-auto sm:px-2">
+                                <div className='border border-red-500 rounded-full text-xs font-medium text-center w-1/3 sm:w-auto sm:px-2'>
                                   Live now
                                 </div>
                               )}
                               {!activityIsOcurring && dateIsCurrentDate && (
-                                <div className="border dark:bg-zinc-800 bg-zinc-300 flex items-center justify-center gap-1 rounded-full text-xs font-medium text-center w-1/3 sm:w-auto sm:px-3 py-1 border-none">
+                                <div className='border dark:bg-zinc-800 bg-zinc-300 flex items-center justify-center gap-1 rounded-full text-xs font-medium text-center w-1/3 sm:w-auto sm:px-3 py-1 border-none'>
                                   <LinkIcon
                                     size={16}
-                                    className="!text-zinc-900 dark:!text-zinc-50"
+                                    className='!text-zinc-900 dark:!text-zinc-50'
                                   />
                                   Zoom
                                 </div>
                               )}
                             </div>
-                            <div className="flex flex-col items-center justify-center h-full">
-                              <span className="text-base md:text-lg font-medium">
+                            <div className='flex flex-col items-center justify-center h-full'>
+                              <span className='text-base md:text-lg font-medium'>
                                 {startDate.toLocaleTimeString(
-                                  "en-US",
+                                  'en-US',
                                   defineTimeZone({
-                                    hour: "2-digit",
-                                    minute: "2-digit",
+                                    hour: '2-digit',
+                                    minute: '2-digit',
                                     hour12: true,
                                   })
                                 )}
                               </span>
-                              <span className="text-base md:text-lg font-medium">
+                              <span className='text-base md:text-lg font-medium'>
                                 {endDate.toLocaleTimeString(
-                                  "en-US",
+                                  'en-US',
                                   defineTimeZone({
-                                    hour: "2-digit",
-                                    minute: "2-digit",
+                                    hour: '2-digit',
+                                    minute: '2-digit',
                                     hour12: true,
                                   })
                                 )}
@@ -246,58 +298,58 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                         <Card
                           className={`${
                             dateIsCurrentDate
-                              ? "dark:!bg-zinc-900 bg-zinc-100"
-                              : "dark:!bg-zinc-950 bg-zinc-50"
+                              ? 'dark:!bg-zinc-900 bg-zinc-100'
+                              : 'dark:!bg-zinc-950 bg-zinc-50'
                           } border ${
                             activityIsOcurring && dateIsCurrentDate
-                              ? "border-2 dark:border-red-500 border-red-500"
+                              ? 'border-2 dark:border-red-500 border-red-500'
                               : dateIsCurrentDate
-                              ? "dark:!border-zinc-900 border-zinc-400"
-                              : "dark:!border-zinc-800 border-zinc-300"
+                              ? 'dark:!border-zinc-900 border-zinc-400'
+                              : 'dark:!border-zinc-800 border-zinc-300'
                           } sm:w-[60%] md:flex-1 rounded-lg`}
                         >
                           <CardContent
                             className={`h-full flex flex-col ${
-                              voidHost ? "justify-start" : "justify-between"
+                              voidHost ? 'justify-start' : 'justify-between'
                             } gap-2`}
                           >
                             <div>
-                              <div className="flex justify-between items-center">
-                                <CardTitle className="text-red-500 text-lg sm:text-base">
+                              <div className='flex justify-between items-center'>
+                                <CardTitle className='text-red-500 text-lg sm:text-base'>
                                   {activity.name}
                                 </CardTitle>
                                 {activity.category && (
-                                  <Badge className="bg-zinc-600 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900 py-0.5 px-2.5 text-xs rounded-xl">
+                                  <Badge className='bg-zinc-600 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900 py-0.5 px-2.5 text-xs rounded-xl'>
                                     {activity.category}
                                   </Badge>
                                 )}
                               </div>
-                              <span className="dark:text-zinc-400 text-zinc-600 text-s sm:text-sm font-normal">
+                              <span className='dark:text-zinc-400 text-zinc-600 text-s sm:text-sm font-normal'>
                                 {activity.description}
                               </span>
                             </div>
                             {!voidHost && (
-                              <div className="flex flex-row items-center gap-4">
+                              <div className='flex flex-row items-center gap-4'>
                                 {activity.host_icon && (
                                   <Image
                                     src={activity.host_icon}
-                                    alt={activity.host_name || "Host"}
+                                    alt={activity.host_name || 'Host'}
                                     width={40}
                                     height={40}
-                                    className="min-w-[40px]"
+                                    className='min-w-[40px]'
                                   />
                                 )}
-                                <div className="flex flex-col">
+                                <div className='flex flex-col'>
                                   {activity.host_name && (
-                                    <span className="text-sm sm:text-base">
+                                    <span className='text-sm sm:text-base'>
                                       {activity.host_name}
                                     </span>
                                   )}
                                   {activity.host_media && (
                                     <Link
-                                      className="dark:text-zinc-400 text-zinc-600 text-s sm:text-sm font-normal"
+                                      className='dark:text-zinc-400 text-zinc-600 text-s sm:text-sm font-normal'
                                       href={`https://x.com/${activity.host_media}`}
-                                      target="_blank"
+                                      target='_blank'
                                     >
                                       @{activity.host_media}
                                     </Link>
@@ -308,13 +360,13 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                             <div
                               className={`flex flex-row sm:gap-4 ${
                                 voidHost
-                                  ? "flex-1 items-center"
-                                  : "justify-between"
+                                  ? 'flex-1 items-center'
+                                  : 'justify-between'
                               }`}
                             >
-                              <div className="flex flex-row items-center gap-2">
-                                <MapPin color="#8F8F99" className="w-5 h-5" />
-                                <span className="dark:text-zinc-50 zinc-900 sm:text-sm font-normal">
+                              <div className='flex flex-row items-center gap-2'>
+                                <MapPin color='#8F8F99' className='w-5 h-5' />
+                                <span className='dark:text-zinc-50 zinc-900 sm:text-sm font-normal'>
                                   {activity.location}
                                 </span>
                               </div>
