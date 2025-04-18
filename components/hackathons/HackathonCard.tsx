@@ -27,7 +27,8 @@ export default function HackathonCard({
         }
       >
         <Image
-          src={hackathon.small_banner}
+          src={hackathon.small_banner?.trim().length > 0
+            ?hackathon.small_banner : '/hackathon-images/hackathon-mock.png'}
           alt='Avalanche Logo'
           className='rounded-l-md hidden md:block h-full'
           width={200}

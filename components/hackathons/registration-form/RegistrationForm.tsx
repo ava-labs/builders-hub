@@ -336,7 +336,7 @@ export function RegisterForm({
       <h2 className="text-2xl font-bold mb-6 text-foreground">
         Registration form for {hackathon
           ? `${hackathon.title} (Step ${step}/3)`
-          : `Builders Hub - Registration Page (Step ${step}/3)`}
+          : `... (Step ${step}/3)`}
       </h2>
       <div className="relative w-full h-1 bg-zinc-300 dark:bg-zinc-900 mb-4">
         <div

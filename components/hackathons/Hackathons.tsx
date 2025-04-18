@@ -162,7 +162,7 @@ export default function Hackathons({
     }
   };
   const topMostHackathon = upcomingHackathons.find((x) => x.top_most);
-  
+
   return (
     <section className="px-8 py-6">
       {topMostHackathon && (
@@ -172,12 +172,13 @@ export default function Hackathons({
               hackathon={topMostHackathon}
               id={topMostHackathon.id}
             />
-            <Link
-              href={`/hackathons/${topMostHackathon.id}`
-              }
-            >
+            <Link href={`/hackathons/${topMostHackathon.id}`}>
               <Image
-                src={topMostHackathon.banner}
+                src={
+                  topMostHackathon.banner?.trim().trim().length > 0
+                    ? topMostHackathon.banner
+                    : "/hackathon-images/main_banner_img.png"
+                }
                 alt="Hackathon background"
                 width={1270}
                 height={760}
@@ -198,9 +199,11 @@ export default function Hackathons({
       </h2>
       <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
       <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
-        {upcomingHackathons.filter(x=> !x.top_most) .map((hackathon: any) => (
-          <HackathonCard key={hackathon.id} hackathon={hackathon} />
-        ))}
+        {upcomingHackathons
+          .filter((x) => !x.top_most)
+          .map((hackathon: any) => (
+            <HackathonCard key={hackathon.id} hackathon={hackathon} />
+          ))}
       </div>
       <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">
         Past

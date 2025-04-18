@@ -49,7 +49,11 @@ export default async function HackathonPage({
     <main className="container sm:px-2 py-4 lg:py-16">
       <div className="pl-4 flex gap-4 items-center">
         <Image
-          src={hackathon.icon}
+          src={
+            hackathon.icon.trim().length > 0
+              ? hackathon.icon
+              : "/hackathon-images/project-logo.png"
+          }
           alt="Hackathon background"
           width={40}
           height={40}
@@ -88,7 +92,11 @@ export default async function HackathonPage({
               target={hackathon.content.join_custom_link ? "_blank" : "_self"}
             >
               <Image
-                src={hackathon.banner}
+                src={
+                  hackathon.banner?.trim().length > 0
+                    ? hackathon.banner
+                    : "/hackathon-images/main_banner_img.png"
+                }
                 alt="Hackathon background"
                 width={1270}
                 height={760}
