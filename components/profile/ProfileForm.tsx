@@ -16,7 +16,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Separator } from '@/components/ui/separator';
-import { PlusCircle, Loader2 } from 'lucide-react';
+import { PlusCircle, Loader2, Link } from 'lucide-react';
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -25,10 +26,7 @@ import {
   SelectTrigger,
 } from '@/components/ui/select';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MultiSelect } from '@/components/ui/multi-select';
-import Modal from '@/components/ui/Modal';
 import { UploadModal } from '@/components/ui/upload-modal';
-import { Profile } from '@/types/profile';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -41,15 +39,9 @@ const profileSchema = z.object({
   notification_email: z.string().email('Invalid email'),
   image: z.string().optional(),
   social_media: z.array(z.string()).default([]),
-  notification_options: z.array(z.string()).default([]),
+  notifications: z.boolean().default(true),
   profile_privacy: z.string().default('public'),
 });
-
-const notificationOptions = [
-  { label: 'Hackathon reminders', value: 'hackathon_reminders' },
-  { label: 'New opportunities', value: 'new_opportunities' },
-  { label: 'Community updates', value: 'community_updates' },
-];
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
@@ -443,26 +435,33 @@ export default function ProfileForm({
 
           <FormField
             control={form.control}
-            name='notification_options'
+            name="notifications"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email Notifications</FormLabel>
+              <FormItem className="flex items-center justify-between p-4 border rounded">
+                <div className="space-y-1">
+                  <FormLabel>
+                    Email Notifications
+                  </FormLabel>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line italic">
+                    I wish to stay informed about Avalanche news and events and agree 
+                    to receive newsletters and other promotional materials at the 
+                    contact information I provided. {"\n"}
+                    I know that I may opt-out at any 
+                    time. I have read and agree to the <a href='https://www.avax.network/privacy-policy' className="text-primary hover:text-primary/80 dark:text-primary/90 dark:hover:text-primary/70">
+                       Avalanche Privacy Policy
+                     </a>.
+                  </p>
+                </div>
                 <FormControl>
-                  <MultiSelect
-                    options={notificationOptions}
-                    selected={field.value || []}
-                    onChange={field.onChange}
-                    placeholder='Select notifications'
-                    searchPlaceholder='Search notifications'
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
                   />
                 </FormControl>
-                <FormDescription>
-                  Choose from Hackathon reminders, new opportunities, and
-                  community updates.
-                </FormDescription>
               </FormItem>
             )}
           />
+
 
           <Separator className='mb-6' />
 

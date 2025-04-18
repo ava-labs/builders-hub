@@ -6,7 +6,7 @@ export type Profile = {
     notification_email: string,
     image: string,
     social_media: string[],
-    notification_options: string[],
+    notifications: boolean,
     profile_privacy: string,
 }
 

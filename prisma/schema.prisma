@@ -23,27 +23,27 @@ model Hackathon {
   small_banner  String         @default("")
   participants  Int
   top_most      Boolean?       @default(false)
-  organizers    String?        @default("'")
+  organizers    String?
   projects      Project[]
   registrations RegisterForm[]
 }
 
 model User {
-  id                   String        @id @default(cuid())
-  name                 String?
-  email                String?       @unique
-  image                String?
-  authentication_mode  String?
-  integration          String?
-  last_login           DateTime?
-  user_name            String?
-  bio                  String?
-  notification_email   String?
-  notification_options String[]
-  profile_privacy      String?
-  social_media         String[]
-  memberships          Member[]
-  registrations        RegisterForm?
+  id                  String        @id @default(cuid())
+  name                String?
+  email               String?       @unique
+  image               String?
+  authentication_mode String?
+  integration         String?
+  last_login          DateTime?
+  user_name           String?
+  bio                 String?
+  notification_email  String?
+  profile_privacy     String?       @default("public")
+  social_media        String[]
+  notifications       Boolean?      @default(true)
+  memberships         Member[]
+  registrations       RegisterForm?
 }
 
 model VerificationToken {

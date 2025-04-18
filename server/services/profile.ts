@@ -12,7 +12,7 @@ export async function getProfile(id: string) {
             image: true,
             name: true,
             notification_email: true,
-            notification_options: true,
+            notifications: true,
             profile_privacy: true,
             social_media: true
         }
@@ -42,7 +42,7 @@ export async function updateProfile(id: string, profileData: Partial<Profile>) {
             image: data.image,
             name: data.name,
             notification_email: data.notification_email,
-            notification_options: data.notification_options,
+            notifications: data.notifications,
             profile_privacy: data.profile_privacy,
             social_media: data.social_media,
         }
