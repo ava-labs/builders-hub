@@ -98,7 +98,7 @@ export const AuthOptions: NextAuthOptions = {
         let user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
           user = await prisma.user.create({
-            data: { email, name: '', image: '' },
+            data: { email, notification_email: email, name: '', image: '' },
           });
         }
 
