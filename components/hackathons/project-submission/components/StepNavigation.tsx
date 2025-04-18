@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/pagination";
 import { useFormContext } from "react-hook-form";
 import { SubmissionForm } from "../hooks/useSubmissionForm";
+import { useState } from "react";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 interface StepNavigationProps {
   currentStep: number;
@@ -26,7 +28,8 @@ export const StepNavigation = ({
   isLastStep,
 }: StepNavigationProps) => {
   const form = useFormContext<SubmissionForm>();
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingLater, setIsSavingLater] = useState(false);
   const step1Fields: (keyof SubmissionForm)[] = [
     "project_name",
     "short_description",
@@ -50,7 +53,7 @@ export const StepNavigation = ({
       } else if (currentStep === 2) {
         valid = await form.trigger(step2Fields);
       }
-      
+
       if (valid) {
         const formValues = form.getValues();
         onSubmit(formValues);
@@ -61,17 +64,40 @@ export const StepNavigation = ({
   return (
     <div className="flex flex-col md:flex-row items-center justify-between mt-8">
       <div className="flex flex-wrap gap-4 mb-4 md:mb-0">
-        <Button type={isLastStep ? "submit" : "button"} variant="red" className="px-4 py-2 cursor-pointer" onClick={handleNext}>
+        <LoadingButton
+          isLoading={isSubmitting}
+          loadingText="Saving..."
+          type={isLastStep ? "submit" : "button"} 
+          variant="red"
+          className="px-4 py-2 cursor-pointer"
+          onClick={() => {
+            setIsSubmitting(true);
+            try {
+              handleNext();
+            } finally {
+              setIsSubmitting(false);
+            }
+          }}
+        >
           {isLastStep ? "Final Submit" : "Continue"}
-        </Button>
+        </LoadingButton>
 
-        <Button
+        <LoadingButton
+          isLoading={isSavingLater}
+          loadingText="Saving..."
           type="button"
-          onClick={onSave}
-          className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer" 
+          onClick={() => {
+            try {
+              setIsSavingLater(true);
+              onSave();
+            } finally {
+              setIsSavingLater(false);
+            }
+          }}
+          className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
         >
           Save & Continue Later
-        </Button>
+        </LoadingButton>
       </div>
 
       <div className="flex flex-col md:flex-row items-center">
@@ -112,4 +138,4 @@ export const StepNavigation = ({
       </div>
     </div>
   );
-}; 
+};

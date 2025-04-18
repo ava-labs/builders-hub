@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 // Esquema de validación
 export const registerSchema = z.object({
@@ -97,7 +98,8 @@ export function RegisterForm({
   );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingLater, setIsSavingLater] = useState(false);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -121,19 +123,19 @@ export function RegisterForm({
     },
   });
 
-    function setDataFromLocalStorage(){
+  function setDataFromLocalStorage() {
     if (typeof window !== "undefined") {
       const savedData = localStorage.getItem(`formData_${hackathon_id}`);
-    
+
       if (savedData) {
-        const {utm:utm_local,hackathon_id:hackathon_id_local} = JSON.parse(savedData);
+        const { utm: utm_local, hackathon_id: hackathon_id_local } =
+          JSON.parse(savedData);
         try {
           const parsedData: RegisterFormValues = JSON.parse(savedData);
-          
+
           form.reset(parsedData);
           utmSaved = utm_local || utmSaved;
           hackathon_id = hackathon_id_local || hackathon_id;
-       
         } catch (err) {
           console.error("Error parsing localStorage data:", err);
         }
@@ -185,7 +187,7 @@ export function RegisterForm({
         hackathon_id = loadedData.hackathon_id;
         form.reset(parsedData);
         setRegistrationForm(loadedData);
-      } 
+      }
       setDataFromLocalStorage();
     } catch (err) {
       setDataFromLocalStorage();
@@ -249,9 +251,13 @@ export function RegisterForm({
       utm: utm != "" ? utm : utmSaved,
     };
     if (typeof window !== "undefined") {
-      localStorage.setItem(`formData_${hackathon_id}`, JSON.stringify(formValues));
+      localStorage.setItem(
+        `formData_${hackathon_id}`,
+        JSON.stringify(formValues)
+      );
     }
     router.push(`/hackathons/${hackathon_id}`);
+  
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
@@ -340,24 +346,32 @@ export function RegisterForm({
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {step === 1 && (
-            <RegisterFormStep1  user={session?.user} />
-          )}
+          {step === 1 && <RegisterFormStep1 user={session?.user} />}
           {step === 2 && <RegisterFormStep2 />}
           {step === 3 && <RegisterFormStep3 />}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />
           <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="order-2 md:order-1 flex gap-x-4">
               {step === 3 && (
-                <Button
+                <LoadingButton
+                  isLoading={isSubmitting}
+                  loadingText="Saving..."
                   variant="red"
                   type="submit"
-                  onClick={form.handleSubmit(onSubmit)}
+                  onClick={form.handleSubmit(async (data) => {
+                    setIsSubmitting(true);
+                    try {
+                      await onSubmit(data);
+                    } finally {
+                      setIsSubmitting(false);
+                    }
+                  })}
                   className="bg-red-500 hover:bg-red-600 cursor-pointer"
                 >
                   Save & Exit
-                </Button>
+                </LoadingButton>
               )}
+
               {step !== 3 && (
                 <Button
                   variant="red"
@@ -368,14 +382,27 @@ export function RegisterForm({
                   Continue
                 </Button>
               )}
+
               {step !== 3 && (
-                <Button
+                <LoadingButton
+                  isLoading={isSavingLater}
+                  loadingText="Saving..."
                   type="button"
-                  onClick={onSaveLater}
+                  onClick={() => {
+                    console.log("seteo en true")
+                    
+                    try {
+                      setIsSavingLater(true);
+                        onSaveLater();
+                    } finally {
+                      console.log("seteo en false")
+                      setIsSavingLater(false);
+                    }
+                  }}
                   className="bg-white text-black border cursor-pointer border-gray-300 hover:text-black hover:bg-gray-100"
                 >
                   Save & Continue Later
-                </Button>
+                </LoadingButton>
               )}
             </div>
 
