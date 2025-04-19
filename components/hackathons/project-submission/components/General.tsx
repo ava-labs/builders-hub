@@ -49,7 +49,7 @@ export default function GeneralComponent({
     handleSaveWithoutRoute,
   } = useSubmissionForm(hackathonId as string);
 
-  const { hackathon, project, timeLeft, loadData, setLoadData, getProject } =
+  const { hackathon, project, timeLeft, getProject } =
     useHackathonProject(hackathonId as string);
 
   const getAllFields = () => {
@@ -144,7 +144,7 @@ export default function GeneralComponent({
 
   async function checkInvitation() {
     try {
-      setLoadData(false);
+  
       const response = await axios.get(
         `/api/project/check-invitation?invitation=${invitationLink}&user_id=${currentUser?.id}`
       );
@@ -155,7 +155,7 @@ export default function GeneralComponent({
 
       setProjectId(response.data?.project?.project_id ?? '');
       setOpenJoinTeam(response.data?.invitation.isConfirming ?? false);
-      setLoadData(!response.data?.invitation.isConfirming);
+   
       setTeamName(response.data?.project?.project_name ?? '');
     } catch (error) {
       console.error('Error checking invitation:', error);
@@ -177,10 +177,10 @@ export default function GeneralComponent({
   }, [invitationLink, currentUser]);
 
   useEffect(() => {
-    if (project && loadData) {
+    if (project ) {
       setFormData(project);
     }
-  }, [project, loadData]);
+  }, [project]);
 
   return (
     <div className='p-4 sm:p-6 rounded-lg max-w-7xl mx-auto'>
@@ -289,7 +289,7 @@ export default function GeneralComponent({
                     availableTracks={hackathon?.content?.tracks ?? []}
                     openjoinTeamDialog={openJoinTeam}
                     onOpenChange={setOpenJoinTeam}
-                    setLoadData={setLoadData}
+          
                     teamName={teamName}
                   />
                 )}

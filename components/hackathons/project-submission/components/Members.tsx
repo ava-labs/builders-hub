@@ -40,7 +40,6 @@ export default function MembersComponent({
   onHandleSave,
   openjoinTeamDialog,
   onOpenChange,
-  setLoadData,
   teamName
 }: projectProps) {
   const [members, setMembers] = useState<any[]>([]);
@@ -175,15 +174,14 @@ export default function MembersComponent({
   };
 
   const handleAcceptJoinTeam = async (result:boolean) => {  
-  if(setLoadData){
-    setLoadData(result);
+
     if(result){
       setMembers((prevMembers) =>
         prevMembers.map((m) =>
           m.user_id === user_id ? { ...m, status: "Confirmed" } : m
         )
       );
-    }
+    
   }
   }
 

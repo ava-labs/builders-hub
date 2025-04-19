@@ -31,7 +31,6 @@ export interface projectProps {
   
   openjoinTeamDialog?: boolean;
   onOpenChange: (open: boolean) => void;
-  setLoadData?: (accepted: boolean) => void;
   teamName?: string;
   
 }
