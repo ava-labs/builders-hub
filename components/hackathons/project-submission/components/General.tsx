@@ -287,6 +287,10 @@ export default function GeneralComponent({
                     onProjectCreated={getProject}
                     onHandleSave={handleSaveWithoutRoute}
                     availableTracks={hackathon?.content?.tracks ?? []}
+                    openjoinTeamDialog={openJoinTeam}
+                    onOpenChange={setOpenJoinTeam}
+                    setLoadData={setLoadData}
+                    teamName={teamName}
                   />
                 )}
                 {step === 2 && <SubmitStep2 />}
@@ -305,15 +309,6 @@ export default function GeneralComponent({
         </div>
       </div>
 
-      <JoinTeamDialog
-        open={openJoinTeam}
-        onOpenChange={setOpenJoinTeam}
-        setLoadData={setLoadData}
-        teamName={teamName}
-        projectId={projectId}
-        hackathonId={hackathonId as string}
-        currentUserId={currentUser?.id}
-      />
 
       <InvalidInvitationComponent
         hackathonId={hackathonId as string}

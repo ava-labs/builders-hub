@@ -29,6 +29,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import { JoinTeamDialog } from "./JoinTeamDialog";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 export default function MembersComponent({
   project_id,
@@ -36,12 +38,17 @@ export default function MembersComponent({
   user_id,
   onProjectCreated,
   onHandleSave,
+  openjoinTeamDialog,
+  onOpenChange,
+  setLoadData,
+  teamName
 }: projectProps) {
   const [members, setMembers] = useState<any[]>([]);
   const [openModal, setOpenModal] = useState(false); // State for modal
   const [emails, setEmails] = useState<string[]>([]); // State for email inputs
   const [newEmail, setNewEmail] = useState(""); // State for new email input
   const [invitationSent, setInvitationSent] = useState(false);
+  const [sendingInvitation, setSendingInvitation] = useState(false);
   const [invalidEmails, setInvalidEmails] = useState<string[]>([]);
   const [isValidingEmail, setIsValidingEmail] = useState(false);
 
@@ -98,6 +105,7 @@ export default function MembersComponent({
     if (emails.length === 0 || invalidEmails.length > 0 || isValidingEmail)
       return;
     try {
+      setSendingInvitation(true);
       if (onHandleSave) {
         await onHandleSave();
       }
@@ -111,12 +119,16 @@ export default function MembersComponent({
       if ((!project_id || project_id === "") && onProjectCreated) {
         onProjectCreated();
       }
+
       setInvitationSent(true);
 
       const response = await axios.get(`/api/project/${project_id}/members`);
       setMembers(response.data);
     } catch (error) {
       console.error("Error sending invitations:", error);
+    }
+    finally {
+      setSendingInvitation(false);
     }
   };
 
@@ -161,6 +173,19 @@ export default function MembersComponent({
       console.error("Error updating role:", error);
     }
   };
+
+  const handleAcceptJoinTeam = async (result:boolean) => {  
+  if(setLoadData){
+    setLoadData(result);
+    if(result){
+      setMembers((prevMembers) =>
+        prevMembers.map((m) =>
+          m.user_id === user_id ? { ...m, status: "Confirmed" } : m
+        )
+      );
+    }
+  }
+  }
 
   useEffect(() => {
     if (!project_id) return;
@@ -265,7 +290,9 @@ export default function MembersComponent({
                     </p>
                   )}
                   <div className="flex justify-center mt-2">
-                    <Button
+                    <LoadingButton
+                      isLoading={sendingInvitation}
+                      loadingText="Sending..."
                       onClick={handleSendInvitations}
                       type="button"
                       disabled={
@@ -276,7 +303,7 @@ export default function MembersComponent({
                       className="dark:bg-white"
                     >
                       Send Invitation
-                    </Button>
+                    </LoadingButton>
                   </div>
                 </div>
               </Card>
@@ -414,6 +441,16 @@ export default function MembersComponent({
           </TableBody>
         </Table>
       </div>
+      
+      <JoinTeamDialog
+        open={openjoinTeamDialog||false}
+        onOpenChange={onOpenChange}
+        setLoadData={handleAcceptJoinTeam}
+        teamName={teamName as string}
+        projectId={project_id as string}
+        hackathonId={hackaton_id as string}
+        currentUserId={user_id as string}
+      />
     </>
   );
 }

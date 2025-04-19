@@ -33,10 +33,16 @@ export const JoinTeamDialog = ({
 
   const handleAcceptJoinTeam = async () => {
     try {
-      await axios.patch(`/api/project/${projectId}/members/status`, {
+      axios.patch(`/api/project/${projectId}/members/status`, {
         user_id: currentUserId,
         status: "Confirmed",
-      });
+      })
+        .then(() => {
+          console.log("Status updated successfully");
+        })
+        .catch((error) => {
+          console.error("Error updating status:", error);
+        });
       onOpenChange(false);
       if(setLoadData){
         setLoadData(true);
