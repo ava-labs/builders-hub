@@ -273,6 +273,7 @@ export interface ISingleOppotunitySubmissionResponse {
   }[];
   link: string;
   tweet_link: string;
+  submitter_number_of_completed_jobs: string;
   submitter: {
     id: string;
     first_name: string;
