@@ -9,30 +9,7 @@ import { Input } from "@/components/ui/input";
 import React, { useState } from "react";
 import { RegisterFormValues } from "./RegistrationForm";
 import { useFormContext } from "react-hook-form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { User } from "next-auth";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Check, ChevronsUpDown } from "lucide-react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { cn } from "@/utils/cn";
 
 interface Step1Props {
   user?: User; // Optional User prop
@@ -40,7 +17,7 @@ interface Step1Props {
 export default function RegisterFormStep1({ user }: Step1Props) {
   const form = useFormContext<RegisterFormValues>();
   const [open, setOpen] = useState<boolean>(false);
-  const [selectedCity, setSelectedCity] = useState<string>("");
+
   return (
     <>
       <div className="mb-6">

@@ -13,7 +13,7 @@ import Link from 'next/link';
 import SignOutComponent from '../sign-out/SignOut';
 import { useState } from 'react';
 import { CircleUserRound, UserRound } from 'lucide-react';
-
+import { Separator } from '@radix-ui/react-dropdown-menu';
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -50,9 +50,20 @@ export function UserButton() {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className='bg-white text-black dark:bg-zinc-900 dark:text-white
-    border border-zinc-200 dark:border-zinc-600
-    shadow-lg p-1 rounded-md w-48'
+            border border-zinc-200 dark:border-zinc-600
+            shadow-lg p-1 rounded-md w-48'
           >
+            <div className="px-2 py-1.5">
+              <p className="text-sm break-words">
+                {session.user.email || 'No email available'}
+              </p>
+              
+              <p className="text-sm break-words mt-1">
+                {session.user.name || 'No name available'}
+              </p>
+            </div>
+            <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
+
             <DropdownMenuItem asChild className='cursor-pointer'>
               <Link href='/profile'>Profile</Link>
             </DropdownMenuItem>
