@@ -80,9 +80,6 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                             ).toLocaleTimeString()}
                           </div>
                         </div>
-                        <p className='text-[var(--secondary-text-color)] font-light text-xs'>
-                          Based in {application.applicant.location ?? "--"}
-                        </p>
                       </div>
                     </div>
 
@@ -128,6 +125,14 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                   <div className='grid grid-cols-1 md:grid-cols-3 gap-2'>
                     <div className=''>
                       <p className='text-[var(--primary-text-color)] font-semibold'>
+                        Based in
+                      </p>
+                      <p className='text-[var(--secondary-text-color)] text-sm'>
+                        {application.applicant.location ?? "--"}
+                      </p>
+                    </div>
+                    <div className=''>
+                      <p className='text-[var(--primary-text-color)] font-semibold'>
                         Experience
                       </p>
                       <p className='text-[var(--secondary-text-color)] text-sm'>
@@ -135,14 +140,7 @@ const AmbasssadorDaoSingleApplicationPage = () => {
                         years
                       </p>
                     </div>
-                    <div className=''>
-                      <p className='text-[var(--primary-text-color)] font-semibold'>
-                        Success Rate
-                      </p>
-                      <p className='text-[var(--secondary-text-color)] text-sm'>
-                        --%
-                      </p>
-                    </div>
+
                     <div className=''>
                       <p className='text-[var(--primary-text-color)] font-semibold'>
                         Completed Jobs

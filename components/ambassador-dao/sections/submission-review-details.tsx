@@ -161,7 +161,15 @@ export const SumbissionReviewDetailsModal = ({
                 </div>
               </div>
 
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-2'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
+                <div className=''>
+                  <p className='text-[var(--primary-text-color)] font-semibold'>
+                    Based in
+                  </p>
+                  <p className='text-[var(--secondary-text-color)] text-sm'>
+                    {submission.submitter.location ?? "--"}
+                  </p>
+                </div>
                 <div className=''>
                   <p className='text-[var(--primary-text-color)] font-semibold'>
                     Experience
@@ -172,18 +180,10 @@ export const SumbissionReviewDetailsModal = ({
                 </div>
                 <div className=''>
                   <p className='text-[var(--primary-text-color)] font-semibold'>
-                    Success Rate
-                  </p>
-                  <p className='text-[var(--secondary-text-color)] text-sm'>
-                    --%
-                  </p>
-                </div>
-                <div className=''>
-                  <p className='text-[var(--primary-text-color)] font-semibold'>
                     Completed Jobs
                   </p>
                   <p className='text-[var(--secondary-text-color)] text-sm'>
-                    --
+                    {submission.submitter_number_of_completed_jobs ?? "--"}
                   </p>
                 </div>
               </div>
