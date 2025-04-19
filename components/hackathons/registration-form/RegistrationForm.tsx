@@ -32,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { LoadingButton } from "@/components/ui/loading-button";
+import Modal from "@/components/ui/Modal";
 
 // Esquema de validación
 export const registerSchema = z.object({
@@ -443,7 +444,17 @@ export function RegisterForm({
         </form>
       </Form>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+<Modal
+isOpen={isDialogOpen}
+onOpenChange={setIsDialogOpen}
+title="Application Submitted"
+description="Your application will be reviewed by the AvaLabs staff. We will notify you if you have been approved or not."
+
+>
+
+</Modal>
+
+      {/* <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto p-4">
           <DialogHeader>
             <DialogTitle>Application Submitted</DialogTitle>
@@ -462,7 +473,7 @@ export function RegisterForm({
             OK
           </Button>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 }
