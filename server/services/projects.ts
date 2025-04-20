@@ -1,7 +1,7 @@
-import { Project } from '@/types/showcase';
-import { Hackathon, PrismaClient, User } from '@prisma/client';
-import { validateEntity, Validation } from './base';
-import { revalidatePath } from 'next/cache';
+import { Project } from "@/types/showcase";
+import { Hackathon, PrismaClient, User } from "@prisma/client";
+import { validateEntity, Validation } from "./base";
+import { revalidatePath } from "next/cache";
 
 const prisma = new PrismaClient();
 
@@ -18,7 +18,7 @@ export class ValidationError extends Error {
 
   constructor(message: string, details: Validation[]) {
     super(message);
-    this.cause = 'ValidationError';
+    this.cause = "ValidationError";
     this.details = details;
   }
 }
@@ -28,9 +28,9 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
     (options.page && options.page < 1) ||
     (options.pageSize && options.pageSize < 1)
   )
-    throw new Error('Pagination params invalid', { cause: 'BadRequest' });
+    throw new Error("Pagination params invalid", { cause: "BadRequest" });
 
-  console.log('GET projects with options:', options);
+  console.log("GET projects with options:", options);
   const page = options.page ?? 1;
   const pageSize = options.pageSize ?? 12;
   const offset = (page - 1) * pageSize;
@@ -56,13 +56,13 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
         {
           project_name: {
             contains: word,
-            mode: 'insensitive',
+            mode: "insensitive",
           },
         },
         {
           full_description: {
             contains: word,
-            mode: 'insensitive',
+            mode: "insensitive",
           },
         },
       ];
@@ -81,7 +81,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
       OR: searchFilters,
     };
   }
-  console.log('Filters: ', filters);
+  console.log("Filters: ", filters);
 
   const projects = await prisma.project.findMany({
     include: {
@@ -103,7 +103,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
       members: [],
       hackathon: {
         ...project.hackathon,
-        content: project.hackathon.content as any
+        content: project.hackathon.content as any,
       },
     })),
     total: totalProjects,
@@ -126,14 +126,14 @@ export async function getProject(id: string) {
     },
     where: { id },
   });
-  if (!project) throw new Error('Project not found', { cause: 'BadRequest' });
+  if (!project) throw new Error("Project not found", { cause: "BadRequest" });
 
   project = {
     ...project,
     members: project.members.map((member) => ({
       ...member,
       user: {
-        user_name: member.user.name || '',
+        user_name: member.user.name || "",
         image: member.user.image,
       } as User,
     })),
@@ -144,7 +144,7 @@ export async function getProject(id: string) {
     } as Hackathon,
   };
 
-  console.log('GET project:', project);
+  console.log("GET project:", project);
 
   return project;
 }
@@ -155,22 +155,22 @@ export async function createProject(
   const errors = validateProject(projectData);
   console.log(errors);
   if (errors.length > 0) {
-    throw new ValidationError('Validation failed', errors);
+    throw new ValidationError("Validation failed", errors);
   }
   const newProject = await prisma.project.create({
     data: {
-      project_name: projectData.project_name ?? '',
-      short_description: projectData.short_description ?? '',
-      cover_url: projectData.cover_url ?? '',
-      demo_link: projectData.demo_link ?? '',
-      demo_video_link: projectData.demo_video_link ?? '',
-      full_description: projectData.full_description ?? '',
-      github_repository: projectData.github_repository ?? '',
-      logo_url: projectData.logo_url ?? '',
+      project_name: projectData.project_name ?? "",
+      short_description: projectData.short_description ?? "",
+      cover_url: projectData.cover_url ?? "",
+      demo_link: projectData.demo_link ?? "",
+      demo_video_link: projectData.demo_video_link ?? "",
+      full_description: projectData.full_description ?? "",
+      github_repository: projectData.github_repository ?? "",
+      logo_url: projectData.logo_url ?? "",
       screenshots: projectData.screenshots ?? [],
-      tech_stack: projectData.tech_stack ?? '',
+      tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
-      hackaton_id: projectData.hackaton_id ?? '',
+      hackaton_id: projectData.hackaton_id ?? "",
       // prices: {
       //   create: projectData.prices?.map((price) => ({
       //     icon: price.icon,
@@ -190,7 +190,7 @@ export async function createProject(
     },
   });
   projectData.id = newProject.id;
-  revalidatePath('/api/projects/');
+  revalidatePath("/api/projects/");
   return projectData as Project;
 }
 
@@ -201,29 +201,29 @@ export async function updateProject(
   const errors = validateProject(projectData);
   console.log(errors);
   if (errors.length > 0) {
-    throw new ValidationError('Validation failed', errors);
+    throw new ValidationError("Validation failed", errors);
   }
 
   const existingProject = await prisma.project.findUnique({
     where: { id },
   });
   if (!existingProject) {
-    throw new Error('Project not found');
+    throw new Error("Project not found");
   }
 
   await prisma.project.update({
     where: { id },
     data: {
-      project_name: projectData.project_name ?? '',
-      short_description: projectData.short_description ?? '',
-      cover_url: projectData.cover_url ?? '',
-      demo_link: projectData.demo_link ?? '',
-      demo_video_link: projectData.demo_video_link ?? '',
-      full_description: projectData.full_description ?? '',
-      github_repository: projectData.github_repository ?? '',
-      logo_url: projectData.logo_url ?? '',
+      project_name: projectData.project_name ?? "",
+      short_description: projectData.short_description ?? "",
+      cover_url: projectData.cover_url ?? "",
+      demo_link: projectData.demo_link ?? "",
+      demo_video_link: projectData.demo_video_link ?? "",
+      full_description: projectData.full_description ?? "",
+      github_repository: projectData.github_repository ?? "",
+      logo_url: projectData.logo_url ?? "",
       screenshots: projectData.screenshots ?? [],
-      tech_stack: projectData.tech_stack ?? '',
+      tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
       members: {
         create: projectData.members?.map((member) => ({
@@ -243,7 +243,7 @@ export async function updateProject(
     },
   });
   revalidatePath(`/api/projects/${projectData.id}`);
-  revalidatePath('/api/projects/');
+  revalidatePath("/api/projects/");
   return projectData as Project;
 }
 
@@ -258,7 +258,7 @@ export async function CheckInvitation(invitationId: string, user_id: string) {
   return {
     invitation: {
       isValid: !!member,
-      isConfirming: member?.status == 'Pending Confirmation',
+      isConfirming: member?.status == "Pending Confirmation",
       exists: member ? true : false,
     },
     project: {
@@ -272,20 +272,26 @@ export async function GetProjectByHackathonAndUser(
   hackaton_id: string,
   user_id: string
 ) {
-  if (hackaton_id == '' || user_id == '') {
-    throw new ValidationError('hackathon id or user id is required', []);
+  if (hackaton_id == "" || user_id == "") {
+    throw new ValidationError("hackathon id or user id is required", []);
   }
 
   const project = await prisma.project.findFirst({
     where: {
       hackaton_id,
       members: {
-        some: { user_id: user_id, status: 'Confirmed' },
+        some: {
+          user_id: user_id,
+          status: {
+            in: ["Confirmed", "Pending Confirmation"],
+          },
+        },
       },
     },
   });
+  console.log("proyecto encontrado", project);
   if (!project) {
-    throw new ValidationError('project not found', []);
+    throw new ValidationError("project not found", []);
   }
   return project;
 }
