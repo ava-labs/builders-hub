@@ -82,19 +82,6 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
         </div>
       </div>
 
-      {job?.prize_distribution &&
-        job?.prize_distribution?.map(
-          (prize: { amount: number; position: number }, index: number) => (
-            <div key={index} className='flex items-center gap-2 my-2'>
-              <Image src={Token} alt='$' />
-              {prize.amount} USDC{" "}
-              <span className='text-[var(--secondary-text-color)]'>
-                {getOrdinalPosition(prize.position)}
-              </span>
-            </div>
-          )
-        )}
-
       <div className='flex gap-4 items-center mb-6 mt-2'>
         <div className='flex flex-col'>
           <span className='text-[var(--white-text-color)] flex items-center'>
@@ -274,11 +261,11 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
 
 export const JobDescription: React.FC<JobDescriptionProps> = ({ data }) => {
   return (
-    <div className='mb-6 text-[var(--secondary-text-color)]'>
+    <div className='mb-6 text-[var(--secondary-text-color)] markdownDescription'>
       <h2 className='text-xl font-semibold mb-2 text-[var(--primary-text-color)]'>
         {data.title}
       </h2>
-      <div className='space-y-4 break-all text-[var(--secondary-text-color)]'>
+      <div className='space-y-4 break-all !text-[var(--secondary-text-color)]'>
         <ReactMarkdown
           components={{
             ul: ({ node, ...props }) => (

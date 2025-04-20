@@ -23,29 +23,32 @@ const AmbasssadorDaoSponsorsListingPreview = () => {
 
   const { data, isLoading } = useFetchOpportunityDetails(params.id);
 
-  const extractDescriptionData = (apiResponse: { description: string }) => {
+  const extractDescriptionData = (apiResponse: {
+    description: string;
+    title: string;
+  }) => {
     const descriptionParagraphs = apiResponse?.description
       ? apiResponse.description
           .split("\n\n")
           .filter((para) => para.trim() !== "")
       : [];
-    const titleParagraph =
-      descriptionParagraphs.length > 0
-        ? descriptionParagraphs[0]
-        : "About the Job";
 
-    const contentParagraphs = descriptionParagraphs.slice(1);
+    const titleParagraph = apiResponse?.title
+      ? apiResponse?.title
+      : "About the Job";
+
+    const contentParagraphs = descriptionParagraphs;
 
     return {
       title: titleParagraph,
       content: contentParagraphs,
     };
   };
-
   const headerData = {
     id: data?.id,
     title: data?.title,
     companyName: data?.created_by?.company_profile?.name || "Unknown",
+    requirements: data?.requirements,
     companyLogo: data?.created_by?.company_profile?.logo,
     createdBy: `${data?.created_by?.first_name} ${data?.created_by?.last_name}`,
     type: data?.type,
@@ -107,65 +110,77 @@ const AmbasssadorDaoSponsorsListingPreview = () => {
                   <div className='md:col-span-2 flex flex-col'>
                     <JobHeader job={headerData} />
 
+                    {headerData?.requirements && (
+                      <div className='border text-[var(--primary-text-color)] border-[var(--default-border-color)] p-4 mb-6 rounded-md'>
+                        <h2 className='mb-2 font-medium'>Requirements</h2>
+                        <p className='text-[13px] text-[var(--secondary-text-color)]'>
+                          {headerData?.requirements}
+                        </p>
+                      </div>
+                    )}
+
                     <div className='block md:hidden my-6'>
                       <JobSidebar job={sidebarData} nullAction={true} />
                     </div>
                     {data.description && (
-                      <div className='mb-6 text-[var(--primary-text-color)]'>
-                        <Markdown
-                          components={{
-                            ul: ({ node, ...props }) => (
-                              <ul
-                                className='list-disc pl-6 mb-4 space-y-2'
-                                {...props}
-                              />
-                            ),
-                            ol: ({ node, ...props }) => (
-                              <ol
-                                className='list-decimal pl-6 mb-4 space-y-2'
-                                {...props}
-                              />
-                            ),
-                            h1: ({ node, ...props }) => (
-                              <h1
-                                className='text-4xl font-bold mb-4'
-                                {...props}
-                              />
-                            ),
-                            h2: ({ node, ...props }) => (
-                              <h2
-                                className='text-3xl font-semibold mb-4'
-                                {...props}
-                              />
-                            ),
-                            h3: ({ node, ...props }) => (
-                              <h3
-                                className='text-2xl font-medium mb-3'
-                                {...props}
-                              />
-                            ),
-                            h4: ({ node, ...props }) => (
-                              <h4
-                                className='text-xl font-medium mb-3'
-                                {...props}
-                              />
-                            ),
-                            h5: ({ node, ...props }) => (
-                              <h5
-                                className='text-lg font-normal mb-2'
-                                {...props}
-                              />
-                            ),
-                            h6: ({ node, ...props }) => (
-                              <h6
-                                className='text-base font-normal mb-2'
-                                {...props}
-                              />
-                            ),
-                          }}
-                        >
-                          {data?.description}
-                        </Markdown>
+                      <div className=''>
+                        <JobDescription data={extractDescriptionData(data)} />
+                        {/* <div className='mb-6 text-[var(--primary-text-color)]'>
+                          <Markdown
+                            components={{
+                              ul: ({ node, ...props }) => (
+                                <ul
+                                  className='list-disc pl-6 mb-4 space-y-2'
+                                  {...props}
+                                />
+                              ),
+                              ol: ({ node, ...props }) => (
+                                <ol
+                                  className='list-decimal pl-6 mb-4 space-y-2'
+                                  {...props}
+                                />
+                              ),
+                              h1: ({ node, ...props }) => (
+                                <h1
+                                  className='text-4xl font-bold mb-4'
+                                  {...props}
+                                />
+                              ),
+                              h2: ({ node, ...props }) => (
+                                <h2
+                                  className='text-3xl font-semibold mb-4'
+                                  {...props}
+                                />
+                              ),
+                              h3: ({ node, ...props }) => (
+                                <h3
+                                  className='text-2xl font-medium mb-3'
+                                  {...props}
+                                />
+                              ),
+                              h4: ({ node, ...props }) => (
+                                <h4
+                                  className='text-xl font-medium mb-3'
+                                  {...props}
+                                />
+                              ),
+                              h5: ({ node, ...props }) => (
+                                <h5
+                                  className='text-lg font-normal mb-2'
+                                  {...props}
+                                />
+                              ),
+                              h6: ({ node, ...props }) => (
+                                <h6
+                                  className='text-base font-normal mb-2'
+                                  {...props}
+                                />
+                              ),
+                            }}
+                          >
+                            {data?.description}
+                          </Markdown>
+                        </div> */}
                       </div>
                     )}
                   </div>
@@ -179,66 +194,80 @@ const AmbasssadorDaoSponsorsListingPreview = () => {
                   <div className='md:col-span-2 flex flex-col'>
                     <BountyHeader bounty={headerData} />
 
+                    {headerData?.requirements && (
+                      <div className='border text-[var(--primary-text-color)] border-[var(--default-border-color)] p-4 mb-6 rounded-md'>
+                        <h2 className='mb-2 font-medium'>Requirements</h2>
+                        <p className='text-[13px] text-[var(--secondary-text-color)]'>
+                          {headerData?.requirements}
+                        </p>
+                      </div>
+                    )}
+
                     <div className='block md:hidden my-6'>
                       <BountySidebar bounty={sidebarData} nullAction={true} />
                     </div>
 
                     {data.description && (
-                      <div className='mb-6 text-[var(--primary-text-color)]'>
-                        <Markdown
-                          components={{
-                            ul: ({ node, ...props }) => (
-                              <ul
-                                className='list-disc pl-6 mb-4 space-y-2'
-                                {...props}
-                              />
-                            ),
-                            ol: ({ node, ...props }) => (
-                              <ol
-                                className='list-decimal pl-6 mb-4 space-y-2'
-                                {...props}
-                              />
-                            ),
-                            h1: ({ node, ...props }) => (
-                              <h1
-                                className='text-4xl font-bold mb-4'
-                                {...props}
-                              />
-                            ),
-                            h2: ({ node, ...props }) => (
-                              <h2
-                                className='text-3xl font-semibold mb-4'
-                                {...props}
-                              />
-                            ),
-                            h3: ({ node, ...props }) => (
-                              <h3
-                                className='text-2xl font-medium mb-3'
-                                {...props}
-                              />
-                            ),
-                            h4: ({ node, ...props }) => (
-                              <h4
-                                className='text-xl font-medium mb-3'
-                                {...props}
-                              />
-                            ),
-                            h5: ({ node, ...props }) => (
-                              <h5
-                                className='text-lg font-normal mb-2'
-                                {...props}
-                              />
-                            ),
-                            h6: ({ node, ...props }) => (
-                              <h6
-                                className='text-base font-normal mb-2'
-                                {...props}
-                              />
-                            ),
-                          }}
-                        >
-                          {data?.description}
-                        </Markdown>
+                      <div>
+                        <BountyDescription
+                          data={extractDescriptionData(data)}
+                        />
+                        {/* <div className='mb-6 text-[var(--primary-text-color)]'>
+                          <Markdown
+                            components={{
+                              ul: ({ node, ...props }) => (
+                                <ul
+                                  className='list-disc pl-6 mb-4 space-y-2'
+                                  {...props}
+                                />
+                              ),
+                              ol: ({ node, ...props }) => (
+                                <ol
+                                  className='list-decimal pl-6 mb-4 space-y-2'
+                                  {...props}
+                                />
+                              ),
+                              h1: ({ node, ...props }) => (
+                                <h1
+                                  className='text-4xl font-bold mb-4'
+                                  {...props}
+                                />
+                              ),
+                              h2: ({ node, ...props }) => (
+                                <h2
+                                  className='text-3xl font-semibold mb-4'
+                                  {...props}
+                                />
+                              ),
+                              h3: ({ node, ...props }) => (
+                                <h3
+                                  className='text-2xl font-medium mb-3'
+                                  {...props}
+                                />
+                              ),
+                              h4: ({ node, ...props }) => (
+                                <h4
+                                  className='text-xl font-medium mb-3'
+                                  {...props}
+                                />
+                              ),
+                              h5: ({ node, ...props }) => (
+                                <h5
+                                  className='text-lg font-normal mb-2'
+                                  {...props}
+                                />
+                              ),
+                              h6: ({ node, ...props }) => (
+                                <h6
+                                  className='text-base font-normal mb-2'
+                                  {...props}
+                                />
+                              ),
+                            }}
+                          >
+                            {data?.description}
+                          </Markdown>
+                        </div> */}
                       </div>
                     )}
                   </div>

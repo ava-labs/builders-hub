@@ -1,8 +1,8 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
-@import 'fumadocs-ui/css/neutral.css';
-@import 'fumadocs-ui/css/preset.css';
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
 
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
 @plugin 'tailwindcss-animate';
@@ -130,7 +130,7 @@
 
 .prose
   :where(ul > li):not(
-    :where([class~='not-prose'], [class~='not-prose'] *)
+    :where([class~="not-prose"], [class~="not-prose"] *)
   )::marker {
   color: #e84142;
 }
@@ -352,31 +352,31 @@ nav a:not(:first-child) {
 }
 
 @media (max-width: 639px) {
-  [data-state='open'][data-orientation='horizontal'] {
+  [data-state="open"][data-orientation="horizontal"] {
     max-height: 75vh !important;
     overflow-y: auto !important;
     overscroll-behavior: contain !important;
   }
 
-  [data-state='open'][data-orientation='horizontal']::-webkit-scrollbar {
+  [data-state="open"][data-orientation="horizontal"]::-webkit-scrollbar {
     width: 4px;
   }
 
-  [data-state='open'][data-orientation='horizontal']::-webkit-scrollbar-thumb {
+  [data-state="open"][data-orientation="horizontal"]::-webkit-scrollbar-thumb {
     background-color: rgba(156, 163, 175, 0.5);
     border-radius: 2px;
   }
 
-  div[class*='flex flex-col sm:hidden']:nth-last-of-type(-n + 3) > a {
+  div[class*="flex flex-col sm:hidden"]:nth-last-of-type(-n + 3) > a {
     display: none;
   }
 
   /* for hiding avagpt */
-  [data-open='true'] {
+  [data-open="true"] {
     z-index: 250;
   }
 
-  [data-state='open'] {
+  [data-state="open"] {
     z-index: 450;
   }
 }
@@ -688,7 +688,6 @@ html body[data-scroll-locked] {
   }
 }
 
-
 .list-none a {
   white-space: nowrap;
 }
@@ -801,4 +800,35 @@ html body[data-scroll-locked] {
   --black-background-color: #000;
   --default-border-color: #27272a;
   --default-background-color: #09090b;
+}
+.markdownDescription {
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+  }
+
+  h2 {
+    font-size: 1.625rem;
+    font-weight: 600;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+
+  h4 {
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  h5 {
+    font-size: 0.875rem;
+    font-weight: 400;
+  }
+
+  h6 {
+    font-size: 0.75rem;
+    font-weight: 400;
+  }
 }
