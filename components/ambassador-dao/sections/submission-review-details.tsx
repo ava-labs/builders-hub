@@ -128,7 +128,9 @@ export const SumbissionReviewDetailsModal = ({
                         <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
                           <Hourglass color='#9F9FA9' className='w-3 h-3 mr-1' />
                           Submitted:{" "}
-                          {new Date(submission.created_at).toLocaleDateString()}
+                          {new Date(
+                            submission.created_at
+                          ).toLocaleDateString()}{" "}
                           at{" "}
                           {new Date(submission.created_at).toLocaleTimeString()}
                         </div>
@@ -161,7 +163,7 @@ export const SumbissionReviewDetailsModal = ({
                 </div>
               </div>
 
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-2'>
                 <div className=''>
                   <p className='text-[var(--primary-text-color)] font-semibold'>
                     Based in
