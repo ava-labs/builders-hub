@@ -289,7 +289,7 @@ export async function GetProjectByHackathonAndUser(
       },
     },
   });
-  console.log("proyecto encontrado", project);
+
   if (!project) {
     throw new ValidationError("project not found", []);
   }

@@ -185,7 +185,7 @@ export function VerifyEmail({
 
             <Button
               type="submit"
-              className="w-full px-4 py-2 gap-2 bg-zinc-50 Dark:text-zinc-800  hover:bg-primary/90"
+              className="w-full px-4 py-2 gap-2 dark:bg-zinc-50 Dark:text-zinc-800  hover:bg-primary/90"
               onClick={onBack}
             >
               Go back
