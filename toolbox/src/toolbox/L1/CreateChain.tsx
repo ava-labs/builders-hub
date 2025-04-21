@@ -1,20 +1,20 @@
 "use client";
 
-import { initialState, useToolboxStore } from "../../stores/toolboxStore";
+import { initialState, useToolboxStore } from "../toolboxStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useEffect, useState } from "react";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
-import { Container } from "../../components/Container";
-import { GenesisInput } from "../../components/GenesisInput";
-import { ResultField } from "../../components/ResultField";
+import { Container } from "../components/Container";
+import { GenesisInput } from "../components/GenesisInput";
+import { ResultField } from "../components/ResultField";
 import { quickAndDirtyGenesisBuilder } from "./GenesisBuilder";
-import { useWalletStore } from "../../stores/walletStore";
+import { useWalletStore } from "../../lib/walletStore";
 
 export default function CreateChain() {
     const { showBoundary } = useErrorBoundary();
     const {
-        subnetID,
+        subnetId,
         evmChainName,
         vmId,
         setVmId,
@@ -43,7 +43,7 @@ export default function CreateChain() {
 
         coreWalletClient.createChain({
             chainName: evmChainName,
-            subnetId: subnetID,
+            subnetId: subnetId,
             vmId,
             fxIds: [],
             genesisData,
@@ -83,7 +83,7 @@ export default function CreateChain() {
 
             <Input
                 label="Subnet ID"
-                value={subnetID}
+                value={subnetId}
                 type="text"
                 onChange={setSubnetID}
                 placeholder="Create a subnet to generate a subnet ID"

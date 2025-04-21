@@ -18,6 +18,7 @@ nav: {
         <span style={{ fontSize: "large" }}>Documentation</span>
       </>
     ),
+    url: '/docs',
   },
   links: [
     academyMenu,

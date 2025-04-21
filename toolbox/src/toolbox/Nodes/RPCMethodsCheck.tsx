@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { Button } from "../../components/Button";
 import { createPublicClient, http } from 'viem';
 import { useErrorBoundary } from "react-error-boundary";
-import { useToolboxStore } from "../../stores/toolboxStore";
+import { useToolboxStore } from "../toolboxStore";
 import { pvm } from '@avalabs/avalanchejs';
-import { RPCURLInput } from "../../components/RPCURLInput";
-import { useWalletStore } from "../../stores/walletStore";
+import { RPCURLInput } from "../components/RPCURLInput";
+import { useWalletStore } from "../../lib/walletStore";
 
 type TestResult = Record<string, { passed: boolean, message: string }>;
 async function runPChainTests(payload: { evmChainRpcUrl: string, baseURL: string, pChainAddress: string, ethAddress: string }): Promise<TestResult> {

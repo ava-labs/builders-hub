@@ -15,51 +15,35 @@ const features = [
   {
     id: 1,
     label: "L1 Modules",
-    title: "<strong>Avalanche L1 Launcher</strong>.",
+    title: "<strong>L1 Toolbox</strong>.",
+    description: "Manage your L1 with a highly granular set of tools.",
+    icon: CircleFadingPlus,
+    href: "/tools/l1-toolbox"
+  },
+  {
+    id: 2,
+    label: "L1 Modules",
+    title: "<strong>L1 Launcher</strong>.",
     description: "Guided deployment platform for launching self-hosted Avalanche L1s on Testnet and Mainnet.",
     icon: CircleFadingPlus,
     href: "/tools/l1-launcher"
   },
   {
-    id: 2,
-    label: "L1 Modules",
-    title: "<strong>PoA Validator Management</strong>.",
-    description: "Validator management dashboard for Proof of Authority based Avalanche L1s. Coming Soon.",
-    icon: CircleFadingPlus,
-    href: "/tools/poa-validator-management"
-  },
-  {
     id: 3,
-    label: "L1 Modules",
-    title: "<strong>Balance TopUp</strong>.",
-    description: "Tool for funding AVAX balances of Avalanche L1 Validators directly from the C-Chain. Coming Soon.",
+    label: "Faucet",
+    title: "<strong>Fuji Testnet Faucet</strong>.",
+    description: "Claim Fuji AVAX tokens from the testnet faucet to test your dApps.",
     icon: CircleFadingPlus,
-    href: "/tools/l1-validator-balance-topup"
+    href: "https://core.app/tools/testnet-faucet/?subnet=c&token=c"
   },
   {
     id: 4,
-    label: "ICM Modules",
-    title: "<strong>ICM Deployer</strong>.",
-    description: "Tool for deploying ICM Contracts and enabling cross-chain messaging on Avalanche l1s.",
-    icon: SendHorizontal,
-    href: "#"
-  },
-  {
-    id: 5,
-    label: "ICM Modules",
-    title: "<strong>Relayer Launcher</strong>.",
-    description: "Launch your own ICM Relayer between two Avalanche L1s and securely deliver cross-chain messages.",
-    icon: SendHorizontal,
-    href: "#"
-  },
-  {
-    id: 6,
-    label: "ICM Modules",
-    title: "<strong>ICTT Deployment</strong>.",
-    description: "Deploy token bridges between Avalanche L1s with pre-audited smart contracts and Interchain Messaging.",
-    icon: SendHorizontal,
-    href: "#"
-  },
+    label: "dApp Development",
+    title: "<strong>Avalanche Starter Kit</strong>.",
+    description: "Spin up short-lived test environments for building dApps using interoperability features like ICM and ICTT.",
+    icon: CircleFadingPlus,
+    href: "https://github.com/ava-labs/avalanche-starter-kit"
+  }
 ];
 
 export default function Page() {
@@ -84,22 +68,21 @@ export default function Page() {
             />
           </div>
           <h1 className="text-4xl md:text-7xl font-bold tracking-tighter">
-            L1 <span className="pb-1 text-[#EB4C50]">Toolkit</span>
+            Builder <span className="pb-1 text-[#EB4C50]">Tooling</span>
           </h1>
         </section>
 
         <section className="flex flex-col justify-center items-center px-4 mb-16">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <p className="text-xl tracking-tight text-zinc-500 text-center">
-              Find all the tools you will ever need to build an Avalanche L1.
+              Find all the tools you will ever need to build on Avalanche.
             </p>
           </div>
           <div className="mt-10 mx-auto font-geist relative md:border-l-0 md:border-b-0 md:border-[1.2px] rounded-none -pr-2">
             <div className="w-full md:mx-0">
-              <div className="grid grid-cols-1 relative md:grid-rows-2 md:grid-cols-3 border-b-[1.2px]">
-                <div className="hidden md:grid top-1/2 left-0 -translate-y-1/2 w-full grid-cols-3 z-10 pointer-events-none select-none absolute">
+              <div className="grid grid-cols-1 relative md:grid-cols-2 border-b-[1.2px]">
+                <div className="hidden md:grid top-1/2 left-0 -translate-y-1/2 w-full grid-cols-2 z-10 pointer-events-none select-none absolute">
                   <Plus className="w-8 h-8 text-neutral-300 translate-x-[16.5px] translate-y-[.5px] ml-auto dark:text-neutral-600" />
-                  <Plus className="w-8 h-8 text-neutral-300 ml-auto translate-x-[16.5px] translate-y-[.5px] dark:text-neutral-600" />
                 </div>
                 {features.map((feature, index) => (
                   <Link
@@ -107,7 +90,7 @@ export default function Page() {
                     href={feature.href}
                     className={cn(
                       "group block border-l-[1.2px] border-r-[1.2px] md:border-r-0 md:min-h-[200px] border-t-[1.2px] md:border-t-0 transform-gpu hover:bg-[#dfe3e8] dark:hover:bg-[#1c1c1c]",
-                      index >= 3 && "md:border-t-[1.2px]",
+                      index >= 2 && "md:border-t-[1.2px]",
                       feature.href === "#" && "opacity-50 cursor-not-allowed pointer-events-none",
                       "transition-all duration-300 ease-in-out"
                     )}

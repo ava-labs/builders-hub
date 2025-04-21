@@ -1,14 +1,14 @@
 "use client";
 
-import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
-import { useWalletStore } from "../../stores/walletStore";
+import { useToolboxStore, useViemChainStore } from "../toolboxStore";
+import { useWalletStore } from "../../lib/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Button } from "../../components/Button";
-import { ResultField } from "../../components/ResultField";
+import { ResultField } from "../components/ResultField";
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
-import { RequireChainL1 } from "../../components/RequireChain";
-import { Container } from "../../components/Container";
+import { RequireChainToolboxL1 } from "../components/RequireChainToolboxL1";
+import { Container } from "../components/Container";
 import { Input } from "../../components/Input";
 import { TransactionReceipt } from "viem";
 export default function TransferOwnership() {
@@ -46,7 +46,7 @@ export default function TransferOwnership() {
 
 
     return (
-        <RequireChainL1>
+        <RequireChainToolboxL1>
             <Container
                 title="Transfer Validator Manager Ownership"
                 description="This will transfer the ownership of the Validator Manager to the Staking Manager."
@@ -87,7 +87,7 @@ export default function TransferOwnership() {
                     />
                 )}
             </Container>
-        </RequireChainL1>
+        </RequireChainToolboxL1>
     );
 };
 

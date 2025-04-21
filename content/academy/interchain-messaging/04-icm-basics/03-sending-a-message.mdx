@@ -12,7 +12,7 @@ Sending a message is nothing more than a simple contract call to the Interchain 
 
 The dApp on the Source L1 has to call the `sendCrossChainMessage` function of the Interchain Messaging contract. The Interchain Messaging contract implements the `ITeleporterMessenger` interface below. Note that the dApp itself does not have to implement the interface.
 
-```solidity title="/lib/teleporter/contracts/src/Teleporter/ITeleporterMessenger.sol"
+```solidity title="/lib/icm-contracts/contracts/teleporter/ITeleporterMessenger.sol"
 pragma solidity 0.8.18;
 
 struct TeleporterMessageInput {

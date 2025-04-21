@@ -1,0 +1,65 @@
+---
+title: Keyring
+category: KYC / Identity Verification
+available: ["C-Chain"]
+description: Keyring provides privacy-preserving identity verification using zero-knowledge technology, enabling seamless compliance for blockchain applications implementing txAllowlist precompiles.
+logo: /images/keyring.png
+developer: Keyring Network
+website: https://www.keyring.network/
+documentation: https://docs.keyring.network/docs
+---
+
+## Overview
+
+Keyring is a pioneering identity verification platform that leverages zero-knowledge (ZK) technology to transform the KYC process for blockchain applications. Through its signature products, Keyring Pro and Keyring Connect, it enables users to verify their identity once and reuse their credentials across multiple platforms without compromising privacy. For projects implementing txAllowlist precompiles, Keyring offers a unique approach that balances regulatory compliance with the privacy-preserving ethos of Web3, allowing only verified users to transact on permissioned networks while minimizing data exposure.
+
+## Features
+
+- **Zero-Knowledge Verification**: Utilizes zkTLS technology to verify user identity without exposing personal data, allowing proofs to be submitted on-chain.
+- **Privacy-First Approach**: Users maintain control of their personal information while still satisfying verification requirements.
+- **Instant ZK-KYC**: Enables users to extract information from established platforms (like Binance, Revolut, or Coinbase) with proof of authenticity in minutes.
+- **Multi-Chain Support**: Available on multiple networks including Ethereum, Base, Arbitrum, Optimism, and Avalanche.
+- **Customizable Compliance Policies**: Define specific rules and verification requirements for your platform's risk profile.
+- **On-Chain Credential Issuance**: Creates verifiable credentials that can be queried by smart contracts for transaction approval.
+- **Seamless Developer Integration**: Simple implementation that can be completed in under 3 hours.
+- **Automates Identity Verification**: Replaces manual KYC workflows with automated credential verification.
+
+## Getting Started
+
+To integrate Keyring into your Avalanche-based application with txAllowlist precompiles, follow these steps:
+
+1. **Contact Keyring**: Reach out to Keyring through their [contact page](https://www.keyring.network/contact) to discuss your specific compliance requirements.
+2. **Define Compliance Policy**: Work with Keyring to establish the rules and data sources you'll accept for verification.
+3. **SDK Integration**: Add a button or link to your frontend using Keyring's SDK to initiate the verification process.
+4. **Smart Contract Integration**: Implement the provided modifiers in your smart contracts to check credential validity before allowing transactions.
+5. **Testing**: Thoroughly test the integration to ensure proper credential verification and allowlist management.
+6. **Launch**: Deploy your enhanced application with integrated txAllowlist and Keyring verification.
+
+## Integration with txAllowlist
+
+Keyring's technology works exceptionally well with Avalanche's txAllowlist precompile for several reasons:
+
+1. **Privacy-Preserving Compliance**: Users can prove they've passed KYC without revealing personal details, maintaining privacy while still enforcing transaction restrictions.
+2. **On-Chain Credential Verification**: Smart contracts can verify credentials in real-time before approving transactions, creating a seamless allowlist enforcement mechanism.
+3. **Dynamic Access Control**: Transaction permissions can be automatically granted or revoked based on credential status, without requiring manual allowlist management.
+4. **Frictionless User Experience**: Users verify once and can interact with multiple applications using the same credentials, reducing barriers to entry.
+5. **Risk-Based Approach**: Verification can be calibrated to the level of risk associated with different transaction types or user profiles.
+
+## Documentation
+
+For developers, Keyring provides comprehensive documentation on integrating their identity verification solutions. While documentation links may change, you can find the latest resources on their website at [docs.keyring.network/docs](https://docs.keyring.network/docs).
+
+## Use Cases
+
+Keyring's identity verification solutions are particularly valuable for these Avalanche-based applications:
+
+- **Permissioned DeFi Pools**: Create lending pools or trading platforms that only allow KYC'd users from non-sanctioned countries.
+- **Compliant DEXs**: Enable decentralized exchanges to implement regulatory-compliant trading without compromising on decentralization principles.
+- **Cross-Chain Ecosystems**: Maintain consistent identity verification across multiple chains or subnets.
+- **Token Offerings**: Ensure participants in token sales meet jurisdictional requirements.
+- **Enterprise Applications**: Build permissioned applications that require verified identity while maintaining privacy.
+- **Travel Rule Compliance**: Implement solutions compatible with the FATF Travel Rule for VASPs without excessive data sharing.
+
+## Conclusion
+
+Keyring represents a significant advancement in blockchain identity verification, offering a unique approach that preserves privacy while enabling compliance with regulatory requirements. By combining Keyring's zero-knowledge verification with Avalanche's txAllowlist precompiles, developers can create applications that satisfy compliance requirements without compromising on the core values of decentralization and user privacy. The seamless integration process and focus on minimizing friction make Keyring an excellent choice for projects looking to implement permissioned systems that maintain a positive user experience. 

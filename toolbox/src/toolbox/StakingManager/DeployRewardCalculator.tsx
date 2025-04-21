@@ -1,14 +1,14 @@
 "use client";
 
-import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
-import { useWalletStore } from "../../stores/walletStore";
+import { useToolboxStore, useViemChainStore } from "../toolboxStore";
+import { useWalletStore } from "../../lib/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Button } from "../../components/Button";
-import { ResultField } from "../../components/ResultField";
+import { ResultField } from "../components/ResultField";
 import ExampleRewardCalculatorABI from "../../../contracts/icm-contracts/compiled/ExampleRewardCalculator.json";
-import { RequireChainL1 } from "../../components/RequireChain";
-import { Container } from "../../components/Container";
+import { RequireChainToolboxL1 } from "../components/RequireChainToolboxL1";
+import { Container } from "../components/Container";
 
 export default function DeployRewardCalculator() {
     const { showBoundary } = useErrorBoundary();
@@ -45,7 +45,7 @@ export default function DeployRewardCalculator() {
 
 
     return (
-        <RequireChainL1>
+        <RequireChainToolboxL1>
             <Container
                 title="Deploy Example Reward Calculator"
                 description="This will deploy the ExampleRewardCalculator contract to the currently connected EVM network."
@@ -98,7 +98,7 @@ export default function DeployRewardCalculator() {
                     />
                 )}
             </Container>
-        </RequireChainL1>
+        </RequireChainToolboxL1>
     );
 };
 

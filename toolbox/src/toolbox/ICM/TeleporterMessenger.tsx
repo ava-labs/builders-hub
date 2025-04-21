@@ -5,12 +5,12 @@ import { useErrorBoundary } from "react-error-boundary";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import { formatEther, parseEther } from 'viem';
-import { useViemChainStore } from "../../stores/toolboxStore";
-import { useWalletStore } from "../../stores/walletStore";
+import { useViemChainStore } from "../toolboxStore";
+import { useWalletStore } from "../../lib/walletStore";
 import TeleporterMessengerDeploymentTransaction from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployment_Transaction_v1.0.0.txt.json';
 import TeleporterMessengerDeployerAddress from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployer_Address_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
-import { RequireChainL1 } from "../../components/RequireChain";
+import { RequireChainToolboxL1 } from "../components/RequireChainToolboxL1";
 
 const MINIMUM_BALANCE = parseEther('11');
 
@@ -132,7 +132,7 @@ export default function TeleporterMessenger() {
     const hasEnoughBalance = deployerBalance >= MINIMUM_BALANCE;
 
     return (
-        <RequireChainL1>
+        <RequireChainToolboxL1>
             <div className="space-y-6">
                 <h1 className="text-2xl font-bold">Deploy TeleporterMessenger Contract</h1>
 
@@ -214,6 +214,6 @@ export default function TeleporterMessenger() {
                     )}
                 </div>
             </div>
-        </RequireChainL1>
+        </RequireChainToolboxL1>
     );
 }

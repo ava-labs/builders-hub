@@ -1,45 +1,19 @@
-import L1Form from "../toolbox/Wallet/L1Form";
-import { useErrorBoundary } from "react-error-boundary";
-import { useToolboxStore, useViemChainStore } from "../stores/toolboxStore";
-import { useWalletStore } from "../stores/walletStore";
-
-
-export function RequireChainL1({ children }: { children: React.ReactNode }) {
-    const { walletChainId } = useWalletStore();
-    const { evmChainId } = useToolboxStore();
-    const viemChain = useViemChainStore();
-
-    if (walletChainId === evmChainId && !!viemChain) {
-        return children;
-    }
-
-    return <>
-        <div className="space-y-4">
-            <div >
-                Before you continue, please switch Core wallet to your L1 using form below:
-            </div>
-            <L1Form />
-            <div className="opacity-50 pointer-events-none">
-                {children}
-            </div>
-        </div>
-    </>
-}
-
-import { avalancheFuji } from "viem/chains";
+import { useWalletStore } from "../lib/walletStore";
+import { Chain } from "viem/chains";
 import { Button } from "./Button";
 import { useState } from "react";
+import { useErrorBoundary } from "react-error-boundary";
 
-export function RequireChainFuji({ children }: { children: React.ReactNode }) {
+export function RequireChain({ children, chain }: { children: React.ReactNode, chain: Chain }) {
     const { walletChainId, coreWalletClient } = useWalletStore();
     const [isSwitching, setIsSwitching] = useState(false);
     const { showBoundary } = useErrorBoundary();
 
-    async function switchToFuji() {
+    async function switchToChain() {
         try {
             setIsSwitching(true);
-            await coreWalletClient.addChain({ chain: avalancheFuji });
-            await coreWalletClient.switchChain({ id: avalancheFuji.id });
+            await coreWalletClient.addChain({ chain: chain });
+            await coreWalletClient.switchChain({ id: chain.id });
         } catch (error) {
             showBoundary(error);
         } finally {
@@ -48,26 +22,42 @@ export function RequireChainFuji({ children }: { children: React.ReactNode }) {
     }
 
     if (isSwitching) {
-        return <div>Please confirm the switch in your wallet.</div>
+        return <div className="text-center py-4">Please confirm the switch in your wallet.</div>
     }
 
-    if (walletChainId === avalancheFuji.id) {
+    if (walletChainId === chain.id) {
         return children;
     }
 
-    if (walletChainId !== avalancheFuji.id) {
-        return <>
-            <div className="mb-4">
-                Before you continue, please switch to Fuji network using form below:
-            </div>
-            <div className="p-4 rounded-lg border border-gray-500">
-                <Button onClick={switchToFuji}>
-                    Switch to Fuji
+    return (
+        <div className="space-y-8 my-16">
+            <div className="max-w-md mx-auto space-y-6">
+                <div className="space-y-2">
+                    <h3 className="text-lg font-medium">Chain Switch Required</h3>
+                    <p className="text-sm text-gray-600">
+                        This action requires the {chain.name} network
+                    </p>
+                </div>
+
+                <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                        <span className="text-gray-600">Chain ID:</span>
+                        <span className="font-mono">{chain.id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-600">Currency:</span>
+                        <span>{chain.nativeCurrency.symbol}</span>
+                    </div>
+                </div>
+
+                <Button onClick={switchToChain} className="w-full">
+                    Switch to {chain.name}
                 </Button>
             </div>
+
             <div className="opacity-50 pointer-events-none">
                 {children}
             </div>
-        </>
-    }
+        </div>
+    );
 }

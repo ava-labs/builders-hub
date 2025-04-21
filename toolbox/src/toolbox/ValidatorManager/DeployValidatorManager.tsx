@@ -1,15 +1,15 @@
 "use client";
 
-import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
-import { useWalletStore } from "../../stores/walletStore";
+import { useToolboxStore, useViemChainStore } from "../toolboxStore";
+import { useWalletStore } from "../../lib/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Button } from "../../components/Button";
-import { ResultField } from "../../components/ResultField";
+import { ResultField } from "../components/ResultField";
 import { keccak256 } from 'viem';
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
-import { RequireChainL1 } from "../../components/RequireChain";
-import { Container } from "../../components/Container";
+import { RequireChainToolboxL1 } from "../components/RequireChainToolboxL1";
+import { Container } from "../components/Container";
 function calculateLibraryHash(libraryPath: string) {
     const hash = keccak256(
         new TextEncoder().encode(libraryPath)
@@ -72,7 +72,7 @@ export default function DeployValidatorManager() {
     }
 
     return (
-        <RequireChainL1>
+        <RequireChainToolboxL1>
             <Container
                 title="Deploy Validator Manager"
                 description="This will deploy the ValidatorManager contract to the currently connected EVM network."
@@ -103,6 +103,6 @@ export default function DeployValidatorManager() {
                     )}
                 </div>
             </Container>
-        </RequireChainL1>
+        </RequireChainToolboxL1>
     );
 };

@@ -8,7 +8,7 @@ icon: BookOpen
 
 Protocols in the Avalanche family operate through repeated sub-sampled voting. When a validator is determining whether a block should be accepted, it asks a small, random subset of validators on their preferences. Based on the responses the validator gets, it might change its own preference.
 
-Let's visualize this with an example. You are a validator in a set of validators that is performing the Avalanche Consensus protocol to agree on whether to send the funds to Charlie (yellow) or to Bob (blue). It is important to understand that none of the validators really cares whether it is going to be yellow or blue, as long as all correctly operating validators decide for the same outcome at the end of the process. The starting preference is chosen random by each validator.
+Let's visualize this with an example. You are a validator in a set of validators that is performing the Avalanche Consensus protocol to agree on whether to send the funds to Charlie (yellow) or to Bob (blue). It is important to understand that none of the validators really cares whether it is going to be yellow or blue, as long as all correctly operating validators decide for the same outcome at the end of the process. The starting preference is chosen randomly by each validator.
 
 ## Changing Preference
 
@@ -16,7 +16,7 @@ You start by sampling the current preference of five other nodes and they reply:
 
 ![](/course-images/avalanche-fundamentals/5.png)
 
-Avalanche consensus dictates, that a validator changes its preference if a α-majority of the sampled validators agrees on another option and it goes along with this popular choice. 
+Avalanche consensus dictates that a validator changes its preference if an α-majority of the sampled validators agree on another option, and it goes along with this popular choice. 
 
 Let's set the alpha value to 3 in our example, meaning that we change our preference when 3 out of 5 sampled nodes have another preference. Since 3 out of 5 have replied with blue (Bob) we are changing our own preference to Bob. 
 
@@ -28,7 +28,7 @@ From now on you will respond with blue, when another validators queries you for 
 
 ## Consecutive Successes
 
-Avalanche Consensus does not run for a fixed number of rounds, but until a decision threshold is hit. This means the validator keep sampling until their preference is confirmed for beta (β) consecutive rounds.
+Avalanche Consensus does not run for a fixed number of rounds, but until a decision threshold is hit. This means the validator keeps sampling until their preference is confirmed for beta (β) consecutive rounds.
 
 Now you query another five validators for their preference. Again, three of the five reply with the preference blue (Bob). Since your current preference is confirmed, you increment a counter for consecutive successes by one. You repeat this sampling process until their preference is confirmed for 8 consecutive rounds. 
 

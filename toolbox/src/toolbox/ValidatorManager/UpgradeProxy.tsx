@@ -1,16 +1,16 @@
 "use client";
 
-import { useWalletStore } from "../../stores/walletStore";
-import { useViemChainStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../lib/walletStore";
+import { useViemChainStore } from "../toolboxStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useEffect } from "react";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Success } from "../../components/Success";
 import ProxyAdminABI from "../../../contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
-import { RequireChainL1 } from "../../components/RequireChain";
-import { Container } from "../../components/Container";
-import { useToolboxStore } from "../../stores/toolboxStore";
+import { RequireChainToolboxL1 } from "../components/RequireChainToolboxL1";
+import { Container } from "../components/Container";
+import { useToolboxStore } from "../toolboxStore";
 
 export default function UpgradeProxy() {
     const { showBoundary } = useErrorBoundary();
@@ -90,7 +90,7 @@ export default function UpgradeProxy() {
     const isUpgradeNeeded = currentImplementation?.toLowerCase() !== desiredImplementation?.toLowerCase();
 
     return (
-        <RequireChainL1>
+        <RequireChainToolboxL1>
             <Container
                 title="Upgrade Proxy Implementation"
                 description="This will upgrade the proxy implementation to the desired implementation."
@@ -135,6 +135,6 @@ export default function UpgradeProxy() {
                     value={"No change needed"}
                 />}
             </Container>
-        </RequireChainL1>
+        </RequireChainToolboxL1>
     );
 };

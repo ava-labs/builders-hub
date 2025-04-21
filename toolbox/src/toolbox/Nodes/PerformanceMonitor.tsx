@@ -1,15 +1,15 @@
 "use client";
 
-import { useToolboxStore } from "../../stores/toolboxStore";
+import { useToolboxStore } from "../toolboxStore";
 import { Input } from "../../components/Input";
 import { Button } from "../../components/Button";
-import { Select } from "../../components/Select";
+import { Select } from "../components/Select";
 import { useState, useEffect, useRef } from "react";
 import { createPublicClient, http, webSocket } from 'viem';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { BlockWatcher, BlockInfo } from "./BlockWatcher";
 import { ChainInfo } from "./chainInfo";
-import { RPCURLInput } from "../../components/RPCURLInput";
+import { RPCURLInput } from "../components/RPCURLInput";
 // Data structure for bucketed metrics
 interface BucketedData {
     transactions: number;
@@ -24,7 +24,7 @@ export default function PerformanceMonitor() {
         setNodeRpcUrl,
         chainID,
         setChainID,
-        subnetID,
+        subnetId,
         setSubnetID
     } = useToolboxStore();
 
@@ -285,7 +285,7 @@ export default function PerformanceMonitor() {
                     <Input
                         type="text"
                         label="Subnet ID"
-                        value={subnetID}
+                        value={subnetId}
                         onChange={setSubnetID}
                         disabled={isMonitoring}
                     />
@@ -347,7 +347,7 @@ export default function PerformanceMonitor() {
                 </Button>
             </div>
 
-            <ChainInfo rpcUrl={nodeRpcUrl} subnetID={subnetID} chainID={chainID} />
+            <ChainInfo rpcUrl={nodeRpcUrl} subnetId={subnetId} chainID={chainID} />
 
             {error && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded">

@@ -10,7 +10,7 @@ The Avalanche network has a large set of validators who all participate in runni
 
 A blockchain has a limited capacity for computation and data storage. Therefore, the transactions it can process in a given time frame are limited. We can use the analogy of a highway to visualize this concept. A highway can only handle a certain number of cars at a time. If too many cars try to enter the highway at once, traffic congestion will occur and they have to wait to enter the highway.
 
-![Subnets](/common-images/multi-chain-architecture/etna-upgrade/subnets.png)
+<img src="/common-images/multi-chain-architecture/etna-upgrade/subnets.png" alt="Subnets" />
 
 In order to scale horizontally and to offer more blockspace, a subset of validators can opt-in to validate an additional blockchain in parallel with the Primary Network: we call this a Subnet. The idea is similiar to building many highways in parallel and create additional space for cars to drive on. This allows for more transactions to be processed in parallel, and therefore increases the overall throughput of the network.
 
@@ -18,7 +18,7 @@ In order to scale horizontally and to offer more blockspace, a subset of validat
 
 With the Etna upgrade, Subnets will become their own **Layer 1** blockchains. Instead of using a subset of Primary Network Validators, new L1s can now use a distinct set of validators.
 
-![L1s](/common-images/multi-chain-architecture/etna-upgrade/l1s.png)
+<img src="/common-images/multi-chain-architecture/etna-upgrade/l1s.png" alt="L1s" />
 
 This change maintains the short time of finality and high throughput Avalanche Subnets are known for while also enabling a new set of features with options for completely customizable staking options, gas tokens, and governance.
 
@@ -26,13 +26,13 @@ This change maintains the short time of finality and high throughput Avalanche S
 
 The Primary Network currently has a staking requirement of **2,000 AVAX per validator**. If we assume a price of \$20 per AVAX, a Subnet would have to have each of its validators stake AVAX worth \$40,000 in addition to its own staking requirements. This is a significant economic barrier for the creation of new Subnets.
 
-![Staking Requirements](/common-images/multi-chain-architecture/etna-upgrade/subnets-staking-requirements.png)
+<img src="/common-images/multi-chain-architecture/etna-upgrade/subnets-staking-requirements.png" alt="Staking Requirements" />
 
 This model has created a significant economic barrier for the creation of new Subnets as validators must meet the 2,000 AVAX requirement, and a majority of Subnets prefer to run with a minimum of 5 validators.
 
 The Etna upgrade will remove the requirement for L1 validators to validate the Primary Network and fulfill its staking requirements. Therefore, they do not need to stake 2,000 AVAX on the Primary Network, and instead only abide by the staking requirements defined by the L1 they wish to validate.
 
-![L1 Staking Requirements](/common-images/multi-chain-architecture/etna-upgrade/l1s-staking-requirement.png)
+<img src="/common-images/multi-chain-architecture/etna-upgrade/l1s-staking-requirement.png" alt="L1 Staking Requirements" />
 
 To use the interoperability features of Avalanche, L1 validators will still need to register their validator set with the P-Chain of the Primary Network. For this each L1 validator will need to pay a continous fee. This fee is independent of the number of transactions on the L1, the number of cross-chain messages, and the number of validators of the L1. Current estimations are that this fee will be around 1 to 10 AVAX per month per validator.
 
@@ -42,31 +42,31 @@ This will remove the significant economic barrier, giving more sovereignty to L1
 
 Currently, validators must validate the Primary Network in addition to each Subnet they are validating. This can lead to higher running costs for validators as they must maintain machines that can handle the load of all their blockchains.
 
-![Subnet Running Cost](/common-images/multi-chain-architecture/etna-upgrade/subnet-running-cost.png)
+<img src="/common-images/multi-chain-architecture/etna-upgrade/subnet-running-cost.png" alt="Subnet Running Cost" />
 
 With the Etna upgrade, validators will only need to validate the L1. This will lead to lower running costs for validators as they will not need to maintain machines that can handle the load of both the Subnets and the Primary Network.
 
-![L1 Running Cost](/common-images/multi-chain-architecture/etna-upgrade/l1-running-cost.png)
+<img src="/common-images/multi-chain-architecture/etna-upgrade/l1-running-cost.png" alt="L1 Running Cost" />
 
 ### Compliance
 
 Many Institutions that want to adopt blockchain are struggling with exposure to public permissionless blockchains. The Primary Network is a public permissionless blockchain, and as such, it is not suitable to build on for many institutions. While institutions can launch their own Subnet as a private, proof of authority blockchain, they are still exposed to the Primary Network in some manner.
 
-![Subnet Compliance](/common-images/multi-chain-architecture/etna-upgrade/subnets-compliance.png)
+<img src="/common-images/multi-chain-architecture/etna-upgrade/subnets-compliance.png" alt="Subnet Compliance" />
 
 This exposure can be circumvented by performing a partial sync of the Primary Network, but is an incomplete solution. Since the validator sets of L1s will be distinct and separate from the Primary Network, institutions will be able to launch independent L1s (be it public or private) that are not required to participate in the Primary Network.
 
-![L1 Compliance](/common-images/multi-chain-architecture/etna-upgrade/l1s-compliance.png)
+<img src="/common-images/multi-chain-architecture/etna-upgrade/l1s-compliance.png" alt="L1 Compliance" />
 
 ### Fault Isolation
 
 Occasionaly, there can be very high demand or a fault on the Primary Network. Because Subnet validators must also validate the Primary Network, their machines are exposed to the same congestion which can have a consequential effects on Subnet performance.
 
-![Fault Isolation](/common-images/multi-chain-architecture/etna-upgrade/subnets-primary-network-congestion.png)
+<img src="/common-images/multi-chain-architecture/etna-upgrade/subnets-primary-network-congestion.png" alt="Fault Isolation" />
 
 After the Etna upgrade validator sets are distinct. Therefore, congestion and faults on the Primary Network will not affect the performance of L1s and vice versa.
 
-![L1s Fault Isolation](/common-images/multi-chain-architecture/etna-upgrade/l1s-primary-network-faults.png)
+<img src="/common-images/multi-chain-architecture/etna-upgrade/l1s-primary-network-faults.png" alt="L1s Fault Isolation" />
 
 ## Conclusion
 

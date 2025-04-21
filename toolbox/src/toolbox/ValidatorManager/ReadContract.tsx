@@ -1,15 +1,15 @@
 "use client"
 
-import { useToolboxStore } from "../../stores/toolboxStore"
-import { useWalletStore } from "../../stores/walletStore"
+import { useToolboxStore } from "../toolboxStore"
+import { useWalletStore } from "../../lib/walletStore"
 import { useErrorBoundary } from "react-error-boundary"
 import type { AbiEvent } from "viem"
 import { useEffect, useState } from "react"
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
 import { Button } from "../../components/Button"
 import { Input } from "../../components/Input"
-import { RequireChainL1 } from "../../components/RequireChain"
-import { Container } from "../../components/Container"
+import { RequireChainToolboxL1 } from "../components/RequireChainToolboxL1"
+import { Container } from "../components/Container"
 import { ChevronDown, ChevronRight } from "lucide-react"
 
 type ViewData = {
@@ -115,7 +115,7 @@ export default function ReadContract() {
   }
 
   return (
-    <RequireChainL1>
+    <RequireChainToolboxL1>
       <Container
         title="Read Proxy Contract"
         description="This will read the data from the ValidatorManager contract."
@@ -126,12 +126,16 @@ export default function ReadContract() {
             value={proxyAddress || ""}
             placeholder="0x..."
             onChange={(value) => setProxyAddress(value)}
-            button={
-              <Button variant="secondary" onClick={readContractData} loading={isReading} disabled={isReading}>
-                Refresh
-              </Button>
-            }
           />
+          <Button 
+            variant="secondary" 
+            onClick={readContractData} 
+            loading={isReading} 
+            disabled={isReading}
+            className="w-full"
+          >
+            Refresh
+          </Button>
         </div>
 
         {Object.keys(viewData).length > 0 && (
@@ -228,7 +232,7 @@ export default function ReadContract() {
           </div>
         )}
       </Container>
-    </RequireChainL1>
+    </RequireChainToolboxL1>
   )
 }
 

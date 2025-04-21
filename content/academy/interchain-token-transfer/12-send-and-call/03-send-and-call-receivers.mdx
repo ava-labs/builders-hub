@@ -12,7 +12,7 @@ The interfaces `IERC20SendAndCallReceiver` or `INativeSendAndCallReceiver` are u
 
 The `receiveTokens` function will be called by the Transferrer bridge contract. The contract must implement this function to receive the tokens and can retrieve all the information about the origin of the tokens, the token, the bridge used, and the amount of tokens transferred from the parameters.
 
-```solidity title="lib/avalanche-interchain-token-transfer/contracts/src/interfaces/IERC20SendAndCallReceiver.sol"
+```solidity title="lib/icm-contracts/contracts/ictt/interfaces/IERC20SendAndCallReceiver.sol"
 /**
  * @notice Interface for contracts that are called to receive token transfers.
  */
@@ -42,7 +42,7 @@ interface IERC20SendAndCallReceiver {
 
 The `INativeSendAndCallReceiver` interface is used for contracts that handle receiving native tokens of the Interchain Token Transfer protocol. It is similar to the `IERC20SendAndCallReceiver` interface, but does not include the `token` and `amount` parameters. The `receiveTokens` is now `payable`. There is only a single native token on each chain, so the address is not needed. The amount can be determined from calling `msg.value`.
 
-```solidity title="lib/avalanche-interchain-token-transfer/contracts/src/interfaces/INativeSendAndCallReceiver.sol"
+```solidity title="lib/icm-contracts/contracts/ictt/interfaces/INativeSendAndCallReceiver.sol"
 /**
  * @notice Interface for a contracts that are called to receive native tokens.
  */

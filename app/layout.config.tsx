@@ -35,6 +35,7 @@ import SummitLondonBanner from '@/public/nav-banner/avalanche_summit_london.png'
 import HackathonsBanner from '@/public/nav-banner/hackathons-banner.png';
 import Team1Banner from '@/public/nav-banner/local_events_team1.jpg';
 import L1LauncherPreview from '@/public/nav-banner/l1-launcher-preview.png';
+import L1ToolboxPreview from '@/public/nav-banner/l1-toolbox-preview.png';
 import { SiGithub } from '@icons-pack/react-simple-icons';
 import { UserButton } from '@/components/login/user-button/UserButton';
 
@@ -256,6 +257,27 @@ export const toolsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
+              src={L1ToolboxPreview}
+              alt='L1 Launcher Preview'
+              className='rounded-t-lg object-cover'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2 lg:col-span-1',
+      },
+      icon: <Waypoints />,
+      text: 'L1 Toolbox (Beta)',
+      description: 'Manage your L1 with a highly granular set of tools.',
+      url: '/tools/l1-toolbox',
+    },
+    {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
               src={L1LauncherPreview}
               alt='L1 Launcher Preview'
               className='rounded-t-lg object-cover'
@@ -274,22 +296,13 @@ export const toolsMenu: LinkItemType = {
       url: '/tools/l1-launcher',
     },
     {
-      icon: <Waypoints />,
-      text: 'L1 Toolbox (Beta)',
-      description: 'Manage your L1 with a highly granular set of tools.',
-      url: '/tools/l1-toolbox',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-1',
-      },
-    },
-    {
       icon: <HandCoins />,
       text: 'Testnet Faucet',
       description:
         'Claim Fuji AVAX tokens from the testnet faucet to test your dApps.',
       url: 'https://core.app/tools/testnet-faucet/?subnet=c&token=c',
       menu: {
-        className: 'lg:col-start-2 lg:row-start-2',
+        className: 'lg:col-start-3 lg:row-start-1',
       },
     },
     {
@@ -298,15 +311,6 @@ export const toolsMenu: LinkItemType = {
       description:
         'Spin up short-lived test environments for building dApps using interoperability features like ICM and ICTT.',
       url: 'https://github.com/ava-labs/avalanche-starter-kit',
-      menu: {
-        className: 'lg:col-start-3 lg:row-start-1',
-      },
-    },
-    {
-      icon: <HardDrive />,
-      text: 'PoA Validator Management (Beta)',
-      description: 'Manage your validator set from the web.',
-      url: '/tools/poa-validator-management',
       menu: {
         className: 'lg:col-start-3 lg:row-start-2',
       },

@@ -10,6 +10,7 @@ if [ ! -d "/teleporter_src/contracts" ]; then
 fi
 
 cd /teleporter_src
+git config --global --add safe.directory /teleporter_src
 git checkout $ICM_COMMIT
 
 # Add foundry to PATH
@@ -23,15 +24,28 @@ fi
 # Build contracts
 cd /teleporter_src/contracts && forge build
 
+# ls -la /teleporter_src/out
+
 # cd /teleporter_src/lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/proxy/transparent && forge build
 # Extract and format JSON files
-for file in /teleporter_src/out/ValidatorManager.sol/ValidatorManager.json \
-            /teleporter_src/out/ValidatorMessages.sol/ValidatorMessages.json \
-            /teleporter_src/out/TeleporterRegistry.sol/TeleporterRegistry.json \
-            /teleporter_src/out/NativeTokenStakingManager.sol/NativeTokenStakingManager.json ; do
+for file in \
+    /teleporter_src/out/ValidatorManager.sol/ValidatorManager.json \
+    /teleporter_src/out/ValidatorMessages.sol/ValidatorMessages.json \
+    /teleporter_src/out/TeleporterRegistry.sol/TeleporterRegistry.json \
+    /teleporter_src/out/NativeTokenStakingManager.sol/NativeTokenStakingManager.json \
+    /teleporter_src/out/ExampleERC20.sol/ExampleERC20.json \
+    /teleporter_src/out/ERC20TokenHome.sol/ERC20TokenHome.json \
+    /teleporter_src/out/ERC20TokenRemote.sol/ERC20TokenRemote.json \
+    /teleporter_src/out/ExampleRewardCalculator.sol/ExampleRewardCalculator.json \
+; do
     filename=$(basename "$file")
     jq '.' "$file" > "/compiled/$filename"
 done
+
+# Commented out files:
+# /teleporter_src/out/ERC20TokenRemote.sol/ERC20TokenRemote.json
+# /teleporter_src/out/NativeTokenRemote.sol/NativeTokenRemote.json
+# /teleporter_src/out/NativeTokenHome.sol/NativeTokenHome.json
 
 chown -R $HOST_UID:$HOST_GID /compiled /teleporter_src
 echo "Compilation complete"

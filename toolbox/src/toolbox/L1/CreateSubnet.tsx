@@ -1,17 +1,17 @@
 "use client";
 
-import { useWalletStore } from "../../stores/walletStore";
-import { useToolboxStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../lib/walletStore";
+import { useToolboxStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
-import { ResultField } from "../../components/ResultField";
-import { Container } from "../../components/Container";
+import { ResultField } from "../components/ResultField";
+import { Container } from "../components/Container";
 
 export default function CreateSubnet() {
   const { showBoundary } = useErrorBoundary();
-  const { setSubnetID, subnetID } = useToolboxStore();
+  const { setSubnetID, subnetId } = useToolboxStore();
   const { coreWalletClient, pChainAddress } = useWalletStore();
   const [isCreating, setIsCreating] = useState(false);
 
@@ -51,11 +51,11 @@ export default function CreateSubnet() {
           Create Subnet
         </Button>
       </div>
-      {subnetID && (
+      {subnetId && (
         <ResultField
           label="Subnet ID"
-          value={subnetID}
-          showCheck={!!subnetID}
+          value={subnetId}
+          showCheck={!!subnetId}
         />
       )}
     </Container>

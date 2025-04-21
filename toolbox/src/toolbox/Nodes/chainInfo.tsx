@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 
-export function ChainInfo({ rpcUrl, subnetID, chainID }: { rpcUrl: string, subnetID: string, chainID: string }) {
+export function ChainInfo({ rpcUrl, subnetId, chainID }: { rpcUrl: string, subnetId: string, chainID: string }) {
     const [chainInfo, setChainInfo] = useState<benchmarkChainInfo | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        getChainInfo(rpcUrl, subnetID, chainID).then(setChainInfo).catch(err => setError(err instanceof Error ? err.message : String(err)));
-    }, [rpcUrl, subnetID, chainID]);
+        getChainInfo(rpcUrl, subnetId, chainID).then(setChainInfo).catch(err => setError(err instanceof Error ? err.message : String(err)));
+    }, [rpcUrl, subnetId, chainID]);
 
     return <div>
         {error && (
@@ -65,7 +65,7 @@ async function getCountryFlag(ip: string): Promise<string> {
     return flagPromise;
 }
 
-export async function getChainInfo(rpcUrl: string, subnetID: string, chainID: string): Promise<benchmarkChainInfo> {
+export async function getChainInfo(rpcUrl: string, subnetId: string, chainID: string): Promise<benchmarkChainInfo> {
     rpcUrl = rpcUrl.replace(/^ws/, 'http').replace(/\/$/, '');
 
     const peers = await rpcRequest<{
@@ -85,7 +85,7 @@ export async function getChainInfo(rpcUrl: string, subnetID: string, chainID: st
         }>;
     }>(rpcUrl + "/ext/info", 'info.peers', [{ nodeIDs: [] }]);
 
-    const peerIpPorts = peers.peers.filter(peer => peer.trackedSubnets.includes(subnetID)).map(peer => peer.ip);
+    const peerIpPorts = peers.peers.filter(peer => peer.trackedSubnets.includes(subnetId)).map(peer => peer.ip);
     const currentNodeIp = (await rpcRequest<{ ip: string }>(rpcUrl + "/ext/info", 'info.getNodeIP', [])).ip;
     peerIpPorts.push(currentNodeIp);
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
-import { useWalletStore } from "../../stores/walletStore";
+import { useToolboxStore, useViemChainStore } from "../toolboxStore";
+import { useWalletStore } from "../../lib/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Button } from "../../components/Button";
@@ -9,7 +9,7 @@ import { Success } from "../../components/Success";
 import TeleporterRegistryBytecode from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterRegistry_Bytecode_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import TeleporterRegistryManualyCompiled from '../../../contracts/icm-contracts/compiled/TeleporterRegistry.json';
-import { RequireChainL1 } from "../../components/RequireChain";
+import { RequireChainToolboxL1 } from "../components/RequireChainToolboxL1";
 
 export default function TeleporterRegistry() {
     const { showBoundary } = useErrorBoundary();
@@ -49,7 +49,7 @@ export default function TeleporterRegistry() {
     }
 
     return (
-        <RequireChainL1>
+        <RequireChainToolboxL1>
             <div className="space-y-4">
                 <h2 className="text-lg font-semibold">Deploy Teleporter Registry</h2>
                 <div className="space-y-4">
@@ -71,6 +71,6 @@ export default function TeleporterRegistry() {
                     value={teleporterRegistryAddress}
                 />
             </div>
-        </RequireChainL1>
+        </RequireChainToolboxL1>
     );
 }

@@ -8,7 +8,7 @@ export type ExtractChainInfoParams = {
 }
 
 export type ExtractChainInfoResponse = {
-    subnetID: string;
+    subnetId: string;
     chainName: string;
     vmID: string;
     genesisData: string;
@@ -22,7 +22,7 @@ type PlatformGetTxResponse = {
             unsignedTx: {
                 networkID: number;
                 blockchainID: string;
-                subnetID: string;
+                subnetId: string;
                 chainName: string;
                 vmID: string;
                 genesisData: string;
@@ -77,10 +77,10 @@ export async function extractChainInfo(client: WalletClient<any, any, any, CoreW
 
     console.log(data);
     // Extract the relevant information from the response
-    const { subnetID, chainName, vmID, genesisData } = data.result.tx.unsignedTx;
+    const { subnetId, chainName, vmID, genesisData } = data.result.tx.unsignedTx;
 
     return {
-        subnetID,
+        subnetId,
         chainName,
         vmID,
         genesisData

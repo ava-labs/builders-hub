@@ -84,7 +84,7 @@ export function CodeHighlighter({ code, lang, maxHeight, footer, disableCopy }: 
     }
 
     return (
-        <div className="my-4 border border-gray-200 dark:border-gray-700 rounded-md w-full overflow-hidden relative" style={{
+        <div className="mb-4 border border-gray-200 dark:border-gray-700 rounded-md w-full overflow-hidden relative" style={{
             backgroundColor: isDark ? '#000000' : 'rgb(250, 250, 250)',
         }}>
             {!disableCopy && <button
