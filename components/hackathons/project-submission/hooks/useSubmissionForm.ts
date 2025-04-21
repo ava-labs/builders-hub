@@ -27,18 +27,24 @@ export const FormSchema = z
       .string()
       .min(2, { message: 'GitHub repository is required' })
       .url({ message: 'Please enter a valid URL' })
-      .refine((val) => val.includes('github.com'), {
-        message: 'Please enter a valid GitHub repository URL',
-      })
       .refine(
         (val) => {
-          const githubRepoRegex = /^(?:https?:\/\/)?(?:www\.)?github\.com\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/;
-
-          return githubRepoRegex.test(val);
+          try {
+            const url = new URL(
+              val.startsWith('http') ? val : `https://${val}`
+            );
+            return (
+              url.hostname === 'github.com' &&
+              url.pathname.split('/').length >= 2 &&
+              url.pathname.split('/')[1].length > 0
+            );
+          } catch {
+            return false;
+          }
         },
         {
           message:
-            'The URL must be a valid GitHub repository (e.g., https://github.com/username/repository)',
+            'Please enter a valid GitHub URL (e.g., https://github.com/username or github.com/username)',
         }
       ),
     explanation: z.string().optional(),

@@ -8,7 +8,7 @@ export function withAuth(handler: (request: NextRequest, context: any, session: 
     if (!session) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 401 });
     }
-    return handler(request, context, session); // Pasamos `context` correctamente
+    return handler(request, context, session); 
   };
 }
 

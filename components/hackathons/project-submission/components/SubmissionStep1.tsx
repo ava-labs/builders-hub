@@ -28,6 +28,11 @@ export interface projectProps {
   onProjectCreated?: () => void;
   onHandleSave?: () => Promise<void>;
   availableTracks: HackathonTrack[];
+  
+  openjoinTeamDialog?: boolean;
+  onOpenChange: (open: boolean) => void;
+  teamName?: string;
+  
 }
 
 const SubmitStep1: FC<projectProps> = (project) => {
@@ -58,14 +63,11 @@ const SubmitStep1: FC<projectProps> = (project) => {
 
   return (
     <div className='flex flex-col w-full  mt-6 space-y-8'>
-      {/* SECCIÓN GENERAL */}
       <section className='space-y-4'>
         <h3 className='font-medium  text-lg md:text-xl'>General Section</h3>
         <p className='text-sm text-muted-foreground'>
           Provide key details about your project that will appear in listings.
         </p>
-
-        {/* Project Name */}
         <FormField
           control={form.control}
           name='project_name'

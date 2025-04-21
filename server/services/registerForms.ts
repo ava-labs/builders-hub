@@ -9,6 +9,7 @@ import { ValidationError } from "./hackathons";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { RegistrationForm } from "@/types/registrationForm";
+import { sendMail } from "./mail";
 
 export const registerValidations: Validation[] = [
   {
@@ -99,8 +100,6 @@ export async function createRegisterForm(
   }
 
   const content = { ...registerData } as Prisma.JsonObject;
-
-  console.log("content", content);
   const newRegisterFormData = await prisma.registerForm.upsert({
     where: {
       hackathon_id_email: {
@@ -151,7 +150,12 @@ export async function createRegisterForm(
     },
   });
   registerData.id = newRegisterFormData.id;
+  await sendConfirmationMail(
+    newRegisterFormData.email,
+    newRegisterFormData.hackathon_id as string
+  );
   revalidatePath("/api/register-form/");
+
   return newRegisterFormData as unknown as RegistrationForm;
 }
 export async function getRegisterForm(email: string, hackathon_id: string) {
@@ -165,4 +169,38 @@ export async function getRegisterForm(email: string, hackathon_id: string) {
   });
 
   return registeredData || null;
+}
+export async function sendConfirmationMail(
+  email: string,
+  hackathon_id: string
+) {
+  const hackathon = await prisma.hackathon.findUnique({
+    where: { id: hackathon_id },
+  });
+  const text = `your registration application for ${hackathon?.title} has been received.`;
+  const subject = `Hackathon Registration`;
+  const html = `
+    <div style="background-color: #18181B; color: white; font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border-radius: 8px; border: 1px solid #EF4444; text-align: center;">
+      <h2 style="color: white; font-size: 20px; margin-bottom: 16px;">Hackathon registration</h2>
+
+      <div style="background-color: #27272A; border: 1px solid #EF4444; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">We have received your registration application for</p>
+        <p style="font-size: 20px; font-weight: bold; color: #EF4444; margin: 8px 0;">${hackathon?.title}</p>
+        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">Please note that your registration is pending approval.</p>
+        <p style="font-size: 10px; font-weight: bold; color: #ffffff; margin: 8px 0;">This is an automated message — please do not reply</p>
+      </div>
+
+      <p style="font-size: 12px; color: #A1A1AA;">If you did not expect this invitation, you can safely ignore this email.</p>
+
+      <div style="margin-top: 20px;">
+        <img src="https://build.avax.network/logo-white.png" alt="Company Logo" style="max-width: 120px; margin-bottom: 10px;">
+        <p style="font-size: 12px; color: #A1A1AA;">Avalanche Builder's Hub © 2025</p>
+      </div>
+    </div>
+    `;
+  try {
+    await sendMail(email, html, subject, text);
+  } catch (error) {
+    console.error("Error sending confirmation email:", error);
+  }
 }

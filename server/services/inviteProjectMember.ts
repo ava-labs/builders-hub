@@ -18,6 +18,9 @@ export async function generateInvitation(
       members: {
         some: {
           user_id: userId,
+          status: {
+            in: ["Confirmed"],
+          }
         },
       },
     },
@@ -46,7 +49,6 @@ export async function generateInvitation(
         explanation: "",
       },
     });
-
     await prisma.member.create({
       data: {
         user_id: userId,
@@ -56,7 +58,6 @@ export async function generateInvitation(
       },
     });
   }
-
   for (const email of emails) {
 
     const invitedUser = await getUserByEmail(email);

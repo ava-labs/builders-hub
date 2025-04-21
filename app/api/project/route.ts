@@ -35,7 +35,7 @@ export const GET = withAuth(async (request: Request, context, session) => {
     const project = await GetProjectByHackathonAndUser(hackaton_id, user_id);
     return NextResponse.json({ project });
   } catch (error: any) {
-    console.error("Error GET /api/your-endpoint:", error);
+    console.error("Error GET /api/project:", error);
     const wrappedError = error as Error;
     return NextResponse.json(
       { error: wrappedError.message },

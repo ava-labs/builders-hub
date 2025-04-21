@@ -24,14 +24,9 @@ import axios from "axios";
 import { HackathonHeader } from "@/types/hackathons";
 import { RegistrationForm } from "@/types/registrationForm";
 import { useRouter } from "next/navigation";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { LoadingButton } from "@/components/ui/loading-button";
+import Modal from "@/components/ui/Modal";
+import ProcessCompletedDialog from "./ProcessCompletedDialog";
 
 // Esquema de validación
 export const registerSchema = z.object({
@@ -53,18 +48,22 @@ export const registerSchema = z.object({
     .string()
     .min(2, { message: "GitHub repository is required" })
     .url({ message: "Please enter a valid URL" })
-    .refine((val) => val.includes("github.com"), {
-      message: "Please enter a valid GitHub repository URL",
-    })
     .refine(
       (val) => {
-        const githubRepoRegex =
-          /^(?:https?:\/\/)?(?:www\.)?github\.com\/[a-zA-Z0-9_-]+\/?$/;
-        return githubRepoRegex.test(val);
+        try {
+          const url = new URL(val.startsWith("http") ? val : `https://${val}`);
+          return (
+            url.hostname === "github.com" &&
+            url.pathname.split("/").length >= 2 &&
+            url.pathname.split("/")[1].length > 0
+          );
+        } catch {
+          return false;
+        }
       },
       {
         message:
-          "The URL must be a valid GitHub repository (e.g., https://github.com/username/repository)",
+          "Please enter a valid GitHub URL (e.g., https://github.com/username or github.com/username)",
       }
     ),
   terms_event_conditions: z.boolean().refine((value) => value === true, {
@@ -260,6 +259,7 @@ export function RegisterForm({
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
+    
     if (step < 3) {
       setStep(step + 1);
     } else {
@@ -273,6 +273,7 @@ export function RegisterForm({
         roles: data.roles ?? [],
         tools: data.tools,
       };
+
       await saveProject(finalData);
       setIsDialogOpen(true);
     }
@@ -334,7 +335,8 @@ export function RegisterForm({
   return (
     <div className="w-full items-center justify-center">
       <h2 className="text-2xl font-bold mb-6 text-foreground">
-        Registration form for {hackathon
+        Registration form for{" "}
+        {hackathon
           ? `${hackathon.title} (Step ${step}/3)`
           : `... (Step ${step}/3)`}
       </h2>
@@ -353,18 +355,10 @@ export function RegisterForm({
             <div className="order-2 md:order-1 flex gap-x-4">
               {step === 3 && (
                 <LoadingButton
-                  isLoading={isSubmitting}
+                  isLoading={form.formState.isSubmitting}
                   loadingText="Saving..."
                   variant="red"
                   type="submit"
-                  onClick={form.handleSubmit(async (data) => {
-                    setIsSubmitting(true);
-                    try {
-                      await onSubmit(data);
-                    } finally {
-                      setIsSubmitting(false);
-                    }
-                  })}
                   className="bg-red-500 hover:bg-red-600 cursor-pointer"
                 >
                   Save & Exit
@@ -443,26 +437,11 @@ export function RegisterForm({
         </form>
       </Form>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto p-4">
-          <DialogHeader>
-            <DialogTitle>Application Submitted</DialogTitle>
-            <DialogDescription>
-              Your application will be reviewed by the AvaLabs staff. We will
-              notify you if you have been approved or not.
-            </DialogDescription>
-          </DialogHeader>
-          <Button
-            onClick={() => {
-              setIsDialogOpen(false);
-              router.push(`/hackathons/${hackathon_id}`);
-            }}
-            className="mt-4"
-          >
-            OK
-          </Button>
-        </DialogContent>
-      </Dialog>
+      <ProcessCompletedDialog
+        hackathon_id={hackathon_id as string}
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+      />
     </div>
   );
 }
