@@ -135,3 +135,5 @@ pnpm-lock.yaml
 package-lock.json
 !next-env.d.ts
 .source
+.vercel
+.env*.local

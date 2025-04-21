@@ -24,7 +24,7 @@ export default function OverviewBanner({ hackathon, id }: Props) {
       ? `${format(startDate, "MMMM d")} - ${format(endDate, "d, yyyy")}`
       : `${format(startDate, "MMMM d")} - ${format(endDate, "MMMM d, yyyy")}`;
   return (
-    <div className="z-10 pointer-events-none h-full w-[45%] absolute flex flex-col justify-end bottom-2 sm:bottom-6 lg:bottom-10 xl:bottom-12 left-[4%]">
+    <div className="z-10 pointer-events-none h-full w-[45%] absolute flex flex-col justify-end bottom-2 sm:bottom-6 lg:bottom-10 xl:bottom-12 left-[4%]" style={{ textShadow: '0 0 3px black' }}>
       <h1 className="text-md sm:text-2xl md:text-3xl lg:text-5xl xl:text-6xl text-zinc-50 font-bold sm:mb-2">
         {hackathon.title}
       </h1>
@@ -45,7 +45,7 @@ export default function OverviewBanner({ hackathon, id }: Props) {
           <Link href={
               hackathon.content.join_custom_link
                 ? hackathon.content.join_custom_link
-                : `/hackathons/registration-form?hackaId=${id}`
+                : `/hackathons/registration-form?hackathon=${id}`
              } target={hackathon.content.join_custom_link? '_blank': '_self'}> { hackathon.content.join_custom_text?? "Join now"} </Link>
         </Button>
         <div className="flex flex-col">
@@ -75,7 +75,7 @@ export default function OverviewBanner({ hackathon, id }: Props) {
           </div>
           <div className="hidden md:flex justify-between gap-4 mt-4 max-w-[90%]">
             <div className="flex gap-2 text-gray-400">
-              <Users color="#F5F5F9" className="w-4 lg:w-5 h-4 lg:h-5" />
+              <Users color="#F5F5F9" className="w-4 lg:w-5 h-4 lg:h-5 drop-shadow-[0_0_2px_black]" />
               <span className="text-xs xl:text-sm text-zinc-50">
                 {hackathon.participants}
               </span>

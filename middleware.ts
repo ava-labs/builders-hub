@@ -43,5 +43,10 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/hackathons/registration-form/:path*","/login/:path*"],
+    matcher: [
+      "/hackathons/registration-form/:path*",
+      "/hackathons/project-submission/:path*",
+      "/login/:path*",
+      "/profile/:path*",
+    ],
 };

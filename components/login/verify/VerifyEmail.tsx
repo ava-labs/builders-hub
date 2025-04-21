@@ -15,7 +15,7 @@ import {
 import Link from "next/link";
 import { VerifyEmailProps } from "@/types/verifyEmailProps";
 import axios from "axios";
-
+import { LoadingButton } from "@/components/ui/loading-button";
 const verifySchema = z.object({
   code: z
     .string()
@@ -29,7 +29,7 @@ export function VerifyEmail({
   callbackUrl = "/",
 }: VerifyEmailProps) {
   const [message, setMessage] = useState<string | null>(null);
-  const [resendCooldown, setResendCooldown] = useState(30);
+  const [resendCooldown, setResendCooldown] = useState(60);
   const [isResending, setIsResending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [sentTries, setSentTries] = useState(0);
@@ -60,7 +60,7 @@ export function VerifyEmail({
         callbackUrl: callbackUrl,
       });
       if (result?.error) {
-        console.log("resutlado",result)
+        console.error("Error: ", result);
         switch (result?.error) {
           case "INVALID":
             setSentTries((prev) => prev + 1);
@@ -89,7 +89,7 @@ export function VerifyEmail({
         window.location.href = result.url;
       }
     } catch (error) {
-      setMessage("wut");
+      setMessage("Error to sent OTP try again.");
     } finally {
       setIsVerifying(false);
     }
@@ -105,12 +105,12 @@ export function VerifyEmail({
       await axios.post("/api/send-otp", {
         email: email,
       });
-    
-      setResendCooldown(30);
+
+      setResendCooldown(60);
       setExpired(false);
       setSentTries(0);
     } catch (error) {
-      setMessage("ErrError to sent OTP try againo.");
+      setMessage("Error sending OTP. Please try again.");
     } finally {
       setIsResending(false);
     }
@@ -172,23 +172,24 @@ export function VerifyEmail({
               </Button>
             )}
             {!expired && sentTries <= 3 && (
-              <Button
+              <LoadingButton
                 type="submit"
-                className="w-full px-4 py-2 gap-2 bg-zinc-50 Dark:text-zinc-800  hover:bg-primary/90"
+                className="w-full px-4 py-2 gap-2"
                 disabled={isVerifying || !isFilled}
+                isLoading={isVerifying}
+                loadingText="Verifying..."
               >
-                {isVerifying ? "Verifying..." : "Verify & Continue"}
-              </Button>
+                Verify & Continue
+              </LoadingButton>
             )}
-            {sentTries > 3 && (
-              <Button
-                type="submit"
-                className="w-full px-4 py-2 gap-2 bg-zinc-50 Dark:text-zinc-800  hover:bg-primary/90"
-                onClick={onBack}
-              >
-                Go back
-              </Button>
-            )}
+
+            <Button
+              type="submit"
+              className="w-full px-4 py-2 gap-2 bg-zinc-50 Dark:text-zinc-800  hover:bg-primary/90"
+              onClick={onBack}
+            >
+              Go back
+            </Button>
           </form>
         </Form>
         {sentTries <= 3 && (
