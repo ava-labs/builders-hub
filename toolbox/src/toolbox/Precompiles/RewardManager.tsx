@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useWalletStore } from "../../lib/walletStore";
+import { useViemChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
 import { EVMAddressInput } from "../components/EVMAddressInput";
+import { ResultField } from "../components/ResultField";
 import {
   SetAdminComponent,
   SetEnabledComponent,
@@ -12,26 +14,36 @@ import {
   RemoveAllowListComponent,
   ReadAllowListComponent,
 } from "../components/AllowListComponents";
+import rewardManagerAbi from "../../../contracts/precompiles/RewardManager.json";
 
 // Default Reward Manager address
 const DEFAULT_REWARD_MANAGER_ADDRESS =
   "0x0200000000000000000000000000000000000004";
 
 export default function RewardManager() {
-  const { publicClient, walletEVMAddress, walletChainId } = useWalletStore();
+  const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
+    useWalletStore();
+  const viemChain = useViemChainStore();
   const [rewardManagerAddress, setRewardManagerAddress] = useState<string>(
     DEFAULT_REWARD_MANAGER_ADDRESS
   );
+  const [rewardAddress, setRewardAddress] = useState<string>("");
+  const [isFeeRecipientsAllowed, setIsFeeRecipientsAllowed] = useState<
+    boolean | null
+  >(null);
+  const [currentRewardAddress, setCurrentRewardAddress] = useState<
+    string | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
   const [isAddressSet, setIsAddressSet] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [txHash, setTxHash] = useState<string | null>(null);
 
   const verifyChainConnection = async () => {
     try {
-      // Get the current chain ID
       const currentChainId = await publicClient.getChainId();
       console.log("Current chain ID:", currentChainId);
 
-      // Get the current block number to verify connection
       const blockNumber = await publicClient.getBlockNumber();
       console.log("Current block number:", blockNumber);
 
@@ -54,7 +66,6 @@ export default function RewardManager() {
     }
 
     try {
-      // Verify chain connection
       const isConnected = await verifyChainConnection();
       if (!isConnected) {
         setError(
@@ -65,14 +76,12 @@ export default function RewardManager() {
         return;
       }
 
-      // Skip bytecode verification for the default address
       if (rewardManagerAddress === DEFAULT_REWARD_MANAGER_ADDRESS) {
         setIsAddressSet(true);
         setError(null);
         return;
       }
 
-      // Verify the address is a valid Reward Manager contract
       const code = await publicClient.getBytecode({
         address: rewardManagerAddress as `0x${string}`,
       });
@@ -86,7 +95,6 @@ export default function RewardManager() {
       setError(null);
     } catch (error) {
       console.error("Error verifying contract:", error);
-      // If it's the default address, we'll still proceed
       if (rewardManagerAddress === DEFAULT_REWARD_MANAGER_ADDRESS) {
         setIsAddressSet(true);
         setError(null);
@@ -97,6 +105,160 @@ export default function RewardManager() {
             : "Failed to verify contract address"
         );
       }
+    }
+  };
+
+  const handleAllowFeeRecipients = async () => {
+    if (!walletEVMAddress) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const hash = await coreWalletClient.writeContract({
+        address: rewardManagerAddress as `0x${string}`,
+        abi: rewardManagerAbi.abi,
+        functionName: "allowFeeRecipients",
+        account: walletEVMAddress as `0x${string}`,
+        chain: viemChain,
+      });
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+      if (receipt.status === "success") {
+        setTxHash(hash);
+        await checkFeeRecipientsAllowed();
+      } else {
+        setError("Transaction failed");
+      }
+    } catch (error) {
+      console.error("Error allowing fee recipients:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to allow fee recipients"
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDisableRewards = async () => {
+    if (!walletEVMAddress) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const hash = await coreWalletClient.writeContract({
+        address: rewardManagerAddress as `0x${string}`,
+        abi: rewardManagerAbi.abi,
+        functionName: "disableRewards",
+        account: walletEVMAddress as `0x${string}`,
+        chain: viemChain,
+      });
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+      if (receipt.status === "success") {
+        setTxHash(hash);
+        await checkCurrentRewardAddress();
+      } else {
+        setError("Transaction failed");
+      }
+    } catch (error) {
+      console.error("Error disabling rewards:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to disable rewards"
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSetRewardAddress = async () => {
+    if (!walletEVMAddress) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
+    if (!rewardAddress) {
+      setError("Reward address is required");
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const hash = await coreWalletClient.writeContract({
+        address: rewardManagerAddress as `0x${string}`,
+        abi: rewardManagerAbi.abi,
+        functionName: "setRewardAddress",
+        args: [rewardAddress],
+        account: walletEVMAddress as `0x${string}`,
+        chain: viemChain,
+      });
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+      if (receipt.status === "success") {
+        setTxHash(hash);
+        await checkCurrentRewardAddress();
+      } else {
+        setError("Transaction failed");
+      }
+    } catch (error) {
+      console.error("Error setting reward address:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to set reward address"
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const checkFeeRecipientsAllowed = async () => {
+    try {
+      const result = await publicClient.readContract({
+        address: rewardManagerAddress as `0x${string}`,
+        abi: rewardManagerAbi.abi,
+        functionName: "areFeeRecipientsAllowed",
+      });
+
+      setIsFeeRecipientsAllowed(result as boolean);
+    } catch (error) {
+      console.error("Error checking fee recipients status:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to check fee recipients status"
+      );
+    }
+  };
+
+  const checkCurrentRewardAddress = async () => {
+    try {
+      const result = await publicClient.readContract({
+        address: rewardManagerAddress as `0x${string}`,
+        abi: rewardManagerAbi.abi,
+        functionName: "currentRewardAddress",
+      });
+
+      setCurrentRewardAddress(result as string);
+    } catch (error) {
+      console.error("Error checking current reward address:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to check current reward address"
+      );
     }
   };
 
@@ -142,14 +304,90 @@ export default function RewardManager() {
   return (
     <div className="space-y-6">
       <Container
-        title="Reward Manager Management"
-        description="Manage the Reward Manager precompile contract. This allows you to control reward-related operations on the network."
+        title="Reward Manager"
+        description="Manage reward settings for the network."
       >
         <div className="space-y-4">
           {error && (
             <div className="p-4 text-red-700 bg-red-100 rounded-md">
               {error}
             </div>
+          )}
+
+          <div className="space-y-4">
+            <div className="flex space-x-4">
+              <Button
+                variant="primary"
+                onClick={handleAllowFeeRecipients}
+                loading={isProcessing}
+                disabled={!walletEVMAddress}
+              >
+                Allow Fee Recipients
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={checkFeeRecipientsAllowed}
+                disabled={!walletEVMAddress}
+              >
+                Check Fee Recipients Status
+              </Button>
+            </div>
+
+            {isFeeRecipientsAllowed !== null && (
+              <ResultField
+                label="Fee Recipients Status"
+                value={isFeeRecipientsAllowed ? "Allowed" : "Not Allowed"}
+              />
+            )}
+
+            <div className="flex space-x-4">
+              <Button
+                variant="primary"
+                onClick={handleDisableRewards}
+                loading={isProcessing}
+                disabled={!walletEVMAddress}
+              >
+                Disable Rewards
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={checkCurrentRewardAddress}
+                disabled={!walletEVMAddress}
+              >
+                Check Current Reward Address
+              </Button>
+            </div>
+
+            {currentRewardAddress && (
+              <ResultField
+                label="Current Reward Address"
+                value={currentRewardAddress}
+              />
+            )}
+
+            <div className="space-y-2">
+              <EVMAddressInput
+                label="Set Reward Address"
+                value={rewardAddress}
+                onChange={setRewardAddress}
+              />
+              <Button
+                variant="primary"
+                onClick={handleSetRewardAddress}
+                loading={isProcessing}
+                disabled={!walletEVMAddress || !rewardAddress}
+              >
+                Set Reward Address
+              </Button>
+            </div>
+          </div>
+
+          {txHash && (
+            <ResultField
+              label="Transaction Successful"
+              value={txHash}
+              showCheck={true}
+            />
           )}
         </div>
       </Container>
