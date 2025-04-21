@@ -1,21 +1,62 @@
 ---
-title: Creating a Blockchain
+title: Creating a L1
 description: Learn about the Multi-Chain Architecture.
 updated: 2024-05-31
 authors: [martineckardt]
 icon: Book
 ---
 
-Now that we've gone over what an Avalanche L1 is and what the benefits of creating an Avalanche L1 on Avalanche are, you are probably eager to test out the functionality of Avalanche L1s by creating one yourself!
+Now that we've gone over what Avalanche L1s are, you are probably eager to test out the functionality of Avalanche L1s by creating one yourself!
 
-There are many ways to create a blockchain on Avalanche. In this section, you will learn how to create a blockchain using the AvaCloud, a Blockchain-as-a-Service provider. This is the most straight forward way. Of course there are many other ways to create a blockchain on Avalanche, but this is the easiest way to get started. 
-
-You will learn how to deploy a blockchain with Avalanche-CLI in the course Multi-Chain Architecture.
+There are many ways to create an L1 on Avalanche. In this section, you will learn how to create a
+blockchain using the the Avalanche Builder Tooling. Of course there are many other ways to create a
+blockchain on Avalanche, such as using Avalanche CLI or using a [Blockchain-as-a-Service Provider](/integrations#Blockchain%20as%20a%20Service).
 
 ## What You Will Learn
 
-In this section, you will go through the following topics:
+In this section, you will go through the following steps:
 
-- **AvaCloud:** Learn about AvaCloud and create an account
-- **Create Avalanche L1:** Learn how to create your first Avalanche L1 on AvaCloud
-- **Connect:** Connect your wallet to your Avalanche L1
+<Steps>
+<Step>
+
+### Install Core Wallet and Claim Testnet Tokens
+
+Download the Core chrome extension and claim some testnet AVAX tokens from the faucet.
+
+</Step>
+<Step>
+
+### Bridge AVAX from the C-Chain to the P-Chain
+
+Bridge your the AVAX you have just claimed to the P-Chain.
+
+</Step>
+<Step>
+
+### Create a Subnet
+
+Issue a `CreateSubnetTx` transaction on the P-Chain to create a Subnet record.
+
+</Step>
+<Step>
+
+### Create a Blockchain
+Add a Blockchain to the Subnet by issuing a `CreateChainTx` transaction on the P-Chain.
+
+</Step>
+<Step>
+
+### Launch a Validator for that Blockchain
+
+Set up a node with Docker tracking that Subnet. 
+
+</Step>
+<Step>
+
+### Convert to an L1
+
+Convert the Subnet to an L1 by issuing a `ConvertSubnetToL1Tx` transaction on the P-Chain. This will
+turn your node into an actual validator for the L1.
+
+</Step>
+</Steps>
