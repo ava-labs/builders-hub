@@ -1,192 +1,166 @@
-import { RequireChain } from "../../components/RequireChain";
-import { useRewardManager } from '@avalabs/builderkit';
-import { WagmiProvider, createConfig } from 'wagmi';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { avalancheFuji } from 'viem/chains';
-import { http } from 'viem';
-import { AllowListControls } from "../components/AllowListComponents";
-import { Container } from "../components/Container";
-import { Button } from "../../components/Button";
-import { Input } from "../../components/Input";
+"use client";
+
 import { useState } from "react";
+import { useWalletStore } from "../../lib/walletStore";
+import { Button } from "../../components/Button";
+import { Container } from "../components/Container";
+import { EVMAddressInput } from "../components/EVMAddressInput";
+import {
+  SetAdminComponent,
+  SetEnabledComponent,
+  SetManagerComponent,
+  RemoveAllowListComponent,
+  ReadAllowListComponent,
+} from "../components/AllowListComponents";
 
-// Reward Manager precompile address
-const REWARD_MANAGER_ADDRESS = "0x0200000000000000000000000000000000000008";
+// Default Reward Manager address
+const DEFAULT_REWARD_MANAGER_ADDRESS =
+  "0x0200000000000000000000000000000000000004";
 
-// Create a component that doesn't include the providers
-function RewardManagerComponent() {
-    const { 
-        setRewardAddress, 
-        allowFeeRecipients, 
-        disableRewards,
-        currentRewardAddress,
-        areFeeRecipientsAllowed 
-    } = useRewardManager();
-
-    const [isSettingRewardAddress, setIsSettingRewardAddress] = useState(false);
-    const [isAllowingFeeRecipients, setIsAllowingFeeRecipients] = useState(false);
-    const [isDisablingRewards, setIsDisablingRewards] = useState(false);
-    const [rewardAddress, setRewardAddressInput] = useState("");
-    const [currentRewardAddr, setCurrentRewardAddr] = useState<string | null>(null);
-    const [areRecipientsAllowed, setAreRecipientsAllowed] = useState<boolean | null>(null);
-
-    const handleSetRewardAddress = async () => {
-        if (!rewardAddress) return;
-        setIsSettingRewardAddress(true);
-        try {
-            await setRewardAddress(rewardAddress);
-        } catch (error) {
-            console.error('Setting reward address failed:', error);
-        } finally {
-            setIsSettingRewardAddress(false);
-        }
-    };
-
-    const handleAllowFeeRecipients = async () => {
-        setIsAllowingFeeRecipients(true);
-        try {
-            await allowFeeRecipients();
-        } catch (error) {
-            console.error('Allowing fee recipients failed:', error);
-        } finally {
-            setIsAllowingFeeRecipients(false);
-        }
-    };
-
-    const handleDisableRewards = async () => {
-        setIsDisablingRewards(true);
-        try {
-            await disableRewards();
-        } catch (error) {
-            console.error('Disabling rewards failed:', error);
-        } finally {
-            setIsDisablingRewards(false);
-        }
-    };
-
-    const handleGetCurrentRewardAddress = async () => {
-        try {
-            const address = await currentRewardAddress(43113);
-            setCurrentRewardAddr(address);
-        } catch (error) {
-            console.error('Getting current reward address failed:', error);
-        }
-    };
-
-    const handleCheckFeeRecipientsAllowed = async () => {
-        try {
-            const allowed = await areFeeRecipientsAllowed(43113);
-            setAreRecipientsAllowed(allowed);
-        } catch (error) {
-            console.error('Checking fee recipients allowed failed:', error);
-        }
-    };
-
-    return (
-        <RequireChain>
-            <div className="space-y-6">
-                <Container
-                    title="Reward Address Configuration"
-                    description="Set the address that will receive transaction fees."
-                >
-                    <div className="space-y-4">
-                        <Input
-                            label="Reward Address"
-                            value={rewardAddress}
-                            onChange={setRewardAddressInput}
-                            placeholder="0x..."
-                        />
-                        <Button
-                            onClick={handleSetRewardAddress}
-                            loading={isSettingRewardAddress}
-                            variant="primary"
-                        >
-                            Set Reward Address
-                        </Button>
-                    </div>
-                </Container>
-
-                <Container
-                    title="Fee Recipients Management"
-                    description="Enable or disable fee recipients and rewards."
-                >
-                    <div className="space-y-4">
-                        <Button
-                            onClick={handleAllowFeeRecipients}
-                            loading={isAllowingFeeRecipients}
-                            variant="primary"
-                        >
-                            Allow Fee Recipients
-                        </Button>
-                        <Button
-                            onClick={handleDisableRewards}
-                            loading={isDisablingRewards}
-                            variant="secondary"
-                        >
-                            Disable Rewards
-                        </Button>
-                    </div>
-                </Container>
-
-                <Container
-                    title="Current Status"
-                    description="View the current reward configuration status."
-                >
-                    <div className="space-y-4">
-                        <Button
-                            onClick={handleGetCurrentRewardAddress}
-                            variant="secondary"
-                        >
-                            Get Current Reward Address
-                        </Button>
-                        <Button
-                            onClick={handleCheckFeeRecipientsAllowed}
-                            variant="secondary"
-                        >
-                            Check Fee Recipients Status
-                        </Button>
-                        {currentRewardAddr && (
-                            <div className="mt-4">
-                                <p>Current Reward Address: {currentRewardAddr}</p>
-                            </div>
-                        )}
-                        {areRecipientsAllowed !== null && (
-                            <div className="mt-4">
-                                <p>Fee Recipients Allowed: {areRecipientsAllowed ? "Yes" : "No"}</p>
-                            </div>
-                        )}
-                    </div>
-                </Container>
-
-                <Container
-                    title="AllowList Controls"
-                    description="Manage access control for the Reward Manager precompile."
-                >
-                    <AllowListControls precompileAddress={REWARD_MANAGER_ADDRESS} />
-                </Container>
-            </div>
-        </RequireChain>
-    );
-}
-
-// Create a wrapper component with the providers
 export default function RewardManager() {
-    // Create Wagmi config
-    const config = createConfig({
-        chains: [avalancheFuji],
-        transports: {
-            [avalancheFuji.id]: http(),
-        },
-    });
+  const { publicClient, walletEVMAddress, walletChainId } = useWalletStore();
+  const [rewardManagerAddress, setRewardManagerAddress] = useState<string>(
+    DEFAULT_REWARD_MANAGER_ADDRESS
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [isAddressSet, setIsAddressSet] = useState(false);
 
-    // Create query client
-    const queryClient = new QueryClient();
+  const verifyChainConnection = async () => {
+    try {
+      // Get the current chain ID
+      const currentChainId = await publicClient.getChainId();
+      console.log("Current chain ID:", currentChainId);
 
+      // Get the current block number to verify connection
+      const blockNumber = await publicClient.getBlockNumber();
+      console.log("Current block number:", blockNumber);
+
+      return true;
+    } catch (error) {
+      console.error("Chain verification failed:", error);
+      return false;
+    }
+  };
+
+  const handleSetAddress = async () => {
+    if (!rewardManagerAddress) {
+      setError("Reward Manager address is required");
+      return;
+    }
+
+    if (!walletEVMAddress) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      // Verify chain connection
+      const isConnected = await verifyChainConnection();
+      if (!isConnected) {
+        setError(
+          "Failed to connect to the network. Please ensure your wallet is connected to the correct L1 chain (Current Chain ID: " +
+            walletChainId +
+            ")"
+        );
+        return;
+      }
+
+      // Skip bytecode verification for the default address
+      if (rewardManagerAddress === DEFAULT_REWARD_MANAGER_ADDRESS) {
+        setIsAddressSet(true);
+        setError(null);
+        return;
+      }
+
+      // Verify the address is a valid Reward Manager contract
+      const code = await publicClient.getBytecode({
+        address: rewardManagerAddress as `0x${string}`,
+      });
+
+      if (!code || code === "0x") {
+        setError("Invalid contract address");
+        return;
+      }
+
+      setIsAddressSet(true);
+      setError(null);
+    } catch (error) {
+      console.error("Error verifying contract:", error);
+      // If it's the default address, we'll still proceed
+      if (rewardManagerAddress === DEFAULT_REWARD_MANAGER_ADDRESS) {
+        setIsAddressSet(true);
+        setError(null);
+      } else {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to verify contract address"
+        );
+      }
+    }
+  };
+
+  if (!isAddressSet) {
     return (
-        <WagmiProvider config={config}>
-            <QueryClientProvider client={queryClient}>
-                <RewardManagerComponent />
-            </QueryClientProvider>
-        </WagmiProvider>
+      <Container
+        title="Configure Reward Manager"
+        description="Set the address of the Reward Manager precompile contract. The default address is pre-filled, but you can change it if needed."
+      >
+        <div className="space-y-4">
+          {error && (
+            <div className="p-4 text-red-700 bg-red-100 rounded-md">
+              {error}
+            </div>
+          )}
+
+          <EVMAddressInput
+            label="Reward Manager Address"
+            value={rewardManagerAddress}
+            onChange={setRewardManagerAddress}
+          />
+
+          <div className="flex space-x-4">
+            <Button
+              variant="primary"
+              onClick={handleSetAddress}
+              disabled={!rewardManagerAddress || !walletEVMAddress}
+            >
+              Use Default Address
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setRewardManagerAddress("")}
+            >
+              Clear Address
+            </Button>
+          </div>
+        </div>
+      </Container>
     );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Container
+        title="Reward Manager Management"
+        description="Manage the Reward Manager precompile contract. This allows you to control reward-related operations on the network."
+      >
+        <div className="space-y-4">
+          {error && (
+            <div className="p-4 text-red-700 bg-red-100 rounded-md">
+              {error}
+            </div>
+          )}
+        </div>
+      </Container>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <SetEnabledComponent precompileAddress={rewardManagerAddress} />
+        <SetManagerComponent precompileAddress={rewardManagerAddress} />
+        <SetAdminComponent precompileAddress={rewardManagerAddress} />
+        <RemoveAllowListComponent precompileAddress={rewardManagerAddress} />
+        <ReadAllowListComponent precompileAddress={rewardManagerAddress} />
+      </div>
+    </div>
+  );
 }

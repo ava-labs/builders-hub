@@ -278,16 +278,22 @@ const componentGroups: Record<string, ComponentType[]> = {
   ],
   Precompiles: [
     {
+      id: "deployerAllowlist",
+      label: "Deployer Allowlist",
+      component: lazy(() => import("./Precompiles/DeployerAllowlist")),
+      fileNames: ["toolbox/src/toolbox/Precompiles/DeployerAllowlist.tsx"],
+    },
+    {
       id: "nativeMinter",
       label: "Native Minter",
       component: lazy(() => import("./Precompiles/NativeMinter")),
       fileNames: ["toolbox/src/toolbox/Precompiles/NativeMinter.tsx"],
     },
     {
-      id: "deployerAllowlist",
-      label: "Deployer Allowlist",
-      component: lazy(() => import("./Precompiles/DeployerAllowlist")),
-      fileNames: ["toolbox/src/toolbox/Precompiles/DeployerAllowlist.tsx"],
+      id: "transactionAllowlist",
+      label: "Transaction Allowlist",
+      component: lazy(() => import("./Precompiles/TransactionAllowlist")),
+      fileNames: ["toolbox/src/toolbox/Precompiles/TransactionAllowlist.tsx"],
     },
     {
       id: "feeManager",
@@ -300,12 +306,6 @@ const componentGroups: Record<string, ComponentType[]> = {
       label: "Reward Manager",
       component: lazy(() => import("./Precompiles/RewardManager")),
       fileNames: ["toolbox/src/toolbox/Precompiles/RewardManager.tsx"],
-    },
-    {
-      id: "transactionAllowlist",
-      label: "Transaction Allowlist",
-      component: lazy(() => import("./Precompiles/TransactionAllowlist")),
-      fileNames: ["toolbox/src/toolbox/Precompiles/TransactionAllowlist.tsx"],
     },
     {
       id: "warpMessenger",

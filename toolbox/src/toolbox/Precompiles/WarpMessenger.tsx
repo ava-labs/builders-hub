@@ -1,180 +1,166 @@
-import { RequireChain } from "../../components/RequireChain";
-import { useWarpMessenger } from '@avalabs/builderkit';
-import { WagmiProvider, createConfig } from 'wagmi';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { avalancheFuji } from 'viem/chains';
-import { http } from 'viem';
-import { Container } from "../components/Container";
-import { Button } from "../../components/Button";
-import { Input } from "../../components/Input";
+"use client";
+
 import { useState } from "react";
+import { useWalletStore } from "../../lib/walletStore";
+import { Button } from "../../components/Button";
+import { Container } from "../components/Container";
+import { EVMAddressInput } from "../components/EVMAddressInput";
+import {
+  SetAdminComponent,
+  SetEnabledComponent,
+  SetManagerComponent,
+  RemoveAllowListComponent,
+  ReadAllowListComponent,
+} from "../components/AllowListComponents";
 
-// Warp Messenger precompile address
-// const WARP_MESSENGER_ADDRESS = "0x0200000000000000000000000000000000000005";
+// Default Warp Messenger address
+const DEFAULT_WARP_MESSENGER_ADDRESS =
+  "0x0200000000000000000000000000000000000005";
 
-// Create a component that doesn't include the providers
-function WarpMessengerComponent() {
-    const { 
-        sendWarpMessage, 
-        getVerifiedWarpMessage,
-        getVerifiedWarpBlockHash,
-        getBlockchainId 
-    } = useWarpMessenger();
-
-    const [isSendingMessage, setIsSendingMessage] = useState(false);
-    const [messagePayload, setMessagePayload] = useState("");
-    const [messageIndex, setMessageIndex] = useState("0");
-    const [verifiedMessage, setVerifiedMessage] = useState<any>(null);
-    const [verifiedBlockHash, setVerifiedBlockHash] = useState<any>(null);
-    const [blockchainId, setBlockchainId] = useState<string | null>(null);
-
-    const handleSendWarpMessage = async () => {
-        if (!messagePayload) return;
-        setIsSendingMessage(true);
-        try {
-            await sendWarpMessage(messagePayload);
-        } catch (error) {
-            console.error('Sending warp message failed:', error);
-        } finally {
-            setIsSendingMessage(false);
-        }
-    };
-
-    const handleGetVerifiedMessage = async () => {
-        try {
-            const [message, valid] = await getVerifiedWarpMessage(43113, parseInt(messageIndex));
-            if (valid) {
-                setVerifiedMessage(message);
-            }
-        } catch (error) {
-            console.error('Getting verified message failed:', error);
-        }
-    };
-
-    const handleGetVerifiedBlockHash = async () => {
-        try {
-            const [blockHash, valid] = await getVerifiedWarpBlockHash(43113, parseInt(messageIndex));
-            if (valid) {
-                setVerifiedBlockHash(blockHash);
-            }
-        } catch (error) {
-            console.error('Getting verified block hash failed:', error);
-        }
-    };
-
-    const handleGetBlockchainId = async () => {
-        try {
-            const id = await getBlockchainId(43113);
-            setBlockchainId(id);
-        } catch (error) {
-            console.error('Getting blockchain ID failed:', error);
-        }
-    };
-
-    return (
-        <RequireChain chain={avalancheFuji}>
-            <div className="space-y-6">
-                <Container
-                    title="Send Warp Message"
-                    description="Send a message to another L1 chain."
-                >
-                    <div className="space-y-4">
-                        <Input
-                            label="Message Payload"
-                            value={messagePayload}
-                            onChange={setMessagePayload}
-                            placeholder="Enter message payload..."
-                        />
-                        <Button
-                            onClick={handleSendWarpMessage}
-                            loading={isSendingMessage}
-                            variant="primary"
-                        >
-                            Send Warp Message
-                        </Button>
-                    </div>
-                </Container>
-
-                <Container
-                    title="Verify Messages"
-                    description="Verify and retrieve warp messages and block hashes."
-                >
-                    <div className="space-y-4">
-                        <Input
-                            label="Message Index"
-                            value={messageIndex}
-                            onChange={setMessageIndex}
-                            type="number"
-                            placeholder="Enter message index..."
-                        />
-                        <Button
-                            onClick={handleGetVerifiedMessage}
-                            variant="secondary"
-                        >
-                            Get Verified Message
-                        </Button>
-                        <Button
-                            onClick={handleGetVerifiedBlockHash}
-                            variant="secondary"
-                        >
-                            Get Verified Block Hash
-                        </Button>
-                        {verifiedMessage && (
-                            <div className="mt-4 p-4 bg-gray-100 rounded">
-                                <p>Verified Message:</p>
-                                <pre>{JSON.stringify(verifiedMessage, null, 2)}</pre>
-                            </div>
-                        )}
-                        {verifiedBlockHash && (
-                            <div className="mt-4 p-4 bg-gray-100 rounded">
-                                <p>Verified Block Hash:</p>
-                                <pre>{JSON.stringify(verifiedBlockHash, null, 2)}</pre>
-                            </div>
-                        )}
-                    </div>
-                </Container>
-
-                <Container
-                    title="Blockchain Information"
-                    description="Get the current blockchain ID."
-                >
-                    <div className="space-y-4">
-                        <Button
-                            onClick={handleGetBlockchainId}
-                            variant="secondary"
-                        >
-                            Get Blockchain ID
-                        </Button>
-                        {blockchainId && (
-                            <div className="mt-4">
-                                <p>Blockchain ID: {blockchainId}</p>
-                            </div>
-                        )}
-                    </div>
-                </Container>
-            </div>
-        </RequireChain>
-    );
-}
-
-// Create a wrapper component with the providers
 export default function WarpMessenger() {
-    // Create Wagmi config with type assertion to handle version mismatch
-    const config = createConfig({
-        chains: [avalancheFuji],
-        transports: {
-            [avalancheFuji.id]: http() as any,
-        },
-    } as any);
+  const { publicClient, walletEVMAddress, walletChainId } = useWalletStore();
+  const [warpMessengerAddress, setWarpMessengerAddress] = useState<string>(
+    DEFAULT_WARP_MESSENGER_ADDRESS
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [isAddressSet, setIsAddressSet] = useState(false);
 
-    // Create query client
-    const queryClient = new QueryClient();
+  const verifyChainConnection = async () => {
+    try {
+      // Get the current chain ID
+      const currentChainId = await publicClient.getChainId();
+      console.log("Current chain ID:", currentChainId);
 
+      // Get the current block number to verify connection
+      const blockNumber = await publicClient.getBlockNumber();
+      console.log("Current block number:", blockNumber);
+
+      return true;
+    } catch (error) {
+      console.error("Chain verification failed:", error);
+      return false;
+    }
+  };
+
+  const handleSetAddress = async () => {
+    if (!warpMessengerAddress) {
+      setError("Warp Messenger address is required");
+      return;
+    }
+
+    if (!walletEVMAddress) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      // Verify chain connection
+      const isConnected = await verifyChainConnection();
+      if (!isConnected) {
+        setError(
+          "Failed to connect to the network. Please ensure your wallet is connected to the correct L1 chain (Current Chain ID: " +
+            walletChainId +
+            ")"
+        );
+        return;
+      }
+
+      // Skip bytecode verification for the default address
+      if (warpMessengerAddress === DEFAULT_WARP_MESSENGER_ADDRESS) {
+        setIsAddressSet(true);
+        setError(null);
+        return;
+      }
+
+      // Verify the address is a valid Warp Messenger contract
+      const code = await publicClient.getBytecode({
+        address: warpMessengerAddress as `0x${string}`,
+      });
+
+      if (!code || code === "0x") {
+        setError("Invalid contract address");
+        return;
+      }
+
+      setIsAddressSet(true);
+      setError(null);
+    } catch (error) {
+      console.error("Error verifying contract:", error);
+      // If it's the default address, we'll still proceed
+      if (warpMessengerAddress === DEFAULT_WARP_MESSENGER_ADDRESS) {
+        setIsAddressSet(true);
+        setError(null);
+      } else {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to verify contract address"
+        );
+      }
+    }
+  };
+
+  if (!isAddressSet) {
     return (
-        <WagmiProvider config={config}>
-            <QueryClientProvider client={queryClient}>
-                <WarpMessengerComponent />
-            </QueryClientProvider>
-        </WagmiProvider>
+      <Container
+        title="Configure Warp Messenger"
+        description="Set the address of the Warp Messenger precompile contract. The default address is pre-filled, but you can change it if needed."
+      >
+        <div className="space-y-4">
+          {error && (
+            <div className="p-4 text-red-700 bg-red-100 rounded-md">
+              {error}
+            </div>
+          )}
+
+          <EVMAddressInput
+            label="Warp Messenger Address"
+            value={warpMessengerAddress}
+            onChange={setWarpMessengerAddress}
+          />
+
+          <div className="flex space-x-4">
+            <Button
+              variant="primary"
+              onClick={handleSetAddress}
+              disabled={!warpMessengerAddress || !walletEVMAddress}
+            >
+              Use Default Address
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setWarpMessengerAddress("")}
+            >
+              Clear Address
+            </Button>
+          </div>
+        </div>
+      </Container>
     );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Container
+        title="Warp Messenger Management"
+        description="Manage the Warp Messenger precompile contract. This allows you to control cross-chain messaging operations on the network."
+      >
+        <div className="space-y-4">
+          {error && (
+            <div className="p-4 text-red-700 bg-red-100 rounded-md">
+              {error}
+            </div>
+          )}
+        </div>
+      </Container>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <SetEnabledComponent precompileAddress={warpMessengerAddress} />
+        <SetManagerComponent precompileAddress={warpMessengerAddress} />
+        <SetAdminComponent precompileAddress={warpMessengerAddress} />
+        <RemoveAllowListComponent precompileAddress={warpMessengerAddress} />
+        <ReadAllowListComponent precompileAddress={warpMessengerAddress} />
+      </div>
+    </div>
+  );
 }
