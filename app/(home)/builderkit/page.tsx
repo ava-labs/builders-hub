@@ -20,7 +20,7 @@ export default function Page() {
   const logo = isMounted ? (resolvedTheme === "dark" ? "/logo-white.png" : "/logo-black.png") : null;
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden">
+    <div className="min-h-screen text-foreground overflow-hidden">
       <AnimatedBackground />
       <section className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center max-w-4xl">

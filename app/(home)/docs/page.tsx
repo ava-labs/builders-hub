@@ -8,6 +8,28 @@ import {
 import Link from 'next/link';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/utils/cn';
+import type { Metadata } from 'next';
+import { createMetadata } from '@/utils/metadata';
+
+export const metadata: Metadata = createMetadata({
+  openGraph: {
+    url: '/docs',
+    images: {
+      url: '/api/og/docs',
+      width: 1200,
+      height: 630,
+      alt: 'Avalanche Documentation',
+    },
+  },
+  twitter: {
+    images: {
+      url: '/api/og/docs',
+      width: 1200,
+      height: 630,
+      alt: 'Avalanche Documentation',
+    },
+  },
+});
 
 export default function HomePage(): React.ReactElement {
   return (

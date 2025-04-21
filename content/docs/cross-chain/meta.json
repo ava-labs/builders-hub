@@ -16,6 +16,8 @@
     "teleporter/cli",
     "teleporter/upgradeability",
     "teleporter/addresses",
+    "---Interchain Token Transfer---",
+    "interchain-token-transfer/overview",
     "---Examples---",
     "teleporter/getting-started",
     "teleporter/teleporter-on-local-network",
