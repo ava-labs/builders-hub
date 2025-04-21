@@ -9,6 +9,8 @@ import versions from "../../versions.json";
 import { CodeHighlighter } from "../../components/CodeHighlighter";
 import { Container } from "../components/Container";
 import { Input } from "../../components/Input";
+import { Tabs } from "../../components/Tabs";
+
 const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number) => {
     const httpPort = isRPC ? "8080" : "9650";
     const stakingPort = isRPC ? "9653" : "9651";
@@ -122,6 +124,36 @@ ${domain}/ext/bc/${chainID}/rpc`
     }
 }
 
+const dockerInstallInstructions: Record<string, string> = {
+    'Ubuntu/Debian': `sudo apt-get update && \\
+    sudo apt-get install -y docker.io && \\
+    sudo usermod -aG docker $USER && \\
+    newgrp docker
+
+# Test docker installation
+docker run -it --rm hello-world
+`,
+    'Amazon Linux 2023+': `sudo yum update -y && \\
+    sudo yum install -y docker && \\
+    sudo service docker start && \\
+    sudo usermod -a -G docker $USER && \\
+    newgrp docker
+
+# Test docker installation
+docker run -it --rm hello-world
+`,
+    'Fedora': `sudo dnf update -y && \\
+    sudo dnf -y install docker && \\
+    sudo systemctl start docker && \\
+    sudo usermod -a -G docker $USER && \\
+    newgrp docker
+
+# Test docker installation
+docker run -it --rm hello-world
+`,
+} as const;
+
+type OS = keyof typeof dockerInstallInstructions;
 
 export default function AvalanchegoDocker() {
     const { subnetId, setSubnetID, chainID, setChainID, setEvmChainRpcUrl } = useToolboxStore();
@@ -131,6 +163,7 @@ export default function AvalanchegoDocker() {
     const [rpcCommand, setRpcCommand] = useState("");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<"true" | "false">("false");
+    const [activeOS, setActiveOS] = useState<OS>("Ubuntu/Debian");
 
     useEffect(() => {
         try {
@@ -155,33 +188,70 @@ export default function AvalanchegoDocker() {
 
     return (
         <Container
-            title="Avalanchego in Docker"
+            title="Node Setup with Docker"
             description="This will start a Docker container running an RPC or validator node that tracks your subnet."
         >
             <div className="space-y-4">
-                <div className="mb-4">
-                    This command will start a Docker container running an RPC or validator node that tracks your subnet.
+                <div className="mt-4">
+                    <h3 className="text-md font-medium mb-2">Docker Installation Command:</h3>
+                    <p className="mb-4">
+                        We will retrieve the binary images of{" "}
+                        <a
+                            href="https://github.com/ava-labs/avalanchego"
+                            target="_blank"
+                            className="text-blue-600 dark:text-blue-400 hover:underline"
+                            rel="noreferrer"
+                        >
+                            AvalancheGo
+                        </a>{" "}
+                        from the Docker Hub. Make sure you have Docker installed on your system.
+                    </p>
+
+                    <Tabs
+                        tabs={Object.keys(dockerInstallInstructions)}
+                        activeTab={activeOS}
+                        setActiveTab={setActiveOS}
+                        children={(activeTab) => {
+                            return <CodeHighlighter lang="bash" code={dockerInstallInstructions[activeTab]} />
+                        }}
+                    />
+
+                    <p className="mt-4">
+                        If you do not want to use Docker, you can follow the instructions{" "}
+                        <a
+                            href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
+                            target="_blank"
+                            className="text-blue-600 dark:text-blue-400 hover:underline"
+                            rel="noreferrer"
+                        >
+                            here
+                        </a>
+                        .
+                    </p>
                 </div>
 
-                <Input
-                    label="Subnet ID"
-                    value={subnetId}
-                    onChange={setSubnetID}
-                    placeholder="Create a subnet to generate a subnet ID"
-                />
+                <div className="relative">
+                    <h3 className="text-md font-medium mb-2 mt-8">Node Setup Command:</h3>
 
-                <Select
-                    label="Node Type"
-                    value={isRPC}
-                    onChange={(value) => setIsRPC(value as "true" | "false")}
-                    options={[
-                        { value: "false", label: "Validator Node" },
-                        { value: "true", label: "RPC Node" },
-                    ]}
-                />
+                    <Input
+                        label="Subnet ID"
+                        value={subnetId}
+                        onChange={setSubnetID}
+                        placeholder="Create a subnet to generate a subnet ID"
+                    />
+                    <p className="mt-8 mb-4">Select what kind of Node you want to set up:</p>
+                    <div className="flex items-center">
+                        <Tabs
+                            tabs={["Validator Node", "RPC Node"]}
+                            activeTab={isRPC === "false" ? "Validator Node" : "RPC Node"}
+                            setActiveTab={(tab) => setIsRPC(tab === "Validator Node" ? "false" : "true")}
+                        />
+                    </div>
+                </div>
 
-                {isRPC === "true" && (
+                {isRPC === "true" ? (
                     <>
+                        <p>RPC nodes are not validators. They expose APIs for applications to interact with the blockchain and are necessary when building dApps or services that need to query or submit transactions to the network.</p>
                         <Select
                             label="Enable Debug & Trace"
                             value={enableDebugTrace}
@@ -200,18 +270,19 @@ export default function AvalanchegoDocker() {
                                 placeholder="Enter Chain ID"
                             />
                         )}
+
+                        <Input
+                            label="Domain or IPv4 address for reverse proxy (optional)"
+                            value={domain}
+                            onChange={setDomain}
+                            placeholder="example.com  or 1.2.3.4"
+                            helperText="`curl checkip.amazonaws.com` to get your public IP address. Make sure 443 is open on your firewall."
+                    />
                     </>
+                ) : (
+                    <p>Validator Nodes participate in consensus and validates transactions. These should not be publicly accessible in production settings.</p>
                 )}
 
-                {isRPC === "true" && (
-                    <Input
-                        label="Domain or IPv4 address for reverse proxy (optional)"
-                        value={domain}
-                        onChange={setDomain}
-                        placeholder="example.com  or 1.2.3.4"
-                        helperText="`curl checkip.amazonaws.com` to get your public IP address. Make sure 443 is open on your firewall."
-                    />
-                )}
                 {chainID && enableDebugTrace === "true" && isRPC === "true" && (
                     <div className="mt-4">
                         <h3 className="text-md font-medium mb-2">Debug & Trace Setup Command:</h3>
@@ -224,7 +295,6 @@ export default function AvalanchegoDocker() {
                 )}
 
                 <div className="mt-4">
-                    <h3 className="text-md font-medium mb-2">Node Command:</h3>
                     <CodeHighlighter
                         code={rpcCommand}
                         lang="bash"
@@ -260,6 +330,17 @@ export default function AvalanchegoDocker() {
                         />
                     </div>
                 )}
+
+<div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-md">
+                        <h3 className="text-md font-medium mb-2">Running Multiple Nodes on the same machine:</h3>
+                        <p>To run multiple validator nodes on the same machine, ensure each node has:</p>
+                        <ul className="list-disc pl-5 mt-1">
+                            <li>Unique container name (change <code>--name</code> parameter)</li>
+                            <li>Different ports (modify <code>AVAGO_HTTP_PORT</code> and <code>AVAGO_STAKING_PORT</code>)</li>
+                            <li>Separate data directories (change the local volume path <code>~/.avalanchego</code> to a unique directory)</li>
+                        </ul>
+                        <p className="mt-1">Example for second node: Use ports 9652/9653 (HTTP/staking), container name "avago2", and data directory "~/.avalanchego2"</p>
+                    </div>
             </div>
         </Container>
     );

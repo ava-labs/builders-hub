@@ -126,12 +126,16 @@ export default function ReadContract() {
             value={proxyAddress || ""}
             placeholder="0x..."
             onChange={(value) => setProxyAddress(value)}
-            button={
-              <Button variant="secondary" onClick={readContractData} loading={isReading} disabled={isReading}>
-                Refresh
-              </Button>
-            }
           />
+          <Button 
+            variant="secondary" 
+            onClick={readContractData} 
+            loading={isReading} 
+            disabled={isReading}
+            className="w-full"
+          >
+            Refresh
+          </Button>
         </div>
 
         {Object.keys(viewData).length > 0 && (

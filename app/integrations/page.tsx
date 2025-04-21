@@ -3,6 +3,28 @@ import Link from 'next/link';
 import { cn } from '@/utils/cn';
 import { buttonVariants } from '@/components/ui/button';
 import { Pill, Pills } from '@/components/ui/pills';
+import type { Metadata } from 'next';
+import { createMetadata } from '@/utils/metadata';
+
+export const metadata: Metadata = createMetadata({
+  openGraph: {
+    url: '/integrations',
+    images: {
+      url: '/api/og/integrations',
+      width: 1200,
+      height: 630,
+      alt: 'Integrations with Avalanche',
+    },
+  },
+  twitter: {
+    images: {
+      url: '/api/og/integrations',
+      width: 1200,
+      height: 630,
+      alt: 'Integrations with Avalanche',
+    },
+  },
+});
 
 export default function Page(): React.ReactElement {
     const list = [...integration.getPages()];

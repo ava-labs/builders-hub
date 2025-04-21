@@ -13,7 +13,8 @@ const academyOptions : DocsLayoutProps = {
         {<AvalancheLogo className="size-7" fill="currentColor" />}
         <span style={{ fontSize: "large" }}>Academy</span>
       </>
-    )
+    ),
+    url: '/academy',
   },
   tree: academy.pageTree,
   links: [
