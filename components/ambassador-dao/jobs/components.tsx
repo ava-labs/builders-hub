@@ -14,7 +14,7 @@ import { useCheckJobStatus } from "@/services/ambassador-dao/requests/opportunit
 import { getTimeLeft } from "@/utils/timeFormatting";
 import { useCountdown } from "@/components/ambassador-dao/hooks/useCountdown";
 import Image from "next/image";
-import Token from "@/public/ambassador-dao-images/token.png";
+import Token from "@/public/images/usdcToken.svg";
 import { getOrdinalPosition } from "@/utils/getOrdinalPosition";
 import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 import { AuthModal } from "@/components/ambassador-dao/sections/auth-modal";
@@ -171,7 +171,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
             <Loader2 className="mx-auto" color="#FFF" />
 =======
             <div className='flex items-center justify-center'>
-              <Loader2 color='var(--white-text-color)' />
+              <Loader2 color='#fff' />
             </div>
 >>>>>>> 4289f3331... feat: light and dark mode
           ) : data?.has_applied ? (
@@ -210,7 +210,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
 export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
   return (
     <div className='border border-[var(--default-border-color)] p-4 mb-6 rounded-lg'>
-      <div className='flex items-center gap-5'>
+      <div className='flex items-start gap-5'>
         {job.companyLogo ? (
           <img
             src={job.companyLogo}

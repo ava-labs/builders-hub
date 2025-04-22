@@ -240,8 +240,10 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
         years_of_experience: userData.years_of_experience || "",
       });
 
-      if (userData.skills_ids && userData.skills_ids.length > 0) {
-        setSelectedSkills(userData.skills_ids);
+      if (userData.skills && userData.skills.length > 0) {
+        setSelectedSkills(
+          userData.skills.map((skill: { id: string }) => skill.id)
+        );
       }
 
       if (userData.social_links && userData.social_links.length > 0) {
@@ -630,7 +632,6 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
   const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
-
   const { data: userData } = useFetchUserDataQuery();
   const router = useRouter();
   const {
@@ -741,14 +742,14 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
     }
 
     try {
-      setIsUploadingLogo(true)
+      setIsUploadingLogo(true);
       setCompanyLogoName(file.name);
 
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewLogo(reader.result as string);
       };
-      setIsUploadingLogo(false)
+      setIsUploadingLogo(false);
       reader.readAsDataURL(file);
 
       const url = await uploadFile(file);
@@ -773,14 +774,14 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
       setProfileImageSize(file.size);
     }
     try {
-    setIsUploadingProfileImage(true)
+      setIsUploadingProfileImage(true);
       setProfileImageName(file.name);
 
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewImage(reader.result as string);
       };
-      setIsUploadingProfileImage(false)
+      setIsUploadingProfileImage(false);
       reader.readAsDataURL(file);
 
       const url = await uploadFile(file);

@@ -109,10 +109,8 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
       {/* Under review */}
       {user?.status === "PENDING" && (
         <div className='bg-[#155DFC] rounded-md p-3 md:p-6'>
-          <p className='text-[var(--primary-text-color)] text-sm'>
-            Under review
-          </p>
-          <p className='text-[var(--secondary-text-color)] text-sm font-light'>
+          <p className='text-white text-sm'>Under review</p>
+          <p className='text-zinc-300 text-sm font-light'>
             Your account is under review, and will be approved shortly.
           </p>
         </div>
@@ -121,10 +119,8 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
       {user?.status === "REJECTED" && (
         <div className='bg-[#FB2C36] rounded-md p-3 md:p-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between'>
           <div>
-            <p className='text-[var(--primary-text-color)] text-sm'>
-              Uh oh! Something went wrong.
-            </p>
-            <p className='text-[#E5E7EB] text-sm font-light'>
+            <p className='text-white text-sm'>Uh oh! Something went wrong.</p>
+            <p className='text-zinc-300 text-sm font-light'>
               Review and resubmit your company details again for approval.
               (TODO: Allow resubmission after admin rejection)
             </p>
@@ -260,7 +256,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                         {listings?.data.map((listing) => (
                           <TableRow
                             key={listing.id}
-                            className='border-[var(--default-border-color)] hover:bg-gray-200 dark:hover:bg-[#27272A]/50 whitespace-nowrap p-4 text-[var(--white-text-color)] cursor-pointer'
+                            className='border-[var(--default-border-color)] py-1.5 hover:bg-gray-200 dark:hover:bg-[#27272A]/50 whitespace-nowrap p-4 text-[var(--white-text-color)] cursor-pointer'
                             onClick={() => {
                               router.push(
                                 `/ambassador-dao/sponsor/listings/${listing.id}`
