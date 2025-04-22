@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
 import { SubmissionForm } from "../hooks/useSubmissionForm";
+import { MultiLinkInput } from './MultiLinkInput';
 
 
 
@@ -58,50 +59,19 @@ export default function SubmitStep2() {
         />
 
         {/* Campo: Repo Link */}
-        <FormField
-          control={form.control}
+        <MultiLinkInput
           name="github_repository"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabelWithCheck
-                label="GitHub Repository"
-                checked={!!field.value}
-              />
-              <FormControl>
-                <Input
-                  placeholder="Paste GitHub link (e.g., https://github.com/user/repo)"
-                  {...field}
-                  className="dark:bg-zinc-950"
-                />
-              </FormControl>
-              <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
-                Must be a public repository. If design-only, link a Figma file.
-              </p>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="GitHub Repository"
+          placeholder="Paste GitHub link (e.g., https://github.com/user/repo)"
+          validationMessage="Must be a public repository. If design-only, link a Figma file."
         />
 
         {/* Campo: Demo Link */}
-        <FormField
-          control={form.control}
+        <MultiLinkInput
           name="demo_link"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabelWithCheck label="Demo Link" checked={!!field.value} />
-              <FormControl>
-                <Input
-                  placeholder="Paste Demo link (e.g., https://yoursite.com)"
-                  className="dark:bg-zinc-950"
-                  {...field}
-                />
-              </FormControl>
-              <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
-                Provide a live demo or working prototype.
-              </p>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Live Demo Link"
+          placeholder="Paste Demo link (e.g., https://yoursite.com)"
+          validationMessage="Provide a live demo or working prototype."
         />
       </section>
 

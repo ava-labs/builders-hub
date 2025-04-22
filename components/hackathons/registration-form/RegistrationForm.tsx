@@ -67,10 +67,10 @@ export const registerSchema = z.object({
       }
     ),
   terms_event_conditions: z.boolean().refine((value) => value === true, {
-    message: "You must accept the Event Terms and Conditions to continue.",
+    message: "You must agree to participate in any Builders Hub events. Event Terms and Conditions.",
   }),
   newsletter_subscription: z.boolean().refine((value) => value === true, {
-    message: "This field is required.",
+    message: "Subscribe to newsletters and promotional materials. You can opt out anytime. Avalanche Privacy Policy.",
   }),
   prohibited_items: z.boolean().refine((value) => value === true, {
     message: "You must agree not to bring prohibited items to continue.",
@@ -97,7 +97,6 @@ export function RegisterForm({
   );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingLater, setIsSavingLater] = useState(false);
 
   const form = useForm<RegisterFormValues>({
@@ -368,7 +367,7 @@ export function RegisterForm({
               {step !== 3 && (
                 <Button
                   variant="red"
-                  type="submit"
+                  type="button"
                   onClick={onNextStep}
                   className="bg-red-500 hover:bg-red-600 cursor-pointer"
                 >
