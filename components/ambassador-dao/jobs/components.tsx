@@ -77,7 +77,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
         <div className='flex items-center gap-2'>
           <span className='text-[var(--white-text-color)] flex items-center gap-2'>
             <Image src={Token} alt='$' />
-            {job?.total_budget} USDC
+            {job?.total_budget.toLocaleString()} USDC
           </span>
         </div>
       </div>

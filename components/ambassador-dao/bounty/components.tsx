@@ -323,7 +323,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
       <div className='flex items-center gap-2 mb-4'>
         <Image src={Token} alt='$' className='mr-2' />
         <span className='text-[var(--white-text-color)] text-lg font-semibold'>
-          {bounty?.total_budget} USDC
+          {bounty?.total_budget.toLocaleString()} USDC
         </span>
         <span className='text-[var(--secondary-text-color)] ml-1'>
           Total Prizes
@@ -341,7 +341,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
               <div key={index} className='flex items-center my-4 relative'>
                 <div className='absolute left-[-34px] w-3 h-3 bg-[#9F9FA9] rounded-full'></div>
                 <span className='text-[var(--white-text-color)] font-medium'>
-                  {prize.amount} USDC
+                  {prize?.amount.toLocaleString()} USDC
                 </span>
                 <span className='text-[var(--secondary-text-color)] ml-2'>
                   {getOrdinalPosition(prize.position)}
