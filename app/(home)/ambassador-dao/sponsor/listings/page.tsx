@@ -193,7 +193,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                 <SelectItem value='ALL'>Everything</SelectItem>
                 <SelectItem value='DRAFT'>Draft</SelectItem>
                 <SelectItem value='OPEN'>Open</SelectItem>
-                <SelectItem value='PUBLISHED'>Published</SelectItem>
+                {/* <SelectItem value='PUBLISHED'>Published</SelectItem> */}
                 <SelectItem value='IN_REVIEW'>In Review</SelectItem>
                 <SelectItem value='COMPLETED'>Completed</SelectItem>
               </SelectContent>

@@ -131,7 +131,7 @@ const LeaderboardPage = () => {
         )}
       </div>
 
-      {leaderboardData && (
+      {!!leaderboardData?.data.length && (
         <PaginationComponent
           currentPage={currentPage}
           onPageChange={handlePageChange}
