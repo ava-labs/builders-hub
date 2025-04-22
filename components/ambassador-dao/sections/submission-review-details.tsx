@@ -48,7 +48,7 @@ export const SumbissionReviewDetailsModal = ({
     submission?.opportunity.id
   );
 
-  const { mutate: rejectSubmission, isPending: isRejecting } =
+  const { mutateAsync: rejectSubmission, isPending: isRejecting } =
     useRejectSubmissionMutation(submissionId);
 
   const { mutateAsync: updateBountyReward, isPending: isUpdatingBounty } =
@@ -63,7 +63,7 @@ export const SumbissionReviewDetailsModal = ({
       });
       onClose();
     } else if (selectedAction === "REJECT" && feedback) {
-      rejectSubmission({ status: "REJECTED", feedback });
+      await rejectSubmission({ status: "REJECTED", feedback });
       onClose();
     }
   };

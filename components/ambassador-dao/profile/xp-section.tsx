@@ -1,8 +1,14 @@
 import Image from "next/image";
 import React from "react";
 import Trophy from "@/public/ambassador-dao-images/trophy.png";
-import { ArrowRight, ChevronRight, File, Hourglass, Lightbulb } from "lucide-react";
-import Token from "@/public/ambassador-dao-images/token.png";
+import {
+  ArrowRight,
+  ChevronRight,
+  File,
+  Hourglass,
+  Lightbulb,
+} from "lucide-react";
+import Token from "@/public/images/usdcToken.svg";
 import XP from "@/public/ambassador-dao-images/sparkles.png";
 
 import Loader from "../ui/Loader";
@@ -155,13 +161,15 @@ export default function XpSection({ data }: any) {
 
         <div className='col-span-2'>
           <div className='flex justify-between items-center mb-4'>
-            <h3 className='text-md sm:text-xl font-medium'>Available Opportunities</h3>
+            <h3 className='text-md sm:text-xl font-medium'>
+              Available Opportunities
+            </h3>
             {data?.availableOpportunities?.length > 1 && (
               <a
                 href='/ambassador-dao'
                 className='text-xs sm:text-sm text-[#F5F5F9] flex items-center'
               >
-                View All <ArrowRight size={16} color="#F5F5F9" />
+                View All <ArrowRight size={16} color='#F5F5F9' />
               </a>
             )}
           </div>
@@ -224,7 +232,7 @@ export default function XpSection({ data }: any) {
                                     className='mr-1'
                                     color='#9F9FA9'
                                   />
-                                  <span className="w-max">
+                                  <span className='w-max'>
                                     {opportunity._count?.submissions || 0}{" "}
                                     {opportunity?._count?.submissions > 1
                                       ? "Proposals"
@@ -238,18 +246,22 @@ export default function XpSection({ data }: any) {
                       </div>
 
                       <div className='flex sm:flex-col space-x-3'>
-                      {opportunity?.total_budget > 0 && <div className='flex items-center text-xs py-2'>
-                          <Image src={Token} alt='$' />
-                          <span className='text-[var(--white-text-color)] ml-2'>
-                            {opportunity.total_budget} USDC
-                          </span>
-                        </div>}
-                        {opportunity?.xp_allocated > 0 && <div className='flex items-center text-xs  py-2 rounded-full'>
-                          <Image src={XP} alt='$' />
-                          <span className='text-[var(--white-text-color)] ml-2'>
-                            {opportunity.xp_allocated} XP
-                          </span>
-                        </div>}
+                        {opportunity?.total_budget > 0 && (
+                          <div className='flex items-center text-xs py-2'>
+                            <Image src={Token} alt='$' />
+                            <span className='text-[var(--white-text-color)] ml-2'>
+                              {opportunity.total_budget} USDC
+                            </span>
+                          </div>
+                        )}
+                        {opportunity?.xp_allocated > 0 && (
+                          <div className='flex items-center text-xs  py-2 rounded-full'>
+                            <Image src={XP} alt='$' />
+                            <span className='text-[var(--white-text-color)] ml-2'>
+                              {opportunity.xp_allocated} XP
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

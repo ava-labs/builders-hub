@@ -15,7 +15,9 @@ interface DatePickerProps {
 }
 
 const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
-  const [date, setDate] = useState<dayjs.Dayjs | null>(value ? dayjs(value) : null);
+  const [date, setDate] = useState<dayjs.Dayjs | null>(
+    value ? dayjs(value) : null
+  );
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const [open, setOpen] = useState(false);
 
@@ -62,7 +64,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <button
-          className={`inline-flex items-center justify-between h-11 rounded-md border border-[var(--default-border-color)] px-4 py-2 text-sm focus:outline-none min-w-[160px] ${
+          className={`inline-flex items-center justify-between h-10 rounded-md border border-[var(--default-border-color)] px-4 py-2 text-sm focus:outline-none min-w-[160px] ${
             date
               ? "text-[var(--white-text-color)]"
               : "text-[var(--secondary-text-color)]"

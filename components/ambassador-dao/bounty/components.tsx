@@ -13,7 +13,7 @@ import { useCheckBountyStatus } from "@/services/ambassador-dao/requests/opportu
 import { getTimeLeft } from "@/utils/timeFormatting";
 import { useCountdown } from "@/components/ambassador-dao/hooks/useCountdown";
 import Image from "next/image";
-import Token from "@/public/ambassador-dao-images/token.png";
+import Token from "@/public/images/usdcToken.svg";
 import { getOrdinalPosition } from "@/utils/getOrdinalPosition";
 import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
 import { BountySubmissionModal } from "@/components/ambassador-dao/bounty/BountySubmissionModal";
@@ -65,7 +65,7 @@ interface BountySidebarProps {
 export const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
   return (
     <div className='border border-[var(--default-border-color)] p-4 mb-6 rounded-lg'>
-      <div className='flex items-center gap-5'>
+      <div className='flex items-start gap-5'>
         {bounty.companyLogo ? (
           <img
             src={bounty.companyLogo}
@@ -436,7 +436,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
         >
           {isLoading ? (
             <div className='flex items-center justify-center'>
-              <Loader2 color='var(--white-text-color)' />
+              <Loader2 color='#fff' />
             </div>
           ) : data?.has_submitted ? (
             "Already Submitted"

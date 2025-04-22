@@ -8,6 +8,7 @@ import GoldReward from "@/public/ambassador-dao-images/GoldReward.svg";
 import SilverReward from "@/public/ambassador-dao-images/SilverReward.svg";
 import BronzeReward from "@/public/ambassador-dao-images/BronzeReward.svg";
 import DefaultAvatar from "@/public/ambassador-dao-images/Avatar.svg";
+import Avalance3d from "@/public/ambassador-dao-images/3d.png";
 
 const LeaderboardPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -64,53 +65,69 @@ const LeaderboardPage = () => {
 
         {isLoading ? (
           <Loader />
-        ) : (
-          !!leaderboardData?.data.length &&
-          leaderboardData?.data.map((user, index) => (
-            <div
-              key={user.id}
-              className={`grid grid-cols-12 px-4 py-3 my-4 rounded-xl items-center bg-gray-300 dark:bg-[#171717]`}
-              style={{
-                background:
-                  (currentPage - 1) * 10 + index + 1 === 1
-                    ? "linear-gradient(90.38deg, rgba(255, 122, 0, 0.24) 0%, #171717 50.33%)"
-                    : (currentPage - 1) * 10 + index + 1 === 2
-                    ? "linear-gradient(90.26deg, rgba(172, 166, 190, 0.24) 0%, #171717 50.23%)"
-                    : (currentPage - 1) * 10 + index + 1 === 3
-                    ? "linear-gradient(90.26deg, rgba(233, 125, 102, 0.24) 0%, #171717 50.23%)"
-                    : "",
-              }}
-            >
-              <div className='col-span-3 md:col-span-1'>
-                {getRankIcon(index, currentPage)}
-              </div>
-              <div className='col-span-6 md:col-span-8 flex items-center gap-4'>
-                <Image
-                  src={DefaultAvatar}
-                  alt={user.nickname}
-                  width={32}
-                  height={32}
-                  className='hidden md:block rounded-full'
-                />
-                <div className='flex flex-col md:flex-row gap-2 md:gap-4 md:items-center'>
-                  <span className='text-[var(--white-text-color)] capitalize'>
-                    {user.nickname}
-                  </span>
-                  {user.tag === "ambassador" && (
-                    <span className='px-3 py-1 text-xs bg-[#fb2c36e9] dark:bg-[#FB2C3633] text-[#fff] dark:text-[#FB2C36] rounded-md capitalize'>
-                      {user.tag}
+        ) : !!leaderboardData?.data.length ? (
+          <>
+            {leaderboardData?.data.map((user, index) => (
+              <div
+                key={user.id}
+                className={`grid grid-cols-12 px-4 py-3 my-4 rounded-xl items-center bg-gray-300 dark:bg-[#171717]`}
+                style={{
+                  background:
+                    (currentPage - 1) * 10 + index + 1 === 1
+                      ? "linear-gradient(90.38deg, rgba(255, 122, 0, 0.24) 0%, #171717 50.33%)"
+                      : (currentPage - 1) * 10 + index + 1 === 2
+                      ? "linear-gradient(90.26deg, rgba(172, 166, 190, 0.24) 0%, #171717 50.23%)"
+                      : (currentPage - 1) * 10 + index + 1 === 3
+                      ? "linear-gradient(90.26deg, rgba(233, 125, 102, 0.24) 0%, #171717 50.23%)"
+                      : "",
+                }}
+              >
+                <div className='col-span-3 md:col-span-1'>
+                  {getRankIcon(index, currentPage)}
+                </div>
+                <div className='col-span-6 md:col-span-8 flex items-center gap-4'>
+                  <Image
+                    src={DefaultAvatar}
+                    alt={user.nickname}
+                    width={32}
+                    height={32}
+                    className='hidden md:block rounded-full'
+                  />
+                  <div className='flex flex-col md:flex-row gap-2 md:gap-4 md:items-center'>
+                    <span className='text-[var(--white-text-color)] capitalize'>
+                      {user.nickname}
                     </span>
-                  )}
+                    {user.tag === "ambassador" && (
+                      <span className='px-3 py-1 text-xs bg-[#fb2c36e9] dark:bg-[#FB2C3633] text-[#fff] dark:text-[#FB2C36] rounded-md capitalize'>
+                        {user.tag}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className='col-span-3 flex justify-end'>
+                  <p className='bg-[#fff] dark:bg-[#000] text-[var(--white-text-color)] text-right rounded-full px-4 py-1 border border-[#171717]'>
+                    {" "}
+                    {user.points.toLocaleString()}
+                  </p>
                 </div>
               </div>
-              <div className='col-span-3 flex justify-end'>
-                <p className='bg-[#fff] dark:bg-[#000] text-[var(--white-text-color)] text-right rounded-full px-4 py-1 border border-[#171717]'>
-                  {" "}
-                  {user.points.toLocaleString()}
+            ))}
+          </>
+        ) : (
+          <>
+            <div className='max-w-lg mx-auto p-2 my-6'>
+              <Image src={Avalance3d} objectFit='contain' alt='avalance icon' />
+
+              <div className='my-2'>
+                <h2 className='text-[var(--white-text-color)] text-2xl text-center font-medium'>
+                  No Data!
+                </h2>
+                <p className='text-[var(--secondary-text-color)] text-sm text-center'>
+                  Check back later for updates on the leaderboard.
                 </p>
               </div>
             </div>
-          ))
+          </>
         )}
       </div>
 
