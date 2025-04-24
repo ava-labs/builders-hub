@@ -2,7 +2,8 @@ import { hasAtLeastOne, requiredField, validateEntity, Validation } from './base
 import { revalidatePath } from 'next/cache';
 import { ValidationError } from './hackathons';
 import { prisma } from '@/prisma/prisma';
-import { Project } from '@/types/project'; // Asumo que tienes este tipo definido
+import { Project } from '@/types/project'; 
+import { User } from '@prisma/client';
 
 export const projectValidations: Validation[] = [
     {
@@ -32,8 +33,8 @@ export const validateProject = (projectData: Partial<Project>): Validation[] =>
     validateEntity(projectValidations, projectData);
 
 export async function createProject(projectData: Partial<Project>): Promise<Project> {
-    const isDraft=projectData.isDraft??false
-    if(!isDraft){
+    const isDraft = projectData.isDraft ?? false
+    if (!isDraft) {
         const errors = validateProject(projectData);
         console.log("errors", errors)
         if (errors.length > 0) {
@@ -110,6 +111,27 @@ export async function createProject(projectData: Partial<Project>): Promise<Proj
     return newProjectData as unknown as Project;
 }
 
+
+function normalizeUser(user: Partial<User>): User {
+    return {
+        id: user.id ?? '',
+        name: user.name ?? null,
+        email: user.email ?? null,
+        telegram_user: user.telegram_user ?? null,
+        image: user.image ?? null,
+        authentication_mode: user.authentication_mode ?? null,
+        integration: user.integration ?? null,
+        last_login: user.last_login ?? null,
+        notification_email: user.notification_email ?? null,
+        user_name: user.user_name ?? null,
+        custom_attributes: user.custom_attributes ?? [],
+        bio: user.bio ?? null,
+        profile_privacy: user.profile_privacy ?? null,
+        social_media: user.social_media ?? [],
+        notifications: user.notifications ?? true
+     
+    };
+  }
 export async function getProject(projectId: string): Promise<Project | null> {
     const projectData = await prisma.project.findUnique({
         where: {
@@ -127,13 +149,13 @@ export async function getProject(projectId: string): Promise<Project | null> {
 
     if (!projectData) return null;
 
-    // Transformamos los datos de Prisma al formato del DTO Project
+
     const project: Project = {
         id: projectData.id,
         hackaton_id: projectData.hackaton_id,
         project_name: projectData.project_name,
         short_description: projectData.short_description,
-        full_description: projectData.full_description ?? undefined, // null -> undefined
+        full_description: projectData.full_description ?? undefined,
         tech_stack: projectData.tech_stack ?? undefined,
         github_repository: projectData.github_repository ?? undefined,
         demo_link: projectData.demo_link ?? undefined,
@@ -144,12 +166,22 @@ export async function getProject(projectId: string): Promise<Project | null> {
         screenshots: projectData.screenshots ?? undefined,
         tracks: projectData.tracks,
         is_winner: false,
-        // Mapeamos los members para aplanar la estructura user
-        members: projectData.members?.map(member => ({
-            ...member.user, // Extraemos las propiedades de user al nivel raíz
-            role: member.role,
-            status: member.status
-        }))
+
+        members: projectData.members?.map(member => {
+            const user = member.user
+            return ({
+                ...normalizeUser(member.user as Partial<User>),
+                id:user?.id ?? "",
+                name: user?.name ?? null,
+                email: user?.email ?? null,
+                telegram_user: user?.telegram_user ?? null,
+                image: user?.image ?? null,
+                custom_attributes: user?.custom_attributes ?? [],
+                authentication_mode: user?.authentication_mode ?? "",
+                role: member.role,
+                status: member.status
+            })
+        })
     };
 
     return project;

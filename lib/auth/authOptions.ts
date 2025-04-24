@@ -148,7 +148,7 @@ export const AuthOptions: NextAuthOptions = {
     },
     async session({ session, token }: { session: Session; token: JWT }) {
       if (!session.user) {
-        session.user = { name: '', email: '', image: '', id: '' };
+        session.user = { name: '', email: '', image: '', id: '', custom_attributes: [] };
       }
       session.user.id = token.id as string;
       session.user.avatar = token.avatar as string;

@@ -40,9 +40,9 @@ export async function GetMembersByProjectId(project_id: string) {
   return members.map((member) => ({
     id: member.id,
     user_id: member.user_id,
-    name: member.user.name,
-    email: member.user.email,
-    image: member.user.image,
+    name: member.user?.name,
+    email: member.user?.email ?? member.email,
+    image: member.user?.image,
     role: member.role,
     status: member.status,
   }));
