@@ -233,6 +233,7 @@ export async function updateHackathon(id: string, hackathonData: Partial<Hackath
             participants: hackathonData.participants!,
             top_most: hackathonData.top_most!,
             organizers: hackathonData.organizers!,
+            custom_link: hackathonData.custom_link,
             content: content
 
         },
