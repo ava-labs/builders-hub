@@ -4,14 +4,8 @@ import { useState } from "react";
 import { useWalletStore } from "../../lib/walletStore";
 import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
-import { EVMAddressInput } from "../components/EVMAddressInput";
-import {
-  SetAdminComponent,
-  SetEnabledComponent,
-  SetManagerComponent,
-  RemoveAllowListComponent,
-  ReadAllowListComponent,
-} from "../components/AllowListComponents";
+import { PrecompileAddressInput } from "../components/PrecompileAddressInput";
+import { AllowListWrapper } from "../components/AllowListComponents";
 
 // Default Transaction AllowList address
 const DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS =
@@ -116,10 +110,11 @@ export default function TransactionAllowlist() {
             </div>
           )}
 
-          <EVMAddressInput
-            label="Transaction AllowList Address"
+          <PrecompileAddressInput
             value={transactionAllowlistAddress}
             onChange={setTransactionAllowlistAddress}
+            precompileName="Transaction AllowList"
+            defaultAddress={DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS}
           />
 
           <div className="flex space-x-4">
@@ -144,28 +139,10 @@ export default function TransactionAllowlist() {
 
   return (
     <div className="space-y-6">
-      <Container
-        title="Transaction AllowList Management"
-        description="Manage the Transaction AllowList precompile contract. This controls which addresses are allowed to send transactions on the network."
-      >
-        <div className="space-y-4">
-          {error && (
-            <div className="p-4 text-red-700 bg-red-100 rounded-md">
-              {error}
-            </div>
-          )}
-        </div>
-      </Container>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <SetEnabledComponent precompileAddress={transactionAllowlistAddress} />
-        <SetManagerComponent precompileAddress={transactionAllowlistAddress} />
-        <SetAdminComponent precompileAddress={transactionAllowlistAddress} />
-        <RemoveAllowListComponent
+      <div className="w-full">
+        <AllowListWrapper
           precompileAddress={transactionAllowlistAddress}
-        />
-        <ReadAllowListComponent
-          precompileAddress={transactionAllowlistAddress}
+          precompileType="Transaction"
         />
       </div>
     </div>

@@ -325,6 +325,50 @@ const componentGroups: Record<string, ComponentType[]> = {
       walletRequired: "not-required",
     },
   ],
+  Precompiles: [
+    {
+      id: "deployerAllowlist",
+      label: "Deployer Allowlist",
+      component: lazy(() => import("./Precompiles/DeployerAllowlist")),
+      fileNames: ["toolbox/src/toolbox/Precompiles/DeployerAllowlist.tsx"],
+      walletRequired: "with-l1",
+    },
+    {
+      id: "nativeMinter",
+      label: "Native Minter",
+      component: lazy(() => import("./Precompiles/NativeMinter")),
+      fileNames: ["toolbox/src/toolbox/Precompiles/NativeMinter.tsx"],
+      walletRequired: "with-l1",
+    },
+    {
+      id: "transactionAllowlist",
+      label: "Transaction Allowlist",
+      component: lazy(() => import("./Precompiles/TransactionAllowlist")),
+      fileNames: ["toolbox/src/toolbox/Precompiles/TransactionAllowlist.tsx"],
+      walletRequired: "with-l1",
+    },
+    {
+      id: "feeManager",
+      label: "Fee Manager",
+      component: lazy(() => import("./Precompiles/FeeManager")),
+      fileNames: ["toolbox/src/toolbox/Precompiles/FeeManager.tsx"],
+      walletRequired: "with-l1",
+    },
+    {
+      id: "rewardManager",
+      label: "Reward Manager",
+      component: lazy(() => import("./Precompiles/RewardManager")),
+      fileNames: ["toolbox/src/toolbox/Precompiles/RewardManager.tsx"],
+      walletRequired: "with-l1",
+    },
+    {
+      id: "warpMessenger",
+      label: "Warp Messenger",
+      component: lazy(() => import("./Precompiles/WarpMessenger")),
+      fileNames: ["toolbox/src/toolbox/Precompiles/WarpMessenger.tsx"],
+      walletRequired: "with-l1",
+    },
+  ],
 };
 
 // Loading component for Suspense

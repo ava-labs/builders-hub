@@ -6,15 +6,9 @@ import { useViemChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Container } from "../components/Container";
-import { EVMAddressInput } from "../components/EVMAddressInput";
+import { PrecompileAddressInput } from "../components/PrecompileAddressInput";
 import { ResultField } from "../components/ResultField";
-import {
-  SetAdminComponent,
-  SetEnabledComponent,
-  SetManagerComponent,
-  RemoveAllowListComponent,
-  ReadAllowListComponent,
-} from "../components/AllowListComponents";
+import { AllowListWrapper } from "../components/AllowListComponents";
 import feeManagerAbi from "../../../contracts/precompiles/FeeManager.json";
 
 // Default Fee Manager address
@@ -223,8 +217,8 @@ export default function FeeManager() {
   // Fee config state
   const [gasLimit, setGasLimit] = useState<string>("20000000");
   const [targetBlockRate, setTargetBlockRate] = useState<string>("2");
-  const [minBaseFee, setMinBaseFee] = useState<string>("1000000000");
-  const [targetGas, setTargetGas] = useState<string>("100000000");
+  const [minBaseFee, setMinBaseFee] = useState<string>("25000000000"); // 25 gwei
+  const [targetGas, setTargetGas] = useState<string>("15000000"); // 15M gas
   const [baseFeeChangeDenominator, setBaseFeeChangeDenominator] =
     useState<string>("48");
   const [minBlockGasCost, setMinBlockGasCost] = useState<string>("0");
@@ -531,10 +525,11 @@ export default function FeeManager() {
             </div>
           )}
 
-          <EVMAddressInput
-            label="Fee Manager Address"
+          <PrecompileAddressInput
             value={feeManagerAddress}
             onChange={setFeeManagerAddress}
+            precompileName="Fee Manager"
+            defaultAddress={DEFAULT_FEE_MANAGER_ADDRESS}
           />
 
           <div className="flex space-x-4">
@@ -543,7 +538,7 @@ export default function FeeManager() {
               onClick={handleSetAddress}
               disabled={!feeManagerAddress || !walletEVMAddress}
             >
-              Use Default Address
+              Set Fee Manager Address
             </Button>
             <Button
               variant="secondary"
@@ -690,12 +685,11 @@ export default function FeeManager() {
         </div>
       </Container>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <SetEnabledComponent precompileAddress={feeManagerAddress} />
-        <SetManagerComponent precompileAddress={feeManagerAddress} />
-        <SetAdminComponent precompileAddress={feeManagerAddress} />
-        <RemoveAllowListComponent precompileAddress={feeManagerAddress} />
-        <ReadAllowListComponent precompileAddress={feeManagerAddress} />
+      <div className="w-full">
+        <AllowListWrapper
+          precompileAddress={feeManagerAddress}
+          precompileType="Fee Manager"
+        />
       </div>
     </div>
   );

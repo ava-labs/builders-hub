@@ -7,6 +7,7 @@ import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Container } from "../components/Container";
 import { ResultField } from "../components/ResultField";
+import { PrecompileAddressInput } from "../components/PrecompileAddressInput";
 import { EVMAddressInput } from "../components/EVMAddressInput";
 import nativeMinterAbi from "../../../contracts/precompiles/NativeMinter.json";
 import {
@@ -15,6 +16,7 @@ import {
   SetManagerComponent,
   RemoveAllowListComponent,
   ReadAllowListComponent,
+  AllowListWrapper,
 } from "../components/AllowListComponents";
 
 // Default Native Minter address
@@ -28,7 +30,7 @@ export default function NativeMinter() {
   const [nativeMinterAddress, setNativeMinterAddress] = useState<string>(
     DEFAULT_NATIVE_MINTER_ADDRESS
   );
-  const [amount, setAmount] = useState<number>(100);
+  const [amount, setAmount] = useState<string>("");
   const [recipient, setRecipient] = useState<string>("");
   const [isMinting, setIsMinting] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -116,6 +118,11 @@ export default function NativeMinter() {
       return;
     }
 
+    if (!amount || Number(amount) <= 0) {
+      setError("Amount must be greater than zero");
+      return;
+    }
+
     if (!walletEVMAddress) {
       setError("Please connect your wallet first");
       return;
@@ -194,10 +201,11 @@ export default function NativeMinter() {
             </div>
           )}
 
-          <EVMAddressInput
-            label="Native Minter Address"
+          <PrecompileAddressInput
             value={nativeMinterAddress}
             onChange={setNativeMinterAddress}
+            precompileName="Native Minter"
+            defaultAddress={DEFAULT_NATIVE_MINTER_ADDRESS}
           />
 
           <div className="flex space-x-4">
@@ -206,7 +214,7 @@ export default function NativeMinter() {
               onClick={handleSetAddress}
               disabled={!nativeMinterAddress || !walletEVMAddress}
             >
-              Use Default Address
+              Set Native Minter Address
             </Button>
             <Button
               variant="secondary"
@@ -242,8 +250,10 @@ export default function NativeMinter() {
             <Input
               label="Amount"
               value={amount}
-              onChange={(value) => setAmount(Number(value))}
+              onChange={(value) => setAmount(value)}
               type="number"
+              min="0"
+              step="0.000000000000000001"
             />
           </div>
 
@@ -259,7 +269,9 @@ export default function NativeMinter() {
             variant="primary"
             onClick={handleMint}
             loading={isMinting}
-            disabled={!recipient || !amount || !walletEVMAddress}
+            disabled={
+              !recipient || !amount || Number(amount) <= 0 || !walletEVMAddress
+            }
           >
             {!walletEVMAddress
               ? "Connect Wallet to Mint"
@@ -268,12 +280,11 @@ export default function NativeMinter() {
         </div>
       </Container>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <SetEnabledComponent precompileAddress={nativeMinterAddress} />
-        <SetManagerComponent precompileAddress={nativeMinterAddress} />
-        <SetAdminComponent precompileAddress={nativeMinterAddress} />
-        <RemoveAllowListComponent precompileAddress={nativeMinterAddress} />
-        <ReadAllowListComponent precompileAddress={nativeMinterAddress} />
+      <div className="w-full">
+        <AllowListWrapper
+          precompileAddress={nativeMinterAddress}
+          precompileType="Minter"
+        />
       </div>
     </div>
   );

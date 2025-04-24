@@ -5,15 +5,10 @@ import { useWalletStore } from "../../lib/walletStore";
 import { useViemChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
+import { PrecompileAddressInput } from "../components/PrecompileAddressInput";
 import { EVMAddressInput } from "../components/EVMAddressInput";
 import { ResultField } from "../components/ResultField";
-import {
-  SetAdminComponent,
-  SetEnabledComponent,
-  SetManagerComponent,
-  RemoveAllowListComponent,
-  ReadAllowListComponent,
-} from "../components/AllowListComponents";
+import { AllowListWrapper } from "../components/AllowListComponents";
 import rewardManagerAbi from "../../../contracts/precompiles/RewardManager.json";
 
 // Default Reward Manager address
@@ -275,10 +270,11 @@ export default function RewardManager() {
             </div>
           )}
 
-          <EVMAddressInput
-            label="Reward Manager Address"
+          <PrecompileAddressInput
             value={rewardManagerAddress}
             onChange={setRewardManagerAddress}
+            precompileName="Reward Manager"
+            defaultAddress={DEFAULT_REWARD_MANAGER_ADDRESS}
           />
 
           <div className="flex space-x-4">
@@ -392,12 +388,11 @@ export default function RewardManager() {
         </div>
       </Container>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <SetEnabledComponent precompileAddress={rewardManagerAddress} />
-        <SetManagerComponent precompileAddress={rewardManagerAddress} />
-        <SetAdminComponent precompileAddress={rewardManagerAddress} />
-        <RemoveAllowListComponent precompileAddress={rewardManagerAddress} />
-        <ReadAllowListComponent precompileAddress={rewardManagerAddress} />
+      <div className="w-full">
+        <AllowListWrapper
+          precompileAddress={rewardManagerAddress}
+          precompileType="Reward Manager"
+        />
       </div>
     </div>
   );

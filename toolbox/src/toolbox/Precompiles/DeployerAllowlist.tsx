@@ -4,13 +4,14 @@ import { useState } from "react";
 import { useWalletStore } from "../../lib/walletStore";
 import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
-import { EVMAddressInput } from "../components/EVMAddressInput";
+import { PrecompileAddressInput } from "../components/PrecompileAddressInput";
 import {
   SetAdminComponent,
   SetEnabledComponent,
   SetManagerComponent,
   RemoveAllowListComponent,
   ReadAllowListComponent,
+  AllowListWrapper,
 } from "../components/AllowListComponents";
 
 // Default Deployer AllowList address
@@ -112,10 +113,11 @@ export default function DeployerAllowlist() {
             </div>
           )}
 
-          <EVMAddressInput
-            label="Deployer AllowList Address"
+          <PrecompileAddressInput
             value={deployerAllowlistAddress}
             onChange={setDeployerAllowlistAddress}
+            precompileName="Deployer AllowList"
+            defaultAddress={DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS}
           />
 
           <div className="flex space-x-4">
@@ -124,7 +126,7 @@ export default function DeployerAllowlist() {
               onClick={handleSetAddress}
               disabled={!deployerAllowlistAddress || !walletEVMAddress}
             >
-              Use Default Address
+              Set Deployer AllowList Address
             </Button>
             <Button
               variant="secondary"
@@ -140,27 +142,11 @@ export default function DeployerAllowlist() {
 
   return (
     <div className="space-y-6">
-      <Container
-        title="Deployer AllowList Management"
-        description="Manage the Deployer AllowList precompile contract. This allows you to control which addresses can deploy contracts on the network."
-      >
-        <div className="space-y-4">
-          {error && (
-            <div className="p-4 text-red-700 bg-red-100 rounded-md">
-              {error}
-            </div>
-          )}
-        </div>
-      </Container>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <SetEnabledComponent precompileAddress={deployerAllowlistAddress} />
-        <SetManagerComponent precompileAddress={deployerAllowlistAddress} />
-        <SetAdminComponent precompileAddress={deployerAllowlistAddress} />
-        <RemoveAllowListComponent
+      <div className="w-full">
+        <AllowListWrapper
           precompileAddress={deployerAllowlistAddress}
+          precompileType="Deployer"
         />
-        <ReadAllowListComponent precompileAddress={deployerAllowlistAddress} />
       </div>
     </div>
   );

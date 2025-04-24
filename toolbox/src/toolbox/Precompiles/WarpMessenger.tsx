@@ -5,15 +5,10 @@ import { useWalletStore } from "../../lib/walletStore";
 import { useViemChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
+import { PrecompileAddressInput } from "../components/PrecompileAddressInput";
 import { EVMAddressInput } from "../components/EVMAddressInput";
 import { ResultField } from "../components/ResultField";
-import {
-  SetAdminComponent,
-  SetEnabledComponent,
-  SetManagerComponent,
-  RemoveAllowListComponent,
-  ReadAllowListComponent,
-} from "../components/AllowListComponents";
+import { AllowListWrapper } from "../components/AllowListComponents";
 import warpMessengerAbi from "../../../contracts/precompiles/WarpMessenger.json";
 
 // Default Warp Messenger address
@@ -244,10 +239,11 @@ export default function WarpMessenger() {
             </div>
           )}
 
-          <EVMAddressInput
-            label="Warp Messenger Address"
+          <PrecompileAddressInput
             value={warpMessengerAddress}
             onChange={setWarpMessengerAddress}
+            precompileName="Warp Messenger"
+            defaultAddress={DEFAULT_WARP_MESSENGER_ADDRESS}
           />
 
           <div className="flex space-x-4">
@@ -399,11 +395,10 @@ export default function WarpMessenger() {
       </Container>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <SetEnabledComponent precompileAddress={warpMessengerAddress} />
-        <SetManagerComponent precompileAddress={warpMessengerAddress} />
-        <SetAdminComponent precompileAddress={warpMessengerAddress} />
-        <RemoveAllowListComponent precompileAddress={warpMessengerAddress} />
-        <ReadAllowListComponent precompileAddress={warpMessengerAddress} />
+        <AllowListWrapper
+          precompileAddress={warpMessengerAddress}
+          precompileType="Warp Messenger"
+        />
       </div>
     </div>
   );

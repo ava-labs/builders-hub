@@ -13,15 +13,17 @@ import allowListAbi from "../../../contracts/precompiles/AllowList.json";
 const ROLES = {
   NONE: 0,
   ENABLED: 1,
-  MANAGER: 2,
-  ADMIN: 3,
+  ADMIN: 2,
+  MANAGER: 3,
 };
 
 // Component for setting Enabled permissions
 export function SetEnabledComponent({
   precompileAddress,
+  precompileType = "precompiled contract",
 }: {
   precompileAddress: string;
+  precompileType?: string;
 }) {
   const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
@@ -88,8 +90,8 @@ export function SetEnabledComponent({
 
   return (
     <Container
-      title="Set Enabled"
-      description="These addresses can use the precompiled contract (e.g., mint native tokens) but cannot modify the allow list."
+      title={`Set Enabled ${precompileType}`}
+      description={`These addresses can use the ${precompileType} (e.g., mint native tokens) but cannot modify the allow list.`}
     >
       <div className="space-y-4">
         {error && (
@@ -108,7 +110,9 @@ export function SetEnabledComponent({
           variant="primary"
           disabled={!enabledAddress || !walletEVMAddress}
         >
-          {!walletEVMAddress ? "Connect Wallet to Set Enabled" : "Set Enabled"}
+          {!walletEVMAddress
+            ? `Connect Wallet to Set Enabled ${precompileType}`
+            : `Set Enabled ${precompileType}`}
         </Button>
 
         {txHash && (
@@ -126,8 +130,10 @@ export function SetEnabledComponent({
 // Component for setting Manager permissions
 export function SetManagerComponent({
   precompileAddress,
+  precompileType = "precompiled contract",
 }: {
   precompileAddress: string;
+  precompileType?: string;
 }) {
   const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
@@ -194,8 +200,8 @@ export function SetManagerComponent({
 
   return (
     <Container
-      title="Set Manager"
-      description="Can add or remove Enabled addresses but cannot modify Admins or Managers."
+      title={`Set Manager ${precompileType}`}
+      description={`These addresses can add or remove Enabled addresses but cannot modify Admins or Managers.`}
     >
       <div className="space-y-4">
         {error && (
@@ -214,7 +220,9 @@ export function SetManagerComponent({
           variant="primary"
           disabled={!managerAddress || !walletEVMAddress}
         >
-          {!walletEVMAddress ? "Connect Wallet to Set Manager" : "Set Manager"}
+          {!walletEVMAddress
+            ? "Connect Wallet to Set Manager"
+            : `Set Manager ${precompileType}`}
         </Button>
 
         {txHash && (
@@ -232,8 +240,10 @@ export function SetManagerComponent({
 // Component for setting Admin permissions
 export function SetAdminComponent({
   precompileAddress,
+  precompileType = "precompiled contract",
 }: {
   precompileAddress: string;
+  precompileType?: string;
 }) {
   const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
@@ -300,8 +310,8 @@ export function SetAdminComponent({
 
   return (
     <Container
-      title="Set Admin"
-      description="Full control over the allow list, including the ability to add or remove Admins, Managers, and Enabled addresses."
+      title={`Set Admin ${precompileType}`}
+      description={`These addresses have full control over the allow list, including the ability to add or remove Admins, Managers, and Enabled addresses.`}
     >
       <div className="space-y-4">
         {error && (
@@ -320,7 +330,9 @@ export function SetAdminComponent({
           variant="primary"
           disabled={!adminAddress || !walletEVMAddress}
         >
-          {!walletEVMAddress ? "Connect Wallet to Set Admin" : "Set Admin"}
+          {!walletEVMAddress
+            ? "Connect Wallet to Set Admin"
+            : `Set Admin ${precompileType}`}
         </Button>
 
         {txHash && (
@@ -338,8 +350,10 @@ export function SetAdminComponent({
 // Component for setting None permissions
 export function RemoveAllowListComponent({
   precompileAddress,
+  precompileType = "precompiled contract",
 }: {
   precompileAddress: string;
+  precompileType?: string;
 }) {
   const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
@@ -406,8 +420,8 @@ export function RemoveAllowListComponent({
 
   return (
     <Container
-      title="Remove from Allowlist"
-      description="Remove all permissions for an address. This will prevent the address from using the precompiled contract or modifying the allow list."
+      title={`Remove from ${precompileType} Allowlist`}
+      description={`Remove all permissions for an address. This will prevent the address from using the ${precompileType} or modifying the allow list.`}
     >
       <div className="space-y-4">
         {error && (
@@ -426,7 +440,9 @@ export function RemoveAllowListComponent({
           variant="primary"
           disabled={!removeAddress || !walletEVMAddress}
         >
-          {!walletEVMAddress ? "Connect Wallet to Remove" : "Remove Address"}
+          {!walletEVMAddress
+            ? "Connect Wallet to Remove"
+            : `Remove from ${precompileType} Allowlist`}
         </Button>
 
         {txHash && (
@@ -444,8 +460,10 @@ export function RemoveAllowListComponent({
 // Component for reading permissions
 export function ReadAllowListComponent({
   precompileAddress,
+  precompileType = "precompiled contract",
 }: {
   precompileAddress: string;
+  precompileType?: string;
 }) {
   const { publicClient } = useWalletStore();
   const [isReading, setIsReading] = useState(false);
@@ -485,8 +503,8 @@ export function ReadAllowListComponent({
 
   return (
     <Container
-      title="Read Allowlist"
-      description="Check the current role of an address in the allow list. Roles include Admin, Manager, Enabled, or None."
+      title={`Read ${precompileType} Allowlist`}
+      description={`Check the current role of an address in the ${precompileType} allow list. Roles include Admin, Manager, Enabled, or None.`}
     >
       <div className="space-y-4">
         {error && (
@@ -512,13 +530,53 @@ export function ReadAllowListComponent({
           <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-md">
             <p className="text-sm text-gray-700 dark:text-gray-300">
               Current Role:{" "}
-              {Object.keys(ROLES).find(
-                (key) => ROLES[key as keyof typeof ROLES] === readResult
-              )}
+              {readResult === 0
+                ? "None"
+                : readResult === 1
+                ? "Enabled"
+                : readResult === 2
+                ? "Admin"
+                : readResult === 3
+                ? "Manager"
+                : `Unknown (${readResult})`}
             </p>
           </div>
         )}
       </div>
     </Container>
+  );
+}
+
+// Wrapper component for all allowlist components
+export function AllowListWrapper({
+  precompileAddress,
+  precompileType = "precompiled contract",
+}: {
+  precompileAddress: string;
+  precompileType?: string;
+}) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <SetEnabledComponent
+        precompileAddress={precompileAddress}
+        precompileType={precompileType}
+      />
+      <SetManagerComponent
+        precompileAddress={precompileAddress}
+        precompileType={precompileType}
+      />
+      <SetAdminComponent
+        precompileAddress={precompileAddress}
+        precompileType={precompileType}
+      />
+      <RemoveAllowListComponent
+        precompileAddress={precompileAddress}
+        precompileType={precompileType}
+      />
+      <ReadAllowListComponent
+        precompileAddress={precompileAddress}
+        precompileType={precompileType}
+      />
+    </div>
   );
 }
