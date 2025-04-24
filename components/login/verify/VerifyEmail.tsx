@@ -82,14 +82,14 @@ export function VerifyEmail({
           case "OTP SENT":
             break;
           default:
-            setMessage("Error to sent OTP try again.");
+            setMessage("Error with OTP try again.");
             break;
         }
       } else if (result?.url) {
         window.location.href = result.url;
       }
     } catch (error) {
-      setMessage("Error to sent OTP try again.");
+      setMessage("Error with OTP try again.");
     } finally {
       setIsVerifying(false);
     }

@@ -26,11 +26,23 @@ export async function getProfile(id: string) {
 }
 
 export async function updateProfile(id: string, profileData: Partial<Profile>) {
+
+
     const existingUser = await prisma.user.findUnique({
         where: { id: id },
     })
     if (!existingUser) {
         throw new Error("User not found")
+    }
+
+    if (Object.keys(profileData).length === 0) {
+        await prisma.user.update({
+            where: { id: id },
+            data: {
+                last_login: new Date(),
+            }
+        })
+        return profileData as Profile;
     }
 
     const data = { ...profileData }

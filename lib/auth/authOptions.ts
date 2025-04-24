@@ -16,7 +16,8 @@ declare module 'next-auth' {
       custom_attributes: string[]
       role?: string;
       email?: string;
-      user_name?: string;      
+      user_name?: string;
+      is_new_user: boolean
     } & DefaultSession['user'];
   }
   interface JWT {
@@ -99,9 +100,15 @@ export const AuthOptions: NextAuthOptions = {
 
         let user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
-          user = await prisma.user.create({
-            data: { email, notification_email: email, name: '', image: '' },
-          });
+          // user = await prisma.user.create({
+          //   data: {
+          //     email, notification_email: email, name: '', image: '', last_login: null
+          //   },
+          // }
+          user = {
+            email, notification_email: email, name: email, image: '', last_login: null, authentication_mode: '', bio: '',
+            custom_attributes: [], id: '', integration: '', notifications: true, profile_privacy: null, social_media: [], telegram_user: '', user_name: ''
+          }
         }
 
         return user;
@@ -115,7 +122,7 @@ export const AuthOptions: NextAuthOptions = {
     async signIn({ user, account, profile }) {
       try {
         const dbUser = await upsertUser(user, account, profile);
-        user.id = dbUser.id; // para que llegue bien al jwt
+        user.id = dbUser.id;
         return true;
       } catch (error) {
         console.error('Error procesing user:', error);
@@ -142,13 +149,14 @@ export const AuthOptions: NextAuthOptions = {
         token.name = dbUser.name ?? '';
         token.email = dbUser.email ?? '';
         token.user_name = dbUser.user_name ?? '';
+        token.is_new_user = dbUser.last_login == null
       }
 
       return token;
     },
     async session({ session, token }: { session: Session; token: JWT }) {
       if (!session.user) {
-        session.user = { name: '', email: '', image: '', id: '', custom_attributes: [] };
+        session.user = { name: '', email: '', image: '', id: '', custom_attributes: [], is_new_user: true };
       }
       session.user.id = token.id as string;
       session.user.avatar = token.avatar as string;
@@ -156,9 +164,11 @@ export const AuthOptions: NextAuthOptions = {
       session.user.image = token.avatar as string;
       session.user.name = token.name ?? '';
       session.user.email = token.email ?? '';
-
+      session.user.is_new_user = token.is_new_user ? true : false;
       return session;
     },
+
+
   },
   secret: process.env.NEXTAUTH_SECRET,
   pages: {

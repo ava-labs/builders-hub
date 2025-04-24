@@ -32,8 +32,9 @@ export async function upsertUser(user: User, account: Account | null, profile: P
       name: user.name || "",
       image: user.image || "",
       authentication_mode: account?.provider ?? "",
-      last_login: new Date(),
+      last_login: null,
       user_name: (profile as any)?.login ?? "",
     },
   });
+
 }
