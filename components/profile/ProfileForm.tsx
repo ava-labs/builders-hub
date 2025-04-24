@@ -16,7 +16,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Separator } from '@/components/ui/separator';
-import { PlusCircle, Loader2, Link } from 'lucide-react';
+import { PlusCircle, Loader2 } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -42,6 +42,7 @@ const profileSchema = z.object({
   social_media: z.array(z.string()).default([]),
   notifications: z.boolean().default(true),
   profile_privacy: z.string().default('public'),
+  telegram_user: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -50,7 +51,7 @@ export default function ProfileForm({
   initialData,
   id,
 }: {
-  initialData: Partial<ProfileFormValues>;
+  initialData: ProfileFormValues;
   id: string;
 }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -67,6 +68,7 @@ export default function ProfileForm({
   const { update } = useSession();
   useEffect(() => {
     if (initialData) {
+      initialData.bio = initialData.bio || "";
       form.reset(initialData);
     }
   }, [initialData]);
@@ -397,6 +399,29 @@ export default function ProfileForm({
             )}
           />
 
+          <FormField
+            control={form.control}
+            name='telegram_user'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Telegram user</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder='Enter your telegram user without the @' 
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      form.setValue('telegram_user', e.target.value, { shouldDirty: true });
+                    }}
+                  />
+                </FormControl>
+                <FormDescription>
+                  We can be in touch through telegram.
+                </FormDescription>
+              </FormItem>
+            )}
+          />
+
           <Separator />
 
           <FormField
@@ -490,7 +515,7 @@ export default function ProfileForm({
               onClick={() => router.push('/')}
               disabled={isSaving}
             >
-              Cancel
+              Skip
             </Button>
           </div>
         </form>
