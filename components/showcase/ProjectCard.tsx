@@ -12,6 +12,7 @@ type Props = {
 
 export function ProjectCard({ project }: Props) {
   const eventInfo = `${project.hackathon?.title ?? ""}`;
+  console.log(project.prizes)
   return (
     <Card className="h-[450px] w-full py-6 flex flex-col gap-4 rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-none">
     <div className="relative px-6 flex items-center justify-between gap-2">
@@ -19,7 +20,8 @@ export function ProjectCard({ project }: Props) {
         {project.project_name.slice(0, 25)}
         {project.project_name.length > 25 ? "..." : ""}
       </h3>
-      {project.prizes?.length > 1 && (
+      
+      {project.prizes?.length > 0 && (
         <div className="p-2 bg-red-500 rounded-full">
           <Trophy size={18} color="white" />
         </div>

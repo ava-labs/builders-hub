@@ -87,6 +87,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
     include: {
       members: true,
       hackathon: true,
+      prizes: true
     },
     where: filters,
     skip: offset,
@@ -99,7 +100,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
 
   return {
     projects: projects.map((project) => ({
-      ...project,
+      ...project,      
       members: [],
       hackathon: {
         ...project.hackathon,
@@ -171,11 +172,11 @@ export async function createProject(
       tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
       hackaton_id: projectData.hackaton_id ?? "",
-      // prices: {
-      //   create: projectData.prices?.map((price) => ({
-      //     icon: price.icon,
-      //     price: price.price,
-      //     track: price.track,
+      // prizes: {
+      //   create: projectData.prizes?.map((prize) => ({
+      //     icon: prize.icon,
+      //     prize: prize.prize,
+      //     track: prize.track,
       //   })),
       // },
       members: {
@@ -232,11 +233,11 @@ export async function updateProject(
           status: member.status,
         })),
       },
-      // prices: {
-      //   create: projectData.prices?.map((price) => ({
-      //     icon: price.icon,
-      //     price: price.price,
-      //     track: price.track,
+      // prizes: {
+      //   create: projectData.prizes?.map((prize) => ({
+      //     icon: prize.icon,
+      //     prize: prize.prize,
+      //     track: prize.track,
       //   })),
       // },
       updated_at: new Date(),

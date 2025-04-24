@@ -36,7 +36,7 @@ export type Member = {
 
 export type ProjectPrize = {
   icon: string
-  price: number
+  prize: number
   track: string
 }
 

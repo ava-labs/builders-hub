@@ -42,7 +42,7 @@ export default function Info({ project }: Props) {
         {project.short_description}
       </p>
       <div className="flex flex-wrap gap-2">
-        {project.tags?.map((tag) => (
+        {project.tracks?.map((tag) => (
           <Badge
             key={tag}
             variant="outline"
@@ -52,6 +52,7 @@ export default function Info({ project }: Props) {
           </Badge>
         ))}
       </div>
+      
       <div className="flex gap-4">
         {project.demo_link && (
           <Link href={project.demo_link} target="_blank">
