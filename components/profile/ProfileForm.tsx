@@ -404,7 +404,7 @@ export default function ProfileForm({
             name='profile_privacy'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Profile Privac (Coming soon)</FormLabel>
+                <FormLabel>Profile Privacy (Coming soon)</FormLabel>
                 <FormControl>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger className='w-full'>

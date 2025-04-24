@@ -17,6 +17,7 @@ export type HackathonHeader = {
   timezone: string
   content: Hackathon
   top_most: boolean
+  custom_link: string | undefined
 }
 
 export type HackathonsFilters = {

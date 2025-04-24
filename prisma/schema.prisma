@@ -26,6 +26,7 @@ model Hackathon {
   organizers    String?
   projects      Project[]
   registrations RegisterForm[]
+  custom_link    String?
 }
 
 model User {
@@ -44,6 +45,8 @@ model User {
   notifications       Boolean?      @default(true)
   memberships         Member[]
   registrations       RegisterForm?
+  custom_attributes   String[]
+  telegram_user       String? 
 }
 
 model VerificationToken {
@@ -78,7 +81,7 @@ model RegisterForm {
   web3_proficiency        String
   user                    User      @relation(fields: [email], references: [email], onDelete: Cascade)
   hackathon               Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
-
+  telegram_user       String? 
   @@unique([hackathon_id, email])
 }
 
@@ -124,7 +127,7 @@ model Member {
   role       String  @default("member")
   status     String  @default("Pending Confirmation")
   project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  user       User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
+  user       User?    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  email      String?
   @@unique([user_id, project_id])
 }
