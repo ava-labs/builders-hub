@@ -15,44 +15,104 @@ export const FormSchema = z
       .max(60, { message: 'Max 60 characters allowed' }),
     short_description: z
       .string()
-      .min(2, { message: 'short description must be at least 30 characters' })
+      .min(30, { message: 'short description must be at least 30 characters' })
       .max(280, { message: 'Max 280 characters allowed' }),
     full_description: z
       .string()
-      .min(2, { message: 'full description must be at least 30 characters' }),
+      .min(30, { message: 'full description must be at least 30 characters' }),
     tech_stack: z
       .string()
-      .min(2, { message: 'tech stack must be at least 30 characters' }),
-    github_repository: z
-      .string()
-      .min(2, { message: 'GitHub repository is required' })
-      .url({ message: 'Please enter a valid URL' })
+      .min(30, { message: 'tech stack must be at least 30 characters' }),
+
+    github_repository: z.preprocess(
+      (val) => {
+        if (!val) return [];
+        if (typeof val === 'string') return [];
+        return val;
+      },
+      z.array(
+        z.string()
+          .min(1, { message: 'GitHub repository is required' })
+      )
+      .min(1, { message: 'At least one GitHub repository is required' })
       .refine(
-        (val) => {
-          try {
-            const url = new URL(
-              val.startsWith('http') ? val : `https://${val}`
-            );
-            return (
-              url.hostname === 'github.com' &&
-              url.pathname.split('/').length >= 2 &&
-              url.pathname.split('/')[1].length > 0
-            );
-          } catch {
-            return false;
-          }
+        (links) => {
+          const uniqueLinks = new Set(links);
+          return uniqueLinks.size === links.length;
         },
-        {
-          message:
-            'Please enter a valid GitHub URL (e.g., https://github.com/username or github.com/username)',
+        { message: 'Duplicate GitHub repositories are not allowed' }
+      )
+      .transform((val) => {
+        // Validar cada repositorio individualmente
+        const invalidRepos = val.filter(repo => {
+          if (repo.startsWith('http')) {
+            try {
+              const url = new URL(repo);
+              return !(
+                url.hostname === 'github.com' &&
+                url.pathname.split('/').length >= 2 &&
+                url.pathname.split('/')[1].length > 0
+              );
+            } catch {
+              return true;
+            }
+          }
+          
+          const parts = repo.split('/');
+          return !(
+            parts.length === 2 &&
+            parts[0].length > 0 &&
+            !parts[0].includes(' ') &&
+            parts[1].length > 0 &&
+            !parts[1].includes(' ')
+          );
+        });
+        
+        if (invalidRepos.length > 0) {
+          throw new z.ZodError([
+            {
+              code: 'custom',
+              message: 'Please enter a valid GitHub URL (e.g., https://github.com/username/repo) or username/repo format',
+              path: ['github_repository']
+            }
+          ]);
         }
-      ),
+        return val;
+      })
+    ),
     explanation: z.string().optional(),
-    demo_link: z
-      .string()
-      .url({ message: 'Please enter a valid URL' })
-      .optional()
-      .or(z.literal('')),
+    demo_link: z.preprocess(
+      (val) => {
+        if (!val) return [];
+        if (typeof val === 'string') return [];
+        return val;
+      },
+      z.array(
+        z.string()
+          .min(1, { message: 'Demo link cannot be empty' })
+      )
+      .min(1, { message: 'At least one demo link is required' })
+      .refine(
+        (links) => {
+          const uniqueLinks = new Set(links);
+          return uniqueLinks.size === links.length;
+        },
+        { message: 'Duplicate demo links are not allowed' }
+      )
+      .refine(
+        (links) => {
+          return links.every(url => {
+            try {
+              new URL(url);
+              return true;
+            } catch {
+              return false;
+            }
+          });
+        },
+        { message: 'Please enter a valid URL' }
+      )
+    ),
     is_preexisting_idea: z.boolean(),
     logoFile: z.any().optional(),
     coverFile: z.any().optional(),
@@ -109,6 +169,8 @@ export const useSubmissionForm = (hackathonId: string) => {
       full_description: '',
       tracks: [],
       is_preexisting_idea: false,
+      github_repository: [],
+      demo_link: [],
     },
   });
 
@@ -253,6 +315,8 @@ export const useSubmissionForm = (hackathonId: string) => {
         logo_url: uploadedFiles.logoFileUrl ?? '',
         cover_url: uploadedFiles.coverFileUrl ?? '',
         screenshots: uploadedFiles.screenshotsUrls,
+        github_repository: data.github_repository?.join(',') ?? "",
+        demo_link: data.demo_link?.join(',')??"",
         hackaton_id: hackathonId,
         user_id: session?.user.id ?? '',
         is_winner: false,
@@ -327,9 +391,9 @@ export const useSubmissionForm = (hackathonId: string) => {
       short_description: project.short_description ?? '',
       full_description: project.full_description ?? '',
       tech_stack: project.tech_stack ?? [],
-      github_repository: project.github_repository ?? '',
+      github_repository: project.github_repository ? project.github_repository.split(',').filter(Boolean) : [],
       explanation: project.explanation ?? '',
-      demo_link: project.demo_link ?? '',
+      demo_link: project.demo_link ? project.demo_link.split(',').filter(Boolean) : [],
       is_preexisting_idea: !!project.is_preexisting_idea,
       demo_video_link: project.demo_video_link ?? '',
       tracks: project.tracks ?? [],
