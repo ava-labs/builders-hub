@@ -13,14 +13,16 @@ declare module 'next-auth' {
     user: {
       id: string;
       avatar?: string;
+      custom_attributes: string[]
       role?: string;
       email?: string;
-      user_name?: string;
+      user_name?: string;      
     } & DefaultSession['user'];
   }
   interface JWT {
     id?: string;
     avatar?: string;
+    custom_attributes: string[]
   }
 }
 
@@ -136,6 +138,7 @@ export const AuthOptions: NextAuthOptions = {
       if (dbUser) {
         token.id = dbUser.id;
         token.avatar = dbUser.image || token.avatar || user?.image || null;
+        token.custom_attributes = dbUser.custom_attributes
         token.name = dbUser.name ?? '';
         token.email = dbUser.email ?? '';
         token.user_name = dbUser.user_name ?? '';
@@ -149,6 +152,7 @@ export const AuthOptions: NextAuthOptions = {
       }
       session.user.id = token.id as string;
       session.user.avatar = token.avatar as string;
+      session.user.custom_attributes = token.custom_attributes as string[];
       session.user.image = token.avatar as string;
       session.user.name = token.name ?? '';
       session.user.email = token.email ?? '';
