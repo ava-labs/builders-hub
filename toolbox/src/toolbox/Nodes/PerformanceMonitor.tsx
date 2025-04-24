@@ -1,6 +1,5 @@
 "use client";
 
-import { useToolboxStore } from "../toolboxStore";
 import { Input } from "../../components/Input";
 import { Button } from "../../components/Button";
 import { Select } from "../components/Select";
@@ -10,23 +9,17 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { BlockWatcher, BlockInfo } from "./BlockWatcher";
 import { ChainInfo } from "./chainInfo";
 import { RPCURLInput } from "../components/RPCURLInput";
-// Data structure for bucketed metrics
+
 interface BucketedData {
     transactions: number;
     gasUsed: bigint;
     blockCount: number;
 }
 
-
 export default function PerformanceMonitor() {
-    const {
-        nodeRpcUrl,
-        setNodeRpcUrl,
-        chainID,
-        setChainID,
-        subnetId,
-        setSubnetID
-    } = useToolboxStore();
+    const [nodeRpcUrl, setNodeRpcUrl] = useState('');
+    const [chainID, setChainID] = useState('');
+    const [subnetId, setSubnetID] = useState('');
 
 
     const [evmChainRpcUrl, setEvmChainRpcUrl] = useState('');

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useErrorBoundary } from "react-error-boundary"
 
-import { useToolboxStore, useViemChainStore } from "../toolboxStore"
+import { useSelectedL1, useViemChainStore } from "../toolboxStore"
 import { useWalletStore } from "../../lib/walletStore"
 
 import { Container } from "../components/Container"
@@ -46,19 +46,15 @@ const changeWeightStepsConfig: StepsConfig<ChangeWeightStepKey> = {
 export default function ChangeWeight() {
   const { showBoundary } = useErrorBoundary()
 
-  const { proxyAddress, subnetId, setProxyAddress, setSubnetID } = useToolboxStore()
-  const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore() 
+  const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore()
   const viemChain = useViemChainStore()
+  const selectedL1 = useSelectedL1()
 
   // --- Form Input State ---
   const [nodeID, setNodeID] = useState("")
   const [weight, setWeight] = useState("")
-  const [manualProxyAddress, setManualProxyAddress] = useState("")
-  const [manualSubnetId, setManualSubnetId] = useState("")
-
-  // Use manually entered values if they exist, otherwise use store values
-  const effectiveProxyAddress = manualProxyAddress || proxyAddress
-  const effectiveSubnetId = manualSubnetId || subnetId
+  const [manualProxyAddress, setManualProxyAddress] = useState(selectedL1?.validatorManagerAddress || "")
+  const [manualSubnetId, setManualSubnetId] = useState(selectedL1?.subnetId || "")
 
   // --- Intermediate Data State ---
   const [validationIDHex, setValidationIDHex] = useState("")
@@ -124,7 +120,7 @@ export default function ChangeWeight() {
       if (!startFromStep || startFromStep === "getValidationID") {
         updateStepStatus("getValidationID", "loading")
         try {
-          const validationIDResult = await getValidationIdHex(publicClient, effectiveProxyAddress as `0x${string}`, nodeID)
+          const validationIDResult = await getValidationIdHex(publicClient, manualProxyAddress as `0x${string}`, nodeID)
           // Update local and state
           setValidationIDHex(validationIDResult as string)
           localValidationID = validationIDResult as string;
@@ -142,32 +138,32 @@ export default function ChangeWeight() {
         try {
           // Use local var first, fallback to state for retry
           const validationIDToUse = localValidationID || validationIDHex;
-          if (!validationIDToUse) { 
+          if (!validationIDToUse) {
             throw new Error("Validation ID is missing. Retry step 1.")
           }
-          
+
           const weightBigInt = BigInt(weight)
-          
+
           const changeWeightTx = await coreWalletClient.writeContract({
-            address: effectiveProxyAddress as `0x${string}`, 
-            abi: validatorManagerAbi.abi, 
-            functionName: "initiateValidatorWeightUpdate", 
+            address: manualProxyAddress as `0x${string}`,
+            abi: validatorManagerAbi.abi,
+            functionName: "initiateValidatorWeightUpdate",
             args: [validationIDToUse, weightBigInt], // Use potentially updated local ID
-            chain: viemChain, 
-            account: coreWalletClient.account, 
+            chain: viemChain,
+            account: coreWalletClient.account,
           })
-          
+
           if (!publicClient) {
             throw new Error("Wallet connection not initialized")
           }
-          
+
           const receipt = await publicClient.waitForTransactionReceipt({ hash: changeWeightTx })
-          
+
           // Update local and state
           const currentUnsignedWarpMessage = receipt.logs[0].data || ""
           setUnsignedWarpMessage(currentUnsignedWarpMessage)
           localUnsignedWarpMessage = currentUnsignedWarpMessage;
-          
+
           try {
             const eventTopic = "0x6e350dd49b060d87f297206fd309234ed43156d890ced0f139ecf704310481d3"
             const eventLog = receipt.logs.find((log: unknown) => {
@@ -175,14 +171,14 @@ export default function ChangeWeight() {
               return typedLog.topics[0].toLowerCase() === eventTopic.toLowerCase()
             })
             const typedEventLog = eventLog as { topics: string[]; data: string } | undefined
-            
+
             if (typedEventLog) {
               const dataWithoutPrefix = typedEventLog.data.slice(2)
               try {
                 const nonce = BigInt("0x" + dataWithoutPrefix.slice(0, 64))
                 const messageID = "0x" + dataWithoutPrefix.slice(64, 128)
                 const eventWeight = BigInt("0x" + dataWithoutPrefix.slice(128, 192)) || weightBigInt
-                
+
                 const eventDataObj = {
                   validationID: typedEventLog.topics[1] as `0x${string}`,
                   nonce,
@@ -211,7 +207,7 @@ export default function ChangeWeight() {
             setEventData(null)
             localEventData = null;
           }
-          
+
           updateStepStatus("initiateChangeWeight", "success")
         } catch (error: any) {
           const message = error instanceof Error ? error.message : String(error)
@@ -226,19 +222,19 @@ export default function ChangeWeight() {
         try {
           // Use local var first, fallback to state for retry
           const warpMessageToSign = localUnsignedWarpMessage || unsignedWarpMessage;
-          if (!warpMessageToSign || warpMessageToSign.length === 0) { 
+          if (!warpMessageToSign || warpMessageToSign.length === 0) {
             throw new Error("Warp message is empty. Retry step 2.")
           }
-          
+
           const { signedMessage: signedMessageResult } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
             signatureAggregatorRequest: {
               message: warpMessageToSign, // Use potentially updated local message
-              signingSubnetId: effectiveSubnetId || "",
+              signingSubnetId: manualSubnetId || "",
               quorumPercentage: 67,
             },
           })
-          
+
           // Update local and state
           setSignedWarpMessage(signedMessageResult)
           localSignedMessage = signedMessageResult;
@@ -257,10 +253,10 @@ export default function ChangeWeight() {
         try {
           // Use local var first, fallback to state for retry
           const signedMessageToSubmit = localSignedMessage || signedWarpMessage;
-          if (!signedMessageToSubmit || signedMessageToSubmit.length === 0) { 
+          if (!signedMessageToSubmit || signedMessageToSubmit.length === 0) {
             throw new Error("Signed message is empty. Retry step 3.")
           }
-          
+
           if (typeof window === "undefined" || !window.avalanche) {
             throw new Error("Core wallet not found")
           }
@@ -270,7 +266,7 @@ export default function ChangeWeight() {
             pChainAddress: pChainAddress!,
             signedWarpMessage: signedMessageToSubmit,
           })
-          
+
           console.log("P-Chain transaction ID:", pChainTxId)
           updateStepStatus("submitPChainTx", "success")
         } catch (error: any) {
@@ -290,13 +286,13 @@ export default function ChangeWeight() {
 
           if (!viemChain) throw new Error("Viem chain configuration is missing.")
           if (!validationIDForJustification) throw new Error("Validation ID is missing. Retry step 1.")
-          if (!effectiveSubnetId) throw new Error("Subnet ID is missing.")
+          if (!manualSubnetId) throw new Error("Subnet ID is missing.")
           if (!eventDataForPacking) throw new Error("Event data missing. Retry step 2.")
 
           const justification = await GetRegistrationJustification(
             nodeID,
             validationIDForJustification,
-            effectiveSubnetId,
+            manualSubnetId,
             publicClient
           )
 
@@ -308,7 +304,7 @@ export default function ChangeWeight() {
           const warpValidationID = hexToBytes(eventDataForPacking.validationID)
           const warpNonce = eventDataForPacking.nonce
           const warpWeight = eventDataForPacking.weight
-          
+
           const changeWeightMessage = packL1ValidatorWeightMessage({
             validationID: warpValidationID,
             nonce: warpNonce,
@@ -319,17 +315,17 @@ export default function ChangeWeight() {
           )
           console.log("Change Weight Message Hex:", bytesToHex(changeWeightMessage))
           console.log("Justification:", justification)
-          
+
           const signature = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
             signatureAggregatorRequest: {
               message: bytesToHex(changeWeightMessage),
               justification: bytesToHex(justification),
-              signingSubnetId: effectiveSubnetId || "",
+              signingSubnetId: manualSubnetId || "",
               quorumPercentage: 67,
             },
           })
-          
+
           // Update local and state
           setPChainSignature(signature.signedMessage)
           localPChainSignature = signature.signedMessage;
@@ -349,14 +345,14 @@ export default function ChangeWeight() {
         try {
           // Use local var first, fallback to state for retry
           const finalPChainSig = localPChainSignature || pChainSignature;
-          if (!finalPChainSig) { 
+          if (!finalPChainSig) {
             throw new Error("P-Chain signature is missing. Retry step 5.")
           }
-          
+
           const signedPChainWarpMsgBytes = hexToBytes(`0x${finalPChainSig}`) // Use potentially updated local sig
           const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes)
-          
-          if (!effectiveProxyAddress) throw new Error("Proxy address is not set.")
+
+          if (!manualProxyAddress) throw new Error("Proxy address is not set.")
           if (!coreWalletClient) throw new Error("Core wallet client is not initialized.")
           if (!publicClient) throw new Error("Public client is not initialized.")
           if (!viemChain) throw new Error("Viem chain is not configured.")
@@ -364,7 +360,7 @@ export default function ChangeWeight() {
           let simulationResult
           try {
             simulationResult = await publicClient.simulateContract({
-              address: effectiveProxyAddress as `0x${string}`,
+              address: manualProxyAddress as `0x${string}`,
               abi: validatorManagerAbi.abi,
               functionName: "completeValidatorWeightUpdate",
               args: [0],
@@ -379,18 +375,18 @@ export default function ChangeWeight() {
             const reason = baseError?.shortMessage || simError.message || "Simulation failed, reason unknown."
             throw new Error(`Contract simulation failed: ${reason}`)
           }
-          
+
           console.log("Simulation request:", simulationResult.request)
 
           let txHash
           try {
-             txHash = await coreWalletClient.writeContract(simulationResult.request)
-             console.log("Transaction sent:", txHash)
+            txHash = await coreWalletClient.writeContract(simulationResult.request)
+            console.log("Transaction sent:", txHash)
           } catch (writeError: any) {
-             console.error("Contract write failed:", writeError)
-             const baseError = writeError.cause || writeError
-             const reason = baseError?.shortMessage || writeError.message || "Transaction submission failed, reason unknown."
-             throw new Error(`Submitting transaction failed: ${reason}`)
+            console.error("Contract write failed:", writeError)
+            const baseError = writeError.cause || writeError
+            const reason = baseError?.shortMessage || writeError.message || "Transaction submission failed, reason unknown."
+            throw new Error(`Submitting transaction failed: ${reason}`)
           }
 
           let receipt
@@ -398,13 +394,13 @@ export default function ChangeWeight() {
             receipt = await publicClient.waitForTransactionReceipt({ hash: txHash })
             console.log("Transaction receipt:", receipt)
             if (receipt.status !== 'success') {
-               throw new Error(`Transaction failed with status: ${receipt.status}`)
+              throw new Error(`Transaction failed with status: ${receipt.status}`)
             }
           } catch (receiptError: any) {
-             console.error("Failed to get transaction receipt:", receiptError)
-             throw new Error(`Failed waiting for transaction receipt: ${receiptError.message}`)
+            console.error("Failed to get transaction receipt:", receiptError)
+            throw new Error(`Failed waiting for transaction receipt: ${receiptError.message}`)
           }
-          
+
           updateStepStatus("completeChangeWeight", "success")
           completeProcessing(`Validator ${nodeID} weight changed to ${weight}.`)
 
@@ -414,7 +410,7 @@ export default function ChangeWeight() {
           return
         }
       }
-        
+
     } catch (err: any) {
       setError(`Failed to change validator weight: ${err.message}`)
       console.error(err)
@@ -492,11 +488,8 @@ export default function ChangeWeight() {
             id="proxyAddress"
             type="text"
             value={manualProxyAddress}
-            onChange={(e) => {
-              setManualProxyAddress(e)
-              if (e) setProxyAddress(e)
-            }}
-            placeholder={proxyAddress || "Enter proxy address"}
+            onChange={setManualProxyAddress}
+            placeholder={"Enter proxy address"}
             className={cn(
               "w-full px-3 py-2 border rounded-md",
               "text-zinc-900 dark:text-zinc-100",
@@ -505,11 +498,11 @@ export default function ChangeWeight() {
               "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
               "placeholder:text-zinc-400 dark:placeholder:text-zinc-500",
             )}
-            label="Proxy Address (Optional)"
+            label="Proxy Address"
             disabled={isProcessing}
           />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Override the current proxy address ({proxyAddress?.substring(0, 10)}... or leave empty to use default)
+            Override the current proxy address ({manualProxyAddress?.substring(0, 10)}... or leave empty to use default)
           </p>
         </div>
 
@@ -518,11 +511,8 @@ export default function ChangeWeight() {
             id="subnetId"
             type="text"
             value={manualSubnetId}
-            onChange={(e) => {
-              setManualSubnetId(e)
-              if (e) setSubnetID(e)
-            }}
-            placeholder={subnetId || "Enter subnet ID"}
+            onChange={setManualSubnetId}
+            placeholder={"Enter subnet ID"}
             className={cn(
               "w-full px-3 py-2 border rounded-md",
               "text-zinc-900 dark:text-zinc-100",
@@ -531,7 +521,7 @@ export default function ChangeWeight() {
               "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
               "placeholder:text-zinc-400 dark:placeholder:text-zinc-500",
             )}
-            label="Subnet ID (Optional)"
+            label="Subnet ID"
             disabled={isProcessing}
           />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">

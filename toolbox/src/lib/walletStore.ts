@@ -17,6 +17,7 @@ export const useWalletStore = create(
         avalancheNetworkID: networkIDs.FujiID as typeof networkIDs.FujiID | typeof networkIDs.MainnetID,
         pChainAddress: "",
         isTestnet: undefined as boolean | undefined,//Even though it can be undefined, the components will never use it as undefined
+        evmChainName: "",
     }, set => ({
         setCoreWalletClient: (coreWalletClient: ReturnType<typeof createCoreWalletClient>) => set({ coreWalletClient }),
         setWalletChainId: (walletChainId: number) => set({ walletChainId }),
@@ -24,5 +25,6 @@ export const useWalletStore = create(
         setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => set({ avalancheNetworkID }),
         setPChainAddress: (pChainAddress: string) => set({ pChainAddress }),
         setIsTestnet: (isTestnet: boolean) => set({ isTestnet }),
+        setEvmChainName: (evmChainName: string) => set({ evmChainName }),
     })),
 )

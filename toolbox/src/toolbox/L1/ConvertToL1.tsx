@@ -1,6 +1,6 @@
 "use client";
 
-import { useToolboxStore } from "../toolboxStore";
+import { useCreateChainStore } from "../toolboxStore";
 import { useWalletStore } from "../../lib/walletStore";
 import { useState } from "react";
 import { Button } from "../../components/Button";
@@ -12,6 +12,7 @@ import { ResultField } from "../components/ResultField";
 import { InputArray } from "../components/InputArray";
 import { CodeHighlighter } from "../../components/CodeHighlighter";
 import { TextareaArray } from "../components/TextareaArray";
+
 export default function ConvertToL1() {
     const {
         subnetId,
@@ -22,18 +23,19 @@ export default function ConvertToL1() {
         setNodePopJsons,
         managerAddress,
         setManagerAddress,
-        L1ID,
-        setL1ID,
+        convertToL1TxId,
+        setConvertToL1TxId,
         validatorWeights,
         setValidatorWeights,
-    } = useToolboxStore(state => state);
+    } = useCreateChainStore();
+
     const [isConverting, setIsConverting] = useState(false);
     const [validatorBalances, setValidatorBalances] = useState(Array(100).fill(BigInt(1000000000)) as bigint[]);
     const { coreWalletClient, pChainAddress } = useWalletStore();
     const { showBoundary } = useErrorBoundary();
 
     async function handleConvertToL1() {
-        setL1ID("");
+        setConvertToL1TxId("");
         setIsConverting(true);
         try {
             const validators: ConvertToL1Validator[] = [];
@@ -59,7 +61,7 @@ export default function ConvertToL1() {
                 validators
             });
 
-            setL1ID(txID);
+            setConvertToL1TxId(txID);
         } catch (error) {
             showBoundary(error);
         } finally {
@@ -135,8 +137,8 @@ export default function ConvertToL1() {
             </div>
             <ResultField
                 label="Transaction ID"
-                value={L1ID}
-                showCheck={!!L1ID}
+                value={convertToL1TxId}
+                showCheck={!!convertToL1TxId}
             />
         </Container>
     );

@@ -20,11 +20,7 @@ export default function HackathonCard({
     >
       {/* Left Section: Background Image or Red Color */}
       <Link
-        href={
-          hackathon.id == '26bfce9b-4d44-4d40-8fbe-7903e76d48fa'
-            ? '/hackathon'
-            : `/hackathons/${hackathon.id}`
-        }
+        href={`/hackathons/${hackathon.id}`}
       >
         <Image
           src={hackathon.small_banner}
@@ -96,11 +92,7 @@ export default function HackathonCard({
         >
           <Link
             className='text-sm text-zinc-50'
-            href={
-              hackathon.id == '26bfce9b-4d44-4d40-8fbe-7903e76d48fa'
-                ? '/hackathon'
-                : `/hackathons/${hackathon.id}`
-            }
+            href={`/hackathons/${hackathon.id}`}
           >
             LEARN MORE
           </Link>

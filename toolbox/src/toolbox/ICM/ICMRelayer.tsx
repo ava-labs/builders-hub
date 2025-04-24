@@ -2,7 +2,7 @@
 
 import { formatEther, parseEther, createPublicClient, http } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { useToolboxStore, useViemChainStore } from '../toolboxStore';
+import { useSelectedL1, useViemChainStore } from '../toolboxStore';
 import { useWalletStore } from '../../lib/walletStore';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
@@ -15,8 +15,8 @@ const MINIMUM_BALANCE = parseEther('100')
 const MINIMUM_BALANCE_CCHAIN = parseEther('1')
 
 export default function ICMRelayer() {
-    const { chainID, setChainID, subnetId, setSubnetID, evmChainRpcUrl, setEvmChainRpcUrl } = useToolboxStore();
-    const { coreWalletClient, walletChainId } = useWalletStore();
+    const { coreWalletClient } = useWalletStore();
+    const selectedL1 = useSelectedL1();
     const [balanceL1, setBalanceL1] = useState<bigint>(BigInt(0));
     const [balanceCChain, setBalanceCChain] = useState<bigint>(BigInt(0));
     const [isCheckingBalanceL1, setIsCheckingBalanceL1] = useState(true);
@@ -40,7 +40,7 @@ export default function ICMRelayer() {
 
     // Create separate clients for L1 and C-Chain
     const l1Client = viemChain ? createPublicClient({
-        transport: http(evmChainRpcUrl),
+        transport: http(selectedL1?.rpcUrl),
         chain: viemChain,
     }) : null;
 
@@ -50,7 +50,7 @@ export default function ICMRelayer() {
     });
 
     const checkBalanceL1 = async () => {
-        if (!evmChainRpcUrl || !l1Client || !viemChain) {
+        if (!selectedL1?.rpcUrl || !l1Client || !viemChain) {
             setIsCheckingBalanceL1(false);
             return;
         }
@@ -85,10 +85,10 @@ export default function ICMRelayer() {
     };
 
     useEffect(() => {
-        if (viemChain && evmChainRpcUrl) {
+        if (viemChain && selectedL1?.rpcUrl) {
             checkBalanceL1();
         }
-    }, [evmChainRpcUrl, viemChain]);
+    }, [selectedL1?.rpcUrl, viemChain]);
 
     useEffect(() => {
         checkBalanceCChain();
@@ -103,8 +103,6 @@ export default function ICMRelayer() {
 
         setIsSendingL1(true);
         try {
-            await coreWalletClient.switchChain({ id: viemChain.id });
-
             // Then proceed with transaction
             const hash = await coreWalletClient.sendTransaction({
                 to: relayerAddress,
@@ -124,8 +122,6 @@ export default function ICMRelayer() {
     const handleFundCChain = async () => {
         setIsSendingCChain(true);
         try {
-            await coreWalletClient.switchChain({ id: avalancheFuji.id });
-
             // Then proceed with transaction
             const hash = await coreWalletClient.sendTransaction({
                 to: relayerAddress,
@@ -146,27 +142,23 @@ export default function ICMRelayer() {
     const hasEnoughBalanceCChain = balanceCChain >= MINIMUM_BALANCE_CCHAIN;
     const hasEnoughBalance = hasEnoughBalanceL1 && hasEnoughBalanceCChain;
 
-    const currentChainId = walletChainId;
-    const isOnL1 = viemChain ? currentChainId === viemChain.id : false;
-    const isOnCChain = currentChainId === avalancheFuji.id;
-
     return (
         <div className="space-y-4">
             <div className="text-lg font-bold">Relayer Configuration</div>
             <Input
                 label="Destination Subnet ID"
-                value={subnetId}
-                onChange={setSubnetID}
+                value={selectedL1?.subnetId}
+                disabled
             />
             <Input
                 label="Destination Chain ID"
-                value={chainID}
-                onChange={setChainID}
+                value={selectedL1?.evmChainId}
+                disabled
             />
             <Input
                 label="Destination RPC"
-                value={evmChainRpcUrl}
-                onChange={setEvmChainRpcUrl}
+                value={selectedL1?.rpcUrl}
+                disabled
             />
             <div className="space-y-2">
                 <Input
@@ -198,11 +190,6 @@ export default function ICMRelayer() {
                             </div>
                             {!hasEnoughBalanceL1 && (
                                 <>
-                                    {!isOnL1 && (
-                                        <div className="text-blue-600 mb-2">
-                                            Will switch to your L1 subnet chain (ID: {viemChain?.id}) automatically
-                                        </div>
-                                    )}
                                     <Button
                                         variant="primary"
                                         onClick={handleFundL1}
@@ -238,11 +225,6 @@ export default function ICMRelayer() {
                             </div>
                             {!hasEnoughBalanceCChain && (
                                 <>
-                                    {!isOnCChain && (
-                                        <div className="text-blue-600 mb-2">
-                                            Will switch to Fuji C-Chain (ID: {avalancheFuji.id}) automatically
-                                        </div>
-                                    )}
                                     <Button
                                         variant="primary"
                                         onClick={handleFundCChain}
@@ -265,7 +247,7 @@ export default function ICMRelayer() {
                     </div>
                     <div className="text-lg font-bold">Write the relayer config file</div>
                     <CodeHighlighter
-                        code={genConfigCommand(subnetId, chainID, evmChainRpcUrl, privateKey)}
+                        code={genConfigCommand(selectedL1!.subnetId, selectedL1!.id, selectedL1!.rpcUrl, privateKey)}
                         lang="sh"
                     />
                     <div className="text-lg font-bold">Run the relayer</div>

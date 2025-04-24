@@ -15,6 +15,7 @@ interface ButtonProps {
   size?: "default" | "sm" | "lg"
   className?: string
   stickLeft?: boolean
+  error?: string
 }
 
 export function Button({
@@ -28,6 +29,7 @@ export function Button({
   size = "default",
   className,
   stickLeft = false,
+  error,
 }: ButtonProps) {
   // Base classes shared by all buttons
   const baseClasses = [
@@ -44,12 +46,12 @@ export function Button({
   // Size-specific classes
   let sizeClasses = "";
   if (size === "default") sizeClasses = "px-4 py-3";
-  else if (size === "sm") sizeClasses = "px-3 py-2 text-xs rounded-sm";
+  else if (size === "sm") sizeClasses = "px-3 py-2 text-xs rounded-md";
   else if (size === "lg") sizeClasses = "px-6 py-4 text-base";
 
   // Adjust size-specific rounding
   if (size === "sm" && stickLeft) {
-    sizeClasses = sizeClasses.replace("rounded-sm", "rounded-r-sm");
+    sizeClasses = sizeClasses.replace("rounded-md", "rounded-r-md");
   }
 
   // Variant-specific classes
@@ -79,23 +81,26 @@ export function Button({
   );
 
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled || loading}
-      className={buttonClasses}
-    >
-      {loading ? (
-        <>
-          <Loader2 className="w-5 h-5 animate-spin" />
-          {loadingText || "Loading..."}
-        </>
-      ) : (
-        <>
-          {icon && icon}
-          {children}
-        </>
-      )}
-    </button>
+    <>
+      <button
+        onClick={onClick}
+        disabled={disabled || loading}
+        className={buttonClasses}
+      >
+        {loading ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            {loadingText || "Loading..."}
+          </>
+        ) : (
+          <>
+            {icon && icon}
+            {children}
+          </>
+        )}
+      </button>
+      {error && <p className="text-red-500 text-sm">{error}</p>}
+    </>
   )
 }
 

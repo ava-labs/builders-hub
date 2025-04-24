@@ -86,7 +86,7 @@ export const quickAndDirtyGenesisBuilder = (ownerAddress: `${string}`, chainID: 
 }
 
 import { useEffect, useState } from "react";
-import { useToolboxStore } from "../toolboxStore";
+import { useCreateChainStore } from "../toolboxStore";
 import { useWalletStore } from "../../lib/walletStore";
 import { CodeHighlighter } from "../../components/CodeHighlighter";
 import { Container } from "../components/Container";
@@ -102,7 +102,7 @@ export default function GenesisBuilder() {
         setGasLimit,
         targetBlockRate,
         setTargetBlockRate
-    } = useToolboxStore()
+    } = useCreateChainStore()
     const { walletEVMAddress } = useWalletStore()
 
     const [ownerAddress, setOwnerAddress] = useState<string>("")

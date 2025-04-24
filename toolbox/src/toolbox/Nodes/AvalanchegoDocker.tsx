@@ -1,6 +1,5 @@
 "use client";
 
-import { useToolboxStore } from "../toolboxStore";
 import { useWalletStore } from "../../lib/walletStore";
 import { Select } from "../components/Select";
 import { useState, useEffect } from "react";
@@ -10,6 +9,8 @@ import { CodeHighlighter } from "../../components/CodeHighlighter";
 import { Container } from "../components/Container";
 import { Input } from "../../components/Input";
 import { Tabs } from "../../components/Tabs";
+import { getBlockchainInfo } from "../../coreViem/utils/glacier";
+import InputChainId from "../components/SelectChainId";
 
 const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number) => {
     const httpPort = isRPC ? "8080" : "9650";
@@ -156,7 +157,8 @@ docker run -it --rm hello-world
 type OS = keyof typeof dockerInstallInstructions;
 
 export default function AvalanchegoDocker() {
-    const { subnetId, setSubnetID, chainID, setChainID, setEvmChainRpcUrl } = useToolboxStore();
+    const [chainId, setChainId] = useState("");
+    const [subnetId, setSubnetId] = useState("");
     const { avalancheNetworkID } = useWalletStore();
 
     const [isRPC, setIsRPC] = useState<"true" | "false">("false");
@@ -164,6 +166,7 @@ export default function AvalanchegoDocker() {
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<"true" | "false">("false");
     const [activeOS, setActiveOS] = useState<OS>("Ubuntu/Debian");
+    const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
 
     useEffect(() => {
         try {
@@ -173,18 +176,24 @@ export default function AvalanchegoDocker() {
         }
     }, [subnetId, isRPC, avalancheNetworkID]);
 
-
-    useEffect(() => {
-        if (domain && chainID && isRPC === "true") {
-            setEvmChainRpcUrl("https://" + nipify(domain) + "/ext/bc/" + chainID + "/rpc");
-        }
-    }, [domain, chainID, isRPC]);
-
     useEffect(() => {
         if (isRPC === "false") {
             setDomain("");
         }
     }, [isRPC]);
+
+
+    useEffect(() => {
+        setSubnetIdError(null);
+        setSubnetId("");
+        if (!chainId) return
+
+        getBlockchainInfo(chainId).then((chainInfo) => {
+            setSubnetId(chainInfo.subnetId);
+        }).catch((error) => {
+            setSubnetIdError((error as Error).message);
+        });
+    }, [chainId]);
 
     return (
         <Container
@@ -230,118 +239,117 @@ export default function AvalanchegoDocker() {
                     </p>
                 </div>
 
-                <div className="relative">
-                    <h3 className="text-md font-medium mb-2 mt-8">Node Setup Command:</h3>
+                <h3 className="text-md font-medium mb-2 mt-8">Node Setup Command:</h3>
 
-                    <Input
-                        label="Subnet ID"
-                        value={subnetId}
-                        onChange={setSubnetID}
-                        placeholder="Create a subnet to generate a subnet ID"
-                    />
-                    <p className="mt-8 mb-4">Select what kind of Node you want to set up:</p>
-                    <div className="flex items-center">
-                        <Tabs
-                            tabs={["Validator Node", "RPC Node"]}
-                            activeTab={isRPC === "false" ? "Validator Node" : "RPC Node"}
-                            setActiveTab={(tab) => setIsRPC(tab === "Validator Node" ? "false" : "true")}
-                        />
-                    </div>
-                </div>
+                <InputChainId
+                    value={chainId}
+                    onChange={setChainId}
+                />
 
-                {isRPC === "true" ? (
+                <Input
+                    label="Subnet ID"
+                    value={subnetId}
+                    disabled={true}
+                    error={subnetIdError}
+                />
+
+                {subnetId && (
                     <>
-                        <p>RPC nodes are not validators. They expose APIs for applications to interact with the blockchain and are necessary when building dApps or services that need to query or submit transactions to the network.</p>
-                        <Select
-                            label="Enable Debug & Trace"
-                            value={enableDebugTrace}
-                            onChange={(value) => setEnableDebugTrace(value as "true" | "false")}
-                            options={[
-                                { value: "false", label: "Disabled" },
-                                { value: "true", label: "Enabled" },
-                            ]}
-                        />
-
-                        {enableDebugTrace === "true" && (
-                            <Input
-                                label="Chain ID"
-                                value={chainID}
-                                onChange={setChainID}
-                                placeholder="Enter Chain ID"
+                        <p className="mt-8 mb-4">Select what kind of Node you want to set up:</p>
+                        <div className="flex items-center">
+                            <Tabs
+                                tabs={["Validator Node", "RPC Node"]}
+                                activeTab={isRPC === "false" ? "Validator Node" : "RPC Node"}
+                                setActiveTab={(tab) => setIsRPC(tab === "Validator Node" ? "false" : "true")}
                             />
+                        </div>
+
+                        {isRPC === "true" ? (
+                            <>
+                                <p>RPC nodes are not validators. They expose APIs for applications to interact with the blockchain and are necessary when building dApps or services that need to query or submit transactions to the network.</p>
+                                <Select
+                                    label="Enable Debug & Trace"
+                                    value={enableDebugTrace}
+                                    onChange={(value) => setEnableDebugTrace(value as "true" | "false")}
+                                    options={[
+                                        { value: "false", label: "Disabled" },
+                                        { value: "true", label: "Enabled" },
+                                    ]}
+                                />
+                            </>
+                        ) : (
+                            <p>Validator Nodes participate in consensus and validates transactions. These should not be publicly accessible in production settings.</p>
                         )}
 
-                        <Input
+                        {chainId && enableDebugTrace === "true" && isRPC === "true" && (
+                            <div className="mt-4">
+                                <h3 className="text-md font-medium mb-2">Debug & Trace Setup Command:</h3>
+                                <p className="text-sm mb-2">Note: Run this before starting the node.</p>
+                                <CodeHighlighter
+                                    code={enableDebugNTraceCommand(chainId)}
+                                    lang="bash"
+                                />
+                            </div>
+                        )}
+
+                        <div className="mt-4">
+                            <CodeHighlighter
+                                code={rpcCommand}
+                                lang="bash"
+                            />
+                        </div>
+
+                        {isRPC === "true" && <Input
                             label="Domain or IPv4 address for reverse proxy (optional)"
                             value={domain}
                             onChange={setDomain}
                             placeholder="example.com  or 1.2.3.4"
                             helperText="`curl checkip.amazonaws.com` to get your public IP address. Make sure 443 is open on your firewall."
-                    />
-                    </>
-                ) : (
-                    <p>Validator Nodes participate in consensus and validates transactions. These should not be publicly accessible in production settings.</p>
-                )}
+                        />}
 
-                {chainID && enableDebugTrace === "true" && isRPC === "true" && (
-                    <div className="mt-4">
-                        <h3 className="text-md font-medium mb-2">Debug & Trace Setup Command:</h3>
-                        <p className="text-sm mb-2">Note: Run this before starting the node.</p>
-                        <CodeHighlighter
-                            code={enableDebugNTraceCommand(chainID)}
-                            lang="bash"
-                        />
-                    </div>
-                )}
+                        {domain && isRPC === "true" && (
+                            <div className="mt-4">
+                                <h3 className="text-md font-medium mb-2">Reverse Proxy Command:</h3>
+                                <CodeHighlighter
+                                    code={reverseProxyCommand(domain)}
+                                    lang="bash"
+                                />
+                            </div>
+                        )}
 
-                <div className="mt-4">
-                    <CodeHighlighter
-                        code={rpcCommand}
-                        lang="bash"
-                    />
-                </div>
+                        {chainId && (
+                            <div className="mt-4">
+                                <h3 className="text-md font-medium mb-2">Check Node Command:</h3>
+                                <CodeHighlighter
+                                    code={isRPC === "true" ? checkNodeCommand(chainId, domain || ("127.0.0.1:8080"), false) : checkNodeCommand(chainId, ("127.0.0.1:9650"), false)}
+                                    lang="bash"
+                                />
+                            </div>
+                        )}
 
-                {domain && isRPC === "true" && (
-                    <div className="mt-4">
-                        <h3 className="text-md font-medium mb-2">Reverse Proxy Command:</h3>
-                        <CodeHighlighter
-                            code={reverseProxyCommand(domain)}
-                            lang="bash"
-                        />
-                    </div>
-                )}
+                        {chainId && isRPC === "true" && enableDebugTrace === "true" && (
+                            <div className="mt-4">
+                                <h3 className="text-md font-medium mb-2">Check that debug & trace is working:</h3>
+                                <CodeHighlighter
+                                    code={isRPC === "true" ? checkNodeCommand(chainId, domain || ("127.0.0.1:" + (isRPC === "true" ? "8080" : "9650")), true) : checkNodeCommand(chainId, domain || ("127.0.0.1:" + (isRPC === "true" ? "9650" : "9650")), true)}
+                                    lang="bash"
+                                />
+                            </div>
+                        )}
 
-                {chainID && (
-                    <div className="mt-4">
-                        <h3 className="text-md font-medium mb-2">Check Node Command:</h3>
-                        <CodeHighlighter
-                            code={checkNodeCommand(chainID, domain || ("127.0.0.1:" + (isRPC === "true" ? "8080" : "9650")), false)}
-                            lang="bash"
-                        />
-                    </div>
-                )}
-
-                {chainID && isRPC === "true" && enableDebugTrace === "true" && (
-                    <div className="mt-4">
-                        <h3 className="text-md font-medium mb-2">Check that debug & trace is working:</h3>
-                        <CodeHighlighter
-                            code={checkNodeCommand(chainID, domain || ("127.0.0.1:" + (isRPC === "true" ? "8080" : "9650")), true)}
-                            lang="bash"
-                        />
-                    </div>
-                )}
-
-<div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-md">
-                        <h3 className="text-md font-medium mb-2">Running Multiple Nodes on the same machine:</h3>
-                        <p>To run multiple validator nodes on the same machine, ensure each node has:</p>
-                        <ul className="list-disc pl-5 mt-1">
-                            <li>Unique container name (change <code>--name</code> parameter)</li>
-                            <li>Different ports (modify <code>AVAGO_HTTP_PORT</code> and <code>AVAGO_STAKING_PORT</code>)</li>
-                            <li>Separate data directories (change the local volume path <code>~/.avalanchego</code> to a unique directory)</li>
-                        </ul>
-                        <p className="mt-1">Example for second node: Use ports 9652/9653 (HTTP/staking), container name "avago2", and data directory "~/.avalanchego2"</p>
-                    </div>
+                        <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-md">
+                            <h3 className="text-md font-medium mb-2">Running Multiple Nodes on the same machine:</h3>
+                            <p>To run multiple validator nodes on the same machine, ensure each node has:</p>
+                            <ul className="list-disc pl-5 mt-1">
+                                <li>Unique container name (change <code>--name</code> parameter)</li>
+                                <li>Different ports (modify <code>AVAGO_HTTP_PORT</code> and <code>AVAGO_STAKING_PORT</code>)</li>
+                                <li>Separate data directories (change the local volume path <code>~/.avalanchego</code> to a unique directory)</li>
+                            </ul>
+                            <p className="mt-1">Example for second node: Use ports 9652/9653 (HTTP/staking), container name "avago2", and data directory "~/.avalanchego2"</p>
+                        </div>
+                    </>)}
             </div>
+
         </Container>
     );
 };

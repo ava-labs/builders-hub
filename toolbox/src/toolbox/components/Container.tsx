@@ -153,7 +153,7 @@ export function Container({
 
       {/* Content area with left padding aligned with logo */}
       <div className="pl-4 pr-6 py-6 space-y-6 text-zinc-900 dark:text-zinc-100">
-        <div className="space-y-6">{children}</div>
+        <div className="space-y-6 pb-12">{children}</div>
 
         <div className="pt-4 mt-6 border-t border-zinc-200 dark:border-zinc-800 text-center">
           <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">

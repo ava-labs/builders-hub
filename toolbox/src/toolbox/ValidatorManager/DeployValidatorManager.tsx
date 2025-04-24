@@ -8,7 +8,6 @@ import { Button } from "../../components/Button";
 import { ResultField } from "../components/ResultField";
 import { keccak256 } from 'viem';
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
-import { RequireChainToolboxL1 } from "../components/RequireChainToolboxL1";
 import { Container } from "../components/Container";
 function calculateLibraryHash(libraryPath: string) {
     const hash = keccak256(
@@ -20,7 +19,7 @@ function calculateLibraryHash(libraryPath: string) {
 export default function DeployValidatorManager() {
     const { showBoundary } = useErrorBoundary();
     const { validatorMessagesLibAddress, setValidatorManagerAddress, validatorManagerAddress } = useToolboxStore();
-    const { walletChainId, coreWalletClient, publicClient } = useWalletStore();
+    const { coreWalletClient, publicClient } = useWalletStore();
     const [isDeploying, setIsDeploying] = useState(false);
     const viemChain = useViemChainStore();
 
@@ -49,6 +48,8 @@ export default function DeployValidatorManager() {
         setValidatorManagerAddress("");
         try {
             if (!viemChain) throw new Error("Viem chain not found");
+            await coreWalletClient.addChain({ chain: viemChain });
+            await coreWalletClient.switchChain({ id: viemChain!.id });
 
             const hash = await coreWalletClient.deployContract({
                 abi: ValidatorManagerABI.abi,
@@ -72,37 +73,35 @@ export default function DeployValidatorManager() {
     }
 
     return (
-        <RequireChainToolboxL1>
-            <Container
-                title="Deploy Validator Manager"
-                description="This will deploy the ValidatorManager contract to the currently connected EVM network."
-            >
-                <div className="space-y-4">
+        <Container
+            title="Deploy Validator Manager"
+            description="This will deploy the ValidatorManager contract to the EVM network."
+        >
+            <div className="space-y-4">
+                <div className="mb-4">
                     <div className="mb-4">
-                        <div className="mb-4">
-                            This will deploy the <code>ValidatorManager</code> contract to the currently connected EVM network <code>{walletChainId}</code>.
-                        </div>
-                        <div className="mb-4">
-                            The contract requires the <code>ValidatorMessages</code> library at address: <code>{validatorMessagesLibAddress || "Not deployed"}</code>
-                        </div>
-                        <Button
-                            variant="primary"
-                            onClick={handleDeploy}
-                            loading={isDeploying}
-                            disabled={isDeploying || !validatorMessagesLibAddress}
-                        >
-                            Deploy Contract
-                        </Button>
+                        This will deploy the <code>ValidatorManager</code> contract to the EVM network <code>{viemChain?.id}</code>.
                     </div>
-                    {validatorManagerAddress && (
-                        <ResultField
-                            label="ValidatorManager Address"
-                            value={validatorManagerAddress}
-                            showCheck={!!validatorManagerAddress}
-                        />
-                    )}
+                    <div className="mb-4">
+                        The contract requires the <code>ValidatorMessages</code> library at address: <code>{validatorMessagesLibAddress || "Not deployed"}</code>
+                    </div>
+                    <Button
+                        variant="primary"
+                        onClick={handleDeploy}
+                        loading={isDeploying}
+                        disabled={isDeploying || !validatorMessagesLibAddress}
+                    >
+                        Deploy Contract
+                    </Button>
                 </div>
-            </Container>
-        </RequireChainToolboxL1>
+                {validatorManagerAddress && (
+                    <ResultField
+                        label="ValidatorManager Address"
+                        value={validatorManagerAddress}
+                        showCheck={!!validatorManagerAddress}
+                    />
+                )}
+            </div>
+        </Container>
     );
 };
