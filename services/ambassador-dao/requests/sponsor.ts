@@ -392,14 +392,16 @@ export const useFetchUnclaimedRewards = (id: string | undefined) => {
 };
 
 
-
-
-export const useExportCsv = (exporting: boolean, id: string) => {
+export const useExportCsv = (
+  exporting: boolean,
+  id: string,
+  format: string,
+) => {
   return useQuery({
-    queryKey: ["exportCsv", id],
+    queryKey: ["exportCsv", id, format],
     queryFn: async () => {
       const res = await axiosInstance.get(
-        `${API_DEV}/opportunity/${id}/export`,
+        `${API_DEV}/opportunity/${id}/export?format=${format}`,
         { responseType: "blob" }
       );
 
@@ -410,7 +412,7 @@ export const useExportCsv = (exporting: boolean, id: string) => {
       const contentDisposition = res.headers["content-disposition"];
       const filename = contentDisposition
         ? contentDisposition.split("filename=")[1].replace(/"/g, "")
-        : `opportunity-${id}-export.csv`;
+        : `opportunity-${id}-export.${format}`;
 
       link.setAttribute("download", filename);
       document.body.appendChild(link);
@@ -423,7 +425,7 @@ export const useExportCsv = (exporting: boolean, id: string) => {
     },
     staleTime: 0,
     gcTime: 0,
-    enabled: !!id && exporting,
+    enabled: !!id && exporting && !!format && format !== "none",
     retry: false,
     refetchOnWindowFocus: false,
   });
