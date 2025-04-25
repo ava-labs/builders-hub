@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { useWalletStore } from "../../lib/walletStore";
-import { useViemChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
 import { EVMAddressInput } from "../components/EVMAddressInput";
 import { AllowListWrapper } from "../components/AllowListComponents";
-import transactionAllowlistAbi from "../../../contracts/precompiles/TransactionAllowlist.json";
 
 // Default Transaction AllowList address
 const DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS =

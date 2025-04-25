@@ -9,14 +9,6 @@ import { EVMAddressInput } from "./EVMAddressInput";
 import { ResultField } from "./ResultField";
 import allowListAbi from "../../../contracts/precompiles/AllowList.json";
 
-// Role types
-const ROLES = {
-  NONE: 0,
-  ENABLED: 1,
-  ADMIN: 2,
-  MANAGER: 3,
-};
-
 // Component for setting Enabled permissions
 export function SetEnabledComponent({
   precompileAddress,
