@@ -661,7 +661,7 @@ export default function FeeManager() {
           <Button
             onClick={handleGetFeeConfig}
             loading={isReadingConfig}
-            variant="secondary"
+            variant="primary"
           >
             Get Current Config
           </Button>

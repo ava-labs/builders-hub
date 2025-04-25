@@ -394,7 +394,7 @@ export default function WarpMessenger() {
         </div>
       </Container>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="w-full">
         <AllowListWrapper
           precompileAddress={warpMessengerAddress}
           precompileType="Warp Messenger"

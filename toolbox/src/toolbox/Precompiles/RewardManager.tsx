@@ -7,13 +7,49 @@ import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
 import { PrecompileAddressInput } from "../components/PrecompileAddressInput";
 import { EVMAddressInput } from "../components/EVMAddressInput";
-import { ResultField } from "../components/ResultField";
 import { AllowListWrapper } from "../components/AllowListComponents";
 import rewardManagerAbi from "../../../contracts/precompiles/RewardManager.json";
+import {
+  AlertCircle,
+  CheckCircle,
+  Edit,
+  Settings,
+  Users,
+  Wallet,
+} from "lucide-react";
+import { cn } from "../../lib/utils";
+import Image from "next/image";
 
 // Default Reward Manager address
 const DEFAULT_REWARD_MANAGER_ADDRESS =
   "0x0200000000000000000000000000000000000004";
+
+interface StatusBadgeProps {
+  status: boolean | null;
+  loadingText?: string;
+  isLoading?: boolean;
+}
+
+const StatusBadge = ({ status, loadingText, isLoading }: StatusBadgeProps) => {
+  if (isLoading)
+    return (
+      <span className="text-sm text-muted-foreground">
+        {loadingText || "Loading..."}
+      </span>
+    );
+  if (status === null) return null;
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+        status ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+      )}
+    >
+      {status ? "Enabled" : "Disabled"}
+    </span>
+  );
+};
 
 export default function RewardManager() {
   const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
@@ -31,8 +67,15 @@ export default function RewardManager() {
   >(null);
   const [error, setError] = useState<string | null>(null);
   const [isAddressSet, setIsAddressSet] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isAllowingFeeRecipients, setIsAllowingFeeRecipients] = useState(false);
+  const [isDisablingRewards, setIsDisablingRewards] = useState(false);
+  const [isSettingRewardAddress, setIsSettingRewardAddress] = useState(false);
+  const [isCheckingFeeRecipients, setIsCheckingFeeRecipients] = useState(false);
+  const [isCheckingRewardAddress, setIsCheckingRewardAddress] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [activeTransaction, setActiveTransaction] = useState<string | null>(
+    null
+  );
 
   const verifyChainConnection = async () => {
     try {
@@ -109,8 +152,9 @@ export default function RewardManager() {
       return;
     }
 
-    setIsProcessing(true);
+    setIsAllowingFeeRecipients(true);
     setError(null);
+    setActiveTransaction("allow-fee-recipients");
 
     try {
       const hash = await coreWalletClient.writeContract({
@@ -137,7 +181,31 @@ export default function RewardManager() {
           : "Failed to allow fee recipients"
       );
     } finally {
-      setIsProcessing(false);
+      setIsAllowingFeeRecipients(false);
+    }
+  };
+
+  const checkFeeRecipientsAllowed = async () => {
+    try {
+      setIsCheckingFeeRecipients(true);
+      setError(null);
+
+      const result = await publicClient.readContract({
+        address: rewardManagerAddress as `0x${string}`,
+        abi: rewardManagerAbi.abi,
+        functionName: "areFeeRecipientsAllowed",
+      });
+
+      setIsFeeRecipientsAllowed(result as boolean);
+    } catch (error) {
+      console.error("Error checking fee recipients status:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to check fee recipients status"
+      );
+    } finally {
+      setIsCheckingFeeRecipients(false);
     }
   };
 
@@ -147,8 +215,9 @@ export default function RewardManager() {
       return;
     }
 
-    setIsProcessing(true);
+    setIsDisablingRewards(true);
     setError(null);
+    setActiveTransaction("disable-rewards");
 
     try {
       const hash = await coreWalletClient.writeContract({
@@ -173,7 +242,31 @@ export default function RewardManager() {
         error instanceof Error ? error.message : "Failed to disable rewards"
       );
     } finally {
-      setIsProcessing(false);
+      setIsDisablingRewards(false);
+    }
+  };
+
+  const checkCurrentRewardAddress = async () => {
+    try {
+      setIsCheckingRewardAddress(true);
+      setError(null);
+
+      const result = await publicClient.readContract({
+        address: rewardManagerAddress as `0x${string}`,
+        abi: rewardManagerAbi.abi,
+        functionName: "currentRewardAddress",
+      });
+
+      setCurrentRewardAddress(result as string);
+    } catch (error) {
+      console.error("Error checking current reward address:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to check current reward address"
+      );
+    } finally {
+      setIsCheckingRewardAddress(false);
     }
   };
 
@@ -188,8 +281,9 @@ export default function RewardManager() {
       return;
     }
 
-    setIsProcessing(true);
+    setIsSettingRewardAddress(true);
     setError(null);
+    setActiveTransaction("set-reward-address");
 
     try {
       const hash = await coreWalletClient.writeContract({
@@ -215,47 +309,16 @@ export default function RewardManager() {
         error instanceof Error ? error.message : "Failed to set reward address"
       );
     } finally {
-      setIsProcessing(false);
+      setIsSettingRewardAddress(false);
     }
   };
 
-  const checkFeeRecipientsAllowed = async () => {
-    try {
-      const result = await publicClient.readContract({
-        address: rewardManagerAddress as `0x${string}`,
-        abi: rewardManagerAbi.abi,
-        functionName: "areFeeRecipientsAllowed",
-      });
-
-      setIsFeeRecipientsAllowed(result as boolean);
-    } catch (error) {
-      console.error("Error checking fee recipients status:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to check fee recipients status"
-      );
-    }
-  };
-
-  const checkCurrentRewardAddress = async () => {
-    try {
-      const result = await publicClient.readContract({
-        address: rewardManagerAddress as `0x${string}`,
-        abi: rewardManagerAbi.abi,
-        functionName: "currentRewardAddress",
-      });
-
-      setCurrentRewardAddress(result as string);
-    } catch (error) {
-      console.error("Error checking current reward address:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to check current reward address"
-      );
-    }
-  };
+  const isAnyOperationInProgress =
+    isAllowingFeeRecipients ||
+    isDisablingRewards ||
+    isSettingRewardAddress ||
+    isCheckingFeeRecipients ||
+    isCheckingRewardAddress;
 
   if (!isAddressSet) {
     return (
@@ -283,7 +346,7 @@ export default function RewardManager() {
               onClick={handleSetAddress}
               disabled={!rewardManagerAddress || !walletEVMAddress}
             >
-              Use Default Address
+              Set Reward Manager Address
             </Button>
             <Button
               variant="secondary"
@@ -301,90 +364,165 @@ export default function RewardManager() {
     <div className="space-y-6">
       <Container
         title="Reward Manager"
-        description="Manage reward settings for the network."
+        description="Manage reward settings for the network"
       >
         <div className="space-y-4">
           {error && (
-            <div className="p-4 text-red-700 bg-red-100 rounded-md">
-              {error}
+            <div className="p-4 bg-red-50 border-b border-red-100">
+              <div className="flex items-center gap-2 text-red-700">
+                <AlertCircle className="h-4 w-4" />
+                <span>{error}</span>
+              </div>
             </div>
           )}
 
-          <div className="space-y-4">
-            <div className="flex space-x-4">
-              <Button
-                variant="primary"
-                onClick={handleAllowFeeRecipients}
-                loading={isProcessing}
-                disabled={!walletEVMAddress}
-              >
-                Allow Fee Recipients
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={checkFeeRecipientsAllowed}
-                disabled={!walletEVMAddress}
-              >
-                Check Fee Recipients Status
-              </Button>
+          <div className="space-y-4 p-4">
+            {/* Fee Recipients Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-muted-foreground" />
+                <span className="font-medium">Fee Recipients</span>
+                {isFeeRecipientsAllowed !== null && (
+                  <StatusBadge status={isFeeRecipientsAllowed} />
+                )}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="primary"
+                  onClick={handleAllowFeeRecipients}
+                  disabled={!walletEVMAddress || isAnyOperationInProgress}
+                >
+                  {isAllowingFeeRecipients
+                    ? "Processing..."
+                    : "Allow Fee Recipients"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={checkFeeRecipientsAllowed}
+                  disabled={!walletEVMAddress || isAnyOperationInProgress}
+                >
+                  {isCheckingFeeRecipients ? "Checking..." : "Check Status"}
+                </Button>
+              </div>
+
+              {activeTransaction === "allow-fee-recipients" && txHash && (
+                <div className="bg-green-50 border border-green-100 rounded-md p-3">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800">
+                        Transaction Successful
+                      </p>
+                      <p className="text-xs font-mono text-green-700 break-all">
+                        {txHash}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {isFeeRecipientsAllowed !== null && (
-              <ResultField
-                label="Fee Recipients Status"
-                value={isFeeRecipientsAllowed ? "Allowed" : "Not Allowed"}
-              />
-            )}
+            {/* Rewards Management Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-muted-foreground" />
+                <span className="font-medium">Rewards Management</span>
+                {currentRewardAddress && (
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                    Active
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="primary"
+                  onClick={handleDisableRewards}
+                  disabled={!walletEVMAddress || isAnyOperationInProgress}
+                >
+                  {isDisablingRewards ? "Processing..." : "Disable Rewards"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={checkCurrentRewardAddress}
+                  disabled={!walletEVMAddress || isAnyOperationInProgress}
+                >
+                  {isCheckingRewardAddress
+                    ? "Checking..."
+                    : "Check Current Address"}
+                </Button>
+              </div>
 
-            <div className="flex space-x-4">
-              <Button
-                variant="primary"
-                onClick={handleDisableRewards}
-                loading={isProcessing}
-                disabled={!walletEVMAddress}
-              >
-                Disable Rewards
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={checkCurrentRewardAddress}
-                disabled={!walletEVMAddress}
-              >
-                Check Current Reward Address
-              </Button>
+              {currentRewardAddress && (
+                <div className="bg-slate-50 border border-slate-200 rounded-md p-3">
+                  <p className="text-sm font-medium text-slate-700">
+                    Current Reward Address
+                  </p>
+                  <p className="text-xs font-mono break-all">
+                    {currentRewardAddress}
+                  </p>
+                </div>
+              )}
+
+              {activeTransaction === "disable-rewards" && txHash && (
+                <div className="bg-green-50 border border-green-100 rounded-md p-3">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800">
+                        Transaction Successful
+                      </p>
+                      <p className="text-xs font-mono text-green-700 break-all">
+                        {txHash}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {currentRewardAddress && (
-              <ResultField
-                label="Current Reward Address"
-                value={currentRewardAddress}
-              />
-            )}
+            {/* Set Reward Address Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Edit className="h-5 w-5 text-muted-foreground" />
+                <span className="font-medium">Set Reward Address</span>
+              </div>
+              <div className="space-y-2">
+                <EVMAddressInput
+                  value={rewardAddress}
+                  onChange={setRewardAddress}
+                  disabled={isAnyOperationInProgress}
+                  showError={isSettingRewardAddress && !rewardAddress}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <EVMAddressInput
-                label="Set Reward Address"
-                value={rewardAddress}
-                onChange={setRewardAddress}
-              />
               <Button
                 variant="primary"
                 onClick={handleSetRewardAddress}
-                loading={isProcessing}
-                disabled={!walletEVMAddress || !rewardAddress}
+                disabled={!walletEVMAddress || isAnyOperationInProgress}
+                className="w-full"
               >
-                Set Reward Address
+                {isSettingRewardAddress
+                  ? "Processing..."
+                  : "Set Reward Address"}
               </Button>
+
+              {activeTransaction === "set-reward-address" && txHash && (
+                <div className="bg-green-50 border border-green-100 rounded-md p-3">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800">
+                        Transaction Successful
+                      </p>
+                      <p className="text-xs font-mono text-green-700 break-all">
+                        {txHash}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-
-          {txHash && (
-            <ResultField
-              label="Transaction Successful"
-              value={txHash}
-              showCheck={true}
-            />
-          )}
         </div>
       </Container>
 
