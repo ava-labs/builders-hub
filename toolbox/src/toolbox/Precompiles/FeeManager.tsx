@@ -6,10 +6,16 @@ import { useViemChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Container } from "../components/Container";
-import { PrecompileAddressInput } from "../components/PrecompileAddressInput";
+import { EVMAddressInput } from "../components/EVMAddressInput";
 import { ResultField } from "../components/ResultField";
 import { AllowListWrapper } from "../components/AllowListComponents";
 import feeManagerAbi from "../../../contracts/precompiles/FeeManager.json";
+import { RequireChain } from "../../components/RequireChain";
+import { useFeeManager } from "@avalabs/builderkit";
+import { WagmiProvider, createConfig } from "wagmi";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { avalancheFuji } from "viem/chains";
+import { http } from "viem";
 
 // Default Fee Manager address
 const DEFAULT_FEE_MANAGER_ADDRESS =
@@ -525,11 +531,11 @@ export default function FeeManager() {
             </div>
           )}
 
-          <PrecompileAddressInput
+          <EVMAddressInput
             value={feeManagerAddress}
             onChange={setFeeManagerAddress}
-            precompileName="Fee Manager"
-            defaultAddress={DEFAULT_FEE_MANAGER_ADDRESS}
+            label="Fee Manager Address"
+            disabled={isSettingConfig || isReadingConfig}
           />
 
           <div className="flex space-x-4">

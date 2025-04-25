@@ -7,17 +7,9 @@ import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Container } from "../components/Container";
 import { ResultField } from "../components/ResultField";
-import { PrecompileAddressInput } from "../components/PrecompileAddressInput";
 import { EVMAddressInput } from "../components/EVMAddressInput";
 import nativeMinterAbi from "../../../contracts/precompiles/NativeMinter.json";
-import {
-  SetAdminComponent,
-  SetEnabledComponent,
-  SetManagerComponent,
-  RemoveAllowListComponent,
-  ReadAllowListComponent,
-  AllowListWrapper,
-} from "../components/AllowListComponents";
+import { AllowListWrapper } from "../components/AllowListComponents";
 
 // Default Native Minter address
 const DEFAULT_NATIVE_MINTER_ADDRESS =
@@ -36,6 +28,7 @@ export default function NativeMinter() {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAddressSet, setIsAddressSet] = useState(false);
+  const [isCheckingBalance] = useState(false);
 
   const verifyChainConnection = async () => {
     try {
@@ -201,11 +194,11 @@ export default function NativeMinter() {
             </div>
           )}
 
-          <PrecompileAddressInput
+          <EVMAddressInput
             value={nativeMinterAddress}
             onChange={setNativeMinterAddress}
-            precompileName="Native Minter"
-            defaultAddress={DEFAULT_NATIVE_MINTER_ADDRESS}
+            label="Native Minter Address"
+            disabled={isMinting || isCheckingBalance}
           />
 
           <div className="flex space-x-4">

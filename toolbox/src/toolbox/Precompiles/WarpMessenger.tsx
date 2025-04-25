@@ -5,7 +5,6 @@ import { useWalletStore } from "../../lib/walletStore";
 import { useViemChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
-import { PrecompileAddressInput } from "../components/PrecompileAddressInput";
 import { EVMAddressInput } from "../components/EVMAddressInput";
 import { ResultField } from "../components/ResultField";
 import { AllowListWrapper } from "../components/AllowListComponents";
@@ -239,11 +238,11 @@ export default function WarpMessenger() {
             </div>
           )}
 
-          <PrecompileAddressInput
+          <EVMAddressInput
             value={warpMessengerAddress}
             onChange={setWarpMessengerAddress}
-            precompileName="Warp Messenger"
-            defaultAddress={DEFAULT_WARP_MESSENGER_ADDRESS}
+            label="Warp Messenger Address"
+            disabled={isProcessing}
           />
 
           <div className="flex space-x-4">

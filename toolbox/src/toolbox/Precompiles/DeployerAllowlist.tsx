@@ -4,15 +4,8 @@ import { useState } from "react";
 import { useWalletStore } from "../../lib/walletStore";
 import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
-import { PrecompileAddressInput } from "../components/PrecompileAddressInput";
-import {
-  SetAdminComponent,
-  SetEnabledComponent,
-  SetManagerComponent,
-  RemoveAllowListComponent,
-  ReadAllowListComponent,
-  AllowListWrapper,
-} from "../components/AllowListComponents";
+import { EVMAddressInput } from "../components/EVMAddressInput";
+import { AllowListWrapper } from "../components/AllowListComponents";
 
 // Default Deployer AllowList address
 const DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS =
@@ -113,11 +106,11 @@ export default function DeployerAllowlist() {
             </div>
           )}
 
-          <PrecompileAddressInput
+          <EVMAddressInput
             value={deployerAllowlistAddress}
             onChange={setDeployerAllowlistAddress}
-            precompileName="Deployer AllowList"
-            defaultAddress={DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS}
+            label="Deployer Allowlist Address"
+            disabled={!walletEVMAddress}
           />
 
           <div className="flex space-x-4">

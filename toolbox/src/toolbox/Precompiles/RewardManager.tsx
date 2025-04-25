@@ -5,20 +5,11 @@ import { useWalletStore } from "../../lib/walletStore";
 import { useViemChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
-import { PrecompileAddressInput } from "../components/PrecompileAddressInput";
 import { EVMAddressInput } from "../components/EVMAddressInput";
 import { AllowListWrapper } from "../components/AllowListComponents";
 import rewardManagerAbi from "../../../contracts/precompiles/RewardManager.json";
-import {
-  AlertCircle,
-  CheckCircle,
-  Edit,
-  Settings,
-  Users,
-  Wallet,
-} from "lucide-react";
+import { AlertCircle, CheckCircle, Edit, Users, Wallet } from "lucide-react";
 import { cn } from "../../lib/utils";
-import Image from "next/image";
 
 // Default Reward Manager address
 const DEFAULT_REWARD_MANAGER_ADDRESS =
@@ -333,11 +324,11 @@ export default function RewardManager() {
             </div>
           )}
 
-          <PrecompileAddressInput
+          <EVMAddressInput
             value={rewardManagerAddress}
             onChange={setRewardManagerAddress}
-            precompileName="Reward Manager"
-            defaultAddress={DEFAULT_REWARD_MANAGER_ADDRESS}
+            label="Reward Manager Address"
+            disabled={isAnyOperationInProgress}
           />
 
           <div className="flex space-x-4">

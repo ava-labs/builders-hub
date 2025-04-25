@@ -33,9 +33,45 @@ export default function CreateChain() {
 
     useEffect(() => {
         if (!genesisData) {
-            setGenesisData(quickAndDirtyGenesisBuilder(walletEVMAddress, evmChainId, gasLimit, targetBlockRate));
+            setGenesisData(quickAndDirtyGenesisBuilder(
+                walletEVMAddress, 
+                evmChainId, 
+                gasLimit, 
+                targetBlockRate,
+                "1000000", // Default owner balance
+                {
+                    contractDeployerAllowList: {
+                        enabled: false,
+                        adminAddresses: [],
+                        enabledAddresses: []
+                    },
+                    contractNativeMinter: {
+                        enabled: false,
+                        adminAddresses: [],
+                        enabledAddresses: []
+                    },
+                    txAllowList: {
+                        enabled: false,
+                        adminAddresses: [],
+                        enabledAddresses: []
+                    },
+                    feeManager: {
+                        enabled: false,
+                        adminAddresses: []
+                    },
+                    rewardManager: {
+                        enabled: false,
+                        adminAddresses: []
+                    },
+                    warpMessenger: {
+                        enabled: true,
+                        quorumNumerator: 67,
+                        requirePrimaryNetworkSigners: true
+                    }
+                }
+            ));
         }
-    }, [walletEVMAddress, evmChainId, gasLimit, targetBlockRate]);
+    }, [walletEVMAddress, evmChainId, gasLimit, targetBlockRate, genesisData, setGenesisData]);
 
     function handleCreateChain() {
         setChainID("");

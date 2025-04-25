@@ -4,19 +4,13 @@ import { Loader2 } from "lucide-react"
 import { Button } from "../../components/Button"
 import { Input } from "../../components/Input"
 import { Container } from "../components/Container"
-import { Context, pvm, utils, evm, TransferableOutput } from "@avalabs/avalanchejs"
 import { useWalletStore } from "../../lib/walletStore"
-import { JsonRpcProvider } from "ethers"
-import { bytesToHex } from "viem"
+import { evmImportTx } from "../../coreViem/methods/evmImport"
+import { evmExport } from "../../coreViem/methods/evmExport"
+import { pvmImport } from "../../coreViem/methods/pvmImport"
+import { pvmExport } from "../../coreViem/methods/pvmExport"
 
 import { useErrorBoundary } from "react-error-boundary"
-import { getRPCEndpoint } from "../../coreViem/utils/rpc"
-
-// Define the type for window.avalanche response
-interface AvalancheResponse {
-    txID?: string;
-    [key: string]: any;
-}
 
 // Helper function for delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -43,9 +37,7 @@ export default function CrossChainTransfer({
     const [currentStep, setCurrentStep] = useState<number>(1)
     const { showBoundary } = useErrorBoundary()
 
-    const { pChainAddress, walletEVMAddress, coreWalletClient, publicClient, isTestnet } = useWalletStore()
-
-    const platformEndpoint = getRPCEndpoint(isTestnet ?? false)
+    const { pChainAddress, walletEVMAddress, coreWalletClient, publicClient } = useWalletStore()
 
     // Function to fetch balances from both chains
     const fetchBalances = async () => {
@@ -118,7 +110,7 @@ export default function CrossChainTransfer({
 
     // Add handlers for buttons
     const handleExport = async () => {
-        if (typeof window === 'undefined' || !walletEVMAddress || !pChainAddress) {
+        if (typeof window === 'undefined' || !walletEVMAddress || !pChainAddress || !coreWalletClient) {
             console.error("Missing required data or not in client environment")
             return
         }
@@ -128,91 +120,29 @@ export default function CrossChainTransfer({
         console.log("Export initiated with amount:", amount, "from", sourceChain, "to", destinationChain)
 
         try {
-            // Get context for chain operations
-            const context = await Context.getContextFromURI(platformEndpoint);
-
             if (sourceChain === "c-chain") {
-                // C-Chain to P-Chain export
-                const provider = new JsonRpcProvider(platformEndpoint + "/ext/bc/C/rpc");
-                let evmapi = new evm.EVMApi(platformEndpoint);
-                const baseFee = await evmapi.getBaseFee();
-                const txCount = await provider.getTransactionCount(walletEVMAddress);
-
-                console.log(walletEVMAddress)
-                console.log(pChainAddress)
-                const tx = evm.newExportTx(
-                    context,
-                    BigInt(Math.round(Number(amount) * 1e9)),
-                    context.pBlockchainID,
-                    utils.hexToBuffer(walletEVMAddress),
-                    [utils.bech32ToBytes(pChainAddress)],
-                    baseFee,
-                    BigInt(txCount),
-                )
-
-                const txBytes = tx.toBytes()
-                const txHex = bytesToHex(txBytes)
-                console.log("Export transaction created:", txHex);
-
-                // Safely access window.avalanche using optional chaining
-                if (!window.avalanche) {
-                    throw new Error("Avalanche wallet extension not found")
-                }
-
-                const response = await window.avalanche.request({
-                    method: "avalanche_sendTransaction",
-                    params: {
-                        transactionHex: txHex,
-                        chainAlias: "C",
-                    },
-                }) as AvalancheResponse;
-
+                // C-Chain to P-Chain export using the evmExport function
+                const response = await evmExport(coreWalletClient, {
+                    amount,
+                    pChainAddress,
+                    walletEVMAddress
+                });
+                
                 console.log("Export transaction sent:", response);
                 // Store the export transaction ID to trigger import
                 setExportTxId(response.txID || String(response));
             } else {
-                // P-Chain to C-Chain export
-                const pvmApi = new pvm.PVMApi(platformEndpoint);
-                const utxoResponse = await pvmApi.getUTXOs({ addresses: [pChainAddress] });
-                const utxos = utxoResponse.utxos;
-
-                const corethAddress = await coreWalletClient?.getCorethAddress()
-
-                // Create the P-Chain export transaction
-                const exportTx = pvm.newExportTx(
-                    context,
-                    context.cBlockchainID,
-                    [utils.bech32ToBytes(pChainAddress)],
-                    utxos,
-                    [
-                        TransferableOutput.fromNative(
-                            context.avaxAssetID,
-                            BigInt(Math.round(Number(amount) * 1e9)),
-                            [utils.bech32ToBytes(corethAddress)],
-                        ),
-                    ]
-                );
-
-                const txBytes = exportTx.toBytes();
-                const txHex = bytesToHex(txBytes);
-                console.log("P-Chain Export transaction created:", txHex);
-
-                if (!window.avalanche) {
-                    throw new Error("Avalanche wallet extension not found")
-                }
-
-                const response = await window.avalanche.request({
-                    method: "avalanche_sendTransaction",
-                    params: {
-                        transactionHex: txHex,
-                        chainAlias: "P",
-                    },
-                }) as AvalancheResponse;
+                // P-Chain to C-Chain export using the pvmExport function
+                const response = await pvmExport(coreWalletClient, {
+                    amount,
+                    pChainAddress
+                });
 
                 console.log("P-Chain Export transaction sent:", response);
                 setExportTxId(response.txID || String(response));
             }
         } catch (error) {
+            showBoundary(error);
             console.error("Error sending export transaction:", error);
         } finally {
             setExportLoading(false);
@@ -220,7 +150,7 @@ export default function CrossChainTransfer({
     }
 
     const handleImport = async () => {
-        if (typeof window === 'undefined' || !walletEVMAddress || !pChainAddress) {
+        if (typeof window === 'undefined' || !walletEVMAddress || !pChainAddress || !coreWalletClient) {
             console.error("Missing required data or not in client environment")
             return
         }
@@ -229,85 +159,19 @@ export default function CrossChainTransfer({
         console.log("Import initiated from", sourceChain, "to", destinationChain)
 
         try {
-            const context = await Context.getContextFromURI(platformEndpoint);
-
             if (destinationChain === "p-chain") {
-                // Import to P-Chain
-                const pvmApi = new pvm.PVMApi(platformEndpoint);
-                const { utxos } = await pvmApi.getUTXOs({ sourceChain: 'C', addresses: [pChainAddress] });
-
-                const importTx = pvm.newImportTx(
-                    context,
-                    context.cBlockchainID,
-                    utxos,
-                    [utils.bech32ToBytes(pChainAddress)],
-                    [utils.bech32ToBytes(pChainAddress)],
-                );
-                console.log(importTx)
-
-                const importTxBytes = importTx.toBytes()
-                const importTxHex = bytesToHex(importTxBytes)
-                console.log("Import transaction created:", importTxHex);
-
-                // Safely access window.avalanche using optional chaining
-                if (!window.avalanche) {
-                    throw new Error("Avalanche wallet extension not found")
-                }
-
-                console.log("submitting import transaction")
-                const response = await window.avalanche.request({
-                    method: "avalanche_sendTransaction",
-                    params: {
-                        transactionHex: importTxHex,
-                        chainAlias: "P",
-                        utxos: utxos
-                    },
+                // Import to P-Chain using pvmImport function
+                const response = await pvmImport(coreWalletClient, {
+                    pChainAddress
                 });
-
+                
                 console.log("Import transaction sent:", response);
             } else {
-                // Import to C-Chain
-                const evmApi = new evm.EVMApi(platformEndpoint);
-                const baseFee = await evmApi.getBaseFee();
-                // Get UTXOs from the P chain that can be imported
-                const corethAddress = await coreWalletClient?.getCorethAddress()
-                console.log(corethAddress)
-
-
-                const { utxos } = await evmApi.getUTXOs({
-                    sourceChain: 'P',
-                    addresses: [corethAddress]
+                // Import to C-Chain using evmImportTx function
+                const response = await evmImportTx(coreWalletClient, {
+                    walletEVMAddress
                 });
-
-                console.log(utxos)
-
-                // Create the C-Chain import transaction
-                const importTx = evm.newImportTx(
-                    context,
-                    utils.hexToBuffer(walletEVMAddress),
-                    [utils.bech32ToBytes(corethAddress)],
-                    utxos,
-                    context.pBlockchainID,
-                    baseFee,
-                );
-
-                const importTxBytes = importTx.toBytes();
-                const importTxHex = bytesToHex(importTxBytes);
-                console.log("C-Chain Import transaction created:", importTxHex);
-
-                if (!window.avalanche) {
-                    throw new Error("Avalanche wallet extension not found")
-                }
-
-                const response = await window.avalanche.request({
-                    method: "avalanche_sendTransaction",
-                    params: {
-                        transactionHex: importTxHex,
-                        chainAlias: "C",
-                        utxos: utxos
-                    },
-                });
-
+                
                 console.log("C-Chain Import transaction sent:", response);
             }
 
