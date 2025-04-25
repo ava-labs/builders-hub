@@ -13,9 +13,11 @@ import allowListAbi from "../../../contracts/precompiles/AllowList.json";
 export function SetEnabledComponent({
   precompileAddress,
   precompileType = "precompiled contract",
+  abi = allowListAbi.abi,
 }: {
   precompileAddress: string;
   precompileType?: string;
+  abi?: any;
 }) {
   const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
@@ -47,7 +49,7 @@ export function SetEnabledComponent({
     try {
       const hash = await coreWalletClient.writeContract({
         address: precompileAddress as `0x${string}`,
-        abi: allowListAbi.abi,
+        abi: abi,
         functionName: "setEnabled",
         args: [enabledAddress],
         account: walletEVMAddress as `0x${string}`,
@@ -123,9 +125,11 @@ export function SetEnabledComponent({
 export function SetManagerComponent({
   precompileAddress,
   precompileType = "precompiled contract",
+  abi = allowListAbi.abi,
 }: {
   precompileAddress: string;
   precompileType?: string;
+  abi?: any;
 }) {
   const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
@@ -157,7 +161,7 @@ export function SetManagerComponent({
     try {
       const hash = await coreWalletClient.writeContract({
         address: precompileAddress as `0x${string}`,
-        abi: allowListAbi.abi,
+        abi: abi,
         functionName: "setManager",
         args: [managerAddress],
         account: walletEVMAddress as `0x${string}`,
@@ -233,9 +237,11 @@ export function SetManagerComponent({
 export function SetAdminComponent({
   precompileAddress,
   precompileType = "precompiled contract",
+  abi = allowListAbi.abi,
 }: {
   precompileAddress: string;
   precompileType?: string;
+  abi?: any;
 }) {
   const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
@@ -267,7 +273,7 @@ export function SetAdminComponent({
     try {
       const hash = await coreWalletClient.writeContract({
         address: precompileAddress as `0x${string}`,
-        abi: allowListAbi.abi,
+        abi: abi,
         functionName: "setAdmin",
         args: [adminAddress],
         account: walletEVMAddress as `0x${string}`,
@@ -343,9 +349,11 @@ export function SetAdminComponent({
 export function RemoveAllowListComponent({
   precompileAddress,
   precompileType = "precompiled contract",
+  abi = allowListAbi.abi,
 }: {
   precompileAddress: string;
   precompileType?: string;
+  abi?: any;
 }) {
   const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
     useWalletStore();
@@ -377,7 +385,7 @@ export function RemoveAllowListComponent({
     try {
       const hash = await coreWalletClient.writeContract({
         address: precompileAddress as `0x${string}`,
-        abi: allowListAbi.abi,
+        abi: abi,
         functionName: "setNone",
         args: [removeAddress],
         account: walletEVMAddress as `0x${string}`,
@@ -453,9 +461,11 @@ export function RemoveAllowListComponent({
 export function ReadAllowListComponent({
   precompileAddress,
   precompileType = "precompiled contract",
+  abi = allowListAbi.abi,
 }: {
   precompileAddress: string;
   precompileType?: string;
+  abi?: any;
 }) {
   const { publicClient } = useWalletStore();
   const [isReading, setIsReading] = useState(false);
@@ -475,7 +485,7 @@ export function ReadAllowListComponent({
     try {
       const result = await publicClient.readContract({
         address: precompileAddress as `0x${string}`,
-        abi: allowListAbi.abi,
+        abi: abi,
         functionName: "readAllowList",
         args: [readAddress],
       });
@@ -543,31 +553,38 @@ export function ReadAllowListComponent({
 export function AllowListWrapper({
   precompileAddress,
   precompileType = "precompiled contract",
+  abi = allowListAbi.abi,
 }: {
   precompileAddress: string;
   precompileType?: string;
+  abi?: any;
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <SetEnabledComponent
         precompileAddress={precompileAddress}
         precompileType={precompileType}
+        abi={abi}
       />
       <SetManagerComponent
         precompileAddress={precompileAddress}
         precompileType={precompileType}
+        abi={abi}
       />
       <SetAdminComponent
         precompileAddress={precompileAddress}
         precompileType={precompileType}
+        abi={abi}
       />
       <RemoveAllowListComponent
         precompileAddress={precompileAddress}
         precompileType={precompileType}
+        abi={abi}
       />
       <ReadAllowListComponent
         precompileAddress={precompileAddress}
         precompileType={precompileType}
+        abi={abi}
       />
     </div>
   );
