@@ -46,7 +46,7 @@ const MarkdownEditor: FC<EditorProps> = ({ markdown, editorRef, setValue }) => {
           toolbarClassName: "my-classname",
           toolbarContents: () => (
             <>
-              <BoldItalicUnderlineToggles />
+              <BoldItalicUnderlineToggles options={["Bold", "Italic"]} />
               <BlockTypeSelect />
               <ListsToggle />
               <CreateLink />

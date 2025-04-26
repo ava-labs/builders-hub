@@ -503,6 +503,7 @@ const hackathons: LinkItemType = {
 export const ambassadorMenu: LinkItemType = {
   text: "Ambassador DAO",
   url: "/ambassador-dao",
+  active: "nested-url",
 };
 
 export const baseOptions: BaseLayoutProps = {
