@@ -200,6 +200,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
       first_name: "",
       last_name: "",
       username: "",
+      location: "",
       job_title: "",
       years_of_experience: "",
     },
@@ -219,6 +220,8 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
   const isOnboardPage = pathname === "/ambassador-dao/onboard";
 
   const username = watch("username");
+  const location = watch("location");
+
 
   const { mutate: updateTalentProfile, isPending: isUpdatingProfile } =
     useUpdateTalentProfileMutation();
@@ -241,6 +244,12 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
       });
 
       if (userData.skills && userData.skills.length > 0) {
+        setSelectedSkills(
+          userData.skills.map((skill: { id: string }) => skill.id)
+        );
+      }
+
+      if (userData.location) {
         setSelectedSkills(
           userData.skills.map((skill: { id: string }) => skill.id)
         );
