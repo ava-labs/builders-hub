@@ -832,3 +832,7 @@ html body[data-scroll-locked] {
     font-weight: 400;
   }
 }
+
+header a[data-active="true"] {
+  color: #ff394a !important;
+}

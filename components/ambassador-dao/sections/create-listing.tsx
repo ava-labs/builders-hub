@@ -665,6 +665,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                       field.onChange(date);
                                       document.body.click();
                                     }}
+                                    minDate={new Date()}
                                   />
                                 </Popover>
                               )}
@@ -694,6 +695,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                       field.onChange(date);
                                       document.body.click();
                                     }}
+                                    minDate={watch("start_date") || new Date()}
                                   />
                                 </Popover>
                               )}
@@ -791,12 +793,14 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                         Point of Contact
                       </p>
                       <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
-                        (TG / X / Discord) Link
+                        (TG / X / Discord) URL
                       </label>
                       <Controller
                         name='point_of_contact'
                         control={control}
-                        rules={{ required: "Contact information is required" }}
+                        rules={{
+                          required: "Contact information is required",
+                        }}
                         render={({ field }) => (
                           <CustomInput
                             {...field}

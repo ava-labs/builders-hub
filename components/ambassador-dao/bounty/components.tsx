@@ -147,6 +147,7 @@ export const BountyDescription: React.FC<BountyDescriptionProps> = ({
             ol: ({ node, ...props }) => (
               <ol className='list-decimal pl-6 mb-4 space-y-2' {...props} />
             ),
+            u: ({ node, ...props }) => <u className='underline' {...props} />,
           }}
         >
           {data?.content?.join("\n\n")}

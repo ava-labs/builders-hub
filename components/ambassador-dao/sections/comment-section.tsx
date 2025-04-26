@@ -236,7 +236,7 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
                   </button>
                   <button
                     type='submit'
-                    className='px-4 py-1 bg-blue-600 hover:bg-blue-700 text-[var(--white-text-color)] rounded-md text-sm transition'
+                    className='px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition'
                   >
                     Reply
                   </button>
@@ -310,7 +310,7 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
                 </button>
                 <button
                   type='submit'
-                  className='px-4 py-1 bg-blue-600 hover:bg-blue-700 text-[var(--white-text-color)] rounded-md text-sm transition'
+                  className='px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition'
                 >
                   Reply
                 </button>
@@ -440,7 +440,7 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
                   className='absolute right-4 top-4 bg-gray-800 rounded-md shadow-lg z-10 py-1 min-w-[100px]'
                 >
                   <button
-                    className='w-full text-left px-4 py-2 text-sm text-[var(--white-text-color)] hover:bg-gray-700'
+                    className='w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700'
                     onClick={() => {
                       setIsEditing(true);
                       setShowOptions(false);

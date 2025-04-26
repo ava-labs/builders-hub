@@ -12,9 +12,16 @@ import {
 interface DatePickerProps {
   value?: string | Date;
   onChange?: (date: Date) => void;
+  minDate?: Date;
+  maxDate?: Date;
 }
 
-const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
+const DatePicker: React.FC<DatePickerProps> = ({
+  value,
+  onChange,
+  minDate,
+  maxDate,
+}) => {
   const [date, setDate] = useState<dayjs.Dayjs | null>(
     value ? dayjs(value) : null
   );
@@ -26,9 +33,18 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
   }, [value]);
 
   const handleSelect = (day: dayjs.Dayjs) => {
+    if (isDateDisabled(day)) return;
     setDate(day);
     onChange?.(day.toDate());
     setOpen(false);
+  };
+
+  const isDateDisabled = (day: dayjs.Dayjs) => {
+    const today = dayjs().startOf("day");
+    const isPast = day.isBefore(today, "day");
+    const isBeforeMin = minDate && day.isBefore(dayjs(minDate), "day");
+    const isAfterMax = maxDate && day.isAfter(dayjs(maxDate), "day");
+    return isPast || isBeforeMin || isAfterMax;
   };
 
   const previousMonth = () => {
@@ -129,21 +145,27 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange }) => {
                 {calendarDays.map((day) => {
                   const isCurrentMonth = day.month() === currentMonth.month();
                   const isSelected = date ? day.isSame(date, "day") : false;
+                  const isDisabled = isDateDisabled(day);
 
                   return (
                     <button
                       key={day.format()}
                       onClick={() => handleSelect(day)}
+                      disabled={isDisabled}
                       className={`
                         h-8 w-8 rounded-full flex items-center justify-center text-sm
                         ${
                           isCurrentMonth
                             ? "text-[var(--white-text-color)]"
-                            : "text-gray-500"
+                            : "text-gray-400"
                         }
                         ${
                           isSelected
                             ? "bg-red-500 text-white hover:bg-red-600"
+                            : !date && day.isSame(new Date(), "day")
+                            ? "bg-blue-400 text-white hover:bg-blue-500"
+                            : isDisabled
+                            ? "opacity-50 cursor-not-allowed"
                             : "hover:bg-gray-100 dark:hover:bg-gray-700"
                         }
                         focus:outline-none

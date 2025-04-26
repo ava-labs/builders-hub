@@ -40,7 +40,6 @@ import { useFetchAllListings } from "@/services/ambassador-dao/requests/sponsor"
 import {
   useFetchSponsorStatsDataQuery,
   useFetchUserDataQuery,
-  useFetchUserStatsDataQuery,
 } from "@/services/ambassador-dao/requests/auth";
 import Loader from "@/components/ambassador-dao/ui/Loader";
 import { StatusBadge } from "@/components/ambassador-dao/status-badge";
@@ -176,7 +175,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
       </div>
       {/* Listings Section */}
       <div className='border border-[var(--default-border-color)] rounded-md p-3 md:p-6'>
-        <div className='flex justify-between items-center mb-6'>
+        <div className='flex flex-col md:flex-row gap-4 justify-between md:items-center mb-6'>
           <h2 className='text-xl font-medium text-[var(--primary-text-color)]'>
             My Listing
           </h2>
@@ -201,7 +200,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
 
             <Input
               placeholder='Search...'
-              className='bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:ring-[#27272A] hidden md:block'
+              className='bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:ring-[#27272A]'
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -256,7 +255,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                         {listings?.data.map((listing) => (
                           <TableRow
                             key={listing.id}
-                            className='border-[var(--default-border-color)] py-1.5 hover:bg-gray-200 dark:hover:bg-[#27272A]/50 whitespace-nowrap p-4 text-[var(--white-text-color)] cursor-pointer'
+                            className='border-[var(--default-border-color)] py-1.5 !my-2 hover:bg-gray-200 dark:hover:bg-[#27272A]/50 whitespace-nowrap p-4 text-[var(--white-text-color)] cursor-pointer'
                             onClick={() => {
                               router.push(
                                 `/ambassador-dao/sponsor/listings/${listing.id}`
