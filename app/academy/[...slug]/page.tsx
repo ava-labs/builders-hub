@@ -36,7 +36,25 @@ import Mermaid from "@/components/content-design/mermaid";
 import { Feedback } from '@/components/ui/feedback';
 import posthog from 'posthog-js';
 
+import ToolboxMdxWrapper from "@/toolbox/src/toolbox/components/ToolboxMdxWrapper"
+import CrossChainTransfer from "@/toolbox/src/toolbox/Wallet/CrossChainTransfer"
+import AvalancheGoDocker from '@/toolbox/src/toolbox/Nodes/AvalanchegoDocker';
+import CreateSubnet from "@/toolbox/src/toolbox/L1/CreateSubnet"
+import CreateChain from "@/toolbox/src/toolbox/L1/CreateChain"
+import ConvertToL1 from "@/toolbox/src/toolbox/L1/ConvertToL1"
+import GenesisBuilder from '@/toolbox/src/toolbox/L1/GenesisBuilder';
+
 export const dynamicParams = false;
+
+const toolboxComponents = {
+  ToolboxMdxWrapper,
+  CrossChainTransfer,
+  CreateSubnet,
+  GenesisBuilder,
+  CreateChain,
+  AvalancheGoDocker,
+  ConvertToL1, 
+}
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -75,6 +93,7 @@ export default async function Page(props: {
         <IndexedDBComponent/>
         <MDX components={{
           ...defaultComponents,
+          ...toolboxComponents,
           h1: (props) => <Heading as="h1" {...props} />,
           h2: (props) => <Heading as="h2" {...props} />,
           h3: (props) => <Heading as="h3" {...props} />,
