@@ -830,7 +830,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
     <div>
       <div className='flex justify-between items-center'>
         <h2 className='text-[var(--primary-text-color)] text-xl md:text-2xl font-medium'>
-          Welcome to Ambassador DAO
+          Welcome to Team 1
         </h2>
       </div>
       <p className='text-[var(--secondary-text-color)] text-sm mb-8'>
