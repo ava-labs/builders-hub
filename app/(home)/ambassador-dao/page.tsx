@@ -21,7 +21,7 @@ const WelcomeSection = ({ user }: { user: any }) => {
                 Welcome back, {user?.first_name}
               </h1>
               <p className='text-sm sm:text-xl text-white'>
-                We're so glad to have you on Ambassador DAO
+                We're so glad to have you on Team 1
               </p>
             </>
           )}
@@ -29,7 +29,7 @@ const WelcomeSection = ({ user }: { user: any }) => {
           {!user && (
             <>
               <h1 className='text-2xl sm:text-4xl font-bold text-red-500 mb-2'>
-                Welcome to Ambassador DAO
+                Welcome to Team 1
               </h1>
               <p className='text-sm sm:text-xl text-white'>
                 Hire Elite Blockchain Talent or Get Hired <br /> Your Gateway to
