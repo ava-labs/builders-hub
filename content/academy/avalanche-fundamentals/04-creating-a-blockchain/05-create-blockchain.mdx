@@ -12,17 +12,12 @@ associate it with the Subnet. The `CreateChainTx` transaction has the following 
 
 - `name`: The name of the chain
 - `subnetID`: The ID of the Subnet you want to add the chain to
-- `vmID`: The ID of the Virtual Machine that will be used to run the chain
+- `vmID`: The ID of the Virtual Machine that will be used to run the chain. For standard
+  [Subnet-EVM](https://github.com/ava-labs/subnet-evm) chains, use the default VM ID
+  `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`.
 - `genesisData`: The genesis configuration of the chain
 
 The blockchain will be uniquely identified by the transaction hash of the `CreateChainTx` transaction.
-
-### Virtual Machine (VM) Configuration
-
-When creating your blockchain, you'll need to specify the appropriate Virtual Machine ID:
-
-- For standard [Subnet-EVM](https://github.com/ava-labs/subnet-evm) chains, use the default VM ID: `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`
-- If you're deploying a custom VM (such as `subnet-evm` with custom precompiles or a `hypersdk`-based chain), you must specify the correct custom VM ID
 
 ### Creating Your Blockchain
 
