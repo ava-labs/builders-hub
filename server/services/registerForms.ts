@@ -188,7 +188,7 @@ export async function sendConfirmationMail(
       <div style="background-color: #27272A; border: 1px solid #EF4444; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
         <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">We have received your registration application for</p>
         <p style="font-size: 20px; font-weight: bold; color: #EF4444; margin: 8px 0;">${hackathon?.title}</p>
-        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">Please note that your registration is pending approval.</p>
+        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">Please note that your registration is pending for approval.</p>
         <p style="font-size: 10px; font-weight: bold; color: #ffffff; margin: 8px 0;">This is an automated message — please do not reply</p>
       </div>
 
