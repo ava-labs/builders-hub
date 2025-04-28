@@ -12,6 +12,60 @@ export async function generateInvitation(
     throw new Error("Hackathon ID is required");
   }
 
+  const project = await createProject(hackathonId, userId);
+
+  for (const email of emails) {
+
+    const invitedUser = await getUserByEmail(email);
+    if(!invitedUser){
+      throw new Error(`User with email ${email} not found`);
+    }
+    if(invitedUser?.id===userId){
+      continue
+    }
+
+    const existingMember = await prisma.member.findUnique({
+      where: {
+        user_id_project_id: {
+          user_id: invitedUser?.id??"",
+          project_id: project.id,
+        },
+      },
+    });
+    if (existingMember && existingMember.status === "Confirmed") {
+      continue;
+    }
+
+    const member = await prisma.member.upsert({
+      where: {
+        user_id_project_id: {
+          user_id: invitedUser?.id??"",
+          project_id: project.id,
+        },
+      },
+      update: { role: "Member", status: "Pending Confirmation" },
+      create: {
+        user_id: invitedUser?.id??"",
+        project_id: project.id,
+        role: "Member",
+        status: "Pending Confirmation",
+      },
+    });
+
+
+    const baseUrl = process.env.NEXTAUTH_URL as string;
+    const inviteLink = `${baseUrl}/hackathons/project-submission?hackathon=${hackathonId}&invitation=${member.id}#team`;
+
+    await sendInvitation(
+      invitedUser?.email??email,
+      project.project_name,
+      inviterName,
+      inviteLink
+    );
+  }
+}
+
+async function createProject(hackathonId: string, userId: string) {
   const existingProject = await prisma.project.findFirst({
     where: {
       hackaton_id: hackathonId,
@@ -26,12 +80,12 @@ export async function generateInvitation(
     },
   });
 
-  let project;
+ 
   if (existingProject) {
-    project = existingProject;
+    return existingProject;
   } else {
 
-    project = await prisma.project.create({
+    const project = await prisma.project.create({
       data: {
         hackaton_id: hackathonId,
         project_name: "Untitled Project",
@@ -57,54 +111,7 @@ export async function generateInvitation(
         status: "Confirmed",
       },
     });
-  }
-  for (const email of emails) {
-
-    const invitedUser = await getUserByEmail(email);
-    if(!invitedUser){
-      throw new Error(`User with email ${email} not found`);
-    }
-    if(invitedUser.id===userId){
-      continue
-    }
-
-    const existingMember = await prisma.member.findUnique({
-      where: {
-        user_id_project_id: {
-          user_id: invitedUser.id,
-          project_id: project.id,
-        },
-      },
-    });
-    if (existingMember && existingMember.status === "Confirmed") {
-      continue;
-    }
-
-    const member = await prisma.member.upsert({
-      where: {
-        user_id_project_id: {
-          user_id: invitedUser.id,
-          project_id: project.id,
-        },
-      },
-      update: { role: "Member", status: "Pending Confirmation" },
-      create: {
-        user_id: invitedUser.id,
-        project_id: project.id,
-        role: "Member",
-        status: "Pending Confirmation",
-      },
-    });
-
-
-    const baseUrl = process.env.NEXTAUTH_URL as string;
-    const inviteLink = `${baseUrl}/hackathons/project-submission?hackathon=${hackathonId}&invitation=${member.id}#team`;
-
-    await sendInvitation(
-      invitedUser.email!,
-      project.project_name,
-      inviterName,
-      inviteLink
-    );
+    return project;
   }
 }
+

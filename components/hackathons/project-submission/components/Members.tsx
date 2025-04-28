@@ -63,17 +63,6 @@ export default function MembersComponent({
     if (newEmail && !emails.includes(newEmail) && validateEmail(newEmail)) {
       setIsValidingEmail(true);
       setEmails((prev) => [...prev, newEmail]);
-      checkEmailRegistered(newEmail)
-        .then((isRegistered) => {
-          if (!isRegistered) {
-            setInvalidEmails((prev) => [...prev, newEmail]);
-          }
-          setIsValidingEmail(false);
-        })
-        .catch((err) => {
-          console.error("Error checking email registration:", err);
-          setIsValidingEmail(false);
-        });
       setNewEmail("");
     }
   };
@@ -83,25 +72,13 @@ export default function MembersComponent({
     return emailRegex.test(email);
   };
 
-  const checkEmailRegistered = async (email: string): Promise<boolean> => {
-    try {
-      const response = await axios.get(
-        `/api/users/check?email=${encodeURIComponent(email)}`
-      );
-      return response.data.exists;
-    } catch (error) {
-      console.error("Error checking email registration:", error);
-      return false;
-    }
-  };
-
   const handleRemoveEmail = (email: string) => {
     setEmails(emails.filter((e) => e !== email));
     setInvalidEmails(invalidEmails.filter((e) => e !== email));
   };
 
   const handleSendInvitations = async () => {
-    if (emails.length === 0 || invalidEmails.length > 0 || isValidingEmail)
+    if (emails.length === 0 || invalidEmails.length > 0 )
       return;
     try {
       setSendingInvitation(true);
@@ -295,7 +272,6 @@ export default function MembersComponent({
                       type="button"
                       disabled={
                         emails.length === 0 ||
-                        isValidingEmail ||
                         invalidEmails.length > 0
                       }
                       className="dark:bg-white"

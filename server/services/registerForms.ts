@@ -123,6 +123,7 @@ export async function createRegisterForm(
       tools: (registerData.tools ?? []).join(","),
       web3_proficiency: registerData.web3_proficiency ?? "",
       github_portfolio: registerData.github_portfolio ?? "",
+      telegram_user: registerData.telegram_user ?? "",
     },
     create: {
       hackathon: {
@@ -133,6 +134,7 @@ export async function createRegisterForm(
       },
       utm: registerData.utm ?? "",
       city: registerData.city ?? "",
+      telegram_user: registerData.telegram_user ?? "",
       company_name: registerData.company_name ?? null,
       dietary: registerData.dietary ?? null,
       hackathon_participation: registerData.hackathon_participation ?? "",
