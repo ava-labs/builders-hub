@@ -31,8 +31,8 @@ import {
 import { ChevronDown } from "lucide-react";
 import { JoinTeamDialog } from "./JoinTeamDialog";
 import { LoadingButton } from "@/components/ui/loading-button";
-import { useSession } from "next-auth/react";
 import { ProjectMemberWarningDialog } from "./ProjectMemberWarningDialog";
+import { useRouter, useSearchParams } from "next/navigation";
 export default function MembersComponent({
   project_id,
   hackaton_id,
@@ -62,6 +62,9 @@ export default function MembersComponent({
     "Designer",
   ];
 
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const handleAddEmail = () => {
     if (newEmail && !emails.includes(newEmail) && validateEmail(newEmail)) {
       setIsValidingEmail(true);
@@ -81,8 +84,7 @@ export default function MembersComponent({
   };
 
   const handleSendInvitations = async () => {
-    if (emails.length === 0 || invalidEmails.length > 0 )
-      return;
+    if (emails.length === 0 || invalidEmails.length > 0) return;
     try {
       setSendingInvitation(true);
       if (onHandleSave) {
@@ -105,8 +107,7 @@ export default function MembersComponent({
       setMembers(response.data);
     } catch (error) {
       console.error("Error sending invitations:", error);
-    }
-    finally {
+    } finally {
       setSendingInvitation(false);
     }
   };
@@ -154,25 +155,36 @@ export default function MembersComponent({
     }
   };
 
-  const handleAcceptJoinTeam = async (result:boolean) => {  
-   
-    if(result){
+  const handleAcceptJoinTeam = async (result: boolean) => {
+    if (result) {
       setMembers((prevMembers) =>
         prevMembers.map((m) =>
-          m.user_id === user_id || m.email === currentEmail ? { ...m, status: "Confirmed" } : m
+          m.user_id === user_id || m.email === currentEmail
+            ? { ...m, status: "Confirmed" }
+            : m
         )
       );
-    
-  }
-  }
+    }
+  };
 
-  const handleAcceptJoinTeamWithPreviousProject = async () => {
+  const handleAcceptJoinTeamWithPreviousProject = async (accepted: boolean) => {
+    if (!accepted) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("invitation");
+      onOpenChange(false);
+      router.push(`/hackathons/project-submission?${params.toString()}`);
+      setOpenCurrentProject
+        ? setOpenCurrentProject(false)
+        : (openCurrentProject = false);
+      return;
+    }
     try {
-      axios.patch(`/api/project/${project_id}/members/status`, {
-        user_id: user_id,
-        status: "Confirmed",
-        wasInOtherProject: true,
-      })
+      axios
+        .patch(`/api/project/${project_id}/members/status`, {
+          user_id: user_id,
+          status: "Confirmed",
+          wasInOtherProject: true,
+        })
         .then(() => {
           console.log("Status updated successfully");
         })
@@ -180,11 +192,12 @@ export default function MembersComponent({
           console.error("Error updating status:", error);
         });
       onOpenChange(false);
-      
-      
     } catch (error) {
       console.error("Error joining team:", error);
     }
+    setOpenCurrentProject
+      ? setOpenCurrentProject(false)
+      : (openCurrentProject = false);
   };
 
   useEffect(() => {
@@ -295,10 +308,7 @@ export default function MembersComponent({
                       loadingText="Sending..."
                       onClick={handleSendInvitations}
                       type="button"
-                      disabled={
-                        emails.length === 0 ||
-                        invalidEmails.length > 0
-                      }
+                      disabled={emails.length === 0 || invalidEmails.length > 0}
                       className="dark:bg-white"
                     >
                       Send Invitation
@@ -440,9 +450,9 @@ export default function MembersComponent({
           </TableBody>
         </Table>
       </div>
-      
+
       <JoinTeamDialog
-        open={openjoinTeamDialog||false}
+        open={openjoinTeamDialog || false}
         onOpenChange={onOpenChange}
         setLoadData={handleAcceptJoinTeam}
         teamName={teamName as string}
@@ -450,7 +460,7 @@ export default function MembersComponent({
         hackathonId={hackaton_id as string}
         currentUserId={user_id as string}
       />
-            <ProjectMemberWarningDialog
+      <ProjectMemberWarningDialog
         open={openCurrentProject || false}
         onOpenChange={setOpenCurrentProject || (() => {})}
         projectName={teamName as string}

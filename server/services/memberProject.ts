@@ -19,6 +19,8 @@ export async function UpdateStatusMember(
     },
   });
 
+
+
   const member = await prisma.member.findFirst({
     where: {
       OR: [
@@ -34,40 +36,54 @@ export async function UpdateStatusMember(
     throw new ValidationError("Member not found", []);
   }
 
-  if(wasInOtherProject){
-    
-      const updatedMember = await prisma.member.update({
+  const updatedMember = await prisma.member.update({
+    where: {
+      id: member.id,
+      project_id: project_id
+    },
+    data: { status: status },
+  });
+
+  if (wasInOtherProject) {
+    const currentProject = await prisma.project.findUnique({
       where: {
-        id: member.id
+        id: project_id,
       },
-      data: { status: status,  }
     });
 
+    const allProjects = await prisma.project.findMany({
+      where: {
+        hackaton_id: currentProject!.hackaton_id,
+        AND: {
+          id: { not: project_id }
+        }
+      },
+      select: {
+        id: true,
+      },
+    });
+    console.log(allProjects)
+    const projectIds = allProjects.map(p => p.id);
+    console.log(projectIds)
     await prisma.member.updateMany({
       where: {
-        email: email,
+        project_id: {
+          in: projectIds,
+        },
         AND: {
-          id: {
-            not: member.id
-          }
+          id: member.id
         }
       },
       data: { status: "Removed" }
     });
 
-    return updatedMember;
+
   }
-  else{
-    const updatedMember = await prisma.member.update({
-      where: {
-        id: member.id
-    },
-    data: { status: status },
-  });
+
   return updatedMember;
-  }
-  
-} 
+
+
+}
 
 export async function GetMembersByProjectId(project_id: string) {
   const members = await prisma.member.findMany({
@@ -95,10 +111,10 @@ export async function GetMembersByProjectId(project_id: string) {
   }));
 }
 
-export async function UpdateRoleMember(member_id:string,role:string){
-    const updatedMember = await prisma.member.update({
-        where: { id: member_id },
-        data: { role },
-      });
+export async function UpdateRoleMember(member_id: string, role: string) {
+  const updatedMember = await prisma.member.update({
+    where: { id: member_id },
+    data: { role },
+  });
   return updatedMember;
 }
