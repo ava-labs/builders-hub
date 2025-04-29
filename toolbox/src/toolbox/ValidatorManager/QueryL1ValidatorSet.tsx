@@ -1,18 +1,17 @@
 "use client"
 
-import { useToolboxStore } from "../toolboxStore"
+import { useSelectedL1 } from "../toolboxStore"
 import { useWalletStore } from "../../lib/walletStore"
 import { useState, useEffect } from "react"
-import { Calendar, Clock, Users, Coins, Database, Globe, Info, Copy, Check } from "lucide-react"
+import { Calendar, Clock, Users, Coins, Globe, Info, Copy, Check } from "lucide-react"
 import { Container } from "../components/Container"
-import { Input } from "../../components/Input"
 import { Button } from "../../components/Button"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { GlobalParamNetwork, L1ValidatorDetailsFull } from "@avalabs/avacloud-sdk/models/components"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
 
 export default function QueryL1ValidatorSet() {
-  const { subnetId, setSubnetID } = useToolboxStore()
+  const selectedL1 = useSelectedL1()
   const { avalancheNetworkID, setAvalancheNetworkID } = useWalletStore()
   const [validators, setValidators] = useState<L1ValidatorDetailsFull[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -28,7 +27,7 @@ export default function QueryL1ValidatorSet() {
 
   useEffect(() => {
     fetchValidators()
-  }, [avalancheNetworkID, subnetId])
+  }, [avalancheNetworkID, selectedL1?.subnetId])
 
   async function fetchValidators() {
     setIsLoading(true)
@@ -43,7 +42,7 @@ export default function QueryL1ValidatorSet() {
 
       const result = await new AvaCloudSDK().data.primaryNetwork.listL1Validators({
         network: network,
-        subnetId,
+        subnetId: selectedL1?.subnetId || "",
       });
 
       // Handle pagination
@@ -107,21 +106,6 @@ export default function QueryL1ValidatorSet() {
 
         <div className="relative">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-            <div className="space-y-1">
-              <label className="flex items-center text-xs font-medium text-blue-700 dark:text-blue-200">
-                <Database className="h-3.5 w-3.5 mr-1.5 text-blue-500 dark:text-blue-400" />
-                Subnet ID
-              </label>
-              <Input
-                label=""
-                type="text"
-                value={subnetId}
-                onChange={setSubnetID}
-                placeholder="Enter subnet ID"
-                className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-md text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400"
-              />
-            </div>
-
             <div className="space-y-1">
               <label className="flex items-center text-xs font-medium text-blue-700 dark:text-blue-200">
                 <Globe className="h-3.5 w-3.5 mr-1.5 text-blue-500 dark:text-blue-400" />
@@ -192,7 +176,7 @@ export default function QueryL1ValidatorSet() {
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
             </div>
-          ) : <></> }
+          ) : <></>}
           {validators.length > 0 ? (
             <div className="space-y-4">
               <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg overflow-hidden">

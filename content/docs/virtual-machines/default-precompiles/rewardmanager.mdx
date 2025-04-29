@@ -1,11 +1,11 @@
 ---
-title: RewardManager Precompile
+title: RewardManager
 description: Learn how to use the RewardManager Precompile on your Avalanche L1 blockchain.
 ---
 
 ## Overview
 
-Fee reward mechanism can be configured with this stateful precompile contract called as `RewardManager`. Configuration can include burning fees, sending fees to a predefined address, or enabling fees to be collected by block producers. 
+Fee reward mechanism can be configured with this stateful precompile contract called as `RewardManager`. Configuration can include burning fees, sending fees to a predefined address, or enabling fees to be collected by block producers.
 
 ## Activating the Precompile
 
@@ -60,7 +60,7 @@ interface IRewardManager {
 
   // areFeeRecipientsAllowed returns true if fee recipients are allowed
   function areFeeRecipientsAllowed() external view returns (bool isAllowed);
-  
+
   // IAllowList
   event RoleSet(uint256 indexed role, address indexed account, address indexed sender, uint256 oldRole);
 
@@ -91,7 +91,7 @@ You can find the implementation of the RewardManager precompile in the [subnet-e
 
 In addition to the `AllowList` interface, the `RewardManager` adds the following capabilities:
 
-- `setRewardAddress`: sets the address to which fees are sent. This address can be a contract or a user address. The address becomes the required coinbase address for the blocks that this mechanism is enabled on. Meaning that it will receive the fees collected from the transactions in the block. Receiving fees will not call any contract functions or fallback functions. It will simply increase the balance of the address by the amount of fees.  
+- `setRewardAddress`: sets the address to which fees are sent. This address can be a contract or a user address. The address becomes the required coinbase address for the blocks that this mechanism is enabled on. Meaning that it will receive the fees collected from the transactions in the block. Receiving fees will not call any contract functions or fallback functions. It will simply increase the balance of the address by the amount of fees.
 - `allowFeeRecipients`: enables block producers to claim fees. This will allow block producers to claim fees by specifying their own addresses in their chain configs.
 - `disableRewards`: disables block rewards and starts burning fees.
 - `currentRewardAddress`: returns the current reward address. This is the address to which fees are sent. It can include black hole address (`0x010...0`) which means that fees are burned. It can also include a predefined hash (`0x0000000000000000000000000000000000000000`) denoting custom fee recipients are allowed. It's advised to use the `areFeeRecipientsAllowed` function to check if custom fee recipients are allowed first.
@@ -99,14 +99,14 @@ In addition to the `AllowList` interface, the `RewardManager` adds the following
 - `RewardAddressChanged`: an event that is emitted when the reward address is updated. Topics include the sender, the old reward address, and the new reward address.
 - `FeeRecipientsAllowed`: an event that is emitted when fee recipients are allowed. Topics include the sender.
 - `RewardsDisabled`: an event that is emitted when rewards are disabled. Topics include the sender.
-    
+
 These 3 mechanisms (burning, sending to a predefined address, and enabling fees to be collected by block producers) cannot be enabled at the same time. Enabling one mechanism will take over the previous mechanism. For example, if you enable `allowFeeRecipients` and then enable `disableRewards`, the `disableRewards` will take over and fees will be burned.
 
 Note that reward addresses or fee recipient addresses are not required to be an admin or enabled account.
 
 ## Initial Configuration
 
-It's possible to enable this precompile with an initial configuration to activate its effect on activation timestamp. This provides a way to enable the precompile without an admin address to change the fee reward mechanism. This can be useful for networks that require a one-time reward mechanism change without specifying any admin addresses. 
+It's possible to enable this precompile with an initial configuration to activate its effect on activation timestamp. This provides a way to enable the precompile without an admin address to change the fee reward mechanism. This can be useful for networks that require a one-time reward mechanism change without specifying any admin addresses.
 
 Without this initial configuration, the precompile will inherit the `feeRecipients` mechanism activated at genesis. Meaning that if `allowFeeRecipients` is set to true in the genesis file, the precompile will be enabled with the `allowFeeRecipients` mechanism. Otherwise it will keep burning fees. To use the initial configuration, you need to specify the initial reward mechanism in `initialRewardConfig` field in your genesis or upgrade file.
 

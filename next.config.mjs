@@ -31,6 +31,15 @@ const config = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/hackathon',
+        destination: '/hackathons/26bfce9b-4d44-4d40-8fbe-7903e76d48fa',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withMDX(config);

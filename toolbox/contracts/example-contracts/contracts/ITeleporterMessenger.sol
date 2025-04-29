@@ -49,7 +49,7 @@ struct TeleporterFeeInfo {
 }
 
 /**
- * @dev Interface that describes functionalities for a cross-chain messenger implementing the Teleporter protcol.
+ * @dev Interface that describes functionalities for a cross-chain messenger implementing the Teleporter protocol.
  *
  * @custom:security-contact https://github.com/ava-labs/icm-contracts/blob/main/SECURITY.md
  */

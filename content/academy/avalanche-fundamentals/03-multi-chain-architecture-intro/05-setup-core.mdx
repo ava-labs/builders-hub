@@ -1,0 +1,60 @@
+---
+title: Set Up Core Wallet
+description: Learn about how to setup your own Core Wallet.
+updated: 2024-05-31
+authors: [ashucoder9]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import InstallCoreExtension from "@/content/common/core-wallet/install.mdx"
+import CreateWallet from "@/content/common/core-wallet/create-wallet.mdx"
+import TestnetMode from "@/content/common/core-wallet/testnet-mode.mdx"
+import Faucet from "@/content/common/core-wallet/faucet.mdx"
+
+To grasp the concept of the Avalanche L1s better we will interact with a chain. To do that, we will use Core. Core is an all-in-one command center built for multi-chain systems. It supports Avalanche, Bitcoin, Ethereum, and all EVM-compatible blockchains. Core has a browser extension, a web wallet, and a mobile app. It is optimized for multiple chains and makes navigating between them easy.
+
+<Steps>
+<Step>
+
+### Install Core Extension
+
+<InstallCoreExtension />
+
+</Step>
+<Step>
+
+### Create a Wallet
+
+<CreateWallet />
+
+</Step>
+<Step>
+
+### Switch to Testnet
+
+<TestnetMode />
+
+</Step>
+<Step>
+
+### Get Testnet Tokens
+
+<Faucet />
+
+</Step>
+</Steps>
+
+## Managing MetaMask & Core Extensions
+
+If had Metamask already installed, you could face some problems. We recommend temporarily disabling
+Metamask for the time being.
+
+Open the extensions page in browser. You can also type `chrome://extensions` in your address bar to open it.
+Scroll through your list of installed extensions, or use the search bar at the top of the page, to
+find the Metamask extension.
+
+Once you find Metamask, you will see a toggle switch next to it. Click on this switch to disable the
+extension. You can reenable it any time. When the switch is in the off position, Metamask is disabled, and you should be all set.
+
+![](/course-images/avalanche-fundamentals/14.png)
