@@ -13,7 +13,6 @@ import {
   FormSchema,
 } from '../hooks/useSubmissionForm';
 import { useHackathonProject } from '../hooks/useHackathonProject';
-import { JoinTeamDialog } from '../components/JoinTeamDialog';
 import { ProgressBar } from '../components/ProgressBar';
 import { StepNavigation } from '../components/StepNavigation';
 import axios from 'axios';
@@ -30,6 +29,7 @@ export default function GeneralComponent({
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(0);
   const [openJoinTeam, setOpenJoinTeam] = useState(false);
+  const [openCurrentProject, setOpenCurrentProject] = useState(false);
   const [openInvalidInvitation, setOpenInvalidInvitation] = useState(false);
   const [teamName, setTeamName] = useState<string>('');
   const { data: session } = useSession();
@@ -154,9 +154,12 @@ export default function GeneralComponent({
       }
 
       setProjectId(response.data?.project?.project_id ?? '');
+      
       setOpenJoinTeam(response.data?.invitation.isConfirming ?? false);
-   
+
       setTeamName(response.data?.project?.project_name ?? '');
+      setOpenCurrentProject(response.data?.invitation.hasConfirmedProject ?? false);
+
     } catch (error) {
       console.error('Error checking invitation:', error);
       toast({
@@ -288,9 +291,10 @@ export default function GeneralComponent({
                     onHandleSave={handleSaveWithoutRoute}
                     availableTracks={hackathon?.content?.tracks ?? []}
                     openjoinTeamDialog={openJoinTeam}
+                    openCurrentProject={openCurrentProject}
                     onOpenChange={setOpenJoinTeam}
-          
-                    teamName={teamName}
+                    currentEmail={currentUser?.email}
+                      teamName={teamName}
                   />
                 )}
                 {step === 2 && <SubmitStep2 />}
@@ -315,6 +319,8 @@ export default function GeneralComponent({
         open={openInvalidInvitation}
         onOpenChange={setOpenInvalidInvitation}
       />
+
+
     </div>
   );
 }

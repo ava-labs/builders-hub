@@ -5,22 +5,69 @@ import { ValidationError } from "./hackathons";
 export async function UpdateStatusMember(
   user_id: string,
   project_id: string,
-  status: string
+  status: string,
+  email: string,
+  wasInOtherProject: boolean
 ) {
   if (!user_id || !project_id || !status) {
     throw new ValidationError("user_id and project_id are required", []);
   }
-  const updatedMember = await prisma.member.update({
+
+  const user = await prisma.user.findUnique({
     where: {
-      user_id_project_id: {
-        user_id: user_id as string,
-        project_id: project_id as string,
+      id: user_id,
+    },
+  });
+
+  const member = await prisma.member.findFirst({
+    where: {
+      OR: [
+        { user_id: user_id },
+        { email: user?.email },
+        { email: email }
+      ],
+      project_id: project_id
+    }
+  });
+
+  if (!member) {
+    throw new ValidationError("Member not found", []);
+  }
+
+  if(wasInOtherProject){
+    
+      const updatedMember = await prisma.member.update({
+      where: {
+        id: member.id
       },
+      data: { status: status,  }
+    });
+
+    await prisma.member.updateMany({
+      where: {
+        email: email,
+        AND: {
+          id: {
+            not: member.id
+          }
+        }
+      },
+      data: { status: "Removed" }
+    });
+
+    return updatedMember;
+  }
+  else{
+    const updatedMember = await prisma.member.update({
+      where: {
+        id: member.id
     },
     data: { status: status },
   });
   return updatedMember;
-}
+  }
+  
+} 
 
 export async function GetMembersByProjectId(project_id: string) {
   const members = await prisma.member.findMany({

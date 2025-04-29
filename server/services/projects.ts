@@ -249,23 +249,53 @@ export async function updateProject(
 }
 
 export async function CheckInvitation(invitationId: string, user_id: string) {
+
+  const user = await prisma.user.findUnique({
+    where: { id: user_id },
+  });
+
+  
+
   const member = await prisma.member.findFirst({
-    where: { id: invitationId, user_id: user_id },
+    where: { 
+      OR:[
+        {id: invitationId, user_id: user_id},
+        {id: invitationId, email: user?.email}
+      ]
+    },
     include: {
       project: true,
     },
   });
-
+  
+  const existingConfirmedProject = await prisma.project.findFirst({
+    where: {
+      members: {
+        some: { 
+          user_id: user_id, 
+          status: "Confirmed",
+          NOT: {
+            project_id: member?.project?.id
+          }
+        },
+      },
+    },
+  });
+  const isValid = existingConfirmedProject ==null && member?.status == "Pending Confirmation"
+  
   return {
     invitation: {
-      isValid: !!member,
-      isConfirming: member?.status == "Pending Confirmation",
+      isValid:  !!member,
+      isConfirming: isValid,
       exists: member ? true : false,
+      hasConfirmedProject: !!existingConfirmedProject
     },
     project: {
       project_id: member?.project?.id,
-      project_name: member?.project?.project_name,
+      project_name: existingConfirmedProject?.project_name ?? member?.project?.project_name,
+      confirmed_project_name: existingConfirmedProject?.project_name??"",
     },
+  
   };
 }
 
@@ -277,12 +307,28 @@ export async function GetProjectByHackathonAndUser(
     throw new ValidationError("hackathon id or user id is required", []);
   }
 
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { id: user_id },
+        { email: user_id }
+      ]
+    }
+  });
+
+  if (!user) {
+    throw new ValidationError("user not found", []);
+  }
+
   const project = await prisma.project.findFirst({
     where: {
       hackaton_id,
       members: {
         some: {
-          user_id: user_id,
+          OR: [
+            { user_id: user.id },
+            { email: user.email }
+          ],
           status: {
             in: ["Confirmed", "Pending Confirmation"],
           },

@@ -123,13 +123,12 @@ model Prize {
 
 model Member {
   id         String  @id @default(uuid())
-  user_id    String
+  user_id    String?
   project_id String
   role       String  @default("member")
   status     String  @default("Pending Confirmation")
   email      String?
   project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  user       User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user       User?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([user_id, project_id])
 }

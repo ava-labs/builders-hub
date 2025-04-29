@@ -31,7 +31,8 @@ import {
 import { ChevronDown } from "lucide-react";
 import { JoinTeamDialog } from "./JoinTeamDialog";
 import { LoadingButton } from "@/components/ui/loading-button";
-
+import { useSession } from "next-auth/react";
+import { ProjectMemberWarningDialog } from "./ProjectMemberWarningDialog";
 export default function MembersComponent({
   project_id,
   hackaton_id,
@@ -40,7 +41,10 @@ export default function MembersComponent({
   onHandleSave,
   openjoinTeamDialog,
   onOpenChange,
-  teamName
+  teamName,
+  currentEmail,
+  openCurrentProject,
+  setOpenCurrentProject,
 }: projectProps) {
   const [members, setMembers] = useState<any[]>([]);
   const [openModal, setOpenModal] = useState(false); // State for modal
@@ -50,7 +54,6 @@ export default function MembersComponent({
   const [sendingInvitation, setSendingInvitation] = useState(false);
   const [invalidEmails, setInvalidEmails] = useState<string[]>([]);
   const [isValidingEmail, setIsValidingEmail] = useState(false);
-
   const roles: string[] = [
     "Member",
     "Developer",
@@ -126,6 +129,7 @@ export default function MembersComponent({
       await axios.patch(`/api/project/${project_id}/members/status`, {
         user_id: id_user,
         status: "Removed",
+        email: email,
       });
       setMembers(members.filter((member) => member.email !== email));
     } catch (error) {
@@ -151,16 +155,37 @@ export default function MembersComponent({
   };
 
   const handleAcceptJoinTeam = async (result:boolean) => {  
-
+   
     if(result){
       setMembers((prevMembers) =>
         prevMembers.map((m) =>
-          m.user_id === user_id ? { ...m, status: "Confirmed" } : m
+          m.user_id === user_id || m.email === currentEmail ? { ...m, status: "Confirmed" } : m
         )
       );
     
   }
   }
+
+  const handleAcceptJoinTeamWithPreviousProject = async () => {
+    try {
+      axios.patch(`/api/project/${project_id}/members/status`, {
+        user_id: user_id,
+        status: "Confirmed",
+        wasInOtherProject: true,
+      })
+        .then(() => {
+          console.log("Status updated successfully");
+        })
+        .catch((error) => {
+          console.error("Error updating status:", error);
+        });
+      onOpenChange(false);
+      
+      
+    } catch (error) {
+      console.error("Error joining team:", error);
+    }
+  };
 
   useEffect(() => {
     if (!project_id) return;
@@ -424,6 +449,13 @@ export default function MembersComponent({
         projectId={project_id as string}
         hackathonId={hackaton_id as string}
         currentUserId={user_id as string}
+      />
+            <ProjectMemberWarningDialog
+        open={openCurrentProject || false}
+        onOpenChange={setOpenCurrentProject || (() => {})}
+        projectName={teamName as string}
+        hackathonId={hackaton_id as string}
+        setLoadData={handleAcceptJoinTeamWithPreviousProject}
       />
     </>
   );
