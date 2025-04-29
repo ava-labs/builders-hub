@@ -355,7 +355,7 @@ export default function FormatConverter() {
 
         {/* Unformat Hex */}
         <div className="space-y-4 p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
-          <h3 className="text-base font-semibold">Unformat Hex</h3>
+          <h3 className="text-base font-semibold">Clean up Hex</h3>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Removes all spaces from hex string. Preserves 0x prefix if present.
           </p>

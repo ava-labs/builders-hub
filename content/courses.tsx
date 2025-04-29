@@ -37,17 +37,6 @@ const officialCourses: Course[] = [
         instructors: ["Martin Eckardt", "Ash"]
     },
     {
-        name: "Multi-Chain Architecture",
-        description: "Dive deeper into the Multi-Chain Architecture and deploy your own Blockchain",
-        slug: "multi-chain-architecture",
-        icon: <SquareStackIcon />,
-        status: "featured",
-        duration: "1.5 hours",
-        languages: [],
-        tools: ["Avalanche-CLI"],
-        instructors: ["Martin Eckardt", "Ash", "Owen Wahlgren"] // + Usman
-    },
-    {
         name: "Avalanche Interchain Messaging",
         description: "Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche network",
         slug: "interchain-messaging",

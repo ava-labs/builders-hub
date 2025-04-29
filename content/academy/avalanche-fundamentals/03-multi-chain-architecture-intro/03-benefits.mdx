@@ -1,48 +1,92 @@
 ---
 title: Features & Benefits of Avalanche L1s
-description: Learn about various benefits of using Avalanche L1s,
+description: Learn about various benefits of using Avalanche L1s, such as Scalability, Independence, Customizability, Privacy, and Interoperability.
 updated: 2024-05-31
 authors: [ashucoder9]
 icon: BookOpen
 ---
 
-Avalanche L1s are autonomous. Their creators can define their execution logic, set their own fees, manage their state, handle their networking, and ensure their security. They operate independently from other Avalanche L1s and the Primary Network, effectively enabling the greater Avalanche network to scale while delivering the benefits of lower latency, higher transactions per second (TPS), and lower transaction costs.
+## Scalability of the Avalanche Network
 
-## Scalability Through Multi-Chain Systems
-
-
-A blockchain has a limited capacity for computation and data storage. Therefore, the transactions it can process in a given time frame are limited. We can use the analogy of a highway to visualize this concept. A highway can only handle a certain number of cars at a time. If too many cars try to enter the highway at once, traffic congestion will occur and they have to wait to enter the highway.
-
-In order to scale horizontally and to offer more blockspace, a subset of validators can opt-in to validate an additional blockchain in parallel with the Primary Network: we call this an Avalanche L1. The idea is similiar to building many highways in parallel and create additional space for cars to drive on. This allows for more transactions to be processed in parallel, and therefore increases the overall throughput of the network.
+Every blockchain has a limited capacity for computation and data storage. Therefore, the
+transactions it can process in a given time frame and the state it can store are limited. In order
+to scale horizontally and to offer more blockspace, we can just add more blockchains to the
+Avalanche Network.
 
 ![](/course-images/avalanche-fundamentals/11.png)
 
-This parallel processing of transactions enhances scalability. One chain's congestion or increasing fees won't impact other chains. Going back to our highway analogy, we can think of the scaling through multiple chains as building many short highways in parallel.
+We can use the analogy of a highway to visualize this concept. A highway can only handle a certain
+number of cars at a time. If too many cars try to enter the highway at once, traffic congestion will
+occur and they have to wait to enter the highway. The idea is similiar to building many highways in
+parallel and create additional space for cars to drive on. This allows for more transactions to be
+processed in parallel, and therefore increases the overall throughput of the network.
 
 The beauty of this approach is its simplicity. It doesn't require any new untested innovations. The challenge, rather, is optimizing how Avalanche L1s interoperate and making switching from one Avalanche L1 to the other easy.
 
 ## Independence From Other Avalanche L1s
 
-Separating the ecosystem into different chains creates independence from another. If congestion builds on one chain due to high network activity (e.g. an NFT drop, high volatility in token prices, new game launched), other chains are unaffected. With just a single chain, this congestion affects everyone, including parties that have nothing to do with the cause of the activity increase. 
-
-While the unified, or monolithic, blockchain design does offer certain advantages (like unified liquidity, fewer bridges, and potential for enhanced user experience via co-location of dApps), it also introduces notable drawbacks. Validators must have powerful, costly machines to support a diverse array of applications, increasing centralization due to high operational costs of running a node. Lack of modularity can halt all on-chain activities during network disruptions, potentially causing significant financial losses. Additionally, each new dApp competes for the same block space as all others, leading to overcrowding.
+Separating the ecosystem into different chains creates independence from another. If congestion
+builds on one chain due to high network activity (e.g. an NFT drop, high volatility in token prices,
+new game launched), other chains are unaffected. One chain's congestion or increasing fees won't
+impact other chains. Going back to our highway analogy, we can think of the scaling through multiple
+chains as building many short highways in parallel.
 
 ![](/course-images/avalanche-fundamentals/12.png)
 
-Coming back to our highway analogy, we can imagine a scenario where congestion build up on one highway. The other highways are not directly affected. Some cars may choose to take a different highway and the traffic bottleneck may decrease.
+Coming back to our highway analogy, we can imagine a scenario where congestion builds up on one highway. The other highways are not directly affected. Some cars may choose to take a different highway and the traffic bottleneck may decrease.
+
+In single-chain systems, like Ethereum, congestion and rising fees affect everyone, including parties
+that have nothing to do with the cause of the activity increase. While the unified, or monolithic,
+blockchain design does offer certain advantages (like unified liquidity, fewer bridges, and
+potential for enhanced user experience via co-location of dApps), it also introduces notable
+drawbacks. 
+
+Validators must have powerful, costly machines to support a diverse array of applications, increasing centralization due to high operational costs of running a node. Lack of modularity can halt all on-chain activities during network disruptions, potentially causing significant financial losses. Additionally, each new dApp competes for the same block space as all others, leading to overcrowding.
 
 <Quiz quizId="107"/>
 
 ## Customizability
 
-The creator of an Avalanche L1 can customize it to meet their needs. This can happen in numerous ways, including introducing a custom own gas token, using a different Virtual Machine (e.g. a WASM or Move VM), or limiting access to the Avalanche L1. This is very hard to do in a single-chain system because it would require a majority of users to agree.
+The creator of an Avalanche L1 can customize it to meet their needs. This can happen in numerous
+ways, including introducing a custom own gas token, using a different Virtual Machine (e.g. a WASM
+or Move VM), or limiting access to the Avalanche L1. This is very hard to do in a single-chain
+system because it would require a majority of users to agree.
 
 ![](/course-images/avalanche-fundamentals/13.png)
 
-In our highway analogy, let's think of some travelers having a very unique requirement: They would like to travel by boat instead of a car. While technically possible to build a water lane on a single highway system, this would be challenging. However, when these custom requirements are met in a Avalanche L1, it's easy to do.
+In our highway analogy, let's think of some travelers having a very unique requirement: They would
+like to travel by boat instead of a car. While technically possible to build a water lane on a
+single highway system, this would be challenging. However, when these custom requirements are met in
+a Avalanche L1, it's easy to do.
 
-## Other Multi-Chain Systems
+The ability to choose or create custom Virtual Machines (VMs) offers unprecedented flexibility.
+Avalanche L1s allow for developers to have: 
 
-Avalanche isn't alone in the multi-chain landscape. Other blockchain systems utilizing a similar architectural approach include Cosmos, Polkadot, and Polygon CDK.
+- Multiple VM Support: Unlike single-VM networks like Bitcoin or Ethereum, Avalanche L1s can host
+  multiple blockchain instances with different VMs.
+- Ease of Use: Leverage existing VMs like the Subnet-EVM or create entirely new custom VMs using our
+  SDKs to suit your specific needs.
+- Network Effects: This flexible architecture creates network effects both within individual
+  blockchains and across different Avalanche L1s and blockchains.
 
-<Quiz quizId="108"/>
+<Quiz quizId="401"/>
+
+## Enhanced Privacy, Compliance and Access Control
+
+While public blockchains offer transparency, many business scenarios require controlled visibility
+of transaction data. Developers building an Avalanche L1 can optionally enable: 
+
+- Selective Transparency: Private blockchains allow you to limit transaction visibility to
+  authorized participants.
+- Data Protection: Implement transaction encryption to safeguard sensitive information.
+- Granular Access: Control which data is visible to which participants, supporting "need-to-know"
+  access models.
+
+## Interoperability
+
+Avalanche L1s come with native interoperability and can leverage:
+
+- Cross-Chain Communication: Facilitate seamless interaction between different custom blockchains in
+  the Avalanche network leverage Avalanche Interchain Messaging.
+- Asset Bridges: Create efficient bridges for asset transfers between your custom blockchain and
+  other networks such as the Avalanche Interchain Token Transfer.
