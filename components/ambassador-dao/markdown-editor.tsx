@@ -41,7 +41,6 @@ const MarkdownEditor: FC<EditorProps> = ({ markdown, editorRef, setValue }) => {
         listsPlugin(),
         quotePlugin(),
         thematicBreakPlugin(),
-        linkPlugin(),
         toolbarPlugin({
           toolbarClassName: "my-classname",
           toolbarContents: () => (
@@ -49,7 +48,6 @@ const MarkdownEditor: FC<EditorProps> = ({ markdown, editorRef, setValue }) => {
               <BoldItalicUnderlineToggles options={["Bold", "Italic"]} />
               <BlockTypeSelect />
               <ListsToggle />
-              <CreateLink />
               <CodeToggle />
             </>
           ),

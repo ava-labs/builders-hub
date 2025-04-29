@@ -118,6 +118,9 @@ export const useRejectSubmissionMutation = (submissionId: string) => {
       queryclient.invalidateQueries({
         queryKey: ["singleListingsSubmissions"],
       });
+      queryclient.invalidateQueries({
+        queryKey: ["singleListingSubmission"],
+      });
     },
     onError: (err) => errorMsg(err),
   });
@@ -320,6 +323,9 @@ export const useUpdateBountyRewardMutation = () => {
       queryclient.invalidateQueries({
         queryKey: ["singleListingsSubmissions"],
       });
+      queryclient.invalidateQueries({
+        queryKey: ["singleListingSubmission"],
+      });
     },
     onError: (err) => errorMsg(err),
   });
@@ -391,11 +397,10 @@ export const useFetchUnclaimedRewards = (id: string | undefined) => {
   });
 };
 
-
 export const useExportCsv = (
   exporting: boolean,
   id: string,
-  format: string,
+  format: string
 ) => {
   return useQuery({
     queryKey: ["exportCsv", id, format],
