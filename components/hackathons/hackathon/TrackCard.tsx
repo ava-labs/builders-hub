@@ -8,7 +8,7 @@ type Props = {
 };
 
 export default function TrackCard(props: Props) {
-  const highlighted = props.track.name.includes("AI");
+  const highlighted = props.track.partner?.includes("Avalanche");
   return (
     <Card
       className={`min-h-40 h-full bg-zinc-50 dark:bg-zinc-900 cursor-pointer rounded-xl ${

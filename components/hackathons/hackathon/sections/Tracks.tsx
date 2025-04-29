@@ -41,7 +41,7 @@ function Tracks({ hackathon }: { hackathon: HackathonHeader }) {
           <h4 className="text-4xl font-bold mb-8 text-black">Avalanche's tracks</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 grid-flow-row">
             {hackathon.content.tracks
-              .filter((track) => track.name.includes("AI"))
+              .filter((track) => track.partner?.includes("Avalanche"))
               .map((track, index) => (
                 <Dialog key={index}>
                   <DialogTrigger>
@@ -60,7 +60,7 @@ function Tracks({ hackathon }: { hackathon: HackathonHeader }) {
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 grid-flow-row">
             {hackathon.content.tracks
-              .filter((track) => !track.name.includes("AI"))
+              .filter((track) => !track.partner?.includes("Avalanche"))
               .map((track, index) => (
                 <Dialog key={index}>
                   <DialogTrigger>
