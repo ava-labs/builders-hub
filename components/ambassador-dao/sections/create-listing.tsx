@@ -81,13 +81,14 @@ export default function AmbasssadorDaoSponsorsCreateListing({
       end_date: null,
       requirements: "",
       max_winners: 1,
-      total_budget: 0,
+      total_budget: undefined,
       skill_ids: [],
       file_ids: [],
       custom_questions: [],
       point_of_contact: "",
       point_of_contact_email: "",
-      prize_distribution: type === "BOUNTY" ? [{ position: 1, amount: 0 }] : [],
+      prize_distribution:
+        type === "BOUNTY" ? [{ position: 1, amount: undefined }] : [],
       should_publish: false,
     },
   });
@@ -631,7 +632,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             onClick={() =>
                               appendPrize({
                                 position: prizeFields.length + 1,
-                                amount: 0,
+                                amount: "" as unknown as number,
                               })
                             }
                           >

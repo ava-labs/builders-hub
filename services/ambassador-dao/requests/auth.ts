@@ -32,7 +32,8 @@ export const useRequestPasscodeMutation = () => {
 
 export const useVerifyPasscodeMutation = (
   stopRedirection: boolean | undefined,
-  onClose: () => void
+  onClose: () => void,
+  navigateWithLoading: (url: string) => Promise<boolean>
 ) => {
   const queryclient = useQueryClient();
   const router = useRouter();
@@ -45,20 +46,29 @@ export const useVerifyPasscodeMutation = (
       );
       return res.data.data as IVerifiedDetails;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryclient.invalidateQueries({ queryKey: ["fetchUserProfile"] });
-      toast.success("Verification successful, redirecting you to dashboard...");
+      toast.success("Verification successful");
       if (!data.user.role || !data.user.first_name) {
-        router.push("/ambassador-dao/onboard");
+        if (navigateWithLoading) {
+          await navigateWithLoading("/ambassador-dao/onboard");
+        } else {
+          router.push("/ambassador-dao/onboard");
+        }
         onClose();
       } else {
         if (stopRedirection) {
           onClose();
         } else {
-          if (data.user.role === "SPONSOR") {
-            router.push("/ambassador-dao/sponsor");
+          const destination =
+            data.user.role === "SPONSOR"
+              ? "/ambassador-dao/sponsor"
+              : "/ambassador-dao";
+
+          if (navigateWithLoading) {
+            await navigateWithLoading(destination);
           } else {
-            router.push("/ambassador-dao");
+            router.push(destination);
           }
           onClose();
         }

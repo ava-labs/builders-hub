@@ -19,6 +19,8 @@ import CustomButton from "../custom-button";
 import CustomInput from "../input";
 import { API_DEV } from "@/services/ambassador-dao/data/constants";
 import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
+import { useNavigationWithLoading } from "@/utils/useNavigationWithLoading";
+import LoadingOverlay from "../loading-overlay";
 
 interface IAuthModalProps {
   isOpen: boolean;
@@ -243,6 +245,7 @@ const VerificationStep = ({
   stopRedirection,
 }: VerificationStepProps) => {
   const router = useRouter();
+  const { navigateWithLoading, isNavigating } = useNavigationWithLoading();
   const [code, setCode] = useState("");
   const {
     register,
@@ -250,7 +253,7 @@ const VerificationStep = ({
     formState: { errors },
   } = useForm<{ code: string }>();
   const { mutateAsync: verifyPasscodeMutation, isPending } =
-    useVerifyPasscodeMutation(stopRedirection, onClose);
+    useVerifyPasscodeMutation(stopRedirection, onClose, navigateWithLoading);
   const requestPasscodeMutation = useRequestPasscodeMutation();
   const [resendDisabled, setResendDisabled] = useState(true);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -308,6 +311,7 @@ const VerificationStep = ({
 
   return (
     <div className='flex flex-col items-center justify-center h-full p-4 md:p-6 max-w-md mx-auto'>
+      {isNavigating && <LoadingOverlay message='Redirecting to dashboard...' />}
       <div className='mb-8 text-center'>
         <h1 className='text-[var(--primary-text-color)] text-2xl font-medium'>
           Verify Your Email
@@ -324,9 +328,9 @@ const VerificationStep = ({
 
         <CustomButton
           type='submit'
-          disabled={isPending}
+          disabled={isPending || isNavigating}
           className='mt-6 md:mt-8'
-          isLoading={isPending}
+          isLoading={isPending || isNavigating}
         >
           {"Verify Email"}
         </CustomButton>
