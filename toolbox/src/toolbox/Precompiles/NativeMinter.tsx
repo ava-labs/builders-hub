@@ -16,8 +16,7 @@ const DEFAULT_NATIVE_MINTER_ADDRESS =
   "0x0200000000000000000000000000000000000001";
 
 export default function NativeMinter() {
-  const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
-    useWalletStore();
+  const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const [nativeMinterAddress, setNativeMinterAddress] = useState<string>(
     DEFAULT_NATIVE_MINTER_ADDRESS
@@ -26,121 +25,33 @@ export default function NativeMinter() {
   const [recipient, setRecipient] = useState<string>("");
   const [isMinting, setIsMinting] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isAddressSet, setIsAddressSet] = useState(false);
-  const [isCheckingBalance] = useState(false);
-
-  const verifyChainConnection = async () => {
-    try {
-      // Get the current chain ID
-      const currentChainId = await publicClient.getChainId();
-      console.log("Current chain ID:", currentChainId);
-
-      // Get the current block number to verify connection
-      const blockNumber = await publicClient.getBlockNumber();
-      console.log("Current block number:", blockNumber);
-
-      return true;
-    } catch (error) {
-      console.error("Chain verification failed:", error);
-      return false;
-    }
-  };
 
   const handleSetAddress = async () => {
-    if (!nativeMinterAddress) {
-      setError("Native Minter address is required");
-      return;
-    }
-
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
-    try {
-      // Verify chain connection
-      const isConnected = await verifyChainConnection();
-      if (!isConnected) {
-        setError(
-          "Failed to connect to the network. Please ensure your wallet is connected to the correct L1 chain (Current Chain ID: " +
-            walletChainId +
-            ")"
-        );
-        return;
-      }
-
-      // Skip bytecode verification for the default address
-      if (nativeMinterAddress === DEFAULT_NATIVE_MINTER_ADDRESS) {
-        setIsAddressSet(true);
-        setError(null);
-        return;
-      }
-
-      // Verify the address is a valid Native Minter contract
-      const code = await publicClient.getBytecode({
-        address: nativeMinterAddress as `0x${string}`,
-      });
-
-      if (!code || code === "0x") {
-        setError("Invalid contract address");
-        return;
-      }
-
+    // Skip bytecode verification for the default address
+    if (nativeMinterAddress === DEFAULT_NATIVE_MINTER_ADDRESS) {
       setIsAddressSet(true);
-      setError(null);
-    } catch (error) {
-      console.error("Error verifying contract:", error);
-      // If it's the default address, we'll still proceed
-      if (nativeMinterAddress === DEFAULT_NATIVE_MINTER_ADDRESS) {
-        setIsAddressSet(true);
-        setError(null);
-      } else {
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Failed to verify contract address"
-        );
-      }
+      return;
     }
+
+    // Verify the address is a valid Native Minter contract
+    const code = await publicClient.getBytecode({
+      address: nativeMinterAddress as `0x${string}`,
+    });
+
+    if (!code || code === "0x") {
+      throw new Error("Invalid contract address");
+    }
+
+    setIsAddressSet(true);
   };
 
   const handleMint = async () => {
-    if (!recipient) {
-      setError("Recipient address is required");
-      return;
-    }
-
-    if (!amount || Number(amount) <= 0) {
-      setError("Amount must be greater than zero");
-      return;
-    }
-
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
-    if (!coreWalletClient) {
-      setError("Wallet client not found");
-      return;
-    }
+    if (!coreWalletClient) throw new Error("Wallet client not found");
 
     setIsMinting(true);
-    setError(null);
 
     try {
-      // Verify chain connection
-      const isConnected = await verifyChainConnection();
-      if (!isConnected) {
-        setError(
-          "Failed to connect to the network. Please ensure your wallet is connected to the correct L1 chain (Current Chain ID: " +
-            walletChainId +
-            ")"
-        );
-        return;
-      }
-
       // Convert amount to Wei
       const amountInWei = BigInt(amount) * BigInt(10 ** 18);
 
@@ -161,25 +72,15 @@ export default function NativeMinter() {
       if (receipt.status === "success") {
         setTxHash(hash);
       } else {
-        setError("Transaction failed");
-      }
-    } catch (error) {
-      console.error("Minting error:", error);
-      if (error instanceof Error) {
-        if (error.message.includes("Failed to fetch")) {
-          setError(
-            `Failed to connect to the network. Please ensure you are connected to the correct L1 chain (Current Chain ID: ${walletChainId})`
-          );
-        } else {
-          setError(error.message);
-        }
-      } else {
-        setError("An unknown error occurred");
+        throw new Error("Transaction failed");
       }
     } finally {
       setIsMinting(false);
     }
   };
+
+  const isValidAmount = amount && Number(amount) > 0;
+  const canMint = Boolean(recipient && isValidAmount && walletEVMAddress && coreWalletClient && !isMinting);
 
   if (!isAddressSet) {
     return (
@@ -188,17 +89,11 @@ export default function NativeMinter() {
         description="Set the address of the Native Minter precompile contract. The default address is pre-filled, but you can change it if needed."
       >
         <div className="space-y-4">
-          {error && (
-            <div className="p-4 text-red-700 bg-red-100 rounded-md">
-              {error}
-            </div>
-          )}
-
           <EVMAddressInput
             value={nativeMinterAddress}
             onChange={setNativeMinterAddress}
             label="Native Minter Address"
-            disabled={isMinting || isCheckingBalance}
+            disabled={isMinting}
           />
 
           <div className="flex space-x-4">
@@ -212,6 +107,7 @@ export default function NativeMinter() {
             <Button
               variant="secondary"
               onClick={() => setNativeMinterAddress("")}
+              disabled={isMinting}
             >
               Clear Address
             </Button>
@@ -228,17 +124,12 @@ export default function NativeMinter() {
         description="This will mint native tokens to the specified address."
       >
         <div className="space-y-4">
-          {error && (
-            <div className="p-4 text-red-700 bg-red-100 rounded-md">
-              {error}
-            </div>
-          )}
-
           <div className="space-y-4">
             <EVMAddressInput
               label="Recipient Address"
               value={recipient}
               onChange={setRecipient}
+              disabled={isMinting}
             />
             <Input
               label="Amount"
@@ -247,6 +138,7 @@ export default function NativeMinter() {
               type="number"
               min="0"
               step="0.000000000000000001"
+              disabled={isMinting}
             />
           </div>
 
@@ -262,9 +154,7 @@ export default function NativeMinter() {
             variant="primary"
             onClick={handleMint}
             loading={isMinting}
-            disabled={
-              !recipient || !amount || Number(amount) <= 0 || !walletEVMAddress
-            }
+            disabled={!canMint}
           >
             {!walletEVMAddress
               ? "Connect Wallet to Mint"

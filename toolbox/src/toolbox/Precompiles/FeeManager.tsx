@@ -178,15 +178,15 @@ const InputWithValidation = ({
   value,
   onChange,
   type,
-  error,
   warning,
+  disabled,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type: string;
-  error?: string;
   warning?: string;
+  disabled?: boolean;
 }) => {
   return (
     <div className="space-y-1">
@@ -195,9 +195,9 @@ const InputWithValidation = ({
         value={value}
         onChange={onChange}
         type={type}
-        error={error}
+        disabled={disabled}
       />
-      {warning && !error && (
+      {warning && !disabled && (
         <div className="text-yellow-600 text-sm">{warning}</div>
       )}
     </div>
@@ -205,14 +205,13 @@ const InputWithValidation = ({
 };
 
 export default function FeeManager() {
-  const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
-    useWalletStore();
+  const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const [feeManagerAddress, setFeeManagerAddress] = useState<string>(
     DEFAULT_FEE_MANAGER_ADDRESS
   );
-  const [error, setError] = useState<string | null>(null);
   const [isAddressSet, setIsAddressSet] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Fee config state
   const [gasLimit, setGasLimit] = useState<string>("20000000");
@@ -232,62 +231,45 @@ export default function FeeManager() {
   const [currentConfig, setCurrentConfig] = useState<any>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, string>
-  >({});
   const [validationWarnings, setValidationWarnings] = useState<
     Record<string, string>
   >({});
 
   // Validation effect
   useEffect(() => {
-    const errors: Record<string, string> = {};
     const warnings: Record<string, string> = {};
 
     // Validate each field
     const gasLimitValidation = validateGasLimit(gasLimit);
-    if (!gasLimitValidation.isValid) {
-      errors.gasLimit = gasLimitValidation.message!;
-    } else if (gasLimitValidation.isWarning) {
+    if (gasLimitValidation.isWarning) {
       warnings.gasLimit = gasLimitValidation.message!;
     }
 
     const targetBlockRateValidation = validateTargetBlockRate(targetBlockRate);
-    if (!targetBlockRateValidation.isValid) {
-      errors.targetBlockRate = targetBlockRateValidation.message!;
-    } else if (targetBlockRateValidation.isWarning) {
+    if (targetBlockRateValidation.isWarning) {
       warnings.targetBlockRate = targetBlockRateValidation.message!;
     }
 
     const minBaseFeeValidation = validateMinBaseFee(minBaseFee);
-    if (!minBaseFeeValidation.isValid) {
-      errors.minBaseFee = minBaseFeeValidation.message!;
-    } else if (minBaseFeeValidation.isWarning) {
+    if (minBaseFeeValidation.isWarning) {
       warnings.minBaseFee = minBaseFeeValidation.message!;
     }
 
     const targetGasValidation = validateTargetGas(targetGas);
-    if (!targetGasValidation.isValid) {
-      errors.targetGas = targetGasValidation.message!;
-    } else if (targetGasValidation.isWarning) {
+    if (targetGasValidation.isWarning) {
       warnings.targetGas = targetGasValidation.message!;
     }
 
     const baseFeeChangeDenominatorValidation = validateBaseFeeChangeDenominator(
       baseFeeChangeDenominator
     );
-    if (!baseFeeChangeDenominatorValidation.isValid) {
-      errors.baseFeeChangeDenominator =
-        baseFeeChangeDenominatorValidation.message!;
-    } else if (baseFeeChangeDenominatorValidation.isWarning) {
+    if (baseFeeChangeDenominatorValidation.isWarning) {
       warnings.baseFeeChangeDenominator =
         baseFeeChangeDenominatorValidation.message!;
     }
 
     const minBlockGasCostValidation = validateMinBlockGasCost(minBlockGasCost);
-    if (!minBlockGasCostValidation.isValid) {
-      errors.minBlockGasCost = minBlockGasCostValidation.message!;
-    } else if (minBlockGasCostValidation.isWarning) {
+    if (minBlockGasCostValidation.isWarning) {
       warnings.minBlockGasCost = minBlockGasCostValidation.message!;
     }
 
@@ -295,9 +277,7 @@ export default function FeeManager() {
       maxBlockGasCost,
       minBlockGasCost
     );
-    if (!maxBlockGasCostValidation.isValid) {
-      errors.maxBlockGasCost = maxBlockGasCostValidation.message!;
-    } else if (maxBlockGasCostValidation.isWarning) {
+    if (maxBlockGasCostValidation.isWarning) {
       warnings.maxBlockGasCost = maxBlockGasCostValidation.message!;
     }
 
@@ -307,7 +287,6 @@ export default function FeeManager() {
       warnings.blockGasCostStep = blockGasCostStepValidation.message!;
     }
 
-    setValidationErrors(errors);
     setValidationWarnings(warnings);
   }, [
     gasLimit,
@@ -320,89 +299,33 @@ export default function FeeManager() {
     blockGasCostStep,
   ]);
 
-  const verifyChainConnection = async () => {
-    try {
-      // Get the current chain ID
-      const currentChainId = await publicClient.getChainId();
-      console.log("Current chain ID:", currentChainId);
-
-      // Get the current block number to verify connection
-      const blockNumber = await publicClient.getBlockNumber();
-      console.log("Current block number:", blockNumber);
-
-      return true;
-    } catch (error) {
-      console.error("Chain verification failed:", error);
-      return false;
-    }
-  };
-
   const handleSetAddress = async () => {
-    if (!feeManagerAddress) {
-      setError("Fee Manager address is required");
-      return;
-    }
+    setIsProcessing(true);
 
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
-    try {
-      // Verify chain connection
-      const isConnected = await verifyChainConnection();
-      if (!isConnected) {
-        setError(
-          "Failed to connect to the network. Please ensure your wallet is connected to the correct L1 chain (Current Chain ID: " +
-            walletChainId +
-            ")"
-        );
-        return;
-      }
-
-      // Skip bytecode verification for the default address
-      if (feeManagerAddress === DEFAULT_FEE_MANAGER_ADDRESS) {
-        setIsAddressSet(true);
-        setError(null);
-        return;
-      }
-
-      // Verify the address is a valid Fee Manager contract
-      const code = await publicClient.getBytecode({
-        address: feeManagerAddress as `0x${string}`,
-      });
-
-      if (!code || code === "0x") {
-        setError("Invalid contract address");
-        return;
-      }
-
+    // Skip bytecode verification for the default address
+    if (feeManagerAddress === DEFAULT_FEE_MANAGER_ADDRESS) {
       setIsAddressSet(true);
-      setError(null);
-    } catch (error) {
-      console.error("Error verifying contract:", error);
-      // If it's the default address, we'll still proceed
-      if (feeManagerAddress === DEFAULT_FEE_MANAGER_ADDRESS) {
-        setIsAddressSet(true);
-        setError(null);
-      } else {
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Failed to verify contract address"
-        );
-      }
+      setIsProcessing(false);
+      return;
     }
+
+    // Verify the address is a valid Fee Manager contract
+    const code = await publicClient.getBytecode({
+      address: feeManagerAddress as `0x${string}`,
+    });
+
+    if (!code || code === "0x") {
+      throw new Error("Invalid contract address");
+    }
+
+    setIsAddressSet(true);
+    setIsProcessing(false);
   };
 
   const handleSetFeeConfig = async () => {
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
-    }
+    if (!coreWalletClient) throw new Error("Wallet client not found");
 
     setIsSettingConfig(true);
-    setError(null);
 
     try {
       const hash = await coreWalletClient.writeContract({
@@ -429,20 +352,7 @@ export default function FeeManager() {
       if (receipt.status === "success") {
         setTxHash(hash);
       } else {
-        setError("Transaction failed");
-      }
-    } catch (error) {
-      console.error("Setting fee config failed:", error);
-      if (error instanceof Error) {
-        if (error.message.includes("Failed to fetch")) {
-          setError(
-            `Failed to connect to the network. Please ensure you are connected to the correct L1 chain (Current Chain ID: ${walletChainId})`
-          );
-        } else {
-          setError(error.message);
-        }
-      } else {
-        setError("An unknown error occurred");
+        throw new Error("Transaction failed");
       }
     } finally {
       setIsSettingConfig(false);
@@ -451,66 +361,70 @@ export default function FeeManager() {
 
   const handleGetFeeConfig = async () => {
     setIsReadingConfig(true);
-    setError(null);
 
-    try {
-      const result = (await publicClient.readContract({
-        address: feeManagerAddress as `0x${string}`,
-        abi: feeManagerAbi.abi,
-        functionName: "getFeeConfig",
-      })) as [bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint];
+    const result = (await publicClient.readContract({
+      address: feeManagerAddress as `0x${string}`,
+      abi: feeManagerAbi.abi,
+      functionName: "getFeeConfig",
+    })) as [bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint];
 
-      const [
-        gasLimit,
-        targetBlockRate,
-        minBaseFee,
-        targetGas,
-        baseFeeChangeDenominator,
-        minBlockGasCost,
-        maxBlockGasCost,
-        blockGasCostStep,
-      ] = result;
+    const [
+      gasLimit,
+      targetBlockRate,
+      minBaseFee,
+      targetGas,
+      baseFeeChangeDenominator,
+      minBlockGasCost,
+      maxBlockGasCost,
+      blockGasCostStep,
+    ] = result;
 
-      setCurrentConfig({
-        gasLimit: gasLimit.toString(),
-        targetBlockRate: targetBlockRate.toString(),
-        minBaseFee: minBaseFee.toString(),
-        targetGas: targetGas.toString(),
-        baseFeeChangeDenominator: baseFeeChangeDenominator.toString(),
-        minBlockGasCost: minBlockGasCost.toString(),
-        maxBlockGasCost: maxBlockGasCost.toString(),
-        blockGasCostStep: blockGasCostStep.toString(),
-      });
-    } catch (error) {
-      console.error("Reading fee config failed:", error);
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError("An unknown error occurred");
-      }
-    } finally {
-      setIsReadingConfig(false);
-    }
+    setCurrentConfig({
+      gasLimit: gasLimit.toString(),
+      targetBlockRate: targetBlockRate.toString(),
+      minBaseFee: minBaseFee.toString(),
+      targetGas: targetGas.toString(),
+      baseFeeChangeDenominator: baseFeeChangeDenominator.toString(),
+      minBlockGasCost: minBlockGasCost.toString(),
+      maxBlockGasCost: maxBlockGasCost.toString(),
+      blockGasCostStep: blockGasCostStep.toString(),
+    });
+    setIsReadingConfig(false);
   };
 
   const handleGetLastChangedAt = async () => {
-    try {
-      const result = await publicClient.readContract({
-        address: feeManagerAddress as `0x${string}`,
-        abi: feeManagerAbi.abi,
-        functionName: "getFeeConfigLastChangedAt",
-      });
+    const result = await publicClient.readContract({
+      address: feeManagerAddress as `0x${string}`,
+      abi: feeManagerAbi.abi,
+      functionName: "getFeeConfigLastChangedAt",
+    });
 
-      setLastChangedAt(Number(result));
-    } catch (error) {
-      console.error("Getting last changed timestamp failed:", error);
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError("An unknown error occurred");
-      }
-    }
+    setLastChangedAt(Number(result));
   };
+
+  const canSetAddress = Boolean(
+    feeManagerAddress &&
+    walletEVMAddress &&
+    !isProcessing
+  );
+
+  const isValidFeeConfig = Boolean(
+    validateGasLimit(gasLimit).isValid &&
+    validateTargetBlockRate(targetBlockRate).isValid &&
+    validateMinBaseFee(minBaseFee).isValid &&
+    validateTargetGas(targetGas).isValid &&
+    validateBaseFeeChangeDenominator(baseFeeChangeDenominator).isValid &&
+    validateMinBlockGasCost(minBlockGasCost).isValid &&
+    validateMaxBlockGasCost(maxBlockGasCost, minBlockGasCost).isValid &&
+    validateBlockGasCostStep(blockGasCostStep).isValid
+  );
+
+  const canSetFeeConfig = Boolean(
+    walletEVMAddress &&
+    coreWalletClient &&
+    isValidFeeConfig &&
+    !isSettingConfig
+  );
 
   if (!isAddressSet) {
     return (
@@ -519,30 +433,26 @@ export default function FeeManager() {
         description="Set the address of the Fee Manager precompile contract. The default address is pre-filled, but you can change it if needed."
       >
         <div className="space-y-4">
-          {error && (
-            <div className="p-4 text-red-700 bg-red-100 rounded-md">
-              {error}
-            </div>
-          )}
-
           <EVMAddressInput
             value={feeManagerAddress}
             onChange={setFeeManagerAddress}
             label="Fee Manager Address"
-            disabled={isSettingConfig || isReadingConfig}
+            disabled={isProcessing}
           />
 
           <div className="flex space-x-4">
             <Button
               variant="primary"
               onClick={handleSetAddress}
-              disabled={!feeManagerAddress || !walletEVMAddress}
+              disabled={!canSetAddress}
+              loading={isProcessing}
             >
               Set Fee Manager Address
             </Button>
             <Button
               variant="secondary"
               onClick={() => setFeeManagerAddress("")}
+              disabled={isProcessing}
             >
               Clear Address
             </Button>
@@ -559,76 +469,70 @@ export default function FeeManager() {
         description="Configure the dynamic fee parameters for the chain."
       >
         <div className="space-y-4">
-          {error && (
-            <div className="p-4 text-red-700 bg-red-100 rounded-md">
-              {error}
-            </div>
-          )}
-
           <div className="space-y-2">
             <InputWithValidation
               label="Gas Limit"
               value={gasLimit}
               onChange={setGasLimit}
               type="number"
-              error={validationErrors.gasLimit}
               warning={validationWarnings.gasLimit}
+              disabled={isSettingConfig}
             />
             <InputWithValidation
               label="Target Block Rate"
               value={targetBlockRate}
               onChange={setTargetBlockRate}
               type="number"
-              error={validationErrors.targetBlockRate}
               warning={validationWarnings.targetBlockRate}
+              disabled={isSettingConfig}
             />
             <InputWithValidation
               label="Minimum Base Fee (gwei)"
               value={minBaseFee}
               onChange={setMinBaseFee}
               type="number"
-              error={validationErrors.minBaseFee}
               warning={validationWarnings.minBaseFee}
+              disabled={isSettingConfig}
             />
             <InputWithValidation
               label="Target Gas"
               value={targetGas}
               onChange={setTargetGas}
               type="number"
-              error={validationErrors.targetGas}
               warning={validationWarnings.targetGas}
+              disabled={isSettingConfig}
             />
             <InputWithValidation
               label="Base Fee Change Denominator"
               value={baseFeeChangeDenominator}
               onChange={setBaseFeeChangeDenominator}
               type="number"
-              error={validationErrors.baseFeeChangeDenominator}
               warning={validationWarnings.baseFeeChangeDenominator}
+              disabled={isSettingConfig}
             />
             <InputWithValidation
               label="Minimum Block Gas Cost"
               value={minBlockGasCost}
               onChange={setMinBlockGasCost}
               type="number"
-              error={validationErrors.minBlockGasCost}
               warning={validationWarnings.minBlockGasCost}
+              disabled={isSettingConfig}
             />
             <InputWithValidation
               label="Maximum Block Gas Cost"
               value={maxBlockGasCost}
               onChange={setMaxBlockGasCost}
               type="number"
-              error={validationErrors.maxBlockGasCost}
               warning={validationWarnings.maxBlockGasCost}
+              disabled={isSettingConfig}
             />
             <InputWithValidation
               label="Block Gas Cost Step"
               value={blockGasCostStep}
               onChange={setBlockGasCostStep}
               type="number"
-              error={validationErrors.blockGasCostStep}
               warning={validationWarnings.blockGasCostStep}
+              disabled={isSettingConfig}
             />
           </div>
 
@@ -636,9 +540,7 @@ export default function FeeManager() {
             onClick={handleSetFeeConfig}
             loading={isSettingConfig}
             variant="primary"
-            disabled={
-              !walletEVMAddress || Object.keys(validationErrors).length > 0
-            }
+            disabled={!canSetFeeConfig}
           >
             Set Fee Configuration
           </Button>
@@ -662,10 +564,15 @@ export default function FeeManager() {
             onClick={handleGetFeeConfig}
             loading={isReadingConfig}
             variant="primary"
+            disabled={isReadingConfig}
           >
             Get Current Config
           </Button>
-          <Button onClick={handleGetLastChangedAt} variant="secondary">
+          <Button
+            onClick={handleGetLastChangedAt}
+            variant="secondary"
+            disabled={isReadingConfig || isSettingConfig}
+          >
             Get Last Changed At
           </Button>
 

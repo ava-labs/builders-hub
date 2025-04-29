@@ -43,108 +43,54 @@ const StatusBadge = ({ status, loadingText, isLoading }: StatusBadgeProps) => {
 };
 
 export default function RewardManager() {
-  const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
-    useWalletStore();
+  const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const [rewardManagerAddress, setRewardManagerAddress] = useState<string>(
     DEFAULT_REWARD_MANAGER_ADDRESS
   );
-  const [rewardAddress, setRewardAddress] = useState<string>("");
-  const [isFeeRecipientsAllowed, setIsFeeRecipientsAllowed] = useState<
-    boolean | null
-  >(null);
-  const [currentRewardAddress, setCurrentRewardAddress] = useState<
-    string | null
-  >(null);
-  const [error, setError] = useState<string | null>(null);
   const [isAddressSet, setIsAddressSet] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Fee config state
   const [isAllowingFeeRecipients, setIsAllowingFeeRecipients] = useState(false);
   const [isDisablingRewards, setIsDisablingRewards] = useState(false);
   const [isSettingRewardAddress, setIsSettingRewardAddress] = useState(false);
   const [isCheckingFeeRecipients, setIsCheckingFeeRecipients] = useState(false);
   const [isCheckingRewardAddress, setIsCheckingRewardAddress] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [activeTransaction, setActiveTransaction] = useState<string | null>(
-    null
-  );
-
-  const verifyChainConnection = async () => {
-    try {
-      const currentChainId = await publicClient.getChainId();
-      console.log("Current chain ID:", currentChainId);
-
-      const blockNumber = await publicClient.getBlockNumber();
-      console.log("Current block number:", blockNumber);
-
-      return true;
-    } catch (error) {
-      console.error("Chain verification failed:", error);
-      return false;
-    }
-  };
+  const [activeTransaction, setActiveTransaction] = useState<string | null>(null);
+  const [rewardAddress, setRewardAddress] = useState<string>("");
+  const [isFeeRecipientsAllowed, setIsFeeRecipientsAllowed] = useState<boolean | null>(null);
+  const [currentRewardAddress, setCurrentRewardAddress] = useState<string | null>(null);
 
   const handleSetAddress = async () => {
-    if (!rewardManagerAddress) {
-      setError("Reward Manager address is required");
-      return;
-    }
+    setIsProcessing(true);
 
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
-    try {
-      const isConnected = await verifyChainConnection();
-      if (!isConnected) {
-        setError(
-          "Failed to connect to the network. Please ensure your wallet is connected to the correct L1 chain (Current Chain ID: " +
-            walletChainId +
-            ")"
-        );
-        return;
-      }
-
-      if (rewardManagerAddress === DEFAULT_REWARD_MANAGER_ADDRESS) {
-        setIsAddressSet(true);
-        setError(null);
-        return;
-      }
-
-      const code = await publicClient.getBytecode({
-        address: rewardManagerAddress as `0x${string}`,
-      });
-
-      if (!code || code === "0x") {
-        setError("Invalid contract address");
-        return;
-      }
-
+    // Skip bytecode verification for the default address
+    if (rewardManagerAddress === DEFAULT_REWARD_MANAGER_ADDRESS) {
       setIsAddressSet(true);
-      setError(null);
-    } catch (error) {
-      console.error("Error verifying contract:", error);
-      if (rewardManagerAddress === DEFAULT_REWARD_MANAGER_ADDRESS) {
-        setIsAddressSet(true);
-        setError(null);
-      } else {
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Failed to verify contract address"
-        );
-      }
+      return;
     }
+
+    // Verify the address is a valid Reward Manager contract
+    const code = await publicClient.getBytecode({
+      address: rewardManagerAddress as `0x${string}`,
+    });
+
+    if (!code || code === "0x") {
+      throw new Error("Invalid contract address");
+    }
+
+    setIsAddressSet(true);
+    setIsProcessing(false);
   };
 
   const handleAllowFeeRecipients = async () => {
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
+    if (!walletEVMAddress || !coreWalletClient) {
+      throw new Error("Please connect your wallet first");
     }
 
     setIsAllowingFeeRecipients(true);
-    setError(null);
     setActiveTransaction("allow-fee-recipients");
 
     try {
@@ -162,52 +108,32 @@ export default function RewardManager() {
         setTxHash(hash);
         await checkFeeRecipientsAllowed();
       } else {
-        setError("Transaction failed");
+        throw new Error("Transaction failed");
       }
-    } catch (error) {
-      console.error("Error allowing fee recipients:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to allow fee recipients"
-      );
     } finally {
       setIsAllowingFeeRecipients(false);
     }
   };
 
   const checkFeeRecipientsAllowed = async () => {
-    try {
-      setIsCheckingFeeRecipients(true);
-      setError(null);
+    setIsCheckingFeeRecipients(true);
 
-      const result = await publicClient.readContract({
-        address: rewardManagerAddress as `0x${string}`,
-        abi: rewardManagerAbi.abi,
-        functionName: "areFeeRecipientsAllowed",
-      });
+    const result = await publicClient.readContract({
+      address: rewardManagerAddress as `0x${string}`,
+      abi: rewardManagerAbi.abi,
+      functionName: "areFeeRecipientsAllowed",
+    });
 
-      setIsFeeRecipientsAllowed(result as boolean);
-    } catch (error) {
-      console.error("Error checking fee recipients status:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to check fee recipients status"
-      );
-    } finally {
-      setIsCheckingFeeRecipients(false);
-    }
+    setIsFeeRecipientsAllowed(result as boolean);
+    setIsCheckingFeeRecipients(false);
   };
 
   const handleDisableRewards = async () => {
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
+    if (!walletEVMAddress || !coreWalletClient) {
+      throw new Error("Please connect your wallet first");
     }
 
     setIsDisablingRewards(true);
-    setError(null);
     setActiveTransaction("disable-rewards");
 
     try {
@@ -225,55 +151,36 @@ export default function RewardManager() {
         setTxHash(hash);
         await checkCurrentRewardAddress();
       } else {
-        setError("Transaction failed");
+        throw new Error("Transaction failed");
       }
-    } catch (error) {
-      console.error("Error disabling rewards:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to disable rewards"
-      );
     } finally {
       setIsDisablingRewards(false);
     }
   };
 
   const checkCurrentRewardAddress = async () => {
-    try {
-      setIsCheckingRewardAddress(true);
-      setError(null);
+    setIsCheckingRewardAddress(true);
 
-      const result = await publicClient.readContract({
-        address: rewardManagerAddress as `0x${string}`,
-        abi: rewardManagerAbi.abi,
-        functionName: "currentRewardAddress",
-      });
+    const result = await publicClient.readContract({
+      address: rewardManagerAddress as `0x${string}`,
+      abi: rewardManagerAbi.abi,
+      functionName: "currentRewardAddress",
+    });
 
-      setCurrentRewardAddress(result as string);
-    } catch (error) {
-      console.error("Error checking current reward address:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to check current reward address"
-      );
-    } finally {
-      setIsCheckingRewardAddress(false);
-    }
+    setCurrentRewardAddress(result as string);
+    setIsCheckingRewardAddress(false);
   };
 
   const handleSetRewardAddress = async () => {
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
+    if (!walletEVMAddress || !coreWalletClient) {
+      throw new Error("Please connect your wallet first");
     }
 
     if (!rewardAddress) {
-      setError("Reward address is required");
-      return;
+      throw new Error("Reward address is required");
     }
 
     setIsSettingRewardAddress(true);
-    setError(null);
     setActiveTransaction("set-reward-address");
 
     try {
@@ -292,13 +199,8 @@ export default function RewardManager() {
         setTxHash(hash);
         await checkCurrentRewardAddress();
       } else {
-        setError("Transaction failed");
+        throw new Error("Transaction failed");
       }
-    } catch (error) {
-      console.error("Error setting reward address:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to set reward address"
-      );
     } finally {
       setIsSettingRewardAddress(false);
     }
@@ -311,6 +213,21 @@ export default function RewardManager() {
     isCheckingFeeRecipients ||
     isCheckingRewardAddress;
 
+  const canSetAddress = Boolean(
+    rewardManagerAddress &&
+    walletEVMAddress &&
+    !isProcessing
+  );
+
+  const canSetRewardAddress = Boolean(
+    rewardAddress &&
+    walletEVMAddress &&
+    coreWalletClient &&
+    !isSettingRewardAddress &&
+    !isDisablingRewards &&
+    !isCheckingRewardAddress
+  );
+
   if (!isAddressSet) {
     return (
       <Container
@@ -318,30 +235,26 @@ export default function RewardManager() {
         description="Set the address of the Reward Manager precompile contract. The default address is pre-filled, but you can change it if needed."
       >
         <div className="space-y-4">
-          {error && (
-            <div className="p-4 text-red-700 bg-red-100 rounded-md">
-              {error}
-            </div>
-          )}
-
           <EVMAddressInput
             value={rewardManagerAddress}
             onChange={setRewardManagerAddress}
             label="Reward Manager Address"
-            disabled={isAnyOperationInProgress}
+            disabled={isProcessing}
           />
 
           <div className="flex space-x-4">
             <Button
               variant="primary"
               onClick={handleSetAddress}
-              disabled={!rewardManagerAddress || !walletEVMAddress}
+              disabled={!canSetAddress}
+              loading={isProcessing}
             >
               Set Reward Manager Address
             </Button>
             <Button
               variant="secondary"
               onClick={() => setRewardManagerAddress("")}
+              disabled={isProcessing}
             >
               Clear Address
             </Button>
@@ -358,15 +271,6 @@ export default function RewardManager() {
         description="Manage reward settings for the network"
       >
         <div className="space-y-4">
-          {error && (
-            <div className="p-4 bg-red-50 border-b border-red-100">
-              <div className="flex items-center gap-2 text-red-700">
-                <AlertCircle className="h-4 w-4" />
-                <span>{error}</span>
-              </div>
-            </div>
-          )}
-
           <div className="space-y-4 p-4">
             {/* Fee Recipients Section */}
             <div className="space-y-4">
@@ -489,8 +393,8 @@ export default function RewardManager() {
               <Button
                 variant="primary"
                 onClick={handleSetRewardAddress}
-                disabled={!walletEVMAddress || isAnyOperationInProgress}
-                className="w-full"
+                disabled={!canSetRewardAddress}
+                loading={isSettingRewardAddress}
               >
                 {isSettingRewardAddress
                   ? "Processing..."

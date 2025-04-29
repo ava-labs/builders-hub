@@ -28,26 +28,11 @@ export function SetEnabledComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleSetEnabled = async () => {
-    if (!enabledAddress) {
-      setError("Enabled address is required");
-      return;
-    }
-
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
-    if (!coreWalletClient) {
-      setError("Wallet client not found");
-      return;
-    }
-
     setIsProcessing(true);
     setError(null);
 
     try {
-      const hash = await coreWalletClient.writeContract({
+      const hash = await coreWalletClient!.writeContract({
         address: precompileAddress as `0x${string}`,
         abi: abi,
         functionName: "setEnabled",
@@ -82,6 +67,13 @@ export function SetEnabledComponent({
     }
   };
 
+  const canSetEnabled = Boolean(
+    enabledAddress &&
+    walletEVMAddress &&
+    coreWalletClient &&
+    !isProcessing
+  );
+
   return (
     <Container
       title={`Set Enabled ${precompileType}`}
@@ -96,13 +88,14 @@ export function SetEnabledComponent({
           label="Enabled Address"
           value={enabledAddress}
           onChange={setEnabledAddress}
+          disabled={isProcessing}
         />
 
         <Button
           onClick={handleSetEnabled}
           loading={isProcessing}
           variant="primary"
-          disabled={!enabledAddress || !walletEVMAddress}
+          disabled={!canSetEnabled}
         >
           {!walletEVMAddress
             ? `Connect Wallet to Set Enabled ${precompileType}`
@@ -140,26 +133,11 @@ export function SetManagerComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleSetManager = async () => {
-    if (!managerAddress) {
-      setError("Manager address is required");
-      return;
-    }
-
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
-    if (!coreWalletClient) {
-      setError("Wallet client not found");
-      return;
-    }
-
     setIsProcessing(true);
     setError(null);
 
     try {
-      const hash = await coreWalletClient.writeContract({
+      const hash = await coreWalletClient!.writeContract({
         address: precompileAddress as `0x${string}`,
         abi: abi,
         functionName: "setManager",
@@ -194,6 +172,13 @@ export function SetManagerComponent({
     }
   };
 
+  const canSetManager = Boolean(
+    managerAddress &&
+    walletEVMAddress &&
+    coreWalletClient &&
+    !isProcessing
+  );
+
   return (
     <Container
       title={`Set Manager ${precompileType}`}
@@ -208,13 +193,14 @@ export function SetManagerComponent({
           label="Manager Address"
           value={managerAddress}
           onChange={setManagerAddress}
+          disabled={isProcessing}
         />
 
         <Button
           onClick={handleSetManager}
           loading={isProcessing}
           variant="primary"
-          disabled={!managerAddress || !walletEVMAddress}
+          disabled={!canSetManager}
         >
           {!walletEVMAddress
             ? "Connect Wallet to Set Manager"
@@ -252,26 +238,11 @@ export function SetAdminComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleSetAdmin = async () => {
-    if (!adminAddress) {
-      setError("Admin address is required");
-      return;
-    }
-
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
-    if (!coreWalletClient) {
-      setError("Wallet client not found");
-      return;
-    }
-
     setIsProcessing(true);
     setError(null);
 
     try {
-      const hash = await coreWalletClient.writeContract({
+      const hash = await coreWalletClient!.writeContract({
         address: precompileAddress as `0x${string}`,
         abi: abi,
         functionName: "setAdmin",
@@ -306,6 +277,13 @@ export function SetAdminComponent({
     }
   };
 
+  const canSetAdmin = Boolean(
+    adminAddress &&
+    walletEVMAddress &&
+    coreWalletClient &&
+    !isProcessing
+  );
+
   return (
     <Container
       title={`Set Admin ${precompileType}`}
@@ -320,13 +298,14 @@ export function SetAdminComponent({
           label="Admin Address"
           value={adminAddress}
           onChange={setAdminAddress}
+          disabled={isProcessing}
         />
 
         <Button
           onClick={handleSetAdmin}
           loading={isProcessing}
           variant="primary"
-          disabled={!adminAddress || !walletEVMAddress}
+          disabled={!canSetAdmin}
         >
           {!walletEVMAddress
             ? "Connect Wallet to Set Admin"
@@ -364,26 +343,11 @@ export function RemoveAllowListComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleRemove = async () => {
-    if (!removeAddress) {
-      setError("Address to remove is required");
-      return;
-    }
-
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
-    if (!coreWalletClient) {
-      setError("Wallet client not found");
-      return;
-    }
-
     setIsProcessing(true);
     setError(null);
 
     try {
-      const hash = await coreWalletClient.writeContract({
+      const hash = await coreWalletClient!.writeContract({
         address: precompileAddress as `0x${string}`,
         abi: abi,
         functionName: "setNone",
@@ -418,6 +382,13 @@ export function RemoveAllowListComponent({
     }
   };
 
+  const canRemove = Boolean(
+    removeAddress &&
+    walletEVMAddress &&
+    coreWalletClient &&
+    !isProcessing
+  );
+
   return (
     <Container
       title={`Remove from ${precompileType} Allowlist`}
@@ -432,13 +403,14 @@ export function RemoveAllowListComponent({
           label="Address"
           value={removeAddress}
           onChange={setRemoveAddress}
+          disabled={isProcessing}
         />
 
         <Button
           onClick={handleRemove}
           loading={isProcessing}
           variant="primary"
-          disabled={!removeAddress || !walletEVMAddress}
+          disabled={!canRemove}
         >
           {!walletEVMAddress
             ? "Connect Wallet to Remove"
@@ -474,11 +446,6 @@ export function ReadAllowListComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleRead = async () => {
-    if (!readAddress) {
-      setError("Address to read is required");
-      return;
-    }
-
     setIsReading(true);
     setError(null);
 
@@ -503,6 +470,8 @@ export function ReadAllowListComponent({
     }
   };
 
+  const canRead = Boolean(readAddress && !isReading);
+
   return (
     <Container
       title={`Read ${precompileType} Allowlist`}
@@ -517,13 +486,14 @@ export function ReadAllowListComponent({
           label="Address to Read"
           value={readAddress}
           onChange={setReadAddress}
+          disabled={isReading}
         />
 
         <Button
           onClick={handleRead}
           loading={isReading}
           variant="primary"
-          disabled={!readAddress}
+          disabled={!canRead}
         >
           Read
         </Button>
@@ -535,12 +505,12 @@ export function ReadAllowListComponent({
               {readResult === 0
                 ? "None"
                 : readResult === 1
-                ? "Enabled"
-                : readResult === 2
-                ? "Admin"
-                : readResult === 3
-                ? "Manager"
-                : `Unknown (${readResult})`}
+                  ? "Enabled"
+                  : readResult === 2
+                    ? "Admin"
+                    : readResult === 3
+                      ? "Manager"
+                      : `Unknown (${readResult})`}
             </p>
           </div>
         )}

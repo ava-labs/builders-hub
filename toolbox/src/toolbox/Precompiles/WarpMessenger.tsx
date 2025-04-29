@@ -15,8 +15,7 @@ const DEFAULT_WARP_MESSENGER_ADDRESS =
   "0x0200000000000000000000000000000000000005";
 
 export default function WarpMessenger() {
-  const { coreWalletClient, publicClient, walletEVMAddress, walletChainId } =
-    useWalletStore();
+  const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const [warpMessengerAddress, setWarpMessengerAddress] = useState<string>(
     DEFAULT_WARP_MESSENGER_ADDRESS
@@ -28,93 +27,39 @@ export default function WarpMessenger() {
   const [warpBlockHash, setWarpBlockHash] = useState<any>(null);
   const [warpMessage, setWarpMessage] = useState<any>(null);
   const [messageID, setMessageID] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isAddressSet, setIsAddressSet] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isGettingBlockHash, setIsGettingBlockHash] = useState(false);
+  const [isGettingMessage, setIsGettingMessage] = useState(false);
+  const [isGettingBlockchainID, setIsGettingBlockchainID] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
 
-  const verifyChainConnection = async () => {
-    try {
-      const currentChainId = await publicClient.getChainId();
-      console.log("Current chain ID:", currentChainId);
-
-      const blockNumber = await publicClient.getBlockNumber();
-      console.log("Current block number:", blockNumber);
-
-      return true;
-    } catch (error) {
-      console.error("Chain verification failed:", error);
-      return false;
-    }
-  };
-
   const handleSetAddress = async () => {
-    if (!warpMessengerAddress) {
-      setError("Warp Messenger address is required");
-      return;
-    }
+    setIsProcessing(true);
 
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
-    try {
-      const isConnected = await verifyChainConnection();
-      if (!isConnected) {
-        setError(
-          "Failed to connect to the network. Please ensure your wallet is connected to the correct L1 chain (Current Chain ID: " +
-            walletChainId +
-            ")"
-        );
-        return;
-      }
-
-      if (warpMessengerAddress === DEFAULT_WARP_MESSENGER_ADDRESS) {
-        setIsAddressSet(true);
-        setError(null);
-        return;
-      }
-
-      const code = await publicClient.getBytecode({
-        address: warpMessengerAddress as `0x${string}`,
-      });
-
-      if (!code || code === "0x") {
-        setError("Invalid contract address");
-        return;
-      }
-
+    if (warpMessengerAddress === DEFAULT_WARP_MESSENGER_ADDRESS) {
       setIsAddressSet(true);
-      setError(null);
-    } catch (error) {
-      console.error("Error verifying contract:", error);
-      if (warpMessengerAddress === DEFAULT_WARP_MESSENGER_ADDRESS) {
-        setIsAddressSet(true);
-        setError(null);
-      } else {
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Failed to verify contract address"
-        );
-      }
+      setIsProcessing(false);
+      return;
     }
+
+    const code = await publicClient.getBytecode({
+      address: warpMessengerAddress as `0x${string}`,
+    });
+
+    if (!code || code === "0x") {
+      throw new Error("Invalid contract address");
+    }
+
+    setIsAddressSet(true);
+    setIsProcessing(false);
   };
 
   const handleSendWarpMessage = async () => {
-    if (!walletEVMAddress) {
-      setError("Please connect your wallet first");
-      return;
-    }
+    if (!coreWalletClient) throw new Error("Wallet client not found");
 
-    if (!messagePayload) {
-      setError("Message payload is required");
-      return;
-    }
-
-    setIsProcessing(true);
-    setError(null);
+    setIsSendingMessage(true);
 
     try {
       const hash = await coreWalletClient.writeContract({
@@ -135,95 +80,97 @@ export default function WarpMessenger() {
           (log) =>
             log.topics[0] ===
             "0x" +
-              warpMessengerAbi.abi
-                .find(
-                  (item) =>
-                    item.type === "event" && item.name === "SendWarpMessage"
-                )
-                ?.name?.toLowerCase()
+            warpMessengerAbi.abi
+              .find(
+                (item) =>
+                  item.type === "event" && item.name === "SendWarpMessage"
+              )
+              ?.name?.toLowerCase()
         );
         if (event && event.topics[1]) {
           setMessageID(event.topics[1]);
         }
       } else {
-        setError("Transaction failed");
+        throw new Error("Transaction failed");
       }
-    } catch (error) {
-      console.error("Error sending warp message:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to send warp message"
-      );
     } finally {
-      setIsProcessing(false);
+      setIsSendingMessage(false);
     }
   };
 
   const handleGetBlockchainID = async () => {
-    try {
-      const result = await publicClient.readContract({
-        address: warpMessengerAddress as `0x${string}`,
-        abi: warpMessengerAbi.abi,
-        functionName: "getBlockchainID",
-      });
+    setIsGettingBlockchainID(true);
 
-      setBlockchainID(result as string);
-    } catch (error) {
-      console.error("Error getting blockchain ID:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to get blockchain ID"
-      );
-    }
+    const result = await publicClient.readContract({
+      address: warpMessengerAddress as `0x${string}`,
+      abi: warpMessengerAbi.abi,
+      functionName: "getBlockchainID",
+    });
+
+    setBlockchainID(result as string);
+    setIsGettingBlockchainID(false);
   };
 
   const handleGetVerifiedWarpBlockHash = async () => {
-    if (!blockIndex) {
-      setError("Block index is required");
-      return;
-    }
+    setIsGettingBlockHash(true);
 
-    try {
-      const result = await publicClient.readContract({
-        address: warpMessengerAddress as `0x${string}`,
-        abi: warpMessengerAbi.abi,
-        functionName: "getVerifiedWarpBlockHash",
-        args: [parseInt(blockIndex)],
-      });
+    const result = await publicClient.readContract({
+      address: warpMessengerAddress as `0x${string}`,
+      abi: warpMessengerAbi.abi,
+      functionName: "getVerifiedWarpBlockHash",
+      args: [parseInt(blockIndex)],
+    });
 
-      setWarpBlockHash(result);
-    } catch (error) {
-      console.error("Error getting verified warp block hash:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to get verified warp block hash"
-      );
-    }
+    setWarpBlockHash(result);
+    setIsGettingBlockHash(false);
   };
 
   const handleGetVerifiedWarpMessage = async () => {
-    if (!messageIndex) {
-      setError("Message index is required");
-      return;
-    }
+    setIsGettingMessage(true);
 
-    try {
-      const result = await publicClient.readContract({
-        address: warpMessengerAddress as `0x${string}`,
-        abi: warpMessengerAbi.abi,
-        functionName: "getVerifiedWarpMessage",
-        args: [parseInt(messageIndex)],
-      });
+    const result = await publicClient.readContract({
+      address: warpMessengerAddress as `0x${string}`,
+      abi: warpMessengerAbi.abi,
+      functionName: "getVerifiedWarpMessage",
+      args: [parseInt(messageIndex)],
+    });
 
-      setWarpMessage(result);
-    } catch (error) {
-      console.error("Error getting verified warp message:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to get verified warp message"
-      );
-    }
+    setWarpMessage(result);
+    setIsGettingMessage(false);
   };
+
+  const canSetAddress = Boolean(
+    warpMessengerAddress &&
+    walletEVMAddress &&
+    !isProcessing
+  );
+
+  const canSendMessage = Boolean(
+    messagePayload &&
+    walletEVMAddress &&
+    coreWalletClient &&
+    !isSendingMessage
+  );
+
+  const canGetBlockHash = Boolean(
+    blockIndex &&
+    !isGettingBlockHash &&
+    !isSendingMessage
+  );
+
+  const canGetMessage = Boolean(
+    messageIndex &&
+    !isGettingMessage &&
+    !isSendingMessage
+  );
+
+  const isAnyOperationInProgress = Boolean(
+    isProcessing ||
+    isSendingMessage ||
+    isGettingBlockHash ||
+    isGettingMessage ||
+    isGettingBlockchainID
+  );
 
   if (!isAddressSet) {
     return (
@@ -232,12 +179,6 @@ export default function WarpMessenger() {
         description="Set the address of the Warp Messenger precompile contract. The default address is pre-filled, but you can change it if needed."
       >
         <div className="space-y-4">
-          {error && (
-            <div className="p-4 text-red-700 bg-red-100 rounded-md">
-              {error}
-            </div>
-          )}
-
           <EVMAddressInput
             value={warpMessengerAddress}
             onChange={setWarpMessengerAddress}
@@ -249,13 +190,15 @@ export default function WarpMessenger() {
             <Button
               variant="primary"
               onClick={handleSetAddress}
-              disabled={!warpMessengerAddress || !walletEVMAddress}
+              disabled={!canSetAddress}
+              loading={isProcessing}
             >
               Use Default Address
             </Button>
             <Button
               variant="secondary"
               onClick={() => setWarpMessengerAddress("")}
+              disabled={isProcessing}
             >
               Clear Address
             </Button>
@@ -272,18 +215,13 @@ export default function WarpMessenger() {
         description="Send and verify cross-chain messages."
       >
         <div className="space-y-4">
-          {error && (
-            <div className="p-4 text-red-700 bg-red-100 rounded-md">
-              {error}
-            </div>
-          )}
-
           <div className="space-y-4">
             <div className="flex space-x-4">
               <Button
                 variant="primary"
                 onClick={handleGetBlockchainID}
-                disabled={!walletEVMAddress}
+                disabled={isAnyOperationInProgress}
+                loading={isGettingBlockchainID}
               >
                 Get Blockchain ID
               </Button>
@@ -300,12 +238,13 @@ export default function WarpMessenger() {
                 value={messagePayload}
                 onChange={(e) => setMessagePayload(e.target.value)}
                 className="w-full p-2 border rounded"
+                disabled={isAnyOperationInProgress}
               />
               <Button
                 variant="primary"
                 onClick={handleSendWarpMessage}
-                loading={isProcessing}
-                disabled={!walletEVMAddress || !messagePayload}
+                loading={isSendingMessage}
+                disabled={!canSendMessage}
               >
                 Send Warp Message
               </Button>
@@ -320,11 +259,13 @@ export default function WarpMessenger() {
                 value={blockIndex}
                 onChange={(e) => setBlockIndex(e.target.value)}
                 className="w-full p-2 border rounded"
+                disabled={isAnyOperationInProgress}
               />
               <Button
                 variant="secondary"
                 onClick={handleGetVerifiedWarpBlockHash}
-                disabled={!walletEVMAddress || !blockIndex}
+                loading={isGettingBlockHash}
+                disabled={!canGetBlockHash}
               >
                 Get Verified Warp Block Hash
               </Button>
@@ -354,11 +295,13 @@ export default function WarpMessenger() {
                 value={messageIndex}
                 onChange={(e) => setMessageIndex(e.target.value)}
                 className="w-full p-2 border rounded"
+                disabled={isAnyOperationInProgress}
               />
               <Button
                 variant="secondary"
                 onClick={handleGetVerifiedWarpMessage}
-                disabled={!walletEVMAddress || !messageIndex}
+                loading={isGettingMessage}
+                disabled={!canGetMessage}
               >
                 Get Verified Warp Message
               </Button>
