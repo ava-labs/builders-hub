@@ -31,7 +31,8 @@ import {
 import { ChevronDown } from "lucide-react";
 import { JoinTeamDialog } from "./JoinTeamDialog";
 import { LoadingButton } from "@/components/ui/loading-button";
-
+import { ProjectMemberWarningDialog } from "./ProjectMemberWarningDialog";
+import { useRouter, useSearchParams } from "next/navigation";
 export default function MembersComponent({
   project_id,
   hackaton_id,
@@ -40,7 +41,10 @@ export default function MembersComponent({
   onHandleSave,
   openjoinTeamDialog,
   onOpenChange,
-  teamName
+  teamName,
+  currentEmail,
+  openCurrentProject,
+  setOpenCurrentProject,
 }: projectProps) {
   const [members, setMembers] = useState<any[]>([]);
   const [openModal, setOpenModal] = useState(false); // State for modal
@@ -50,7 +54,6 @@ export default function MembersComponent({
   const [sendingInvitation, setSendingInvitation] = useState(false);
   const [invalidEmails, setInvalidEmails] = useState<string[]>([]);
   const [isValidingEmail, setIsValidingEmail] = useState(false);
-
   const roles: string[] = [
     "Member",
     "Developer",
@@ -59,21 +62,13 @@ export default function MembersComponent({
     "Designer",
   ];
 
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const handleAddEmail = () => {
     if (newEmail && !emails.includes(newEmail) && validateEmail(newEmail)) {
       setIsValidingEmail(true);
       setEmails((prev) => [...prev, newEmail]);
-      checkEmailRegistered(newEmail)
-        .then((isRegistered) => {
-          if (!isRegistered) {
-            setInvalidEmails((prev) => [...prev, newEmail]);
-          }
-          setIsValidingEmail(false);
-        })
-        .catch((err) => {
-          console.error("Error checking email registration:", err);
-          setIsValidingEmail(false);
-        });
       setNewEmail("");
     }
   };
@@ -83,26 +78,13 @@ export default function MembersComponent({
     return emailRegex.test(email);
   };
 
-  const checkEmailRegistered = async (email: string): Promise<boolean> => {
-    try {
-      const response = await axios.get(
-        `/api/users/check?email=${encodeURIComponent(email)}`
-      );
-      return response.data.exists;
-    } catch (error) {
-      console.error("Error checking email registration:", error);
-      return false;
-    }
-  };
-
   const handleRemoveEmail = (email: string) => {
     setEmails(emails.filter((e) => e !== email));
     setInvalidEmails(invalidEmails.filter((e) => e !== email));
   };
 
   const handleSendInvitations = async () => {
-    if (emails.length === 0 || invalidEmails.length > 0 || isValidingEmail)
-      return;
+    if (emails.length === 0 || invalidEmails.length > 0) return;
     try {
       setSendingInvitation(true);
       if (onHandleSave) {
@@ -125,8 +107,7 @@ export default function MembersComponent({
       setMembers(response.data);
     } catch (error) {
       console.error("Error sending invitations:", error);
-    }
-    finally {
+    } finally {
       setSendingInvitation(false);
     }
   };
@@ -149,6 +130,7 @@ export default function MembersComponent({
       await axios.patch(`/api/project/${project_id}/members/status`, {
         user_id: id_user,
         status: "Removed",
+        email: email,
       });
       setMembers(members.filter((member) => member.email !== email));
     } catch (error) {
@@ -173,17 +155,50 @@ export default function MembersComponent({
     }
   };
 
-  const handleAcceptJoinTeam = async (result:boolean) => {  
-
-    if(result){
+  const handleAcceptJoinTeam = async (result: boolean) => {
+    if (result) {
       setMembers((prevMembers) =>
         prevMembers.map((m) =>
-          m.user_id === user_id ? { ...m, status: "Confirmed" } : m
+          m.user_id === user_id || m.email === currentEmail
+            ? { ...m, status: "Confirmed" }
+            : m
         )
       );
-    
-  }
-  }
+    }
+  };
+
+  const handleAcceptJoinTeamWithPreviousProject = async (accepted: boolean) => {
+    if (!accepted) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("invitation");
+      onOpenChange(false);
+      router.push(`/hackathons/project-submission?${params.toString()}`);
+      setOpenCurrentProject
+        ? setOpenCurrentProject(false)
+        : (openCurrentProject = false);
+      return;
+    }
+    try {
+      axios
+        .patch(`/api/project/${project_id}/members/status`, {
+          user_id: user_id,
+          status: "Confirmed",
+          wasInOtherProject: true,
+        })
+        .then(() => {
+          console.log("Status updated successfully");
+        })
+        .catch((error) => {
+          console.error("Error updating status:", error);
+        });
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error joining team:", error);
+    }
+    setOpenCurrentProject
+      ? setOpenCurrentProject(false)
+      : (openCurrentProject = false);
+  };
 
   useEffect(() => {
     if (!project_id) return;
@@ -293,11 +308,7 @@ export default function MembersComponent({
                       loadingText="Sending..."
                       onClick={handleSendInvitations}
                       type="button"
-                      disabled={
-                        emails.length === 0 ||
-                        isValidingEmail ||
-                        invalidEmails.length > 0
-                      }
+                      disabled={emails.length === 0 || invalidEmails.length > 0}
                       className="dark:bg-white"
                     >
                       Send Invitation
@@ -439,15 +450,22 @@ export default function MembersComponent({
           </TableBody>
         </Table>
       </div>
-      
+
       <JoinTeamDialog
-        open={openjoinTeamDialog||false}
+        open={openjoinTeamDialog || false}
         onOpenChange={onOpenChange}
         setLoadData={handleAcceptJoinTeam}
         teamName={teamName as string}
         projectId={project_id as string}
         hackathonId={hackaton_id as string}
         currentUserId={user_id as string}
+      />
+      <ProjectMemberWarningDialog
+        open={openCurrentProject || false}
+        onOpenChange={setOpenCurrentProject || (() => {})}
+        projectName={teamName as string}
+        hackathonId={hackaton_id as string}
+        setLoadData={handleAcceptJoinTeamWithPreviousProject}
       />
     </>
   );

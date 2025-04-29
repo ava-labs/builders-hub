@@ -32,7 +32,9 @@ export interface projectProps {
   openjoinTeamDialog?: boolean;
   onOpenChange: (open: boolean) => void;
   teamName?: string;
-  
+  currentEmail?: string;
+  openCurrentProject?: boolean;
+  setOpenCurrentProject?: (open: boolean) => void;
 }
 
 const SubmitStep1: FC<projectProps> = (project) => {

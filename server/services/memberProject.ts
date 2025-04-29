@@ -5,21 +5,84 @@ import { ValidationError } from "./hackathons";
 export async function UpdateStatusMember(
   user_id: string,
   project_id: string,
-  status: string
+  status: string,
+  email: string,
+  wasInOtherProject: boolean
 ) {
   if (!user_id || !project_id || !status) {
     throw new ValidationError("user_id and project_id are required", []);
   }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: user_id,
+    },
+  });
+
+
+
+  const member = await prisma.member.findFirst({
+    where: {
+      OR: [
+        { user_id: user_id },
+        { email: user?.email },
+        { email: email }
+      ],
+      project_id: project_id
+    }
+  });
+
+  if (!member) {
+    throw new ValidationError("Member not found", []);
+  }
+
   const updatedMember = await prisma.member.update({
     where: {
-      user_id_project_id: {
-        user_id: user_id as string,
-        project_id: project_id as string,
-      },
+      id: member.id,
+      project_id: project_id
     },
     data: { status: status },
   });
+
+  if (wasInOtherProject) {
+    const currentProject = await prisma.project.findUnique({
+      where: {
+        id: project_id,
+      },
+    });
+
+    const allProjects = await prisma.project.findMany({
+      where: {
+        hackaton_id: currentProject!.hackaton_id,
+        AND: {
+          id: { not: project_id }
+        }
+      },
+      select: {
+        id: true,
+      },
+    });
+    console.log(allProjects)
+    const projectIds = allProjects.map(p => p.id);
+    console.log(projectIds)
+    await prisma.member.updateMany({
+      where: {
+        project_id: {
+          in: projectIds,
+        },
+        AND: {
+          id: member.id
+        }
+      },
+      data: { status: "Removed" }
+    });
+
+
+  }
+
   return updatedMember;
+
+
 }
 
 export async function GetMembersByProjectId(project_id: string) {
@@ -48,10 +111,10 @@ export async function GetMembersByProjectId(project_id: string) {
   }));
 }
 
-export async function UpdateRoleMember(member_id:string,role:string){
-    const updatedMember = await prisma.member.update({
-        where: { id: member_id },
-        data: { role },
-      });
+export async function UpdateRoleMember(member_id: string, role: string) {
+  const updatedMember = await prisma.member.update({
+    where: { id: member_id },
+    data: { role },
+  });
   return updatedMember;
 }

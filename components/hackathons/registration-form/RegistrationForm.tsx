@@ -33,6 +33,7 @@ export const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
   company_name: z.string().optional(),
+  telegram_user: z.string().optional(),
   role: z.string().optional(),
   city: z.string().min(1, "City is required"),
   interests: z.array(z.string()).min(1, "Interests are required"),
@@ -115,6 +116,7 @@ export function RegisterForm({
       languages: [],
       hackathon_participation: "",
       github_portfolio: "",
+      telegram_user: "",
       terms_event_conditions: false,
       newsletter_subscription: false,
       prohibited_items: false,
@@ -166,6 +168,7 @@ export function RegisterForm({
           role: loadedData.role || "",
           city: loadedData.city || "",
           dietary: loadedData.dietary || "",
+          telegram_user: loadedData.telegram_user || "",
           interests: loadedData.interests
             ? parseArrayField(loadedData.interests)
             : [],
@@ -211,7 +214,7 @@ export function RegisterForm({
     try {
       await axios.post(`/api/register-form/`, data);
       if (typeof window !== "undefined") {
-        localStorage.removeItem("formData");
+        localStorage.removeItem(`formData_${hackathon_id}`);
       }
     } catch (err) {
       console.error("API Error:", err);
@@ -424,7 +427,7 @@ export function RegisterForm({
                 {step < 3 && (
                   <PaginationNext
                     className="dark:hover:text-gray-200 cursor-pointer"
-                    onClick={form.handleSubmit(onSubmit)}
+                    onClick={onNextStep}
                   />
                 )}
               </div>
