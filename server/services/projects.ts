@@ -44,9 +44,9 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
       has: options.track,
     };
   }
-  // if (options.winningProjects) {
-  //   filters.winningProjects = true
-  // }
+  if (!!options.winningProjects) {
+    filters.prizes = { some: {} }
+  }
   if (options.search) {
     const searchWords = options.search.split(/\s+/);
     let searchFilters: any[] = [];
@@ -100,7 +100,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
 
   return {
     projects: projects.map((project) => ({
-      ...project,      
+      ...project,
       members: [],
       hackathon: {
         ...project.hackathon,

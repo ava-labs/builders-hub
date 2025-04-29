@@ -143,8 +143,9 @@ export default function ProfileForm({
         variant: "destructive",
       });
     } finally {
-      await update();
+      await update();      
       setIsSaving(false);
+      router.push("/");
     }
   };
 
