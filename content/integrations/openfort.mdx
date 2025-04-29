@@ -5,21 +5,36 @@ available: ["C-Chain", "All EVM L1s"]
 description: "Create secure embedded wallets with seamless authentication flows and gas sponsorship capabilities."
 logo: /images/openfort.png
 developer: Openfort
-website: https://openfort.xyz
-documentation: https://www.openfort.xyz/docs
+website: https://openfort.io
+documentation: https://www.openfort.io/docs
 ---
 
 ## Overview
-Openfort is a comprehensive Web3 development platform that enables developers to create embedded wallet experiences with advanced authentication flows. It provides secure key management, transaction handling, and gas sponsorship capabilities while maintaining compatibility with EVM chains including Avalanche.
+[Openfort](https://openfort.io) is an open-source alternative to wallet infrastructure solutions. The core offerings—Openfort Kit, Invisible Wallet, and Cross-app Wallet - enable rapid integration of wallet functionality, intuitive onboarding, and flexible user journeys for any application or ecosystem.
 
-## Features
-- Multi-chain embedded wallet creation and management
-- Multiple authentication methods (email/password, social login, Web3)
-- EIP-1193 provider compatibility for seamless dApp integration
-- Programmable transaction policies and gas sponsorship
-- Session key management for temporary authorized access
-- Server-side and client-side SDKs
-- Smart contract interaction utilities
+### [Openfort Kit](https://www.openfort.io/docs/products/kit/react/quickstart)
+
+Openfort Kit is a developer toolkit that streamlines the integration of wallet authentication and connectivity into any web application. It provides:
+
+- **Plug-and-play UI Components**: Prebuilt, customizable authentication and wallet connection flows that can be deployed in minutes, not weeks, with support for major authentication providers and wallet connector
+- **Developer Experience**: TypeScript-ready, ecosystem-standard libraries (wagmi, viem), and easy integration with frameworks like React, Next.js, and Create React App.
+- **Full Customization**: Predesigned themes or the ability to fully tailor the UI to match your brand.
+
+### [Invisible Wallet](https://www.openfort.io/docs/products/embedded-wallet/javascript)
+
+Invisible Wallet enables applications to onboard users without requiring them to interact directly with traditional wallet interfaces. Features include:
+
+- **Embedded Non-custodial Signer**: Secure, self-custodied wallet creation and signing for users, with no need for browser extensions or external apps.
+- **Fundign Support**: Users can onramp their newly created wallets with traditional methods or depositing crypto. 
+- **Key Export**: Users can always export private keys, allowing them to take the wallet with them.
+
+### [Cross-app Wallet](https://www.openfort.io/docs/products/cross-app-wallet/setup)
+
+The Cross-app Wallet empowers ecosystems and platforms to offer branded, interoperable wallets that work across multiple apps and services. Key capabilities:
+
+- **Ecosystem SDK**: Build your own wallet SDK that can be integrated across your suite of apps, ensuring users have a consistent identity and asset management experience everywhere.
+- **No App or Extension Required**: Users can create and use wallets instantly via iFrames or embedded flows, compatible with any EVM chain.
+- **Modern Standards**: Supports the latest Ethereum standards (EIP-1193, 6963, 7702, 4337, and more) for broad compatibility and future-proofing.
 
 ## Getting Started
 
@@ -95,28 +110,4 @@ const response = await openfortClient.sendSignatureTransactionIntentRequest(
 ```
 
 ## Documentation
-For detailed implementation guides and API references, visit [Openfort Documentation](https://www.openfort.xyz/docs)
-
-## Use Cases
-- **Gaming Applications**
-  - Implement player wallets for in-game assets
-  - Sponsor gas fees for player transactions
-  - Manage session-based access for temporary game actions
-
-- **NFT Platforms**
-  - Create embedded wallets for NFT collectors
-  - Streamline minting and trading processes
-  - Implement gasless transactions for better UX
-
-- **DeFi Applications**
-  - Secure wallet management for DeFi users
-  - Programmatic transaction policies
-  - Multi-chain wallet support
-
-- **Web3 Social Platforms**
-  - Social login integration with wallet creation
-  - Simplified onboarding for non-crypto users
-  - Transaction sponsorship for engagement actions
-
-## Conclusion
-Openfort provides a robust solution for implementing embedded wallets and authentication in Web3 applications. Its support for Avalanche and other EVM chains, combined with features like gas sponsorship and session keys, makes it an excellent choice for developers looking to create user-friendly blockchain applications. The platform's focus on security, combined with its flexible authentication options and EIP-1193 compatibility, enables developers to build sophisticated Web3 applications while maintaining a seamless user experience.
+For detailed implementation guides and API references, visit [Openfort Documentation](https://www.openfort.io/docs)
