@@ -15,7 +15,7 @@ import { cn } from "../../lib/utils"
 import { packL1ValidatorRegistration } from "../../coreViem/utils/convertWarp"
 import { packWarpIntoAccessList } from "./packWarp"
 import { StepIndicator } from "../components/StepIndicator"
-import { useToolboxStore, useViemChainStore } from "../toolboxStore"
+import { useSelectedL1, useViemChainStore } from "../toolboxStore"
 import { useWalletStore } from "../../lib/walletStore"
 import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
 import { getValidationIdHex } from "../../coreViem/hooks/getValidationID"
@@ -42,21 +42,17 @@ const removalStepsConfig: StepsConfig<RemovalStepKey> = {
 
 export default function RemoveValidator() {
   const { showBoundary } = useErrorBoundary()
-  const { proxyAddress, subnetId, setProxyAddress, setSubnetID } = useToolboxStore()
   const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore()
+  const selectedL1 = useSelectedL1()
   const viemChain = useViemChainStore()
 
   const [nodeID, setNodeID] = useState("")
-  const [manualProxyAddress, setManualProxyAddress] = useState("")
-  const [manualSubnetId, setManualSubnetId] = useState("")
+  const [manualProxyAddress, setManualProxyAddress] = useState(selectedL1?.validatorManagerAddress || "")
+  const [manualSubnetId, setManualSubnetId] = useState(selectedL1?.subnetId || "")
   const [validationIDHex, setValidationIDHex] = useState("")
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState("")
   const [signedWarpMessage, setSignedWarpMessage] = useState("")
   const [pChainSignature, setPChainSignature] = useState("")
-
-  // Use manually entered values if they exist, otherwise use store values
-  const effectiveProxyAddress = manualProxyAddress || proxyAddress
-  const effectiveSubnetId = manualSubnetId || subnetId
 
   const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji"
 
@@ -96,7 +92,7 @@ export default function RemoveValidator() {
       if (!startFromStep || startFromStep === "getValidationID") {
         updateStepStatus("getValidationID", "loading")
         try {
-          const validationIDResult = await getValidationIdHex(publicClient, effectiveProxyAddress as `0x${string}`, nodeID)
+          const validationIDResult = await getValidationIdHex(publicClient, manualProxyAddress as `0x${string}`, nodeID)
           setValidationIDHex(validationIDResult as string)
           currentValidationID = validationIDResult as string;
           console.log("ValidationID:", validationIDResult)
@@ -114,27 +110,27 @@ export default function RemoveValidator() {
           if (!currentValidationID) {
             throw new Error("Validation ID is missing. Retrying might be needed.")
           }
-          
+
           const removeValidatorTx = await coreWalletClient.writeContract({
-            address: effectiveProxyAddress as `0x${string}`,
+            address: manualProxyAddress as `0x${string}`,
             abi: validatorManagerAbi.abi,
             functionName: "initiateValidatorRemoval",
             args: [currentValidationID],
             chain: viemChain
           })
-          
+
           console.log("Removal transaction:", removeValidatorTx)
-          
+
           if (!publicClient) {
             throw new Error("Wallet connection not initialized")
           }
-          
+
           const receipt = await publicClient.waitForTransactionReceipt({
             hash: removeValidatorTx
           })
-          
+
           console.log("Receipt:", receipt)
-          
+
           const warpMessageResult = receipt.logs[0].data || ""
           setUnsignedWarpMessage(warpMessageResult)
           currentUnsignedWarpMessage = warpMessageResult;
@@ -153,16 +149,16 @@ export default function RemoveValidator() {
           if (!currentUnsignedWarpMessage || currentUnsignedWarpMessage.length === 0) {
             throw new Error("Warp message is empty. Retrying might be needed.")
           }
-          
+
           const { signedMessage: signedMessageResult } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
             signatureAggregatorRequest: {
               message: currentUnsignedWarpMessage,
-              signingSubnetId: effectiveSubnetId || "",
+              signingSubnetId: manualSubnetId || "",
               quorumPercentage: 67,
             },
           })
-          
+
           console.log("Signed message:", signedMessageResult)
           setSignedWarpMessage(signedMessageResult)
           currentSignedWarpMessage = signedMessageResult;
@@ -181,7 +177,7 @@ export default function RemoveValidator() {
           if (!currentSignedWarpMessage || currentSignedWarpMessage.length === 0) {
             throw new Error("Signed message is empty. Retrying might be needed.")
           }
-          
+
           if (typeof window === "undefined" || !window.avalanche) {
             throw new Error("Core wallet not found")
           }
@@ -190,7 +186,7 @@ export default function RemoveValidator() {
             pChainAddress: pChainAddress!,
             signedWarpMessage: currentSignedWarpMessage,
           })
-          
+
           console.log("P-Chain transaction ID:", pChainTxId)
           updateStepStatus("submitPChainTx", "success")
         } catch (error: any) {
@@ -208,15 +204,15 @@ export default function RemoveValidator() {
             throw new Error("Viem chain configuration is missing.")
           }
           if (!currentValidationID) {
-             throw new Error("Validation ID is missing. Retrying might be needed.")
+            throw new Error("Validation ID is missing. Retrying might be needed.")
           }
-          if (!effectiveSubnetId) {
+          if (!manualSubnetId) {
             throw new Error("Subnet ID is missing.")
           }
           const justification = await GetRegistrationJustification(
             nodeID,
             currentValidationID,
-            effectiveSubnetId,
+            manualSubnetId,
             publicClient
           )
 
@@ -234,13 +230,13 @@ export default function RemoveValidator() {
           console.log("Remove Validator Message:", removeValidatorMessage)
           console.log("Remove Validator Message Hex:", bytesToHex(removeValidatorMessage))
           console.log("Justification:", justification)
-          
+
           const signature = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
             signatureAggregatorRequest: {
               message: bytesToHex(removeValidatorMessage),
               justification: bytesToHex(justification),
-              signingSubnetId: effectiveSubnetId || "",
+              signingSubnetId: manualSubnetId || "",
               quorumPercentage: 67,
             },
           })
@@ -265,8 +261,8 @@ export default function RemoveValidator() {
           }
           const signedPChainWarpMsgBytes = hexToBytes(`0x${currentPChainSignature}`)
           const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes)
-          
-          if (!effectiveProxyAddress) throw new Error("Proxy address is not set.");
+
+          if (!manualProxyAddress) throw new Error("Proxy address is not set.");
           if (!coreWalletClient) throw new Error("Core wallet client is not initialized.");
           if (!publicClient) throw new Error("Public client is not initialized.");
           if (!viemChain) throw new Error("Viem chain is not configured.");
@@ -274,7 +270,7 @@ export default function RemoveValidator() {
           let simulationResult;
           try {
             simulationResult = await publicClient.simulateContract({
-              address: effectiveProxyAddress as `0x${string}`,
+              address: manualProxyAddress as `0x${string}`,
               abi: validatorManagerAbi.abi,
               functionName: "completeValidatorRemoval",
               args: [0],
@@ -289,18 +285,18 @@ export default function RemoveValidator() {
             const reason = baseError?.shortMessage || simError.message || "Simulation failed, reason unknown.";
             throw new Error(`Contract simulation failed: ${reason}`);
           }
-          
+
           console.log("Simulation request:", simulationResult.request)
 
           let txHash;
           try {
-             txHash = await coreWalletClient.writeContract(simulationResult.request)
-             console.log("Transaction sent:", txHash)
+            txHash = await coreWalletClient.writeContract(simulationResult.request)
+            console.log("Transaction sent:", txHash)
           } catch (writeError: any) {
-             console.error("Contract write failed:", writeError);
-             const baseError = writeError.cause || writeError;
-             const reason = baseError?.shortMessage || writeError.message || "Transaction submission failed, reason unknown.";
-             throw new Error(`Submitting transaction failed: ${reason}`);
+            console.error("Contract write failed:", writeError);
+            const baseError = writeError.cause || writeError;
+            const reason = baseError?.shortMessage || writeError.message || "Transaction submission failed, reason unknown.";
+            throw new Error(`Submitting transaction failed: ${reason}`);
           }
 
           let receipt;
@@ -308,22 +304,22 @@ export default function RemoveValidator() {
             receipt = await publicClient.waitForTransactionReceipt({ hash: txHash })
             console.log("Transaction receipt:", receipt)
             if (receipt.status !== 'success') {
-               throw new Error(`Transaction failed with status: ${receipt.status}`);
+              throw new Error(`Transaction failed with status: ${receipt.status}`);
             }
           } catch (receiptError: any) {
-             console.error("Failed to get transaction receipt:", receiptError);
-             throw new Error(`Failed waiting for transaction receipt: ${receiptError.message}`);
+            console.error("Failed to get transaction receipt:", receiptError);
+            throw new Error(`Failed waiting for transaction receipt: ${receiptError.message}`);
           }
 
           updateStepStatus("completeRemoval", "success")
           completeProcessing(`Validator ${nodeID} removal process completed successfully.`)
         } catch (error: any) {
-           const message = error instanceof Error ? error.message : String(error);
+          const message = error instanceof Error ? error.message : String(error);
           updateStepStatus("completeRemoval", "error", message)
           return
         }
       }
-        
+
     } catch (err: any) {
       setError(`Failed to remove validator: ${err.message}`)
       console.error(err)
@@ -383,11 +379,8 @@ export default function RemoveValidator() {
             id="proxyAddress"
             type="text"
             value={manualProxyAddress}
-            onChange={(e) => {
-              setManualProxyAddress(e)
-              if (e) setProxyAddress(e)
-            }}
-            placeholder={proxyAddress || "Enter proxy address"}
+            onChange={setManualProxyAddress}
+            placeholder={"Enter proxy address"}
             className={cn(
               "w-full px-3 py-2 border rounded-md",
               "text-zinc-900 dark:text-zinc-100",
@@ -396,12 +389,9 @@ export default function RemoveValidator() {
               "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
               "placeholder:text-zinc-400 dark:placeholder:text-zinc-500",
             )}
-            label="Proxy Address (Optional)"
+            label="Proxy Address"
             disabled={isProcessing}
           />
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Override the current proxy address ({proxyAddress?.substring(0, 10)}... or leave empty to use default)
-          </p>
         </div>
 
         <div className="space-y-2">
@@ -409,11 +399,8 @@ export default function RemoveValidator() {
             id="subnetId"
             type="text"
             value={manualSubnetId}
-            onChange={(e) => {
-              setManualSubnetId(e)
-              if (e) setSubnetID(e)
-            }}
-            placeholder={subnetId || "Enter subnet ID"}
+            onChange={setManualSubnetId}
+            placeholder={"Enter subnet ID"}
             className={cn(
               "w-full px-3 py-2 border rounded-md",
               "text-zinc-900 dark:text-zinc-100",
@@ -422,7 +409,7 @@ export default function RemoveValidator() {
               "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
               "placeholder:text-zinc-400 dark:placeholder:text-zinc-500",
             )}
-            label="Subnet ID (Optional)"
+            label="Subnet ID"
             disabled={isProcessing}
           />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">

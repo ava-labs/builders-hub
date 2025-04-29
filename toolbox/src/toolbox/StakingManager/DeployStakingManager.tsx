@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Button } from "../../components/Button";
 import { ResultField } from "../components/ResultField";
 import NativeTokenStakingManagerABI from "../../../contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
-import { RequireChainToolboxL1 } from "../components/RequireChainToolboxL1";
+
 import { Container } from "../components/Container";
 import { keccak256 } from "viem";
 function calculateLibraryHash(libraryPath: string) {
@@ -72,30 +72,30 @@ export default function DeployStakingManager() {
 
 
     return (
-        <RequireChainToolboxL1>
-            <Container
-                title="Deploy Native Token Staking Manager"
-                description="This will deploy the `NativeTokenStakingManager` contract to the currently connected EVM network."
-            >
-                <div className="space-y-4">
-                    <Button
-                        variant="primary"
-                        onClick={handleDeploy}
-                        loading={isDeploying}
-                        disabled={isDeploying}
-                    >
-                        Deploy Contract
-                    </Button>
-                </div>
-                {stakingManagerAddress && (
-                    <ResultField
-                        label="Native TokenStaking Manager Address"
-                        value={stakingManagerAddress}
-                        showCheck={!!stakingManagerAddress}
-                    />
-                )}
-            </Container>
-        </RequireChainToolboxL1>
+
+        <Container
+            title="Deploy Native Token Staking Manager"
+            description="This will deploy the `NativeTokenStakingManager` contract to the EVM network."
+        >
+            <div className="space-y-4">
+                <Button
+                    variant="primary"
+                    onClick={handleDeploy}
+                    loading={isDeploying}
+                    disabled={isDeploying}
+                >
+                    Deploy Contract
+                </Button>
+            </div>
+            {stakingManagerAddress && (
+                <ResultField
+                    label="Native TokenStaking Manager Address"
+                    value={stakingManagerAddress}
+                    showCheck={!!stakingManagerAddress}
+                />
+            )}
+        </Container>
+
     );
 };
 

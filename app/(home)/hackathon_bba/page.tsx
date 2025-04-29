@@ -171,7 +171,6 @@ export default function HackathonPage() {
         'Create any DeFI, RWA, Gaming, etc and deploy it on your own chain'
       ],
       resources: [
-        { name: 'Multi-Chain Academy Course', url: 'https://build.avax.network/academy/multi-chain-architecture' },
         { name: 'Academy Starter-Kit', url: 'https://github.com/ava-labs/avalanche-starter-kit' }
       ]
     },
