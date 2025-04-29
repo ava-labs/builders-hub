@@ -227,7 +227,7 @@ export default function ProjectSection() {
               }) => (
                 <div
                   key={project?.opportunity?.id}
-                  className='bg-[#161617] shadow-sm rounded-lg p-4 border border-[var(--default-border-color)]'
+                  className='bg-[#F5F5F9] dark:bg-[#000] shadow-sm rounded-lg p-4 border border-[var(--default-border-color)]'
                 >
                   <div className='grid grid-cols-1 xl:grid-cols-3 space-y-2 md:space-y-0'>
                     <div className='flex items-start col-span-1'>

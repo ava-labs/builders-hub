@@ -16,20 +16,20 @@ import { getTimeLeft } from "@/utils/timeFormatting";
 
 export default function XpSection({ data }: any) {
   return (
-    <div className='border rounded-lg p-4 mb-6 bg-[#fff] dark:bg-[#000]'>
-      <div className='flex gap-4 items-center mb-4'>
-        <h2 className='text-2xl font-medium'>XP Progression</h2>
-        <div className='text-green-500 text-sm'>
+    <div className="border rounded-lg p-4 mb-6 bg-[#fff] dark:bg-[#000]">
+      <div className="flex gap-4 items-center mb-4">
+        <h2 className="text-2xl font-medium">XP Progression</h2>
+        <div className="text-green-500 text-sm">
           +{data.monthlyGrowth} XP this month
         </div>
       </div>
 
-      <div className='mb-6'>
-        <div className='flex justify-between mb-2'>
-          <span className='text-sm'>Advocate</span>
-          <span className='text-sm'>Ambassador</span>
+      <div className="mb-6">
+        <div className="flex justify-between mb-2">
+          <span className="text-sm">Advocate</span>
+          <span className="text-sm">Ambassador</span>
         </div>
-        <div className='relative h-2 bg-[#2F2F33] rounded-full'>
+        <div className="relative h-2 bg-[#2F2F33] rounded-full">
           {(() => {
             const currentXP = data.currentXP;
             let progressPercentage = 0;
@@ -54,7 +54,7 @@ export default function XpSection({ data }: any) {
 
             return (
               <div
-                className='absolute left-0 top-0 h-full bg-[#F5F5F9] rounded-full'
+                className="absolute left-0 top-0 h-full bg-[#F5F5F9] rounded-full"
                 style={{
                   width: `${progressPercentage}%`,
                 }}
@@ -62,9 +62,9 @@ export default function XpSection({ data }: any) {
             );
           })()}
         </div>
-        <div className='mt-2 flex justify-between'>
-          <div className='text-xl font-bold'>{data.currentXP} XP</div>
-          <div className='text-sm text-[var(--secondary-text-color)]'>
+        <div className="mt-2 flex justify-between">
+          <div className="text-xl font-bold">{data.currentXP} XP</div>
+          <div className="text-sm text-[var(--secondary-text-color)]">
             {(() => {
               const currentXP = data.currentXP;
 
@@ -78,10 +78,10 @@ export default function XpSection({ data }: any) {
         </div>
       </div>
 
-      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-        <div className='flex flex-col space-y-12 relative'>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="flex flex-col space-y-12 relative">
           <div
-            className='absolute left-4 top-4 -bottom-2 lg:bottom-1 w-0.5 bg-gradient-to-b from-red-500 via-red-500 to-gray-700'
+            className="absolute left-4 top-4 -bottom-2 lg:bottom-1 w-0.5 bg-gradient-to-b from-red-500 via-red-500 to-gray-700"
             style={{
               transform: "translateX(-50%)",
               background: (() => {
@@ -98,15 +98,15 @@ export default function XpSection({ data }: any) {
             }}
           ></div>
 
-          <div className='flex items-center relative'>
+          <div className="flex items-center relative">
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center ${
                 data.currentXP >= 0 ? "bg-red-500" : "bg-[#9F9FA9]"
               } z-10`}
             >
-              <Image src={Trophy} alt='Trophy' width={20} height={20} />
+              <Image src={Trophy} alt="Trophy" width={20} height={20} />
             </div>
-            <div className='ml-4'>
+            <div className="ml-4">
               <div
                 className={`${
                   data.currentXP >= 0 ? " text-white" : " text-[#6A7282]"
@@ -114,19 +114,19 @@ export default function XpSection({ data }: any) {
               >
                 Tier 1: Chill 001
               </div>
-              <div className='text-sm text-[#6A7282]'>0-2000 XP</div>
+              <div className="text-sm text-[#6A7282]">0-2000 XP</div>
             </div>
           </div>
 
-          <div className='flex items-center relative'>
+          <div className="flex items-center relative">
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center ${
                 data.currentXP > 2000 ? "bg-red-500" : "bg-[#9F9FA9]"
               } z-10`}
             >
-              <Image src={Trophy} alt='Trophy' width={20} height={20} />
+              <Image src={Trophy} alt="Trophy" width={20} height={20} />
             </div>
-            <div className='ml-4'>
+            <div className="ml-4">
               <div
                 className={`${
                   data.currentXP > 2000 ? " text-white" : " text-[#6A7282]"
@@ -134,19 +134,19 @@ export default function XpSection({ data }: any) {
               >
                 Tier 2: Snr Chiller
               </div>
-              <div className='text-sm text-[#6A7282]'>2001-5000 XP</div>
+              <div className="text-sm text-[#6A7282]">2001-5000 XP</div>
             </div>
           </div>
 
-          <div className='flex items-center relative'>
+          <div className="flex items-center relative">
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center ${
                 data.currentXP > 5000 ? "bg-red-500" : "bg-[#9F9FA9]"
               } z-10`}
             >
-              <Image src={Trophy} alt='Trophy' width={20} height={20} />
+              <Image src={Trophy} alt="Trophy" width={20} height={20} />
             </div>
-            <div className='ml-4'>
+            <div className="ml-4">
               <div
                 className={`${
                   data.currentXP > 5000 ? " text-white" : " text-[#6A7282]"
@@ -154,60 +154,61 @@ export default function XpSection({ data }: any) {
               >
                 Tier 3: Supreme Leader
               </div>
-              <div className='text-sm text-[#6A7282]'>5001-100000 XP</div>
+              <div className="text-sm text-[#6A7282]">5001-100000 XP</div>
             </div>
           </div>
         </div>
 
-        <div className='col-span-2'>
-          <div className='flex justify-between items-center mb-4'>
-            <h3 className='text-md sm:text-xl font-medium'>
+        <div className="col-span-2">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-md sm:text-xl font-medium">
               Available Opportunities
             </h3>
             {data?.availableOpportunities?.length > 1 && (
               <a
-                href='/ambassador-dao'
-                className='text-xs sm:text-sm text-[#F5F5F9] flex items-center'
+                href="/ambassador-dao"
+                className="text-xs sm:text-sm text-[var(--white-text-color)] flex items-center"
               >
-                View All <ArrowRight size={16} color='#F5F5F9' />
+                View All{" "}
+                <ArrowRight size={16} color="var(--white-text-color)" />
               </a>
             )}
           </div>
 
-          <div className='space-y-4'>
+          <div className="space-y-4">
             {data.availableOpportunities &&
               data.availableOpportunities
                 ?.slice(0, 2)
                 ?.map((opportunity: any) => (
                   <div
                     key={opportunity.id}
-                    className='bg-[#161617] rounded-lg p-4'
+                    className="bg-[#F5F5F9] dark:bg-[#000] dark:bg-opacity-50 dark:border-[#27272A] border border-[#F5F5F9 rounded-lg p-4"
                   >
-                    <div className='flex flex-col sm:flex-row items-start justify-between'>
+                    <div className="flex flex-col sm:flex-row items-start justify-between">
                       <div>
-                        <div className='flex overflow-hidden'>
+                        <div className="flex overflow-hidden">
                           <img
                             src={opportunity?.created_by?.company_profile?.logo}
-                            alt='Company'
-                            className='w-10 h-10 object-cover bg-blue-500 rounded-full mr-3'
+                            alt="Company"
+                            className="w-10 h-10 object-cover bg-blue-500 rounded-full mr-3"
                           />
-                          <div className='flex-1'>
-                            <h4 className='text-[#F5F5F9] font-medium'>
+                          <div className="flex-1">
+                            <h4 className="text-[#FF394A] font-medium">
                               {opportunity.title}
                             </h4>
-                            <p className='text-[var(--secondary-text-color)] text-xs mb-3'>
+                            <p className="text-[var(--secondary-text-color)] text-xs mb-3">
                               {opportunity?.created_by?.company_profile?.name}
                             </p>
 
-                            <div className='flex justify-between'>
-                              <div className='flex flex-wrap items-start sm:items-center space-x-4'>
-                                <div className='flex items-center text-xs text-[var(--secondary-text-color)]'>
+                            <div className="flex justify-between">
+                              <div className="flex flex-wrap items-start sm:items-center space-x-4">
+                                <div className="flex items-center text-xs text-[var(--secondary-text-color)]">
                                   <Lightbulb
                                     size={12}
-                                    className='mr-1'
-                                    color='#9F9FA9'
+                                    className="mr-1"
+                                    color="#9F9FA9"
                                   />
-                                  <span className='capitalize'>
+                                  <span className="capitalize">
                                     {opportunity?.type?.toLowerCase()}
                                   </span>
                                 </div>
@@ -226,13 +227,13 @@ export default function XpSection({ data }: any) {
                                         )}`}
                                   </span>
                                 </div> */}
-                                <div className='flex items-center text-xs text-[var(--secondary-text-color)]'>
+                                <div className="flex items-center text-xs text-[var(--secondary-text-color)]">
                                   <File
                                     size={12}
-                                    className='mr-1'
-                                    color='#9F9FA9'
+                                    className="mr-1"
+                                    color="#9F9FA9"
                                   />
-                                  <span className='w-max'>
+                                  <span className="w-max">
                                     {opportunity._count?.submissions || 0}{" "}
                                     {opportunity?._count?.submissions > 1
                                       ? "Proposals"
@@ -245,19 +246,19 @@ export default function XpSection({ data }: any) {
                         </div>
                       </div>
 
-                      <div className='flex sm:flex-col space-x-3'>
+                      <div className="flex sm:flex-col space-x-3">
                         {opportunity?.total_budget > 0 && (
-                          <div className='flex items-center text-xs py-2'>
-                            <Image src={Token} alt='$' />
-                            <span className='text-[var(--white-text-color)] ml-2'>
+                          <div className="flex items-center text-xs py-2">
+                            <Image src={Token} alt="$" />
+                            <span className="text-[var(--white-text-color)] ml-2">
                               {opportunity.total_budget} USDC
                             </span>
                           </div>
                         )}
                         {opportunity?.xp_allocated > 0 && (
-                          <div className='flex items-center text-xs  py-2 rounded-full'>
-                            <Image src={XP} alt='$' />
-                            <span className='text-[var(--white-text-color)] ml-2'>
+                          <div className="flex items-center text-xs  py-2 rounded-full">
+                            <Image src={XP} alt="$" />
+                            <span className="text-[var(--white-text-color)] ml-2">
                               {opportunity.xp_allocated} XP
                             </span>
                           </div>
@@ -268,7 +269,7 @@ export default function XpSection({ data }: any) {
                 ))}
             {!data?.availableOpportunities && <Loader />}
             {data?.availableOpportunities?.length < 1 && (
-              <p className='flex justify-center items-center h-44'>
+              <p className="flex justify-center items-center h-44">
                 No opportunity available
               </p>
             )}
