@@ -762,30 +762,6 @@ If `allowFeeRecipients` or `RewardManager` precompile is enabled on the Avalanch
 
 Running an archival node that retains all historical state data requires specific configuration settings. Incorrect configuration can lead to historical data being pruned despite attempts to run in archival mode. Here are the key settings to configure:
 
-#### Configuration Directory Structure
-
-Avalanche node configurations are loaded from specific paths. For chain-specific configurations, use the following structure:
-
-```
-<chain-config-dir>/<blockchainID>/config.json
-```
-
-By default `<chain-config-dir>` is `~/.avalanchego/configs/chains/`. If you specify a custom directory with `--chain-config-dir`, remember that it should point to the parent directory of the chains folder, not include the "chains" part:
-
-```bash
-# CORRECT
---chain-config-dir=/etc/.avalanchego/configs
-
-# INCORRECT
---chain-config-dir=/etc/.avalanchego/configs/chains
-```
-
-If you want to use a different data directory overall, use the `--data-dir` flag:
-
-```bash
---data-dir=/etc/.avalanchego/
-```
-
 #### Disabling Pruning
 
 To retain all historical state, you must disable pruning. For EVM chains (like C-Chain or Subnet-EVM chains), add the following to your chain's `config.json`:
@@ -795,18 +771,6 @@ To retain all historical state, you must disable pruning. For EVM chains (like C
   "pruning-enabled": false
 }
 ```
-
-For example, if configuring the C-Chain, place this in:
-```
-~/.avalanchego/configs/chains/C/config.json
-```
-
-Or for a custom Avalanche L1 chain with ID "2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt":
-```
-~/.avalanchego/configs/chains/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/config.json
-```
-
-You can verify pruning is disabled by checking the node's startup logs. Look for `Pruning:false` in the VM configuration.
 
 #### State Sync Considerations
 
@@ -818,7 +782,7 @@ State sync allows nodes to quickly sync by downloading recent state without proc
 }
 ```
 
-#### Transaction History and Lookup Limits
+#### Transaction History Settings
 
 To maintain access to all historical transactions, you might need to configure these additional settings:
 
@@ -828,15 +792,15 @@ To maintain access to all historical transactions, you might need to configure t
 }
 ```
 
-#### Database Configuration
+#### Database Considerations
 
-When switching between database types (e.g., from LevelDB to PebbleDB), you should start synchronization from genesis to ensure proper historical data. To use PebbleDB:
+<Callout type="warn">
+Important: An already synced database cannot be fully converted to an archival node retroactively. The cleanest and most reliable way to set up an archival node is to start from scratch with the proper configuration.
+</Callout>
 
-```bash
---db-type=pebbledb
-```
+When switching between database types (e.g., from LevelDB to PebbleDB), historical data does not carry over. If you need to change the database type for your archival node, you must start a fresh sync from genesis.
 
-If switching database types, do not reuse the old database directory. Start with a fresh sync.
+For information about all available configuration options and directory structures, see the [AvalancheGo Config Flags documentation](https://build.avax.network/docs/nodes/configure/configs-flags).
 
 Network Upgrades: State Upgrades[​](#network-upgrades-state-upgrades "Direct link to heading")
 ----------------------------------------------------------------------------------------------
