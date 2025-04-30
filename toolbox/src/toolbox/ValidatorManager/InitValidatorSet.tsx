@@ -45,7 +45,7 @@ export default function InitValidatorSet() {
                 signatureAggregatorRequest: {
                     message: message,
                     justification: justification,
-                    signingSubnetId: signingSubnetId,
+                    // signingSubnetId: signingSubnetId,
                     quorumPercentage: 67, // Default threshold for subnet validation
                 },
             });

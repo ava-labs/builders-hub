@@ -16,9 +16,8 @@ import { TextareaArray } from "../components/TextareaArray";
 export default function ConvertToL1() {
     const {
         subnetId,
-        chainID,
+        chainID: storeChainID,
         setSubnetID,
-        setChainID,
         nodePopJsons,
         setNodePopJsons,
         managerAddress,
@@ -29,6 +28,7 @@ export default function ConvertToL1() {
         setValidatorWeights,
     } = useCreateChainStore();
 
+    const [chainID, setChainID] = useState(storeChainID);
     const [isConverting, setIsConverting] = useState(false);
     const [validatorBalances, setValidatorBalances] = useState(Array(100).fill(BigInt(1000000000)) as bigint[]);
     const { coreWalletClient, pChainAddress } = useWalletStore();

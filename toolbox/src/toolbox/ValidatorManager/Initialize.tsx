@@ -10,6 +10,7 @@ import { ResultField } from "../components/ResultField";
 import { AbiEvent } from 'viem';
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
 import { utils } from "@avalabs/avalanchejs";
+import SelectSubnetId from "../components/SelectSubnetId";
 
 import { Container } from "../components/Container";
 import { getSubnetInfo } from "../../coreViem/utils/glacier";
@@ -26,6 +27,7 @@ export default function Initialize() {
     const [adminAddress, setAdminAddress] = useState("");
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1();
+    const [subnetId, setSubnetId] = useState("");
 
     useEffect(() => {
         if (walletEVMAddress && !adminAddress) {
@@ -33,9 +35,15 @@ export default function Initialize() {
         }
     }, [walletEVMAddress, adminAddress]);
 
+    useEffect(() => {
+        if (selectedL1?.subnetId && !subnetId) {
+            setSubnetId(selectedL1.subnetId);
+        }
+    }, [selectedL1, subnetId]);
+
     let subnetIDHex = "";
     try {
-        subnetIDHex = utils.bufferToHex(utils.base58check.decode(selectedL1?.subnetId || ""));
+        subnetIDHex = utils.bufferToHex(utils.base58check.decode(subnetId || ""));
     } catch (error) {
         console.error('Error decoding subnetId:', error);
     }
@@ -51,7 +59,6 @@ export default function Initialize() {
 
     useEffect(() => {
         setContractAddressError("");
-        const subnetId = selectedL1?.subnetId;
         if (!subnetId) return;
         getSubnetInfo(subnetId).then((subnetInfo) => {
             setProxyAddress(subnetInfo.l1ValidatorManagerDetails?.contractAddress || "");
@@ -59,7 +66,7 @@ export default function Initialize() {
             console.error('Error getting subnet info:', error);
             setContractAddressError((error as Error)?.message || "Unknown error");
         });
-    }, [selectedL1]);
+    }, [subnetId]);
 
 
 
@@ -76,10 +83,38 @@ export default function Initialize() {
                 throw new Error('Initialized event not found in ABI');
             }
 
+            // Instead of querying from block 0, try to check initialization status using the contract method first
+            try {
+                // Try to call a read-only method that would fail if not initialized
+                const isInit = await publicClient.readContract({
+                    address: proxyAddress as `0x${string}`,
+                    abi: ValidatorManagerABI.abi,
+                    functionName: 'admin'
+                });
+                
+                // If we get here without error, contract is initialized
+                setIsInitialized(true);
+                console.log('Contract is initialized, admin:', isInit);
+                return;
+            } catch (readError) {
+                // If this fails with a specific revert message about not being initialized, we know it's not initialized
+                if ((readError as any)?.message?.includes('not initialized')) {
+                    setIsInitialized(false);
+                    return;
+                }
+                // Otherwise, fallback to log checking with a smaller block range
+            }
+
+            // Fallback: Check logs but with a more limited range
+            // Get current block number
+            const latestBlock = await publicClient.getBlockNumber();
+            // Use a reasonable range (2000 blocks) or start from recent blocks
+            const fromBlock = latestBlock > 2000n ? latestBlock - 2000n : 0n;
+
             const logs = await publicClient.getLogs({
                 address: proxyAddress as `0x${string}`,
                 event: initializedEvent as AbiEvent,
-                fromBlock: 0n,
+                fromBlock: fromBlock,
                 toBlock: 'latest'
             });
 
@@ -159,10 +194,9 @@ export default function Initialize() {
                     </Button>
                 </div>
 
-                <Input
-                    label="Subnet ID"
-                    value={selectedL1?.subnetId}
-                    disabled
+                <SelectSubnetId
+                    value={subnetId}
+                    onChange={setSubnetId}
                 />
                 <Input
                     label={`Subnet ID (Hex), ${utils.hexToBuffer(subnetIDHex).length} bytes`}
