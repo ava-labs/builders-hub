@@ -133,7 +133,7 @@ export async function generateMetadata(props: {
     page.data.description ?? 'Learn how to build on Avalanche blockchain with Academy';
 
   const imageParams = new URLSearchParams();
-  imageParams.set('title', page.data.title);
+  imageParams.set('title', `${page.data.title} | Avalanche Builder Hub`);
   imageParams.set('description', description);
 
   const image = {

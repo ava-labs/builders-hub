@@ -119,7 +119,7 @@ export async function generateMetadata(props: {
     page.data.description ?? 'Developer documentation for everything related to the Avalanche ecosystem.';
 
   const imageParams = new URLSearchParams();
-  imageParams.set('title', page.data.title);
+  imageParams.set('title', `${page.data.title} | Avalanche Builder Hub`);
   imageParams.set('description', description);
 
   const image = {
