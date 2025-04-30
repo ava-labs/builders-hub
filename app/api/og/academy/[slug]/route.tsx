@@ -14,8 +14,8 @@ export async function GET(
   const fonts = await loadFonts();
 
   return createOGResponse({
-    title: title ?? 'Avalanche Academy',
-    description: description ?? 'The Learning Platform for Avalanche Ecosystem.',
+    title: title ?? 'Academy | Avalanche Builder Hub',
+    description: description ?? 'Learn blockchain development with courses designed for the Avalanche ecosystem',
     path: 'academy',
     fonts
   });

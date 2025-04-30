@@ -14,8 +14,8 @@ export async function GET(
   const fonts = await loadFonts();
 
   return createOGResponse({
-    title: title ?? 'Integrations with Avalanche',
-    description: description ?? 'Discover best-in-class integrations for your Avalanche L1 and learn how to use them.',
+    title: title ?? 'Integrations | Avalanche Builder Hub',
+    description: description ?? 'Discover best-in-class integrations for your Avalanche L1',
     path: 'integrations',
     fonts
   });

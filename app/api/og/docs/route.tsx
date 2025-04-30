@@ -21,8 +21,8 @@ export async function GET(
 
   return new ImageResponse(
     OG({
-      title: 'Avalanche Docs',
-      description: 'Explore Avalanche documentation to build on the Avalanche network.'
+      title: 'Documentation | Avalanche Builder Hub',
+      description: 'Developer documentation for everything related to the Avalanche ecosystem'
     }),
     {
       width: 1280,

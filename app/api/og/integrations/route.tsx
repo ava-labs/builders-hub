@@ -21,8 +21,8 @@ export async function GET(
 
   return new ImageResponse(
     OG({
-      title: 'Integrations with Avalanche',
-      description: 'Discover best-in-class integrations for your Avalanche L1 and learn how to use them.'
+      title: 'Integrations | Avalanche Builder Hub',
+      description: 'Discover best-in-class integrations for your Avalanche L1'
     }),
     {
       width: 1280,
