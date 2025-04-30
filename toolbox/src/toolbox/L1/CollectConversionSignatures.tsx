@@ -52,7 +52,7 @@ export default function CollectConversionSignatures() {
                 signatureAggregatorRequest: {
                     message: message,
                     justification: justification,
-                    // signingSubnetId: signingSubnetId,
+                    signingSubnetId: signingSubnetId,
                     quorumPercentage: 67, // Default threshold for subnet validation
                 },
             }, {

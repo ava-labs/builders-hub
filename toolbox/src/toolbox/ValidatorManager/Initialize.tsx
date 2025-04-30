@@ -1,6 +1,6 @@
 "use client";
 
-import { useSelectedL1, useViemChainStore } from "../toolboxStore";
+import { useSelectedL1, useViemChainStore, useCreateChainStore } from "../toolboxStore";
 import { useWalletStore } from "../../lib/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useEffect, useState } from "react";
@@ -28,6 +28,7 @@ export default function Initialize() {
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1();
     const [subnetId, setSubnetId] = useState("");
+    const createChainStoreSubnetId = useCreateChainStore(state => state.subnetId);
 
     useEffect(() => {
         if (walletEVMAddress && !adminAddress) {
@@ -36,10 +37,12 @@ export default function Initialize() {
     }, [walletEVMAddress, adminAddress]);
 
     useEffect(() => {
-        if (selectedL1?.subnetId && !subnetId) {
+        if (createChainStoreSubnetId && !subnetId) {
+            setSubnetId(createChainStoreSubnetId);
+        } else if (selectedL1?.subnetId && !subnetId) {
             setSubnetId(selectedL1.subnetId);
         }
-    }, [selectedL1, subnetId]);
+    }, [createChainStoreSubnetId, selectedL1, subnetId]);
 
     let subnetIDHex = "";
     try {
