@@ -91,9 +91,6 @@ export default function InitValidatorSet() {
             if (!coreWalletClient) throw new Error('Core wallet client not found');
 
             const { validators, subnetId, chainId, managerAddress } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
-            console.log("subnetId", subnetId);
-            console.log("chainId", chainId);
-            console.log("managerAddress", managerAddress);
             // Prepare transaction arguments
             const txArgs = [
                 {
