@@ -14,7 +14,7 @@ import { AlertCircle, CheckCircle } from "lucide-react"
 import SelectSubnetId from "../components/SelectSubnetId"
 
 import { cn } from "../../lib/utils"
-import { bytesToHex, hexToBytes } from "viem"
+import { bytesToHex, hexToBytes, PublicClient } from "viem"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
 
@@ -299,7 +299,7 @@ export default function ChangeWeight() {
             nodeID,
             validationIDForJustification,
             currentSubnetId,
-            publicClient
+            publicClient as PublicClient
           )
 
           if (!justification) {

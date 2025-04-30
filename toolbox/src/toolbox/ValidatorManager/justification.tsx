@@ -355,7 +355,6 @@ export async function GetRegistrationJustification(
   try {
     const CHUNK_SIZE = 10_000; // Number of blocks to query in each chunk
     const MAX_CHUNKS = 100; // Maximum number of chunks to try (to prevent infinite loops)
-    let fromBlock: bigint | number | 'latest' = 'latest';
     let toBlock: bigint | number | 'latest' = 'latest';
     let foundMatch = false;
     let marshalledJustification: Uint8Array | null = null;
