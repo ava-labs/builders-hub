@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useErrorBoundary } from "react-error-boundary"
 
-import { useSelectedL1, useViemChainStore } from "../toolboxStore"
+import { useSelectedL1, useViemChainStore, useCreateChainStore } from "../toolboxStore"
 import { useWalletStore } from "../../lib/walletStore"
 
 import { Container } from "../components/Container"
@@ -11,6 +11,7 @@ import { Input } from "../../components/Input"
 import { Button } from "../../components/Button"
 import { StepIndicator } from "../components/StepIndicator"
 import { AlertCircle, CheckCircle } from "lucide-react"
+import SelectSubnetId from "../components/SelectSubnetId"
 
 import { cn } from "../../lib/utils"
 import { bytesToHex, hexToBytes } from "viem"
@@ -49,12 +50,13 @@ export default function ChangeWeight() {
   const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore()
   const viemChain = useViemChainStore()
   const selectedL1 = useSelectedL1()
+  const createChainStoreSubnetId = useCreateChainStore(state => state.subnetId)
 
   // --- Form Input State ---
   const [nodeID, setNodeID] = useState("")
   const [weight, setWeight] = useState("")
   const [manualProxyAddress, setManualProxyAddress] = useState(selectedL1?.validatorManagerAddress || "")
-  const [manualSubnetId, setManualSubnetId] = useState(selectedL1?.subnetId || "")
+  const [currentSubnetId, setCurrentSubnetId] = useState(createChainStoreSubnetId || selectedL1?.subnetId || "")
 
   // --- Intermediate Data State ---
   const [validationIDHex, setValidationIDHex] = useState("")
@@ -226,11 +228,15 @@ export default function ChangeWeight() {
             throw new Error("Warp message is empty. Retry step 2.")
           }
 
+          if (!selectedL1?.subnetId) {
+            throw new Error("No subnet ID available. Please select a valid L1 or specify a subnet ID.")
+          }
+
           const { signedMessage: signedMessageResult } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
             signatureAggregatorRequest: {
-              message: warpMessageToSign, // Use potentially updated local message
-              signingSubnetId: manualSubnetId || "",
+              message: warpMessageToSign,
+              signingSubnetId: selectedL1.subnetId,
               quorumPercentage: 67,
             },
           })
@@ -286,13 +292,13 @@ export default function ChangeWeight() {
 
           if (!viemChain) throw new Error("Viem chain configuration is missing.")
           if (!validationIDForJustification) throw new Error("Validation ID is missing. Retry step 1.")
-          if (!manualSubnetId) throw new Error("Subnet ID is missing.")
+          if (!currentSubnetId) throw new Error("Subnet ID is missing.")
           if (!eventDataForPacking) throw new Error("Event data missing. Retry step 2.")
 
           const justification = await GetRegistrationJustification(
             nodeID,
             validationIDForJustification,
-            manualSubnetId,
+            currentSubnetId,
             publicClient
           )
 
@@ -316,12 +322,16 @@ export default function ChangeWeight() {
           console.log("Change Weight Message Hex:", bytesToHex(changeWeightMessage))
           console.log("Justification:", justification)
 
+          if (!selectedL1?.subnetId) {
+            throw new Error("No subnet ID available. Please select a valid L1 or specify a subnet ID.")
+          }
+
           const signature = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
             signatureAggregatorRequest: {
               message: bytesToHex(changeWeightMessage),
               justification: bytesToHex(justification),
-              signingSubnetId: manualSubnetId || "",
+              signingSubnetId: selectedL1.subnetId,
               quorumPercentage: 67,
             },
           })
@@ -357,9 +367,8 @@ export default function ChangeWeight() {
           if (!publicClient) throw new Error("Public client is not initialized.")
           if (!viemChain) throw new Error("Viem chain is not configured.")
 
-          let simulationResult
-          try {
-            simulationResult = await publicClient.simulateContract({
+        
+          const hash = await coreWalletClient.writeContract({
               address: manualProxyAddress as `0x${string}`,
               abi: validatorManagerAbi.abi,
               functionName: "completeValidatorWeightUpdate",
@@ -368,30 +377,11 @@ export default function ChangeWeight() {
               account: coreWalletClient.account,
               chain: viemChain
             })
-            console.log("Simulation successful:", simulationResult)
-          } catch (simError: any) {
-            console.error("Contract simulation failed:", simError)
-            const baseError = simError.cause || simError
-            const reason = baseError?.shortMessage || simError.message || "Simulation failed, reason unknown."
-            throw new Error(`Contract simulation failed: ${reason}`)
-          }
-
-          console.log("Simulation request:", simulationResult.request)
-
-          let txHash
-          try {
-            txHash = await coreWalletClient.writeContract(simulationResult.request)
-            console.log("Transaction sent:", txHash)
-          } catch (writeError: any) {
-            console.error("Contract write failed:", writeError)
-            const baseError = writeError.cause || writeError
-            const reason = baseError?.shortMessage || writeError.message || "Transaction submission failed, reason unknown."
-            throw new Error(`Submitting transaction failed: ${reason}`)
-          }
+          console.log("Transaction sent:", hash)         
 
           let receipt
           try {
-            receipt = await publicClient.waitForTransactionReceipt({ hash: txHash })
+            receipt = await publicClient.waitForTransactionReceipt({ hash })
             console.log("Transaction receipt:", receipt)
             if (receipt.status !== 'success') {
               throw new Error(`Transaction failed with status: ${receipt.status}`)
@@ -507,25 +497,13 @@ export default function ChangeWeight() {
         </div>
 
         <div className="space-y-2">
-          <Input
-            id="subnetId"
-            type="text"
-            value={manualSubnetId}
-            onChange={setManualSubnetId}
-            placeholder={"Enter subnet ID"}
-            className={cn(
-              "w-full px-3 py-2 border rounded-md",
-              "text-zinc-900 dark:text-zinc-100",
-              "bg-white dark:bg-zinc-800",
-              "border-zinc-300 dark:border-zinc-700",
-              "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
-              "placeholder:text-zinc-400 dark:placeholder:text-zinc-500",
-            )}
-            label="Subnet ID"
-            disabled={isProcessing}
+          <SelectSubnetId 
+            value={currentSubnetId}
+            onChange={setCurrentSubnetId}
+            error={null}
           />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Override the current subnet ID (or leave empty to use default)
+            Select a subnet ID (defaults to subnet from Create Subnet tool if available)
           </p>
         </div>
 
