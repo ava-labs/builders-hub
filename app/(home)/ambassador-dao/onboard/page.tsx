@@ -124,12 +124,12 @@ const AmbasssadorDaoOnboardPage = () => {
 
               <hr className='my-6 border-[var(--default-border-color)]' />
 
-              <div className='bg-[#fff] dark:bg-[#000] rounded-md h-36 md:h-44 relative overflow-hidden'>
+              <div className='bg-zinc-200 dark:bg-[#000] rounded-md h-36 md:h-44 relative overflow-hidden'>
                 <Image
                   src={Avalance3d}
                   objectFit='contain'
                   alt='avalance icon'
-                  className='absolute right-0'
+                  className='absolute object-cover right-0 h-full'
                 />
               </div>
 

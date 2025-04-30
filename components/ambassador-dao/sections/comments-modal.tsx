@@ -5,7 +5,6 @@ import {
 } from "@/components/ambassador-dao/dialog";
 import Image from "next/image";
 import React, { useState } from "react";
-import Avalance3d from "@/public/images/avalance3d.svg";
 import CustomButton from "../custom-button";
 import { useRouter } from "next/navigation";
 import { CommentsSection } from "./comment-section";
