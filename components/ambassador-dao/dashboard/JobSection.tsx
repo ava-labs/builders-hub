@@ -57,7 +57,7 @@ const JobsSection = ({
   };
 
   return (
-    <section className='mb-12 border border-[var(--default-border-color)] rounded-md py-14 px-8'>
+    <section className='mb-12 border border-[var(--default-border-color)] rounded-md py-10 px-8'>
       <h2 className='text-3xl font-bold mb-6'>ALL JOBS</h2>
       <div className='flex gap-4 mb-6 flex-wrap'>
         <FilterDropdown
