@@ -9,6 +9,7 @@ import SilverReward from "@/public/ambassador-dao-images/SilverReward.svg";
 import BronzeReward from "@/public/ambassador-dao-images/BronzeReward.svg";
 import DefaultAvatar from "@/public/ambassador-dao-images/Avatar.svg";
 import Avalance3d from "@/public/ambassador-dao-images/3d.png";
+import EmptyWhite from "@/public/ambassador-dao-images/emptyWhite.png";
 
 const LeaderboardPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -116,7 +117,16 @@ const LeaderboardPage = () => {
         ) : (
           <>
             <div className='max-w-lg mx-auto p-2 my-6'>
-              <Image src={Avalance3d} objectFit='contain' alt='avalance icon' />
+              <div className='hidden dark:block'>
+                <Image
+                  src={Avalance3d}
+                  objectFit='contain'
+                  alt='avalance icon'
+                />
+              </div>
+              <div className='block dark:hidden'>
+                <Image src={EmptyWhite} objectFit='contain' alt='empty icon' />
+              </div>
 
               <div className='my-2'>
                 <h2 className='text-[var(--white-text-color)] text-2xl text-center font-medium'>
