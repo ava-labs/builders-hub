@@ -211,7 +211,6 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
   const [usernameStatus, setUsernameStatus] = useState<
     "checking" | "available" | "unavailable" | null
   >(null);
-  const [profileImageName, setProfileImageName] = useState<string>("");
   const [stage, setStage] = useState(1);
 
   const pathname = usePathname();
@@ -221,7 +220,6 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
 
   const username = watch("username");
   const location = watch("location");
-
 
   const { mutate: updateTalentProfile, isPending: isUpdatingProfile } =
     useUpdateTalentProfileMutation();
@@ -240,6 +238,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
         username: userData.username || "",
         location: userData.location || "",
         job_title: userData.job_title || "",
+        social_links: userData.social_links || [],
         years_of_experience: userData.years_of_experience || "",
       });
 
@@ -249,16 +248,16 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
         );
       }
 
-      if (userData.location) {
-        setSelectedSkills(
-          userData.skills.map((skill: { id: string }) => skill.id)
-        );
-      }
-
       if (userData.social_links && userData.social_links.length > 0) {
         setSocialLinks(userData.social_links);
       }
-      if (!isEditProfilePage && userData.first_name) {
+      if (
+        !isEditProfilePage &&
+        userData.first_name &&
+        userData.location &&
+        userData.skills &&
+        userData.skills.length > 0
+      ) {
         setStage(2);
       } else {
         setStage(1);
@@ -834,7 +833,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
         </h2>
       </div>
       <p className='text-[var(--secondary-text-color)] text-sm mb-8'>
-        It takes less than a minute to start earning in global standards.
+        Get access to top global talents
       </p>
       <hr />
       <h3 className='text-[var(--primary-text-color)] font-medium text-xl my-6'>
