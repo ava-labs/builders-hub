@@ -50,7 +50,7 @@ export default function GeneralComponent({
   } = useSubmissionForm(hackathonId as string);
 
   const { hackathon, project, timeLeft, getProject } =
-    useHackathonProject(hackathonId as string);
+    useHackathonProject(hackathonId as string,invitationLink as string);
 
   const getAllFields = () => {
     return [
@@ -292,6 +292,7 @@ export default function GeneralComponent({
                     availableTracks={hackathon?.content?.tracks ?? []}
                     openjoinTeamDialog={openJoinTeam}
                     openCurrentProject={openCurrentProject}
+                    setOpenCurrentProject={setOpenCurrentProject}
                     onOpenChange={setOpenJoinTeam}
                     currentEmail={currentUser?.email}
                       teamName={teamName}
