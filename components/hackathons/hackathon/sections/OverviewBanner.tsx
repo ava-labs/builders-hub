@@ -10,9 +10,10 @@ import HackathonStatus from "../HackathonStatus";
 type Props = {
   id: string;
   hackathon: HackathonHeader;
+  isTopMost: boolean;
 };
 
-export default function OverviewBanner({ hackathon, id }: Props) {
+export default function OverviewBanner({ hackathon, id, isTopMost }: Props) {
   const startDate = new Date(hackathon.start_date);
   const endDate = new Date(hackathon.end_date);
 
@@ -24,7 +25,10 @@ export default function OverviewBanner({ hackathon, id }: Props) {
       ? `${format(startDate, "MMMM d")} - ${format(endDate, "d, yyyy")}`
       : `${format(startDate, "MMMM d")} - ${format(endDate, "MMMM d, yyyy")}`;
   return (
-    <div className="z-10 pointer-events-none h-full w-[45%] absolute flex flex-col justify-end bottom-2 sm:bottom-6 lg:bottom-10 xl:bottom-12 left-[4%]" style={{ textShadow: '0 0 3px black' }}>
+    <div
+      className="z-10 pointer-events-none h-full w-[45%] absolute flex flex-col justify-end bottom-2 sm:bottom-6 lg:bottom-10 xl:bottom-12 left-[4%]"
+      style={{ textShadow: "0 0 3px black" }}
+    >
       <h1 className="text-md sm:text-2xl md:text-3xl lg:text-5xl xl:text-6xl text-zinc-50 font-bold sm:mb-2">
         {hackathon.title}
       </h1>
@@ -42,11 +46,19 @@ export default function OverviewBanner({ hackathon, id }: Props) {
           variant={"secondary"}
           className="w-full mb-12 bg-red-500 border-none text-zinc-100 rounded-md hidden xl:block"
         >
-          <Link href={
+          <Link
+            href={
               hackathon.content.join_custom_link
                 ? hackathon.content.join_custom_link
                 : `/hackathons/registration-form?hackathon=${id}`
-             } target={hackathon.content.join_custom_link? '_blank': '_self'}> { hackathon.content.join_custom_text?? "Join now"} </Link>
+            }
+            target={hackathon.content.join_custom_link ? "_blank" : "_self"}
+          >
+            {" "}
+            {isTopMost
+              ? "LEARN MORE"
+              : hackathon.content.join_custom_text ?? "Join now"}{" "}
+          </Link>
         </Button>
         <div className="flex flex-col">
           <div className="hidden md:flex flex-col gap-2 max-w-[60%] md:max-w-[45%] xl:max-w-[60%]">
@@ -75,7 +87,10 @@ export default function OverviewBanner({ hackathon, id }: Props) {
           </div>
           <div className="hidden md:flex justify-between gap-4 mt-4 max-w-[90%]">
             <div className="flex gap-2 text-gray-400">
-              <Users color="#F5F5F9" className="w-4 lg:w-5 h-4 lg:h-5 drop-shadow-[0_0_2px_black]" />
+              <Users
+                color="#F5F5F9"
+                className="w-4 lg:w-5 h-4 lg:h-5 drop-shadow-[0_0_2px_black]"
+              />
               <span className="text-xs xl:text-sm text-zinc-50">
                 {hackathon.participants}
               </span>
