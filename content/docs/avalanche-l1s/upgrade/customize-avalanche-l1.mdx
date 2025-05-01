@@ -758,6 +758,50 @@ With `allowFeeRecipients` enabled, validators can specify their addresses to col
 If `allowFeeRecipients` or `RewardManager` precompile is enabled on the Avalanche L1, but a validator doesn't specify a "feeRecipient", the fees will be burned in blocks it produces.
 </Callout>
 
+### Archival Node Configuration[​](#archival-node-configuration "Direct link to heading")
+
+Running an archival node that retains all historical state data requires specific configuration settings. Incorrect configuration can lead to historical data being pruned despite attempts to run in archival mode. Here are the key settings to configure:
+
+#### Disabling Pruning
+
+To retain all historical state, you must disable pruning. For EVM chains (like C-Chain or Subnet-EVM chains), add the following to your chain's `config.json`:
+
+```json
+{
+  "pruning-enabled": false
+}
+```
+
+#### State Sync Considerations
+
+State sync allows nodes to quickly sync by downloading recent state without processing all historical blocks. This can lead to missing historical data. For archival nodes, either disable state sync or ensure you start from genesis:
+
+```json
+{
+  "state-sync-enabled": false
+}
+```
+
+#### Transaction History Settings
+
+To maintain access to all historical transactions, you might need to configure these additional settings:
+
+```json
+{
+  "transaction-history": 0
+}
+```
+
+#### Database Considerations
+
+<Callout type="warn">
+Important: An already synced database cannot be fully converted to an archival node retroactively. The cleanest and most reliable way to set up an archival node is to start from scratch with the proper configuration.
+</Callout>
+
+When switching between database types (e.g., from LevelDB to PebbleDB), historical data does not carry over. If you need to change the database type for your archival node, you must start a fresh sync from genesis.
+
+For information about all available configuration options and directory structures, see the [AvalancheGo Config Flags documentation](https://build.avax.network/docs/nodes/configure/configs-flags).
+
 Network Upgrades: State Upgrades[​](#network-upgrades-state-upgrades "Direct link to heading")
 ----------------------------------------------------------------------------------------------
 
@@ -854,4 +898,3 @@ Nodes running non-compatible version (running pre-Durango version after Durango 
 
 All of network nodes, even ones correctly upgraded to Durango and running the correct version since Durango activation, should be restarted with the new upgrade.json to reschedule the Durango activation. This is a network-wide operation and should be coordinated with all network nodes.
 </Callout>
-

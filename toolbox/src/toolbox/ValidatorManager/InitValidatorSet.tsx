@@ -29,7 +29,7 @@ export default function InitValidatorSet() {
     const [error, setError] = useState<string | null>(null);
     const [collectedData, setCollectedData] = useState<Record<string, any>>({});
     const [showDebugData, setShowDebugData] = useState(false);
-    const selectedL1 = useSelectedL1();
+    const selectedL1 = useSelectedL1()();
     const [conversionTxIDError, setConversionTxIDError] = useState<string>("");
     const [L1ConversionSignatureError, setL1ConversionSignatureError] = useState<string>("");
     const [isAggregating, setIsAggregating] = useState(false);

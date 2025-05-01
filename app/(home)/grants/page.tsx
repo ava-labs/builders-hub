@@ -96,7 +96,7 @@ export default function Page() {
           </div>
         </div>
             <h2 className="text-4xl md:text-7xl font-bold bg-linear-to-r from-yellow-500 to-amber-500 bg-clip-text text-transparent">
-              $50M+ in Grants
+              $250M+ in Grants
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Fueling innovation across all programs based on project impact and potential.

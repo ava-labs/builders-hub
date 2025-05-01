@@ -27,16 +27,16 @@ export default function CreateChain() {
         gasLimit,
         targetBlockRate,
         setChainName,
-    } = useCreateChainStore();
+    } = useCreateChainStore()();
     const [isCreating, setIsCreating] = useState(false);
     const { walletEVMAddress, coreWalletClient } = useWalletStore();
 
     useEffect(() => {
         if (!genesisData) {
             setGenesisData(quickAndDirtyGenesisBuilder(
-                walletEVMAddress, 
-                evmChainId, 
-                gasLimit, 
+                walletEVMAddress,
+                evmChainId,
+                gasLimit,
                 targetBlockRate,
                 "1000000", // Default owner balance
                 {

@@ -38,7 +38,7 @@ const addValidationStepsConfig: StepsConfig<AddValidationStepKey> = {
 
 export default function AddValidator() {
     const { showBoundary } = useErrorBoundary()
-    const selectedL1 = useSelectedL1();
+    const selectedL1 = useSelectedL1()();
     const { avalancheNetworkID, coreWalletClient, pChainAddress } = useWalletStore()
     const viemChain = useViemChainStore()
 

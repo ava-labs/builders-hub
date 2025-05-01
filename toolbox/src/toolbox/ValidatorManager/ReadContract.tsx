@@ -37,7 +37,7 @@ export default function ReadContract() {
   const [eventLogs, setEventLogs] = useState<Record<string, any[]>>({})
   const { publicClient } = useWalletStore()
   const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({})
-  const selectedL1 = useSelectedL1();
+  const selectedL1 = useSelectedL1()();
 
   useEffect(() => {
     (async function () {

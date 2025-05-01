@@ -33,7 +33,7 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["AvaCloud"],
+        tools: ["L1 Toolbox"],
         instructors: ["Martin Eckardt", "Ash"]
     },
     {
@@ -43,7 +43,7 @@ const officialCourses: Course[] = [
         icon: <MailIcon />,
         status: "featured",
         duration: "3 hours",
-        tools: ["Avalanche-CLI"],
+        tools: ["Avalanche CLI"],
         languages: ["Solidity"],
         instructors: ["Martin Eckardt", "Andrea Vargas", "Ash"] // + Usman
     },
@@ -65,7 +65,7 @@ const officialCourses: Course[] = [
         icon: <SquareCode />,
         duration: "4 hours",
         status: "featured",
-        tools: ["Avalanche-CLI"],
+        tools: ["Avalanche CLI"],
         languages: ["Go"],
         instructors: ["Martin Eckardt", "Ash"] // + Usman
     },
@@ -76,7 +76,7 @@ const officialCourses: Course[] = [
         icon: <Coins />,
         duration: "2 hours",
         status: "featured",
-        tools: ["Avalanche-CLI", "ICM"],
+        tools: ["Avalanche CLI", "ICM"],
         languages: ["Solidity"],
         instructors: ["Sarp", "Owen Wahlgren"]
     },

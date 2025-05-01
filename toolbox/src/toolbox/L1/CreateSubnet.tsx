@@ -11,7 +11,7 @@ import { Container } from "../components/Container";
 
 export default function CreateSubnet() {
   const { showBoundary } = useErrorBoundary();
-  const { setSubnetID, subnetId } = useCreateChainStore();
+  const { setSubnetID, subnetId } = useCreateChainStore()();
   const { coreWalletClient, pChainAddress } = useWalletStore();
   const [isCreating, setIsCreating] = useState(false);
 

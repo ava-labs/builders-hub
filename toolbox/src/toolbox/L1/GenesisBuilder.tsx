@@ -5,9 +5,9 @@
 import TransparentUpgradableProxy from "../../../contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json"
 import ProxyAdmin from "../../../contracts/openzeppelin-4.9/compiled/ProxyAdmin.json"
 export const quickAndDirtyGenesisBuilder = (
-    ownerAddress: `${string}`, 
-    chainID: number, 
-    gasLimit: number, 
+    ownerAddress: `${string}`,
+    chainID: number,
+    gasLimit: number,
     targetBlockRate: number,
     ownerBalanceDecimal: string,
     precompileConfigs: {
@@ -190,7 +190,7 @@ const PrecompileCard = ({ title, address, enabled, onToggle, children }: Precomp
                     </div>
                     <div className="text-xs text-gray-500 font-mono mt-1">{address}</div>
                 </div>
-                
+
                 <div className="flex items-center space-x-3">
                     <Toggle
                         label=""
@@ -199,7 +199,7 @@ const PrecompileCard = ({ title, address, enabled, onToggle, children }: Precomp
                     />
                 </div>
             </div>
-            
+
             {children && enabled && (
                 <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
                     {children}
@@ -218,8 +218,8 @@ const decimalToHex = (value: string): string => {
 
         // Convert to wei (multiply by 10^18)
         // Using BigInt to handle large numbers
-        const weiValue = BigInt(Math.floor(numValue * 10**18));
-        
+        const weiValue = BigInt(Math.floor(numValue * 10 ** 18));
+
         // Convert to hex
         return "0x" + weiValue.toString(16);
     } catch (error) {
@@ -238,14 +238,14 @@ export default function GenesisBuilder() {
         setGasLimit,
         targetBlockRate,
         setTargetBlockRate
-    } = useCreateChainStore()
+    } = useCreateChainStore()()
     const { walletEVMAddress } = useWalletStore()
 
     const [ownerAddress, setOwnerAddress] = useState<string>("")
     const [ownerBalanceDecimal, setOwnerBalanceDecimal] = useState<string>("1000000")
     const [copied, setCopied] = useState(false);
     const [activeTab, setActiveTab] = useState<string>("config");
-    const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+    const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
 
     // Precompile states
     const [contractDeployerAllowList, setContractDeployerAllowList] = useState({
@@ -283,7 +283,7 @@ export default function GenesisBuilder() {
         return input.split(',')
             .map(addr => addr.trim())
             .filter(addr => /^0x[a-fA-F0-9]{40}$/.test(addr));
-            // Keep the 0x prefix for precompile addresses
+        // Keep the 0x prefix for precompile addresses
     }
 
     const formatAddressList = (addresses: string[]): string => {
@@ -360,12 +360,12 @@ export default function GenesisBuilder() {
         }
 
         // Validate precompile address lists
-        if (contractDeployerAllowList.enabled && 
-            contractDeployerAllowList.adminAddresses.length === 0 && 
+        if (contractDeployerAllowList.enabled &&
+            contractDeployerAllowList.adminAddresses.length === 0 &&
             contractDeployerAllowList.enabledAddresses.length === 0) {
-            setValidationErrors(prev => ({ 
-                ...prev, 
-                contractDeployerAllowList: "Contract Deployer Allow List: At least one admin or enabled address is required" 
+            setValidationErrors(prev => ({
+                ...prev,
+                contractDeployerAllowList: "Contract Deployer Allow List: At least one admin or enabled address is required"
             }));
         } else {
             setValidationErrors(prev => {
@@ -375,12 +375,12 @@ export default function GenesisBuilder() {
             });
         }
 
-        if (contractNativeMinter.enabled && 
-            contractNativeMinter.adminAddresses.length === 0 && 
+        if (contractNativeMinter.enabled &&
+            contractNativeMinter.adminAddresses.length === 0 &&
             contractNativeMinter.enabledAddresses.length === 0) {
-            setValidationErrors(prev => ({ 
-                ...prev, 
-                contractNativeMinter: "Native Minter: At least one admin or enabled address is required" 
+            setValidationErrors(prev => ({
+                ...prev,
+                contractNativeMinter: "Native Minter: At least one admin or enabled address is required"
             }));
         } else {
             setValidationErrors(prev => {
@@ -390,12 +390,12 @@ export default function GenesisBuilder() {
             });
         }
 
-        if (txAllowList.enabled && 
-            txAllowList.adminAddresses.length === 0 && 
+        if (txAllowList.enabled &&
+            txAllowList.adminAddresses.length === 0 &&
             txAllowList.enabledAddresses.length === 0) {
-            setValidationErrors(prev => ({ 
-                ...prev, 
-                txAllowList: "Transaction Allow List: At least one admin or enabled address is required" 
+            setValidationErrors(prev => ({
+                ...prev,
+                txAllowList: "Transaction Allow List: At least one admin or enabled address is required"
             }));
         } else {
             setValidationErrors(prev => {
@@ -406,9 +406,9 @@ export default function GenesisBuilder() {
         }
 
         if (feeManager.enabled && feeManager.adminAddresses.length === 0) {
-            setValidationErrors(prev => ({ 
-                ...prev, 
-                feeManager: "Fee Manager: At least one admin address is required" 
+            setValidationErrors(prev => ({
+                ...prev,
+                feeManager: "Fee Manager: At least one admin address is required"
             }));
         } else {
             setValidationErrors(prev => {
@@ -419,9 +419,9 @@ export default function GenesisBuilder() {
         }
 
         if (rewardManager.enabled && rewardManager.adminAddresses.length === 0) {
-            setValidationErrors(prev => ({ 
-                ...prev, 
-                rewardManager: "Reward Manager: At least one admin address is required" 
+            setValidationErrors(prev => ({
+                ...prev,
+                rewardManager: "Reward Manager: At least one admin address is required"
             }));
         } else {
             setValidationErrors(prev => {
@@ -431,9 +431,9 @@ export default function GenesisBuilder() {
             });
         }
     }, [
-        ownerAddress, 
-        evmChainId, 
-        gasLimit, 
+        ownerAddress,
+        evmChainId,
+        gasLimit,
         targetBlockRate,
         ownerBalanceDecimal,
         contractDeployerAllowList,
@@ -452,9 +452,9 @@ export default function GenesisBuilder() {
 
         try {
             setGenesisData(quickAndDirtyGenesisBuilder(
-                ownerAddress, 
-                evmChainId, 
-                gasLimit, 
+                ownerAddress,
+                evmChainId,
+                gasLimit,
                 targetBlockRate,
                 ownerBalanceDecimal,
                 {
@@ -470,9 +470,9 @@ export default function GenesisBuilder() {
             setGenesisData(error instanceof Error ? error.message : "Invalid owner address")
         }
     }, [
-        ownerAddress, 
-        evmChainId, 
-        gasLimit, 
+        ownerAddress,
+        evmChainId,
+        gasLimit,
         targetBlockRate,
         ownerBalanceDecimal,
         contractDeployerAllowList,
@@ -519,22 +519,20 @@ export default function GenesisBuilder() {
                     <div className="flex -mb-px">
                         <button
                             onClick={() => setActiveTab("config")}
-                            className={`py-2 px-4 font-medium ${
-                                activeTab === "config"
+                            className={`py-2 px-4 font-medium ${activeTab === "config"
                                     ? "border-b-2 border-blue-500 text-blue-600"
                                     : "text-gray-500 hover:text-gray-700"
-                            }`}
+                                }`}
                         >
                             Configuration
                         </button>
                         {isGenesisReady && (
                             <button
                                 onClick={() => setActiveTab("genesis")}
-                                className={`py-2 px-4 font-medium ${
-                                    activeTab === "genesis"
+                                className={`py-2 px-4 font-medium ${activeTab === "genesis"
                                         ? "border-b-2 border-blue-500 text-blue-600"
                                         : "text-gray-500 hover:text-gray-700"
-                                }`}
+                                    }`}
                             >
                                 Genesis JSON
                             </button>
@@ -598,15 +596,15 @@ export default function GenesisBuilder() {
                         {/* Precompiles */}
                         <div className="p-5 bg-gray-50 dark:bg-gray-800 rounded-lg">
                             <h3 className="text-lg font-medium mb-4">Precompile Configuration</h3>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Contract Deployer Allow List */}
                                 <PrecompileCard
                                     title="Contract Deployer Allow List"
                                     address="0x0200000000000000000000000000000000000000"
                                     enabled={contractDeployerAllowList.enabled}
-                                    onToggle={(enabled: boolean) => 
-                                        setContractDeployerAllowList(prev => ({...prev, enabled}))
+                                    onToggle={(enabled: boolean) =>
+                                        setContractDeployerAllowList(prev => ({ ...prev, enabled }))
                                     }
                                 >
                                     <div className="space-y-4">
@@ -614,7 +612,7 @@ export default function GenesisBuilder() {
                                             label="Admin Addresses"
                                             value={formatAddressList(contractDeployerAllowList.adminAddresses)}
                                             onChange={(value: string) => setContractDeployerAllowList(prev => ({
-                                                ...prev, 
+                                                ...prev,
                                                 adminAddresses: parseAddressList(value)
                                             }))}
                                             placeholder="0x1234..., 0x5678..."
@@ -625,7 +623,7 @@ export default function GenesisBuilder() {
                                             label="Enabled Addresses"
                                             value={formatAddressList(contractDeployerAllowList.enabledAddresses)}
                                             onChange={(value: string) => setContractDeployerAllowList(prev => ({
-                                                ...prev, 
+                                                ...prev,
                                                 enabledAddresses: parseAddressList(value)
                                             }))}
                                             placeholder="0x1234..., 0x5678..."
@@ -640,8 +638,8 @@ export default function GenesisBuilder() {
                                     title="Native Minter"
                                     address="0x0200000000000000000000000000000000000001"
                                     enabled={contractNativeMinter.enabled}
-                                    onToggle={(enabled: boolean) => 
-                                        setContractNativeMinter(prev => ({...prev, enabled}))
+                                    onToggle={(enabled: boolean) =>
+                                        setContractNativeMinter(prev => ({ ...prev, enabled }))
                                     }
                                 >
                                     <div className="space-y-4">
@@ -649,7 +647,7 @@ export default function GenesisBuilder() {
                                             label="Admin Addresses"
                                             value={formatAddressList(contractNativeMinter.adminAddresses)}
                                             onChange={(value: string) => setContractNativeMinter(prev => ({
-                                                ...prev, 
+                                                ...prev,
                                                 adminAddresses: parseAddressList(value)
                                             }))}
                                             placeholder="0x1234..., 0x5678..."
@@ -660,7 +658,7 @@ export default function GenesisBuilder() {
                                             label="Enabled Addresses"
                                             value={formatAddressList(contractNativeMinter.enabledAddresses)}
                                             onChange={(value: string) => setContractNativeMinter(prev => ({
-                                                ...prev, 
+                                                ...prev,
                                                 enabledAddresses: parseAddressList(value)
                                             }))}
                                             placeholder="0x1234..., 0x5678..."
@@ -675,8 +673,8 @@ export default function GenesisBuilder() {
                                     title="Transaction Allow List"
                                     address="0x0200000000000000000000000000000000000002"
                                     enabled={txAllowList.enabled}
-                                    onToggle={(enabled: boolean) => 
-                                        setTxAllowList(prev => ({...prev, enabled}))
+                                    onToggle={(enabled: boolean) =>
+                                        setTxAllowList(prev => ({ ...prev, enabled }))
                                     }
                                 >
                                     <div className="space-y-4">
@@ -684,7 +682,7 @@ export default function GenesisBuilder() {
                                             label="Admin Addresses"
                                             value={formatAddressList(txAllowList.adminAddresses)}
                                             onChange={(value: string) => setTxAllowList(prev => ({
-                                                ...prev, 
+                                                ...prev,
                                                 adminAddresses: parseAddressList(value)
                                             }))}
                                             placeholder="0x1234..., 0x5678..."
@@ -695,7 +693,7 @@ export default function GenesisBuilder() {
                                             label="Enabled Addresses"
                                             value={formatAddressList(txAllowList.enabledAddresses)}
                                             onChange={(value: string) => setTxAllowList(prev => ({
-                                                ...prev, 
+                                                ...prev,
                                                 enabledAddresses: parseAddressList(value)
                                             }))}
                                             placeholder="0x1234..., 0x5678..."
@@ -710,15 +708,15 @@ export default function GenesisBuilder() {
                                     title="Fee Manager"
                                     address="0x0200000000000000000000000000000000000003"
                                     enabled={feeManager.enabled}
-                                    onToggle={(enabled: boolean) => 
-                                        setFeeManager(prev => ({...prev, enabled}))
+                                    onToggle={(enabled: boolean) =>
+                                        setFeeManager(prev => ({ ...prev, enabled }))
                                     }
                                 >
                                     <TextArea
                                         label="Admin Addresses"
                                         value={formatAddressList(feeManager.adminAddresses)}
                                         onChange={(value: string) => setFeeManager(prev => ({
-                                            ...prev, 
+                                            ...prev,
                                             adminAddresses: parseAddressList(value)
                                         }))}
                                         placeholder="0x1234..., 0x5678..."
@@ -732,15 +730,15 @@ export default function GenesisBuilder() {
                                     title="Reward Manager"
                                     address="0x0200000000000000000000000000000000000004"
                                     enabled={rewardManager.enabled}
-                                    onToggle={(enabled: boolean) => 
-                                        setRewardManager(prev => ({...prev, enabled}))
+                                    onToggle={(enabled: boolean) =>
+                                        setRewardManager(prev => ({ ...prev, enabled }))
                                     }
                                 >
                                     <TextArea
                                         label="Admin Addresses"
                                         value={formatAddressList(rewardManager.adminAddresses)}
                                         onChange={(value: string) => setRewardManager(prev => ({
-                                            ...prev, 
+                                            ...prev,
                                             adminAddresses: parseAddressList(value)
                                         }))}
                                         placeholder="0x1234..., 0x5678..."
@@ -754,8 +752,8 @@ export default function GenesisBuilder() {
                                     title="Warp Messenger"
                                     address="0x0200000000000000000000000000000000000005"
                                     enabled={warpMessenger.enabled}
-                                    onToggle={(enabled: boolean) => 
-                                        setWarpMessenger(prev => ({...prev, enabled}))
+                                    onToggle={(enabled: boolean) =>
+                                        setWarpMessenger(prev => ({ ...prev, enabled }))
                                     }
                                 >
                                     <div className="space-y-4">
@@ -763,7 +761,7 @@ export default function GenesisBuilder() {
                                             label="Quorum Numerator"
                                             value={warpMessenger.quorumNumerator.toString()}
                                             onChange={(value: string) => setWarpMessenger(prev => ({
-                                                ...prev, 
+                                                ...prev,
                                                 quorumNumerator: Number(value)
                                             }))}
                                             placeholder="67"
@@ -775,7 +773,7 @@ export default function GenesisBuilder() {
                                                 label="Require Primary Network Signers"
                                                 checked={warpMessenger.requirePrimaryNetworkSigners}
                                                 onChange={(checked: boolean) => setWarpMessenger(prev => ({
-                                                    ...prev, 
+                                                    ...prev,
                                                     requirePrimaryNetworkSigners: checked
                                                 }))}
                                             />
@@ -783,40 +781,40 @@ export default function GenesisBuilder() {
                                     </div>
                                 </PrecompileCard>
                             </div>
+                        </div>
 
-                            {/* Validation and actions */}
-                            <div className="mt-8">
-                                {Object.keys(validationErrors).length > 0 ? (
-                                    <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 p-4 rounded-md flex items-start mb-4">
-                                        <AlertCircle className="text-red-500 mr-3 h-5 w-5 flex-shrink-0 mt-0.5" />
-                                        <div>
-                                            <h4 className="font-medium text-red-800 dark:text-red-300">Please fix the following errors:</h4>
-                                            <ul className="mt-2 list-disc list-inside text-sm text-red-700 dark:text-red-400">
-                                                {Object.entries(validationErrors).map(([key, message]) => (
-                                                    <li key={key}>{message}</li>
-                                                ))}
-                                            </ul>
-                                        </div>
+                        {/* Validation and actions */}
+                        <div className="mt-8">
+                            {Object.keys(validationErrors).length > 0 ? (
+                                <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 p-4 rounded-md flex items-start mb-4">
+                                    <AlertCircle className="text-red-500 mr-3 h-5 w-5 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <h4 className="font-medium text-red-800 dark:text-red-300">Please fix the following errors:</h4>
+                                        <ul className="mt-2 list-disc list-inside text-sm text-red-700 dark:text-red-400">
+                                            {Object.entries(validationErrors).map(([key, message]) => (
+                                                <li key={key}>{message}</li>
+                                            ))}
+                                        </ul>
                                     </div>
-                                ) : isGenesisReady ? (
-                                    <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 p-4 rounded-md flex items-center mb-4">
-                                        <Check className="text-green-500 mr-3 h-5 w-5" />
-                                        <span className="text-green-800 dark:text-green-300">Genesis configuration is valid and ready to use!</span>
-                                    </div>
-                                ) : null}
+                                </div>
+                            ) : isGenesisReady ? (
+                                <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 p-4 rounded-md flex items-center mb-4">
+                                    <Check className="text-green-500 mr-3 h-5 w-5" />
+                                    <span className="text-green-800 dark:text-green-300">Genesis configuration is valid and ready to use!</span>
+                                </div>
+                            ) : null}
 
-                                {isGenesisReady && (
-                                    <div className="flex justify-center">
-                                        <Button
-                                            onClick={() => setActiveTab("genesis")}
-                                            variant="primary"
-                                            className="mt-2"
-                                        >
-                                            View Genesis JSON
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
+                            {isGenesisReady && (
+                                <div className="flex justify-center">
+                                    <Button
+                                        onClick={() => setActiveTab("genesis")}
+                                        variant="primary"
+                                        className="mt-2"
+                                    >
+                                        View Genesis JSON
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     </>
                 )}
@@ -844,14 +842,14 @@ export default function GenesisBuilder() {
                                 </Button>
                             </div>
                         </div>
-                        
+
                         <div className="border rounded-md overflow-hidden bg-white dark:bg-gray-900">
                             <CodeHighlighter
                                 code={genesisData}
                                 lang="json"
                             />
                         </div>
-                        
+
                         <div className="mt-4 flex justify-center">
                             <Button
                                 onClick={() => setActiveTab("config")}

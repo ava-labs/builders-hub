@@ -3,8 +3,8 @@ import { useCreateChainStore, useL1ListStore } from "../toolboxStore";
 import { useMemo } from "react";
 
 export default function InputChainId({ value, onChange, error }: { value: string, onChange: (value: string) => void, error?: string | null }) {
-    const createChainStorechainID = useCreateChainStore(state => state.chainID);
-    const { l1List } = useL1ListStore();
+    const createChainStorechainID = useCreateChainStore()(state => state.chainID);
+    const { l1List } = useL1ListStore()();
 
     const chainIDSuggestions: Suggestion[] = useMemo(() => {
         const result: Suggestion[] = [];

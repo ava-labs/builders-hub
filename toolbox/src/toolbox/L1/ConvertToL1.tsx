@@ -26,7 +26,7 @@ export default function ConvertToL1() {
         setConvertToL1TxId,
         validatorWeights,
         setValidatorWeights,
-    } = useCreateChainStore();
+    } = useCreateChainStore()();
 
     const [chainID, setChainID] = useState(storeChainID);
     const [isConverting, setIsConverting] = useState(false);

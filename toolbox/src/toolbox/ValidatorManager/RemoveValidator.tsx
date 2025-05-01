@@ -44,7 +44,7 @@ const removalStepsConfig: StepsConfig<RemovalStepKey> = {
 export default function RemoveValidator() {
   const { showBoundary } = useErrorBoundary()
   const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore()
-  const selectedL1 = useSelectedL1()
+  const selectedL1 = useSelectedL1()();
   const viemChain = useViemChainStore()
 
   const [nodeID, setNodeID] = useState("")
