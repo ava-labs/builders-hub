@@ -2,7 +2,7 @@
 
 import { AlertCircle, CheckCircle } from "lucide-react"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
-import { bytesToHex, hexToBytes, PublicClient } from "viem"
+import { bytesToHex, hexToBytes } from "viem"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { useErrorBoundary } from "react-error-boundary"
 import { useState } from "react"
@@ -218,7 +218,7 @@ export default function RemoveValidator() {
             nodeID,
             currentValidationID,
             subnetIdForJustification,
-            publicClient as PublicClient
+            publicClient
           )
 
           if (!justification) {

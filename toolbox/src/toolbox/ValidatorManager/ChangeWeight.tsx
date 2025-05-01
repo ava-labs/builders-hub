@@ -14,7 +14,7 @@ import { AlertCircle, CheckCircle } from "lucide-react"
 import SelectSubnetId from "../components/SelectSubnetId"
 
 import { cn } from "../../lib/utils"
-import { bytesToHex, hexToBytes, PublicClient } from "viem"
+import { bytesToHex, hexToBytes } from "viem"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
 
@@ -291,7 +291,7 @@ export default function ChangeWeight() {
           const eventDataForPacking = localEventData || eventData;
 
           if (!viemChain) throw new Error("Viem chain configuration is missing.")
-          if (!validationIDForJustification) throw new Error("Validation ID is missing. Retry step 1.")
+          if (!validationIDForJustification) throw new Error("Validation ID is missing.")
           if (!currentSubnetId) throw new Error("Subnet ID is missing.")
           if (!eventDataForPacking) throw new Error("Event data missing. Retry step 2.")
 
@@ -299,7 +299,7 @@ export default function ChangeWeight() {
             nodeID,
             validationIDForJustification,
             currentSubnetId,
-            publicClient as PublicClient
+            publicClient
           )
 
           if (!justification) {

@@ -1,4 +1,4 @@
-import { parseAbiItem, type PublicClient, hexToBytes } from 'viem';
+import { parseAbiItem, hexToBytes } from 'viem';
 import { unpackRegisterL1ValidatorPayload, calculateValidationID, SolidityValidationPeriod } from '../../coreViem/utils/convertWarp';
 import { utils } from '@avalabs/avalanchejs';
 import { Buffer } from 'buffer'; // Import Buffer
@@ -305,7 +305,7 @@ export async function GetRegistrationJustification(
   nodeID: string, // Keep for logging/confirmation
   validationIDHex: string,
   subnetIDStr: string,
-  publicClient: PublicClient
+  publicClient: { getBlockNumber: () => Promise<bigint>, getLogs: (args: any) => Promise<any[]> }
 ): Promise<Uint8Array | null> {
   const WARP_ADDRESS = '0x0200000000000000000000000000000000000005' as const;
   const NUM_BOOTSTRAP_VALIDATORS_TO_SEARCH = 100;
