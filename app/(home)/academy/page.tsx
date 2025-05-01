@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
 
 export const metadata: Metadata = createMetadata({
-  openGraph: {
+  openGraph: { 
     url: '/academy',
     images: {
       url: '/api/og/academy',
