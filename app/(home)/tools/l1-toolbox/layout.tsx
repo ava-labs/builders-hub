@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
 
 export const metadata: Metadata = createMetadata({
+  title: 'L1 Toolbox',
+  description: 'Manage your L1 with a highly granular set of tools for the Avalanche ecosystem',
   openGraph: {
     url: '/tools/l1-toolbox',
     images: {
