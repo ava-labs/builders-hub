@@ -3,8 +3,8 @@ import { useCreateChainStore, useL1ListStore } from "../toolboxStore";
 import { useMemo } from "react";
 
 export default function InputSubnetId({ value, onChange, error }: { value: string, onChange: (value: string) => void, error?: string | null }) {
-    const createChainStoreSubnetId = useCreateChainStore(state => state.subnetId);
-    const { l1List } = useL1ListStore();
+    const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
+    const l1List = useL1ListStore()(state => state.l1List);
 
     const subnetIdSuggestions: Suggestion[] = useMemo(() => {
         const result: Suggestion[] = [];
