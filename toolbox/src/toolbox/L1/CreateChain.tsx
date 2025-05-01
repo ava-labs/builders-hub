@@ -136,10 +136,6 @@ export default function CreateChain() {
             <GenesisInput label="Genesis Data (JSON)" value={genesisData} onChange={setGenesisData} />
 
             <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                Auto-generated for address 0xC8EA6E24567310104a5d3b5d9ab6Ca414987885
-            </div>
-
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">
                 Open the{" "}
                 <a href="https://build.avax.network/tools/l1-toolbox#genesisBuilder" className="text-primary hover:text-primary/80 dark:text-primary/90 dark:hover:text-primary/70">
                     Genesis Builder tool
