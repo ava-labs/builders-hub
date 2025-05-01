@@ -14,7 +14,7 @@ export async function GET(
   const fonts = await loadFonts();
 
   return createOGResponse({
-    title: title ?? 'Builders Hub Guides',
+    title: title ?? 'Builder Hub Guides',
     description: description ?? 'Avalanche development guides and tutorials.',
     path: 'guides',
     fonts

@@ -488,7 +488,7 @@ export const baseOptions: BaseLayoutProps = {
     title: (
       <>
         {<AvalancheLogo className='size-7' fill='currentColor' />}
-        <span style={{ fontSize: 'large' }}>Builders Hub</span>
+        <span style={{ fontSize: 'large' }}> Hub</span>
       </>
     ),
   },
