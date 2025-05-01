@@ -1,0 +1,67 @@
+---
+title: Network Architecture
+description: Learn about the network architecture of Avalanche and the role of the P-Chain.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: BookOpen
+---
+
+To create an L1 you need to follow these steps:
+
+1. Create a Subnet record on the P-Chain with the `CreateSubnet` transaction
+2. Add one or more chains to the Subnet with the `CreateChain` transaction
+3. Convert the Subnet to an L1 and add the initial validators with the `ConvertSubnetToL1` transaction
+
+Let's dive into what that means:
+
+## Validators in a Multi-Chain Network
+
+Validators are nodes of a blockchain that secure the network by validating the transactions.
+Each L1 in the Avalanche network has it's own set of validators that is running the `AvalancheGo` client.
+
+<img src="/course-images/l1-validator-management/l1s.png" alt="L1 Creation" />
+
+## Platform Chain
+
+The Platform Chain is the backbone for the native interoperability of the Avalanche network. It is a
+registry of all validators in the Avalanche network. This includes the validators of the Primary
+Network (including the C- and P-Chain), as well as all L1s and legacy Subnet validators. For each
+validator the P-Chain stores the following information:
+
+- A unique node ID identifying the validator
+- A BLS Public Key
+- The Stake Weight
+- The Balance of the Validator for the continous interoperability fee
+
+following graphic shows a simplified data model of the P-Chain:
+
+<img src="/common-images/p-chain/data-model.png" alt="P-Chain Architecture" />
+
+Builders can create new L1 blockchains in the Avalanche Network by issuing transactions on the
+P-Chain. The P-Chain runs a special-purpose virtual machine called the
+[platformvm](https://github.com/ava-labs/avalanchego/tree/master/vms/platformvm). It is not
+EVM-based and therefore to interact with it you need a compatible wallet like Core wallet. Creating
+new records for L1 blockchains on the P-Chain is done by issuing transactions like the `CreateSubnetTx`.
+
+The P-Chain is secured by the Primary Network validators. L1 validators are syncing the P-Chain,
+meaning they always have the latest view of the validator set of all blockchains in the Avalanche
+network, but are not participating in the consensus of the P-Chain.
+
+## Subnets
+
+When the Avalanche network was created the architecture included the concepts of Subnets. Subnets
+are blockchains that were validated by a *subset of the Primary Network validators*. Each Primary
+Network validator can be a member of multiple subnets, and each Subnet can have multiple validators.
+Since Primary network validators have to fullfil the Primary Network staking requirements of
+`2,000 AVAX`, this was also necessary for every validator that was validating a Subnet. There was no
+option to opt-out of validating the Primary Network.
+
+<img src="/course-images/l1-validator-management/primary-network.png" alt="Primary Network
+Architecture" />
+
+While the concept of Subnets is still supported in the Avalanche network, it is recommended to launch
+new blockchains as L1s to take advantage of the benefits outlined earlier. Since the naming of Subnets
+is deep enshrined in the Avalanche network, you will still see it sometimes in the code or the
+transaction names.
+
+

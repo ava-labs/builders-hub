@@ -22,7 +22,7 @@ export default function UpgradeProxy() {
         validatorManagerAddress,
     } = useToolboxStore();
     const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
-    const selectedL1 = useSelectedL1();
+    const selectedL1 = useSelectedL1()();
     const { coreWalletClient, publicClient, walletChainId } = useWalletStore();
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [currentImplementation, setCurrentImplementation] = useState<string | null>(null);

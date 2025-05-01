@@ -77,7 +77,7 @@ export default function Page() {
         </span>
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-        Empowering innovators to revolutionize blockchain technology with scalablable and sustainable solutions for real-world challenges.
+        Empowering innovators to revolutionize blockchain technology with scalable and sustainable solutions for real-world challenges.
         </p>
         <Link href="#programs">
             <Button className="mt-6 rounded-full text-lg px-8 py-6 bg-red-500 hover:bg-red-600 transition-all duration-300 shadow-lg hover:shadow-xl text-white dark:text-white">
@@ -96,7 +96,7 @@ export default function Page() {
           </div>
         </div>
             <h2 className="text-4xl md:text-7xl font-bold bg-linear-to-r from-yellow-500 to-amber-500 bg-clip-text text-transparent">
-              $50M+ in Grants
+              $250M+ in Grants
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Fueling innovation across all programs based on project impact and potential.

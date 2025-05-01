@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage, combine } from 'zustand/middleware'
 import { useMemo } from 'react';
-import { useShallow } from 'zustand/react/shallow'
 import { useWalletStore } from '../lib/walletStore';
 
 export type DeployOn = "L1" | "C-Chain";
@@ -25,7 +24,7 @@ const createChainInitialState = {
     nodePopJsons: [""] as string[],
 }
 
-export const useCreateChainStore = create(
+const getCreateChainStore = (isTestnet: boolean) => create(
     persist(
         combine(createChainInitialState, (set) => ({
             setSubnetID: (subnetId: string) => set({ subnetId }),
@@ -42,35 +41,56 @@ export const useCreateChainStore = create(
             setNodePopJsons: (nodePopJsons: string[]) => set({ nodePopJsons }),
 
             reset: () => {
-                window?.localStorage.removeItem('create-chain-store');
+                window?.localStorage.removeItem(`create-chain-store-${isTestnet ? 'testnet' : 'mainnet'}`);
             },
         })),
         {
-            name: 'create-chain-store',
+            name: `create-chain-store-${isTestnet ? 'testnet' : 'mainnet'}`,
             storage: createJSONStorage(localStorageComp),
         },
     ),
 )
 
-const l1ListState = {
-    l1List: [] as { id: string, name: string, rpcUrl: string, evmChainId: number, coinName: string, isTestnet: boolean, subnetId: string, validatorManagerAddress: string }[],
+export const useCreateChainStore = () => {
+    const { isTestnet } = useWalletStore();
+    return getCreateChainStore(Boolean(isTestnet))
 }
 
-export const useL1ListStore = create(
+type L1ListItem = {
+    id: string;
+    name: string;
+    rpcUrl: string;
+    evmChainId: number;
+    coinName: string;
+    isTestnet: boolean;
+    subnetId: string;
+    validatorManagerAddress: string;
+};
+
+const l1ListInitialState = {
+    l1List: [] as L1ListItem[],
+}
+
+const getL1ListStore = (isTestnet: boolean) => create(
     persist(
-        combine(l1ListState, (set) => ({
-            addL1: (l1: { id: string, name: string, rpcUrl: string, evmChainId: number, coinName: string, isTestnet: boolean, subnetId: string, validatorManagerAddress: string }) => set((state) => ({ l1List: [...state.l1List, l1] })),
-            removeL1: (l1: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1) })),
+        combine(l1ListInitialState, (set) => ({
+            addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
+            removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
             reset: () => {
-                window?.localStorage.removeItem('l1-list-store');
+                window?.localStorage.removeItem(`l1-list-store-${isTestnet ? 'testnet' : 'mainnet'}`);
             },
         })),
         {
-            name: 'l1-list-store',
+            name: `l1-list-store-${isTestnet ? 'testnet' : 'mainnet'}`,
             storage: createJSONStorage(localStorageComp),
         },
     ),
 )
+
+export const useL1ListStore = () => {
+    const { isTestnet } = useWalletStore();
+    return getL1ListStore(Boolean(isTestnet));
+}
 
 const toolboxInitialState = {
     //verified state
@@ -83,6 +103,7 @@ const toolboxInitialState = {
     exampleErc20Address: { "L1": "", "C-Chain": "" } as { L1: string, "C-Chain": string },
     erc20TokenHomeAddress: { "L1": "", "C-Chain": "" } as { L1: string, "C-Chain": string },
     erc20TokenRemoteAddress: { "L1": "", "C-Chain": "" } as { L1: string, "C-Chain": string },
+    nativeTokenRemoteAddress: { "L1": "", "C-Chain": "" } as { L1: string, "C-Chain": string },
 
     //unverifyed state - remove after testing
     // nodeRpcUrl: "",
@@ -103,7 +124,7 @@ export const getToolboxStore = (chainId: string) => create(
             setExampleErc20Address: (address: string, deployOn: DeployOn) => set((state) => ({ exampleErc20Address: { ...state.exampleErc20Address, [deployOn]: address } })),
             setErc20TokenHomeAddress: (address: string, deployOn: DeployOn) => set((state) => ({ erc20TokenHomeAddress: { ...state.erc20TokenHomeAddress, [deployOn]: address } })),
             setErc20TokenRemoteAddress: (address: string, deployOn: DeployOn) => set((state) => ({ erc20TokenRemoteAddress: { ...state.erc20TokenRemoteAddress, [deployOn]: address } })),
-
+            setNativeTokenRemoteAddress: (address: string, deployOn: DeployOn) => set((state) => ({ nativeTokenRemoteAddress: { ...state.nativeTokenRemoteAddress, [deployOn]: address } })),
 
             //unverified methods - remove after testing
             // setNodeRpcUrl: (nodeRpcUrl: string) => set({ nodeRpcUrl }),
@@ -114,7 +135,6 @@ export const getToolboxStore = (chainId: string) => create(
             reset: () => {
                 if (typeof window !== 'undefined') {
                     window.localStorage.removeItem(`toolbox-storage-${chainId}`);
-                    window.location.reload();
                 }
             },
         })),
@@ -126,41 +146,50 @@ export const getToolboxStore = (chainId: string) => create(
 )
 
 export const useToolboxStore = () => {
-    const selectedL1 = useSelectedL1();
+    const selectedL1 = useSelectedL1()();
     return getToolboxStore(selectedL1?.id || "")();
 }
 
 export function resetAllStores() {
-    useCreateChainStore.getState().reset();
-    const chainIds = useL1ListStore.getState().l1List.map((l1) => l1.id);
-    chainIds.forEach((chainId) => {
+    const { isTestnet } = useWalletStore.getState();
+
+    if (typeof isTestnet !== "boolean") {
+        console.warn("isTestnet is undefined during reset. Resetting both testnet and mainnet stores.");
+        getCreateChainStore(true).getState().reset();
+        getCreateChainStore(false).getState().reset();
+        getL1ListStore(true).getState().reset();
+        getL1ListStore(false).getState().reset();
+    } else {
+        getCreateChainStore(isTestnet).getState().reset();
+        getL1ListStore(isTestnet).getState().reset();
+    }
+
+    const testnetChains = getL1ListStore(true).getState().l1List.map((l1) => l1.id);
+    const mainnetChains = getL1ListStore(false).getState().l1List.map((l1) => l1.id);
+    const allChainIds = [...new Set([...testnetChains, ...mainnetChains])];
+
+    allChainIds.forEach((chainId) => {
         getToolboxStore(chainId).getState().reset();
     });
-    useL1ListStore.getState().reset()
+
     window?.location.reload();
 }
 
 export function useViemChainStore() {
     const { walletChainId } = useWalletStore();
-    const { l1List } = useL1ListStore();
+    const l1List = useL1ListStore()(state => state.l1List);
     const selectedL1 = useMemo(() => l1List.find(l1 => l1.evmChainId === walletChainId), [l1List, walletChainId]);
 
-    const { chainName } = useCreateChainStore(
-        useShallow(state => ({
-            evmChainId: state.evmChainId,
-            chainName: state.chainName
-        }))
-    );
-
-    // Create the viemChain object with useMemo to prevent unnecessary recreation
     const viemChain = useMemo(() => {
         if (!selectedL1) {
             return null;
         }
 
+        const nameToUse = selectedL1.name || `Chain #${selectedL1.evmChainId}`;
+
         return {
             id: selectedL1.evmChainId,
-            name: chainName || `Chain #${selectedL1.evmChainId}`,
+            name: nameToUse,
             rpcUrls: {
                 default: { http: [selectedL1.rpcUrl] },
             },
@@ -171,18 +200,21 @@ export function useViemChainStore() {
             },
             isTestnet: selectedL1.isTestnet,
         };
-    }, [selectedL1, chainName]);
+    }, [selectedL1]);
 
     return viemChain;
 }
 
 export function useSelectedL1() {
     const { walletChainId } = useWalletStore();
-    const { l1List } = useL1ListStore();
+    const l1ListStore = useL1ListStore();
 
     return useMemo(() =>
-        l1List.find(l1 => l1.evmChainId === walletChainId) || undefined,
-        [l1List, walletChainId]
+        () => {
+            const l1List = l1ListStore.getState().l1List;
+            return l1List.find(l1 => l1.evmChainId === walletChainId) || undefined;
+        },
+        [walletChainId, l1ListStore]
     );
 }
 

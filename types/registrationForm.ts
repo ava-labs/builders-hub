@@ -18,6 +18,7 @@ export type RegistrationForm=
     newsletter_subscription: boolean,
     prohibited_items: boolean,
     role: string,
+    telegram_user: string,
     terms_event_conditions: boolean,
     tools: string[],
     web3_proficiency: string

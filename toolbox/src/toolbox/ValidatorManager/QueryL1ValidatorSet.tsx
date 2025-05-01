@@ -1,33 +1,29 @@
 "use client"
 
-import { useSelectedL1 } from "../toolboxStore"
 import { useWalletStore } from "../../lib/walletStore"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Calendar, Clock, Users, Coins, Globe, Info, Copy, Check } from "lucide-react"
 import { Container } from "../components/Container"
 import { Button } from "../../components/Button"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { GlobalParamNetwork, L1ValidatorDetailsFull } from "@avalabs/avacloud-sdk/models/components"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
+import SelectSubnetId from "../components/SelectSubnetId"
 
 export default function QueryL1ValidatorSet() {
-  const selectedL1 = useSelectedL1()
   const { avalancheNetworkID, setAvalancheNetworkID } = useWalletStore()
   const [validators, setValidators] = useState<L1ValidatorDetailsFull[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedValidator, setSelectedValidator] = useState<L1ValidatorDetailsFull | null>(null)
   const [copiedNodeId, setCopiedNodeId] = useState<string | null>(null)
+  const [subnetId, setSubnetId] = useState<string>("")
 
   // Network names for display
   const networkNames: Record<number, GlobalParamNetwork> = {
     [networkIDs.MainnetID]: "mainnet",
     [networkIDs.FujiID]: "fuji",
   }
-
-  useEffect(() => {
-    fetchValidators()
-  }, [avalancheNetworkID, selectedL1?.subnetId])
 
   async function fetchValidators() {
     setIsLoading(true)
@@ -42,7 +38,7 @@ export default function QueryL1ValidatorSet() {
 
       const result = await new AvaCloudSDK().data.primaryNetwork.listL1Validators({
         network: network,
-        subnetId: selectedL1?.subnetId || "",
+        subnetId: subnetId || "",
       });
 
       // Handle pagination
@@ -106,6 +102,9 @@ export default function QueryL1ValidatorSet() {
 
         <div className="relative">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div className="space-y-1">
+              <SelectSubnetId value={subnetId} onChange={setSubnetId} />
+            </div>
             <div className="space-y-1">
               <label className="flex items-center text-xs font-medium text-blue-700 dark:text-blue-200">
                 <Globe className="h-3.5 w-3.5 mr-1.5 text-blue-500 dark:text-blue-400" />

@@ -10,20 +10,22 @@ export const ConnectWalletToolbox = ({ children, required, chainRequired }: { ch
     const viemChain = useViemChainStore();
 
     return (
-        <ConnectWallet required={required} extraElements={chainRequired ? <ChainSelector /> : null} >
-            {(chainRequired && !viemChain) ? (
-                <div className="p-4 border-2 border-gray-500 rounded-md mb-4">
-                    ⚠️ Please connect to an L1 chain before using this component.
-                </div>
-            ) : children}
-        </ConnectWallet>
+        <>
+            <ConnectWallet required={required} extraElements={chainRequired ? <ChainSelector /> : null} >
+                {(chainRequired && !viemChain) ? (
+                    <div className="p-4 border-2 border-gray-500 rounded-md mb-4">
+                        ⚠️ Please connect to an L1 chain before using this component.
+                    </div>
+                ) : children}
+            </ConnectWallet>
+        </>
     );
 };
 
 const ChainSelector = () => {
     const { walletChainId } = useWalletStore();
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState(false)
-    const { l1List, addL1 } = useL1ListStore();
+    const { l1List, addL1 } = useL1ListStore()();
     const { coreWalletClient } = useWalletStore();
     const { showBoundary } = useErrorBoundary();
 

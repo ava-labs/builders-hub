@@ -18,7 +18,6 @@ import {
   Github,
   Waypoints,
   HandCoins,
-  HardDrive,
   Wallet,
   Search,
   Cloud,
@@ -26,6 +25,7 @@ import {
   ListFilter,
   Ticket,
   Earth,
+  ArrowLeftRight,
 } from 'lucide-react';
 import Image from 'next/image';
 import Preview9000 from '@/public/nav-banner/9000-logo.png';
@@ -37,7 +37,7 @@ import Team1Banner from '@/public/nav-banner/local_events_team1.jpg';
 import L1LauncherPreview from '@/public/nav-banner/l1-launcher-preview.png';
 import L1ToolboxPreview from '@/public/nav-banner/l1-toolbox-preview.png';
 import { SiGithub } from '@icons-pack/react-simple-icons';
-import UserWrapper from '@/components/login/user-button/UserWrapper';
+import { UserButton } from '@/components/login/user-button/UserButton';
 
 export const integrationsMenu: LinkItemType = {
   type: 'menu',
@@ -205,13 +205,23 @@ export const academyMenu: LinkItemType = {
       url: '/academy/avalanche-fundamentals',
     },
     {
-      icon: <Logs />,
-      text: 'Multi-Chain Architecture',
+      icon: <SendHorizontal />,
+      text: 'Avalanche Interchain Messaging',
       description:
-        "Dive deeper into Avalanche's multi-chain architecture and deploy your own Blockchain.",
-      url: '/academy/multi-chain-architecture',
+        'Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche ecosystem.',
+      url: '/academy/interchain-messaging',
       menu: {
-        className: 'lg:col-start-2',
+        className: 'lg:col-start-2 lg:row-start-1',
+      },
+    },
+    {
+      icon: <ArrowLeftRight />,
+      text: 'Avalanche Interchain Token Transfer',
+      description:
+        'Bridge tokens between Avalanche L1s using the Interchain Token Transfer protocol.',
+      url: '/academy/interchain-token-transfer',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-2',
       },
     },
     {
@@ -220,16 +230,6 @@ export const academyMenu: LinkItemType = {
       description:
         'Learn how to customize the Ethereum Virtual Machine and add your own custom precompiles.',
       url: '/academy/customizing-evm',
-      menu: {
-        className: 'lg:col-start-2',
-      },
-    },
-    {
-      icon: <SendHorizontal />,
-      text: 'Avalanche Interchain Messaging',
-      description:
-        'Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche ecosystem.',
-      url: '/academy/interchain-messaging',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },
@@ -462,10 +462,9 @@ export const eventsMenu: LinkItemType = {
   ],
 };
 const userMenu: LinkItemType = {
-  type: 'icon',
-  icon: <UserWrapper />,
-  url: '#',
-  text: 'User',
+  type: 'custom',
+  children: <UserButton />,
+  secondary: true
 };
 
 const github: LinkItemType = {

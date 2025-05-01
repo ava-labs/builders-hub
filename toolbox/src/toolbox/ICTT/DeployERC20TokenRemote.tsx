@@ -79,7 +79,7 @@ export default function DeployERC20TokenRemote() {
         { label: "C-Chain", value: "C-Chain" }
     ];
 
-    const selectedL1 = useSelectedL1();
+    const selectedL1 = useSelectedL1()();
     if (!selectedL1) return null;
 
     const tokenHomeBlockchainIDHex = useMemo(() => {
@@ -135,7 +135,7 @@ export default function DeployERC20TokenRemote() {
         };
 
         fetchTokenDecimals();
-    }, [deployOnReversed, erc20TokenHomeAddress["C-Chain"], erc20TokenHomeAddress["L1"], viemChain]);
+    }, [deployOnReversed, erc20TokenHomeAddress["C-Chain"], erc20TokenHomeAddress["L1"], viemChain?.id]);
 
     const requiredChain = deployOn === "L1" ? viemChain : avalancheFuji;
 

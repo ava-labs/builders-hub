@@ -1,0 +1,66 @@
+---
+title: Deployer Allowlist
+description: Learn how to use the Deployer Allowlist Precompile to control who can deploy smart contracts on your Avalanche L1 blockchain.
+---
+
+The Deployer Allowlist Precompile allows you to control which addresses have permission to deploy smart contracts on your Avalanche L1 blockchain. This is useful for maintaining a controlled environment where only authorized addresses can deploy new contracts.
+
+## Activating the Precompile
+
+To activate this feature, you need to provide the `contractDeployerAllowListConfig` in the genesis:
+
+```json
+{
+  "config": {
+    "contractDeployerAllowListConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+    }
+  }
+}
+```
+
+By enabling this feature, you can define which addresses are allowed to deploy smart contracts and manage these permissions over time.
+
+## Interface and Address
+
+The Deployer Allowlist precompile is located at address `0x0200000000000000000000000000000000000003` and implements the following interface:
+
+```solidity
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+interface IDeployerAllowList {
+  event RoleSet(uint256 indexed role, address indexed account, address indexed sender, uint256 oldRole);
+
+  // Set [addr] to have the admin role over the precompile contract.
+  function setAdmin(address addr) external;
+
+  // Set [addr] to be enabled on the precompile contract.
+  function setEnabled(address addr) external;
+
+  // Set [addr] to have the manager role over the precompile contract.
+  function setManager(address addr) external;
+
+  // Set [addr] to have no role for the precompile contract.
+  function setNone(address addr) external;
+
+  // Read the status of [addr].
+  function readAllowList(address addr) external view returns (uint256 role);
+}
+```
+
+The Deployer Allowlist precompile uses the [AllowList interface](/docs/virtual-machines/default-precompiles/allowlist) to manage permissions for contract deployment.
+
+## Role Permissions
+
+The precompile defines several roles with different permissions:
+
+- **Admin (2)**: Can add or remove any role (Admin, Manager, Enabled, None)
+- **Manager (3)**: Can add or remove Enabled addresses
+- **Enabled (1)**: Can deploy smart contracts
+- **None (0)**: Cannot deploy smart contracts
+
+## Implementation
+
+You can find the implementation of the Deployer Allowlist precompile in the [subnet-evm repository](https://github.com/ava-labs/subnet-evm/blob/master/precompile/contracts/deployerallowlist/contract.go).

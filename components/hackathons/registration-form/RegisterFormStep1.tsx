@@ -6,25 +6,18 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import React from "react";
+import React, { useState } from "react";
 import { RegisterFormValues } from "./RegistrationForm";
 import { useFormContext } from "react-hook-form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { User } from "next-auth";
 
-
 interface Step1Props {
-  cities: string[];
   user?: User; // Optional User prop
 }
-export default function RegisterFormStep1({ cities,user }: Step1Props) {
+export default function RegisterFormStep1({ user }: Step1Props) {
   const form = useFormContext<RegisterFormValues>();
+  const [open, setOpen] = useState<boolean>(false);
+
   return (
     <>
       <div className="mb-6">
@@ -37,7 +30,6 @@ export default function RegisterFormStep1({ cities,user }: Step1Props) {
         <div className="w-full h-px bg-zinc-300 mt-2" />
       </div>
 
-     
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {/* Columna izquierda */}
         <div className="space-y-6">
@@ -53,7 +45,6 @@ export default function RegisterFormStep1({ cities,user }: Step1Props) {
                     placeholder="Enter your full name or preferred display name"
                     className="bg-transparent placeholder-zinc-600"
                     {...field}
-                    
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">
@@ -76,7 +67,6 @@ export default function RegisterFormStep1({ cities,user }: Step1Props) {
                     placeholder="your@email.com"
                     {...field}
                     className="bg-transparent placeholder-zinc-600"
-                    
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">
@@ -109,7 +99,6 @@ export default function RegisterFormStep1({ cities,user }: Step1Props) {
           />
         </div>
 
-    
         <div className="space-y-6">
           {/* Rol */}
           <FormField
@@ -123,7 +112,6 @@ export default function RegisterFormStep1({ cities,user }: Step1Props) {
                     placeholder="Your role"
                     {...field}
                     className="bg-transparent placeholder-zinc-600"
-                    
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">
@@ -138,34 +126,17 @@ export default function RegisterFormStep1({ cities,user }: Step1Props) {
             control={form.control}
             name="city"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>City of Residence</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger className="text-zinc-600">
-                      <SelectValue
-                        placeholder="Select your city"
-                        className="placeholder-zinc-600"
-                      />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 placeholder-zinc-600 text-zinc-600 rounded-md shadow-md">
-                    {cities.map((city) => (
-                      <SelectItem
-                        className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                        key={city}
-                        value={city}
-                      >
-                        {city}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <Input
+                    placeholder="Your city"
+                    {...field}
+                    className="bg-transparent placeholder-zinc-600"
+                  />
+                </FormControl>
                 <FormMessage className="text-zinc-600">
-                  Choose your current city of residence.
+                  Enter your current city of residence.
                 </FormMessage>
               </FormItem>
             )}

@@ -3,7 +3,8 @@ import {
   SquareGanttChart, MonitorCog, Logs, MonitorCheck, Settings, Cable, Webhook, Github,
   Wrench,
   GraduationCap,
-  Rocket
+  Rocket,
+  Terminal
 } from 'lucide-react';
 import Link from 'next/link';
 import type { HTMLAttributes, ReactNode } from 'react';
@@ -121,13 +122,6 @@ function Features(): React.ReactElement {
         description="We provide a suite of tools to make your development experience as smooth as possible."
       >
         <div className="mt-8 flex flex-col gap-4">
-          <Link href="/tools/l1-launcher" className="rounded-xl border bg-fd-background p-4 shadow-lg transition-colors hover:bg-fd-accent">
-            <Rocket />
-            <h3 className="font-semibold">L1 Launcher</h3>
-            <p className="text-sm text-fd-muted-foreground">
-              Launch your EVM L1 with Docker and Core Wallet.
-            </p>
-          </Link>
           <Link href="/tools/l1-toolbox" className="rounded-xl border bg-fd-background p-4 shadow-lg transition-colors hover:bg-fd-accent">
             <Wrench />
             <h3 className="font-semibold">L1 Toolbox</h3>
@@ -135,11 +129,25 @@ function Features(): React.ReactElement {
               Simple atomic tools to launch and maintain your L1.
             </p>
           </Link>
+          <Link href="/tools/l1-launcher" className="rounded-xl border bg-fd-background p-4 shadow-lg transition-colors hover:bg-fd-accent">
+            <Rocket />
+            <h3 className="font-semibold">L1 Launcher</h3>
+            <p className="text-sm text-fd-muted-foreground">
+              Launch your EVM L1 with Docker and Core Wallet.
+            </p>
+          </Link>
+          <Link href="/docs/tooling/get-avalanche-cli" className="rounded-xl border bg-fd-background p-4 shadow-lg transition-colors hover:bg-fd-accent">
+            <Terminal />
+            <h3 className="font-semibold">Avalanche CLI</h3>
+            <p className="text-sm text-fd-muted-foreground">
+              Command-line interface for local development with L1s.
+            </p>
+          </Link>
           <Link href="https://github.com/ava-labs/avalanche-starter-kit" className="rounded-xl border bg-fd-background p-4 shadow-lg transition-colors hover:bg-fd-accent">
             <Github />
             <h3 className="font-semibold">Avalanche Starter Kit</h3>
             <p className="text-sm text-fd-muted-foreground">
-              Quickstart your journey into Avalanche with our Starter Kit.
+              Containerized Development Environment including Avalanche CLI, Foundry and our interoperability contract implementations.
             </p>
           </Link>
         </div>
