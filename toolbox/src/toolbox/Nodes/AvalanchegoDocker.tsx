@@ -196,50 +196,37 @@ export default function AvalanchegoDocker() {
     }, [chainId]);
 
     return (
+        <>
+        <Container
+            title="Docker Installation Command"
+            description="We will retrieve the binary images of AvalancheGo from the Docker Hub. Make sure you have Docker installed on your system."
+        >
+            <Tabs
+                tabs={Object.keys(dockerInstallInstructions)}
+                activeTab={activeOS}
+                setActiveTab={setActiveOS}
+                children={(activeTab) => {
+                    return <CodeHighlighter lang="bash" code={dockerInstallInstructions[activeTab]} />
+                }}
+            />
+
+            <p className="mt-4">
+                If you do not want to use Docker, you can follow the instructions{" "}
+                <a
+                    href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
+                    target="_blank"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                    rel="noreferrer"
+                >
+                    here
+                </a>
+                .
+            </p>
+        </Container>
         <Container
             title="Node Setup with Docker"
-            description="This will start a Docker container running an RPC or validator node that tracks your subnet."
+            description="This will start a Docker container running an RPC or validator node that tracks your L1."
         >
-            <div className="space-y-4">
-                <div className="mt-4">
-                    <h3 className="text-md font-medium mb-2">Docker Installation Command:</h3>
-                    <p className="mb-4">
-                        We will retrieve the binary images of{" "}
-                        <a
-                            href="https://github.com/ava-labs/avalanchego"
-                            target="_blank"
-                            className="text-blue-600 dark:text-blue-400 hover:underline"
-                            rel="noreferrer"
-                        >
-                            AvalancheGo
-                        </a>{" "}
-                        from the Docker Hub. Make sure you have Docker installed on your system.
-                    </p>
-
-                    <Tabs
-                        tabs={Object.keys(dockerInstallInstructions)}
-                        activeTab={activeOS}
-                        setActiveTab={setActiveOS}
-                        children={(activeTab) => {
-                            return <CodeHighlighter lang="bash" code={dockerInstallInstructions[activeTab]} />
-                        }}
-                    />
-
-                    <p className="mt-4">
-                        If you do not want to use Docker, you can follow the instructions{" "}
-                        <a
-                            href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
-                            target="_blank"
-                            className="text-blue-600 dark:text-blue-400 hover:underline"
-                            rel="noreferrer"
-                        >
-                            here
-                        </a>
-                        .
-                    </p>
-                </div>
-
-                <h3 className="text-md font-medium mb-2 mt-8">Node Setup Command:</h3>
 
                 <InputChainId
                     value={chainId}
@@ -348,8 +335,7 @@ export default function AvalanchegoDocker() {
                             <p className="mt-1">Example for second node: Use ports 9652/9653 (HTTP/staking), container name "avago2", and data directory "~/.avalanchego2"</p>
                         </div>
                     </>)}
-            </div>
-
         </Container>
+        </>
     );
 };
