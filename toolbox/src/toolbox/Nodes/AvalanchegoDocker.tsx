@@ -198,9 +198,10 @@ export default function AvalanchegoDocker() {
     return (
         <>
         <Container
-            title="Docker Installation Command"
-            description="We will retrieve the binary images of AvalancheGo from the Docker Hub. Make sure you have Docker installed on your system."
+            title="Docker Installation"
+            description="We will retrieve the binary images of AvalancheGo from the Docker Hub."
         >
+            <p>Make sure you have Docker installed on your system. You can use the following commands to install it:</p>
             <Tabs
                 tabs={Object.keys(dockerInstallInstructions)}
                 activeTab={activeOS}
@@ -227,7 +228,7 @@ export default function AvalanchegoDocker() {
             title="Node Setup with Docker"
             description="This will start a Docker container running an RPC or validator node that tracks your L1."
         >
-
+            <p>Enter the options for your node below to generate the Docker command to run the node:</p>
                 <InputChainId
                     value={chainId}
                     onChange={setChainId}
