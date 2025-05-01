@@ -31,8 +31,9 @@ export const GET = withAuth(async (request: Request, context, session) => {
     const { searchParams } = new URL(request.url);
     const hackaton_id = searchParams.get("hackathon_id") ?? "";
     const user_id = searchParams.get("user_id") ?? "";
+    const invitation_id = searchParams.get("invitation_id") ?? "";
 
-    const project = await GetProjectByHackathonAndUser(hackaton_id, user_id);
+    const project = await GetProjectByHackathonAndUser(hackaton_id, user_id,invitation_id);
     return NextResponse.json({ project });
   } catch (error: any) {
     console.error("Error GET /api/project:", error);

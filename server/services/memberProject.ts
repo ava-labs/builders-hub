@@ -44,6 +44,27 @@ export async function UpdateStatusMember(
     data: { status: status },
   });
 
+  if(!member.user_id){
+    await prisma.member.update({
+      where: {
+        id: member.id,
+      },
+      data: { user_id: user_id }
+    });
+  }
+
+  checkIfUserIsMemberOfOtherProject(wasInOtherProject, member, project_id);
+
+  return updatedMember;
+
+
+}
+
+async function checkIfUserIsMemberOfOtherProject(wasInOtherProject: boolean, member: any, project_id: string) {
+  console.log("wasInOtherProject",wasInOtherProject)
+  console.log("member",member)
+  console.log("project_id",project_id)
+
   if (wasInOtherProject) {
     const currentProject = await prisma.project.findUnique({
       where: {
@@ -62,27 +83,46 @@ export async function UpdateStatusMember(
         id: true,
       },
     });
-    console.log(allProjects)
+
     const projectIds = allProjects.map(p => p.id);
-    console.log(projectIds)
+
     await prisma.member.updateMany({
       where: {
         project_id: {
           in: projectIds,
         },
         AND: {
-          id: member.id
+          OR: [
+            { user_id: member.user_id },
+            { email: member.email }
+          ]
         }
       },
       data: { status: "Removed" }
     });
 
+    for (const projectId of projectIds) {
 
+      await deleteProjectIfNoMembers(projectId);
+    }
   }
+}
 
-  return updatedMember;
+async function deleteProjectIfNoMembers(projectId: string) {
+  const remainingMembers = await prisma.member.findMany({
+    where: {
+      project_id: projectId,    
+      status: { not: "Removed" }
+    }
+  });
 
-
+  if (remainingMembers.length === 0) {
+    await prisma.project.delete({
+      where: {
+        id: projectId
+      }
+    });
+  }
 }
 
 export async function GetMembersByProjectId(project_id: string) {
