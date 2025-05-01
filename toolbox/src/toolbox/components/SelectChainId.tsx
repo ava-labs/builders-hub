@@ -2,7 +2,7 @@ import { Input, type Suggestion } from "../../components/Input";
 import { useCreateChainStore, useL1ListStore } from "../toolboxStore";
 import { useMemo } from "react";
 
-export default function InputChainId({ value, onChange, error }: { value: string, onChange: (value: string) => void, error?: string | null }) {
+export default function InputChainId({ value, onChange, error, label = "Chain ID" }: { value: string, onChange: (value: string) => void, error?: string | null, label?: string }) {
     const createChainStorechainID = useCreateChainStore()(state => state.chainID);
     const { l1List } = useL1ListStore()();
 
@@ -32,7 +32,7 @@ export default function InputChainId({ value, onChange, error }: { value: string
     }, [createChainStorechainID, l1List]);
 
     return <Input
-        label="Chain ID"
+        label={label}
         value={value}
         onChange={onChange}
         suggestions={chainIDSuggestions}

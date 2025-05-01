@@ -12,6 +12,7 @@ import { ResultField } from "../components/ResultField";
 import { InputArray } from "../components/InputArray";
 import { CodeHighlighter } from "../../components/CodeHighlighter";
 import { TextareaArray } from "../components/TextareaArray";
+import SelectChainId from "../components/SelectChainId";
 
 export default function ConvertToL1() {
     const {
@@ -81,11 +82,11 @@ export default function ConvertToL1() {
                     onChange={setSubnetID}
                     type="text"
                 />
-                <Input
-                    label="Validator Manager Blockchain ID"
+                <SelectChainId
                     value={chainID}
                     onChange={setChainID}
-                    type="text"
+                    error={null}
+                    label="Validator Manager Blockchain ID"
                 />
                 <Input
                     label="Validator Manager Contract Address (0x...)"
