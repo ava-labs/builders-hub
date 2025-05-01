@@ -20,7 +20,7 @@ export async function GET(
 ): Promise<ImageResponse> {
   return new ImageResponse(
     OG({
-      title: 'L1 Launcher | Avalanche Builder Hub',
+      title: 'L1 Launcher',
       description: 'Guided deployment platform for launching self-hosted Avalanche L1s on Testnet and Mainnet'
     }),
     {

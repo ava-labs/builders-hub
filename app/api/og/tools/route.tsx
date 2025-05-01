@@ -21,7 +21,7 @@ export async function GET(
 
   return new ImageResponse(
     OG({
-      title: 'Tools | Avalanche Builder Hub',
+      title: 'Tools',
       description: 'Discover developer tools and resources for building on Avalanche'
     }),
     {

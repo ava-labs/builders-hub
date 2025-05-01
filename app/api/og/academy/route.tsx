@@ -21,7 +21,7 @@ export async function GET(
 
   return new ImageResponse(
     OG({
-      title: 'Academy | Avalanche Builder Hub',
+      title: 'Academy',
       description: 'Learn blockchain development with courses designed for the Avalanche ecosystem'
     }),
     {

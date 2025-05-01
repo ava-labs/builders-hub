@@ -21,7 +21,7 @@ export async function GET(
 
   return new ImageResponse(
     OG({
-      title: 'Grants | Avalanche Builder Hub',
+      title: 'Grants',
       description: 'Explore grants and other funding opportunities for builders in the Avalanche ecosystem'
     }),
     {
