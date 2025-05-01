@@ -168,14 +168,14 @@ export default function MembersComponent({
   };
 
   const handleAcceptJoinTeamWithPreviousProject = async (accepted: boolean) => {
+    if(setOpenCurrentProject){
+      setOpenCurrentProject(accepted);
+    }
     if (!accepted) {
       const params = new URLSearchParams(searchParams.toString());
       params.delete("invitation");
-      onOpenChange(false);
+     
       router.push(`/hackathons/project-submission?${params.toString()}`);
-      setOpenCurrentProject
-        ? setOpenCurrentProject(false)
-        : (openCurrentProject = false);
       return;
     }
     try {
@@ -191,13 +191,11 @@ export default function MembersComponent({
         .catch((error) => {
           console.error("Error updating status:", error);
         });
-      onOpenChange(false);
+    
     } catch (error) {
       console.error("Error joining team:", error);
     }
-    setOpenCurrentProject
-      ? setOpenCurrentProject(false)
-      : (openCurrentProject = false);
+
   };
 
   useEffect(() => {
