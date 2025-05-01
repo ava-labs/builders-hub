@@ -1,6 +1,7 @@
 import { prisma } from "@/prisma/prisma";
 
 import { ValidationError } from "./hackathons";
+import { MemberStatus } from "@/types/project";
 
 export async function UpdateStatusMember(
   user_id: string,
@@ -98,7 +99,7 @@ async function checkIfUserIsMemberOfOtherProject(wasInOtherProject: boolean, mem
           ]
         }
       },
-      data: { status: "Removed" }
+      data: { status: MemberStatus.REMOVED }
     });
 
     for (const projectId of projectIds) {
@@ -112,7 +113,7 @@ async function deleteProjectIfNoMembers(projectId: string) {
   const remainingMembers = await prisma.member.findMany({
     where: {
       project_id: projectId,    
-      status: { not: "Removed" }
+      status: { not: MemberStatus.REMOVED }
     }
   });
 
