@@ -11,7 +11,7 @@ import { useWalletStore } from "../lib/walletStore"
 import { WalletRequiredPrompt } from "./WalletRequiredPrompt"
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt"
 import { RefreshOnMainnetTestnetChange } from "./RefreshOnMainnetTestnetChange"
-import { avalancheFuji, avalanche } from "viem/chains"
+import { avalanche, avalancheFuji } from "viem/chains"
 
 export const ConnectWallet = ({ children, required, extraElements }: { children: React.ReactNode; required: boolean; extraElements?: React.ReactNode }) => {
     const setWalletChainId = useWalletStore(state => state.setWalletChainId);
@@ -261,23 +261,6 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
         return null;
     };
 
-    const switchNetwork = async (network: 'mainnet' | 'testnet') => {
-        if (!window.avalanche?.request) return;
-
-        try {
-            const chainParams = network === 'mainnet'
-                ? { chainId: '0xa86a', chainRpc: 'https://api.avax.network/ext/bc/C/rpc' }
-                : { chainId: '0xa869', chainRpc: 'https://api.avax-test.network/ext/bc/C/rpc' };
-
-            await window.avalanche.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: chainParams.chainId }]
-            });
-        } catch (error) {
-            console.error("Failed to switch network:", error);
-        }
-    };
-
     // Server-side rendering placeholder
     if (!isClient) {
         return (
@@ -315,7 +298,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
 
                         <div className="rounded-full overflow-hidden flex bg-zinc-100 dark:bg-zinc-800/70 p-0.5">
                             <button
-                                onClick={() => switchNetwork('testnet')}
+                                onClick={() => coreWalletClient.switchChain({ id: avalancheFuji.id })}
                                 className={`px-4 py-1 text-sm rounded-full transition-colors ${isTestnet
                                     ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 font-medium'
                                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -324,7 +307,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                                 Testnet
                             </button>
                             <button
-                                onClick={() => switchNetwork('mainnet')}
+                                onClick={() => coreWalletClient.switchChain({ id: avalanche.id })}
                                 className={`px-4 py-1 text-sm rounded-full transition-colors ${!isTestnet
                                     ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 font-medium'
                                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
