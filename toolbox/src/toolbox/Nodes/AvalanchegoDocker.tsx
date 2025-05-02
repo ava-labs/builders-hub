@@ -15,6 +15,10 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { AddChainModal } from "../components/ConnectWalletToolbox/AddChainModal";
+import { useL1ListStore } from "../toolboxStore";
+import { Button } from "../../components/Button";
+import { PlusIcon, WalletIcon } from "lucide-react";
 
 const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number) => {
     const env: Record<string, string> = {
@@ -157,6 +161,9 @@ export default function AvalanchegoDocker() {
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
+    const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
+    const { addL1 } = useL1ListStore()();
+
 
     useEffect(() => {
         try {
@@ -259,7 +266,7 @@ export default function AvalanchegoDocker() {
                             </Step>
                             <Step>
                                 <h3 className="text-xl font-bold mb-4">Port Configuration</h3>
-                                <p>Make sure the following port{isRPC && 's'} are open: 
+                                <p>Make sure the following port{isRPC && 's'} are open:
                                     <ul>
                                         {isRPC && <li><strong>9650</strong> (for the RPC endpoint)</li>}
                                         <li><strong>9651</strong> (for the node-to-node communication)</li>
@@ -272,7 +279,7 @@ export default function AvalanchegoDocker() {
                                     <p>Create the file for the Chain Config:</p>
 
                                     <p>TBD: Change to environmant variable: https://build.avax.network/docs/nodes/configure/configs-flags#--chain-config-content-string</p>
-                                    
+
 
                                     <DynamicCodeBlock lang="bash" code={enableDebugNTraceCommand(chainId)} />
                                 </Step>
@@ -345,7 +352,13 @@ export default function AvalanchegoDocker() {
                                             <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
                                             <p>Add your L1 to your Wallet if all checks above passed</p>
 
-                                            <button>Add to Wallet</button>
+                                            <Button onClick={() => setIsAddChainModalOpen(true)} className="mt-4 w-48">Add to Wallet</Button>
+                                            {isAddChainModalOpen && <AddChainModal
+                                                onClose={() => setIsAddChainModalOpen(false)}
+                                                onAddChain={addL1}
+                                                allowLookup={false}
+                                                fixedRPCUrl={`https://${nipify(domain)}/ext/bc/${chainId}/rpc`}
+                                            />}
                                         </Step>
                                     </>)}
                                 </>
