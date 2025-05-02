@@ -8,7 +8,7 @@ import { Container } from "../components/Container";
 import { EVMAddressInput } from "../components/EVMAddressInput";
 import { AllowListWrapper } from "../components/AllowListComponents";
 import rewardManagerAbi from "../../../contracts/precompiles/RewardManager.json";
-import { AlertCircle, CheckCircle, Edit, Users, Wallet } from "lucide-react";
+import { CheckCircle, Edit, Users, Wallet } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 // Default Reward Manager address
