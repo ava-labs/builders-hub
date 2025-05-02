@@ -23,7 +23,6 @@ import {
     AllowlistPrecompileConfig, 
     FeeConfigType, 
     SectionId, 
-    ALL_SECTIONS, 
     ValidationMessages, 
     generateEmptyAllowlistPrecompileConfig,
     isValidAllowlistPrecompileConfig
@@ -86,7 +85,7 @@ export default function GenesisBuilder() {
     const [activeTab, setActiveTab] = useState<string>("config");
     const [copied, setCopied] = useState(false);
     const [validationMessages, setValidationMessages] = useState<ValidationMessages>({ errors: {}, warnings: {} });
-    const [expandedSections, setExpandedSections] = useState<Set<SectionId>>(new Set(ALL_SECTIONS));
+    const [expandedSections, setExpandedSections] = useState<Set<SectionId>>(new Set());
     
     // Add a flag to control when genesis should be generated
     const [shouldGenerateGenesis, setShouldGenerateGenesis] = useState(false);
