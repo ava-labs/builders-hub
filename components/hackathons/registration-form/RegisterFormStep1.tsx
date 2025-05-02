@@ -25,7 +25,7 @@ export default function RegisterFormStep1({ user }: Step1Props) {
           Step 1: Personal Information
         </h3>
         <p className="text-zinc-600">
-          Provide your personal details to create your Builders Hub profile.
+          Provide your personal details to create your Builder Hub profile.
         </p>
         <div className="w-full h-px bg-zinc-300 mt-2" />
       </div>

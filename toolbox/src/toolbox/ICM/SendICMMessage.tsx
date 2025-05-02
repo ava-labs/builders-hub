@@ -27,7 +27,7 @@ export default function SendICMMessage() {
     const [lastReceivedMessage, setLastReceivedMessage] = useState<number>();
     const [isQuerying, setIsQuerying] = useState(false);
     const [messageDirection, setMessageDirection] = useState<MessageDirection>("CtoL1");
-    const selectedL1 = useSelectedL1();
+    const selectedL1 = useSelectedL1()();
 
     const directionOptions = [
         { value: "CtoL1", label: "C-Chain to Subnet (L1)" },

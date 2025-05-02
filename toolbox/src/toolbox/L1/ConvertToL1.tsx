@@ -12,13 +12,13 @@ import { ResultField } from "../components/ResultField";
 import { InputArray } from "../components/InputArray";
 import { CodeHighlighter } from "../../components/CodeHighlighter";
 import { TextareaArray } from "../components/TextareaArray";
+import SelectChainId from "../components/SelectChainId";
 
 export default function ConvertToL1() {
     const {
         subnetId,
-        chainID,
+        chainID: storeChainID,
         setSubnetID,
-        setChainID,
         nodePopJsons,
         setNodePopJsons,
         managerAddress,
@@ -27,8 +27,9 @@ export default function ConvertToL1() {
         setConvertToL1TxId,
         validatorWeights,
         setValidatorWeights,
-    } = useCreateChainStore();
+    } = useCreateChainStore()();
 
+    const [chainID, setChainID] = useState(storeChainID);
     const [isConverting, setIsConverting] = useState(false);
     const [validatorBalances, setValidatorBalances] = useState(Array(100).fill(BigInt(1000000000)) as bigint[]);
     const { coreWalletClient, pChainAddress } = useWalletStore();
@@ -81,11 +82,11 @@ export default function ConvertToL1() {
                     onChange={setSubnetID}
                     type="text"
                 />
-                <Input
-                    label="Validator Manager Blockchain ID"
+                <SelectChainId
                     value={chainID}
                     onChange={setChainID}
-                    type="text"
+                    error={null}
+                    label="Validator Manager Blockchain ID"
                 />
                 <Input
                     label="Validator Manager Contract Address (0x...)"

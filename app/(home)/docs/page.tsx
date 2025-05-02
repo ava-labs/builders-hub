@@ -54,22 +54,22 @@ function Highlights(): React.ReactElement {
   return (
     <div className="grid grid-cols-1 border-r md:grid-cols-2 lg:grid-cols-3">
       <Highlight icon={GraduationCap} heading="Learn the Fundamentals" link="/academy/avalanche-fundamentals">
-        Learn about the Avalanche Protocol and it's groundbreaking consensus algorithm.
+        Learn about Avalanche and how to launch your own L1 blockchain.
       </Highlight>
       <Highlight icon={Logs} heading="Avalanche L1s" link="/docs/avalanche-l1s">
-        Utilize the Avalanche tech stack to build your own layer 1 blockchain.
+        Utilize the configuration options for an Avalanche L1.
       </Highlight>
       <Highlight icon={Cable} heading="Interoperability" link="/docs/cross-chain">
-        Advanced interoperability protocols to communicate with other blockchains.
-      </Highlight>
-      <Highlight icon={SquareGanttChart} heading="Build Applications" link="/docs/dapps">
-        Your one stop shop to deploy smart contracts on the Avalanche C-Chain.
+        Native interoperability enables the transfer of assets quickly and securely between L1s.
       </Highlight>
       <Highlight icon={MonitorCog} heading="Virtual Machines" link="/docs/virtual-machines">
-        Learn how to customize the EVM or build new virtual machines from scratch.
+        Learn how to customize the EVM or build new virtual machines from scratch for your L1.
       </Highlight>
       <Highlight icon={MonitorCheck} heading="Nodes & Validators" link="/docs/nodes">
         Become an active participant in the network by running a node or validator.
+      </Highlight>
+      <Highlight icon={SquareGanttChart} heading="Build Applications" link="/docs/dapps">
+        Your one stop shop to deploy smart contracts on the Avalanche C-Chain.
       </Highlight>
 
     </div>

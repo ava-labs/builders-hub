@@ -44,9 +44,9 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
       has: options.track,
     };
   }
-  if (!!options.winningProjects) {
-    filters.prizes = { some: {} }
-  }
+  // if (options.winningProjects) {
+  //   filters.winningProjects = true
+  // }
   if (options.search) {
     const searchWords = options.search.split(/\s+/);
     let searchFilters: any[] = [];
@@ -87,7 +87,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
     include: {
       members: true,
       hackathon: true,
-      prizes: true
+      prizes: true,
     },
     where: filters,
     skip: offset,
@@ -249,59 +249,63 @@ export async function updateProject(
 }
 
 export async function CheckInvitation(invitationId: string, user_id: string) {
-
   const user = await prisma.user.findUnique({
     where: { id: user_id },
   });
-
-  
-
   const member = await prisma.member.findFirst({
-    where: { 
-      OR:[
-        {id: invitationId, user_id: user_id},
-        {id: invitationId, email: user?.email}
-      ]
+    where: {
+      OR: [
+        { id: invitationId, user_id: user_id },
+        { id: invitationId, email: user?.email },
+      ],
     },
     include: {
       project: true,
     },
   });
-  
+
   const existingConfirmedProject = await prisma.project.findFirst({
     where: {
       members: {
-        some: { 
-          user_id: user_id, 
+        some: {
+          OR: [{ user_id: user_id }, { email: user?.email }],
           status: "Confirmed",
           NOT: {
-            project_id: member?.project?.id
-          }
+            project_id: member?.project?.id,
+          },
         },
       },
+      hackaton_id: member?.project?.hackaton_id,
+    },
+    include: {
+      hackathon: true,
     },
   });
-  const isValid = existingConfirmedProject ==null && member?.status == "Pending Confirmation"
-  
+
+  const isValid =
+    existingConfirmedProject == null &&
+    member?.status == "Pending Confirmation";
+
   return {
     invitation: {
-      isValid:  !!member,
+      isValid: !!member,
       isConfirming: isValid,
       exists: member ? true : false,
-      hasConfirmedProject: !!existingConfirmedProject
+      hasConfirmedProject: !!existingConfirmedProject,
     },
     project: {
       project_id: member?.project?.id,
-      project_name: existingConfirmedProject?.project_name ?? member?.project?.project_name,
-      confirmed_project_name: existingConfirmedProject?.project_name??"",
+      project_name:
+        existingConfirmedProject?.project_name ?? member?.project?.project_name,
+      confirmed_project_name: existingConfirmedProject?.project_name ?? "",
     },
-  
   };
 }
 
 export async function GetProjectByHackathonAndUser(
   hackaton_id: string,
-  user_id: string
+  user_id: string,
+  invitation_id: string
 ) {
   if (hackaton_id == "" || user_id == "") {
     throw new ValidationError("hackathon id or user id is required", []);
@@ -309,15 +313,27 @@ export async function GetProjectByHackathonAndUser(
 
   const user = await prisma.user.findFirst({
     where: {
-      OR: [
-        { id: user_id },
-        { email: user_id }
-      ]
-    }
+      OR: [{ id: user_id }, { email: user_id }],
+    },
   });
 
   if (!user) {
     throw new ValidationError("user not found", []);
+  }
+  let project_id = "";
+  if (invitation_id != "") {
+    const invitation = await prisma.member.findFirst({
+      where: { id: invitation_id },
+    });
+
+    project_id = invitation?.project_id??"";
+  }
+
+  if(project_id!==""){
+    const project = await prisma.project.findFirst({
+      where: { id: project_id },
+    });
+    return project;
   }
 
   const project = await prisma.project.findFirst({
@@ -325,10 +341,7 @@ export async function GetProjectByHackathonAndUser(
       hackaton_id,
       members: {
         some: {
-          OR: [
-            { user_id: user.id },
-            { email: user.email }
-          ],
+          OR: [{ user_id: user.id }, { email: user.email }],
           status: {
             in: ["Confirmed", "Pending Confirmation"],
           },
@@ -343,12 +356,6 @@ export async function GetProjectByHackathonAndUser(
   return project;
 }
 
-function getProjectUser(user: any) {
-  return {
-    user_name: user.user_name,
-    image: user.image,
-  };
-}
 
 export type GetProjectOptions = {
   page?: number;

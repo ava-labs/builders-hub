@@ -16,7 +16,7 @@ const MINIMUM_BALANCE_CCHAIN = parseEther('1')
 
 export default function ICMRelayer() {
     const { coreWalletClient } = useWalletStore();
-    const selectedL1 = useSelectedL1();
+    const selectedL1 = useSelectedL1()();
     const [balanceL1, setBalanceL1] = useState<bigint>(BigInt(0));
     const [balanceCChain, setBalanceCChain] = useState<bigint>(BigInt(0));
     const [isCheckingBalanceL1, setIsCheckingBalanceL1] = useState(true);
@@ -88,7 +88,7 @@ export default function ICMRelayer() {
         if (viemChain && selectedL1?.rpcUrl) {
             checkBalanceL1();
         }
-    }, [selectedL1?.rpcUrl, viemChain]);
+    }, [selectedL1?.rpcUrl, viemChain?.id]);
 
     useEffect(() => {
         checkBalanceCChain();

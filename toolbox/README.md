@@ -1,4 +1,4 @@
-# Avalanche Builders Hub Toolbox
+# Avalanche Builder Hub Toolbox
 
 Please read this guide before contributing or at least feed this into your Cursor/v0/Windsurf/whatever. 
 

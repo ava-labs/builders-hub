@@ -3,7 +3,7 @@
 import { useSelectedL1, useToolboxStore, useViemChainStore, type DeployOn } from "../toolboxStore";
 import { useWalletStore } from "../../lib/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import { RadioGroup } from "../../components/RadioGroup";
@@ -11,14 +11,18 @@ import { avalancheFuji } from "viem/chains";
 import ERC20TokenRemoteABI from "../../../contracts/icm-contracts/compiled/ERC20TokenRemote.json";
 import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import { Abi, createPublicClient, http, PublicClient, zeroAddress } from "viem";
-import { Input } from "../../components/Input";
+import { Input, Suggestion } from "../../components/Input";
 import { utils } from "@avalabs/avalanchejs";
 import { FUJI_C_BLOCKCHAIN_ID } from "./DeployERC20TokenRemote";
 import { ListContractEvents } from "../../components/ListContractEvents";
 
 export default function RegisterWithHome() {
     const { showBoundary } = useErrorBoundary();
-    const { erc20TokenRemoteAddress, setErc20TokenRemoteAddress } = useToolboxStore();
+    const { erc20TokenRemoteAddress, nativeTokenRemoteAddress } = useToolboxStore();
+    const [homeAddress, setHomeAddress] = useState<{ L1: string, "C-Chain": string }>({
+        L1: "",
+        "C-Chain": ""
+    });
     const { coreWalletClient } = useWalletStore();
     const viemChain = useViemChainStore();
     const [deployOn, setDeployOn] = useState<DeployOn>("L1");
@@ -33,7 +37,7 @@ export default function RegisterWithHome() {
         { label: "C-Chain", value: "C-Chain" }
     ];
     const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
-    const selectedL1 = useSelectedL1();
+    const selectedL1 = useSelectedL1()();
     if (!selectedL1) return null;
 
     const requiredChain = deployOn === "L1" ? viemChain : avalancheFuji;
@@ -57,7 +61,7 @@ export default function RegisterWithHome() {
             });
 
             setHomeContractClient(homePublicClient);
-            const currentRemoteAddress = erc20TokenRemoteAddress?.[deployOn];
+            const currentRemoteAddress = homeAddress?.[deployOn];
 
             if (!currentRemoteAddress) {
                 setHomeContractAddress(null);
@@ -91,7 +95,7 @@ export default function RegisterWithHome() {
         } finally {
             setIsCheckingRegistration(false);
         }
-    }, [deployOn, erc20TokenRemoteAddress["C-Chain"], erc20TokenRemoteAddress["L1"], selectedL1.id, viemChain]);
+    }, [deployOn, erc20TokenRemoteAddress["C-Chain"], erc20TokenRemoteAddress["L1"], homeAddress["C-Chain"], homeAddress["L1"], selectedL1.id, viemChain?.id]);
 
     useEffect(() => {
         fetchSettings();
@@ -99,7 +103,7 @@ export default function RegisterWithHome() {
 
     async function handleRegister() {
         setLocalError("");
-        const currentRemoteAddress = erc20TokenRemoteAddress?.[deployOn];
+        const currentRemoteAddress = homeAddress?.[deployOn];
 
         if (!currentRemoteAddress) {
             setLocalError(`ERC20 Token Remote address for ${deployOn} is not set. Please deploy it first.`);
@@ -150,6 +154,21 @@ export default function RegisterWithHome() {
         }
     }
 
+    const homeAddressSuggestions: Suggestion[] = useMemo(() => {
+        const result: Suggestion[] = [];
+        if (erc20TokenRemoteAddress?.[deployOn]) {
+            result.push(
+                { title: erc20TokenRemoteAddress?.[deployOn], value: erc20TokenRemoteAddress?.[deployOn], description: "ERC20 Token Remote Address" },
+            );
+        }
+        if (nativeTokenRemoteAddress?.[deployOn]) {
+            result.push(
+                { title: nativeTokenRemoteAddress?.[deployOn], value: nativeTokenRemoteAddress?.[deployOn], description: "Native Token Remote Address" },
+            );
+        }
+        return result;
+    }, [erc20TokenRemoteAddress, deployOn]);
+
     return (
         <div className="space-y-4">
             <h2 className="text-lg font-semibold">Register Remote Bridge with Home Bridge</h2>
@@ -170,11 +189,12 @@ export default function RegisterWithHome() {
                 </p>
 
                 <Input
-                    label={`ERC20 Token Remote Address (${deployOn})`}
-                    value={erc20TokenRemoteAddress?.[deployOn] || ""}
-                    onChange={(value) => setErc20TokenRemoteAddress(value, deployOn)}
+                    label={`Home Address (${deployOn})`}
+                    value={homeAddress?.[deployOn] || ""}
+                    onChange={(value) => setHomeAddress(Object.assign({}, homeAddress, { [deployOn]: value }))}
                     required
-                    error={!erc20TokenRemoteAddress?.[deployOn] ? `Remote address for ${deployOn} not found. Deploy or enter address.` : undefined}
+                    error={!homeAddress?.[deployOn] ? `Home address for ${deployOn} not found. Deploy or enter address.` : undefined}
+                    suggestions={homeAddressSuggestions}
                 />
 
                 {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
@@ -183,7 +203,7 @@ export default function RegisterWithHome() {
                     variant="primary"
                     onClick={handleRegister}
                     loading={isRegistering}
-                    disabled={isRegistering || !erc20TokenRemoteAddress?.[deployOn]}
+                    disabled={isRegistering || !homeAddress?.[deployOn]}
                 >
                     Register Remote on {deployOn} with Home
                 </Button>

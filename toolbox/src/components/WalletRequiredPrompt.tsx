@@ -19,7 +19,7 @@ export const WalletRequiredPrompt = () => (
           Core Wallet Required
         </h3>
         <p className="text-zinc-600 dark:text-zinc-300 text-center mb-8 leading-relaxed">
-          To interact with Avalanche Builders Hub, you'll need to install the Core wallet extension.
+          To interact with Avalanche Builder Hub, you'll need to install the Core wallet extension.
         </p>
         <a
           href="https://chromewebstore.google.com/detail/core-crypto-wallet-nft-ex/agoakfejjabomempkjlepdflaleeobhb"

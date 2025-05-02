@@ -13,7 +13,7 @@ import NativeTokenStakingManagerABI from "../../../contracts/icm-contracts/compi
 import { Container } from "../components/Container";
 
 export default function Initialize() {
-    const selectedL1 = useSelectedL1();
+    const selectedL1 = useSelectedL1()();
     const { showBoundary } = useErrorBoundary();
     const { stakingManagerAddress, setStakingManagerAddress, rewardCalculatorAddress, setRewardCalculatorAddress } = useToolboxStore();
     const { coreWalletClient, publicClient } = useWalletStore();

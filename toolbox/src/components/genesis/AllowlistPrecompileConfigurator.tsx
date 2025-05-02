@@ -3,6 +3,7 @@
 import { RadioGroup } from "../RadioGroup"
 import Allowlist from './AllowList'
 import { AddressEntry, AllowlistPrecompileConfig } from "./types";
+import { AlertCircle } from "lucide-react"
 
 const hasErrors = (entries: AddressEntry[]) =>
     entries.some(entry => entry.error !== undefined);
@@ -28,6 +29,7 @@ interface AllowlistPrecompileConfiguratorProps {
     onUpdateConfig: (newConfig: AllowlistPrecompileConfig) => void
     radioOptionFalseLabel: string
     radioOptionTrueLabel: string
+    validationError?: string
 }
 
 const simpleHash = (str: string): string => {
@@ -47,7 +49,8 @@ export default function AllowlistPrecompileConfigurator({
     config,
     onUpdateConfig,
     radioOptionFalseLabel,
-    radioOptionTrueLabel
+    radioOptionTrueLabel,
+    validationError
 }: AllowlistPrecompileConfiguratorProps) {
     const handleUpdateAllowlist = (newAddresses: AllowlistPrecompileConfig['addresses']) => {
         onUpdateConfig({ ...config, addresses: newAddresses })
@@ -57,11 +60,13 @@ export default function AllowlistPrecompileConfigurator({
         onUpdateConfig({ ...config, activated: value === 'true' })
     }
 
+    const internalValidationError = !isValidAllowlistPrecompileConfig(config);
+
     return (
         <div className="space-y-6">
             <div>
-                <h3 className="mb-4 font-medium">{title}</h3>
-                <p className="text-gray-600">{description} These addresses can be controlled by an EOR or a smart contract.</p>
+                <h3 className="mb-4 font-medium text-zinc-800 dark:text-white">{title}</h3>
+                <p className="text-zinc-500 dark:text-zinc-400">{description} These addresses can be controlled by an EOA or a smart contract.</p>
             </div>
 
             <RadioGroup
@@ -86,8 +91,23 @@ export default function AllowlistPrecompileConfigurator({
                 </div>
             )}
 
-            {!isValidAllowlistPrecompileConfig(config) && (
-                <p className="text-red-500">There are errors in the allowlist configuration. Add at least one address to at least one role (required addresses do not count). The same address can only be added to a single role.</p>
+            {validationError && (
+                 <div className="mt-2 text-red-500 dark:text-red-400 text-sm flex items-center">
+                     <AlertCircle className="h-4 w-4 mr-1" />
+                     {validationError}
+                 </div>
+            )}
+            
+            {!validationError && internalValidationError && (
+                <div className="mt-4 p-4 border-l-4 border-red-500 bg-red-50/70 dark:bg-red-900/20 dark:border-red-800/60 rounded-r-md flex items-start">
+                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                        <p className="text-red-700 dark:text-red-300 font-medium">Configuration Error</p>
+                        <ul className="mt-1 text-red-600 dark:text-red-400 text-sm list-disc list-inside">
+                            <li>Add at least one valid, non-duplicate address to any role.</li>
+                        </ul>
+                    </div>
+                </div>
             )}
         </div>
     )

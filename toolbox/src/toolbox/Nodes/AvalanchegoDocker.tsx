@@ -1,7 +1,6 @@
 "use client";
 
 import { useWalletStore } from "../../lib/walletStore";
-import { Select } from "../components/Select";
 import { useState, useEffect } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
 import versions from "../../versions.json";
@@ -11,11 +10,9 @@ import { Input } from "../../components/Input";
 import { Tabs } from "../../components/Tabs";
 import { getBlockchainInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../components/SelectChainId";
+import { Checkbox } from "../../components/Checkbox";
 
 const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number) => {
-    const httpPort = isRPC ? "8080" : "9650";
-    const stakingPort = isRPC ? "9653" : "9651";
-
     const env: Record<string, string> = {
         AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true",
         AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
@@ -25,14 +22,6 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
     subnets = subnets.filter(subnet => subnet !== "");
     if (subnets.length !== 0) {
         env.AVAGO_TRACK_SUBNETS = subnets.join(",");
-    }
-
-    if (httpPort !== "9650") {
-        env.AVAGO_HTTP_PORT = httpPort;
-    }
-
-    if (stakingPort !== "9651") {
-        env.AVAGO_STAKING_PORT = stakingPort;
     }
 
     if (networkID === networkIDs.FujiID) {
@@ -47,13 +36,11 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
         env.AVAGO_HTTP_ALLOWED_HOSTS = "\"*\"";
     }
 
-    const localFolder = isRPC ? "~/.avalanchego_rpc" : "~/.avalanchego";
-    const containerName = isRPC ? "rpc" : "avago";
     const chunks = [
         "docker run -it -d",
-        `--name ${containerName}`,
-        `-p ${isRPC ? "0.0.0.0" : "127.0.0.1"}:${httpPort}:${httpPort} -p ${stakingPort}:${stakingPort}`,
-        `-v ${localFolder}:/root/.avalanchego`,
+        `--name avago`,
+        `-p ${isRPC ? "" : "127.0.0.1: "}9650:9650 -p 9651:9651`,
+        `-v ~/.avalanchego:/root/.avalanchego`,
         ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
         `avaplatform/subnet-evm:${versions['avaplatform/subnet-evm']}`
     ];
@@ -76,11 +63,11 @@ const reverseProxyCommand = (domain: string) => {
   --network host \\
   -v caddy_data:/data \\
   caddy:2.8-alpine \\
-  caddy reverse-proxy --from ${domain} --to localhost:8080`
+  caddy reverse-proxy --from ${domain} --to localhost:9650`
 }
 
-const enableDebugNTraceCommand = (chainId: string) => `sudo mkdir -p $HOME/.avalanchego_rpc/configs/chains/${chainId}; 
-sudo chown -R $USER:$USER $HOME/.avalanchego_rpc/configs/chains/;
+const enableDebugNTraceCommand = (chainId: string) => `sudo mkdir -p $HOME/.avalanchego/configs/chains/${chainId}; 
+sudo chown -R $USER:$USER $HOME/.avalanchego/configs/chains/;
 
 sudo echo '{
   "log-level": "debug",
@@ -102,7 +89,7 @@ sudo echo '{
     "debug-file-tracer",
     "debug-handler"
   ]
-}' > $HOME/.avalanchego_rpc/configs/chains/${chainId}/config.json`
+}' > $HOME/.avalanchego/configs/chains/${chainId}/config.json`
 
 const checkNodeCommand = (chainID: string, domain: string, isDebugTrace: boolean) => {
     domain = nipify(domain);
@@ -161,23 +148,23 @@ export default function AvalanchegoDocker() {
     const [subnetId, setSubnetId] = useState("");
     const { avalancheNetworkID } = useWalletStore();
 
-    const [isRPC, setIsRPC] = useState<"true" | "false">("false");
+    const [isRPC, setIsRPC] = useState<boolean>(true);
     const [rpcCommand, setRpcCommand] = useState("");
     const [domain, setDomain] = useState("");
-    const [enableDebugTrace, setEnableDebugTrace] = useState<"true" | "false">("false");
+    const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
     const [activeOS, setActiveOS] = useState<OS>("Ubuntu/Debian");
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
 
     useEffect(() => {
         try {
-            setRpcCommand(generateDockerCommand([subnetId], isRPC === "true", avalancheNetworkID));
+            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID));
         } catch (error) {
             setRpcCommand((error as Error).message);
         }
     }, [subnetId, isRPC, avalancheNetworkID]);
 
     useEffect(() => {
-        if (isRPC === "false") {
+        if (!isRPC) {
             setDomain("");
         }
     }, [isRPC]);
@@ -196,51 +183,39 @@ export default function AvalanchegoDocker() {
     }, [chainId]);
 
     return (
-        <Container
-            title="Node Setup with Docker"
-            description="This will start a Docker container running an RPC or validator node that tracks your subnet."
-        >
-            <div className="space-y-4">
-                <div className="mt-4">
-                    <h3 className="text-md font-medium mb-2">Docker Installation Command:</h3>
-                    <p className="mb-4">
-                        We will retrieve the binary images of{" "}
-                        <a
-                            href="https://github.com/ava-labs/avalanchego"
-                            target="_blank"
-                            className="text-blue-600 dark:text-blue-400 hover:underline"
-                            rel="noreferrer"
-                        >
-                            AvalancheGo
-                        </a>{" "}
-                        from the Docker Hub. Make sure you have Docker installed on your system.
-                    </p>
+        <>
+            <Container
+                title="Docker Installation"
+                description="We will retrieve the binary images of AvalancheGo from the Docker Hub."
+            >
+                <p>Make sure you have Docker installed on your system. You can use the following commands to install it:</p>
+                <Tabs
+                    tabs={Object.keys(dockerInstallInstructions)}
+                    activeTab={activeOS}
+                    setActiveTab={setActiveOS}
+                    children={(activeTab) => {
+                        return <CodeHighlighter lang="bash" code={dockerInstallInstructions[activeTab]} />
+                    }}
+                />
 
-                    <Tabs
-                        tabs={Object.keys(dockerInstallInstructions)}
-                        activeTab={activeOS}
-                        setActiveTab={setActiveOS}
-                        children={(activeTab) => {
-                            return <CodeHighlighter lang="bash" code={dockerInstallInstructions[activeTab]} />
-                        }}
-                    />
-
-                    <p className="mt-4">
-                        If you do not want to use Docker, you can follow the instructions{" "}
-                        <a
-                            href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
-                            target="_blank"
-                            className="text-blue-600 dark:text-blue-400 hover:underline"
-                            rel="noreferrer"
-                        >
-                            here
-                        </a>
-                        .
-                    </p>
-                </div>
-
-                <h3 className="text-md font-medium mb-2 mt-8">Node Setup Command:</h3>
-
+                <p className="mt-4">
+                    If you do not want to use Docker, you can follow the instructions{" "}
+                    <a
+                        href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
+                        target="_blank"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                        rel="noreferrer"
+                    >
+                        here
+                    </a>
+                    .
+                </p>
+            </Container>
+            <Container
+                title="Node Setup with Docker"
+                description="This will start a Docker container running an RPC or validator node that tracks your L1."
+            >
+                <p>Enter the options for your node below to generate the Docker command to run the node:</p>
                 <InputChainId
                     value={chainId}
                     onChange={setChainId}
@@ -255,36 +230,23 @@ export default function AvalanchegoDocker() {
 
                 {subnetId && (
                     <>
-                        <p className="mt-8 mb-4">Select what kind of Node you want to set up:</p>
-                        <div className="flex items-center">
-                            <Tabs
-                                tabs={["Validator Node", "RPC Node"]}
-                                activeTab={isRPC === "false" ? "Validator Node" : "RPC Node"}
-                                setActiveTab={(tab) => setIsRPC(tab === "Validator Node" ? "false" : "true")}
-                            />
-                        </div>
+                        <Checkbox
+                            label={`Expose RPC API`}
+                            checked={isRPC}
+                            onChange={setIsRPC}
+                        />
+                        <p className="text-sm mb-2">It is ok to expose RPC on a testnet validator. For mainnet nodes, we recommend running separate validator and RPC nodes.</p>
 
-                        {isRPC === "true" ? (
-                            <>
-                                <p>RPC nodes are not validators. They expose APIs for applications to interact with the blockchain and are necessary when building dApps or services that need to query or submit transactions to the network.</p>
-                                <Select
-                                    label="Enable Debug & Trace"
-                                    value={enableDebugTrace}
-                                    onChange={(value) => setEnableDebugTrace(value as "true" | "false")}
-                                    options={[
-                                        { value: "false", label: "Disabled" },
-                                        { value: "true", label: "Enabled" },
-                                    ]}
-                                />
-                            </>
-                        ) : (
-                            <p>Validator Nodes participate in consensus and validates transactions. These should not be publicly accessible in production settings.</p>
-                        )}
+                        {isRPC && <Checkbox
+                            label="Enable Debug & Trace"
+                            checked={enableDebugTrace}
+                            onChange={setEnableDebugTrace}
+                        />}
 
-                        {chainId && enableDebugTrace === "true" && isRPC === "true" && (
+                        {chainId && enableDebugTrace && isRPC && (
                             <div className="mt-4">
                                 <h3 className="text-md font-medium mb-2">Debug & Trace Setup Command:</h3>
-                                <p className="text-sm mb-2">Note: Run this before starting the node.</p>
+                                <p className="text-sm mb-2">Run this before starting the node.</p>
                                 <CodeHighlighter
                                     code={enableDebugNTraceCommand(chainId)}
                                     lang="bash"
@@ -299,7 +261,7 @@ export default function AvalanchegoDocker() {
                             />
                         </div>
 
-                        {isRPC === "true" && <Input
+                        {isRPC && <Input
                             label="Domain or IPv4 address for reverse proxy (optional)"
                             value={domain}
                             onChange={setDomain}
@@ -307,7 +269,7 @@ export default function AvalanchegoDocker() {
                             helperText="`curl checkip.amazonaws.com` to get your public IP address. Make sure 443 is open on your firewall."
                         />}
 
-                        {domain && isRPC === "true" && (
+                        {domain && isRPC && (
                             <div className="mt-4">
                                 <h3 className="text-md font-medium mb-2">Reverse Proxy Command:</h3>
                                 <CodeHighlighter
@@ -321,17 +283,17 @@ export default function AvalanchegoDocker() {
                             <div className="mt-4">
                                 <h3 className="text-md font-medium mb-2">Check Node Command:</h3>
                                 <CodeHighlighter
-                                    code={isRPC === "true" ? checkNodeCommand(chainId, domain || ("127.0.0.1:8080"), false) : checkNodeCommand(chainId, ("127.0.0.1:9650"), false)}
+                                    code={checkNodeCommand(chainId, domain || ("127.0.0.1:9650"), false)}
                                     lang="bash"
                                 />
                             </div>
                         )}
 
-                        {chainId && isRPC === "true" && enableDebugTrace === "true" && (
+                        {chainId && isRPC && enableDebugTrace && (
                             <div className="mt-4">
                                 <h3 className="text-md font-medium mb-2">Check that debug & trace is working:</h3>
                                 <CodeHighlighter
-                                    code={isRPC === "true" ? checkNodeCommand(chainId, domain || ("127.0.0.1:" + (isRPC === "true" ? "8080" : "9650")), true) : checkNodeCommand(chainId, domain || ("127.0.0.1:" + (isRPC === "true" ? "9650" : "9650")), true)}
+                                    code={checkNodeCommand(chainId, domain || ("127.0.0.1:9650"), true)}
                                     lang="bash"
                                 />
                             </div>
@@ -348,8 +310,7 @@ export default function AvalanchegoDocker() {
                             <p className="mt-1">Example for second node: Use ports 9652/9653 (HTTP/staking), container name "avago2", and data directory "~/.avalanchego2"</p>
                         </div>
                     </>)}
-            </div>
-
-        </Container>
+            </Container>
+        </>
     );
 };

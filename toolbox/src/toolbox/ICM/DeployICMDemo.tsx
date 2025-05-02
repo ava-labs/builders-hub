@@ -18,7 +18,7 @@ export default function DeployICMDemo() {
     const viemChain = useViemChainStore();
     const [isDeploying, setIsDeploying] = useState(false);
     const [isTeleporterDeployed, setIsTeleporterDeployed] = useState(false);
-    const selectedL1 = useSelectedL1();
+    const selectedL1 = useSelectedL1()();
 
     useEffect(() => {
         async function checkTeleporterExists() {

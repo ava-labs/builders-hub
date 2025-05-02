@@ -35,7 +35,7 @@ export default function Hero() {
               </p>
 
               <p className="text-zinc-800 dark:text-zinc-300 mt-3 tracking-tight text-md md:text-xl lg:text-2xl px-4 md:px-0">
-                Explore everything you need to go from idea to impact - education, references,integrations, tools and grants.
+                Explore everything you need to go from idea to impact - education, references, integrations, tools and grants.
               </p>
 
               <div className="mt-8 flex flex-col gap-4 items-center lg:items-start lg:flex-row">

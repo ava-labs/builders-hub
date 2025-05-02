@@ -171,6 +171,7 @@ export default function Hackathons({
             <OverviewBanner
               hackathon={topMostHackathon}
               id={topMostHackathon.id}
+              isTopMost={true}
             />
             <Link href={`/hackathons/${topMostHackathon.id}`}>
               <Image

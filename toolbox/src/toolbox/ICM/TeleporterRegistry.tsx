@@ -17,7 +17,7 @@ export default function TeleporterRegistry() {
     const { coreWalletClient, publicClient } = useWalletStore();
     const [isDeploying, setIsDeploying] = useState(false);
     const viemChain = useViemChainStore();
-    const selectedL1 = useSelectedL1();
+    const selectedL1 = useSelectedL1()();
 
     async function handleDeploy() {
         setIsDeploying(true);

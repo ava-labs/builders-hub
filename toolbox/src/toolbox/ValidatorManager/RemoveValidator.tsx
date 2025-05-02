@@ -21,6 +21,7 @@ import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/Valid
 import { getValidationIdHex } from "../../coreViem/hooks/getValidationID"
 import { useStepProgress, StepsConfig } from "../hooks/useStepProgress"
 import { setL1ValidatorWeight } from "../../coreViem/methods/setL1ValidatorWeight"
+import SelectSubnetId from "../components/SelectSubnetId"
 
 // Define step keys and configuration
 type RemovalStepKey =
@@ -43,16 +44,16 @@ const removalStepsConfig: StepsConfig<RemovalStepKey> = {
 export default function RemoveValidator() {
   const { showBoundary } = useErrorBoundary()
   const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore()
-  const selectedL1 = useSelectedL1()
+  const selectedL1 = useSelectedL1()();
   const viemChain = useViemChainStore()
 
   const [nodeID, setNodeID] = useState("")
   const [manualProxyAddress, setManualProxyAddress] = useState(selectedL1?.validatorManagerAddress || "")
-  const [manualSubnetId, setManualSubnetId] = useState(selectedL1?.subnetId || "")
   const [validationIDHex, setValidationIDHex] = useState("")
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState("")
   const [signedWarpMessage, setSignedWarpMessage] = useState("")
   const [pChainSignature, setPChainSignature] = useState("")
+  const [justificationSubnetId, setJustificationSubnetId] = useState("")
 
   const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji"
 
@@ -154,7 +155,7 @@ export default function RemoveValidator() {
             network: networkName,
             signatureAggregatorRequest: {
               message: currentUnsignedWarpMessage,
-              signingSubnetId: manualSubnetId || "",
+              signingSubnetId: selectedL1?.subnetId || "",
               quorumPercentage: 67,
             },
           })
@@ -206,13 +207,17 @@ export default function RemoveValidator() {
           if (!currentValidationID) {
             throw new Error("Validation ID is missing. Retrying might be needed.")
           }
-          if (!manualSubnetId) {
+          
+          // Use justificationSubnetId for the justification, falling back to selectedL1
+          const subnetIdForJustification = justificationSubnetId || selectedL1?.subnetId;
+          if (!subnetIdForJustification) {
             throw new Error("Subnet ID is missing.")
           }
+          
           const justification = await GetRegistrationJustification(
             nodeID,
             currentValidationID,
-            manualSubnetId,
+            subnetIdForJustification,
             publicClient
           )
 
@@ -236,7 +241,7 @@ export default function RemoveValidator() {
             signatureAggregatorRequest: {
               message: bytesToHex(removeValidatorMessage),
               justification: bytesToHex(justification),
-              signingSubnetId: manualSubnetId || "",
+              signingSubnetId: selectedL1?.subnetId || "",
               quorumPercentage: 67,
             },
           })
@@ -267,41 +272,19 @@ export default function RemoveValidator() {
           if (!publicClient) throw new Error("Public client is not initialized.");
           if (!viemChain) throw new Error("Viem chain is not configured.");
 
-          let simulationResult;
+          const hash = await coreWalletClient.writeContract({
+            address: manualProxyAddress as `0x${string}`,
+            abi: validatorManagerAbi.abi,
+            functionName: "completeValidatorRemoval",
+            args: [0],
+            accessList,
+            account: coreWalletClient.account,
+            chain: viemChain
+          })
+          console.log("Transaction sent:", hash)
+                let receipt;
           try {
-            simulationResult = await publicClient.simulateContract({
-              address: manualProxyAddress as `0x${string}`,
-              abi: validatorManagerAbi.abi,
-              functionName: "completeValidatorRemoval",
-              args: [0],
-              accessList,
-              account: coreWalletClient.account,
-              chain: viemChain
-            })
-            console.log("Simulation successful:", simulationResult)
-          } catch (simError: any) {
-            console.error("Contract simulation failed:", simError);
-            const baseError = simError.cause || simError;
-            const reason = baseError?.shortMessage || simError.message || "Simulation failed, reason unknown.";
-            throw new Error(`Contract simulation failed: ${reason}`);
-          }
-
-          console.log("Simulation request:", simulationResult.request)
-
-          let txHash;
-          try {
-            txHash = await coreWalletClient.writeContract(simulationResult.request)
-            console.log("Transaction sent:", txHash)
-          } catch (writeError: any) {
-            console.error("Contract write failed:", writeError);
-            const baseError = writeError.cause || writeError;
-            const reason = baseError?.shortMessage || writeError.message || "Transaction submission failed, reason unknown.";
-            throw new Error(`Submitting transaction failed: ${reason}`);
-          }
-
-          let receipt;
-          try {
-            receipt = await publicClient.waitForTransactionReceipt({ hash: txHash })
+            receipt = await publicClient.waitForTransactionReceipt({ hash })
             console.log("Transaction receipt:", receipt)
             if (receipt.status !== 'success') {
               throw new Error(`Transaction failed with status: ${receipt.status}`);
@@ -395,25 +378,12 @@ export default function RemoveValidator() {
         </div>
 
         <div className="space-y-2">
-          <Input
-            id="subnetId"
-            type="text"
-            value={manualSubnetId}
-            onChange={setManualSubnetId}
-            placeholder={"Enter subnet ID"}
-            className={cn(
-              "w-full px-3 py-2 border rounded-md",
-              "text-zinc-900 dark:text-zinc-100",
-              "bg-white dark:bg-zinc-800",
-              "border-zinc-300 dark:border-zinc-700",
-              "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
-              "placeholder:text-zinc-400 dark:placeholder:text-zinc-500",
-            )}
-            label="Subnet ID"
-            disabled={isProcessing}
+          <SelectSubnetId 
+            value={justificationSubnetId} 
+            onChange={setJustificationSubnetId}
           />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Override the current subnet ID (or leave empty to use default)
+            Optional: Subnet ID for justification retrieval (defaults to selected L1 subnet ID)
           </p>
         </div>
 
