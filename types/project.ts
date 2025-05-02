@@ -1,5 +1,12 @@
 import { User } from "@prisma/client";
 
+export enum MemberStatus {
+  PENDING = "Pending confirmation",
+  CONFIRMED = "Confirmed",
+  REJECTED = "Rejected",
+  REMOVED = "Removed",
+}
+
 export interface Project {
   id: string;
   hackaton_id: string,

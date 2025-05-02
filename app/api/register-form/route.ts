@@ -1,7 +1,8 @@
 import { createRegisterForm, getRegisterForm } from "@/server/services/registerForms";
 import { NextRequest, NextResponse } from "next/server";
+import { withAuth } from "@/lib/protectedRoute";
 
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (req: NextRequest) => {
   try {
     const body = await req.json();
     const newHackathon = await createRegisterForm(body);
@@ -24,11 +25,10 @@ export async function POST(req: NextRequest) {
       },
       { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
     );
-
   }
-}
+});
 
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req: NextRequest) => {
   try {
     const id = req.nextUrl.searchParams.get("hackathonId");
     const email = req.nextUrl.searchParams.get("email");
@@ -51,4 +51,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

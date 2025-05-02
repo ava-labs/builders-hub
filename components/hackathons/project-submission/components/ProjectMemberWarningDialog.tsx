@@ -24,7 +24,7 @@ interface ProjectMemberWarningDialogProps {
 export const ProjectMemberWarningDialog: React.FC<
   ProjectMemberWarningDialogProps
 > = ({ open, onOpenChange, projectName, hackathonId, setLoadData }) => {
-
+  const router = useRouter();
   const handleAcceptInvite = () => {
     setLoadData(true);
     onOpenChange(false);
@@ -35,6 +35,10 @@ export const ProjectMemberWarningDialog: React.FC<
     onOpenChange(false);
   };
 
+  const handleCloseModal = () => {
+    onOpenChange(false);
+    router.push(`/hackathons/${hackathonId}`);
+  }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -46,7 +50,7 @@ export const ProjectMemberWarningDialog: React.FC<
             variant="ghost"
             size="icon"
             className="absolute top-6 right-4 dark:text-white hover:text-red-400 p-0 h-6 w-6"
-            onClick={handleRejectInvite}
+            onClick={handleCloseModal}
           >
             ✕
           </Button>
