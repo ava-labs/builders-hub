@@ -376,16 +376,6 @@ export default function GenesisBuilder() {
                             toggleExpand={() => toggleSection('chainParams')}
                             validationError={validationMessages.errors.chainId}
                         />
-                        
-                        <TokenomicsSection 
-                            tokenAllocations={tokenAllocations}
-                            setTokenAllocations={handleTokenAllocationsChange}
-                            nativeMinterConfig={contractNativeMinterConfig}
-                            setNativeMinterConfig={handleNativeMinterConfigChange}
-                            isExpanded={isSectionExpanded('tokenomics')}
-                            toggleExpand={() => toggleSection('tokenomics')}
-                            validationErrors={validationMessages.errors}
-                        />
 
                         <PermissionsSection 
                             deployerConfig={contractDeployerAllowListConfig}
@@ -395,6 +385,16 @@ export default function GenesisBuilder() {
                             isExpanded={isSectionExpanded('permissions')}
                             toggleExpand={() => toggleSection('permissions')}
                             validationErrors={validationMessages.errors}                        
+                        />
+                        
+                        <TokenomicsSection 
+                            tokenAllocations={tokenAllocations}
+                            setTokenAllocations={handleTokenAllocationsChange}
+                            nativeMinterConfig={contractNativeMinterConfig}
+                            setNativeMinterConfig={handleNativeMinterConfigChange}
+                            isExpanded={isSectionExpanded('tokenomics')}
+                            toggleExpand={() => toggleSection('tokenomics')}
+                            validationErrors={validationMessages.errors}
                         />
 
                         <TransactionFeesSection 

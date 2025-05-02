@@ -10,12 +10,12 @@ type ChainParamsSectionProps = {
     validationError?: string;
 };
 
-export const ChainParamsSection = ({ 
-    evmChainId, 
-    setEvmChainId, 
-    isExpanded, 
-    toggleExpand, 
-    validationError 
+export const ChainParamsSection = ({
+    evmChainId,
+    setEvmChainId,
+    isExpanded,
+    toggleExpand,
+    validationError
 }: ChainParamsSectionProps) => {
     return (
         <SectionWrapper
@@ -25,28 +25,24 @@ export const ChainParamsSection = ({
             toggleExpand={toggleExpand}
             sectionId="chainParams"
         >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <Input
-                        label="EVM Chain ID"
-                        value={evmChainId.toString()}
-                        onChange={(value) => setEvmChainId(Number(value))}
-                        placeholder="Enter chain ID"
-                        type="number"
-                        error={validationError}
-                        helperText={validationError ? undefined : "Unique identifier for your blockchain. Check chainlist.org to avoid conflicts."}
-                    />
-                    <div className="mt-2">
-                        <a 
-                            href="https://chainlist.org"
-                            target="_blank"
-                            rel="noopener noreferrer" 
-                            className="text-sm text-blue-500 hover:text-blue-600"
-                        >
-                            View registered chain IDs on chainlist.org →
-                        </a>
-                    </div>
-                </div>
+            <Input
+                label="EVM Chain ID"
+                value={evmChainId.toString()}
+                onChange={(value) => setEvmChainId(Number(value))}
+                placeholder="Enter chain ID"
+                type="number"
+                error={validationError}
+                helperText={validationError ? undefined : "Unique identifier for your blockchain. Check chainlist.org to avoid conflicts."}
+            />
+            <div className="mt-2">
+                <a
+                    href="https://chainlist.org"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-500 hover:text-blue-600"
+                >
+                    View registered chain IDs on chainlist.org →
+                </a>
             </div>
         </SectionWrapper>
     );

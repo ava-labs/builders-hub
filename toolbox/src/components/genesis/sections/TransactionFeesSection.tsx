@@ -109,7 +109,7 @@ export const TransactionFeesSection = ({
     return (
         <SectionWrapper
             title="Transaction Fees & Gas"
-            description="Configure gas limits, block rate, and fee parameters."
+            description="In addition to the native token, you can also configure the transaction fees (also known as gas fees). This allows Avalanche L1s to define the desired or maximal throughput of the blockchain differently."
             isExpanded={isExpanded}
             toggleExpand={toggleExpand}
             sectionId="transactionFees"

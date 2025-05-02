@@ -66,7 +66,7 @@ export default function AllowlistPrecompileConfigurator({
         <div className="space-y-6">
             <div>
                 <h3 className="mb-4 font-medium text-zinc-800 dark:text-white">{title}</h3>
-                <p className="text-zinc-500 dark:text-zinc-400">{description} These addresses can be controlled by an EOA or a smart contract.</p>
+                <p className="text-zinc-500 dark:text-zinc-400">{description} The permission for adding and removing addresses from the allowlist as well as granting and revoking other addresses these permissions can be granted to an EOR or a smart contract.</p>
             </div>
 
             <RadioGroup

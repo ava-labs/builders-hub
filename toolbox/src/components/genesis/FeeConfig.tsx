@@ -292,8 +292,9 @@ function FeeConfigBase({
 
       {/* Fee Manager */}
       <div>
-        <h4 className="font-medium mb-3 text-zinc-800 dark:text-white">Dynamic Fee Parameters</h4>
+        <h4 className="font-medium text-zinc-800 dark:text-white">Dynamic Fee Parameters</h4>
         <div className="space-y-4">
+          <p>If you want to dynamically adjust the transaction fee parameters above without a hard-fork, you can optionally activate this precompile. The permission for dynamically adjusting the fees as well as granting and revoking other addresses these permissions can be granted to an EOR or a smart contract.</p>
           <div className="flex flex-col space-y-2">
             <div className="flex items-start">
               <input 
@@ -343,6 +344,7 @@ function FeeConfigBase({
       <div>
         <h4 className="font-medium mb-3 text-zinc-800 dark:text-white">Dynamic Reward Parameters</h4>
          <div className="space-y-4">
+          <p>The transaction fees can be either burned, given to the block building validator or sent to a smart contract. The permission for dynamically adjusting the reward mechanism as well as granting and revoking other addresses these permissions can be granted to an EOR or a smart contract.</p>
           <div className="flex flex-col space-y-2">
             <div className="flex items-start">
               <input 

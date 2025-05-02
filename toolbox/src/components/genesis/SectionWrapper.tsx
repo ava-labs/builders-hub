@@ -17,7 +17,7 @@ export const SectionWrapper = ({ title, description, isExpanded, toggleExpand, c
                 onClick={toggleExpand}
             >
                 <div>
-                    <h3 className="text-lg font-medium text-zinc-800 dark:text-white">{title}</h3>
+                    <h3 className="text-lg mt-1! font-medium text-zinc-800 dark:text-white">{title}</h3>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
                         {description}
                     </p>
