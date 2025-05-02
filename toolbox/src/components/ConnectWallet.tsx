@@ -12,6 +12,7 @@ import { WalletRequiredPrompt } from "./WalletRequiredPrompt"
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt"
 import { RefreshOnMainnetTestnetChange } from "./RefreshOnMainnetTestnetChange"
 import { avalanche, avalancheFuji } from "viem/chains"
+import PCTransfer from "./PCTransfer"
 
 export const ConnectWallet = ({ children, required, extraElements }: { children: React.ReactNode; required: boolean; extraElements?: React.ReactNode }) => {
     const setWalletChainId = useWalletStore(state => state.setWalletChainId);
@@ -319,9 +320,12 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                     </div>
 
                     {/* Chain cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className={`grid grid-cols-1 gap-4 items-center mb-4 ${(walletChainId === avalanche.id || walletChainId === avalancheFuji.id)
+                        ? 'md:grid-cols-[1fr_auto_1fr]'
+                        : 'md:grid-cols-2'
+                        }`}>
                         {/* L1 Chain Card */}
-                        <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
+                        <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 h-full">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">
                                     {evmChainName}
@@ -348,8 +352,13 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                             </div>
                         </div>
 
+                        {/* Arrows between cards */}
+                        {(walletChainId === avalanche.id || walletChainId === avalancheFuji.id) && (
+                            <PCTransfer />
+                        )}
+
                         {/* P-Chain */}
-                        <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
+                        <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 h-full">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">P-Chain</span>
                                 <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-full">Always Connected</span>
