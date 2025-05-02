@@ -25,7 +25,7 @@ export const ConnectWalletToolbox = ({ children, required, chainRequired }: { ch
 const ChainSelector = () => {
     const { walletChainId } = useWalletStore();
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState(false)
-    const { l1List, addL1 } = useL1ListStore()();
+    const { l1List, addL1, removeL1 } = useL1ListStore()();
     const { coreWalletClient } = useWalletStore();
     const { showBoundary } = useErrorBoundary();
 
@@ -44,6 +44,7 @@ const ChainSelector = () => {
                                 chain={chain}
                                 isActive={walletChainId === chain.evmChainId}
                                 onClick={() => coreWalletClient.switchChain({ id: `0x${chain.evmChainId.toString(16)}`, }).catch(showBoundary)}
+                                onDelete={() => removeL1(chain.id)}
                             />
                         ))}
                         <ChainTile

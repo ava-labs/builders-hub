@@ -67,13 +67,58 @@ type L1ListItem = {
     validatorManagerAddress: string;
 };
 
-const l1ListInitialState = {
-    l1List: [] as L1ListItem[],
+const l1ListInitialStateFuji = {
+    l1List: [
+        {
+            id: "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp",
+            name: "Avalanche Fuji",
+            rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
+            evmChainId: 43113,
+            coinName: "AVAX",
+            isTestnet: true,
+            subnetId: "11111111111111111111111111111111LpoYY",
+            validatorManagerAddress: "",
+        },
+        {
+            id: "98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp",
+            name: "Echo",
+            rpcUrl: "https://subnets.avax.network/echo/testnet/rpc",
+            evmChainId: 173750,
+            coinName: "ECH",
+            isTestnet: true,
+            subnetId: "i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK",
+            validatorManagerAddress: "0x0646263a231b4fde6f62d4de63e18df7e6ad94d6",
+        },
+        {
+            id: "2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY",
+            name: "Dispatch",
+            rpcUrl: "https://subnets.avax.network/dispatch/testnet/rpc",
+            evmChainId: 779672,
+            coinName: "DISP",
+            isTestnet: true,
+            subnetId: "7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5",
+            validatorManagerAddress: "",
+        }
+    ] as L1ListItem[],
 }
 
+const l1ListInitialStateMainnet = {
+    l1List: [
+        {
+            id: "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5",
+            name: "Avalanche Mainnet",
+            rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
+            evmChainId: 43114,
+            coinName: "AVAX",
+            isTestnet: false,
+            subnetId: "11111111111111111111111111111111LpoYY",
+            validatorManagerAddress: "",
+        }
+    ] as L1ListItem[],
+}
 const getL1ListStore = (isTestnet: boolean) => create(
     persist(
-        combine(l1ListInitialState, (set) => ({
+        combine(isTestnet ? l1ListInitialStateFuji : l1ListInitialStateMainnet, (set) => ({
             addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
             removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
             reset: () => {
