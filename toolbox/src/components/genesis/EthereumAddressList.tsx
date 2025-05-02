@@ -72,11 +72,8 @@ export default function EthereumAddressList({
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-col">
           <div className="flex items-center">
-            <h3 className="text-base font-medium text-zinc-800 dark:text-white">
+            <div className="text-base font-medium text-zinc-800 dark:text-white">
               {role} Addresses
-            </h3>
-            <div className="relative group">
-              <CircleHelp className="h-4 w-4 text-zinc-400 ml-1.5 cursor-help" />
             </div>
           </div>
           <div className="text-xs font-normal text-zinc-500 dark:text-zinc-400 leading-relaxed mt-1">
