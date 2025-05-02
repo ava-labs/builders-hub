@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useErrorBoundary } from "react-error-boundary"
-import { Copy, CheckCircle2 } from "lucide-react"
+import { Copy } from "lucide-react"
 import { createCoreWalletClient } from "../coreViem"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { useWalletStore } from "../lib/walletStore"
@@ -23,7 +23,6 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
     const setPChainAddress = useWalletStore(state => state.setPChainAddress);
     const pChainAddress = useWalletStore(state => state.pChainAddress);
     const walletChainId = useWalletStore(state => state.walletChainId);
-    const avalancheNetworkID = useWalletStore(state => state.avalancheNetworkID);
     const setIsTestnet = useWalletStore(state => state.setIsTestnet);
     const publicClient = useWalletStore(state => state.publicClient);
     const setEvmChainName = useWalletStore(state => state.setEvmChainName);
@@ -236,30 +235,6 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
             navigator.clipboard.writeText(text)
         }
     }
-
-    // Get network badge based on network ID
-    const renderNetworkBadge = () => {
-        if (avalancheNetworkID === networkIDs.FujiID || walletChainId === 5) {
-            return (
-                <div className="inline-flex items-center">
-                    <div className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full inline-flex items-center text-xs tracking-tighter">
-                        <span className="h-1.5 w-1.5 rounded-full bg-orange-400 mr-1 flex-shrink-0"></span>
-                        <span className="flex-shrink-0">Testnet</span>
-                    </div>
-                </div>
-            );
-        } else if (avalancheNetworkID === networkIDs.MainnetID || walletChainId === 1) {
-            return (
-                <div className="inline-flex items-center">
-                    <div className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full inline-flex items-center text-xs tracking-tighter">
-                        <CheckCircle2 className="h-2.5 w-2.5 mr-0.5 flex-shrink-0" />
-                        <span className="flex-shrink-0">Mainnet</span>
-                    </div>
-                </div>
-            );
-        }
-        return null;
-    };
 
     // Server-side rendering placeholder
     if (!isClient) {

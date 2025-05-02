@@ -18,7 +18,6 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { AddChainModal } from "../components/ConnectWalletToolbox/AddChainModal";
 import { useL1ListStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
-import { PlusIcon, WalletIcon } from "lucide-react";
 
 const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number) => {
     const env: Record<string, string> = {
