@@ -7,10 +7,14 @@ import versions from "../../versions.json";
 import { CodeHighlighter } from "../../components/CodeHighlighter";
 import { Container } from "../components/Container";
 import { Input } from "../../components/Input";
-import { Tabs } from "../../components/Tabs";
 import { getBlockchainInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../components/SelectChainId";
 import { Checkbox } from "../../components/Checkbox";
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 
 const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number) => {
     const env: Record<string, string> = {
@@ -152,7 +156,6 @@ export default function AvalanchegoDocker() {
     const [rpcCommand, setRpcCommand] = useState("");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
-    const [activeOS, setActiveOS] = useState<OS>("Ubuntu/Debian");
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -185,132 +188,177 @@ export default function AvalanchegoDocker() {
     return (
         <>
             <Container
-                title="Docker Installation"
-                description="We will retrieve the binary images of AvalancheGo from the Docker Hub."
-            >
-                <p>Make sure you have Docker installed on your system. You can use the following commands to install it:</p>
-                <Tabs
-                    tabs={Object.keys(dockerInstallInstructions)}
-                    activeTab={activeOS}
-                    setActiveTab={setActiveOS}
-                    children={(activeTab) => {
-                        return <CodeHighlighter lang="bash" code={dockerInstallInstructions[activeTab]} />
-                    }}
-                />
-
-                <p className="mt-4">
-                    If you do not want to use Docker, you can follow the instructions{" "}
-                    <a
-                        href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
-                        target="_blank"
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                        rel="noreferrer"
-                    >
-                        here
-                    </a>
-                    .
-                </p>
-            </Container>
-            <Container
                 title="Node Setup with Docker"
                 description="This will start a Docker container running an RPC or validator node that tracks your L1."
             >
-                <p>Enter the options for your node below to generate the Docker command to run the node:</p>
-                <InputChainId
-                    value={chainId}
-                    onChange={setChainId}
-                />
 
-                <Input
-                    label="Subnet ID"
-                    value={subnetId}
-                    disabled={true}
-                    error={subnetIdError}
-                />
+                <Steps>
+                    <Step>
+                        <h3 className="text-xl font-bold mb-4">Docker Installation</h3>
+                        <p>Make sure you have Docker installed on your system. You can use the following commands to install it:</p>
 
-                {subnetId && (
-                    <>
-                        <Checkbox
-                            label={`Expose RPC API`}
-                            checked={isRPC}
-                            onChange={setIsRPC}
+                        <Tabs items={Object.keys(dockerInstallInstructions)}>
+                            {Object.keys(dockerInstallInstructions).map((os) => (
+                                <Tab
+                                    key={os}
+                                    value={os as OS}
+                                >
+                                    <DynamicCodeBlock lang="bash" code={dockerInstallInstructions[os]} />
+                                </Tab>
+                            ))}
+                        </Tabs>
+
+
+                        <p className="mt-4">
+                            If you do not want to use Docker, you can follow the instructions{" "}
+                            <a
+                                href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
+                                target="_blank"
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                                rel="noreferrer"
+                            >
+                                here
+                            </a>
+                            .
+                        </p>
+                    </Step>
+
+                    <Step>
+                        <h3 className="text-xl font-bold mb-4">Select L1</h3>
+                        <p>Enter the Avalanche Blockchain ID (not EVM chain ID) of the L1 you want to run a node for.</p>
+
+                        <InputChainId
+                            value={chainId}
+                            onChange={setChainId}
                         />
-                        <p className="text-sm mb-2">It is ok to expose RPC on a testnet validator. For mainnet nodes, we recommend running separate validator and RPC nodes.</p>
 
-                        {isRPC && <Checkbox
-                            label="Enable Debug & Trace"
-                            checked={enableDebugTrace}
-                            onChange={setEnableDebugTrace}
-                        />}
+                        <Input
+                            label="Subnet ID"
+                            value={subnetId}
+                            disabled={true}
+                            error={subnetIdError}
+                        />
+                    </Step>
 
-                        {chainId && enableDebugTrace && isRPC && (
-                            <div className="mt-4">
-                                <h3 className="text-md font-medium mb-2">Debug & Trace Setup Command:</h3>
-                                <p className="text-sm mb-2">Run this before starting the node.</p>
-                                <CodeHighlighter
-                                    code={enableDebugNTraceCommand(chainId)}
-                                    lang="bash"
+                    {subnetId && (
+                        <>
+                            <Step>
+                                <h3 className="text-xl font-bold mb-4">Configure the Node</h3>
+                                <p>Select wether you want to expose the RPC endpoint for the node. This is required to connect a wallet to this node. It is ok to expose RPC on a testnet validator. For mainnet nodes, we recommend running separate validator and RPC nodes.</p>
+                                <Checkbox
+                                    label={`Expose RPC API`}
+                                    checked={isRPC}
+                                    onChange={setIsRPC}
                                 />
-                            </div>
-                        )}
 
-                        <div className="mt-4">
-                            <CodeHighlighter
-                                code={rpcCommand}
-                                lang="bash"
-                            />
-                        </div>
+                                {isRPC && <Checkbox
+                                    label="Enable Debug & Trace"
+                                    checked={enableDebugTrace}
+                                    onChange={setEnableDebugTrace}
+                                />}
+                            </Step>
+                            <Step>
+                                <h3 className="text-xl font-bold mb-4">Port Configuration</h3>
+                                <p>Make sure the following port{isRPC && 's'} are open: 
+                                    <ul>
+                                        {isRPC && <li><strong>9650</strong> (for the RPC endpoint)</li>}
+                                        <li><strong>9651</strong> (for the node-to-node communication)</li>
+                                    </ul>
+                                </p>
+                            </Step>
+                            {chainId && enableDebugTrace && isRPC && (
+                                <Step>
+                                    <h3 className="text-xl font-bold mb-4">Create Chain Config File</h3>
+                                    <p>Create the file for the Chain Config:</p>
 
-                        {isRPC && <Input
-                            label="Domain or IPv4 address for reverse proxy (optional)"
-                            value={domain}
-                            onChange={setDomain}
-                            placeholder="example.com  or 1.2.3.4"
-                            helperText="`curl checkip.amazonaws.com` to get your public IP address. Make sure 443 is open on your firewall."
-                        />}
+                                    <p>TBD: Change to environmant variable: https://build.avax.network/docs/nodes/configure/configs-flags#--chain-config-content-string</p>
+                                    
 
-                        {domain && isRPC && (
-                            <div className="mt-4">
-                                <h3 className="text-md font-medium mb-2">Reverse Proxy Command:</h3>
-                                <CodeHighlighter
-                                    code={reverseProxyCommand(domain)}
-                                    lang="bash"
-                                />
-                            </div>
-                        )}
+                                    <DynamicCodeBlock lang="bash" code={enableDebugNTraceCommand(chainId)} />
+                                </Step>
+                            )}
+                            <Step>
+                                <h3 className="text-xl font-bold">Start AvalancheGo Node</h3>
+                                <p>Run the following Docker command to start your node:</p>
 
-                        {chainId && (
-                            <div className="mt-4">
-                                <h3 className="text-md font-medium mb-2">Check Node Command:</h3>
-                                <CodeHighlighter
-                                    code={checkNodeCommand(chainId, domain || ("127.0.0.1:9650"), false)}
-                                    lang="bash"
-                                />
-                            </div>
-                        )}
+                                <DynamicCodeBlock lang="bash" code={rpcCommand} />
 
-                        {chainId && isRPC && enableDebugTrace && (
-                            <div className="mt-4">
-                                <h3 className="text-md font-medium mb-2">Check that debug & trace is working:</h3>
-                                <CodeHighlighter
-                                    code={checkNodeCommand(chainId, domain || ("127.0.0.1:9650"), true)}
-                                    lang="bash"
-                                />
-                            </div>
-                        )}
+                                <Accordions type="single" className="mt-8">
+                                    <Accordion title="Running Multiple Nodes on the same machine">
+                                        <p>To run multiple validator nodes on the same machine, ensure each node has:</p>
+                                        <ul className="list-disc pl-5 mt-1">
+                                            <li>Unique container name (change <code>--name</code> parameter)</li>
+                                            <li>Different ports (modify <code>AVAGO_HTTP_PORT</code> and <code>AVAGO_STAKING_PORT</code>)</li>
+                                            <li>Separate data directories (change the local volume path <code>~/.avalanchego</code> to a unique directory)</li>
+                                        </ul>
+                                        <p className="mt-1">Example for second node: Use ports 9652/9653 (HTTP/staking), container name "avago2", and data directory "~/.avalanchego2"</p>
+                                    </Accordion>
+                                </Accordions>
 
-                        <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-md">
-                            <h3 className="text-md font-medium mb-2">Running Multiple Nodes on the same machine:</h3>
-                            <p>To run multiple validator nodes on the same machine, ensure each node has:</p>
-                            <ul className="list-disc pl-5 mt-1">
-                                <li>Unique container name (change <code>--name</code> parameter)</li>
-                                <li>Different ports (modify <code>AVAGO_HTTP_PORT</code> and <code>AVAGO_STAKING_PORT</code>)</li>
-                                <li>Separate data directories (change the local volume path <code>~/.avalanchego</code> to a unique directory)</li>
-                            </ul>
-                            <p className="mt-1">Example for second node: Use ports 9652/9653 (HTTP/staking), container name "avago2", and data directory "~/.avalanchego2"</p>
-                        </div>
-                    </>)}
-            </Container>
+                                <p>You can check the logs of the node with the following command:</p>
+
+                                <DynamicCodeBlock lang="bash" code="docker logs avago" />
+
+                                <p>The chain is done bootstrapping when you this endpoint returns the EVM chain ID:</p>
+
+                                <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, "127.0.0.1:9650", false)} />
+                            </Step>
+                            {isRPC && (
+                                <>
+                                    <Step>
+                                        <h3 className="text-xl font-bold mb-4">Set Up Reverse Proxy (optional)</h3>
+                                        <p>To connect your wallet you need to be able to connect to the RPC via https. For testing purposes you can set up a reverse Proxy to achieve this.</p>
+
+                                        <Input
+                                            label="Domain or IPv4 address for reverse proxy (optional)"
+                                            value={domain}
+                                            onChange={setDomain}
+                                            placeholder="example.com  or 1.2.3.4"
+                                            helperText="`curl checkip.amazonaws.com` to get your public IP address. Make sure 443 is open on your firewall."
+                                        />
+
+                                        {domain && (<>
+                                            <p>Run the following comand on the machine of your node:</p>
+                                            <DynamicCodeBlock lang="bash" code={reverseProxyCommand(domain)} />
+                                        </>)}
+                                    </Step>
+                                    {domain && (<>
+                                        <Step>
+                                            <h3 className="text-xl font-bold mb-4">Check connection via Proxy</h3>
+                                            <p>Do a final check from a machine different then the one that your node is running on.</p>
+
+                                            <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, false)} />
+
+                                            {enableDebugTrace && (
+                                                <div className="mt-4">
+                                                    <h3 className="text-md font-medium mb-2">Check that debug & trace is working:</h3>
+                                                    <CodeHighlighter
+                                                        code={checkNodeCommand(chainId, domain, true)}
+                                                        lang="bash"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            TBD: Replace with RPC check component used for monitoring?
+                                        </Step>
+                                        <Step>
+                                            <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
+                                            <p>Add your L1 to your Wallet if all checks above passed</p>
+
+                                            <button>Add to Wallet</button>
+                                        </Step>
+                                    </>)}
+                                </>
+                            )}
+                        </>)}
+
+
+                </Steps>
+
+
+
+
+            </Container >
         </>
     );
 };

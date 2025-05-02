@@ -18,7 +18,7 @@ const Checkbox = React.forwardRef<React.ElementRef<typeof CheckboxPrimitive.Root
         const id = providedId || internalId;
 
         return (
-            <div className={cn("flex items-center", className)}>
+            <div className={cn("flex items-center mb-4", className)}>
                 <CheckboxPrimitive.Root
                     ref={ref}
                     id={id}

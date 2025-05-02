@@ -37,6 +37,7 @@
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
     "ethers": "^6.13.5",
+    "fumadocs-ui": "^15.2.12",
     "lucide-react": "^0.475.0",
     "non.geist": "^1.0.4",
     "react": "^19.0.0",

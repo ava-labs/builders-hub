@@ -2,7 +2,7 @@ import { Input, type Suggestion } from "../../components/Input";
 import { useCreateChainStore, useL1ListStore } from "../toolboxStore";
 import { useMemo } from "react";
 
-export default function InputChainId({ value, onChange, error, label = "Chain ID" }: { value: string, onChange: (value: string) => void, error?: string | null, label?: string }) {
+export default function InputChainId({ value, onChange, error, label = "Avalanche Blockchain ID" }: { value: string, onChange: (value: string) => void, error?: string | null, label?: string }) {
     const createChainStorechainID = useCreateChainStore()(state => state.chainID);
     const { l1List } = useL1ListStore()();
 
