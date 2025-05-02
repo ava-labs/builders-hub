@@ -63,7 +63,7 @@ export default function SubmitStep2() {
           name="github_repository"
           label="GitHub Repository"
           placeholder="Paste GitHub link (e.g., https://github.com/user/repo)"
-          validationMessage="Must be a public repository. If design-only, link a Figma file."
+          validationMessage="Must be a public repository. If design-only, link a Figma file. Use space,enter or tab after each link"
         />
 
         {/* Campo: Demo Link */}
@@ -71,7 +71,7 @@ export default function SubmitStep2() {
           name="demo_link"
           label="Live Demo Link"
           placeholder="Paste Demo link (e.g., https://yoursite.com)"
-          validationMessage="Provide a live demo or working prototype."
+          validationMessage="Provide a live demo or working prototype. Use space,enter or tab after each link"
         />
       </section>
 

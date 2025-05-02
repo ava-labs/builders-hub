@@ -33,6 +33,7 @@ import { JoinTeamDialog } from "./JoinTeamDialog";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { ProjectMemberWarningDialog } from "./ProjectMemberWarningDialog";
 import { useRouter, useSearchParams } from "next/navigation";
+import { MemberStatus } from "@/types/project";
 export default function MembersComponent({
   project_id,
   hackaton_id,
@@ -129,7 +130,7 @@ export default function MembersComponent({
     try {
       await axios.patch(`/api/project/${project_id}/members/status`, {
         user_id: id_user,
-        status: "Removed",
+        status: MemberStatus.REMOVED,
         email: email,
       });
       setMembers(members.filter((member) => member.email !== email));
@@ -160,7 +161,7 @@ export default function MembersComponent({
       setMembers((prevMembers) =>
         prevMembers.map((m) =>
           m.user_id === user_id || m.email === currentEmail
-            ? { ...m, status: "Confirmed" }
+            ? { ...m, status: MemberStatus.CONFIRMED }
             : m
         )
       );
@@ -174,16 +175,23 @@ export default function MembersComponent({
     if (!accepted) {
       const params = new URLSearchParams(searchParams.toString());
       params.delete("invitation");
-     
+     await updateMemberStatus(MemberStatus.REJECTED,false);
       router.push(`/hackathons/project-submission?${params.toString()}`);
+      
       return;
     }
+   await updateMemberStatus(MemberStatus.CONFIRMED,true);
+   handleAcceptJoinTeam(true);
+
+  };
+
+  const updateMemberStatus = async (status: string,wasInOtherProject: boolean) => {
     try {
       axios
         .patch(`/api/project/${project_id}/members/status`, {
           user_id: user_id,
-          status: "Confirmed",
-          wasInOtherProject: true,
+          status: status,
+          wasInOtherProject: wasInOtherProject,
         })
         .then(() => {
           console.log("Status updated successfully");
@@ -195,8 +203,7 @@ export default function MembersComponent({
     } catch (error) {
       console.error("Error joining team:", error);
     }
-
-  };
+  }
 
   useEffect(() => {
     if (!project_id) return;
