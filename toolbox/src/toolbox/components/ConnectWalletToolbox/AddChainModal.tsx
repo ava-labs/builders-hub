@@ -126,7 +126,7 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
     }
 
     return (
-        <Dialog.Root open={true} onOpenChange={(open) => onClose()}>
+        <Dialog.Root open={true} onOpenChange={() => onClose()}>
             <Dialog.Portal>
                 <Dialog.Overlay className="fixed inset-0 bg-black/50 data-[state=open]:animate-overlayShow" />
                 <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-lg focus:outline-none w-[90vw] max-w-md">

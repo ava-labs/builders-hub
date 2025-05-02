@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { RawInput } from "../Input"
-import { Trash2, AlertCircle, Plus, CircleHelp, Lock } from 'lucide-react'
+import { Trash2, AlertCircle, Plus, Lock } from 'lucide-react'
 import { AddressEntry, Role } from './types'
 import { isAddress } from 'viem'
 
