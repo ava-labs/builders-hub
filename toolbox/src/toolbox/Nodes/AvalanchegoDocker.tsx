@@ -209,7 +209,7 @@ export default function AvalanchegoDocker() {
                         here
                     </a>
                     .
-                </p>``
+                </p>
             </Container>
             <Container
                 title="Node Setup with Docker"
