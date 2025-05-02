@@ -289,11 +289,8 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                     {/* Core Wallet header */}
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-2">
-                            <img src="/core.png" alt="Core Logo" className="h-10 w-10 mt-0 mb-0" />
-                            <div>
-                                <h3 className="text-lg mt-0 mb-0 font-semibold text-zinc-800 dark:text-zinc-100">Core Wallet</h3>
-                                {renderNetworkBadge()}
-                            </div>
+                            <img src="/core-logo.svg" alt="Core Logo" className="h-10 w-25 mt-1 mb-1 dark:hidden" />
+                            <img src="/core-logo-dark.svg" alt="Core Logo" className="h-10 w-25 mt-1 mb-1 hidden dark:block" />
                         </div>
 
                         <div className="rounded-full overflow-hidden flex bg-zinc-100 dark:bg-zinc-800/70 p-0.5">
@@ -335,7 +332,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                             </div>
                             {/* EVM Address inside the card */}
                             <div className="flex items-center justify-between">
-                                <div className="font-mono text-xs text-zinc-700 dark:text-black bg-zinc-100 dark:bg-zinc-300 px-3 py-1.5 rounded-md overflow-x-auto shadow-sm border border-zinc-200 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-200 transition-colors flex-1 mr-2">
+                                <div className="font-mono text-xs text-zinc-700 dark:text-black bg-zinc-100 dark:bg-zinc-300 px-3 py-1.5 rounded-md overflow-x-auto shadow-sm border border-zinc-200 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-200 transition-colors flex-1 mr-2 truncate">
                                     {walletEVMAddress}
                                 </div>
                                 <button
@@ -356,7 +353,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                             </div>
                             <div className="text-2xl font-semibold text-zinc-800 dark:text-zinc-100 mb-2">{pChainBalance} AVAX</div>
                             <div className="flex items-center justify-between">
-                                <div className="font-mono text-xs text-zinc-700 dark:text-black bg-zinc-100 dark:bg-zinc-300 px-3 py-1.5 rounded-md overflow-x-auto shadow-sm border border-zinc-200 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-200 transition-colors flex-1 mr-2">
+                                <div className="font-mono text-xs text-zinc-700 dark:text-black bg-zinc-100 dark:bg-zinc-300 px-3 py-1.5 rounded-md overflow-x-auto shadow-sm border border-zinc-200 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-200 transition-colors flex-1 mr-2 truncate">
                                     {pChainAddress ? pChainAddress : "Loading..."}
                                 </div>
                                 {pChainAddress && (
