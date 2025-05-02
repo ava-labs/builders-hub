@@ -21,24 +21,10 @@ type ComponentType = {
 const componentGroups: Record<string, ComponentType[]> = {
     "Wallet": [
         {
-            id: 'switchChain',
-            label: "Add L1 to Wallet",
-            component: lazy(() => import('./Wallet/SwitchChain')),
-            fileNames: ["toolbox/src/toolbox/Wallet/SwitchChain.tsx"],
-            walletRequired: "required"
-        },
-        {
             id: 'crossChainTransfer',
             label: "C- & P-Chain Bridge",
             component: lazy(() => import('./Wallet/CrossChainTransfer')),
             fileNames: ["toolbox/src/toolbox/Wallet/CrossChainTransfer.tsx"],
-            walletRequired: "required"
-        },
-        {
-            id: 'addL1s',
-            label: "Add popular L1s",
-            component: lazy(() => import('./Wallet/AddL1s')),
-            fileNames: [],
             walletRequired: "required"
         }
     ],
