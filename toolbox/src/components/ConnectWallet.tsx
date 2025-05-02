@@ -289,9 +289,9 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                     {/* Core Wallet header */}
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-2">
-                            <img src="/core.png" alt="Core Logo" className="h-10 w-10" />
+                            <img src="/core.png" alt="Core Logo" className="h-10 w-10 mt-0 mb-0" />
                             <div>
-                                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Core Wallet</h3>
+                                <h3 className="text-lg mt-0 mb-0 font-semibold text-zinc-800 dark:text-zinc-100">Core Wallet</h3>
                                 {renderNetworkBadge()}
                             </div>
                         </div>
