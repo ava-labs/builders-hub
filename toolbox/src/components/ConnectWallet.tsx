@@ -300,7 +300,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                             <button
                                 onClick={() => coreWalletClient.switchChain({ id: avalancheFuji.id })}
                                 className={`px-4 py-1 text-sm rounded-full transition-colors ${isTestnet
-                                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 font-medium'
+                                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 font-bold'
                                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                                     }`}
                             >
@@ -309,7 +309,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                             <button
                                 onClick={() => coreWalletClient.switchChain({ id: avalanche.id })}
                                 className={`px-4 py-1 text-sm rounded-full transition-colors ${!isTestnet
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 font-medium'
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 font-bold'
                                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                                     }`}
                             >
