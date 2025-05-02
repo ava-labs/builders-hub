@@ -4,7 +4,6 @@ import { useWalletStore } from "../../lib/walletStore";
 import { useState, useEffect } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
 import versions from "../../versions.json";
-import { CodeHighlighter } from "../../components/CodeHighlighter";
 import { Container } from "../components/Container";
 import { Input } from "../../components/Input";
 import { getBlockchainInfo } from "../../coreViem/utils/glacier";
@@ -338,10 +337,7 @@ export default function AvalanchegoDocker() {
                                             {enableDebugTrace && (
                                                 <div className="mt-4">
                                                     <h3 className="text-md font-medium mb-2">Check that debug & trace is working:</h3>
-                                                    <CodeHighlighter
-                                                        code={checkNodeCommand(chainId, domain, true)}
-                                                        lang="bash"
-                                                    />
+                                                    <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, true)} />
                                                 </div>
                                             )}
 

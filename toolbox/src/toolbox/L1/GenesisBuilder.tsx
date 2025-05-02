@@ -3,11 +3,12 @@
 import { useEffect, useState, useCallback, SetStateAction } from "react";
 import { useCreateChainStore } from "../toolboxStore";
 import { useWalletStore } from "../../lib/walletStore";
-import { CodeHighlighter } from "../../components/CodeHighlighter";
 import { Container } from "../components/Container";
 import { Button } from "../../components/Button";
 import { Copy, Download, AlertCircle, Check } from "lucide-react";
 import { Address } from "viem";
+
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 
 // Genesis Components
 import { PrecompileCard } from "../../components/genesis/PrecompileCard";
@@ -690,9 +691,9 @@ export default function GenesisBuilder() {
                                 </Button>
                             </div>
                         </div>
-                        <div className="border rounded-md overflow-hidden bg-white dark:bg-zinc-950 max-h-[60vh] overflow-y-auto shadow-sm border-zinc-200 dark:border-zinc-800">
-                            <CodeHighlighter code={genesisData} lang="json" />
-                        </div>
+
+                        <DynamicCodeBlock lang="json" code={genesisData} />
+                        
                         <div className="mt-4 flex justify-center space-x-4">
                             <Button onClick={() => setActiveTab("config")} variant="secondary">Back to Configuration</Button>
                             <Button onClick={() => setActiveTab("precompiles")} variant="secondary">View Precompile Info</Button>
