@@ -43,3 +43,7 @@ body {
 svg.lucide {
   color: #1f66f4;
 }
+
+.prose h3 {
+  margin-top: 1.6em;
+}
