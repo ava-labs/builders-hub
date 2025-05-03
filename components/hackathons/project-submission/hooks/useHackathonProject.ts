@@ -6,7 +6,7 @@ import { useCountdown } from './Count-down';
 
 
 
-export const useHackathonProject = (hackathonId: string) => {
+export const useHackathonProject = (hackathonId: string,invitationid:string) => {
   const { data: session } = useSession();
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [project, setProject] = useState<any>(null);
@@ -36,6 +36,7 @@ export const useHackathonProject = (hackathonId: string) => {
         params: {
           hackathon_id: hackathonId,
           user_id: session?.user?.id,
+          invitation_id: invitationid,
         },
       });
       if (response.data.project) {
@@ -54,7 +55,7 @@ export const useHackathonProject = (hackathonId: string) => {
     if (hackathonId && session?.user?.id && loadData) {
       getProject();
     }
-  }, [hackathonId, session?.user?.id, loadData]);
+  }, [hackathonId, session?.user?.id, loadData,invitationid]);
 
   return {
     hackathon,

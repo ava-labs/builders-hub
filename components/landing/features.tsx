@@ -2,13 +2,9 @@
 
 import React from "react";
 import {
-  PlugIcon,
-  ScanFace,
-  Plus,
-  Users,
-  BadgeDollarSign,
-  AudioLines,
-  GitPullRequest
+  GraduationCap,
+  Ticket,
+  Speech
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
@@ -16,76 +12,46 @@ import Link from "next/link";
 const features = [
   {
     id: 1,
-    label: "Wallet",
-    title: "Install <strong>Core Wallet</strong>.",
+    label: "Academy",
+    title: "Start <strong>Learning</strong>.",
     description:
-      "The native Avalanche wallet. Sign up with Google to create a seedless wallet and start exploring.",
-    icon: ScanFace,
-    href: "https://core.app/en/"
+      "Enroll in our free online courses to learn about Avalanche and earn certificates.",
+    icon: GraduationCap,
+    href: "/academy"
   },
   {
     id: 2,
-    label: "Development",
-    title: "Build on <strong>Avalanche</strong>.",
+    label: "Hackathons",
+    title: "Register for our <strong>Hackathons</strong>.",
     description:
-      "Everything you need to start building, from beginner-friendly courses to advanced documentation.",
-    icon: GitPullRequest,
-    href: "#development"
+      "Find out about upcoming hackathons and events, and learn how to get involved.",
+    icon: Ticket,
+    href: "/hackathons"
   },
   {
     id: 3,
-    label: "Ecosystem",
-    title: "Grow the <strong>Ecosystem</strong>.",
-    description:
-      "Discover thriving dApps, join Team1 DAO, or explore purpose-built blockchains across the Avalanche ecosystem.",
-    icon: AudioLines,
-    href: "#ecosystem"
-  },
-  {
-    id: 4,
-    label: "Grants",
-    title: "<strong>Fund</strong> Your Vision.",
-    description:
-      "Level up your project through bounty challenges, retroactive rewards, or our hands-on incubator program.",
-    icon: BadgeDollarSign,
-    href: "/grants"
-  },
-  {
-    id: 5,
-    label: "Contribute",
-    title: "Create <strong>Builder Guides</strong>.",
-    description:
-      "Blogs and Tutorials: share your insights, best practices, and lessons learned while building on Avalanche.",
-    icon: Users,
-    href: "/guides"
-  },
-  {
-    id: 6,
     label: "Connect",
-    title: "Learn with <strong>DevRels</strong>.",
+    title: "Connect with <strong>other Students</strong>.",
     description:
-      "Get direct guidance from our Developer Relations team through live workshops, office hours, and hands-on tutorials.",
-    icon: PlugIcon,
-    href: "https://discord.com/channels/578992315641626624/1230847375120011264"
-  },
+      "Join our Telegram chat with other students and Avalanche experts.",
+    icon: Speech,
+    href: "https://t.me/avalancheacademy"
+  }
 ];
 
 export default function Features() {
   return (
     <div className="flex flex-col justify-center items-center px-4 mb-16">
       <h2 className="font-display text-3xl tracking-tight sm:text-5xl text-center">
-        Resources for Developers
+        Learn about Avalanche
       </h2>
       <p className="mt-4 text-lg tracking-tight text-zinc-400 text-center">
-        Find all the resources you will need to build on Avalanche.
+        Find the learning resources you need to get started with Avalanche, from online courses and hackathons.
       </p>
       <div className="mt-10 mx-auto font-geist relative md:border-l-0 md:border-b-0 md:border-[1.2px] rounded-none -pr-2">
         <div className="w-full md:mx-0">
-          <div className="grid grid-cols-1 relative md:grid-rows-2 md:grid-cols-3 border-b-[1.2px]">
-            <div className="hidden md:grid top-1/2 left-0 -translate-y-1/2 w-full grid-cols-3 z-10 pointer-events-none select-none absolute">
-              <Plus className="w-8 h-8 text-neutral-300 translate-x-[16.5px] translate-y-[.5px] ml-auto dark:text-neutral-600" />
-              <Plus className="w-8 h-8 text-neutral-300 ml-auto translate-x-[16.5px] translate-y-[.5px] dark:text-neutral-600" />
-            </div>
+          <div className="grid grid-cols-1 relative md:grid-rows-1 md:grid-cols-3 border-b-[1.2px]">
+
             {features.map((feature, index) => (
               <Link
                 key={feature.id}

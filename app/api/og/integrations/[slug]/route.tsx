@@ -8,14 +8,16 @@ export async function GET(
   request: NextRequest,
 ): Promise<ImageResponse> {
   const { searchParams } = request.nextUrl;
-  const title = searchParams.get('title'),
-    description = searchParams.get('description');
+  const rawTitle = searchParams.get('title');
+  // Remove the suffix if present
+  const title = rawTitle?.replace(/\s*\|\s*Avalanche Builder Hub$/, '');
+  const description = searchParams.get('description');
 
   const fonts = await loadFonts();
 
   return createOGResponse({
-    title: title ?? 'Integrations with Avalanche',
-    description: description ?? 'Discover best-in-class integrations for your Avalanche L1 and learn how to use them.',
+    title: title ?? 'Integrations',
+    description: description ?? 'Discover best-in-class integrations for your Avalanche L1',
     path: 'integrations',
     fonts
   });

@@ -62,11 +62,10 @@ const ChainSelector = () => {
             </div>
 
             {/* Add Chain Modal */}
-            <AddChainModal
-                isOpen={isAddChainModalOpen}
+            {isAddChainModalOpen && <AddChainModal
                 onClose={() => setIsAddChainModalOpen(false)}
                 onAddChain={addL1}
-            />
+            />}
         </>
     );
 }

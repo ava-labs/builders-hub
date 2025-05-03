@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { RawInput } from "../Input"
-import { Trash2, AlertCircle, Plus, CircleHelp, Lock } from 'lucide-react'
+import { Trash2, AlertCircle, Plus, Lock } from 'lucide-react'
 import { AddressEntry, Role } from './types'
 import { isAddress } from 'viem'
 
@@ -68,58 +68,59 @@ export default function EthereumAddressList({
   }, []);
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white dark:bg-gray-800 rounded-md shadow">
-        <div className="font-medium p-3 border-b flex items-center">
-          <span className="font-bold flex items-center">
-            {role} Addresses
-            <CircleHelp className="h-4 w-4 text-gray-500 ml-1 inline" />
-          </span>
-          <div className="ml-2 text-xs text-gray-500">
+    <div className="space-y-5">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-col">
+          <div className="flex items-center">
+            <div className="text-base font-medium text-zinc-800 dark:text-white">
+              {role} Addresses
+            </div>
+          </div>
+          <div className="text-xs font-normal text-zinc-500 dark:text-zinc-400 leading-relaxed mt-1">
             {getRoleDescription(role, precompileAction)}
           </div>
         </div>
 
-        <div className="divide-y">
+        <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
           {addresses.map((entry) => (
-            <div key={entry.id} className="flex justify-between items-center p-3">
-              <div className={`${entry.error ? 'text-red-500' : ''}`}>
+            <div key={entry.id} className="flex justify-between items-center p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors">
+              <div className={`font-mono text-sm ${entry.error ? 'text-red-500 dark:text-red-400' : 'text-zinc-700 dark:text-zinc-300'}`}>
                 <span className="inline-flex items-center">
                   {entry.address}
-                  {entry.error && <AlertCircle className="h-4 w-4 ml-2" />}
+                  {entry.error && <AlertCircle className="h-4 w-4 ml-2 flex-shrink-0" />}
                 </span>
-                {entry.error && <p className="text-xs text-red-500 mt-1">{entry.error}</p>}
-                {entry.requiredReason && <p className="text-xs text-gray-500 mt-1">{entry.requiredReason}</p>}
+                {entry.error && <p className="text-xs text-red-500 dark:text-red-400 mt-1.5">{entry.error}</p>}
+                {entry.requiredReason && <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 italic">{entry.requiredReason}</p>}
               </div>
               <div>
                 {entry.requiredReason ?
-                  <Lock className="h-4 w-4 text-gray-500" /> :
+                  <Lock className="h-4 w-4 text-zinc-400" /> :
                   <button
                     onClick={() => onDeleteAddress(entry.id)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
+                    className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
                     aria-label="Delete address"
                   >
-                    <Trash2 className="h-4 w-4 text-gray-500" />
+                    <Trash2 className="h-4 w-4 text-zinc-500 dark:text-zinc-400 hover:text-red-500 transition-colors" />
                   </button>
                 }
               </div>
             </div>
           ))}
 
-          <div className="flex items-center p-3 gap-2">
-            <Plus className="h-4 w-4 text-gray-400 shrink-0" />
+          <div className="flex items-center p-4 gap-3 bg-zinc-50/80 dark:bg-zinc-800/50">
+            <Plus className="h-4 w-4 text-blue-500 shrink-0" />
             <RawInput
               type="text"
               placeholder={`Add one or more addresses for ${role}`}
               value={newAddress}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 border-transparent bg-transparent shadow-none focus:ring-0 p-0"
+              className="flex-1 border-transparent bg-transparent shadow-none focus:ring-0 p-0 font-mono text-sm"
             />
             <button
               onClick={handleAddAddress}
               disabled={!isValidInput(newAddress)}
-              className="px-3 py-1 bg-blue-500 text-white rounded-md disabled:opacity-50"
+              className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-md disabled:opacity-50 transition-colors font-medium"
             >
               Add
             </button>

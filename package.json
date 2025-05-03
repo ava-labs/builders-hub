@@ -58,6 +58,7 @@
     "@vercel/blob": "^0.27.3",
     "@vercel/speed-insights": "^1.0.12",
     "@wagmi/core": "^2.16.3",
+    "autocannon": "^8.0.0",
     "axios": "^1.7.7",
     "boring-name-generator": "^1.0.3",
     "class-variance-authority": "^0.7.1",

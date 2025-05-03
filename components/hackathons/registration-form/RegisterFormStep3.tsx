@@ -44,7 +44,7 @@ export function RegisterFormStep3() {
                   I have read and agree to the Event Participation Terms and Conditions.
                 </FormLabel>
                 <FormMessage className="text-zinc-400">
-                  You must agree to participate in any Builders Hub events. Event Terms and Conditions.
+                  You must agree to participate in any Builder Hub events. Event Terms and Conditions.
                 </FormMessage>
               </div>
             </FormItem>

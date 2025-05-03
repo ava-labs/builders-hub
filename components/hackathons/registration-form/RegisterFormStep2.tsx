@@ -79,7 +79,7 @@ export function RegisterFormStep2() {
           Step 2: Experience & Skills
         </h3>
         <p className="text-zinc-600">
-          Share your skills and expertise to tailor your experience on Builders
+          Share your skills and expertise to tailor your experience on Builder
           Hub.
         </p>
         <div className="w-full h-px bg-zinc-300 mt-2" />

@@ -1,6 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
 
 :root {
   font-family: 'Geist Variable', system-ui, sans-serif;
@@ -8,7 +8,7 @@
 
 .font-mono,
 code,
-pre {
+he pre {
   font-family: 'Geist Mono Variable', monospace;
 }
 
@@ -20,7 +20,10 @@ pre {
   }
 }
 
-select,input, textarea, button {
+select,
+input,
+textarea,
+button {
   @apply dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700;
 }
 
@@ -41,3 +44,6 @@ svg.lucide {
   color: #1f66f4;
 }
 
+.prose h3 {
+  margin-top: 1.6em;
+}

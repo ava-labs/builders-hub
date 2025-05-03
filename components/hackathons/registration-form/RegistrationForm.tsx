@@ -68,7 +68,7 @@ export const registerSchema = z.object({
       }
     ),
   terms_event_conditions: z.boolean().refine((value) => value === true, {
-    message: "You must agree to participate in any Builders Hub events. Event Terms and Conditions.",
+    message: "You must agree to participate in any Builder Hub events. Event Terms and Conditions.",
   }),
   newsletter_subscription: z.boolean().refine((value) => value === true, {
     message: "Subscribe to newsletters and promotional materials. You can opt out anytime. Avalanche Privacy Policy.",

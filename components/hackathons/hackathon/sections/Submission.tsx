@@ -87,7 +87,7 @@ export default async function Submission({
             Submission Process
           </h3>
           <p className='text-sm text-zinc-50'>
-            Submit your project through the Avalanche Builders Hub, add your
+            Submit your project through the Avalanche Builder Hub, add your
             team members, and upload your GitHub repo, presentation slides along with any other file that support your submission.
           </p>
         </div>

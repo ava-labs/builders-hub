@@ -2,14 +2,14 @@
 
 import { useCreateChainStore, EVM_VM_ID } from "../toolboxStore";
 import { useErrorBoundary } from "react-error-boundary";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Container } from "../components/Container";
 import { GenesisInput } from "../components/GenesisInput";
 import { ResultField } from "../components/ResultField";
-import { quickAndDirtyGenesisBuilder } from "./GenesisBuilder";
 import { useWalletStore } from "../../lib/walletStore";
+
 
 export default function CreateChain() {
     const { showBoundary } = useErrorBoundary();
@@ -22,56 +22,16 @@ export default function CreateChain() {
         setChainID,
         setSubnetID,
         genesisData,
-        setGenesisData,
-        evmChainId,
-        gasLimit,
-        targetBlockRate,
         setChainName,
     } = useCreateChainStore()();
+    const [localGenesisData, setLocalGenesisData] = useState<string>(genesisData);
     const [isCreating, setIsCreating] = useState(false);
-    const { walletEVMAddress, coreWalletClient } = useWalletStore();
+    const { coreWalletClient } = useWalletStore();
 
+    // Update localGenesisData when genesisData changes
     useEffect(() => {
-        if (!genesisData) {
-            setGenesisData(quickAndDirtyGenesisBuilder(
-                walletEVMAddress,
-                evmChainId,
-                gasLimit,
-                targetBlockRate,
-                "1000000", // Default owner balance
-                {
-                    contractDeployerAllowList: {
-                        enabled: false,
-                        adminAddresses: [],
-                        enabledAddresses: []
-                    },
-                    contractNativeMinter: {
-                        enabled: false,
-                        adminAddresses: [],
-                        enabledAddresses: []
-                    },
-                    txAllowList: {
-                        enabled: false,
-                        adminAddresses: [],
-                        enabledAddresses: []
-                    },
-                    feeManager: {
-                        enabled: false,
-                        adminAddresses: []
-                    },
-                    rewardManager: {
-                        enabled: false,
-                        adminAddresses: []
-                    },
-                    warpMessenger: {
-                        enabled: true,
-                        quorumNumerator: 67,
-                        requirePrimaryNetworkSigners: true
-                    }
-                }
-            ));
-        }
-    }, [walletEVMAddress, evmChainId, gasLimit, targetBlockRate, genesisData, setGenesisData]);
+        setLocalGenesisData(genesisData);
+    }, [genesisData]);
 
     function handleCreateChain() {
         setChainID("");
@@ -82,7 +42,7 @@ export default function CreateChain() {
             subnetId: subnetId,
             vmId,
             fxIds: [],
-            genesisData,
+            genesisData: localGenesisData,
             subnetAuth: [0],
         }).then((txID: string) => {
             setChainID(txID);
@@ -90,7 +50,7 @@ export default function CreateChain() {
         }).catch(showBoundary);
     }
 
-    if (!genesisData) {
+    if (!localGenesisData) {
         return (
             <div className="space-y-4">
                 <h2 className="text-lg font-semibold ">Create Chain</h2>
@@ -133,11 +93,7 @@ export default function CreateChain() {
                 helperText={`Default is ${EVM_VM_ID}`}
             />
 
-            <GenesisInput label="Genesis Data (JSON)" value={genesisData} onChange={setGenesisData} />
-
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                Auto-generated for address 0xC8EA6E24567310104a5d3b5d9ab6Ca414987885
-            </div>
+            <GenesisInput label="Genesis Data (JSON)" value={localGenesisData} onChange={setLocalGenesisData} />
 
             <div className="text-sm text-zinc-600 dark:text-zinc-400">
                 Open the{" "}
