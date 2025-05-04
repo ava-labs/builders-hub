@@ -96,7 +96,7 @@ export default function ConvertToL1() {
                 <Button
                     variant="primary"
                     onClick={handleConvertToL1}
-                    disabled={!managerAddress || validators.length === 0}
+                    disabled={!subnetId || !managerAddress || validators.length === 0}
                     loading={isConverting}
                 >
                     Convert to L1
