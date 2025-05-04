@@ -252,6 +252,9 @@ export function ValidatorListInput({
                             "shadow-sm focus:ring focus:ring-primary/30 focus:ring-opacity-50",
                           )}
                         />
+                        <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">
+                          {((Number(validator.validatorWeight) / Number(validators.reduce((acc, val) => acc + Number(val.validatorWeight), 0))) * 100).toFixed(2)}% of total weight. Should not exceed 20% in production settings.
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
