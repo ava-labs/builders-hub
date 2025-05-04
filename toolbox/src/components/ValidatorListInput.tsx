@@ -68,7 +68,7 @@ export function ValidatorListInput({
         nodeID,
         nodePOP,
         validatorWeight: BigInt(100),
-        validatorBalance: BigInt(1000000000), // 1 AVAX
+        validatorBalance: BigInt(100000000), // 0.1 AVAX
         remainingBalanceOwner: {
           addresses: defaultAddress ? [defaultAddress] : [],
           threshold: 1,
@@ -230,6 +230,9 @@ export function ValidatorListInput({
                             "shadow-sm focus:ring focus:ring-primary/30 focus:ring-opacity-50",
                           )}
                         />
+                        <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">
+                          Will last for {getBalanceDurationEstimate(Number(validator.validatorBalance) / 1000000000)} with a fee of 1.33 AVAX per month.
+                        </p>
                       </div>
                     </div>
 
@@ -298,3 +301,32 @@ export function ValidatorListInput({
   )
 }
 
+
+function getBalanceDurationEstimate(balance: number): string {
+  const feePerSecond = 0.000000512;
+  const seconds = balance / feePerSecond;
+
+  const oneHour = 3600;
+  const oneDay = 86400;
+  const oneMonth = oneDay * 30;
+  const oneYear = oneDay * 365;
+
+  if (seconds < oneHour) return "less than 1 hour";
+  
+  if (seconds < oneDay) {
+    const hours = Math.round(seconds / oneHour);
+    return hours === 1 ? "roughly 1 hour" : `roughly ${hours} hours`;
+  }
+  
+  if (seconds < oneMonth) {
+    const days = Math.round(seconds / oneDay);
+    return days === 1 ? "roughly 1 day" : `roughly ${days} days`;
+  }
+  
+  if (seconds < oneYear) {
+    const months = Math.round(seconds / oneMonth);
+    return months === 1 ? "roughly 1 month" : `roughly ${months} months`;
+  }
+  
+  return "more than 1 year";
+}
