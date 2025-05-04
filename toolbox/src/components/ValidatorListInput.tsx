@@ -134,8 +134,53 @@ export function ValidatorListInput({
         <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">{label}</h2>
         {description && <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{description}</p>}
       </div>
-      
+
       <div className="bg-zinc-100/80 dark:bg-zinc-800/70 rounded-lg p-5 space-y-4 border border-zinc-200 dark:border-zinc-700 shadow-sm">
+
+        {/* Add new validator section */}
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between pb-1 border-b border-zinc-200 dark:border-zinc-700">
+            <span className="text-base font-medium text-zinc-800 dark:text-zinc-200">Add Validator</span>
+          </div>
+
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+           Click the copy button to copy the command and run it in your node's terminal to get the node credentials.
+          </p>
+
+
+          <DynamicCodeBlock
+            code={rpcCommand}
+            lang="zsh"
+          />
+
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+           Paste the JSON response below:
+          </p>
+
+          <textarea
+            value={jsonInput}
+            onChange={(e) => setJsonInput(e.target.value)}
+            placeholder='{"jsonrpc":"2.0","result":{"nodeID":"...","nodePOP":{"publicKey":"...",  "proofOfPossession":"..."}},"id":1}'
+            rows={4}
+            className={cn(
+              "w-full rounded-md p-3 font-mono text-sm",
+              "bg-white dark:bg-zinc-900",
+              "border border-zinc-300 dark:border-zinc-600",
+              "text-zinc-900 dark:text-zinc-100",
+              "shadow-sm focus:ring focus:ring-primary/20 focus:border-primary/60 focus:outline-none",
+              "placeholder:text-zinc-400 dark:placeholder:text-zinc-500",
+            )}
+          />
+
+          {error && <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-sm text-red-600 dark:text-red-400">{error}</div>}
+
+          <div className="pt-2">
+            <Button onClick={handleAddValidator} icon={<Plus className="w-4 h-4" color="white" />} variant="primary" className="w-full sm:w-auto">
+              Add Validator
+            </Button>
+          </div>
+        </div>
+
         {/* List of validators */}
         {validators.length > 0 && (
           <div className="space-y-4">
@@ -255,47 +300,6 @@ export function ValidatorListInput({
             ))}
           </div>
         )}
-
-        {/* Add new validator section */}
-        <div className="space-y-4 pt-2">
-          <div className="flex items-center justify-between pb-1 border-b border-zinc-200 dark:border-zinc-700">
-            <span className="text-base font-medium text-zinc-800 dark:text-zinc-200">Add Validator</span>
-          </div>
-
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Run this command in your node's terminal to get the node credentials. Click the copy button to copy the command.
-          </p>
-
-          <div className="bg-zinc-50 dark:bg-zinc-900 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700">
-            <DynamicCodeBlock 
-              code={rpcCommand}
-              lang="zsh"
-            />
-          </div>
-
-          <textarea
-            value={jsonInput}
-            onChange={(e) => setJsonInput(e.target.value)}
-            placeholder="Paste JSON response here..."
-            rows={4}
-            className={cn(
-              "w-full rounded-md p-3 font-mono text-sm",
-              "bg-white dark:bg-zinc-900",
-              "border border-zinc-300 dark:border-zinc-600",
-              "text-zinc-900 dark:text-zinc-100",
-              "shadow-sm focus:ring focus:ring-primary/20 focus:border-primary/60 focus:outline-none",
-              "placeholder:text-zinc-400 dark:placeholder:text-zinc-500",
-            )}
-          />
-
-          {error && <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-sm text-red-600 dark:text-red-400">{error}</div>}
-
-          <div className="pt-2">
-            <Button onClick={handleAddValidator} icon={<Plus className="w-4 h-4" />} variant="primary" className="w-full sm:w-auto">
-              Add Validator
-            </Button>
-          </div>
-        </div>
       </div>
     </div>
   )
@@ -312,21 +316,21 @@ function getBalanceDurationEstimate(balance: number): string {
   const oneYear = oneDay * 365;
 
   if (seconds < oneHour) return "less than 1 hour";
-  
+
   if (seconds < oneDay) {
     const hours = Math.round(seconds / oneHour);
     return hours === 1 ? "roughly 1 hour" : `roughly ${hours} hours`;
   }
-  
+
   if (seconds < oneMonth) {
     const days = Math.round(seconds / oneDay);
     return days === 1 ? "roughly 1 day" : `roughly ${days} days`;
   }
-  
+
   if (seconds < oneYear) {
     const months = Math.round(seconds / oneMonth);
     return months === 1 ? "roughly 1 month" : `roughly ${months} months`;
   }
-  
+
   return "more than 1 year";
 }
