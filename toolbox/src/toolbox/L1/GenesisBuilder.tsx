@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, SetStateAction } from "react";
-import { useCreateChainStore } from "../toolboxStore";
 import { useWalletStore } from "../../lib/walletStore";
-import { Container } from "../components/Container";
 import { Button } from "../../components/Button";
 import { Copy, Download, AlertCircle, Check } from "lucide-react";
 import { Address } from "viem";
@@ -55,11 +53,12 @@ const gweiToWei = (gwei: number): number => gwei * 1000000000;
 // --- Main Component --- 
 
 type GenesisBuilderProps = {
+    genesisData: string;
+    setGenesisData: (data: string) => void;
     initiallyExpandedSections?: SectionId[];
   };
 
-export default function GenesisBuilder({ initiallyExpandedSections = ["chainParams"] }: GenesisBuilderProps) {
-    const { genesisData, setGenesisData } = useCreateChainStore()();
+export default function GenesisBuilder({ genesisData, setGenesisData, initiallyExpandedSections = ["chainParams"] }: GenesisBuilderProps) {
     const { walletEVMAddress } = useWalletStore();
 
     // --- State --- 
@@ -237,7 +236,7 @@ export default function GenesisBuilder({ initiallyExpandedSections = ["chainPara
                     },
                     timestamp: `0x${Math.floor(Date.now() / 1000).toString(16)}`
                 };
-
+                console.log("settingGenesis");
                 setGenesisData(JSON.stringify(finalGenesisConfig, null, 2));
             } catch (error) {
                 console.error("Error generating genesis data:", error);
@@ -344,10 +343,6 @@ export default function GenesisBuilder({ initiallyExpandedSections = ["chainPara
 
     // --- Render --- 
     return (
-        <Container
-            title="Genesis Builder"
-            description="Create a genesis file for your new blockchain."
-        >
             <div className="space-y-6">
                 {/* Tabs */}
                 <div className="border-b border-zinc-200 dark:border-zinc-800">
@@ -706,6 +701,5 @@ export default function GenesisBuilder({ initiallyExpandedSections = ["chainPara
                 )}
 
             </div>
-        </Container>
     );
 }
