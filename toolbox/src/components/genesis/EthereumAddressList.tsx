@@ -115,7 +115,7 @@ export default function EthereumAddressList({
               value={newAddress}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 border-transparent bg-transparent shadow-none focus:ring-0 p-0 font-mono text-sm"
+              className="flex-1 border-none bg-transparent shadow-none focus:ring-0 p-0 font-mono text-sm"
             />
             <button
               onClick={handleAddAddress}
