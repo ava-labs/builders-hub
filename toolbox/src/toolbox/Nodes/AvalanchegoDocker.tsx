@@ -402,7 +402,7 @@ export default function AvalanchegoDocker() {
                                                 )}
 
                                                 TBD: Replace with RPC check component used for monitoring?
-                                            </Step> )
+                                            </Step>
                                         </>
                                         )}
                                     </>)}
