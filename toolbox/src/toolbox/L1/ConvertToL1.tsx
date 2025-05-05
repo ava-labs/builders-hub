@@ -61,6 +61,7 @@ export default function ConvertToL1() {
                     value={subnetId}
                     onChange={setSubnetId}
                     error={null}
+                    onlyNotConverted={true}
                 />
 
                 <div>
