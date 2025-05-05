@@ -73,6 +73,7 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
                 value={newLink}
                 onChange={(e) => setNewLink(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onBlur={handleAddLink}
                 className="w-full"
               />
               <div className="flex flex-wrap gap-2">

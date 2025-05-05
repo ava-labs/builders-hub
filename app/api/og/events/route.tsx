@@ -21,8 +21,8 @@ export async function GET(
 
   return new ImageResponse(
     OG({
-      title: 'Avalanche Events',
-      description: 'Find and attend Avalanche events worldwide.'
+      title: 'Events',
+      description: 'Discover upcoming events, hackathons, and conferences in the Avalanche ecosystem'
     }),
     {
       width: 1280,

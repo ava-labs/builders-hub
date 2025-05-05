@@ -11,6 +11,7 @@ import { RadioGroup } from "../../components/RadioGroup";
 import { avalancheFuji } from "viem/chains";
 import { http } from "viem";
 import { createPublicClient } from "viem";
+import { Container } from "../components/Container";
 
 export default function DeployExampleERC20() {
     const { showBoundary } = useErrorBoundary();
@@ -59,9 +60,7 @@ export default function DeployExampleERC20() {
     }
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Deploy ERC20 Token</h2>
-
+        <Container title="Deploy ERC20 Token" description="Deploy an ERC20 token contract for testing.">
             <div className="p-4 border rounded-md bg-gray-50 dark:bg-gray-900/50">
                 <RadioGroup
                     value={deployOn}
@@ -91,7 +90,6 @@ export default function DeployExampleERC20() {
                     value={exampleErc20Address?.[deployOn] || ""}
                 />
             </div>
-
-        </div >
+        </Container >
     );
 }

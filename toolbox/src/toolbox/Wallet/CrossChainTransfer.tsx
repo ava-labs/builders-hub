@@ -261,11 +261,6 @@ export default function CrossChainTransfer({
                                     ? "EVM-compatible chain for smart contracts"
                                     : "Native chain for staking & validators"}
                             </div>
-                            <div className="font-semibold text-zinc-900 dark:text-zinc-100">
-                                {sourceChain === "c-chain"
-                                    ? `${availableBalance.toFixed(4)} AVAX`
-                                    : `${pChainAvailableBalance.toFixed(4)} AVAX`}
-                            </div>
                         </div>
                     </div>
 
@@ -339,11 +334,6 @@ export default function CrossChainTransfer({
                                 {destinationChain === "c-chain"
                                     ? "EVM-compatible chain for smart contracts"
                                     : "Native chain for staking & validators"}
-                            </div>
-                            <div className="font-semibold text-zinc-900 dark:text-zinc-100">
-                                {destinationChain === "c-chain"
-                                    ? `${availableBalance.toFixed(4)} AVAX`
-                                    : `${pChainAvailableBalance.toFixed(4)} AVAX`}
                             </div>
                         </div>
                     </div>

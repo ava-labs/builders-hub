@@ -281,7 +281,7 @@ export default function ProfileForm({
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email Address</FormLabel>
+                <FormLabel>Account Email Address</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="your@email.com"

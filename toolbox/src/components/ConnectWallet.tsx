@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useErrorBoundary } from "react-error-boundary"
-import { Copy, CheckCircle2 } from "lucide-react"
+import { Copy } from "lucide-react"
 import { createCoreWalletClient } from "../coreViem"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { useWalletStore } from "../lib/walletStore"
@@ -24,7 +24,6 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
     const setPChainAddress = useWalletStore(state => state.setPChainAddress);
     const pChainAddress = useWalletStore(state => state.pChainAddress);
     const walletChainId = useWalletStore(state => state.walletChainId);
-    const avalancheNetworkID = useWalletStore(state => state.avalancheNetworkID);
     const setIsTestnet = useWalletStore(state => state.setIsTestnet);
     const publicClient = useWalletStore(state => state.publicClient);
     const setEvmChainName = useWalletStore(state => state.setEvmChainName);
@@ -238,30 +237,6 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
         }
     }
 
-    // Get network badge based on network ID
-    const renderNetworkBadge = () => {
-        if (avalancheNetworkID === networkIDs.FujiID || walletChainId === 5) {
-            return (
-                <div className="inline-flex items-center">
-                    <div className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full inline-flex items-center text-xs tracking-tighter">
-                        <span className="h-1.5 w-1.5 rounded-full bg-orange-400 mr-1 flex-shrink-0"></span>
-                        <span className="flex-shrink-0">Testnet</span>
-                    </div>
-                </div>
-            );
-        } else if (avalancheNetworkID === networkIDs.MainnetID || walletChainId === 1) {
-            return (
-                <div className="inline-flex items-center">
-                    <div className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full inline-flex items-center text-xs tracking-tighter">
-                        <CheckCircle2 className="h-2.5 w-2.5 mr-0.5 flex-shrink-0" />
-                        <span className="flex-shrink-0">Mainnet</span>
-                    </div>
-                </div>
-            );
-        }
-        return null;
-    };
-
     // Server-side rendering placeholder
     if (!isClient) {
         return (
@@ -288,13 +263,31 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
             {walletEVMAddress && (
                 <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md rounded-xl p-4 relative overflow-hidden">
                     {/* Core Wallet header */}
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mt-2 mb-6">
                         <div className="flex items-center space-x-2">
-                            <img src="/core.png" alt="Core Logo" className="h-10 w-10" />
-                            <div>
-                                <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Core Wallet</h3>
-                                {renderNetworkBadge()}
-                            </div>
+                            <img src="/core-logo.svg" alt="Core Logo" className="h-10 w-auto mt-1 mb-1 dark:hidden" />
+                            <img src="/core-logo-dark.svg" alt="Core Logo" className="h-10 w-auto mt-1 mb-1 hidden dark:block" />
+                        </div>
+
+                        <div className="rounded-full overflow-hidden flex bg-zinc-100 dark:bg-zinc-800/70 p-0.5">
+                            <button
+                                onClick={() => coreWalletClient.switchChain({ id: avalancheFuji.id })}
+                                className={`px-4 py-1 text-sm rounded-full transition-colors ${isTestnet
+                                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 font-bold'
+                                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                                    }`}
+                            >
+                                Testnet
+                            </button>
+                            <button
+                                onClick={() => coreWalletClient.switchChain({ id: avalanche.id })}
+                                className={`px-4 py-1 text-sm rounded-full transition-colors ${!isTestnet
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 font-bold'
+                                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                                    }`}
+                            >
+                                Mainnet
+                            </button>
                         </div>
 
                         <div className="rounded-full overflow-hidden flex bg-zinc-100 dark:bg-zinc-800/70 p-0.5">
@@ -339,7 +332,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                             </div>
                             {/* EVM Address inside the card */}
                             <div className="flex items-center justify-between">
-                                <div className="font-mono text-xs text-zinc-700 dark:text-black bg-zinc-100 dark:bg-zinc-300 px-3 py-1.5 rounded-md overflow-x-auto shadow-sm border border-zinc-200 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-200 transition-colors flex-1 mr-2">
+                                <div className="font-mono text-xs text-zinc-700 dark:text-black bg-zinc-100 dark:bg-zinc-300 px-3 py-1.5 rounded-md overflow-x-auto shadow-sm border border-zinc-200 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-200 transition-colors flex-1 mr-2 truncate">
                                     {walletEVMAddress}
                                 </div>
                                 <button
@@ -365,7 +358,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                             </div>
                             <div className="text-2xl font-semibold text-zinc-800 dark:text-zinc-100 mb-2">{pChainBalance} AVAX</div>
                             <div className="flex items-center justify-between">
-                                <div className="font-mono text-xs text-zinc-700 dark:text-black bg-zinc-100 dark:bg-zinc-300 px-3 py-1.5 rounded-md overflow-x-auto shadow-sm border border-zinc-200 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-200 transition-colors flex-1 mr-2">
+                                <div className="font-mono text-xs text-zinc-700 dark:text-black bg-zinc-100 dark:bg-zinc-300 px-3 py-1.5 rounded-md overflow-x-auto shadow-sm border border-zinc-200 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-200 transition-colors flex-1 mr-2 truncate">
                                     {pChainAddress ? pChainAddress : "Loading..."}
                                 </div>
                                 {pChainAddress && (

@@ -10,7 +10,7 @@ import { getBlockchainInfo, getSubnetInfo } from '../../../coreViem/utils/glacie
 import * as Dialog from "@radix-ui/react-dialog";
 import { fetchChainId } from '../../../lib/chainId';
 interface AddChainModalProps {
-    isOpen: boolean;
+    // onOpen: () => void;//FIXME: consider brining back isOpen
     onClose: () => void;
     onAddChain: (chain: {
         id: string;
@@ -22,14 +22,17 @@ interface AddChainModalProps {
         subnetId: string;
         validatorManagerAddress: string;
     }) => void;
+    allowLookup?: boolean;
+    fixedRPCUrl?: string;
 }
 
 export const AddChainModal: React.FC<AddChainModalProps> = ({
-    isOpen,
     onClose,
     onAddChain,
+    allowLookup = true,
+    fixedRPCUrl,
 }) => {
-    const [rpcUrl, setRpcUrl] = useState('');
+    const [rpcUrl, setRpcUrl] = useState(fixedRPCUrl || '');
     const [chainName, setChainName] = useState('');
     const [isTestnet, setIsTestnet] = useState(false);
     const [isAddingChain, setIsAddingChain] = useState(false);
@@ -40,19 +43,6 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
     const [validatorManagerAddress, setValidatorManagerAddress] = useState("");
     const [localError, setLocalError] = useState("");
     const { coreWalletClient } = useWalletStore();
-
-    useEffect(() => {
-        if (!isOpen) {
-            setRpcUrl("");
-            setChainName("");
-            setChainId("");
-            setEvmChainId(0);
-            setCoinName("COIN");
-            setSubnetId("");
-            setValidatorManagerAddress("");
-            setLocalError("");
-        }
-    }, [isOpen]);
 
     // Fetch chain data when RPC URL changes
     useEffect(() => {
@@ -87,6 +77,12 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
 
         fetchChainData();
     }, [rpcUrl]);
+
+    useEffect(() => {
+        if (fixedRPCUrl) {
+            setRpcUrl(fixedRPCUrl);
+        }
+    }, [fixedRPCUrl]);
 
     async function handleAddChain() {
         try {
@@ -129,10 +125,8 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
         }
     }
 
-    if (!isOpen) return null;
-
     return (
-        <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Dialog.Root open={true} onOpenChange={() => onClose()}>
             <Dialog.Portal>
                 <Dialog.Overlay className="fixed inset-0 bg-black/50 data-[state=open]:animate-overlayShow" />
                 <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-lg focus:outline-none w-[90vw] max-w-md">
@@ -141,10 +135,12 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
                     </Dialog.Title>
 
                     <div className="space-y-4">
-                        <LoadFromCoreWallet onLookup={({ rpcUrl, coinName }: { rpcUrl: string, coinName: string }) => {
-                            setRpcUrl(rpcUrl);
-                            setCoinName(coinName);
-                        }} />
+                        {allowLookup && (
+                            <LoadFromCoreWallet onLookup={({ rpcUrl, coinName }: { rpcUrl: string, coinName: string }) => {
+                                setRpcUrl(rpcUrl);
+                                setCoinName(coinName);
+                            }} />
+                        )}
 
                         {localError && (
                             <div className="text-red-500 mb-4">
@@ -157,10 +153,9 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
                             label="RPC URL"
                             value={rpcUrl}
                             onChange={setRpcUrl}
-                            placeholder="https://api.mychain.com"
+                            // placeholder={fixedRPCUrl ? fixedRPCUrl : "https://api.mychain.com"}
+                            disabled={!!fixedRPCUrl}
                         />
-
-
 
                         <Input
                             id="name"

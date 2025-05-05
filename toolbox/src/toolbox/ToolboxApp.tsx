@@ -37,13 +37,6 @@ const componentGroups: Record<string, ComponentType[]> = {
             walletRequired: "required"
         },
         {
-            id: 'genesisBuilder',
-            label: "EVM Genesis Builder",
-            component: lazy(() => import('./L1/GenesisBuilder')),
-            fileNames: ["toolbox/src/toolbox/L1/GenesisBuilder.tsx"],
-            walletRequired: "not-required"
-        },
-        {
             id: 'createChain',
             label: "Create Chain",
             component: lazy(() => import('./L1/CreateChain')),

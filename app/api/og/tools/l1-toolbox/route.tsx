@@ -21,8 +21,8 @@ export async function GET(
 
   return new ImageResponse(
     OG({
-      title: 'Avalanche L1 Toolbox',
-      description: 'Manage your L1 with a highly granular set of tools for the Avalanche ecosystem.'
+      title: 'L1 Toolbox',
+      description: 'Manage your L1 with a highly granular set of tools for the Avalanche ecosystem'
     }),
     {
       width: 1200,

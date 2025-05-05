@@ -15,7 +15,7 @@ export function RawInput({ className, error, ...props }: RawInputProps) {
       className={cn(
         "w-full rounded-md px-3 py-2.5",
         "bg-white dark:bg-zinc-900",
-        "border",
+        "border-1",
         error
           ? "border-red-500 focus:border-red-500 focus:ring-red-500/30"
           : "border-zinc-300 dark:border-zinc-700 focus:border-primary focus:ring-primary/30",
@@ -61,10 +61,7 @@ export function Input({
   suggestions,
   ...props
 }: InputProps) {
-  const [isFocused, setIsFocused] = useState(false)
   const [inputValue, setInputValue] = useState(props.value?.toString() || props.defaultValue?.toString() || "")
-
-  const showSuggestions = isFocused && inputValue === "" && suggestions && suggestions.length > 0
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
@@ -83,7 +80,7 @@ export function Input({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 mb-6">
       <label htmlFor={id} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
         {label}
       </label>
@@ -94,11 +91,6 @@ export function Input({
             id={id}
             value={inputValue}
             onChange={handleChange}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => {
-              // Delay hiding suggestions to allow for clicks
-              setTimeout(() => setIsFocused(false), 150)
-            }}
             className={cn("flex-1", unit ? "pr-12" : "", button ? "rounded-r-none" : "", className)}
             error={error}
             {...props}
@@ -111,22 +103,23 @@ export function Input({
           </div>
         )}
 
-        {showSuggestions && (
-          <div className="absolute z-50 mt-1 w-full bg-white dark:bg-zinc-800 rounded-md shadow-lg border border-zinc-200 dark:border-zinc-700 max-h-60 overflow-auto">
-            <ul className="py-1">
+        {suggestions && suggestions.length > 0 && (<>
+          <div className="text-xs mt-2">Suggestions:</div>
+          <div className="z-50 mt-1 w-full bg-white dark:bg-zinc-800 rounded-md border border-zinc-200 dark:border-zinc-700 max-h-60 overflow-auto">
+            <div className="py-1">
               {suggestions.map((suggestion, index) => (
-                <li
+                <div
                   key={index}
                   className="px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer transition-colors text-left"
                   onClick={() => handleSuggestionClick(suggestion)}
                 >
                   <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{suggestion.title}</div>
                   <div className="text-xs text-zinc-500 dark:text-zinc-400">{suggestion.description}</div>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
-        )}
+        </>)}
       </div>
 
       {error ? (

@@ -43,6 +43,7 @@ import CreateSubnet from "@/toolbox/src/toolbox/L1/CreateSubnet"
 import CreateChain from "@/toolbox/src/toolbox/L1/CreateChain"
 import ConvertToL1 from "@/toolbox/src/toolbox/L1/ConvertToL1"
 import GenesisBuilder from '@/toolbox/src/toolbox/L1/GenesisBuilder';
+import DeployExampleERC20 from '@/toolbox/src/toolbox/ICTT/DeployExampleERC20';
 
 export const dynamicParams = false;
 
@@ -54,6 +55,7 @@ const toolboxComponents = {
   CreateChain,
   AvalancheGoDocker,
   ConvertToL1, 
+  DeployExampleERC20
 }
 
 export default async function Page(props: {
@@ -133,7 +135,7 @@ export async function generateMetadata(props: {
     page.data.description ?? 'Learn how to build on Avalanche blockchain with Academy';
 
   const imageParams = new URLSearchParams();
-  imageParams.set('title', page.data.title);
+  imageParams.set('title', `${page.data.title} | Avalanche Builder Hub`);
   imageParams.set('description', description);
 
   const image = {

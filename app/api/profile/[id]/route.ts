@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProfile, updateProfile } from '@/server/services/profile';
 import { Profile } from '@/types/profile';
+import { withAuth } from '@/lib/protectedRoute';
 
-export async function GET(
+export const GET = withAuth(async (
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+) => {
   try {
     const id = (await params).id;
     if (!id) {
@@ -24,9 +25,9 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+});
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PUT = withAuth(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   try {
     const id = (await params).id;
     if (!id) {
@@ -51,4 +52,4 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       { status: 500 }
     );
   }
-}
+});

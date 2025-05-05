@@ -1,0 +1,36 @@
+---
+title: Create a Blockchain
+description: Create a blockchain on the P-Chain.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: SquareMousePointer
+---
+
+In this section you will learn how to create a blockchain record on the P-Chain. First we will learn
+how to use the Genesis Builder tool to configure the blockchain. Then you will issue the
+`CreateChainTx` on the P-Chain to create the blockchain record. The `CreateChainTx` transaction as the following
+parameters:
+
+- `name`: The name of the chain
+- `subnetID`: The ID of the Subnet you want to add the chain to
+- `vmID`: The ID of the Virtual Machine that will be used to run the chain.
+- `genesisData`: The genesis configuration of the chain
+
+The Genesis Builder tool allows us to configure many aspects of the blockchain like permissioning,
+it's tokenonomics and the transaction fee mechanism. 
+
+Feel free to browse through the different configuration options, but for now don't change any of the
+defaults and just click the `View Genesis JSON` button.
+
+Then click `Create Chain` This will create the P-Chain record for your blockchain and associate it
+with the Subnet created in the previous step. 
+
+The blockchain will be uniquely identified by the transaction hash of the `CreateChainTx` transaction.
+
+<ToolboxMdxWrapper>
+    <CreateChain />
+</ToolboxMdxWrapper>
+
+Congratulations! You have successfully created a blockchain record on the P-Chain. The blockchain does not
+have any validator nodes yet, so we can't connect our wallet to it or issue any transactions just
+yet. You will learn how to do that in the next section.

@@ -7,22 +7,21 @@ import {
   Info,
   CheckCircle,
   Loader2,
-  Globe,
   Clock,
   Users,
   Database,
   ExternalLink,
 } from "lucide-react"
 import { networkIDs } from "@avalabs/avalanchejs"
-import { Input } from "../../components/Input"
 import { Button } from "../../components/Button"
 import { Container } from "../components/Container"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
 import { GlobalParamNetwork, Subnet } from "@avalabs/avacloud-sdk/models/components"
+import SelectSubnetId from "../components/SelectSubnetId"
 
 export default function QueryL1Details() {
   const [subnetId, setSubnetID] = useState("")
-  const { avalancheNetworkID, setAvalancheNetworkID } = useWalletStore()
+  const { avalancheNetworkID } = useWalletStore()
   const [subnetDetails, setSubnetDetails] = useState<Subnet | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -78,7 +77,7 @@ export default function QueryL1Details() {
 
   return (
     <Container title="Subnet Details" description="Query the data of the Subnet from the P-Chain using the Avalanche API">
-      <div className="relative">
+      <div className="relative z-0">
         {/* Background gradient effect - blue for both light and dark mode */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-900/10 dark:to-cyan-900/5 pointer-events-none"></div>
         <div className="relative">
@@ -100,48 +99,12 @@ export default function QueryL1Details() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-            <div className="space-y-1">
-              <label className="flex items-center text-xs font-medium text-blue-700 dark:text-blue-200">
-                <Database className="h-3.5 w-3.5 mr-1.5 text-blue-500 dark:text-blue-400" /> Subnet ID
-              </label>
-              <Input
-                label=""
-                type="text"
-                value={subnetId}
-                onChange={(newValue: string) => setSubnetID(newValue)}
-                placeholder="Enter subnet ID"
-                className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-md text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="flex items-center text-xs font-medium text-blue-700 dark:text-blue-200">
-                <Globe className="h-3.5 w-3.5 mr-1.5 text-blue-500 dark:text-blue-400" /> Network ID
-              </label>
-
-              <div className="flex space-x-2">
-                <Button
-                  onClick={() => setAvalancheNetworkID(networkIDs.FujiID)}
-                  className={`px-3 py-2 text-sm rounded-md flex-1 transition-colors ${avalancheNetworkID === networkIDs.FujiID
-                    ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-100 border border-blue-200 dark:border-blue-700"
-                    : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700"
-                    }`}
-                >
-                  Fuji
-                </Button>
-
-                <Button
-                  onClick={() => setAvalancheNetworkID(networkIDs.MainnetID)}
-                  className={`px-3 py-2 text-sm rounded-md flex-1 transition-colors ${avalancheNetworkID === networkIDs.MainnetID
-                    ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-100 border border-blue-200 dark:border-blue-700"
-                    : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700"
-                    }`}
-                >
-                  Mainnet
-                </Button>
-              </div>
-            </div>
+          <div className="mb-4 relative z-10">
+            <SelectSubnetId 
+              value={subnetId} 
+              onChange={setSubnetID} 
+              error={null} 
+            />
           </div>
 
           <Button

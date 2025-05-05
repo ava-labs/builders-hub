@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
 
 export const metadata: Metadata = createMetadata({
+  title: 'L1 Launcher | Avalanche Builder Hub',
+  description: 'Guided deployment platform for launching self-hosted Avalanche L1s on Testnet and Mainnet',
   openGraph: {
     url: '/tools/l1-launcher',
     images: {

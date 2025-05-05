@@ -1,490 +1,257 @@
 "use client";
 
-// FIXME: This is a quick implementation and will be replaced with a genesis builder component later on.
-
-import TransparentUpgradableProxy from "../../../contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json"
-import ProxyAdmin from "../../../contracts/openzeppelin-4.9/compiled/ProxyAdmin.json"
-export const quickAndDirtyGenesisBuilder = (
-    ownerAddress: `${string}`,
-    chainID: number,
-    gasLimit: number,
-    targetBlockRate: number,
-    ownerBalanceDecimal: string,
-    precompileConfigs: {
-        contractDeployerAllowList: {
-            enabled: boolean;
-            adminAddresses: string[];
-            enabledAddresses: string[];
-        };
-        contractNativeMinter: {
-            enabled: boolean;
-            adminAddresses: string[];
-            enabledAddresses: string[];
-        };
-        txAllowList: {
-            enabled: boolean;
-            adminAddresses: string[];
-            enabledAddresses: string[];
-        };
-        feeManager: {
-            enabled: boolean;
-            adminAddresses: string[];
-        };
-        rewardManager: {
-            enabled: boolean;
-            adminAddresses: string[];
-        };
-        warpMessenger: {
-            enabled: boolean;
-            quorumNumerator: number;
-            requirePrimaryNetworkSigners: boolean;
-        };
-    }
-) => {
-    if (!/^0x[a-fA-F0-9]{40}$/.test(ownerAddress)) {
-        throw new Error("Invalid ownerAddress format. It should be '0x' followed by 20 hex bytes (40 characters).");
-    }
-    const ownerAddressNo0x = ownerAddress.replace("0x", "");
-    const now = Math.floor(Date.now() / 1000);
-    const genesis = {
-        "airdropAmount": null,
-        "airdropHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "alloc": {
-            "facade0000000000000000000000000000000000": {
-                "balance": "0x0",
-                "code": TransparentUpgradableProxy.deployedBytecode.object
-                ,
-                "storage": {
-                    "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc": "0x0000000000000000000000001212121212121212121212121212121212121212",
-                    "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103": "0x000000000000000000000000dad0000000000000000000000000000000000000"
-                },
-                "nonce": "0x1"
-            },
-            "dad0000000000000000000000000000000000000": {
-                "balance": "0x0",
-                "code": ProxyAdmin.deployedBytecode.object,
-                "nonce": "0x1",
-                "storage": {
-                    "0x0000000000000000000000000000000000000000000000000000000000000000": "0x000000000000000000000000" + ownerAddressNo0x
-                }
-            },
-        },
-        "baseFeePerGas": null,
-        "blobGasUsed": null,
-        "coinbase": "0x0000000000000000000000000000000000000000",
-        "config": {
-            "berlinBlock": 0,
-            "byzantiumBlock": 0,
-            "chainId": chainID,
-            "constantinopleBlock": 0,
-            "eip150Block": 0,
-            "eip155Block": 0,
-            "eip158Block": 0,
-            "feeConfig": {
-                "baseFeeChangeDenominator": 36,
-                "blockGasCostStep": 200000,
-                "gasLimit": gasLimit,
-                "maxBlockGasCost": 1000000,
-                "minBaseFee": 25000000000,
-                "minBlockGasCost": 0,
-                "targetBlockRate": targetBlockRate,
-                "targetGas": 60000000
-            },
-            "homesteadBlock": 0,
-            "istanbulBlock": 0,
-            "londonBlock": 0,
-            "muirGlacierBlock": 0,
-            "petersburgBlock": 0,
-            "warpConfig": {
-                "blockTimestamp": now,
-                "quorumNumerator": precompileConfigs.warpMessenger.enabled ? precompileConfigs.warpMessenger.quorumNumerator : 67,
-                "requirePrimaryNetworkSigners": precompileConfigs.warpMessenger.enabled ? precompileConfigs.warpMessenger.requirePrimaryNetworkSigners : true
-            }
-        },
-        "difficulty": "0x0",
-        "excessBlobGas": null,
-        "extraData": "0x",
-        "gasLimit": `0x${gasLimit.toString(16)}`,
-        "gasUsed": "0x0",
-        "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "nonce": "0x0",
-        "number": "0x0",
-        "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "timestamp": `0x${now.toString(16)}`
-    } as (Record<string, unknown> & { alloc: Record<string, unknown>, config: Record<string, unknown> })
-
-    // Add precompile configs if enabled
-    if (precompileConfigs.contractDeployerAllowList.enabled) {
-        genesis.config["contractDeployerAllowListConfig"] = {
-            adminAddresses: precompileConfigs.contractDeployerAllowList.adminAddresses,
-            blockTimestamp: 0,
-            enabledAddresses: precompileConfigs.contractDeployerAllowList.enabledAddresses
-        };
-    }
-
-    if (precompileConfigs.contractNativeMinter.enabled) {
-        genesis.config["contractNativeMinterConfig"] = {
-            adminAddresses: precompileConfigs.contractNativeMinter.adminAddresses,
-            blockTimestamp: 0,
-            enabledAddresses: precompileConfigs.contractNativeMinter.enabledAddresses
-        };
-    }
-
-    if (precompileConfigs.txAllowList.enabled) {
-        genesis.config["txAllowListConfig"] = {
-            adminAddresses: precompileConfigs.txAllowList.adminAddresses,
-            blockTimestamp: 0,
-            enabledAddresses: precompileConfigs.txAllowList.enabledAddresses
-        };
-    }
-
-    if (precompileConfigs.feeManager.enabled) {
-        genesis.config["feeManagerConfig"] = {
-            adminAddresses: precompileConfigs.feeManager.adminAddresses,
-            blockTimestamp: 0
-        };
-    }
-
-    if (precompileConfigs.rewardManager.enabled) {
-        genesis.config["rewardManagerConfig"] = {
-            adminAddresses: precompileConfigs.rewardManager.adminAddresses,
-            blockTimestamp: 0
-        };
-    }
-
-    //add some coins to the owner address
-    genesis.alloc[ownerAddressNo0x] = {
-        "balance": decimalToHex(ownerBalanceDecimal)
-    }
-
-    return JSON.stringify(genesis, null, 2)
-}
-
-import { useEffect, useState } from "react";
-import { useCreateChainStore } from "../toolboxStore";
+import { useEffect, useState, useCallback, SetStateAction } from "react";
 import { useWalletStore } from "../../lib/walletStore";
-import { CodeHighlighter } from "../../components/CodeHighlighter";
-import { Container } from "../components/Container";
-import { Input } from "../../components/Input";
-import { Toggle } from "../../components/Toggle";
-import { Textarea as TextArea } from "../../components/TextArea";
 import { Button } from "../../components/Button";
 import { Copy, Download, AlertCircle, Check } from "lucide-react";
+import { Address } from "viem";
 
-type PrecompileCardProps = {
-    title: string;
-    address: string;
-    enabled: boolean;
-    onToggle: (enabled: boolean) => void;
-    children?: React.ReactNode;
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+
+// Genesis Components
+import { PrecompileCard } from "../../components/genesis/PrecompileCard";
+import { ChainParamsSection } from "../../components/genesis/sections/ChainParamsSection";
+import { TokenomicsSection } from "../../components/genesis/sections/TokenomicsSection";
+import { PermissionsSection } from "../../components/genesis/sections/PermissionsSection";
+import { TransactionFeesSection } from "../../components/genesis/sections/TransactionFeesSection";
+
+// Genesis Utilities & Types
+import { generateGenesis } from "../../components/genesis/genGenesis";
+import { 
+    AllocationEntry, 
+    AllowlistPrecompileConfig, 
+    FeeConfigType, 
+    SectionId, 
+    ValidationMessages, 
+    generateEmptyAllowlistPrecompileConfig,
+    isValidAllowlistPrecompileConfig
+} from "../../components/genesis/types";
+import { formatAddressList } from "../../components/genesis/utils";
+
+// --- Constants --- 
+const DEFAULT_FEE_CONFIG: FeeConfigType = {
+    baseFeeChangeDenominator: 48,
+    blockGasCostStep: 200000,
+    maxBlockGasCost: 1000000,
+    minBaseFee: 25000000000, // 25 gwei
+    minBlockGasCost: 0,
+    targetGas: 15000000
 };
 
-const PrecompileCard = ({ title, address, enabled, onToggle, children }: PrecompileCardProps) => {
-    return (
-        <div className={`border rounded-md p-4 transition-colors ${enabled ? "border-green-300 bg-green-50/30 dark:bg-green-900/10 dark:border-green-700" : ""}`}>
-            <div className="flex justify-between items-center">
-                <div className="flex-1">
-                    <div className="font-medium flex items-center">
-                        {title}
-                        {enabled && <Check className="ml-2 h-4 w-4 text-green-500" />}
-                    </div>
-                    <div className="text-xs text-gray-500 font-mono mt-1">{address}</div>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                    <Toggle
-                        label=""
-                        checked={enabled}
-                        onChange={onToggle}
-                    />
-                </div>
-            </div>
-
-            {children && enabled && (
-                <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
-                    {children}
-                </div>
-            )}
-        </div>
-    );
+const PRECOMPILE_ADDRESSES = {
+    contractDeployer: "0x0200000000000000000000000000000000000000" as Address,
+    nativeMinter: "0x0200000000000000000000000000000000000001" as Address,
+    txAllowList: "0x0200000000000000000000000000000000000002" as Address,
+    feeManager: "0x0200000000000000000000000000000000000003" as Address,
+    rewardManager: "0x0200000000000000000000000000000000000004" as Address,
+    warpMessenger: "0x0200000000000000000000000000000000000005" as Address,
 };
 
-// Helper function to convert decimal number to hex with 18 decimals of precision
-const decimalToHex = (value: string): string => {
-    try {
-        // Parse the decimal value
-        const numValue = parseFloat(value);
-        if (isNaN(numValue) || numValue < 0) return "0x0";
+// Helper function to convert gwei to wei
+const gweiToWei = (gwei: number): number => gwei * 1000000000;
 
-        // Convert to wei (multiply by 10^18)
-        // Using BigInt to handle large numbers
-        const weiValue = BigInt(Math.floor(numValue * 10 ** 18));
+// --- Main Component --- 
 
-        // Convert to hex
-        return "0x" + weiValue.toString(16);
-    } catch (error) {
-        console.error("Error converting to hex:", error);
-        return "0x0";
-    }
-}
+type GenesisBuilderProps = {
+    genesisData: string;
+    setGenesisData: (data: string) => void;
+    initiallyExpandedSections?: SectionId[];
+  };
 
-export default function GenesisBuilder() {
-    const {
-        evmChainId,
-        setEvmChainId,
-        genesisData,
-        setGenesisData,
-        gasLimit,
-        setGasLimit,
-        targetBlockRate,
-        setTargetBlockRate
-    } = useCreateChainStore()()
-    const { walletEVMAddress } = useWalletStore()
+export default function GenesisBuilder({ genesisData, setGenesisData, initiallyExpandedSections = ["chainParams"] }: GenesisBuilderProps) {
+    const { walletEVMAddress } = useWalletStore();
 
-    const [ownerAddress, setOwnerAddress] = useState<string>("")
-    const [ownerBalanceDecimal, setOwnerBalanceDecimal] = useState<string>("1000000")
-    const [copied, setCopied] = useState(false);
-    const [activeTab, setActiveTab] = useState<string>("config");
-    const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
+    // --- State --- 
+    const [evmChainId, setEvmChainId] = useState<number>(10000 + Math.floor(Math.random() * 90000));
+    const [gasLimit, setGasLimit] = useState<number>(15000000);
+    const [targetBlockRate, setTargetBlockRate] = useState<number>(2);
+    const [tokenAllocations, setTokenAllocations] = useState<AllocationEntry[]>([]);
+    const [feeConfig, setFeeConfig] = useState<FeeConfigType>(DEFAULT_FEE_CONFIG);
+    
+    // Using the AllowlistPrecompileConfig as the single source of truth for allowlists
+    const [contractDeployerAllowListConfig, setContractDeployerAllowListConfig] = useState<AllowlistPrecompileConfig>(generateEmptyAllowlistPrecompileConfig());
+    const [contractNativeMinterConfig, setContractNativeMinterConfig] = useState<AllowlistPrecompileConfig>(generateEmptyAllowlistPrecompileConfig());
+    const [txAllowListConfig, setTxAllowListConfig] = useState<AllowlistPrecompileConfig>(generateEmptyAllowlistPrecompileConfig());
 
-    // Precompile states
-    const [contractDeployerAllowList, setContractDeployerAllowList] = useState({
-        enabled: false,
-        adminAddresses: [] as string[],
-        enabledAddresses: [] as string[]
-    })
-    const [contractNativeMinter, setContractNativeMinter] = useState({
-        enabled: false,
-        adminAddresses: [] as string[],
-        enabledAddresses: [] as string[]
-    })
-    const [txAllowList, setTxAllowList] = useState({
-        enabled: false,
-        adminAddresses: [] as string[],
-        enabledAddresses: [] as string[]
-    })
-    const [feeManager, setFeeManager] = useState({
-        enabled: false,
-        adminAddresses: [] as string[]
-    })
-    const [rewardManager, setRewardManager] = useState({
-        enabled: false,
-        adminAddresses: [] as string[]
-    })
-    const [warpMessenger, setWarpMessenger] = useState({
-        enabled: true,
+    // State for simple precompiles (can be integrated into FeeConfig component later if needed)
+    const [feeManagerEnabled, setFeeManagerEnabled] = useState(false);
+    const [feeManagerAdmins, setFeeManagerAdmins] = useState<Address[]>([]);
+    const [rewardManagerEnabled, setRewardManagerEnabled] = useState(false);
+    const [rewardManagerAdmins, setRewardManagerAdmins] = useState<Address[]>([]);
+
+    // Fixed Warp config for now (can be made configurable later)
+    const warpConfig = {
+        enabled: true, 
         quorumNumerator: 67,
         requirePrimaryNetworkSigners: true
-    })
-
-    // Helper functions to handle address lists
-    const parseAddressList = (input: string): string[] => {
-        if (!input.trim()) return [];
-        return input.split(',')
-            .map(addr => addr.trim())
-            .filter(addr => /^0x[a-fA-F0-9]{40}$/.test(addr));
-        // Keep the 0x prefix for precompile addresses
     }
 
-    const formatAddressList = (addresses: string[]): string => {
-        return addresses.map(addr => addr.startsWith('0x') ? addr : `0x${addr}`).join(', ');
-    }
+    const [activeTab, setActiveTab] = useState<string>("config");
+    const [copied, setCopied] = useState(false);
+    const [validationMessages, setValidationMessages] = useState<ValidationMessages>({ errors: {}, warnings: {} });
+    const [expandedSections, setExpandedSections] = useState<Set<SectionId>>(new Set(initiallyExpandedSections || []));
+    
+    // Add a flag to control when genesis should be generated
+    const [shouldGenerateGenesis, setShouldGenerateGenesis] = useState(false);
 
-    // Handle owner balance input change with proper validation
-    const handleOwnerBalanceChange = (value: string) => {
-        // Only allow numbers and decimal point
-        if (value === "" || /^[0-9]*\.?[0-9]*$/.test(value)) {
-            setOwnerBalanceDecimal(value);
-        }
-    };
+    // --- Effects --- 
 
+    // Initialize owner allocation when wallet address is available
     useEffect(() => {
-        if (ownerAddress) return
-        setOwnerAddress(walletEVMAddress)
-    }, [walletEVMAddress, ownerAddress])
+        if (walletEVMAddress && tokenAllocations.length === 0) {
+            setTokenAllocations([{ address: walletEVMAddress as Address, amount: 1000000 }]);
+        }
+    }, [walletEVMAddress, tokenAllocations.length]);
 
+    // Validate configuration whenever relevant state changes
     useEffect(() => {
-        // Validate owner address
-        if (ownerAddress && !/^0x[a-fA-F0-9]{40}$/.test(ownerAddress)) {
-            setValidationErrors(prev => ({ ...prev, ownerAddress: "Invalid address format" }));
-        } else {
-            setValidationErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors.ownerAddress;
-                return newErrors;
-            });
-        }
+        const errors: { [key: string]: string } = {};
+        const warnings: { [key: string]: string } = {};
 
-        // Validate owner balance - now we only validate the decimal input
-        if (ownerBalanceDecimal && isNaN(parseFloat(ownerBalanceDecimal))) {
-            setValidationErrors(prev => ({ ...prev, ownerBalance: "Please enter a valid number" }));
-        } else {
-            setValidationErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors.ownerBalance;
-                return newErrors;
-            });
-        }
+        // Chain ID
+        if (evmChainId <= 0) errors.chainId = "Chain ID must be positive";
 
-        // Validate chain ID
-        if (evmChainId <= 0) {
-            setValidationErrors(prev => ({ ...prev, chainId: "Chain ID must be positive" }));
-        } else {
-            setValidationErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors.chainId;
-                return newErrors;
-            });
-        }
+        // Gas Limit
+        if (gasLimit < 8000000 || gasLimit > 100000000) errors.gasLimit = "Gas limit must be between 8M and 100M";
+        else if (gasLimit < 15000000 || gasLimit > 30000000) warnings.gasLimit = "Recommended gas limit is between 15M and 30M";
 
-        // Validate gas limit
-        if (gasLimit <= 0) {
-            setValidationErrors(prev => ({ ...prev, gasLimit: "Gas limit must be positive" }));
-        } else {
-            setValidationErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors.gasLimit;
-                return newErrors;
-            });
-        }
+        // Block Rate
+        if (targetBlockRate <= 0) errors.blockRate = "Block rate must be positive";
+        else if (targetBlockRate > 120) errors.blockRate = "Block rate must not exceed 120 seconds";
+        else if (targetBlockRate > 30) errors.blockRate = "Block rate must not exceed 30 seconds for optimal network performance";
+        else if (targetBlockRate > 10) warnings.blockRate = "Block rates above 10 seconds may impact user experience";
 
-        // Validate block rate
-        if (targetBlockRate <= 0) {
-            setValidationErrors(prev => ({ ...prev, blockRate: "Block rate must be positive" }));
-        } else {
-            setValidationErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors.blockRate;
-                return newErrors;
-            });
-        }
+        // Token Allocations
+        if (tokenAllocations.length === 0) errors.tokenAllocations = "At least one token allocation is required.";
+        tokenAllocations.forEach((alloc, index) => {
+            if (!alloc.address || !/^0x[a-fA-F0-9]{40}$/.test(alloc.address)) errors[`alloc_${index}_addr`] = `Allocation ${index + 1}: Invalid address format`;
+            if (isNaN(alloc.amount) || alloc.amount < 0) errors[`alloc_${index}_amt`] = `Allocation ${index + 1}: Invalid amount`;
+        });
 
-        // Validate precompile address lists
-        if (contractDeployerAllowList.enabled &&
-            contractDeployerAllowList.adminAddresses.length === 0 &&
-            contractDeployerAllowList.enabledAddresses.length === 0) {
-            setValidationErrors(prev => ({
-                ...prev,
-                contractDeployerAllowList: "Contract Deployer Allow List: At least one admin or enabled address is required"
-            }));
-        } else {
-            setValidationErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors.contractDeployerAllowList;
-                return newErrors;
-            });
-        }
+        // Allowlist Precompiles
+        if (!isValidAllowlistPrecompileConfig(contractDeployerAllowListConfig)) errors.contractDeployerAllowList = "Contract Deployer Allow List: Configuration is invalid or requires at least one valid address.";
+        if (!isValidAllowlistPrecompileConfig(contractNativeMinterConfig)) errors.contractNativeMinter = "Native Minter: Configuration is invalid or requires at least one valid address.";
+        if (!isValidAllowlistPrecompileConfig(txAllowListConfig)) errors.txAllowList = "Transaction Allow List: Configuration is invalid or requires at least one valid address.";
+        
+        // Fee/Reward Manager
+        if (feeManagerEnabled && feeManagerAdmins.length === 0) errors.feeManager = "Fee Manager: At least one admin address is required when enabled.";
+        if (rewardManagerEnabled && rewardManagerAdmins.length === 0) errors.rewardManager = "Reward Manager: At least one admin address is required when enabled.";
 
-        if (contractNativeMinter.enabled &&
-            contractNativeMinter.adminAddresses.length === 0 &&
-            contractNativeMinter.enabledAddresses.length === 0) {
-            setValidationErrors(prev => ({
-                ...prev,
-                contractNativeMinter: "Native Minter: At least one admin or enabled address is required"
-            }));
-        } else {
-            setValidationErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors.contractNativeMinter;
-                return newErrors;
-            });
-        }
+        // Fee Config Parameters
+        if (feeConfig.minBaseFee < gweiToWei(1)) errors.minBaseFee = "Min base fee must be at least 1 gwei";
+        else if (feeConfig.minBaseFee < gweiToWei(25)) warnings.minBaseFee = "Min base fee below 25 gwei is not recommended";
+        else if (feeConfig.minBaseFee > gweiToWei(500)) warnings.minBaseFee = "Min base fee above 500 gwei may be expensive";
 
-        if (txAllowList.enabled &&
-            txAllowList.adminAddresses.length === 0 &&
-            txAllowList.enabledAddresses.length === 0) {
-            setValidationErrors(prev => ({
-                ...prev,
-                txAllowList: "Transaction Allow List: At least one admin or enabled address is required"
-            }));
-        } else {
-            setValidationErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors.txAllowList;
-                return newErrors;
-            });
-        }
+        if (feeConfig.targetGas < 500000 || feeConfig.targetGas > 200000000) errors.targetGas = "Target gas must be between 500K and 200M";
+        else if (feeConfig.targetGas < 5000000) warnings.targetGas = "Target gas below 5M may lead to congestion";
+        else if (feeConfig.targetGas > 50000000) warnings.targetGas = "Target gas above 50M may require significant resources";
 
-        if (feeManager.enabled && feeManager.adminAddresses.length === 0) {
-            setValidationErrors(prev => ({
-                ...prev,
-                feeManager: "Fee Manager: At least one admin address is required"
-            }));
-        } else {
-            setValidationErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors.feeManager;
-                return newErrors;
-            });
-        }
+        if (feeConfig.baseFeeChangeDenominator < 2) errors.baseFeeChangeDenominator = "Base fee change denominator must be at least 2";
+        else if (feeConfig.baseFeeChangeDenominator < 8) warnings.baseFeeChangeDenominator = "Low denominator may cause fees to change too rapidly";
+        else if (feeConfig.baseFeeChangeDenominator > 1000) warnings.baseFeeChangeDenominator = "High denominator may cause fees to react too slowly";
 
-        if (rewardManager.enabled && rewardManager.adminAddresses.length === 0) {
-            setValidationErrors(prev => ({
-                ...prev,
-                rewardManager: "Reward Manager: At least one admin address is required"
-            }));
-        } else {
-            setValidationErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors.rewardManager;
-                return newErrors;
-            });
-        }
+        if (feeConfig.minBlockGasCost < 0) errors.minBlockGasCost = "Min block gas cost must be non-negative";
+        else if (feeConfig.minBlockGasCost > 1e9) warnings.minBlockGasCost = "Min block gas cost above 1B may impact performance";
+
+        if (feeConfig.maxBlockGasCost < feeConfig.minBlockGasCost) errors.maxBlockGasCost = "Max block gas cost must be >= min block gas cost";
+        else if (feeConfig.maxBlockGasCost > 1e10) warnings.maxBlockGasCost = "Max block gas cost above 10B may impact performance";
+        
+        if (feeConfig.blockGasCostStep > 5000000) warnings.blockGasCostStep = "Block gas cost step above 5M may cause fees to change too rapidly";
+
+        // Update validation messages but don't trigger genesis generation here
+        setValidationMessages({ errors, warnings });
+        
+        // Only set the flag to generate genesis if there are no errors
+        setShouldGenerateGenesis(Object.keys(errors).length === 0);
     }, [
-        ownerAddress,
-        evmChainId,
-        gasLimit,
-        targetBlockRate,
-        ownerBalanceDecimal,
-        contractDeployerAllowList,
-        contractNativeMinter,
-        txAllowList,
-        feeManager,
-        rewardManager
+        evmChainId, gasLimit, targetBlockRate, tokenAllocations,
+        contractDeployerAllowListConfig, contractNativeMinterConfig, txAllowListConfig,
+        feeManagerEnabled, feeManagerAdmins, rewardManagerEnabled, rewardManagerAdmins,
+        feeConfig
     ]);
 
-    // Separate effect for generating genesis file to avoid unnecessary re-renders
+    // Generate genesis file only when shouldGenerateGenesis is true
     useEffect(() => {
-        if (!ownerAddress || !evmChainId || Object.keys(validationErrors).length > 0) {
-            setGenesisData("")
-            return
-        }
+        // Add a debounce to prevent multiple rapid updates
+        const debounceTimer = setTimeout(() => {
+            // Don't proceed if we shouldn't generate genesis
+            if (!shouldGenerateGenesis) {
+                setGenesisData(""); // Clear genesis data if we shouldn't generate
+                return;
+            }
 
-        try {
-            setGenesisData(quickAndDirtyGenesisBuilder(
-                ownerAddress,
-                evmChainId,
-                gasLimit,
-                targetBlockRate,
-                ownerBalanceDecimal,
-                {
-                    contractDeployerAllowList,
-                    contractNativeMinter,
-                    txAllowList,
-                    feeManager,
-                    rewardManager,
-                    warpMessenger
+            try {
+                // Ensure there's at least one allocation, and get the owner address
+                if (tokenAllocations.length === 0 || !tokenAllocations[0].address) {
+                    setGenesisData("Error: Valid first allocation address needed for ownership.");
+                    return;
                 }
-            ))
-        } catch (error) {
-            setGenesisData(error instanceof Error ? error.message : "Invalid owner address")
-        }
-    }, [
-        ownerAddress,
-        evmChainId,
-        gasLimit,
-        targetBlockRate,
-        ownerBalanceDecimal,
-        contractDeployerAllowList,
-        contractNativeMinter,
-        txAllowList,
-        feeManager,
-        rewardManager,
-        warpMessenger,
-        validationErrors
-    ]);
+                const ownerAddressForProxy = tokenAllocations[0].address;
 
-    const handleCopyToClipboard = async () => {
+                // Clone the data to avoid potential mutation issues
+                const tokenAllocationsCopy = [...tokenAllocations];
+                const txAllowListCopy = { ...txAllowListConfig };
+                const contractDeployerAllowListCopy = { ...contractDeployerAllowListConfig };
+                const contractNativeMinterCopy = { ...contractNativeMinterConfig };
+                const feeConfigCopy = { ...feeConfig };
+                
+                const baseGenesis = generateGenesis({
+                    evmChainId: evmChainId,
+                    tokenAllocations: tokenAllocationsCopy,
+                    txAllowlistConfig: txAllowListCopy,
+                    contractDeployerAllowlistConfig: contractDeployerAllowListCopy,
+                    nativeMinterAllowlistConfig: contractNativeMinterCopy,
+                    poaOwnerAddress: ownerAddressForProxy as Address
+                });
+
+                // Override feeConfig, gasLimit, targetBlockRate, warpConfig in the base genesis
+                const finalGenesisConfig = {
+                    ...baseGenesis,
+                    gasLimit: `0x${gasLimit.toString(16)}`,
+                    config: {
+                        ...baseGenesis.config,
+                        feeConfig: {
+                            ...feeConfigCopy,
+                            gasLimit: gasLimit, // Keep gasLimit here as well for clarity
+                            targetBlockRate: targetBlockRate,
+                        },
+                        warpConfig: {
+                            blockTimestamp: Math.floor(Date.now() / 1000),
+                            quorumNumerator: warpConfig.quorumNumerator,
+                            requirePrimaryNetworkSigners: warpConfig.requirePrimaryNetworkSigners,
+                        },
+                        // Add FeeManager and RewardManager configs if enabled
+                        ...(feeManagerEnabled && {
+                            feeManagerConfig: {
+                                adminAddresses: [...feeManagerAdmins],
+                                blockTimestamp: Math.floor(Date.now() / 1000)
+                            }
+                        }),
+                        ...(rewardManagerEnabled && {
+                            rewardManagerConfig: {
+                                adminAddresses: [...rewardManagerAdmins],
+                                blockTimestamp: Math.floor(Date.now() / 1000)
+                            }
+                        }),
+                    },
+                    timestamp: `0x${Math.floor(Date.now() / 1000).toString(16)}`
+                };
+                console.log("settingGenesis");
+                setGenesisData(JSON.stringify(finalGenesisConfig, null, 2));
+            } catch (error) {
+                console.error("Error generating genesis data:", error);
+                setGenesisData(`Error generating genesis: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        }, 300); // 300ms debounce
+        
+        return () => clearTimeout(debounceTimer);
+    // Only depend on shouldGenerateGenesis flag and the actual data needed
+    }, [shouldGenerateGenesis, evmChainId, gasLimit, targetBlockRate, tokenAllocations, contractDeployerAllowListConfig, contractNativeMinterConfig, txAllowListConfig, feeManagerEnabled, feeManagerAdmins, rewardManagerEnabled, rewardManagerAdmins, feeConfig, warpConfig, setGenesisData]);
+
+    // --- Handlers --- 
+
+    const handleCopyToClipboard = useCallback(async () => {
+        if (!genesisData) return;
         try {
             await navigator.clipboard.writeText(genesisData);
             setCopied(true);
@@ -492,9 +259,10 @@ export default function GenesisBuilder() {
         } catch (err) {
             console.error("Failed to copy genesis data:", err);
         }
-    };
+    }, [genesisData]);
 
-    const handleDownloadGenesis = () => {
+    const handleDownloadGenesis = useCallback(() => {
+        if (!genesisData) return;
         const blob = new Blob([genesisData], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -504,363 +272,434 @@ export default function GenesisBuilder() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-    };
+    }, [genesisData, evmChainId]);
 
-    const isGenesisReady = genesisData && !genesisData.includes("Invalid") && Object.keys(validationErrors).length === 0;
+    const toggleSection = useCallback((sectionId: SectionId) => {
+        setExpandedSections(prev => {
+            const newState = new Set(prev);
+            if (newState.has(sectionId)) {
+                newState.delete(sectionId);
+            } else {
+                newState.add(sectionId);
+            }
+            return newState;
+        });
+    }, []);
 
+    const isSectionExpanded = useCallback((sectionId: SectionId) => expandedSections.has(sectionId), [expandedSections]);
+
+    const isGenesisReady = genesisData && Object.keys(validationMessages.errors).length === 0;
+
+    // Memoize common props for TokenomicsSection
+    const handleTokenAllocationsChange = useCallback((newAllocations: SetStateAction<AllocationEntry[]>) => {
+        setTokenAllocations(newAllocations);
+    }, []);
+
+    // Memoize common props for PermissionsSection
+    const handleDeployerConfigChange = useCallback((config: SetStateAction<AllowlistPrecompileConfig>) => {
+        setContractDeployerAllowListConfig(config);
+    }, []);
+
+    const handleTxConfigChange = useCallback((config: SetStateAction<AllowlistPrecompileConfig>) => {
+        setTxAllowListConfig(config);
+    }, []);
+
+    const handleNativeMinterConfigChange = useCallback((config: SetStateAction<AllowlistPrecompileConfig>) => {
+        setContractNativeMinterConfig(config);
+    }, []);
+
+    // Memoize common props for TransactionFeesSection
+    const handleFeeConfigChange = useCallback((config: SetStateAction<FeeConfigType>) => {
+        setFeeConfig(config);
+    }, []);
+
+    const handleSetGasLimit = useCallback((limit: SetStateAction<number>) => {
+        setGasLimit(limit);
+    }, []);
+
+    const handleSetTargetBlockRate = useCallback((rate: SetStateAction<number>) => {
+        setTargetBlockRate(rate);
+    }, []);
+
+    const handleSetFeeManagerEnabled = useCallback((enabled: SetStateAction<boolean>) => {
+        setFeeManagerEnabled(enabled);
+    }, []);
+
+    const handleSetFeeManagerAdmins = useCallback((admins: SetStateAction<Address[]>) => {
+        setFeeManagerAdmins(admins);
+    }, []);
+
+    const handleSetRewardManagerEnabled = useCallback((enabled: SetStateAction<boolean>) => {
+        setRewardManagerEnabled(enabled);
+    }, []);
+
+    const handleSetRewardManagerAdmins = useCallback((admins: SetStateAction<Address[]>) => {
+        setRewardManagerAdmins(admins);
+    }, []);
+
+    const handleSetEvmChainId = useCallback((id: SetStateAction<number>) => {
+        setEvmChainId(id);
+    }, []);
+
+    // --- Render --- 
     return (
-        <Container
-            title="Genesis Builder"
-            description="Create a genesis file for your new blockchain."
-        >
             <div className="space-y-6">
                 {/* Tabs */}
-                <div className="border-b">
+                <div className="border-b border-zinc-200 dark:border-zinc-800">
                     <div className="flex -mb-px">
-                        <button
-                            onClick={() => setActiveTab("config")}
-                            className={`py-2 px-4 font-medium ${activeTab === "config"
-                                    ? "border-b-2 border-blue-500 text-blue-600"
-                                    : "text-gray-500 hover:text-gray-700"
-                                }`}
-                        >
-                            Configuration
-                        </button>
-                        {isGenesisReady && (
+                        {["config", "precompiles", "genesis"].map(tabId => (
                             <button
-                                onClick={() => setActiveTab("genesis")}
-                                className={`py-2 px-4 font-medium ${activeTab === "genesis"
-                                        ? "border-b-2 border-blue-500 text-blue-600"
-                                        : "text-gray-500 hover:text-gray-700"
-                                    }`}
+                                key={tabId}
+                                onClick={() => setActiveTab(tabId)}
+                                disabled={tabId === "genesis" && !isGenesisReady}
+                                className={`py-2 px-4 font-medium disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    activeTab === tabId
+                                        ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400"
+                                        : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+                                }`}
                             >
-                                Genesis JSON
+                                {tabId === "config" && "Configuration"}
+                                {tabId === "precompiles" && "Precompile Info"}
+                                {tabId === "genesis" && "Genesis JSON"}
                             </button>
-                        )}
+                        ))}
                     </div>
                 </div>
 
+                {/* Configuration Tab */} 
                 {activeTab === "config" && (
-                    <>
-                        {/* Basic Configuration */}
-                        <div className="p-5 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <h3 className="text-lg font-medium mb-4">Basic Configuration</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
-                                    label="Owner Address"
-                                    value={ownerAddress}
-                                    onChange={setOwnerAddress}
-                                    placeholder="0x..."
-                                    error={validationErrors.ownerAddress}
-                                    helperText={validationErrors.ownerAddress ? undefined : "Address that will receive initial funds"}
-                                />
-                                <Input
-                                    label="Owner Initial Balance"
-                                    value={ownerBalanceDecimal}
-                                    onChange={handleOwnerBalanceChange}
-                                    placeholder="1000000"
-                                    type="text"
-                                    error={validationErrors.ownerBalance}
-                                    helperText={validationErrors.ownerBalance ? undefined : `Tokens for initial balance (converted to wei automatically)`}
-                                />
-                                <Input
-                                    label="Chain ID"
-                                    value={evmChainId.toString()}
-                                    onChange={(value) => setEvmChainId(Number(value))}
-                                    placeholder="Enter chain ID"
-                                    type="number"
-                                    error={validationErrors.chainId}
-                                    helperText={validationErrors.chainId ? undefined : "Unique identifier for your blockchain"}
-                                />
-                                <Input
-                                    label="Gas Limit"
-                                    value={gasLimit.toString()}
-                                    onChange={(value) => setGasLimit(Number(value))}
-                                    placeholder="Enter gas limit"
-                                    type="number"
-                                    error={validationErrors.gasLimit}
-                                    helperText={validationErrors.gasLimit ? undefined : "Maximum gas allowed per block"}
-                                />
-                                <Input
-                                    label="Target Block Rate (seconds)"
-                                    value={targetBlockRate.toString()}
-                                    onChange={(value) => setTargetBlockRate(Number(value))}
-                                    placeholder="Enter target block rate"
-                                    type="number"
-                                    error={validationErrors.blockRate}
-                                    helperText={validationErrors.blockRate ? undefined : "Target time between blocks in seconds"}
-                                />
-                            </div>
-                        </div>
+                    <div className="space-y-6">
+                        <ChainParamsSection 
+                            evmChainId={evmChainId}
+                            setEvmChainId={handleSetEvmChainId}
+                            isExpanded={isSectionExpanded('chainParams')}
+                            toggleExpand={() => toggleSection('chainParams')}
+                            validationError={validationMessages.errors.chainId}
+                        />
 
-                        {/* Precompiles */}
-                        <div className="p-5 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <h3 className="text-lg font-medium mb-4">Precompile Configuration</h3>
+                        <PermissionsSection 
+                            deployerConfig={contractDeployerAllowListConfig}
+                            setDeployerConfig={handleDeployerConfigChange}
+                            txConfig={txAllowListConfig}
+                            setTxConfig={handleTxConfigChange}
+                            isExpanded={isSectionExpanded('permissions')}
+                            toggleExpand={() => toggleSection('permissions')}
+                            validationErrors={validationMessages.errors}                        
+                        />
+                        
+                        <TokenomicsSection 
+                            tokenAllocations={tokenAllocations}
+                            setTokenAllocations={handleTokenAllocationsChange}
+                            nativeMinterConfig={contractNativeMinterConfig}
+                            setNativeMinterConfig={handleNativeMinterConfigChange}
+                            isExpanded={isSectionExpanded('tokenomics')}
+                            toggleExpand={() => toggleSection('tokenomics')}
+                            validationErrors={validationMessages.errors}
+                        />
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Contract Deployer Allow List */}
-                                <PrecompileCard
-                                    title="Contract Deployer Allow List"
-                                    address="0x0200000000000000000000000000000000000000"
-                                    enabled={contractDeployerAllowList.enabled}
-                                    onToggle={(enabled: boolean) =>
-                                        setContractDeployerAllowList(prev => ({ ...prev, enabled }))
-                                    }
-                                >
-                                    <div className="space-y-4">
-                                        <TextArea
-                                            label="Admin Addresses"
-                                            value={formatAddressList(contractDeployerAllowList.adminAddresses)}
-                                            onChange={(value: string) => setContractDeployerAllowList(prev => ({
-                                                ...prev,
-                                                adminAddresses: parseAddressList(value)
-                                            }))}
-                                            placeholder="0x1234..., 0x5678..."
-                                            helperText="Comma-separated list of addresses that can manage the allow list"
-                                            rows={2}
-                                        />
-                                        <TextArea
-                                            label="Enabled Addresses"
-                                            value={formatAddressList(contractDeployerAllowList.enabledAddresses)}
-                                            onChange={(value: string) => setContractDeployerAllowList(prev => ({
-                                                ...prev,
-                                                enabledAddresses: parseAddressList(value)
-                                            }))}
-                                            placeholder="0x1234..., 0x5678..."
-                                            helperText="Comma-separated list of addresses that can deploy contracts"
-                                            rows={2}
-                                        />
-                                    </div>
-                                </PrecompileCard>
+                        <TransactionFeesSection 
+                            gasLimit={gasLimit}
+                            setGasLimit={handleSetGasLimit}
+                            targetBlockRate={targetBlockRate}
+                            setTargetBlockRate={handleSetTargetBlockRate}
+                            feeConfig={feeConfig}
+                            setFeeConfig={handleFeeConfigChange}
+                            feeManagerEnabled={feeManagerEnabled}
+                            setFeeManagerEnabled={handleSetFeeManagerEnabled}
+                            feeManagerAdmins={feeManagerAdmins}
+                            setFeeManagerAdmins={handleSetFeeManagerAdmins}
+                            rewardManagerEnabled={rewardManagerEnabled}
+                            setRewardManagerEnabled={handleSetRewardManagerEnabled}
+                            rewardManagerAdmins={rewardManagerAdmins}
+                            setRewardManagerAdmins={handleSetRewardManagerAdmins}
+                            isExpanded={isSectionExpanded('transactionFees')}
+                            toggleExpand={() => toggleSection('transactionFees')}
+                            validationMessages={validationMessages} // Pass both errors and warnings
+                        />
 
-                                {/* Contract Native Minter */}
-                                <PrecompileCard
-                                    title="Native Minter"
-                                    address="0x0200000000000000000000000000000000000001"
-                                    enabled={contractNativeMinter.enabled}
-                                    onToggle={(enabled: boolean) =>
-                                        setContractNativeMinter(prev => ({ ...prev, enabled }))
-                                    }
-                                >
-                                    <div className="space-y-4">
-                                        <TextArea
-                                            label="Admin Addresses"
-                                            value={formatAddressList(contractNativeMinter.adminAddresses)}
-                                            onChange={(value: string) => setContractNativeMinter(prev => ({
-                                                ...prev,
-                                                adminAddresses: parseAddressList(value)
-                                            }))}
-                                            placeholder="0x1234..., 0x5678..."
-                                            helperText="Comma-separated list of addresses that can manage the native minter"
-                                            rows={2}
-                                        />
-                                        <TextArea
-                                            label="Enabled Addresses"
-                                            value={formatAddressList(contractNativeMinter.enabledAddresses)}
-                                            onChange={(value: string) => setContractNativeMinter(prev => ({
-                                                ...prev,
-                                                enabledAddresses: parseAddressList(value)
-                                            }))}
-                                            placeholder="0x1234..., 0x5678..."
-                                            helperText="Comma-separated list of addresses that can mint native tokens"
-                                            rows={2}
-                                        />
-                                    </div>
-                                </PrecompileCard>
-
-                                {/* Transaction Allow List */}
-                                <PrecompileCard
-                                    title="Transaction Allow List"
-                                    address="0x0200000000000000000000000000000000000002"
-                                    enabled={txAllowList.enabled}
-                                    onToggle={(enabled: boolean) =>
-                                        setTxAllowList(prev => ({ ...prev, enabled }))
-                                    }
-                                >
-                                    <div className="space-y-4">
-                                        <TextArea
-                                            label="Admin Addresses"
-                                            value={formatAddressList(txAllowList.adminAddresses)}
-                                            onChange={(value: string) => setTxAllowList(prev => ({
-                                                ...prev,
-                                                adminAddresses: parseAddressList(value)
-                                            }))}
-                                            placeholder="0x1234..., 0x5678..."
-                                            helperText="Comma-separated list of addresses that can manage the allow list"
-                                            rows={2}
-                                        />
-                                        <TextArea
-                                            label="Enabled Addresses"
-                                            value={formatAddressList(txAllowList.enabledAddresses)}
-                                            onChange={(value: string) => setTxAllowList(prev => ({
-                                                ...prev,
-                                                enabledAddresses: parseAddressList(value)
-                                            }))}
-                                            placeholder="0x1234..., 0x5678..."
-                                            helperText="Comma-separated list of addresses that can submit transactions"
-                                            rows={2}
-                                        />
-                                    </div>
-                                </PrecompileCard>
-
-                                {/* Fee Manager */}
-                                <PrecompileCard
-                                    title="Fee Manager"
-                                    address="0x0200000000000000000000000000000000000003"
-                                    enabled={feeManager.enabled}
-                                    onToggle={(enabled: boolean) =>
-                                        setFeeManager(prev => ({ ...prev, enabled }))
-                                    }
-                                >
-                                    <TextArea
-                                        label="Admin Addresses"
-                                        value={formatAddressList(feeManager.adminAddresses)}
-                                        onChange={(value: string) => setFeeManager(prev => ({
-                                            ...prev,
-                                            adminAddresses: parseAddressList(value)
-                                        }))}
-                                        placeholder="0x1234..., 0x5678..."
-                                        helperText="Comma-separated list of addresses that can manage fees"
-                                        rows={2}
-                                    />
-                                </PrecompileCard>
-
-                                {/* Reward Manager */}
-                                <PrecompileCard
-                                    title="Reward Manager"
-                                    address="0x0200000000000000000000000000000000000004"
-                                    enabled={rewardManager.enabled}
-                                    onToggle={(enabled: boolean) =>
-                                        setRewardManager(prev => ({ ...prev, enabled }))
-                                    }
-                                >
-                                    <TextArea
-                                        label="Admin Addresses"
-                                        value={formatAddressList(rewardManager.adminAddresses)}
-                                        onChange={(value: string) => setRewardManager(prev => ({
-                                            ...prev,
-                                            adminAddresses: parseAddressList(value)
-                                        }))}
-                                        placeholder="0x1234..., 0x5678..."
-                                        helperText="Comma-separated list of addresses that can manage rewards"
-                                        rows={2}
-                                    />
-                                </PrecompileCard>
-
-                                {/* Warp Messenger */}
-                                <PrecompileCard
-                                    title="Warp Messenger"
-                                    address="0x0200000000000000000000000000000000000005"
-                                    enabled={warpMessenger.enabled}
-                                    onToggle={(enabled: boolean) =>
-                                        setWarpMessenger(prev => ({ ...prev, enabled }))
-                                    }
-                                >
-                                    <div className="space-y-4">
-                                        <Input
-                                            label="Quorum Numerator"
-                                            value={warpMessenger.quorumNumerator.toString()}
-                                            onChange={(value: string) => setWarpMessenger(prev => ({
-                                                ...prev,
-                                                quorumNumerator: Number(value)
-                                            }))}
-                                            placeholder="67"
-                                            type="number"
-                                            helperText="Quorum numerator for warp messaging (denominator is 100)"
-                                        />
-                                        <div className="flex items-center">
-                                            <Toggle
-                                                label="Require Primary Network Signers"
-                                                checked={warpMessenger.requirePrimaryNetworkSigners}
-                                                onChange={(checked: boolean) => setWarpMessenger(prev => ({
-                                                    ...prev,
-                                                    requirePrimaryNetworkSigners: checked
-                                                }))}
-                                            />
-                                        </div>
-                                    </div>
-                                </PrecompileCard>
-                            </div>
-                        </div>
-
-                        {/* Validation and actions */}
-                        <div className="mt-8">
-                            {Object.keys(validationErrors).length > 0 ? (
-                                <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 p-4 rounded-md flex items-start mb-4">
+                        {/* Validation Summary & Actions */}
+                        <div>
+                            {Object.keys(validationMessages.errors).length > 0 ? (
+                                <div className="bg-red-50/70 dark:bg-red-900/20 border border-red-200 dark:border-red-800/60 p-4 rounded-md flex items-start mb-4">
                                     <AlertCircle className="text-red-500 mr-3 h-5 w-5 flex-shrink-0 mt-0.5" />
                                     <div>
                                         <h4 className="font-medium text-red-800 dark:text-red-300">Please fix the following errors:</h4>
                                         <ul className="mt-2 list-disc list-inside text-sm text-red-700 dark:text-red-400">
-                                            {Object.entries(validationErrors).map(([key, message]) => (
-                                                <li key={key}>{message}</li>
+                                            {Object.entries(validationMessages.errors).map(([key, message]) => (
+                                                <li key={key}>{message}</li> // Consider making keys more user-friendly later
                                             ))}
                                         </ul>
                                     </div>
                                 </div>
                             ) : isGenesisReady ? (
-                                <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 p-4 rounded-md flex items-center mb-4">
+                                <div className="bg-green-50/70 dark:bg-green-900/20 border border-green-200 dark:border-green-800/60 p-4 rounded-md flex items-center mb-4">
                                     <Check className="text-green-500 mr-3 h-5 w-5" />
-                                    <span className="text-green-800 dark:text-green-300">Genesis configuration is valid and ready to use!</span>
+                                    <span className="text-green-800 dark:text-green-300">Genesis configuration is valid and ready!</span>
                                 </div>
-                            ) : null}
+                            ) : (
+                                 <div className="bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/60 p-4 rounded-md flex items-center mb-4">
+                                    <Check className="text-blue-500 mr-3 h-5 w-5" />
+                                    <span className="text-blue-800 dark:text-blue-300">Fill in the configuration to generate the genesis file.</span>
+                                </div>
+                            )}
+
+                            {Object.keys(validationMessages.warnings).length > 0 && (
+                                <div className="bg-yellow-50/70 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/60 p-4 rounded-md flex items-start mb-4">
+                                    <AlertCircle className="text-yellow-500 mr-3 h-5 w-5 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <h4 className="font-medium text-yellow-800 dark:text-yellow-300">Configuration Warnings:</h4>
+                                        <ul className="mt-2 list-disc list-inside text-sm text-yellow-700 dark:text-yellow-400">
+                                            {Object.entries(validationMessages.warnings).map(([key, message]) => (
+                                                <li key={key}>{message}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
 
                             {isGenesisReady && (
-                                <div className="flex justify-center">
+                                <div className="flex justify-center space-x-4 mt-4">
+                                    <Button
+                                        onClick={() => setActiveTab("precompiles")}
+                                        variant="secondary"
+                                    >
+                                        View Precompile Info
+                                    </Button>
                                     <Button
                                         onClick={() => setActiveTab("genesis")}
                                         variant="primary"
-                                        className="mt-2"
                                     >
                                         View Genesis JSON
                                     </Button>
                                 </div>
                             )}
                         </div>
-                    </>
+                    </div>
                 )}
 
+                {/* Precompiles Tab */} 
+                {activeTab === "precompiles" && (
+                    <div className="space-y-6">
+                         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm overflow-hidden p-5">
+                            <h3 className="text-lg font-medium mb-4 text-zinc-800 dark:text-white">Precompile Info</h3>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+                                Review the status of precompiles based on your configuration.
+                            </p>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <PrecompileCard
+                                    title="Contract Deployer Allow List"
+                                    address={PRECOMPILE_ADDRESSES.contractDeployer}
+                                    enabled={contractDeployerAllowListConfig.activated}
+                                >
+                                    {contractDeployerAllowListConfig.activated && (
+                                        <div className="space-y-3">
+                                            {contractDeployerAllowListConfig.addresses.Admin.length > 0 && (
+                                                <div>
+                                                    <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Admin Addresses:</div>
+                                                    <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
+                                                        {contractDeployerAllowListConfig.addresses.Admin.map(entry => entry.address).join(', ')}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {contractDeployerAllowListConfig.addresses.Manager.length > 0 && (
+                                                <div>
+                                                    <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Manager Addresses:</div>
+                                                    <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
+                                                        {contractDeployerAllowListConfig.addresses.Manager.map(entry => entry.address).join(', ')}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {contractDeployerAllowListConfig.addresses.Enabled.length > 0 && (
+                                                <div>
+                                                    <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Enabled Addresses:</div>
+                                                    <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
+                                                        {contractDeployerAllowListConfig.addresses.Enabled.map(entry => entry.address).join(', ')}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {contractDeployerAllowListConfig.addresses.Admin.length === 0 && 
+                                             contractDeployerAllowListConfig.addresses.Manager.length === 0 && 
+                                             contractDeployerAllowListConfig.addresses.Enabled.length === 0 && (
+                                                <div className="text-zinc-500 dark:text-zinc-400 text-sm">
+                                                    No addresses configured
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </PrecompileCard>
+                                
+                                <PrecompileCard
+                                    title="Native Minter"
+                                    address={PRECOMPILE_ADDRESSES.nativeMinter}
+                                    enabled={contractNativeMinterConfig.activated}
+                                >
+                                    {contractNativeMinterConfig.activated && (
+                                        <div className="space-y-3">
+                                            {contractNativeMinterConfig.addresses.Admin.length > 0 && (
+                                                <div>
+                                                    <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Admin Addresses:</div>
+                                                    <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
+                                                        {contractNativeMinterConfig.addresses.Admin.map(entry => entry.address).join(', ')}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {contractNativeMinterConfig.addresses.Manager.length > 0 && (
+                                                <div>
+                                                    <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Manager Addresses:</div>
+                                                    <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
+                                                        {contractNativeMinterConfig.addresses.Manager.map(entry => entry.address).join(', ')}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {contractNativeMinterConfig.addresses.Enabled.length > 0 && (
+                                                <div>
+                                                    <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Enabled Addresses:</div>
+                                                    <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
+                                                        {contractNativeMinterConfig.addresses.Enabled.map(entry => entry.address).join(', ')}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {contractNativeMinterConfig.addresses.Admin.length === 0 && 
+                                             contractNativeMinterConfig.addresses.Manager.length === 0 && 
+                                             contractNativeMinterConfig.addresses.Enabled.length === 0 && (
+                                                <div className="text-zinc-500 dark:text-zinc-400 text-sm">
+                                                    No addresses configured
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </PrecompileCard>
+
+                                <PrecompileCard
+                                    title="Transaction Allow List"
+                                    address={PRECOMPILE_ADDRESSES.txAllowList}
+                                    enabled={txAllowListConfig.activated}
+                                >
+                                    {txAllowListConfig.activated && (
+                                        <div className="space-y-3">
+                                            {txAllowListConfig.addresses.Admin.length > 0 && (
+                                                <div>
+                                                    <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Admin Addresses:</div>
+                                                    <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
+                                                        {txAllowListConfig.addresses.Admin.map(entry => entry.address).join(', ')}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {txAllowListConfig.addresses.Manager.length > 0 && (
+                                                <div>
+                                                    <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Manager Addresses:</div>
+                                                    <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
+                                                        {txAllowListConfig.addresses.Manager.map(entry => entry.address).join(', ')}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {txAllowListConfig.addresses.Enabled.length > 0 && (
+                                                <div>
+                                                    <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Enabled Addresses:</div>
+                                                    <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
+                                                        {txAllowListConfig.addresses.Enabled.map(entry => entry.address).join(', ')}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {txAllowListConfig.addresses.Admin.length === 0 && 
+                                             txAllowListConfig.addresses.Manager.length === 0 && 
+                                             txAllowListConfig.addresses.Enabled.length === 0 && (
+                                                <div className="text-zinc-500 dark:text-zinc-400 text-sm">
+                                                    No addresses configured
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </PrecompileCard>
+
+                                <PrecompileCard
+                                    title="Fee Manager"
+                                    address={PRECOMPILE_ADDRESSES.feeManager}
+                                    enabled={feeManagerEnabled}
+                                >
+                                    {feeManagerEnabled && (
+                                        <div>
+                                            <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Admin Addresses:</div>
+                                            <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
+                                                {feeManagerAdmins.length > 0 
+                                                    ? formatAddressList(feeManagerAdmins) 
+                                                    : <span className="text-red-500">None specified (Required)</span>}
+                                            </div>
+                                        </div>
+                                    )}
+                                </PrecompileCard>
+
+                                <PrecompileCard
+                                    title="Reward Manager"
+                                    address={PRECOMPILE_ADDRESSES.rewardManager}
+                                    enabled={rewardManagerEnabled}
+                                >
+                                    {rewardManagerEnabled && (
+                                        <div>
+                                            <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Admin Addresses:</div>
+                                            <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
+                                                {rewardManagerAdmins.length > 0 
+                                                    ? formatAddressList(rewardManagerAdmins) 
+                                                    : <span className="text-red-500">None specified (Required)</span>}
+                                            </div>
+                                        </div>
+                                    )}
+                                </PrecompileCard>
+
+                                <PrecompileCard
+                                    title="Warp Messenger"
+                                    address={PRECOMPILE_ADDRESSES.warpMessenger}
+                                    enabled={warpConfig.enabled} // Currently always enabled
+                                >
+                                    <div className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+                                        <div>Quorum: {warpConfig.quorumNumerator}%</div>
+                                        <div>Require Primary Signers: {warpConfig.requirePrimaryNetworkSigners ? "Yes" : "No"}</div>
+                                    </div>
+                                </PrecompileCard>
+                            </div>
+                         </div>
+
+                        <div className="flex justify-center space-x-4">
+                             <Button onClick={() => setActiveTab("config")} variant="secondary">Back to Configuration</Button>
+                             {isGenesisReady && <Button onClick={() => setActiveTab("genesis")} variant="primary">View Genesis JSON</Button>}
+                         </div>
+                    </div>
+                )}
+
+                {/* Genesis JSON Tab */} 
                 {activeTab === "genesis" && isGenesisReady && (
-                    <div className="p-5 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-4">
+                    <div className="p-5 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-4">
                         <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-medium">Genesis JSON</h3>
+                            <h3 className="text-lg font-medium text-zinc-800 dark:text-white">Genesis JSON</h3>
                             <div className="flex space-x-2">
-                                <Button
-                                    onClick={handleCopyToClipboard}
-                                    variant="secondary"
-                                    className="flex items-center"
-                                >
-                                    <Copy className="h-4 w-4 mr-1" />
-                                    {copied ? "Copied!" : "Copy"}
+                                <Button onClick={handleCopyToClipboard} variant="secondary" size="sm" className="flex items-center">
+                                    <Copy className="h-4 w-4 mr-1" /> {copied ? "Copied!" : "Copy"}
                                 </Button>
-                                <Button
-                                    onClick={handleDownloadGenesis}
-                                    variant="secondary"
-                                    className="flex items-center"
-                                >
-                                    <Download className="h-4 w-4 mr-1" />
-                                    Download
+                                <Button onClick={handleDownloadGenesis} variant="secondary" size="sm" className="flex items-center">
+                                    <Download className="h-4 w-4 mr-1" /> Download
                                 </Button>
                             </div>
                         </div>
 
-                        <div className="border rounded-md overflow-hidden bg-white dark:bg-gray-900">
-                            <CodeHighlighter
-                                code={genesisData}
-                                lang="json"
-                            />
-                        </div>
-
-                        <div className="mt-4 flex justify-center">
-                            <Button
-                                onClick={() => setActiveTab("config")}
-                                variant="secondary"
-                            >
-                                Back to Configuration
-                            </Button>
+                        <DynamicCodeBlock lang="json" code={genesisData} />
+                        
+                        <div className="mt-4 flex justify-center space-x-4">
+                            <Button onClick={() => setActiveTab("config")} variant="secondary">Back to Configuration</Button>
+                            <Button onClick={() => setActiveTab("precompiles")} variant="secondary">View Precompile Info</Button>
                         </div>
                     </div>
                 )}
+
             </div>
-        </Container>
-    )
+    );
 }

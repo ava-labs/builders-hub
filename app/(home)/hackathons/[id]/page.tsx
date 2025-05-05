@@ -82,7 +82,7 @@ export default async function HackathonPage({
       <div className="flex flex-col mt-2 ">
         <div className="sm:px-8 pt-6 ">
           <div className="sm:block relative w-full">
-            <OverviewBanner hackathon={hackathon} id={id} />
+            <OverviewBanner hackathon={hackathon} id={id} isTopMost={false} />
             <Link
               href={
                 hackathon.content.join_custom_link
