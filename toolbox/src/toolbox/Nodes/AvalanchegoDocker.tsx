@@ -204,7 +204,7 @@ export default function AvalanchegoDocker() {
                     <Step>
                         <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
                         <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. Low specs (e.g. 2 vCPUs, 4GB RAM,  20GB storage) are sufficient for basic tests. For more extensive test and production L1s use a larger instance with appropriate resources (e.g. 8 vCPUs, 16GB RAM, 1 TB storage).</p>
-                        
+
                         <p>If you do not have access to a server, you can also run a node for educational purposes locally. Where are you running your node?</p>
 
                         <RadioGroup
@@ -365,62 +365,62 @@ export default function AvalanchegoDocker() {
                                 <>
                                     {nodeRunningMode === "server" && (
                                         <>
-                                        <Step>
-                                            <h3 className="text-xl font-bold mb-4">Set Up Reverse Proxy</h3>
-                                            <p>To connect your wallet you need to be able to connect to the RPC via https. For testing purposes you can set up a reverse Proxy to achieve this.</p>
-
-                                            <p>If you're running the node on AWS you can use the following command to check your IP:</p>
-
-                                            <DynamicCodeBlock lang="bash" code="curl checkip.amazonaws.com" />
-
-                                            <p>Paste the IP of your node below:</p>
-
-                                            <Input
-                                                label="Domain or IPv4 address for reverse proxy (optional)"
-                                                value={domain}
-                                                onChange={(newValue) => setDomain(newValue.trim())}
-                                                placeholder="example.com  or 1.2.3.4"
-                                            />
-
-                                            {domain && (<>
-                                                <p>Run the following comand on the machine of your node:</p>
-                                                <DynamicCodeBlock lang="bash" code={reverseProxyCommand(domain)} />
-                                            </>)}
-                                        </Step>
-                                        {domain && (<>
                                             <Step>
-                                                <h3 className="text-xl font-bold mb-4">Check connection via Proxy</h3>
-                                                <p>Do a final check from a machine different then the one that your node is running on.</p>
+                                                <h3 className="text-xl font-bold mb-4">Set Up Reverse Proxy</h3>
+                                                <p>To connect your wallet you need to be able to connect to the RPC via https. For testing purposes you can set up a reverse Proxy to achieve this.</p>
 
-                                                <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, false)} />
+                                                <p>You can use the following command to check your IP:</p>
 
-                                                {enableDebugTrace && (
-                                                    <div className="mt-4">
-                                                        <h3 className="text-md font-medium mb-2">Check that debug & trace is working:</h3>
-                                                        <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, true)} />
-                                                    </div>
-                                                )}
+                                                <DynamicCodeBlock lang="bash" code="curl checkip.amazonaws.com" />
 
-                                                TBD: Replace with RPC check component used for monitoring?
+                                                <p>Paste the IP of your node below:</p>
+
+                                                <Input
+                                                    label="Domain or IPv4 address for reverse proxy (optional)"
+                                                    value={domain}
+                                                    onChange={(newValue) => setDomain(newValue.trim())}
+                                                    placeholder="example.com  or 1.2.3.4"
+                                                />
+
+                                                {domain && (<>
+                                                    <p>Run the following comand on the machine of your node:</p>
+                                                    <DynamicCodeBlock lang="bash" code={reverseProxyCommand(domain)} />
+                                                </>)}
                                             </Step>
-                                        </>
-                                        )}
-                                    </>)}
-                                    {(nodeRunningMode === "localhost" || domain) && (<Step>
-                                            <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
-                                            <p>Add your L1 to your Wallet if all checks above passed</p>
+                                            {domain && (<>
+                                                <Step>
+                                                    <h3 className="text-xl font-bold mb-4">Check connection via Proxy</h3>
+                                                    <p>Do a final check from a machine different then the one that your node is running on.</p>
 
-                                            <Button onClick={() => setIsAddChainModalOpen(true)} className="mt-4 w-48">Add to Wallet</Button>
-                                            {isAddChainModalOpen && <AddChainModal
-                                                onClose={() => setIsAddChainModalOpen(false)}
-                                                onAddChain={(chain) => {
-                                                    addL1(chain);
-                                                    setChainAddedToWallet(chain.name);
-                                                }}
-                                                allowLookup={false}
-                                                fixedRPCUrl={nodeRunningMode === "server" ? `https://${nipify(domain)}/ext/bc/${chainId}/rpc` : `http://localhost:9650/ext/bc/${chainId}/rpc`}
-                                            />}
-                                        </Step>)}
+                                                    <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, false)} />
+
+                                                    {enableDebugTrace && (
+                                                        <div className="mt-4">
+                                                            <h3 className="text-md font-medium mb-2">Check that debug & trace is working:</h3>
+                                                            <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, true)} />
+                                                        </div>
+                                                    )}
+
+                                                    TBD: Replace with RPC check component used for monitoring?
+                                                </Step>
+                                            </>
+                                            )}
+                                        </>)}
+                                    {(nodeRunningMode === "localhost" || domain) && (<Step>
+                                        <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
+                                        <p>Add your L1 to your Wallet if all checks above passed</p>
+
+                                        <Button onClick={() => setIsAddChainModalOpen(true)} className="mt-4 w-48">Add to Wallet</Button>
+                                        {isAddChainModalOpen && <AddChainModal
+                                            onClose={() => setIsAddChainModalOpen(false)}
+                                            onAddChain={(chain) => {
+                                                addL1(chain);
+                                                setChainAddedToWallet(chain.name);
+                                            }}
+                                            allowLookup={false}
+                                            fixedRPCUrl={nodeRunningMode === "server" ? `https://${nipify(domain)}/ext/bc/${chainId}/rpc` : `http://localhost:9650/ext/bc/${chainId}/rpc`}
+                                        />}
+                                    </Step>)}
                                 </>
                             )}
                         </>)}

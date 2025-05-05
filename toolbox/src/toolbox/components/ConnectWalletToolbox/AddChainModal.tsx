@@ -53,8 +53,8 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
             setLocalError("");
 
             if (!rpcUrl) return;
-            if (!rpcUrl.startsWith("https://") && !rpcUrl.includes("localhost")) {
-                setLocalError("The RPC URL must start with https://");
+            if (!rpcUrl.startsWith("https://") && !rpcUrl.includes("localhost") && !rpcUrl.includes("127.0.0.1")) {
+                setLocalError("The RPC URL must start with https:// or include localhost or 127.0.0.1");
                 return;
             }
 
