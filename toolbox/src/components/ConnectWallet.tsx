@@ -317,7 +317,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                                 )}
                             </div>
                             <div className="text-2xl font-semibold text-zinc-800 dark:text-zinc-100 mb-2">
-                                {selectedL1Balance} {walletChainId ? "AVAX" : "--"}
+                                {selectedL1Balance} {walletChainId === avalanche.id || walletChainId === avalancheFuji.id ? "AVAX" : "Tokens"}
                             </div>
                             {/* EVM Address inside the card */}
                             <div className="flex items-center justify-between">
