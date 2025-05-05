@@ -1,14 +1,14 @@
 "use client"
 import { useEffect, useState } from "react"
-import { AlertCircle, Loader2, CheckCircle2, ArrowUpRight } from "lucide-react"
+import { AlertCircle, Loader2, CheckCircle2, ArrowUpRight, RefreshCw } from "lucide-react"
 import { Button } from "../../components/Button"
 import { Container } from "../components/Container"
 import { Context, pvm, utils } from "@avalabs/avalanchejs"
 import { useWalletStore } from "../../lib/walletStore"
-import { cn } from "../../lib/utils"
 import { bytesToHex } from "viem"
-import CrossChainTransfer from "../Wallet/CrossChainTransfer" // Import your existing component
 import { getRPCEndpoint } from "../../coreViem/utils/rpc"
+import { Input } from "../../components/Input"
+
 // Helper function for delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -25,11 +25,10 @@ export default function ValidatorBalanceIncrease() {
   const [pChainBalance, setPChainBalance] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(false)
   const [showConfetti, setShowConfetti] = useState<boolean>(false)
-  const [transferCompleted, setTransferCompleted] = useState<boolean>(false)
+  const [operationSuccessful, setOperationSuccessful] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [statusMessage, setStatusMessage] = useState<string>("")
   const [validatorTxId, setValidatorTxId] = useState<string>("")
-  const [step, setStep] = useState<"transfer" | "validator" | "success">("transfer")
 
   // Use nullish coalescing to safely access store values
   const { pChainAddress, coreWalletClient, isTestnet } = useWalletStore()
@@ -41,11 +40,6 @@ export default function ValidatorBalanceIncrease() {
         const balance = await coreWalletClient.getPChainBalance()
         const balanceNumber = Number(balance) / 1e9
         setPChainBalance(balanceNumber)
-
-        // If P-Chain balance>0, enable the Increase Validator Balance step
-        if (balanceNumber > 0 && step === "transfer") {
-          setStep("validator")
-        }
       } catch (error) {
         console.error("Error fetching P-Chain balance:", error)
       }
@@ -56,10 +50,10 @@ export default function ValidatorBalanceIncrease() {
   useEffect(() => {
     if (coreWalletClient && pChainAddress) {
       fetchPChainBalance()
-      const interval = setInterval(fetchPChainBalance, 5000)
+      const interval = setInterval(fetchPChainBalance, 10000)
       return () => clearInterval(interval)
     }
-  }, [coreWalletClient, pChainAddress, step])
+  }, [coreWalletClient, pChainAddress])
 
   // Handle confetti timeout
   useEffect(() => {
@@ -75,9 +69,20 @@ export default function ValidatorBalanceIncrease() {
       setError("Missing required information")
       return
     }
+    const amountNumber = Number(amount);
+    if (isNaN(amountNumber) || amountNumber <= 0) {
+      setError("Invalid amount provided.")
+      return;
+    }
+    if (amountNumber > pChainBalance) {
+      setError("Amount exceeds available P-Chain balance.")
+      return;
+    }
 
     setLoading(true)
     setError(null)
+    setOperationSuccessful(false)
+    setValidatorTxId("")
     setStatusMessage("Increasing validator balance...")
 
     try {
@@ -88,7 +93,9 @@ export default function ValidatorBalanceIncrease() {
 
       const { utxos } = await pvmApi.getUTXOs({ addresses: [pChainAddress] })
       if (utxos.length === 0) {
-        throw new Error('No UTXOs found for P-chain transfer')
+        setError('No UTXOs found on your P-chain address. Make sure you have funds.')
+        setLoading(false)
+        return;
       }
 
       const amountNAvax = BigInt(Math.floor(Number(amount) * 1e9))
@@ -109,7 +116,7 @@ export default function ValidatorBalanceIncrease() {
 
       // Check if wallet extension is available
       if (typeof window === 'undefined' || !window.avalanche) {
-        throw new Error("Avalanche wallet extension not found")
+        throw new Error("Avalanche wallet extension not found. Please ensure it's installed and enabled.")
       }
 
       // Send the transaction to the wallet for signing and broadcasting
@@ -128,154 +135,42 @@ export default function ValidatorBalanceIncrease() {
         setValidatorTxId(response.txID)
       } else if (typeof response === 'string') {
         setValidatorTxId(response)
+      } else {
+        throw new Error("Unexpected response format from wallet.")
       }
 
       setShowConfetti(true)
-      setTransferCompleted(true)
-      setStep("success")
+      setOperationSuccessful(true)
 
       await delay(2000)
       await fetchPChainBalance()
 
-      return response
     } catch (error) {
       console.error("Error increasing validator balance:", error)
-      setError(error instanceof Error ? error.message : "Unknown error")
-      throw error
+      setError(error instanceof Error ? error.message : "An unknown error occurred during the balance increase.")
     } finally {
       setLoading(false)
       setStatusMessage("")
     }
   }
 
-  // Handler for amount change from cross-chain transfer
-  const handleAmountChange = (newAmount: string) => {
-    setAmount(newAmount)
-  }
-
-  const handleReset = () => {
-    setStep("transfer")
+  // Helper function to clear form state
+  const clearForm = () => {
     setAmount("")
-    setValidatorTxId("")
-    setTransferCompleted(false)
+    setValidationId("")
     setError(null)
-    setStatusMessage("")
+    setOperationSuccessful(false)
+    setValidatorTxId("")
   }
 
   return (
     <Container
       title="L1 Validator Balance Topup"
-      description="Transfer tokens from C-Chain to P-Chain and increase validator balance."
+      description="Increase your validator's balance using funds from your P-Chain address."
     >
-      <div className="space-y-8 w-full max-w-4xl mx-auto">
-        {/* C to P Transfer */}
-        <div className={cn(
-          "rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden",
-          step !== "transfer" && "opacity-60"
-        )}>
-          <div className="p-4 bg-red-50 dark:bg-red-900/10 border-b border-zinc-200 dark:border-zinc-700">
-            <h2 className="text-lg font-medium text-zinc-900 dark:text-zinc-100">
-              Step 1: Transfer AVAX from C-Chain to P-Chain
-            </h2>
-          </div>
-          <div className="p-6">
-            <CrossChainTransfer
-              suggestedAmount={amount}
-              onAmountChange={handleAmountChange}
-              onTransferComplete={() => setStep("validator")}
-            />
-          </div>
-        </div>
-
-        {/* Increase Validator Balance */}
-        <div className={cn(
-          "rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden",
-          step !== "validator" && (step === "transfer" ? "opacity-40" : "opacity-60")
-        )}>
-          <div className="p-4 bg-gradient-to-r from-red-50 to-blue-50 dark:from-red-900/10 dark:to-blue-900/10 border-b border-zinc-200 dark:border-zinc-700">
-            <h2 className="text-lg font-medium text-zinc-900 dark:text-zinc-100">
-              Step 2: Increase Validator Balance
-            </h2>
-          </div>
-
-          <div className="p-6 space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300" htmlFor="validationId">
-                  Validation ID
-                </label>
-                <input
-                  id="validationId"
-                  type="text"
-                  value={validationId}
-                  onChange={(e) => setValidationId(e.target.value)}
-                  className="mt-1 block w-full font-mono text-sm rounded-md border-zinc-300 dark:border-zinc-700 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 p-3"
-                  placeholder="Enter validation ID"
-                  disabled={step !== "validator"}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Amount to Transfer
-                </label>
-                <div className="flex items-center justify-between p-3 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="w-full bg-transparent border-none focus:outline-none text-zinc-900 dark:text-zinc-100"
-                    placeholder="0.000"
-                    step="0.001"
-                    min="0"
-                    disabled={step !== "validator"}
-                  />
-                  <span className="text-zinc-500 dark:text-zinc-400">AVAX</span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Available P-Chain Balance
-                </label>
-                <div className="flex items-center justify-between p-3 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
-                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                    {pChainBalance.toFixed(4)} <span className="text-blue-500 dark:text-blue-400">AVAX</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
-              <div className="flex gap-3">
-                <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                <p>This will increase your validator's P-Chain balance. Ensure the ValidationID is correct.</p>
-              </div>
-            </div>
-
-            <Button
-              variant="primary"
-              onClick={increaseValidatorBalance}
-              disabled={loading || !validationId || !amount || Number(amount) <= 0 || Number(amount) > pChainBalance || step !== "validator"}
-              className="w-full py-2 px-4 text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white transition-all duration-200 disabled:bg-blue-400 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin text-white inline-block" />
-                  {statusMessage || "Processing..."}
-                </span>
-              ) : (
-                <>
-                  Increase Validator Balance
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {/* Upon Successful Tx */}
-        {step === "success" && transferCompleted && (
-          <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden p-6 space-y-6 animate-fadeIn">
+      <div className="space-y-6 w-full">
+        {operationSuccessful ? (
+          <div className="p-6 space-y-6 animate-fadeIn max-w-md mx-auto">
             <div className="flex items-center justify-center">
               <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center animate-pulse">
                 <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
@@ -289,16 +184,12 @@ export default function ValidatorBalanceIncrease() {
             </div>
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Amount</span>
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Amount Increased</span>
                 <span className="text-sm font-bold text-blue-700 dark:text-blue-300">{amount} AVAX</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Validator ID</span>
                 <span className="text-sm font-mono text-blue-700 dark:text-blue-300 truncate max-w-[200px]">{validationId}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Status</span>
-                <span className="text-sm font-bold text-blue-700 dark:text-blue-300">Confirmed</span>
               </div>
               {validatorTxId && (
                 <div className="flex justify-between items-center">
@@ -316,21 +207,101 @@ export default function ValidatorBalanceIncrease() {
               )}
             </div>
             <Button
-              variant="primary"
-              onClick={handleReset}
-              className="w-full py-2 px-4 text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white transition-all duration-200"
+              variant="secondary"
+              onClick={clearForm}
+              className="w-full py-2 px-4 text-sm font-medium"
             >
-              Start New Transfer →
+              Increase Another Validator Balance
             </Button>
           </div>
-        )}
+        ) : (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <Input
+                label="Validation ID"
+                id="validationId"
+                value={validationId}
+                onChange={setValidationId}
+                placeholder="Enter the L1 Validator's Validation ID (e.g., validation1...)"
+                disabled={loading}
+                error={error && error.toLowerCase().includes("validation id") ? error : undefined}
+              />
 
-        {error && (
-          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
-            <div className="flex gap-3">
-              <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-              <p>{error}</p>
+              <Input
+                label="Amount to Add"
+                id="amount"
+                type="number"
+                value={amount}
+                onChange={setAmount}
+                placeholder="0.0"
+                step="0.001"
+                min="0"
+                disabled={loading}
+                error={error && error.toLowerCase().includes("amount") ? error : undefined}
+                button={<Button
+                  variant="secondary"
+                  className="pointer-events-none px-3"
+                  stickLeft
+                >
+                  AVAX
+                </Button>}
+              />
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Available P-Chain Balance
+                </label>
+                <div className="flex items-center gap-2 p-3 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {pChainBalance.toFixed(4)} <span className="text-sm text-zinc-500 dark:text-zinc-400">AVAX</span>
+                  </span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    title="Refresh balance"
+                    onClick={loading ? undefined : fetchPChainBalance}
+                    className={`ml-1 flex items-center cursor-pointer transition text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 ${loading ? "opacity-50 pointer-events-none" : ""}`}
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                  </span>
+                </div>
+                {(error && error.toLowerCase().includes("balance") || error && error.toLowerCase().includes("utxo")) && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">{error}</p>
+                )}
+              </div>
             </div>
+
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
+              <div className="flex gap-3">
+                <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                <p>This action will use AVAX from your P-Chain address ({pChainAddress ? `${pChainAddress.substring(0, 10)}...${pChainAddress.substring(pChainAddress.length - 4)}` : 'Loading...'}) to increase the balance of the specified L1 validator. Ensure the Validation ID is correct.</p>
+              </div>
+            </div>
+
+            {error && !error.toLowerCase().includes("amount") && !error.toLowerCase().includes("balance") && !error.toLowerCase().includes("utxo") && !error.toLowerCase().includes("validation id") && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
+                <div className="flex gap-3">
+                  <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <p>{error}</p>
+                </div>
+              </div>
+            )}
+
+            <Button
+              variant="primary"
+              onClick={increaseValidatorBalance}
+              disabled={loading || !validationId || !amount || Number(amount) <= 0 || Number(amount) > pChainBalance}
+              className="w-full py-2 px-4 text-sm font-medium"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {statusMessage || "Processing..."}
+                </span>
+              ) : (
+                "Increase Validator Balance"
+              )}
+            </Button>
           </div>
         )}
       </div>
