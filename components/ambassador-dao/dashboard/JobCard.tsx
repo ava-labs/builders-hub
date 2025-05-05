@@ -17,34 +17,34 @@ export const JobCard = ({ job }: IJobDataType) => {
 
   return (
     <div
-      className='border border-[var(--default-border-color)] rounded-lg p-4 hover:border-red-500 transition-colors cursor-pointer'
+      className="border border-[var(--default-border-color)] rounded-lg p-4 hover:text-red-500 hover:border-red-500 transition-colors cursor-pointer"
       onClick={goToDetailsPage}
     >
       <div>
-        <div className='flex justify-between mb-4'>
+        <div className="flex justify-between mb-4">
           <div>
-            <div className='flex items-start gap-2 md:gap-5'>
+            <div className="flex items-start gap-2 md:gap-5">
               {created_by?.company_profile?.logo && (
                 <Image
                   src={created_by?.company_profile?.logo}
-                  alt=''
-                  className='w-6 h-6 md:w-16 md:h-16  object-cover rounded-full'
+                  alt=""
+                  className="w-6 h-6 md:w-16 md:h-16  object-cover rounded-full"
                   width={60}
                   height={60}
                 />
               )}
               <div>
-                <h3 className='text-lg font-medium text-red-500 truncate max-w-[150px] sm:max-w-[350px]'>
+                <h3 className="text-lg font-medium truncate max-w-[150px] sm:max-w-[350px]">
                   {title}
                 </h3>
-                <p className='text-[var(--secondary-text-color)]'>
+                <p className="text-[var(--secondary-text-color)]">
                   {created_by?.company_profile?.name}
                 </p>
-                <div className='flex flex-col sm:flex-row sm:items-center space-x-4 mt-2'>
-                  <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
+                <div className="flex sm:items-center space-x-1 mt-2">
+                  <div className="flex items-center text-xs text-[var(--secondary-text-color)]">
                     <BriefcaseBusiness
-                      color='#9F9FA9'
-                      className='w-3 h-3 mr-1'
+                      color="#9F9FA9"
+                      className="w-3 h-3 mr-1"
                     />
                     Jobs
                   </div>
@@ -54,8 +54,8 @@ export const JobCard = ({ job }: IJobDataType) => {
                       ? "Closed"
                       : `Due in: ${getTimeLeft(end_date)}`}
                   </div> */}
-                  <div className='flex items-center text-sm text-[var(--secondary-text-color)]'>
-                    <FileText color='#9F9FA9' className='w-3 h-3 mr-1' />
+                  <div className="flex items-center text-xs text-[var(--secondary-text-color)]">
+                    <FileText color="#9F9FA9" className="w-3 h-3 mr-1" />
                     {_count?.applications}{" "}
                     {_count?.applications > 1 ? "Applications" : "Application"}
                   </div>
@@ -63,23 +63,34 @@ export const JobCard = ({ job }: IJobDataType) => {
               </div>
             </div>
           </div>
-          <div className='flex items-center'>
+          <div className="hidden sm:flex items-center">
             {parseFloat(total_budget) > 0 && (
-              <span className='text-[var(--white-text-color)] flex items-center gap-1 shrink-0 text-xs'>
-                <Image src={Token} alt='$' />
-                {parseFloat(total_budget).toLocaleString()} USDC
+              <span className="text-[#FFFFFF] bg-[#162456] border border-[#2B7FFF] rounded-md p-2 flex items-center gap-1 shrink-0 text-xs">
+                <Image src={Token} alt="$" />
+                {parseFloat(total_budget).toLocaleString()}
               </span>
             )}
           </div>
         </div>
       </div>
 
-      <div className='mt-4 flex flex-wrap gap-3 items-center text-xs shrink-0'>
-        {skills?.map((skill, index) => (
-          <div key={index}>
-            <Outline label={skill.name} />
+      <div className="mt-4 flex flex-wrap justify-between items-center w-full gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3 text-xs max-w-[60%] sm:max-w-[80%]">
+          {skills?.map((skill, index) => (
+            <div key={index}>
+              <Outline label={skill.name} />
+            </div>
+          ))}
+        </div>
+
+        {parseFloat(total_budget) > 0 && (
+          <div className="shrink-0 sm:hidden">
+            <span className="text-[#FFFFFF] bg-[#162456] border border-[#2B7FFF] rounded-md p-2 flex items-center gap-1 text-xs">
+              <Image src={Token} alt="$" />
+              {parseFloat(total_budget).toLocaleString()}
+            </span>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

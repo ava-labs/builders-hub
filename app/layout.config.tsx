@@ -493,6 +493,7 @@ export const ambassadorMenu: LinkItemType = {
 
 export const baseOptions: BaseLayoutProps = {
   // githubUrl: 'https://github.com/ava-labs/builders-hub',
+  
   nav: {
     title: (
       <>

@@ -1,3 +1,4 @@
+import { ArrowRight } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 export const ViewAllButton = ({ type }: { type: string }) => {
@@ -18,10 +19,11 @@ export const ViewAllButton = ({ type }: { type: string }) => {
   return (
     !hasQueryParam && (
       <button
-        className='w-full bg-red-500 hover:bg-red-600 text-white rounded-md py-3 font-medium mt-6'
+        className='inline-flex gap-2'
         onClick={handleViewAll}
       >
-        VIEW ALL
+        Show all
+        <ArrowRight size={18} color="var(--white-text-color)" />
       </button>
     )
   );

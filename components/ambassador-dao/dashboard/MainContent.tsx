@@ -10,8 +10,24 @@ import BountiesSection from "./BountiesSection";
 import { GoBackButton } from "./BackButton";
 import SideContent from "./SideContent";
 import { Pagination } from "../ui/Pagination";
+import CategoryTabs from "../ui/CategoryTabs";
+
+const CATEGORY_SKILL_MAPPING: Record<string, string> = {
+  code: "cm9r1jr940006a4d3udlj6zyl",
+  design: "cm9r1k7p10007a4d3vff8c9gr",
+  technology: "cm9r1jn540005a4d30rj0likh",
+  content: "cm9r1kcbb0008a4d3mw99d9bb",
+};
+
+const SKILL_TO_CATEGORY_MAPPING: Record<string, string> = Object.entries(
+  CATEGORY_SKILL_MAPPING
+).reduce((acc, [category, skillId]) => {
+  acc[skillId] = category;
+  return acc;
+}, {} as Record<string, string>);
 
 const MainContent = ({ user }: { user: any }) => {
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
@@ -19,12 +35,28 @@ const MainContent = ({ user }: { user: any }) => {
   const [currentJobPage, setCurrentJobPage] = useState(1);
   const [currentBountyPage, setCurrentBountyPage] = useState(1);
 
+  const jobSkillIds = searchParams.get("job_skill_ids") || "";
+  const bountySkillIds = searchParams.get("bounty_skill_ids") || "";
+
+  const getSelectedCategoryFromSkillIds = (): string => {
+    if (jobSkillIds && SKILL_TO_CATEGORY_MAPPING[jobSkillIds]) {
+      return SKILL_TO_CATEGORY_MAPPING[jobSkillIds];
+    } else if (bountySkillIds && SKILL_TO_CATEGORY_MAPPING[bountySkillIds]) {
+      return SKILL_TO_CATEGORY_MAPPING[bountySkillIds];
+    }
+    return "";
+  };
+
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    getSelectedCategoryFromSkillIds()
+  );
+
   const [isFiltering, setIsFiltering] = useState(false);
 
   const [jobFilters, setJobFilters] = useState({
     type: "JOB",
     query: searchParams.get("job_query") || "",
-    skill_ids: searchParams.get("job_skillSet") || "",
+    skill_ids: jobSkillIds,
     min_budget: searchParams.get("job_min_budget") || "",
     max_budget: searchParams.get("job_max_budget") || "",
     category: searchParams.get("job_category") || "",
@@ -35,12 +67,18 @@ const MainContent = ({ user }: { user: any }) => {
   const [bountyFilters, setBountyFilters] = useState({
     type: "BOUNTY",
     query: searchParams.get("bounty_query") || "",
-    skill_ids: searchParams.get("bounty_skillSet") || "",
+    skill_ids: bountySkillIds,
     min_budget: searchParams.get("bounty_min_budget") || "",
     max_budget: searchParams.get("bounty_max_budget") || "",
     category: searchParams.get("bounty_category") || "",
     status: searchParams.get("bounty_status") || "",
+    page: currentBountyPage,
   });
+
+  useEffect(() => {
+    const category = getSelectedCategoryFromSkillIds();
+    setSelectedCategory(category);
+  }, [jobSkillIds, bountySkillIds]);
 
   const [searchJobInput, setSearchJobInput] = useState(
     searchParams.get("job_query") || ""
@@ -203,32 +241,100 @@ const MainContent = ({ user }: { user: any }) => {
     window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
   };
 
+  const handleCategoryChange = (category: string) => {
+    // If empty category selected (or same category clicked again), clear filters
+    // if (!category || category === selectedCategory) {
+    //   setSelectedCategory("");
+
+    //   // Create new URLSearchParams object
+    //   const params = new URLSearchParams(searchParams.toString());
+
+    //   // Clear skill IDs from URL
+    //   params.delete("job_skill_ids");
+    //   params.delete("bounty_skill_ids");
+
+    //   // Update URL
+    //   router.push(`${pathname}?${params.toString()}`);
+
+    //   // Update local filter states
+    //   setJobFilters({
+    //     ...jobFilters,
+    //     skill_ids: ""
+    //   });
+
+    //   setBountyFilters({
+    //     ...bountyFilters,
+    //     skill_ids: ""
+    //   });
+
+    //   return;
+    // }
+
+    setSelectedCategory(category);
+
+    const skillId = CATEGORY_SKILL_MAPPING[category] || "";
+
+    const params = new URLSearchParams(searchParams.toString());
+
+    params.set("job_skill_ids", skillId);
+    params.set("bounty_skill_ids", skillId);
+
+    router.push(`${pathname}?${params.toString()}`);
+
+    setJobFilters({
+      ...jobFilters,
+      skill_ids: skillId,
+    });
+
+    setBountyFilters({
+      ...bountyFilters,
+      skill_ids: skillId,
+    });
+  };
+
+  const resetAllFilters = () => {
+    setSelectedCategory("");
+
+    const params = new URLSearchParams();
+
+    if (type) {
+      params.set("type", type);
+    }
+
+    router.push(`${pathname}?${params.toString()}`);
+
+    setJobFilters({
+      type: "JOB",
+      query: "",
+      skill_ids: "",
+      min_budget: "",
+      max_budget: "",
+      category: "",
+      status: "",
+      page: 1,
+    });
+
+    setBountyFilters({
+      type: "BOUNTY",
+      query: "",
+      skill_ids: "",
+      min_budget: "",
+      max_budget: "",
+      category: "",
+      status: "",
+      page: 1,
+    });
+
+    setSearchJobInput("");
+    setSearchBountyInput("");
+    setCurrentJobPage(1);
+    setCurrentBountyPage(1);
+  };
+
   const jobs = jobsData?.data || [];
   const bounties = bountiesData?.data || [];
 
   const renderContent = () => {
-    if (type === "jobs") {
-      return (
-        <>
-          <JobsSection
-            isLoading={isJobsLoading}
-            data={jobs}
-            filters={jobFilters}
-            searchInput={searchJobInput}
-            handleSearchChange={handleJobSearchChange}
-            updateFilters={updateJobFilters}
-          />
-
-          {jobsData?.metadata?.last_page > 1 && (
-            <Pagination
-              metadata={jobsData.metadata}
-              onPageChange={handleJobPageChange}
-            />
-          )}
-        </>
-      );
-    }
-
     if (type === "bounties") {
       return (
         <>
@@ -239,6 +345,7 @@ const MainContent = ({ user }: { user: any }) => {
             searchInput={searchBountyInput}
             handleSearchChange={handleBountySearchChange}
             updateFilters={updateBountyFilters}
+            onResetFilters={resetAllFilters}
           />
 
           {bountiesData?.metadata?.last_page > 1 && (
@@ -251,19 +358,31 @@ const MainContent = ({ user }: { user: any }) => {
       );
     }
 
-    return (
-      <>
-        <div className={isJobsLoading ? "min-h-32" : ""}>
+    if (type === "jobs") {
+      return (
+        <>
           <JobsSection
             isLoading={isJobsLoading}
-            data={jobs?.slice(0, 4)}
+            data={jobs}
             filters={jobFilters}
             searchInput={searchJobInput}
             handleSearchChange={handleJobSearchChange}
             updateFilters={updateJobFilters}
+            onResetFilters={resetAllFilters}
           />
-        </div>
 
+          {jobsData?.metadata?.last_page > 1 && (
+            <Pagination
+              metadata={jobsData.metadata}
+              onPageChange={handleJobPageChange}
+            />
+          )}
+        </>
+      );
+    }
+
+    return (
+      <>
         <div className={isBountiesLoading ? "min-h-32" : ""}>
           <BountiesSection
             isLoading={isBountiesLoading}
@@ -272,6 +391,19 @@ const MainContent = ({ user }: { user: any }) => {
             searchInput={searchBountyInput}
             handleSearchChange={handleBountySearchChange}
             updateFilters={updateBountyFilters}
+            onResetFilters={resetAllFilters}
+          />
+        </div>
+
+        <div className={isJobsLoading ? "min-h-32" : ""}>
+          <JobsSection
+            isLoading={isJobsLoading}
+            data={jobs?.slice(0, 4)}
+            filters={jobFilters}
+            searchInput={searchJobInput}
+            handleSearchChange={handleJobSearchChange}
+            updateFilters={updateJobFilters}
+            onResetFilters={resetAllFilters}
           />
         </div>
       </>
@@ -281,11 +413,17 @@ const MainContent = ({ user }: { user: any }) => {
   return (
     <>
       <GoBackButton />
+      <div>
+        <CategoryTabs
+          onCategoryChange={handleCategoryChange}
+          initialCategory={selectedCategory}
+        />
+      </div>
       <div className="grid grid-cols-1 xl:grid-cols-9 xl:gap-x-8 gap-y-8">
-        <div className="lg:col-span-6 order-2 xl:order-1">
+        <div className="lg:col-span-6 order-1 xl:order-1">
           {renderContent()}
         </div>
-        <div className="order-1 xl:order-2 col-span-3">
+        <div className="order-2 xl:order-2 col-span-3">
           <SideContent user={user} />
         </div>
       </div>

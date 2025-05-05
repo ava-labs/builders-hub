@@ -1,5 +1,4 @@
 @import "tailwindcss";
-
 @custom-variant dark (&:is(.dark *));
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
@@ -800,6 +799,23 @@ html body[data-scroll-locked] {
   --black-background-color: #000;
   --default-border-color: #27272a;
   --default-background-color: #09090b;
+  .bg-card-grad {
+    background-image: url(../public/ambassador-dao-images/how-it-works.svg);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+  }
+  header a[data-active="true"] {
+    color: #fafafa !important;
+  }
+
+  .bg-welcome {
+    background-image: url(../public/ambassador-dao-images/welcome.svg);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+  }
+  
 }
 .markdownDescription {
   h1 {
@@ -833,6 +849,37 @@ html body[data-scroll-locked] {
   }
 }
 
+
+
 header a[data-active="true"] {
-  color: #ff394a !important;
+  color: #000000 !important;
+}
+
+.bg-welcome {
+  background-image: url(../public/ambassador-dao-images/welcome.svg);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+
+
+
+.red-card-bg {
+  background-image: url(../public/ambassador-dao-images/red-card-bg.svg);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+.blue-card-bg {
+  background-image: url(../public/ambassador-dao-images/blue-card-bg.svg);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+
+.bg-card-grad2 {
+  backgroud: '#fff'
 }
