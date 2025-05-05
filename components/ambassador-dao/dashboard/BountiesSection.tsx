@@ -1,14 +1,13 @@
 "use client";
 
 import { SetStateAction } from "react";
-import { Search } from "lucide-react";
+import { Lightbulb, Search } from "lucide-react";
 import EmptyState from "../ui/EmptyState";
 import { budgetRange, jobTypes, statusOptions } from "../constants";
 import { useFetchAllSkills } from "@/services/ambassador-dao/requests/onboard";
 import { ViewAllButton } from "./ViewAllButton";
 import { FilterDropdown } from "./FilterDropdown";
 import { BountyCard } from "./BountyCard";
-import { filter } from "@mdxeditor/editor";
 import Loader from "../ui/Loader";
 
 interface BountiesSectionProps {
@@ -28,6 +27,7 @@ interface BountiesSectionProps {
     target: { value: SetStateAction<string> };
   }) => void;
   updateFilters: (newFilterValues: any) => void;
+  onResetFilters: () => void;
 }
 
 const BountiesSection = ({
@@ -37,6 +37,7 @@ const BountiesSection = ({
   searchInput,
   handleSearchChange,
   updateFilters,
+  onResetFilters,
 }: BountiesSectionProps) => {
   const { data: skills } = useFetchAllSkills();
 
@@ -55,11 +56,17 @@ const BountiesSection = ({
       };
       handleSearchChange(resetEvent);
     }
+    onResetFilters
   };
 
   return (
-    <section className='border border-[var(--default-border-color)] rounded-md py-10 px-8'>
-      <h2 className='text-3xl font-bold mb-6'>ALL BOUNTIES</h2>
+    <section className='border border-[var(--default-border-color)] rounded-md py-10 px-3'>
+      <div className="flex justify-between">
+        <h2 className="text-3xl font-medium mb-6 flex items-center gap-2">
+          <Lightbulb size={36} color="var(--white-text-color)" /> Bounties
+        </h2>
+        {data?.length > 0 && <ViewAllButton type="bounties" />}
+      </div>
       <div className='flex gap-4 mb-6 flex-wrap'>
         <FilterDropdown
           label='Skill Set'
@@ -110,14 +117,14 @@ const BountiesSection = ({
             <Search color='#9F9FA9' className='h-3 w-3 sm:w-5 sm:h-5' />
           </button>
         </div>
-        {(filters.query ||
+          {(filters.query ||
           filters.category ||
           filters.skill_ids ||
           filters.min_budget ||
           filters.max_budget ||
           filters.status) && (
           <span
-            className='flex cursor-pointer rounded-lg px-4 py-2 text-red-500 items-center border border-[var(--default-border-color)] text-xs sm:text-sm lg:text-base'
+            className="flex cursor-pointer rounded-lg px-4 py-2 text-[var(--default-text-color)] items-center border border-[var(--default-text-color)] text-xs sm:text-sm lg:text-base"
             onClick={clearAllFilters}
           >
             Reset Filters
@@ -144,8 +151,6 @@ const BountiesSection = ({
           />
         )}
       </div>
-
-      {data?.length > 0 && <ViewAllButton type='bounties' />}
     </section>
   );
 };
