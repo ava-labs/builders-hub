@@ -57,7 +57,7 @@ export default function InterchainTransfer({ onBalanceChanged = () => { } }: Int
             // Get P-chain UTXOs (for P->C transfers)
             const pChainUTXOs = await evmApi.getUTXOs({
                 addresses: [coreEthAddress],
-                sourceChain: 'P'
+                sourceChain: 'C'
             });
             setP_To_C_UTXOs(pChainUTXOs.utxos as Utxo<TransferOutput>[]);
             console.log('evmApi UTXOs', pChainUTXOs.utxos);
@@ -93,8 +93,9 @@ export default function InterchainTransfer({ onBalanceChanged = () => { } }: Int
     // Initial data load and polling setup
     useEffect(() => {
         if (open) {
-            fetchBalances();
+            // Fetch UTXOs first as they might be quicker or more critical for initial UI state
             fetchUTXOs();
+            fetchBalances();
 
             // Set up polling for UTXOs and balances
             const interval = setInterval(() => {
@@ -227,7 +228,7 @@ export default function InterchainTransfer({ onBalanceChanged = () => { } }: Int
                         <ArrowRight className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
                     </button>
                 </Dialog.Trigger>
-                <Dialog.Trigger asChild>
+                <Dialog.Trigger asChild className="pointer-events-none opacity-50">
                     <button
                         onClick={() => openDialog('p-to-c')}
                         className="p-1.5 rounded-full bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors border border-zinc-200 dark:border-zinc-600 shadow-sm"
@@ -269,7 +270,7 @@ export default function InterchainTransfer({ onBalanceChanged = () => { } }: Int
 
                         <div className="space-y-2">
                             <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                                Pending transfers:
+                                Exported UTXOs:
                             </h3>
                             <div className="text-sm text-zinc-600 dark:text-zinc-400 py-3 px-4 bg-zinc-50 dark:bg-zinc-800 rounded-md min-h-[80px]">
                                 {importableUTXOs.length > 0 ? (
@@ -285,7 +286,7 @@ export default function InterchainTransfer({ onBalanceChanged = () => { } }: Int
                                     </>
                                 ) : (
                                     <div className="py-4 text-center text-zinc-500">
-                                        No pending transfers to import
+                                        No exported UTXOs to import
                                     </div>
                                 )}
                             </div>
