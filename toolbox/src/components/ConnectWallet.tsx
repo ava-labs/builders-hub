@@ -12,7 +12,7 @@ import { WalletRequiredPrompt } from "./WalletRequiredPrompt"
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt"
 import { RefreshOnMainnetTestnetChange } from "./RefreshOnMainnetTestnetChange"
 import { avalanche, avalancheFuji } from "viem/chains"
-import PCTransfer from "./PCTransfer"
+import InterchainTransfer from "./InterchainTransfer"
 
 export const ConnectWallet = ({ children, required, extraElements }: { children: React.ReactNode; required: boolean; extraElements?: React.ReactNode }) => {
     const setWalletChainId = useWalletStore(state => state.setWalletChainId);
@@ -22,6 +22,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
     const coreWalletClient = useWalletStore(state => state.coreWalletClient);
     const setAvalancheNetworkID = useWalletStore(state => state.setAvalancheNetworkID);
     const setPChainAddress = useWalletStore(state => state.setPChainAddress);
+    const setCoreEthAddress = useWalletStore(state => state.setCoreEthAddress);
     const pChainAddress = useWalletStore(state => state.pChainAddress);
     const walletChainId = useWalletStore(state => state.walletChainId);
     const setIsTestnet = useWalletStore(state => state.setIsTestnet);
@@ -148,6 +149,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
 
         setWalletChainId(chainId)
         coreWalletClient.getPChainAddress().then(setPChainAddress).catch(showBoundary)
+        coreWalletClient.getCorethAddress().then(setCoreEthAddress).catch(showBoundary)
 
         coreWalletClient
             .getEthereumChain()
@@ -179,6 +181,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
         setWalletEVMAddress(accounts[0] as `0x${string}`)
 
         coreWalletClient.getPChainAddress().then(setPChainAddress).catch(showBoundary)
+        coreWalletClient.getCorethAddress().then(setCoreEthAddress).catch(showBoundary)
 
         if (walletChainId === 0) {
             coreWalletClient.getChainId().then(onChainChanged).catch(showBoundary)
@@ -221,6 +224,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
             setWalletEVMAddress(accounts[0] as `0x${string}`)
 
             coreWalletClient.getPChainAddress().then(setPChainAddress).catch(showBoundary)
+            coreWalletClient.getCorethAddress().then(setCoreEthAddress).catch(showBoundary)
 
             if (walletChainId === 0) {
                 coreWalletClient.getChainId().then(onChainChanged).catch(showBoundary)
@@ -327,7 +331,10 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
 
                         {/* Arrows between cards */}
                         {(walletChainId === avalanche.id || walletChainId === avalancheFuji.id) && (
-                            <PCTransfer />
+                            <InterchainTransfer onBalanceChanged={() => {
+                                setSelectedL1Balance("...");
+                                setPChainBalance("...");
+                            }} />
                         )}
 
                         {/* P-Chain */}

@@ -60,7 +60,7 @@ export const ChainTile: React.FC<ChainTileProps> = ({
                     {onDelete && chain && (
                         <button
                             onClick={(e) => { e.stopPropagation(); confirm(`Are you sure you want to delete the chain "${chain.name}"? This cannot be undone.`) && onDelete() }}
-                            className="absolute top-[-8px] right-[-8px] z-20 p-1 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-600 dark:hover:text-red-400 transition-colors shadow-sm hover:shadow"
+                            className="absolute top-[-8px] right-[-8px]  p-1 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-600 dark:hover:text-red-400 transition-colors shadow-sm hover:shadow"
                             title={`Delete ${chain.name}`}
                             aria-label={`Delete ${chain.name}`}
                         >
