@@ -37,7 +37,7 @@ import { Feedback } from '@/components/ui/feedback';
 import posthog from 'posthog-js';
 
 import ToolboxMdxWrapper from "@/toolbox/src/toolbox/components/ToolboxMdxWrapper"
-import CrossChainTransfer from "@/toolbox/src/toolbox/Wallet/CrossChainTransfer"
+import CrossChainTransfer from "@/toolbox/src/l1-launcher/components/CrossChainTransfer"
 import AvalancheGoDocker from '@/toolbox/src/toolbox/Nodes/AvalanchegoDocker';
 import CreateSubnet from "@/toolbox/src/toolbox/L1/CreateSubnet"
 import CreateChain from "@/toolbox/src/toolbox/L1/CreateChain"
