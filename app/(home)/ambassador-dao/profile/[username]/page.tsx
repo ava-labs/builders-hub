@@ -180,7 +180,7 @@ function ProfileContent() {
                     (skill: { name: string; id: number }, index: number) => (
                       <span
                         key={index}
-                        className="text-xs px-2 bg-[#F5F5F9] text-[#161617] py-1 rounded-full"
+                        className="capitalize text-xs px-2 bg-[#F5F5F9] text-[#161617] py-1 rounded-full"
                       >
                         {skill.name}
                       </span>
