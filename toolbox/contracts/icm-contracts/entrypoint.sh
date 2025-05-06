@@ -39,13 +39,6 @@ for file in \
     /teleporter_src/out/ExampleRewardCalculator.sol/ExampleRewardCalculator.json \
     /teleporter_src/out/NativeTokenRemote.sol/NativeTokenRemote.json \
     /teleporter_src/out/INativeMinter.sol/INativeMinter.json \
-; do
-    filename=$(basename "$file")
-    jq '.' "$file" > "/compiled/$filename"
-done
-
-# Extract and format JSON files for precompile contracts
-for file in \
     /teleporter_src/out/validator-manager/NativeTokenStakingManager.sol/NativeTokenStakingManager.json \
     /teleporter_src/out/ictt/TokenRemote/NativeTokenRemoteUpgradeable.sol/NativeTokenRemoteUpgradeable.json \
     /teleporter_src/out/validator-manager/StakingManager.sol/StakingManager.json \
@@ -53,31 +46,8 @@ for file in \
     /teleporter_src/out/teleporter/TeleporterMessenger.sol/TeleporterMessenger.json \
     /teleporter_src/out/governance/ValidatorSetSig.sol/ValidatorSetSig.json \
 ; do
-    if [ -f "$file" ]; then
-        filename=$(basename "$file")
-        # Create precompile-specific names
-        case "$filename" in
-            "NativeTokenStakingManager.json")
-                cp_name="NativeMinter.json"
-                ;;
-            "StakingManager.json")
-                cp_name="AllowList.json"
-                ;;
-            "ExampleRewardCalculator.json")
-                cp_name="RewardManager.json"
-                ;;
-            "TeleporterMessenger.json")
-                cp_name="FeeManager.json"
-                ;;
-            "ValidatorSetSig.json")
-                cp_name="WarpMessenger.json"
-                ;;
-            *)
-                cp_name="$filename"
-                ;;
-        esac
-        jq '.' "$file" > "/compiled/$cp_name"
-    fi
+    filename=$(basename "$file")
+    jq '.' "$file" > "/compiled/$filename"
 done
 
 ls -ltha /teleporter_src/out/
