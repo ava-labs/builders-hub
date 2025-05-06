@@ -11,6 +11,7 @@ import { AbiEvent, Log, parseEther } from 'viem';
 import NativeTokenStakingManagerABI from "../../../contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
 
 import { Container } from "../components/Container";
+import { EVMAddressInput } from "../components/EVMAddressInput";
 
 export default function Initialize() {
     const selectedL1 = useSelectedL1()();
@@ -150,36 +151,39 @@ export default function Initialize() {
             description="This will initialize the NativeTokenStakingManager contract."
         >
             <div className="space-y-4">
-                <Input
-                    label="Staking Manager address"
+                <EVMAddressInput
+                    label="Staking Manager Address"
                     value={stakingManagerAddress}
                     onChange={setStakingManagerAddress}
-                    placeholder="Enter staking manager address"
+                    disabled={isInitializing}
+                    showError={true}
                     button={
                         <Button
                             variant="secondary"
                             onClick={checkIfInitialized}
                             loading={isChecking}
-                            disabled={!stakingManagerAddress}
-                            stickLeft
+                            disabled={!stakingManagerAddress || isInitializing}
+                            className="rounded-l-none w-24"
                         >
-                            Check Status
+                            Check
                         </Button>
                     }
                 />
 
                 <div className="space-y-4">
-                    <Input
-                        label="ValidatorManager Address"
+                    <EVMAddressInput
+                        label="Validator Manager Address"
                         value={managerAddress}
                         onChange={setManagerAddress}
-                        placeholder="Enter validator manager address"
+                        disabled={isInitializing}
+                        showError={true}
                     />
-                    <Input
+                    <EVMAddressInput
                         label="Reward Calculator Address"
                         value={rewardCalculatorAddress}
                         onChange={setRewardCalculatorAddress}
-                        placeholder="Enter reward calculator address"
+                        disabled={isInitializing}
+                        showError={true}
                     />
                     <Input
                         label="Uptime Blockchain ID"

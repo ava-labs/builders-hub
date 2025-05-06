@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import { Input } from "../../components/Input";
+import { EVMAddressInput } from "../components/EVMAddressInput";
 import ExampleERC20 from "../../../contracts/icm-contracts/compiled/ExampleERC20.json"
 import { createPublicClient, http } from "viem";
 import { Note } from "../../components/Note";
@@ -130,10 +131,12 @@ export default function DeployERC20TokenHome() {
                     {localError && <div className="text-red-500">{localError}</div>}
                     {deployError && <div className="text-red-500 mt-2">{deployError}</div>}
 
-                    <Input
+                    <EVMAddressInput
                         label="Teleporter Registry Address"
                         value={teleporterRegistryAddress}
                         onChange={setTeleporterRegistryAddress}
+                        disabled={isDeploying}
+                        showError={true}
                     />
 
                     {!teleporterRegistryAddress && <Note variant="warning">
@@ -142,12 +145,13 @@ export default function DeployERC20TokenHome() {
                         </p>
                     </Note>}
 
-                    <Input
+                    <EVMAddressInput
                         label="L1 Teleporter Manager Address"
                         value={teleporterManager}
                         onChange={setTeleporterManager}
                         placeholder={coreWalletClient?.account?.address}
-                        helperText="default: your address"
+                        disabled={isDeploying}
+                        showError={true}
                     />
 
                     <Input
@@ -158,12 +162,13 @@ export default function DeployERC20TokenHome() {
                         required
                     />
 
-                    <Input
+                    <EVMAddressInput
                         label="Token Address"
                         value={tokenAddress}
                         onChange={setTokenAddress}
-                        required
-                        error={!tokenAddress ? <>Required. Please <a href="#deployExampleERC20" className="underline">deploy an ERC20 token first</a>.</> : undefined}
+                        disabled={isDeploying}
+                        showError={true}
+                        helperText={!tokenAddress ? <>Required. Please <a href="#deployExampleERC20" className="underline">deploy an ERC20 token first</a>.</> : undefined}
                     />
 
                     <Input

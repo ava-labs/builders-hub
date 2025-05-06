@@ -19,6 +19,7 @@ import { parseNodeID } from "../../coreViem/utils/ids"
 import { getRPCEndpoint } from "../../coreViem/utils/rpc"
 import { useStepProgress, StepsConfig } from "../hooks/useStepProgress"
 import { registerL1Validator } from "../../coreViem/methods/registerL1Validator"
+import { EVMAddressInput } from "../components/EVMAddressInput"
 
 // Define step keys and configuration for AddValidator
 type AddValidationStepKey =
@@ -375,14 +376,12 @@ export default function AddValidator() {
                         <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
                             Validator Manager Address <span className="text-red-500">*</span>
                         </label>
-                        <Input
+                        <EVMAddressInput
                             label=""
-                            type="text"
                             value={validatorManagerAddress}
                             onChange={setValidatorManagerAddress}
-                            placeholder="Enter Validator Manager contract address (0x...)"
-                            className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-md text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-red-500 dark:focus:ring-red-400"
-                            required
+                            disabled={isProcessing}
+                            showError={true}
                         />
                         {!validatorManagerAddress && hookError && <p className="text-xs text-red-500">Validator Manager Address is required</p>}
                     </div>

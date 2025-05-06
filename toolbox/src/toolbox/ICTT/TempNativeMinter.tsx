@@ -7,7 +7,8 @@ import { useState, useEffect } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import { createPublicClient, http, Address } from "viem";
-import { Input, Suggestion } from "../../components/Input";
+import { Suggestion } from "../../components/Input";
+import { EVMAddressInput } from "../components/EVMAddressInput";
 import INativeMinterABI from "../../../contracts/icm-contracts/compiled/INativeMinter.json";
 
 // Native Minter Precompile address - fixed across all Avalanche L1s
@@ -149,12 +150,12 @@ export default function TempNativeMinter() {
                     and set a new role (Admin, Enabled, Manager, or None).
                 </p>
 
-                <Input
+                <EVMAddressInput
                     label="Target Address"
                     value={targetAddress}
                     onChange={(value) => setTargetAddress(value as Address)}
-                    required
-                    error={targetAddress && !isAddressValid ? "Invalid address format" : undefined}
+                    disabled={isProcessing}
+                    showError={true}
                     suggestions={addressSuggestions}
                     placeholder="0x..."
                 />

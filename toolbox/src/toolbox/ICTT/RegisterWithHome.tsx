@@ -9,7 +9,8 @@ import { Success } from "../../components/Success";
 import ERC20TokenRemoteABI from "../../../contracts/icm-contracts/compiled/ERC20TokenRemote.json";
 import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import { Abi, createPublicClient, http, PublicClient, zeroAddress } from "viem";
-import { Input, Suggestion } from "../../components/Input";
+import { Suggestion } from "../../components/Input";
+import { EVMAddressInput } from "../components/EVMAddressInput";
 import { utils } from "@avalabs/avalanchejs";
 import { ListContractEvents } from "../../components/ListContractEvents";
 import SelectChainID from "../components/SelectChainID";
@@ -180,13 +181,14 @@ export default function RegisterWithHome() {
                     error={sourceChainError}
                 />
 
-                <Input
+                <EVMAddressInput
                     label={`Remote Contract Address (on ${selectedL1?.name})`}
                     value={remoteAddress}
                     onChange={setRemoteAddress}
-                    required
-                    error={!remoteAddress ? "Please enter a remote contract address" : undefined}
+                    disabled={isRegistering}
+                    showError={true}
                     suggestions={remoteAddressSuggestions}
+                    helperText={!remoteAddress ? "Please enter a remote contract address" : undefined}
                 />
 
                 {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}

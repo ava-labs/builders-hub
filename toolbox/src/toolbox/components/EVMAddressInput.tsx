@@ -1,5 +1,6 @@
-import { Input } from "../../components/Input";
+import { Input, Suggestion } from "../../components/Input";
 import { useState, useEffect } from "react";
+import type React from "react";
 
 interface EVMAddressInputProps {
   value: string;
@@ -7,6 +8,10 @@ interface EVMAddressInputProps {
   label?: string;
   disabled?: boolean;
   showError?: boolean;
+  helperText?: React.ReactNode;
+  placeholder?: string;
+  suggestions?: Suggestion[];
+  button?: React.ReactNode;
 }
 
 export function EVMAddressInput({
@@ -15,6 +20,10 @@ export function EVMAddressInput({
   label = "EVM Address",
   disabled = false,
   showError = false,
+  helperText,
+  placeholder,
+  suggestions,
+  button,
 }: EVMAddressInputProps) {
   const [error, setError] = useState<string | undefined>();
 
@@ -56,7 +65,10 @@ export function EVMAddressInput({
         value={value}
         onChange={onChange}
         disabled={disabled}
-        helperText={showError ? error : undefined}
+        helperText={showError ? error : helperText}
+        placeholder={placeholder}
+        suggestions={suggestions}
+        button={button}
       />
     </div>
   );

@@ -7,10 +7,10 @@ import { useState } from "react";
 import { Button } from "../../components/Button";
 import { ResultField } from "../components/ResultField";
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
-
 import { Container } from "../components/Container";
-import { Input } from "../../components/Input";
+import { EVMAddressInput } from "../components/EVMAddressInput";
 import { TransactionReceipt } from "viem";
+
 export default function TransferOwnership() {
     const { showBoundary } = useErrorBoundary();
     const { stakingManagerAddress, validatorManagerAddress, setStakingManagerAddress, setValidatorManagerAddress } = useToolboxStore();
@@ -52,29 +52,25 @@ export default function TransferOwnership() {
             description="This will transfer the ownership of the Validator Manager to the Staking Manager."
         >
             <div className="space-y-4">
-                <div className="mb-4">
-                    <Input
-                        id="validatorManagerAddress"
-                        type="text"
-                        label="Validator Manager Address"
-                        value={validatorManagerAddress}
-                        onChange={setValidatorManagerAddress}
-                        className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900"
-                    />
-                    <Input
-                        id="stakingManagerAddress"
-                        type="text"
-                        label="Staking Manager Address"
-                        value={stakingManagerAddress}
-                        onChange={setStakingManagerAddress}
-                        className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900"
-                    />
-                </div>
+                <EVMAddressInput
+                    label="Validator Manager Address"
+                    value={validatorManagerAddress}
+                    onChange={setValidatorManagerAddress}
+                    disabled={isTransferring}
+                    showError={true}
+                />
+                <EVMAddressInput
+                    label="Staking Manager Address"
+                    value={stakingManagerAddress}
+                    onChange={setStakingManagerAddress}
+                    disabled={isTransferring}
+                    showError={true}
+                />
                 <Button
                     variant="primary"
                     onClick={handleDeploy}
                     loading={isTransferring}
-                    disabled={isTransferring}
+                    disabled={isTransferring || !validatorManagerAddress || !stakingManagerAddress}
                 >
                     Transfer Ownership
                 </Button>

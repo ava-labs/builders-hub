@@ -10,6 +10,7 @@ import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20To
 import ExampleERC20ABI from "../../../contracts/icm-contracts/compiled/ExampleERC20.json";
 import { createPublicClient, http, formatUnits, parseUnits, Address } from "viem";
 import { Input, Suggestion } from "../../components/Input";
+import { EVMAddressInput } from "../components/EVMAddressInput";
 import { utils } from "@avalabs/avalanchejs";
 import { Note } from "../../components/Note";
 import SelectChainID from "../components/SelectChainID";
@@ -334,11 +335,12 @@ export default function AddColateral() {
                     </Note>
                 }
 
-                <Input
+                <EVMAddressInput
                     label={`Remote Contract Address (on ${selectedL1?.name})`}
                     value={remoteContractAddress}
                     onChange={(value) => setRemoteContractAddress(value as Address)}
-                    required
+                    disabled={isProcessing}
+                    showError={true}
                     suggestions={remoteContractSuggestions}
                     placeholder="0x... (Native or ERC20 Remote)"
                 />

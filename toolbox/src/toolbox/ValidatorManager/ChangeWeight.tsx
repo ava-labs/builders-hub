@@ -12,6 +12,7 @@ import { Button } from "../../components/Button"
 import { StepIndicator } from "../components/StepIndicator"
 import { AlertCircle, CheckCircle } from "lucide-react"
 import SelectSubnetId from "../components/SelectSubnetId"
+import { EVMAddressInput } from "../components/EVMAddressInput"
 
 import { cn } from "../../lib/utils"
 import { bytesToHex, hexToBytes } from "viem"
@@ -367,17 +368,17 @@ export default function ChangeWeight() {
           if (!publicClient) throw new Error("Public client is not initialized.")
           if (!viemChain) throw new Error("Viem chain is not configured.")
 
-        
+
           const hash = await coreWalletClient.writeContract({
-              address: manualProxyAddress as `0x${string}`,
-              abi: validatorManagerAbi.abi,
-              functionName: "completeValidatorWeightUpdate",
-              args: [0],
-              accessList,
-              account: coreWalletClient.account,
-              chain: viemChain
-            })
-          console.log("Transaction sent:", hash)         
+            address: manualProxyAddress as `0x${string}`,
+            abi: validatorManagerAbi.abi,
+            functionName: "completeValidatorWeightUpdate",
+            args: [0],
+            accessList,
+            account: coreWalletClient.account,
+            chain: viemChain
+          })
+          console.log("Transaction sent:", hash)
 
           let receipt
           try {
@@ -474,22 +475,12 @@ export default function ChangeWeight() {
         </div>
 
         <div className="space-y-2">
-          <Input
-            id="proxyAddress"
-            type="text"
+          <EVMAddressInput
+            label="Proxy Address"
             value={manualProxyAddress}
             onChange={setManualProxyAddress}
-            placeholder={"Enter proxy address"}
-            className={cn(
-              "w-full px-3 py-2 border rounded-md",
-              "text-zinc-900 dark:text-zinc-100",
-              "bg-white dark:bg-zinc-800",
-              "border-zinc-300 dark:border-zinc-700",
-              "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
-              "placeholder:text-zinc-400 dark:placeholder:text-zinc-500",
-            )}
-            label="Proxy Address"
             disabled={isProcessing}
+            showError={true}
           />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             Override the current proxy address ({manualProxyAddress?.substring(0, 10)}... or leave empty to use default)
@@ -497,7 +488,7 @@ export default function ChangeWeight() {
         </div>
 
         <div className="space-y-2">
-          <SelectSubnetId 
+          <SelectSubnetId
             value={currentSubnetId}
             onChange={setCurrentSubnetId}
             error={null}

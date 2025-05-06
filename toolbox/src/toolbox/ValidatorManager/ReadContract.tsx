@@ -7,10 +7,10 @@ import type { AbiEvent } from "viem"
 import { useEffect, useState } from "react"
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
 import { Button } from "../../components/Button"
-import { Input } from "../../components/Input"
 import { Container } from "../components/Container"
 import { ChevronDown, ChevronRight } from "lucide-react"
 import { getSubnetInfo } from "../../coreViem/utils/glacier"
+import { EVMAddressInput } from "../components/EVMAddressInput"
 
 type ViewData = {
   [key: string]: any
@@ -138,11 +138,12 @@ export default function ReadContract() {
       description="This will read the data from the ValidatorManager contract."
     >
       <div className="space-y-4">
-        <Input
+        <EVMAddressInput
           label="Proxy Address"
-          value={proxyAddress || ""}
-          placeholder="0x..."
-          onChange={(value) => setProxyAddress(value)}
+          value={proxyAddress}
+          onChange={setProxyAddress}
+          disabled={isReading}
+          showError={true}
         />
         <Button
           variant="secondary"

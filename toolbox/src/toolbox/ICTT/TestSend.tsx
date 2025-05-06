@@ -11,6 +11,7 @@ import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20To
 import ExampleERC20ABI from "../../../contracts/icm-contracts/compiled/ExampleERC20.json";
 import { createPublicClient, http, formatUnits, parseUnits, Address, zeroAddress } from "viem";
 import { Input, Suggestion } from "../../components/Input";
+import { EVMAddressInput } from "../components/EVMAddressInput";
 import { utils } from "@avalabs/avalanchejs";
 import SelectChainID from "../components/SelectChainID";
 
@@ -386,23 +387,24 @@ export default function TokenBridge() {
                     error={destChainError}
                 />
 
-                <Input
+                <EVMAddressInput
                     label={`Source Bridge Contract on ${selectedL1?.name}`}
                     value={sourceContractAddress}
                     onChange={(value) => setSourceContractAddress(value as Address)}
-                    required
+                    disabled={isProcessingSend || isProcessingApproval}
+                    showError={true}
                     suggestions={sourceContractSuggestions}
                     placeholder="0x... Bridge contract on current chain"
                 />
 
-                <Input
+                <EVMAddressInput
                     label={`Destination Bridge Contract on ${destL1?.name || 'destination chain'}`}
                     value={destinationContractAddress}
                     onChange={(value) => setDestinationContractAddress(value as Address)}
-                    required
+                    disabled={!destinationChainId || isProcessingSend || isProcessingApproval}
+                    showError={true}
                     suggestions={destinationContractSuggestions}
                     placeholder="0x... Bridge contract on destination chain"
-                    disabled={!destinationChainId}
                 />
 
                 {isFetchingSourceInfo && <div className="text-gray-500">Loading token info...</div>}
@@ -443,11 +445,12 @@ export default function TokenBridge() {
                     )}
                 </div>
 
-                <Input
+                <EVMAddressInput
                     label={`Recipient Address on ${destL1?.name || 'destination chain'}`}
                     value={recipientAddress}
                     onChange={(value) => setRecipientAddress(value as Address)}
-                    required
+                    disabled={isProcessingSend || isProcessingApproval}
+                    showError={true}
                     button={<Button
                         onClick={() => setRecipientAddress(walletEVMAddress ? walletEVMAddress as Address : "")}
                         stickLeft

@@ -22,6 +22,7 @@ import { getValidationIdHex } from "../../coreViem/hooks/getValidationID"
 import { useStepProgress, StepsConfig } from "../hooks/useStepProgress"
 import { setL1ValidatorWeight } from "../../coreViem/methods/setL1ValidatorWeight"
 import SelectSubnetId from "../components/SelectSubnetId"
+import { EVMAddressInput } from "../components/EVMAddressInput"
 
 // Define step keys and configuration
 type RemovalStepKey =
@@ -207,13 +208,13 @@ export default function RemoveValidator() {
           if (!currentValidationID) {
             throw new Error("Validation ID is missing. Retrying might be needed.")
           }
-          
+
           // Use justificationSubnetId for the justification, falling back to selectedL1
           const subnetIdForJustification = justificationSubnetId || selectedL1?.subnetId;
           if (!subnetIdForJustification) {
             throw new Error("Subnet ID is missing.")
           }
-          
+
           const justification = await GetRegistrationJustification(
             nodeID,
             currentValidationID,
@@ -282,7 +283,7 @@ export default function RemoveValidator() {
             chain: viemChain
           })
           console.log("Transaction sent:", hash)
-                let receipt;
+          let receipt;
           try {
             receipt = await publicClient.waitForTransactionReceipt({ hash })
             console.log("Transaction receipt:", receipt)
@@ -358,28 +359,18 @@ export default function RemoveValidator() {
         </div>
 
         <div className="space-y-2">
-          <Input
-            id="proxyAddress"
-            type="text"
+          <EVMAddressInput
+            label="Proxy Address"
             value={manualProxyAddress}
             onChange={setManualProxyAddress}
-            placeholder={"Enter proxy address"}
-            className={cn(
-              "w-full px-3 py-2 border rounded-md",
-              "text-zinc-900 dark:text-zinc-100",
-              "bg-white dark:bg-zinc-800",
-              "border-zinc-300 dark:border-zinc-700",
-              "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
-              "placeholder:text-zinc-400 dark:placeholder:text-zinc-500",
-            )}
-            label="Proxy Address"
             disabled={isProcessing}
+            showError={true}
           />
         </div>
 
         <div className="space-y-2">
-          <SelectSubnetId 
-            value={justificationSubnetId} 
+          <SelectSubnetId
+            value={justificationSubnetId}
             onChange={setJustificationSubnetId}
           />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
