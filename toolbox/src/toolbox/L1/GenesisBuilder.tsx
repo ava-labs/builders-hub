@@ -353,8 +353,8 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
                             onClick={() => setActiveTab(tabId)}
                             disabled={tabId === "genesis" && !isGenesisReady}
                             className={`py-2 px-4 font-medium disabled:opacity-50 disabled:cursor-not-allowed ${activeTab === tabId
-                                    ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400"
-                                    : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+                                ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400"
+                                : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
                                 }`}
                         >
                             {tabId === "config" && "Configuration"}
