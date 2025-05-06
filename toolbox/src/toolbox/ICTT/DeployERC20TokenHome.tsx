@@ -168,7 +168,7 @@ export default function DeployERC20TokenHome() {
                         onChange={setTokenAddress}
                         disabled={isDeploying}
                         showError={true}
-                        helperText={!tokenAddress ? <>Required. Please <a href="#deployExampleERC20" className="underline">deploy an ERC20 token first</a>.</> : undefined}
+                        helperText={<>Please <a href="#deployExampleERC20" className="underline">deploy an ERC20 token first</a>.</>}
                     />
 
                     <Input
