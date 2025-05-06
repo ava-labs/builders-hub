@@ -1,6 +1,5 @@
 "use client";
 
-import { Container } from "../components/Container";
 import { AllowlistComponent } from "../components/AllowListComponents";
 
 // Default Deployer AllowList address

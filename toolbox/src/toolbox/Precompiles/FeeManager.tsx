@@ -6,10 +6,9 @@ import { useViemChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Container } from "../components/Container";
-import { EVMAddressInput } from "../components/EVMAddressInput";
 import { ResultField } from "../components/ResultField";
-import { AllowlistComponent } from "../components/AllowListComponents";
 import feeManagerAbi from "../../../contracts/precompiles/FeeManager.json";
+import { AllowlistComponent } from "../components/AllowListComponents";
 
 // Default Fee Manager address
 const DEFAULT_FEE_MANAGER_ADDRESS =

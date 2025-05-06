@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import { useWalletStore } from "../../lib/walletStore";
-import { useViemChainStore, useSelectedL1 } from "../toolboxStore";
+import { useViemChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
 import { Input } from "../../components/Input";
 import { Success } from "../../components/Success";
 import { AllowlistComponent } from "../components/AllowListComponents";
 import warpMessengerAbi from "../../../contracts/precompiles/WarpMessenger.json";
-import { utils } from "@avalabs/avalanchejs";
 import { RadioGroup } from "../../components/RadioGroup";
 import { avalancheFuji } from 'viem/chains';
 import { createPublicClient, http } from 'viem';
@@ -21,9 +20,8 @@ const DEFAULT_WARP_MESSENGER_ADDRESS =
 type MessageDirection = "CtoL1" | "L1toC";
 
 export default function WarpMessenger() {
-  const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+  const { coreWalletClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
-  const selectedL1 = useSelectedL1()();
   const [messagePayload, setMessagePayload] = useState<string>("");
   const [blockIndex, setBlockIndex] = useState<string>("");
   const [messageIndex, setMessageIndex] = useState<string>("");

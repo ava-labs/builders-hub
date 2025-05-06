@@ -1,7 +1,5 @@
 "use client";
 
-import { useWalletStore } from "../../lib/walletStore";
-import { Container } from "../components/Container";
 import { AllowlistComponent } from "../components/AllowListComponents";
 
 // Default Transaction AllowList address
