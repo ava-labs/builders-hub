@@ -2,20 +2,28 @@
 
 import { useState } from "react";
 import { useWalletStore } from "../../lib/walletStore";
-import { useViemChainStore } from "../toolboxStore";
+import { useViemChainStore, useSelectedL1 } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
-import { ResultField } from "../components/ResultField";
+import { Input } from "../../components/Input";
+import { Success } from "../../components/Success";
 import { AllowlistComponent } from "../components/AllowListComponents";
 import warpMessengerAbi from "../../../contracts/precompiles/WarpMessenger.json";
+import { utils } from "@avalabs/avalanchejs";
+import { RadioGroup } from "../../components/RadioGroup";
+import { avalancheFuji } from 'viem/chains';
+import { createPublicClient, http } from 'viem';
 
 // Default Warp Messenger address
 const DEFAULT_WARP_MESSENGER_ADDRESS =
   "0x0200000000000000000000000000000000000005";
 
+type MessageDirection = "CtoL1" | "L1toC";
+
 export default function WarpMessenger() {
   const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
+  const selectedL1 = useSelectedL1()();
   const [messagePayload, setMessagePayload] = useState<string>("");
   const [blockIndex, setBlockIndex] = useState<string>("");
   const [messageIndex, setMessageIndex] = useState<string>("");
@@ -28,23 +36,38 @@ export default function WarpMessenger() {
   const [isGettingMessage, setIsGettingMessage] = useState(false);
   const [isGettingBlockchainID, setIsGettingBlockchainID] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [messageDirection, setMessageDirection] = useState<MessageDirection>("CtoL1");
+
+  const directionOptions = [
+    { value: "CtoL1", label: "C-Chain to Subnet (L1)" },
+    { value: "L1toC", label: "Subnet (L1) to C-Chain" },
+  ];
+
+  // Get the appropriate chain for the current direction
+  const requiredChain = messageDirection === "CtoL1" ? avalancheFuji : viemChain;
+
+  // Create a client for the required chain
+  const selectedPublicClient = createPublicClient({
+    transport: http(requiredChain?.rpcUrls.default.http[0]),
+  });
 
   const handleSendWarpMessage = async () => {
     if (!coreWalletClient) throw new Error("Wallet client not found");
+    if (!requiredChain) throw new Error("Invalid chain");
 
     setIsSendingMessage(true);
 
     try {
-      const hash = await coreWalletClient.writeContract({
+      const { request } = await selectedPublicClient.simulateContract({
         address: DEFAULT_WARP_MESSENGER_ADDRESS as `0x${string}`,
         abi: warpMessengerAbi.abi,
         functionName: "sendWarpMessage",
         args: [messagePayload],
-        account: walletEVMAddress as `0x${string}`,
-        chain: viemChain,
+        chain: requiredChain,
       });
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const hash = await coreWalletClient.writeContract(request);
+      const receipt = await selectedPublicClient.waitForTransactionReceipt({ hash });
 
       if (receipt.status === "success") {
         setTxHash(hash);
@@ -74,7 +97,7 @@ export default function WarpMessenger() {
   const handleGetBlockchainID = async () => {
     setIsGettingBlockchainID(true);
 
-    const result = await publicClient.readContract({
+    const result = await selectedPublicClient.readContract({
       address: DEFAULT_WARP_MESSENGER_ADDRESS as `0x${string}`,
       abi: warpMessengerAbi.abi,
       functionName: "getBlockchainID",
@@ -87,7 +110,7 @@ export default function WarpMessenger() {
   const handleGetVerifiedWarpBlockHash = async () => {
     setIsGettingBlockHash(true);
 
-    const result = await publicClient.readContract({
+    const result = await selectedPublicClient.readContract({
       address: DEFAULT_WARP_MESSENGER_ADDRESS as `0x${string}`,
       abi: warpMessengerAbi.abi,
       functionName: "getVerifiedWarpBlockHash",
@@ -101,7 +124,7 @@ export default function WarpMessenger() {
   const handleGetVerifiedWarpMessage = async () => {
     setIsGettingMessage(true);
 
-    const result = await publicClient.readContract({
+    const result = await selectedPublicClient.readContract({
       address: DEFAULT_WARP_MESSENGER_ADDRESS as `0x${string}`,
       abi: warpMessengerAbi.abi,
       functionName: "getVerifiedWarpMessage",
@@ -138,13 +161,25 @@ export default function WarpMessenger() {
     isGettingBlockchainID
   );
 
+  const sourceChainText = messageDirection === "CtoL1" ? "C-Chain" : "Subnet (L1)";
+  const destinationChainText = messageDirection === "CtoL1" ? "Subnet (L1)" : "C-Chain";
+
   return (
     <div className="space-y-6">
       <Container
         title="Warp Messenger"
-        description="Send and verify cross-chain messages."
+        description="Send and verify cross-chain messages using the Warp protocol."
       >
         <div className="space-y-4">
+          <div className="p-4 border rounded-md bg-gray-50 dark:bg-gray-900/50">
+            <RadioGroup
+              items={directionOptions}
+              value={messageDirection}
+              onChange={(value) => setMessageDirection(value as MessageDirection)}
+              idPrefix="message-direction-"
+            />
+          </div>
+
           <div className="space-y-4">
             <div className="flex space-x-4">
               <Button
@@ -158,16 +193,14 @@ export default function WarpMessenger() {
             </div>
 
             {blockchainID && (
-              <ResultField label="Blockchain ID" value={blockchainID} />
+              <Success label="Blockchain ID" value={blockchainID} />
             )}
 
             <div className="space-y-2">
-              <input
-                type="text"
-                placeholder="Message Payload (hex)"
+              <Input
+                label="Message Payload (hex)"
                 value={messagePayload}
-                onChange={(e) => setMessagePayload(e.target.value)}
-                className="w-full p-2 border rounded"
+                onChange={setMessagePayload}
                 disabled={isAnyOperationInProgress}
               />
               <Button
@@ -176,19 +209,19 @@ export default function WarpMessenger() {
                 loading={isSendingMessage}
                 disabled={!canSendMessage}
               >
-                Send Warp Message
+                Send Warp Message from {sourceChainText} to {destinationChainText}
               </Button>
             </div>
 
-            {messageID && <ResultField label="Message ID" value={messageID} />}
+            {messageID && <Success label="Message ID" value={messageID} />}
 
             <div className="space-y-2">
-              <input
-                type="number"
-                placeholder="Block Index"
+              <Input
+                label="Block Index"
                 value={blockIndex}
-                onChange={(e) => setBlockIndex(e.target.value)}
-                className="w-full p-2 border rounded"
+                onChange={setBlockIndex}
+                type="number"
+                min="0"
                 disabled={isAnyOperationInProgress}
               />
               <Button
@@ -203,15 +236,15 @@ export default function WarpMessenger() {
 
             {warpBlockHash && (
               <div className="space-y-2">
-                <ResultField
+                <Success
                   label="Source Chain ID"
                   value={warpBlockHash[0].sourceChainID}
                 />
-                <ResultField
+                <Success
                   label="Block Hash"
                   value={warpBlockHash[0].blockHash}
                 />
-                <ResultField
+                <Success
                   label="Valid"
                   value={warpBlockHash[1] ? "Yes" : "No"}
                 />
@@ -219,12 +252,12 @@ export default function WarpMessenger() {
             )}
 
             <div className="space-y-2">
-              <input
-                type="number"
-                placeholder="Message Index"
+              <Input
+                label="Message Index"
                 value={messageIndex}
-                onChange={(e) => setMessageIndex(e.target.value)}
-                className="w-full p-2 border rounded"
+                onChange={setMessageIndex}
+                type="number"
+                min="0"
                 disabled={isAnyOperationInProgress}
               />
               <Button
@@ -239,16 +272,19 @@ export default function WarpMessenger() {
 
             {warpMessage && (
               <div className="space-y-2">
-                <ResultField
+                <Success
                   label="Source Chain ID"
                   value={warpMessage[0].sourceChainID}
                 />
-                <ResultField
+                <Success
                   label="Origin Sender Address"
                   value={warpMessage[0].originSenderAddress}
                 />
-                <ResultField label="Payload" value={warpMessage[0].payload} />
-                <ResultField
+                <Success
+                  label="Payload"
+                  value={warpMessage[0].payload}
+                />
+                <Success
                   label="Valid"
                   value={warpMessage[1] ? "Yes" : "No"}
                 />
@@ -257,11 +293,22 @@ export default function WarpMessenger() {
           </div>
 
           {txHash && (
-            <ResultField
-              label="Transaction Successful"
-              value={txHash}
-              showCheck={true}
-            />
+            <div className="space-y-2">
+              <Success
+                label="Transaction Successful"
+                value={txHash}
+              />
+              {txHash && (
+                <a
+                  href={`https://subnets-test.avax.network/${messageDirection === "CtoL1" ? "c-chain" : viemChain?.name?.toLowerCase()}/tx/${txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-500 hover:underline"
+                >
+                  View on Explorer
+                </a>
+              )}
+            </div>
           )}
         </div>
       </Container>
