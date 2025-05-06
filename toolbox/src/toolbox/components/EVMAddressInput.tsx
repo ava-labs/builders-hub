@@ -25,33 +25,33 @@ export function EVMAddressInput({
   suggestions,
   button,
 }: EVMAddressInputProps) {
-  const [error, setError] = useState<string | undefined>();
+  const [validationError, setValidationError] = useState<string | undefined>();
 
   const validateAddress = (address: string) => {
     if (!address) {
-      setError("Address is required");
+      setValidationError("Address is required");
       return;
     }
 
     if (!address.startsWith("0x")) {
-      setError("Address must start with 0x");
+      setValidationError("Address must start with 0x");
       return;
     }
 
     // EVM addresses are 42 characters (0x + 40 hex characters)
     if (address.length !== 42) {
-      setError("Address must be 42 characters long");
+      setValidationError("Address must be 42 characters long");
       return;
     }
 
     // Check if address contains only valid hex characters after 0x
     const hexRegex = /^0x[0-9a-fA-F]{40}$/;
     if (!hexRegex.test(address)) {
-      setError("Address contains invalid characters");
+      setValidationError("Address contains invalid characters");
       return;
     }
 
-    setError(undefined);
+    setValidationError(undefined);
   };
 
   useEffect(() => {
@@ -65,7 +65,8 @@ export function EVMAddressInput({
         value={value}
         onChange={onChange}
         disabled={disabled}
-        helperText={showError ? error : helperText}
+        error={showError && validationError ? validationError : undefined}
+        helperText={helperText}
         placeholder={placeholder}
         suggestions={suggestions}
         button={button}
