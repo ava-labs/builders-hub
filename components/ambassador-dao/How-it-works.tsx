@@ -23,7 +23,7 @@ const [openAuthModal, setOpenAuthModal] = useState(false);
   return (
     <div className="dark:bg-black bg-white text-[var(--white-text-color)] py-8">
       <div className="mx-auto">
-        <div className="flex items-center mb-14 gap-2">
+        <div className="flex items-center mb-6 gap-2">
           <ListChecks color="var(--white-text-color)" />
           <h2 className="text-lg font-medium ml-1">How It Works</h2>
         </div>
@@ -45,13 +45,13 @@ const [openAuthModal, setOpenAuthModal] = useState(false);
             />
           </svg>
 
-          <div className="space-y-8 relative mb-8">
+          <div className="space-y-5 relative mb-8">
             {steps.map((step, index) => (
               <div
                 key={step.number}
-                className="flex items-center gap-4 relative dark:bg-white bg-card-grad rounded-md shadow-md pl-10"
+                className="flex items-center gap-4 relative bg-card-grad rounded-md shadow-md pl-10"
               >
-                <div className="w-9 h-9 dark:bg-white bg-black rounded-full flex items-center justify-center text-white dark:text-black text-xl font-semibold z-10">
+                <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-black text-xl font-semibold z-10">
                   {step.number}
                 </div>
 

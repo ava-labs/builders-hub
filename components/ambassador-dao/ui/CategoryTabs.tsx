@@ -75,12 +75,12 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
             ${
               selectedCategory === category.id
                 ? "border border-red-500"
-                : "border border-gray-800"
+                : "border border-[var(--default-border-color)]"
             }
           `}
           aria-selected={selectedCategory === category.id}
         >
-          <span className="text-[var(--white-text-color)]">
+          <span className="text-[var(--white-text-color)] bg-[var(--category-bg-color)] p-2 rounded-sm">
             {category.icon}
           </span>
           <span className="font-medium text-xs lg:!text-lg">{category.name}</span>
