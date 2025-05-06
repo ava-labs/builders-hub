@@ -189,7 +189,7 @@ const AmbasssadorDaoProfilePage = () => {
                     (skill: { name: string; id: string }) => (
                       <div
                         key={skill.id}
-                        className='text-xs px-2 py-1 bg-[#F5F5F9] text-[#161617] rounded-full text-center border border-[var(--default-border-color)]'
+                        className='capitalize text-xs px-2 py-1 bg-[#F5F5F9] text-[#161617] rounded-full text-center border border-[var(--default-border-color)]'
                       >
                         {skill.name}
                       </div>

@@ -169,7 +169,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
 
     return (
       <div
-        className={`border border-dashed border-[var(--default-border-color)] rounded-md p-6 flex flex-col items-center justify-center ${height} cursor-pointer`}
+        className={`border border-dashed border-[var(--default-border-color)] rounded-md p-6 flex flex-col items-center justify-center ${height} cursor-pointer mb-3`}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={() => document.getElementById(inputId)?.click()}

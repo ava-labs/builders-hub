@@ -154,7 +154,7 @@ export const SumbissionReviewDetailsModal = ({
                 <div className='flex flex-wrap gap-2 mt-2'>
                   {submission.submitter.skills.map((skill) => (
                     <div
-                      className='text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]'
+                      className='capitalize text-xs px-2 py-1 rounded-full text-center border border-[var(--default-border-color)]'
                       key={skill.id}
                     >
                       {skill.name}

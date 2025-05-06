@@ -155,7 +155,7 @@ const ClaimXPModal: React.FC<XPModalProps> = ({ isOpen, onClose, id }) => {
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className='space-y-6'>
             <div className='space-y-2'>
-              <label className='block text-white'>
+              <label className='block text-[var(--white-text-color)]'>
                 Project Name<span className='text-red-500'>*</span>
               </label>
               <input
@@ -178,7 +178,7 @@ const ClaimXPModal: React.FC<XPModalProps> = ({ isOpen, onClose, id }) => {
             </div>
 
             <div className='space-y-2'>
-              <label className='block text-white'>
+              <label className='block text-[var(--white-text-color)]'>
                 Project Description<span className='text-red-500'>*</span>
               </label>
               <input
@@ -201,7 +201,7 @@ const ClaimXPModal: React.FC<XPModalProps> = ({ isOpen, onClose, id }) => {
             </div>
 
             <div className='space-y-2'>
-              <label className='block text-white'>
+              <label className='block text-[var(--white-text-color)]'>
                 Upload Event Images or Documents
               </label>
               <p className='text-sm text-[var(--secondary-text-color)] mb-2'>
@@ -281,7 +281,7 @@ const ClaimXPModal: React.FC<XPModalProps> = ({ isOpen, onClose, id }) => {
             </div>
 
             <div className='space-y-2'>
-              <label className='block text-white'>
+              <label className='block text-[var(--white-text-color)]'>
                 Event Link
                 <span className='text-red-500'>*</span>
               </label>
