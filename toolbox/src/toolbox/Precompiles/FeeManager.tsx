@@ -18,42 +18,39 @@ const DEFAULT_FEE_MANAGER_ADDRESS =
 // Validation constants
 const VALIDATION_RULES = {
   gasLimit: {
-    min: 8_000_000,
-    max: 100_000_000,
+    min: 0,
     warnMin: 15_000_000,
     warnMax: 30_000_000,
     message:
-      "Gas limit should be between 8M and 100M. Recommended range is 15M-30M.",
+      "Gas limit should be at least 0. Values below 15M or above 30M may impact network performance.",
   },
   targetBlockRate: {
-    min: 1,
-    max: 120,
+    min: 0,
     warnMax: 10,
     message:
-      "Target block rate should be between 1 and 120. Values above 10 may cause network instability.",
+      "Target block rate should be at least 0. Values above 10 may cause network instability.",
   },
   minBaseFee: {
-    min: 25_000_000_000, // 25 gwei
+    min: 0,
     warnMin: 1_000_000_000, // 1 gwei
     warnMax: 500_000_000_000, // 500 gwei
     message:
-      "Minimum base fee should be at least 25 gwei. Values below 1 gwei or above 500 gwei may cause issues.",
+      "Minimum base fee should be at least 0. Values below 1 gwei or above 500 gwei may cause issues.",
   },
   targetGas: {
-    min: 500_000,
-    max: 200_000_000,
+    min: 0,
     warnMin: 1_000_000,
     warnMax: 50_000_000,
     message:
-      "Target gas should be between 500K and 200M. Recommended minimum is 1M.",
+      "Target gas should be at least 0. Values below 1M or above 50M may impact network performance.",
   },
   baseFeeChangeDenominator: {
-    min: 2,
+    min: 0,
     warnMin: 8,
     warnMax: 1000,
     typical: 48,
     message:
-      "Base fee change denominator should be at least 2. Typical value is 48. Values below 8 or above 1000 may cause instability.",
+      "Base fee change denominator should be at least 0. Typical value is 48. Values below 8 or above 1000 may cause instability.",
   },
   minBlockGasCost: {
     min: 0,
@@ -62,14 +59,16 @@ const VALIDATION_RULES = {
       "Minimum block gas cost should be at least 0. Values above 1e9 may cause issues.",
   },
   maxBlockGasCost: {
+    min: 0,
     warnMax: 10_000_000_000,
     message:
       "Maximum block gas cost should be greater than minimum block gas cost. Values above 1e10 may cause issues.",
   },
   blockGasCostStep: {
+    min: 0,
     warnMax: 5_000_000,
     message:
-      "Block gas cost step should be reasonable. Values above 5M may cause large fee fluctuations.",
+      "Block gas cost step should be at least 0. Values above 5M may cause large fee fluctuations.",
   },
 };
 
@@ -77,7 +76,7 @@ const VALIDATION_RULES = {
 const validateGasLimit = (value: string) => {
   const num = BigInt(value);
   const rules = VALIDATION_RULES.gasLimit;
-  if (num < rules.min || num > rules.max) {
+  if (num < rules.min) {
     return { isValid: false, message: rules.message };
   }
   if (num < rules.warnMin || num > rules.warnMax) {
@@ -89,7 +88,7 @@ const validateGasLimit = (value: string) => {
 const validateTargetBlockRate = (value: string) => {
   const num = BigInt(value);
   const rules = VALIDATION_RULES.targetBlockRate;
-  if (num < rules.min || num > rules.max) {
+  if (num < rules.min) {
     return { isValid: false, message: rules.message };
   }
   if (num > rules.warnMax) {
@@ -113,7 +112,7 @@ const validateMinBaseFee = (value: string) => {
 const validateTargetGas = (value: string) => {
   const num = BigInt(value);
   const rules = VALIDATION_RULES.targetGas;
-  if (num < rules.min || num > rules.max) {
+  if (num < rules.min) {
     return { isValid: false, message: rules.message };
   }
   if (num < rules.warnMin || num > rules.warnMax) {
@@ -150,11 +149,13 @@ const validateMaxBlockGasCost = (value: string, minValue: string) => {
   const num = BigInt(value);
   const minNum = BigInt(minValue);
   const rules = VALIDATION_RULES.maxBlockGasCost;
+  if (num < rules.min) {
+    return { isValid: false, message: rules.message };
+  }
   if (num < minNum) {
     return {
       isValid: false,
-      message:
-        "Maximum block gas cost must be greater than minimum block gas cost.",
+      message: "Maximum block gas cost must be greater than minimum block gas cost.",
     };
   }
   if (num > rules.warnMax) {
@@ -166,6 +167,9 @@ const validateMaxBlockGasCost = (value: string, minValue: string) => {
 const validateBlockGasCostStep = (value: string) => {
   const num = BigInt(value);
   const rules = VALIDATION_RULES.blockGasCostStep;
+  if (num < rules.min) {
+    return { isValid: false, message: rules.message };
+  }
   if (num > rules.warnMax) {
     return { isValid: true, message: rules.message, isWarning: true };
   }
@@ -195,6 +199,7 @@ const InputWithValidation = ({
         value={value}
         onChange={onChange}
         type={type}
+        min="0"
         disabled={disabled}
       />
       {warning && !disabled && (
