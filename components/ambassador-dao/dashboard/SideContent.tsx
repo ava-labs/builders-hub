@@ -68,7 +68,9 @@ export const AmbassadorCard = ({
           <h3 className="font-medium mb-1 text-lg md:text-xl text-[var(--white-text-color)]">
             {title}
           </h3>
-          <p className="text-xs opacity-80">{description}</p>
+          <p className="text-sm opacity-80 text-[var(--secondary-text-color)]">
+            {description}
+          </p>
         </div>
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
           <ArrowUpRight color="white" className="h-6 w-6" />
@@ -82,19 +84,14 @@ const LeaderboardCard = () => {
   return (
     <Link href={"/ambassador-dao/leaderboard"}>
       {" "}
-      <div
-        className="rounded-lg blue-card-bg mb-4 relative overflow-hidden cursor-pointer"
-      >
+      <div className="rounded-md trophy mb-4 relative overflow-hidden cursor-pointer dark:border-none border border-[var(--default-border-color)] h-[72px]">
         <div className="relative z-10 text-[var(--white-text-color)] p-4">
-          <h3 className="font-medium text-lg md:text-xl mb-1 text-blue-500">
+          <h3 className="font-medium text-lg md:text-xl mb-1 text-[var(--white-text-color)]">
             Leaderboard
           </h3>
-          <p className="text-xs opacity-80">
-            Explore the leaderboard to view top contributors.
-          </p>
         </div>
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-          <ArrowUpRight color="white" className="h-6 w-6" />
+          <ArrowUpRight color="var(--white-text-color)" className="h-6 w-6" />
         </div>
       </div>
     </Link>
@@ -102,20 +99,19 @@ const LeaderboardCard = () => {
 };
 
 const SideContent = ({ user }: { user: any }) => {
-
   const steps = [
     {
       number: 1,
-      title: 'Create Your Account',
-      linkText: 'Here',
+      title: "Create Your Account",
+      linkText: "Here",
     },
     {
       number: 2,
-      title: 'Complete Bounties',
+      title: "Complete Bounties",
     },
     {
       number: 3,
-      title: 'Get Paid',
+      title: "Get Paid",
     },
   ];
 
@@ -152,28 +148,27 @@ const SideContent = ({ user }: { user: any }) => {
 
   return (
     <div className="lg:col-span-1">
-      <HowItWorks steps={steps}/>
+      <HowItWorks steps={steps} />
       <LeaderboardCard />
       <>
         {leaderboardData?.data?.slice(0, 3)?.map((user, index) => (
           <div
             key={user.id}
-            className={`grid grid-cols-12 px-4 py-3 my-4 rounded-xl items-center bg-gray-300 dark:bg-[#171717]`}
+            className={`grid grid-cols-12 px-4 py-3 my-4 rounded-md items-center h-[60px] dark:border-none border border-[var(--default-border-color)] `}
             style={{
               background:
                 (currentPage - 1) * 10 + index + 1 === 1
-                  ? "linear-gradient(90.38deg, rgba(255, 122, 0, 0.24) 0%, #171717 50.33%)"
+                  ? "linear-gradient(90.38deg, rgba(255, 122, 0, 0.24) 0%, rgba(255, 92, 0, 0) 50.33%)"
                   : (currentPage - 1) * 10 + index + 1 === 2
-                  ? "linear-gradient(90.26deg, rgba(172, 166, 190, 0.24) 0%, #171717 50.23%)"
+                  ? "linear-gradient(90.26deg, rgba(172, 166, 190, 0.24) 0%, rgba(172, 166, 190, 0) 50.23%)"
                   : (currentPage - 1) * 10 + index + 1 === 3
-                  ? "linear-gradient(90.26deg, rgba(233, 125, 102, 0.24) 0%, #171717 50.23%)"
+                  ? "linear-gradient(90.38deg, rgba(255, 122, 0, 0.24) 0%, rgba(255, 92, 0, 0) 50.33%)"
                   : "",
             }}
           >
-            <div className="">
-              {getRankIcon(index, currentPage)}
-            </div>
-            <div className="flex items-center gap-4">
+            <div className="col-span-1">{getRankIcon(index, currentPage)}</div>
+
+            <div className="col-span-9 flex items-center gap-4">
               <Image
                 src={DefaultAvatar}
                 alt={user.nickname}
@@ -181,19 +176,20 @@ const SideContent = ({ user }: { user: any }) => {
                 height={32}
                 className="hidden md:block rounded-full"
               />
-              <div className="flex gap-2 md:gap-4 md:items-center">
-                <span
-                  className="ml-3 text-white text-xs sm:!text-base capitalize truncate max-w-[150px]"
-                  title={user.nickname}
-                >
-                  {user.nickname}
+              <span
+                className="text-[var(--white-text-color)] text-xs sm:!text-base capitalize truncate max-w-[150px]"
+                title={user.nickname}
+              >
+                {user.nickname}
+              </span>
+            </div>
+
+            <div className="col-span-2 flex justify-end">
+              {user.tag === "ambassador" && (
+                <span className="px-3 py-1 text-xs flex justify-center items-center dark:bg-[#444444] bg-[#e4e4e7] text-[var(--white-text-color)] rounded-md capitalize">
+                  {user.tag}
                 </span>
-                {user.tag === "ambassador" && (
-                  <span className="px-3 py-1 text-xs flex justify-end bg-[#fb2c36e9] dark:bg-[#FB2C3633] text-[#fff] dark:text-[#FB2C36] rounded-md capitalize">
-                    {user.tag}
-                  </span>
-                )}
-              </div>
+              )}
             </div>
           </div>
         ))}

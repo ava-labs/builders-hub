@@ -57,10 +57,7 @@ const MainContent = ({ user }: { user: any }) => {
     type: "JOB",
     query: searchParams.get("job_query") || "",
     skill_ids: jobSkillIds,
-    min_budget: searchParams.get("job_min_budget") || "",
-    max_budget: searchParams.get("job_max_budget") || "",
-    category: searchParams.get("job_category") || "",
-    status: searchParams.get("job_status") || "",
+    sort_direction: searchParams.get("job_sort_direction") || "desc",
     page: currentJobPage,
   });
 
@@ -68,10 +65,7 @@ const MainContent = ({ user }: { user: any }) => {
     type: "BOUNTY",
     query: searchParams.get("bounty_query") || "",
     skill_ids: bountySkillIds,
-    min_budget: searchParams.get("bounty_min_budget") || "",
-    max_budget: searchParams.get("bounty_max_budget") || "",
-    category: searchParams.get("bounty_category") || "",
-    status: searchParams.get("bounty_status") || "",
+    sort_direction: searchParams.get("sort_direction") || "desc",
     page: currentBountyPage,
   });
 
@@ -108,10 +102,7 @@ const MainContent = ({ user }: { user: any }) => {
         type: "JOB",
         query: searchParams.get("job_query") || "",
         skill_ids: searchParams.get("job_skill_ids") || "",
-        min_budget: searchParams.get("job_min_budget") || "",
-        max_budget: searchParams.get("job_max_budget") || "",
-        category: searchParams.get("job_category") || "",
-        status: searchParams.get("job_status") || "",
+        sort_direction: searchParams.get("job_sort_direction") || "desc",
         page: currentJobPage,
       };
 
@@ -121,10 +112,7 @@ const MainContent = ({ user }: { user: any }) => {
         type: "BOUNTY",
         query: searchParams.get("bounty_query") || "",
         skill_ids: searchParams.get("bounty_skill_ids") || "",
-        min_budget: searchParams.get("bounty_min_budget") || "",
-        max_budget: searchParams.get("bounty_max_budget") || "",
-        category: searchParams.get("bounty_category") || "",
-        status: searchParams.get("bounty_status") || "",
+        sort_direction: searchParams.get("bounty_sort_direction") || "desc",
         page: currentBountyPage,
       };
 
@@ -242,34 +230,7 @@ const MainContent = ({ user }: { user: any }) => {
   };
 
   const handleCategoryChange = (category: string) => {
-    // If empty category selected (or same category clicked again), clear filters
-    // if (!category || category === selectedCategory) {
-    //   setSelectedCategory("");
-
-    //   // Create new URLSearchParams object
-    //   const params = new URLSearchParams(searchParams.toString());
-
-    //   // Clear skill IDs from URL
-    //   params.delete("job_skill_ids");
-    //   params.delete("bounty_skill_ids");
-
-    //   // Update URL
-    //   router.push(`${pathname}?${params.toString()}`);
-
-    //   // Update local filter states
-    //   setJobFilters({
-    //     ...jobFilters,
-    //     skill_ids: ""
-    //   });
-
-    //   setBountyFilters({
-    //     ...bountyFilters,
-    //     skill_ids: ""
-    //   });
-
-    //   return;
-    // }
-
+ 
     setSelectedCategory(category);
 
     const skillId = CATEGORY_SKILL_MAPPING[category] || "";
@@ -307,10 +268,7 @@ const MainContent = ({ user }: { user: any }) => {
       type: "JOB",
       query: "",
       skill_ids: "",
-      min_budget: "",
-      max_budget: "",
-      category: "",
-      status: "",
+      sort_direction: "",
       page: 1,
     });
 
@@ -318,10 +276,7 @@ const MainContent = ({ user }: { user: any }) => {
       type: "BOUNTY",
       query: "",
       skill_ids: "",
-      min_budget: "",
-      max_budget: "",
-      category: "",
-      status: "",
+      sort_direction: "",
       page: 1,
     });
 

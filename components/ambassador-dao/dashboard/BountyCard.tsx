@@ -2,11 +2,11 @@ import { IBountyDataType } from "@/services/ambassador-dao/interfaces/opportunit
 import { getTimeLeft } from "@/utils/timeFormatting";
 import { FileText, Hourglass, Lightbulb } from "lucide-react";
 import Image from "next/image";
-import Team1 from "@/public/ambassador-dao-images/Avalanche-team1.png";
 import { useRouter } from "next/navigation";
 import { Outline } from "../ui/Outline";
 import Token from "@/public/images/usdcToken.svg";
 import XP from "@/public/ambassador-dao-images/sparkles.svg";
+import XPDark from "@/public/ambassador-dao-images/sparkles-dark.svg";
 
 export const BountyCard = ({ bounty }: IBountyDataType) => {
   const {
@@ -73,17 +73,11 @@ export const BountyCard = ({ bounty }: IBountyDataType) => {
           </div>
           <div className="hidden sm:flex items-center">
             {parseFloat(total_budget) > 0 && (
-              <span className="text-[#FFFFFF] bg-[#162456] border border-[#2B7FFF] rounded-md p-2 flex items-center gap-1 shrink-0 text-xs">
+              <span className="dark:text-[#FFFFFF] dark:bg-[#162456] font-bold text-[#1C398E] bg-[#EFF6FF] border border-[#2B7FFF] rounded-md p-2 flex items-center gap-1 shrink-0 text-xs">
                 <Image src={Token} alt="$" />
                 {parseFloat(total_budget).toLocaleString()}
               </span>
             )}
-            {/* {xp_allocated > 0 && (
-              <span className="hidden text-[#FFFFFF] bg-[#27272A] border border-[#D4D4D8] rounded-md p-2 items-center gap-1 shrink-0 text-xs">
-                <Image src={XP} alt="$" />
-                {xp_allocated} XP
-              </span>
-            )} */}
           </div>
         </div>
       </div>
@@ -100,15 +94,20 @@ export const BountyCard = ({ bounty }: IBountyDataType) => {
         <div>
           {parseFloat(total_budget) > 0 && (
             <div className="shrink-0 sm:hidden">
-              <span className="text-[#FFFFFF] bg-[#162456] border border-[#2B7FFF] rounded-md p-2 flex items-center gap-1 text-xs">
+              <span className="dark:text-[#FFFFFF] dark:bg-[#162456] font-bold text-[#1C398E] bg-[#EFF6FF] border border-[#2B7FFF] rounded-md p-2 flex items-center gap-1 shrink-0 text-xs">
                 <Image src={Token} alt="$" />
                 {parseFloat(total_budget).toLocaleString()}
               </span>
             </div>
           )}
           {xp_allocated > 0 && (
-            <span className="mt-4 sm:mt-1 text-[#FFFFFF] bg-[#27272A] border border-[#D4D4D8] rounded-md p-2 flex items-center gap-1 shrink-0 text-xs">
-              <Image src={XP} alt="$" />
+            <span className="mt-4 sm:mt-1 dark:text-[#FFFFFF] dark:bg-[#27272A] font-bold text-[#18181B] bg-[#F4F4F5] border border-[#D4D4D8] rounded-md p-2 flex items-center gap-1 shrink-0 text-xs">
+              <div className="hidden dark:block">
+                <Image src={XP} alt="XP" />
+              </div>
+              <div className="block dark:hidden">
+                <Image src={XPDark} alt="XP" />
+              </div>
               {xp_allocated} XP
             </span>
           )}

@@ -9,6 +9,16 @@ export const jobTypes = [
   { id: "AMBASSADOR_SPECIFIC", label: "Ambassador" },
 ];
 
+export const sortOrderTypes = [
+  { id: "desc", label: "Most Recent" },
+  { id: "asc", label: "Oldest First" },
+  { id: "lowest_paying", label: "Lowest Paying" },
+  { id: "ending_soon", label: "Ending Soon" },
+  { id: "most_popular", label: "Most Popular" },
+  { id: "least_popular", label: "Least Popular" },
+];
+
+
 export const budgetRange = [
   { id: "1-5000", label: "1-5000" },
   { id: "5001-10000", label: "5001-10000" },

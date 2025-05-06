@@ -19,11 +19,11 @@ export const ViewAllButton = ({ type }: { type: string }) => {
   return (
     !hasQueryParam && (
       <button
-        className='inline-flex gap-2'
+        className='inline-flex gap-x-2'
         onClick={handleViewAll}
       >
-        Show all
-        <ArrowRight size={18} color="var(--white-text-color)" />
+        Show All
+        <ArrowRight size={20} color="var(--white-text-color)" />
       </button>
     )
   );

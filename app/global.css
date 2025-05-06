@@ -789,6 +789,9 @@ html body[data-scroll-locked] {
   --black-background-color: #fff;
   --default-border-color: #d4d4d8;
   --default-background-color: #fafafa;
+  --category-bg-color: #E4E4E7;
+
+
 }
 
 /* light */
@@ -799,12 +802,18 @@ html body[data-scroll-locked] {
   --black-background-color: #000;
   --default-border-color: #27272a;
   --default-background-color: #09090b;
+  --category-bg-color: #27272A;
+
+  
   .bg-card-grad {
     background-image: url(../public/ambassador-dao-images/how-it-works.svg);
     background-repeat: no-repeat;
-    background-position: center;
+     background-position: right center;
     background-size: cover;
+    position: relative;
+    border: none;
   }
+
   header a[data-active="true"] {
     color: #fafafa !important;
   }
@@ -813,7 +822,14 @@ html body[data-scroll-locked] {
     background-image: url(../public/ambassador-dao-images/welcome.svg);
     background-repeat: no-repeat;
     background-position: center;
-    background-size: cover;
+  }
+
+  .trophy {
+    background-image: url(../public/ambassador-dao-images/trophy.svg);
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: contain;
+    position: relative;
   }
   
 }
@@ -856,11 +872,11 @@ header a[data-active="true"] {
 }
 
 .bg-welcome {
-  background-image: url(../public/ambassador-dao-images/welcome.svg);
+  background-image: url(../public/ambassador-dao-images/welcome2.svg);
   background-repeat: no-repeat;
   background-position: center;
-  background-size: cover;
 }
+
 
 
 
@@ -868,18 +884,33 @@ header a[data-active="true"] {
 .red-card-bg {
   background-image: url(../public/ambassador-dao-images/red-card-bg.svg);
   background-repeat: no-repeat;
-  background-position: center;
+  background-position: right center;
   background-size: cover;
+  position: relative;
 }
 
 .blue-card-bg {
   background-image: url(../public/ambassador-dao-images/blue-card-bg.svg);
   background-repeat: no-repeat;
-  background-position: center;
+  background-position: right center;
   background-size: cover;
+  position: relative;
+}
+
+.trophy {
+  background-image: url(../public/ambassador-dao-images/trophy.svg);
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: contain;
+  position: relative;
 }
 
 
-.bg-card-grad2 {
-  backgroud: '#fff'
+.bg-card-grad {
+background: linear-gradient(91.94deg, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0) 51.64%);
+background-repeat: no-repeat;
+  background-position: right center;
+ background-size: cover;
+ position: relative;
+ border: 1px solid #F4F4F5;
 }

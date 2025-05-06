@@ -65,7 +65,7 @@ export const JobCard = ({ job }: IJobDataType) => {
           </div>
           <div className="hidden sm:flex items-center">
             {parseFloat(total_budget) > 0 && (
-              <span className="text-[#FFFFFF] bg-[#162456] border border-[#2B7FFF] rounded-md p-2 flex items-center gap-1 shrink-0 text-xs">
+              <span className="dark:text-[#FFFFFF] dark:bg-[#162456] font-bold text-[#1C398E] bg-[#EFF6FF] border border-[#2B7FFF] rounded-md p-2 flex items-center gap-1 shrink-0 text-xs">
                 <Image src={Token} alt="$" />
                 {parseFloat(total_budget).toLocaleString()}
               </span>
@@ -85,7 +85,7 @@ export const JobCard = ({ job }: IJobDataType) => {
 
         {parseFloat(total_budget) > 0 && (
           <div className="shrink-0 sm:hidden">
-            <span className="text-[#FFFFFF] bg-[#162456] border border-[#2B7FFF] rounded-md p-2 flex items-center gap-1 text-xs">
+            <span className="dark:text-[#FFFFFF] dark:bg-[#162456] font-bold text-[#1C398E] bg-[#EFF6FF] border border-[#2B7FFF] rounded-md p-2 flex items-center gap-1 shrink-0 text-xs">
               <Image src={Token} alt="$" />
               {parseFloat(total_budget).toLocaleString()}
             </span>
