@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useErrorBoundary } from "react-error-boundary"
 import { Copy } from "lucide-react"
 import { createCoreWalletClient } from "../coreViem"
@@ -12,6 +12,7 @@ import { WalletRequiredPrompt } from "./WalletRequiredPrompt"
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt"
 import { RefreshOnMainnetTestnetChange } from "./RefreshOnMainnetTestnetChange"
 import { avalanche, avalancheFuji } from "viem/chains"
+import InterchainTransfer from "./InterchainTransfer"
 
 export const ConnectWallet = ({ children, required, extraElements }: { children: React.ReactNode; required: boolean; extraElements?: React.ReactNode }) => {
     const setWalletChainId = useWalletStore(state => state.setWalletChainId);
@@ -21,6 +22,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
     const coreWalletClient = useWalletStore(state => state.coreWalletClient);
     const setAvalancheNetworkID = useWalletStore(state => state.setAvalancheNetworkID);
     const setPChainAddress = useWalletStore(state => state.setPChainAddress);
+    const setCoreEthAddress = useWalletStore(state => state.setCoreEthAddress);
     const pChainAddress = useWalletStore(state => state.pChainAddress);
     const walletChainId = useWalletStore(state => state.walletChainId);
     const setIsTestnet = useWalletStore(state => state.setIsTestnet);
@@ -40,52 +42,57 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
         setIsClient(true)
     }, [])
 
-    // Fetch EVM balance
-    useEffect(() => {
-        if (!walletEVMAddress || !walletChainId) return;
-
+    // Define balance fetching functions using useCallback
+    const fetchEVMBalance = useCallback(async () => {
+        if (!walletEVMAddress || !walletChainId || !publicClient) return;
         setSelectedL1Balance("...");
-
-        const fetchEVMBalance = async () => {
-            try {
-                const l1Balance = await publicClient.getBalance({
-                    address: walletEVMAddress as `0x${string}`,
-                });
-                setSelectedL1Balance((Number(l1Balance) / 1e18).toFixed(2));
-            } catch (l1Error) {
-                console.error(`Error fetching balance for ${walletChainId}:`, l1Error);
-                setSelectedL1Balance("?"); // Indicate error fetching balance
-            }
+        try {
+            const l1Balance = await publicClient.getBalance({
+                address: walletEVMAddress as `0x${string}`,
+            });
+            setSelectedL1Balance((Number(l1Balance) / 1e18).toFixed(2));
+        } catch (l1Error) {
+            console.error(`Error fetching balance for ${walletChainId}:`, l1Error);
+            setSelectedL1Balance("?"); // Indicate error fetching balance
         }
-
-        fetchEVMBalance();
-        // Set up polling for balance updates
-        const interval = setInterval(fetchEVMBalance, 30000); // Update every 30 seconds
-        return () => clearInterval(interval);
     }, [walletEVMAddress, walletChainId, publicClient]);
 
-    // Fetch P-Chain balance
-    useEffect(() => {
+    const fetchPChainBalance = useCallback(async () => {
         if (!pChainAddress || !coreWalletClient) return;
-
         setPChainBalance("...");
-
-        const fetchPChainBalance = async () => {
-
-            try {
-                const pBalance = await coreWalletClient.getPChainBalance();
-                setPChainBalance((Number(pBalance) / 1e9).toFixed(2));
-            } catch (pChainError) {
-                console.error("Error fetching P-Chain balance:", pChainError);
-                setPChainBalance("?"); // Indicate error fetching balance
-            }
+        try {
+            const pBalance = await coreWalletClient.getPChainBalance();
+            setPChainBalance((Number(pBalance) / 1e9).toFixed(2));
+        } catch (pChainError) {
+            console.error("Error fetching P-Chain balance:", pChainError);
+            setPChainBalance("?"); // Indicate error fetching balance
         }
-
-        fetchPChainBalance();
-        // Set up polling for balance updates
-        const interval = setInterval(fetchPChainBalance, 30000); // Update every 30 seconds
-        return () => clearInterval(interval);
     }, [pChainAddress, coreWalletClient]);
+
+    // Combined function to refetch both balances
+    const refetchBalances = useCallback(() => {
+        fetchEVMBalance();
+        fetchPChainBalance();
+    }, [fetchEVMBalance, fetchPChainBalance]);
+
+    // Fetch initial EVM balance and set up polling
+    useEffect(() => {
+        if (walletEVMAddress && walletChainId) {
+            fetchEVMBalance();
+            const interval = setInterval(fetchEVMBalance, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [fetchEVMBalance, walletEVMAddress, walletChainId]); // Depend on the memoized fetch function
+
+    // Fetch initial P-Chain balance and set up polling
+    useEffect(() => {
+        if (pChainAddress && coreWalletClient) {
+            fetchPChainBalance();
+            const interval = setInterval(fetchPChainBalance, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [fetchPChainBalance, pChainAddress, coreWalletClient]); // Depend on the memoized fetch function
+
 
     useEffect(() => {
         if (!isClient) return;
@@ -147,6 +154,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
 
         setWalletChainId(chainId)
         coreWalletClient.getPChainAddress().then(setPChainAddress).catch(showBoundary)
+        coreWalletClient.getCorethAddress().then(setCoreEthAddress).catch(showBoundary)
 
         coreWalletClient
             .getEthereumChain()
@@ -178,6 +186,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
         setWalletEVMAddress(accounts[0] as `0x${string}`)
 
         coreWalletClient.getPChainAddress().then(setPChainAddress).catch(showBoundary)
+        coreWalletClient.getCorethAddress().then(setCoreEthAddress).catch(showBoundary)
 
         if (walletChainId === 0) {
             coreWalletClient.getChainId().then(onChainChanged).catch(showBoundary)
@@ -220,6 +229,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
             setWalletEVMAddress(accounts[0] as `0x${string}`)
 
             coreWalletClient.getPChainAddress().then(setPChainAddress).catch(showBoundary)
+            coreWalletClient.getCorethAddress().then(setCoreEthAddress).catch(showBoundary)
 
             if (walletChainId === 0) {
                 coreWalletClient.getChainId().then(onChainChanged).catch(showBoundary)
@@ -262,11 +272,12 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
             {walletEVMAddress && (
                 <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md rounded-xl p-4 relative overflow-hidden">
                     {/* Core Wallet header */}
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mt-2 mb-6">
                         <div className="flex items-center space-x-2">
-                            <img src="/core-logo.svg" alt="Core Logo" className="h-10 w-25 mt-1 mb-1 dark:hidden" />
-                            <img src="/core-logo-dark.svg" alt="Core Logo" className="h-10 w-25 mt-1 mb-1 hidden dark:block" />
+                            <img src="/core-logo.svg" alt="Core Logo" className="h-10 w-auto mt-1 mb-1 dark:hidden" />
+                            <img src="/core-logo-dark.svg" alt="Core Logo" className="h-10 w-auto mt-1 mb-1 hidden dark:block" />
                         </div>
+
 
                         <div className="rounded-full overflow-hidden flex bg-zinc-100 dark:bg-zinc-800/70 p-0.5">
                             <button
@@ -291,9 +302,12 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                     </div>
 
                     {/* Chain cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className={`grid grid-cols-1 gap-4 items-center mb-4 ${(walletChainId === avalanche.id || walletChainId === avalancheFuji.id)
+                        ? 'md: grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]'
+                        : 'md: grid-cols-2'
+                        }`}>
                         {/* L1 Chain Card */}
-                        <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
+                        <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 h-full">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">
                                     {evmChainName}
@@ -303,7 +317,7 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                                 )}
                             </div>
                             <div className="text-2xl font-semibold text-zinc-800 dark:text-zinc-100 mb-2">
-                                {selectedL1Balance} {walletChainId ? "AVAX" : "--"}
+                                {selectedL1Balance} {walletChainId === avalanche.id || walletChainId === avalancheFuji.id ? "AVAX" : "Tokens"}
                             </div>
                             {/* EVM Address inside the card */}
                             <div className="flex items-center justify-between">
@@ -320,8 +334,13 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                             </div>
                         </div>
 
+                        {/* Arrows between cards */}
+                        {(walletChainId === avalanche.id || walletChainId === avalancheFuji.id) && (
+                            <InterchainTransfer onBalanceChanged={refetchBalances} />
+                        )}
+
                         {/* P-Chain */}
-                        <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
+                        <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 h-full">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">P-Chain</span>
                                 <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-full">Always Connected</span>

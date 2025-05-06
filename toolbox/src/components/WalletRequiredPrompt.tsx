@@ -11,8 +11,8 @@ export const WalletRequiredPrompt = () => (
       <div className="relative">
         <div className="flex items-center justify-center mb-6">
           <div className="relative">
-            <div className="absolute -inset-1 rounded-full"></div>
-            <img src="/core.png" alt="Avalanche Logo" className="h-20 w-auto relative" />
+            <img src="/core-logo.svg" alt="Core Logo" className="h-10 w-auto mt-1 mb-1 dark:hidden" />
+            <img src="/core-logo-dark.svg" alt="Core Logo" className="h-10 w-auto mt-1 mb-1 hidden dark:block" />
           </div>
         </div>
         <h3 className="text-2xl font-bold text-center text-zinc-800 dark:text-zinc-100 mb-4">

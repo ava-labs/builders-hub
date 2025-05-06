@@ -9,6 +9,7 @@ import { Success } from "../../components/Success";
 import TeleporterRegistryBytecode from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterRegistry_Bytecode_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import TeleporterRegistryManualyCompiled from '../../../contracts/icm-contracts/compiled/TeleporterRegistry.json';
+import { Container } from "../components/Container";
 
 
 export default function TeleporterRegistry() {
@@ -50,9 +51,10 @@ export default function TeleporterRegistry() {
     }
 
     return (
-
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Deploy Teleporter Registry</h2>
+        <Container
+            title="Deploy Teleporter Registry"
+            description="Deploy the Teleporter Registry contract to your L1."
+        >
             <div className="space-y-4">
                 <div className="mb-4">
                     This will deploy the <code>TeleporterRegistry</code> contract to the EVM network #<code>{selectedL1?.evmChainId}</code>.
@@ -71,7 +73,6 @@ export default function TeleporterRegistry() {
                 label="TeleporterRegistry Address"
                 value={teleporterRegistryAddress}
             />
-        </div>
-
+        </Container>
     );
 }

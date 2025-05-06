@@ -14,7 +14,6 @@ import {
   Snowflake,
   BriefcaseBusiness,
   MessageSquareQuote,
-  Server,
   Github,
   Waypoints,
   HandCoins,
@@ -274,26 +273,24 @@ export const toolsMenu: LinkItemType = {
       url: '/tools/l1-toolbox',
     },
     {
-      menu: {
-        banner: (
-          <div className='-mx-3 -mt-3'>
-            <Image
-              src={L1LauncherPreview}
-              alt='L1 Launcher Preview'
-              className='rounded-t-lg object-cover'
-              style={{
-                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
-              }}
-            />
-          </div>
-        ),
-        className: 'md:row-span-2 lg:col-span-1',
-      },
-      icon: <Server />,
-      text: 'L1 Launcher (Beta)',
+      icon: <SendHorizontal />,
+      text: 'Interchain Messaging Tools',
       description:
-        'Launch your self-hosted Testnet or Mainnet L1 on your own infrastructure.',
-      url: '/tools/l1-launcher',
+        'Set up Interchain Messaging (ICM) for your L1.',
+      url: '/tools/l1-toolbox',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-1',
+      },
+    },
+    {
+      icon: <ArrowLeftRight />,
+      text: 'Interchain Token Transfer Tools',
+      description:
+        'Set up cross-L1 bridges using the Interchain Token Transfer protocol.',
+      url: '/tools/l1-toolbox',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-2',
+      },
     },
     {
       icon: <HandCoins />,

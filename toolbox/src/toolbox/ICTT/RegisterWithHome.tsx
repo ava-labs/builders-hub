@@ -1,92 +1,82 @@
 "use client";
 
-import { useSelectedL1, useToolboxStore, useViemChainStore, type DeployOn } from "../toolboxStore";
+import { useSelectedL1, useToolboxStore, useViemChainStore, useL1ByChainId } from "../toolboxStore";
 import { useWalletStore } from "../../lib/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
-import { RadioGroup } from "../../components/RadioGroup";
-import { avalancheFuji } from "viem/chains";
 import ERC20TokenRemoteABI from "../../../contracts/icm-contracts/compiled/ERC20TokenRemote.json";
 import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import { Abi, createPublicClient, http, PublicClient, zeroAddress } from "viem";
 import { Input, Suggestion } from "../../components/Input";
 import { utils } from "@avalabs/avalanchejs";
-import { FUJI_C_BLOCKCHAIN_ID } from "./DeployERC20TokenRemote";
 import { ListContractEvents } from "../../components/ListContractEvents";
+import SelectChainID from "../components/SelectChainID";
 
 export default function RegisterWithHome() {
     const { showBoundary } = useErrorBoundary();
     const { erc20TokenRemoteAddress, nativeTokenRemoteAddress } = useToolboxStore();
-    const [homeAddress, setHomeAddress] = useState<{ L1: string, "C-Chain": string }>({
-        L1: "",
-        "C-Chain": ""
-    });
+    const [remoteAddress, setRemoteAddress] = useState("");
     const { coreWalletClient } = useWalletStore();
     const viemChain = useViemChainStore();
-    const [deployOn, setDeployOn] = useState<DeployOn>("L1");
+    const selectedL1 = useSelectedL1()();
+    const [sourceChainId, setSourceChainId] = useState<string>("");
     const [isRegistering, setIsRegistering] = useState(false);
     const [lastTxId, setLastTxId] = useState<string>();
     const [localError, setLocalError] = useState("");
     const [homeContractAddress, setHomeContractAddress] = useState<string | null>(null);
     const [homeContractClient, setHomeContractClient] = useState<PublicClient | null>(null);
     const [isRegistered, setIsRegistered] = useState(false);
-    const deployOnOptions = [
-        { label: "L1", value: "L1" },
-        { label: "C-Chain", value: "C-Chain" }
-    ];
     const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
-    const selectedL1 = useSelectedL1()();
-    if (!selectedL1) return null;
 
-    const requiredChain = deployOn === "L1" ? viemChain : avalancheFuji;
+    const sourceL1 = useL1ByChainId(sourceChainId)();
+
+    let sourceChainError: string | undefined = undefined;
+    if (!sourceChainId) {
+        sourceChainError = "Please select a source chain";
+    } else if (selectedL1?.id === sourceChainId) {
+        sourceChainError = "Source and destination chains must be different";
+    }
 
     // Move fetchSettings outside useEffect and wrap in useCallback for stable reference
     const fetchSettings = useCallback(async () => {
-        if (isCheckingRegistration) return;
+        if (isCheckingRegistration || !remoteAddress || !sourceChainId) return;
         setIsCheckingRegistration(true);
         try {
-            const remoteChain = deployOn === "L1" ? viemChain : avalancheFuji;
-            const homeChain = deployOn === "L1" ? avalancheFuji : viemChain;
-            if (!remoteChain || !homeChain) return;
+            if (!viemChain || !sourceL1?.rpcUrl || !selectedL1?.id) return;
 
             const remotePublicClient = createPublicClient({
-                chain: remoteChain,
-                transport: http(remoteChain.rpcUrls.default.http[0])
+                chain: viemChain,
+                transport: http(viemChain.rpcUrls.default.http[0])
             });
+
             const homePublicClient = createPublicClient({
-                chain: homeChain,
-                transport: http(homeChain.rpcUrls.default.http[0])
+                transport: http(sourceL1.rpcUrl)
             });
 
             setHomeContractClient(homePublicClient);
-            const currentRemoteAddress = homeAddress?.[deployOn];
-
-            if (!currentRemoteAddress) {
-                setHomeContractAddress(null);
-                return;
-            }
 
             const tokenHomeAddress = await remotePublicClient.readContract({
-                address: currentRemoteAddress as `0x${string}`,
+                address: remoteAddress as `0x${string}`,
                 abi: ERC20TokenRemoteABI.abi,
                 functionName: 'getTokenHomeAddress',
             });
 
             setHomeContractAddress(tokenHomeAddress as string);
 
-            const chainIDBase58 = deployOn === "L1" ? selectedL1.id : FUJI_C_BLOCKCHAIN_ID;
-            const tokenHomeBlockchainIDHex = utils.bufferToHex(utils.base58check.decode(chainIDBase58));
-            console.log({ deployOn, chainIDBase58, tokenHomeBlockchainIDHex, FUJI_C_BLOCKCHAIN_ID, "chainID": selectedL1.id });
+            // Convert CURRENT chain ID to hex for the contract call
+            // This is where the remote contract is deployed
+            const remoteBlockchainIDHex = utils.bufferToHex(utils.base58check.decode(selectedL1.id));
 
             const remoteSettings = await homePublicClient.readContract({
                 address: tokenHomeAddress as `0x${string}`,
                 abi: ERC20TokenHomeABI.abi,
                 functionName: 'getRemoteTokenTransferrerSettings',
-                args: [tokenHomeBlockchainIDHex, currentRemoteAddress]
+                args: [remoteBlockchainIDHex, remoteAddress]
             }) as { registered: boolean, collateralNeeded: bigint, tokenMultiplier: bigint, multiplyOnRemote: boolean };
 
+            console.log({ remoteSettings });
             setIsRegistered(remoteSettings.registered);
         } catch (error: any) {
             console.error("Error fetching token home address:", error);
@@ -95,7 +85,7 @@ export default function RegisterWithHome() {
         } finally {
             setIsCheckingRegistration(false);
         }
-    }, [deployOn, erc20TokenRemoteAddress["C-Chain"], erc20TokenRemoteAddress["L1"], homeAddress["C-Chain"], homeAddress["L1"], selectedL1.id, viemChain?.id]);
+    }, [remoteAddress, sourceChainId, viemChain?.id, sourceL1?.rpcUrl, selectedL1?.id]);
 
     useEffect(() => {
         fetchSettings();
@@ -103,14 +93,14 @@ export default function RegisterWithHome() {
 
     async function handleRegister() {
         setLocalError("");
-        const currentRemoteAddress = homeAddress?.[deployOn];
 
-        if (!currentRemoteAddress) {
-            setLocalError(`ERC20 Token Remote address for ${deployOn} is not set. Please deploy it first.`);
+        if (!remoteAddress) {
+            setLocalError("Please enter a valid remote contract address");
             return;
         }
-        if (!requiredChain) {
-            setLocalError("Required chain configuration is missing.");
+
+        if (!viemChain) {
+            setLocalError("Current chain configuration is missing");
             return;
         }
 
@@ -119,22 +109,21 @@ export default function RegisterWithHome() {
 
         try {
             const publicClient = createPublicClient({
-                chain: requiredChain,
-                transport: http(requiredChain.rpcUrls.default.http[0])
+                chain: viemChain,
+                transport: http(viemChain.rpcUrls.default.http[0])
             });
 
             const feeInfo: readonly [`0x${string}`, bigint] = [zeroAddress, 0n]; // feeTokenAddress, amount
 
-            console.log(`Calling registerWithHome on ${currentRemoteAddress} with feeInfo:`, feeInfo);
+            console.log(`Calling registerWithHome on ${remoteAddress} with feeInfo:`, feeInfo);
 
-            // Simulate the transaction first (optional but recommended)
+            // Simulate the transaction first
             const { request } = await publicClient.simulateContract({
-                address: currentRemoteAddress as `0x${string}`,
+                address: remoteAddress as `0x${string}`,
                 abi: ERC20TokenRemoteABI.abi,
                 functionName: 'registerWithHome',
                 args: [feeInfo],
-                chain: requiredChain,
-                // account: coreWalletClient.account // Ensure account is passed if needed by simulate
+                chain: viemChain,
             });
 
             // Send the transaction
@@ -143,7 +132,7 @@ export default function RegisterWithHome() {
 
             // Wait for confirmation
             await publicClient.waitForTransactionReceipt({ hash });
-            setLocalError(""); // Clear error on success
+            setLocalError("");
 
         } catch (error: any) {
             console.error("Registration failed:", error);
@@ -154,47 +143,50 @@ export default function RegisterWithHome() {
         }
     }
 
-    const homeAddressSuggestions: Suggestion[] = useMemo(() => {
+    const remoteAddressSuggestions: Suggestion[] = useMemo(() => {
         const result: Suggestion[] = [];
-        if (erc20TokenRemoteAddress?.[deployOn]) {
-            result.push(
-                { title: erc20TokenRemoteAddress?.[deployOn], value: erc20TokenRemoteAddress?.[deployOn], description: "ERC20 Token Remote Address" },
-            );
+        if (erc20TokenRemoteAddress) {
+            result.push({
+                title: erc20TokenRemoteAddress,
+                value: erc20TokenRemoteAddress,
+                description: "ERC20 Token Remote Address"
+            });
         }
-        if (nativeTokenRemoteAddress?.[deployOn]) {
-            result.push(
-                { title: nativeTokenRemoteAddress?.[deployOn], value: nativeTokenRemoteAddress?.[deployOn], description: "Native Token Remote Address" },
-            );
+        if (nativeTokenRemoteAddress) {
+            result.push({
+                title: nativeTokenRemoteAddress,
+                value: nativeTokenRemoteAddress,
+                description: "Native Token Remote Address"
+            });
         }
         return result;
-    }, [erc20TokenRemoteAddress, deployOn]);
+    }, [erc20TokenRemoteAddress, nativeTokenRemoteAddress]);
 
     return (
         <div className="space-y-4">
             <h2 className="text-lg font-semibold">Register Remote Bridge with Home Bridge</h2>
 
-            <div className="p-4 border rounded-md bg-gray-50 dark:bg-gray-900/50">
-                <RadioGroup
-                    value={deployOn}
-                    onChange={(value) => setDeployOn(value as DeployOn)}
-                    items={deployOnOptions}
-                    idPrefix="register-on-"
-                />
-            </div>
-
             <div className="space-y-4">
                 <p>
-                    This will call the `registerWithHome` function on the deployed ERC20 Token Remote contract
-                    on the selected chain ({deployOn}). This step is necessary to link the remote bridge back to the home bridge.
+                    This will call the `registerWithHome` function on the remote contract
+                    on the current chain ({selectedL1?.name}). This links the remote bridge back to the home bridge
+                    on the source chain.
                 </p>
 
+                <SelectChainID
+                    label="Source Chain (where token home is deployed)"
+                    value={sourceChainId}
+                    onChange={(value) => setSourceChainId(value)}
+                    error={sourceChainError}
+                />
+
                 <Input
-                    label={`Home Address (${deployOn})`}
-                    value={homeAddress?.[deployOn] || ""}
-                    onChange={(value) => setHomeAddress(Object.assign({}, homeAddress, { [deployOn]: value }))}
+                    label={`Remote Contract Address (on ${selectedL1?.name})`}
+                    value={remoteAddress}
+                    onChange={setRemoteAddress}
                     required
-                    error={!homeAddress?.[deployOn] ? `Home address for ${deployOn} not found. Deploy or enter address.` : undefined}
-                    suggestions={homeAddressSuggestions}
+                    error={!remoteAddress ? "Please enter a remote contract address" : undefined}
+                    suggestions={remoteAddressSuggestions}
                 />
 
                 {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
@@ -203,9 +195,9 @@ export default function RegisterWithHome() {
                     variant="primary"
                     onClick={handleRegister}
                     loading={isRegistering}
-                    disabled={isRegistering || !homeAddress?.[deployOn]}
+                    disabled={isRegistering || !remoteAddress || !sourceChainId || !!sourceChainError}
                 >
-                    Register Remote on {deployOn} with Home
+                    Register Remote with Home
                 </Button>
 
                 {lastTxId && (
@@ -218,19 +210,20 @@ export default function RegisterWithHome() {
                 )}
 
                 {isCheckingRegistration && (
-                    <div className=" text-gray-500">
+                    <div className="text-gray-500">
                         ⏳ Checking registration status...
                     </div>
                 )}
 
                 {!isCheckingRegistration && isRegistered && (
-                    <div className=" ">
+                    <div>
                         ✅ Remote contract is registered with the Home contract
                     </div>
                 )}
-                {!isCheckingRegistration && !isRegistered && (
-                    <div className=" ">
-                        ⚠️ Remote contract is not yet registered with the Home contract{' '}. ICM message needs a few seconds to be processed.
+
+                {!isCheckingRegistration && !isRegistered && sourceChainId && remoteAddress && (
+                    <div>
+                        ⚠️ Remote contract is not yet registered with the Home contract. ICM message needs a few seconds to be processed.
                         <button
                             className="underline text-blue-500 px-1 py-0 h-auto"
                             onClick={fetchSettings}
@@ -247,11 +240,11 @@ export default function RegisterWithHome() {
                             contractAddress={homeContractAddress}
                             contractABI={ERC20TokenHomeABI.abi as Abi}
                             publicClient={homeContractClient}
-                            title={`Events from Home Contract (${deployOn === "L1" ? "C-Chain" : "L1"})`}
+                            title={`Events from Home Contract (on ${sourceL1?.name})`}
                         />
                     </div>
                 )}
             </div>
-        </div >
+        </div>
     );
 }

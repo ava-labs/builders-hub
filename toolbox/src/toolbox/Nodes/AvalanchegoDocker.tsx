@@ -7,7 +7,7 @@ import versions from "../../versions.json";
 import { Container } from "../components/Container";
 import { Input } from "../../components/Input";
 import { getBlockchainInfo } from "../../coreViem/utils/glacier";
-import InputChainId from "../components/SelectChainId";
+import InputChainId from "../components/InputChainId";
 import { Checkbox } from "../../components/Checkbox";
 
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
@@ -17,6 +17,8 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { AddChainModal } from "../components/ConnectWalletToolbox/AddChainModal";
 import { useL1ListStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
+import { ResultField } from "../components/ResultField";
+import { RadioGroup } from "../../components/RadioGroup";
 
 const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number) => {
     const env: Record<string, string> = {
@@ -156,11 +158,13 @@ export default function AvalanchegoDocker() {
 
     const [isRPC, setIsRPC] = useState<boolean>(true);
     const [rpcCommand, setRpcCommand] = useState("");
+    const [nodeRunningMode, setNodeRunningMode] = useState("server");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
     const { addL1 } = useL1ListStore()();
+    const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
 
 
     useEffect(() => {
@@ -196,8 +200,29 @@ export default function AvalanchegoDocker() {
                 title="Node Setup with Docker"
                 description="This will start a Docker container running an RPC or validator node that tracks your L1."
             >
-
                 <Steps>
+                    <Step>
+                        <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
+                        <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. Low specs (e.g. 2 vCPUs, 4GB RAM,  20GB storage) are sufficient for basic tests. For more extensive test and production L1s use a larger instance with appropriate resources (e.g. 8 vCPUs, 16GB RAM, 1 TB storage).</p>
+
+                        <p>If you do not have access to a server, you can also run a node for educational purposes locally. Where are you running your node?</p>
+
+                        <RadioGroup
+                            value={nodeRunningMode}
+                            className="space-y-2"
+                            onChange={(value) => {
+                                setNodeRunningMode(value);
+                                if (value === "localhost") {
+                                    setDomain("");
+                                }
+                            }}
+                            idPrefix={`avago-in-docker-running-mode-`}
+                            items={[
+                                { value: "server", label: "Server (AWS, GCP, ..,)" },
+                                { value: "localhost", label: "On my computer (localhost)" }
+                            ]}
+                        />
+                    </Step>
                     <Step>
                         <h3 className="text-xl font-bold mb-4">Docker Installation</h3>
                         <p>Make sure you have Docker installed on your system. You can use the following commands to install it:</p>
@@ -262,15 +287,18 @@ export default function AvalanchegoDocker() {
                                     onChange={setEnableDebugTrace}
                                 />}
                             </Step>
-                            <Step>
+                            {nodeRunningMode === "server" && (<Step>
                                 <h3 className="text-xl font-bold mb-4">Port Configuration</h3>
                                 <p>Make sure the following port{isRPC && 's'} are open:
                                     <ul>
-                                        {isRPC && <li><strong>9650</strong> (for the RPC endpoint)</li>}
+                                        {isRPC && <>
+                                            <li><strong>443</strong> (for the Reverse Proxy)</li>
+                                            <li><strong>9650</strong> (for the RPC endpoint)</li>
+                                        </>}
                                         <li><strong>9651</strong> (for the node-to-node communication)</li>
                                     </ul>
                                 </p>
-                            </Step>
+                            </Step>)}
                             {chainId && enableDebugTrace && isRPC && (
                                 <Step>
                                     <h3 className="text-xl font-bold mb-4">Create Chain Config File</h3>
@@ -299,63 +327,100 @@ export default function AvalanchegoDocker() {
                                         <p className="mt-1">Example for second node: Use ports 9652/9653 (HTTP/staking), container name "avago2", and data directory "~/.avalanchego2"</p>
                                     </Accordion>
                                 </Accordions>
+                            </Step>
+                            <Step>
+                                <h3 className="text-xl font-bold">Wait for the Node to Bootstrap</h3>
+                                <p>Your node will now bootstrap and sync the P-Chain and your L1. This process should take a <strong>few minutes</strong>. You can follow the process by checking the logs with the following command:</p>
 
-                                <p>You can check the logs of the node with the following command:</p>
+                                <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
 
-                                <DynamicCodeBlock lang="bash" code="docker logs avago" />
+                                <Accordions type="single" className="mt-8">
+                                    <Accordion title="Understanding the Logs">
+                                        <p>The bootstrapping has three phases:</p>
+                                        <p><strong></strong></p>
 
-                                <p>The chain is done bootstrapping when you this endpoint returns the EVM chain ID:</p>
+                                        <ul className="list-disc pl-5 mt-1">
+                                            <li>
+                                                <strong>Fetching the blocks of the P-Chain:</strong>
+                                                The node fetches all the P-Chain blocks. The <code>eta</code> field is giving the estimated remaining time for the fetching process.
+                                                <DynamicCodeBlock lang="bash" code='[05-04|17:14:13.793] INFO <P Chain> bootstrap/bootstrapper.go:615 fetching blocks {"numFetchedBlocks": 10099, "numTotalBlocks": 23657, "eta": "37s"}' />
+                                            </li>
+                                            <li>
+                                                <strong>Executing the blocks of the P-Chain:</strong>
+                                                The node will sync the P-Chain and your L1.
+                                                <DynamicCodeBlock lang="bash" code='[05-04|17:14:45.641] INFO <P Chain> bootstrap/storage.go:244 executing blocks {"numExecuted": 9311, "numToExecute": 23657, "eta": "15s"}' />
+                                            </li>
+                                        </ul>
+                                        <p>After the P-Chain is fetched and executed the process is repeated for the tracked Subnet.</p>
+                                    </Accordion>
+                                </Accordions>
+
+                                <p> During the bootstrapping process the following command will return a <code>404 page not found</code> error.</p>
 
                                 <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, "127.0.0.1:9650", false)} />
+
+                                <p> Once it the bootstrapping is complete it will return a repsonse like <code>{'{"jsonrpc":"2.0","id":1,"result":"..."}'}</code>.</p>
                             </Step>
                             {isRPC && (
                                 <>
-                                    <Step>
-                                        <h3 className="text-xl font-bold mb-4">Set Up Reverse Proxy (optional)</h3>
-                                        <p>To connect your wallet you need to be able to connect to the RPC via https. For testing purposes you can set up a reverse Proxy to achieve this.</p>
+                                    {nodeRunningMode === "server" && (
+                                        <>
+                                            <Step>
+                                                <h3 className="text-xl font-bold mb-4">Set Up Reverse Proxy</h3>
+                                                <p>To connect your wallet you need to be able to connect to the RPC via https. For testing purposes you can set up a reverse Proxy to achieve this.</p>
 
-                                        <Input
-                                            label="Domain or IPv4 address for reverse proxy (optional)"
-                                            value={domain}
-                                            onChange={setDomain}
-                                            placeholder="example.com  or 1.2.3.4"
-                                            helperText="`curl checkip.amazonaws.com` to get your public IP address. Make sure 443 is open on your firewall."
-                                        />
+                                                <p>You can use the following command to check your IP:</p>
 
-                                        {domain && (<>
-                                            <p>Run the following comand on the machine of your node:</p>
-                                            <DynamicCodeBlock lang="bash" code={reverseProxyCommand(domain)} />
-                                        </>)}
-                                    </Step>
-                                    {domain && (<>
-                                        <Step>
-                                            <h3 className="text-xl font-bold mb-4">Check connection via Proxy</h3>
-                                            <p>Do a final check from a machine different then the one that your node is running on.</p>
+                                                <DynamicCodeBlock lang="bash" code="curl checkip.amazonaws.com" />
 
-                                            <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, false)} />
+                                                <p>Paste the IP of your node below:</p>
 
-                                            {enableDebugTrace && (
-                                                <div className="mt-4">
-                                                    <h3 className="text-md font-medium mb-2">Check that debug & trace is working:</h3>
-                                                    <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, true)} />
-                                                </div>
+                                                <Input
+                                                    label="Domain or IPv4 address for reverse proxy (optional)"
+                                                    value={domain}
+                                                    onChange={(newValue) => setDomain(newValue.trim())}
+                                                    placeholder="example.com  or 1.2.3.4"
+                                                />
+
+                                                {domain && (<>
+                                                    <p>Run the following comand on the machine of your node:</p>
+                                                    <DynamicCodeBlock lang="bash" code={reverseProxyCommand(domain)} />
+                                                </>)}
+                                            </Step>
+                                            {domain && (<>
+                                                <Step>
+                                                    <h3 className="text-xl font-bold mb-4">Check connection via Proxy</h3>
+                                                    <p>Do a final check from a machine different then the one that your node is running on.</p>
+
+                                                    <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, false)} />
+
+                                                    {enableDebugTrace && (
+                                                        <div className="mt-4">
+                                                            <h3 className="text-md font-medium mb-2">Check that debug & trace is working:</h3>
+                                                            <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, true)} />
+                                                        </div>
+                                                    )}
+
+                                                    TBD: Replace with RPC check component used for monitoring?
+                                                </Step>
+                                            </>
                                             )}
+                                        </>)}
+                                    {(nodeRunningMode === "localhost" || domain) && (<Step>
+                                        <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
+                                        <p>Add your L1 to your Wallet if all checks above passed</p>
 
-                                            TBD: Replace with RPC check component used for monitoring?
-                                        </Step>
-                                        <Step>
-                                            <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
-                                            <p>Add your L1 to your Wallet if all checks above passed</p>
-
-                                            <Button onClick={() => setIsAddChainModalOpen(true)} className="mt-4 w-48">Add to Wallet</Button>
-                                            {isAddChainModalOpen && <AddChainModal
-                                                onClose={() => setIsAddChainModalOpen(false)}
-                                                onAddChain={addL1}
-                                                allowLookup={false}
-                                                fixedRPCUrl={`https://${nipify(domain)}/ext/bc/${chainId}/rpc`}
-                                            />}
-                                        </Step>
-                                    </>)}
+                                        <Button onClick={() => setIsAddChainModalOpen(true)} className="mt-4 w-48">Add to Wallet</Button>
+                                        {isAddChainModalOpen && <AddChainModal
+                                            onClose={() => setIsAddChainModalOpen(false)}
+                                            onAddChain={(chain) => {
+                                                addL1(chain);
+                                                setChainAddedToWallet(chain.name);
+                                            }}
+                                            allowLookup={false}
+                                            fixedRPCUrl={nodeRunningMode === "server" ? `https://${nipify(domain)}/ext/bc/${chainId}/rpc` : `http://localhost:9650/ext/bc/${chainId}/rpc`}
+                                        />}
+                                    </Step>)}
                                 </>
                             )}
                         </>)}
@@ -363,8 +428,7 @@ export default function AvalanchegoDocker() {
 
                 </Steps>
 
-
-
+                {chainAddedToWallet && <ResultField label="Chain added to Wallet" value={chainAddedToWallet} showCheck />}
 
             </Container >
         </>

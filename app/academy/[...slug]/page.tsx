@@ -37,12 +37,13 @@ import { Feedback } from '@/components/ui/feedback';
 import posthog from 'posthog-js';
 
 import ToolboxMdxWrapper from "@/toolbox/src/toolbox/components/ToolboxMdxWrapper"
-import CrossChainTransfer from "@/toolbox/src/toolbox/Wallet/CrossChainTransfer"
+import CrossChainTransfer from "@/toolbox/src/l1-launcher/components/CrossChainTransfer"
 import AvalancheGoDocker from '@/toolbox/src/toolbox/Nodes/AvalanchegoDocker';
 import CreateSubnet from "@/toolbox/src/toolbox/L1/CreateSubnet"
 import CreateChain from "@/toolbox/src/toolbox/L1/CreateChain"
 import ConvertToL1 from "@/toolbox/src/toolbox/L1/ConvertToL1"
 import GenesisBuilder from '@/toolbox/src/toolbox/L1/GenesisBuilder';
+import DeployExampleERC20 from '@/toolbox/src/toolbox/ICTT/DeployExampleERC20';
 
 export const dynamicParams = false;
 
@@ -53,7 +54,8 @@ const toolboxComponents = {
   GenesisBuilder,
   CreateChain,
   AvalancheGoDocker,
-  ConvertToL1, 
+  ConvertToL1,
+  DeployExampleERC20
 }
 
 export default async function Page(props: {
@@ -90,7 +92,7 @@ export default async function Page(props: {
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody className="text-fd-foreground/80">
-        <IndexedDBComponent/>
+        <IndexedDBComponent />
         <MDX components={{
           ...defaultComponents,
           ...toolboxComponents,
@@ -100,13 +102,13 @@ export default async function Page(props: {
           h4: (props) => <Heading as="h4" {...props} />,
           h5: (props) => <Heading as="h5" {...props} />,
           h6: (props) => <Heading as="h6" {...props} />,
-          Cards, Card, Callout, Accordion, Accordions, AutoTypeTable, Gallery, Mermaid, Quiz, Popup, PopupContent, PopupTrigger, Step, Steps, Tab, Tabs, TypeTable, YouTube, 
+          Cards, Card, Callout, Accordion, Accordions, AutoTypeTable, Gallery, Mermaid, Quiz, Popup, PopupContent, PopupTrigger, Step, Steps, Tab, Tabs, TypeTable, YouTube,
           pre: ({ title, className, icon, allowCopy, ...props }: CodeBlockProps) => (
             <CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
               <Pre className={cn("max-h-[1200px]", className)} {...props} />
             </CodeBlock>
           ),
-        }}/>
+        }} />
       </DocsBody>
       <Feedback
         path={path}

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { Button } from "../../components/Button"
 import { Input } from "../../components/Input"
-import { Container } from "../components/Container"
+import { Container } from "../../toolbox/components/Container"
 import { useWalletStore } from "../../lib/walletStore"
 import { evmImportTx } from "../../coreViem/methods/evmImport"
 import { evmExport } from "../../coreViem/methods/evmExport"
@@ -127,7 +127,7 @@ export default function CrossChainTransfer({
                     pChainAddress,
                     walletEVMAddress
                 });
-                
+
                 console.log("Export transaction sent:", response);
                 // Store the export transaction ID to trigger import
                 setExportTxId(response.txID || String(response));
@@ -164,14 +164,14 @@ export default function CrossChainTransfer({
                 const response = await pvmImport(coreWalletClient, {
                     pChainAddress
                 });
-                
+
                 console.log("Import transaction sent:", response);
             } else {
                 // Import to C-Chain using evmImportTx function
                 const response = await evmImportTx(coreWalletClient, {
                     walletEVMAddress
                 });
-                
+
                 console.log("C-Chain Import transaction sent:", response);
             }
 
@@ -261,11 +261,6 @@ export default function CrossChainTransfer({
                                     ? "EVM-compatible chain for smart contracts"
                                     : "Native chain for staking & validators"}
                             </div>
-                            <div className="font-semibold text-zinc-900 dark:text-zinc-100">
-                                {sourceChain === "c-chain"
-                                    ? `${availableBalance.toFixed(4)} AVAX`
-                                    : `${pChainAvailableBalance.toFixed(4)} AVAX`}
-                            </div>
                         </div>
                     </div>
 
@@ -339,11 +334,6 @@ export default function CrossChainTransfer({
                                 {destinationChain === "c-chain"
                                     ? "EVM-compatible chain for smart contracts"
                                     : "Native chain for staking & validators"}
-                            </div>
-                            <div className="font-semibold text-zinc-900 dark:text-zinc-100">
-                                {destinationChain === "c-chain"
-                                    ? `${availableBalance.toFixed(4)} AVAX`
-                                    : `${pChainAvailableBalance.toFixed(4)} AVAX`}
                             </div>
                         </div>
                     </div>

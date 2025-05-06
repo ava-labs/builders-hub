@@ -33,10 +33,10 @@ export default function TempNativeMinter() {
     const selectedL1 = useSelectedL1()();
     if (!selectedL1) return null;
 
-    const addressSuggestions: Suggestion[] = nativeTokenRemoteAddress?.L1
+    const addressSuggestions: Suggestion[] = nativeTokenRemoteAddress
         ? [{
-            title: nativeTokenRemoteAddress.L1,
-            value: nativeTokenRemoteAddress.L1,
+            title: nativeTokenRemoteAddress,
+            value: nativeTokenRemoteAddress,
             description: "Native Token Remote Address"
         }]
         : [];

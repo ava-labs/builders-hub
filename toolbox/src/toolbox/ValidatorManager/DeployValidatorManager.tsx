@@ -8,7 +8,10 @@ import { Button } from "../../components/Button";
 import { ResultField } from "../components/ResultField";
 import { keccak256 } from 'viem';
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
+import ValidatorMessagesABI from "../../../contracts/icm-contracts/compiled/ValidatorMessages.json";
 import { Container } from "../components/Container";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+
 function calculateLibraryHash(libraryPath: string) {
     const hash = keccak256(
         new TextEncoder().encode(libraryPath)
@@ -16,11 +19,12 @@ function calculateLibraryHash(libraryPath: string) {
     return hash.slice(0, 34);
 }
 
-export default function DeployValidatorManager() {
+export default function DeployValidatorContracts() {
     const { showBoundary } = useErrorBoundary();
-    const { validatorMessagesLibAddress, setValidatorManagerAddress, validatorManagerAddress } = useToolboxStore();
+    const { validatorMessagesLibAddress, setValidatorMessagesLibAddress, setValidatorManagerAddress, validatorManagerAddress } = useToolboxStore();
     const { coreWalletClient, publicClient } = useWalletStore();
-    const [isDeploying, setIsDeploying] = useState(false);
+    const [isDeployingMessages, setIsDeployingMessages] = useState(false);
+    const [isDeployingManager, setIsDeployingManager] = useState(false);
     const viemChain = useViemChainStore();
 
     const getLinkedBytecode = () => {
@@ -43,8 +47,34 @@ export default function DeployValidatorManager() {
         return linkedBytecode as `0x${string}`;
     };
 
-    async function handleDeploy() {
-        setIsDeploying(true);
+    async function deployValidatorMessages() {
+        setIsDeployingMessages(true);
+        setValidatorMessagesLibAddress("");
+        try {
+            await coreWalletClient.addChain({ chain: viemChain });
+            await coreWalletClient.switchChain({ id: viemChain!.id });
+            const hash = await coreWalletClient.deployContract({
+                abi: ValidatorMessagesABI.abi,
+                bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
+                chain: viemChain,
+            });
+
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+            if (!receipt.contractAddress) {
+                throw new Error('No contract address in receipt');
+            }
+
+            setValidatorMessagesLibAddress(receipt.contractAddress);
+        } catch (error) {
+            showBoundary(error);
+        } finally {
+            setIsDeployingMessages(false);
+        }
+    }
+
+    async function deployValidatorManager() {
+        setIsDeployingManager(true);
         setValidatorManagerAddress("");
         try {
             if (!viemChain) throw new Error("Viem chain not found");
@@ -54,7 +84,7 @@ export default function DeployValidatorManager() {
             const hash = await coreWalletClient.deployContract({
                 abi: ValidatorManagerABI.abi,
                 bytecode: getLinkedBytecode(),
-                args: [0], // TODO: Not sure about this. Please check the source https://github.com/ava-labs/icm-contracts/blob/48fe4883914b46ec7e4385dc0edf5c2df31c99f4/contracts/validator-manager/ValidatorManager.sol#L136C21-L136C48
+                args: [0],
                 chain: viemChain,
             });
 
@@ -68,40 +98,81 @@ export default function DeployValidatorManager() {
         } catch (error) {
             showBoundary(error);
         } finally {
-            setIsDeploying(false);
+            setIsDeployingManager(false);
         }
     }
 
     return (
         <Container
-            title="Deploy Validator Manager"
-            description="This will deploy the ValidatorManager contract to the EVM network."
+            title="Deploy Validator Contracts"
+            description="Deploy the ValidatorMessages library and ValidatorManager contract to the EVM network."
         >
-            <div className="space-y-4">
-                <div className="mb-4">
-                    <div className="mb-4">
-                        This will deploy the <code>ValidatorManager</code> contract to the EVM network <code>{viemChain?.id}</code>.
-                    </div>
-                    <div className="mb-4">
-                        The contract requires the <code>ValidatorMessages</code> library at address: <code>{validatorMessagesLibAddress || "Not deployed"}</code>
-                    </div>
-                    <Button
-                        variant="primary"
-                        onClick={handleDeploy}
-                        loading={isDeploying}
-                        disabled={isDeploying || !validatorMessagesLibAddress}
-                    >
-                        Deploy Contract
-                    </Button>
-                </div>
-                {validatorManagerAddress && (
-                    <ResultField
-                        label="ValidatorManager Address"
-                        value={validatorManagerAddress}
-                        showCheck={!!validatorManagerAddress}
-                    />
-                )}
+            <div className="space-y-8">
+                <Steps>
+                    <Step>
+                        <div className="p-6 border rounded-lg">
+                            <h3 className="text-xl font-bold mb-6">Deploy Validator Messages Library</h3>
+                            <div className="mb-6">
+                                This will deploy the <code>ValidatorMessages</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ValidatorMessages</code> is a library required by the <code>ValidatorManager</code> family of contracts.
+                            </div>
+                            <div className="mb-8">
+                                <Button
+                                    variant="primary"
+                                    onClick={deployValidatorMessages}
+                                    loading={isDeployingMessages}
+                                    disabled={isDeployingMessages || !!validatorMessagesLibAddress}
+                                    className="mt-4"
+                                >
+                                    Deploy Library
+                                </Button>
+                            </div>
+                            
+                            {validatorMessagesLibAddress && (
+                                <div className="mt-10 pt-6 border-t">
+                                    <ResultField
+                                        label="ValidatorMessages Library Address"
+                                        value={validatorMessagesLibAddress}
+                                        showCheck={!!validatorMessagesLibAddress}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </Step>
+
+                    <Step>
+                        <div className="p-6 border rounded-lg mt-8">
+                            <h3 className="text-xl font-bold mb-6">Deploy Validator Manager Contract</h3>
+                            <div className="mb-6">
+                                This will deploy the <code>ValidatorManager</code> contract to the EVM network <code>{viemChain?.id}</code>.
+                            </div>
+                            <div className="mb-6">
+                                The contract requires the <code>ValidatorMessages</code> library at address: <code>{validatorMessagesLibAddress || "Not deployed"}</code>
+                            </div>
+                            <div className="mb-8">
+                                <Button
+                                    variant="primary"
+                                    onClick={deployValidatorManager}
+                                    loading={isDeployingManager}
+                                    disabled={isDeployingManager || !validatorMessagesLibAddress || !!validatorManagerAddress}
+                                    className="mt-4"
+                                >
+                                    Deploy Manager Contract
+                                </Button>
+                            </div>
+                            
+                            {validatorManagerAddress && (
+                                <div className="mt-10 pt-6 border-t">
+                                    <ResultField
+                                        label="ValidatorManager Address"
+                                        value={validatorManagerAddress}
+                                        showCheck={!!validatorManagerAddress}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </Step>
+                </Steps>
             </div>
         </Container>
     );
-};
+}

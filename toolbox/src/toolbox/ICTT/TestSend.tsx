@@ -1,99 +1,124 @@
 // src/toolbox/ICTT/TestSend.ts
 "use client";
 
-import { useSelectedL1, useToolboxStore, useViemChainStore, type DeployOn } from "../toolboxStore";
+import { useSelectedL1, useToolboxStore, useViemChainStore, getToolboxStore, useL1ByChainId } from "../toolboxStore";
 import { useWalletStore } from "../../lib/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
-import { RadioGroup } from "../../components/RadioGroup";
-import { avalancheFuji } from "viem/chains";
 import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import ExampleERC20ABI from "../../../contracts/icm-contracts/compiled/ExampleERC20.json";
 import { createPublicClient, http, formatUnits, parseUnits, Address, zeroAddress } from "viem";
 import { Input, Suggestion } from "../../components/Input";
 import { utils } from "@avalabs/avalanchejs";
-import { FUJI_C_BLOCKCHAIN_ID } from "./DeployERC20TokenRemote";
-import { Note } from "../../components/Note";
+import SelectChainID from "../components/SelectChainID";
 
-const DEFAULT_GAS_LIMIT = 250000n; // Default gas limit from example
+const DEFAULT_GAS_LIMIT = 250000n;
 
-export default function TestSend() {
+export default function TokenBridge() {
     const { showBoundary } = useErrorBoundary();
-    const { erc20TokenHomeAddress, nativeTokenRemoteAddress, erc20TokenRemoteAddress } = useToolboxStore();
     const { coreWalletClient, walletEVMAddress } = useWalletStore();
-    const viemChain = useViemChainStore(); // This is L1 chain config
+    const viemChain = useViemChainStore();
+    const selectedL1 = useSelectedL1()();
 
-    // State for selecting which chain hosts the "Home" contract (source chain)
-    const [homeChainSelection, setHomeChainSelection] = useState<DeployOn>("C-Chain");
+    // Only need to select destination chain (source is current chain)
+    const [destinationChainId, setDestinationChainId] = useState<string>("");
+
+    // Contract addresses
+    const [sourceContractAddress, setSourceContractAddress] = useState<Address | "">("");
     const [destinationContractAddress, setDestinationContractAddress] = useState<Address | "">("");
+
+    // Transaction parameters
     const [recipientAddress, setRecipientAddress] = useState<Address | "">("");
     const [amount, setAmount] = useState("");
     const [requiredGasLimit, setRequiredGasLimit] = useState<string>(DEFAULT_GAS_LIMIT.toString());
 
+    // UI states
     const [isProcessingApproval, setIsProcessingApproval] = useState(false);
     const [isProcessingSend, setIsProcessingSend] = useState(false);
     const [lastApprovalTxId, setLastApprovalTxId] = useState<string>();
     const [lastSendTxId, setLastSendTxId] = useState<string>();
     const [localError, setLocalError] = useState("");
-
-    // Token info on the source chain
-    const [sourceTokenAddress, setSourceTokenAddress] = useState<Address | null>(null);
-    const [sourceTokenDecimals, setSourceTokenDecimals] = useState<number | null>(null);
-    const [sourceTokenSymbol, setSourceTokenSymbol] = useState<string | null>(null);
-    const [sourceTokenBalance, setSourceTokenBalance] = useState<bigint | null>(null);
-    const [sourceTokenAllowance, setSourceTokenAllowance] = useState<bigint | null>(null);
-
     const [isFetchingSourceInfo, setIsFetchingSourceInfo] = useState(false);
-    const selectedL1 = useSelectedL1()();
+    const [isFetchingDestInfo, setIsFetchingDestInfo] = useState(false);
 
-    if (!selectedL1) return null;
+    // Token info
+    const [tokenAddress, setTokenAddress] = useState<Address | null>(null);
+    const [tokenDecimals, setTokenDecimals] = useState<number | null>(null);
+    const [tokenSymbol, setTokenSymbol] = useState<string | null>(null);
+    const [tokenBalance, setTokenBalance] = useState<bigint | null>(null);
+    const [tokenAllowance, setTokenAllowance] = useState<bigint | null>(null);
 
-    const deployOnOptions = [
-        { label: "Send from L1 (Home is L1)", value: "L1" },
-        { label: "Send from C-Chain (Home is C-Chain)", value: "C-Chain" }
-    ];
+    // Destination token info
+    const [destTokenBalance, setDestTokenBalance] = useState<bigint | null>(null);
 
-    // Determine source and destination chains based on selection
-    const sourceChain = useMemo(() => (homeChainSelection === "L1" ? viemChain : avalancheFuji), [homeChainSelection, viemChain]);
-    const destinationChain = useMemo(() => (homeChainSelection === "L1" ? avalancheFuji : viemChain), [homeChainSelection, viemChain]);
-    const destinationDeployOn = useMemo(() => (homeChainSelection === "L1" ? "C-Chain" : "L1"), [homeChainSelection]);
+    // Get chain info - source is current chain, destination is selected
+    const destL1 = useL1ByChainId(destinationChainId)();
+    const destToolboxStore = getToolboxStore(destinationChainId)();
 
-    const homeContractAddress = erc20TokenHomeAddress?.[homeChainSelection];
+    const { erc20TokenHomeAddress } = useToolboxStore();
 
+    // Destination chain validation
+    let destChainError: string | undefined = undefined;
+    if (!destinationChainId) {
+        destChainError = "Please select a destination chain";
+    } else if (destinationChainId === selectedL1?.id) {
+        destChainError = "Source and destination chains must be different";
+    }
+
+    // Generate hex blockchain ID for the destination chain
     const destinationBlockchainIDHex = useMemo(() => {
-        if (!destinationChain || !selectedL1) return null;
-        const chainIDBase58 = homeChainSelection === "L1" ? FUJI_C_BLOCKCHAIN_ID : selectedL1?.id;
+        if (!destL1?.id) return null;
         try {
-            return utils.bufferToHex(utils.base58check.decode(chainIDBase58));
+            return utils.bufferToHex(utils.base58check.decode(destL1.id));
         } catch (e) {
             console.error("Error decoding destination chain ID:", e);
             return null;
         }
-    }, [homeChainSelection, destinationChain, selectedL1]);
+    }, [destL1?.id]);
 
-    const destinationContractSuggestions: Suggestion[] = useMemo(() => {
+    // Suggestions for source contract address on current chain
+    const sourceContractSuggestions: Suggestion[] = useMemo(() => {
         const suggestions: Suggestion[] = [];
-        const nativeAddr = nativeTokenRemoteAddress?.[destinationDeployOn];
-        const erc20Addr = erc20TokenRemoteAddress?.[destinationDeployOn];
-        if (nativeAddr) {
-            suggestions.push({ title: nativeAddr, value: nativeAddr, description: `Native Token Remote (${destinationDeployOn})` });
-        }
-        if (erc20Addr) {
-            suggestions.push({ title: erc20Addr, value: erc20Addr, description: `ERC20 Token Remote (${destinationDeployOn})` });
+        if (erc20TokenHomeAddress) {
+            suggestions.push({
+                title: erc20TokenHomeAddress,
+                value: erc20TokenHomeAddress,
+                description: `Token Bridge on ${selectedL1?.name}`
+            });
         }
         return suggestions;
-    }, [destinationDeployOn, nativeTokenRemoteAddress, erc20TokenRemoteAddress]);
+    }, [erc20TokenHomeAddress, selectedL1?.name]);
 
-    // Fetch source token info and allowance
+    // Suggestions for destination contract address
+    const destinationContractSuggestions: Suggestion[] = useMemo(() => {
+        const suggestions: Suggestion[] = [];
+        if (destToolboxStore?.erc20TokenRemoteAddress) {
+            suggestions.push({
+                title: destToolboxStore.erc20TokenRemoteAddress,
+                value: destToolboxStore.erc20TokenRemoteAddress,
+                description: `ERC20 Bridge Endpoint on ${destL1?.name}`
+            });
+        }
+        if (destToolboxStore?.nativeTokenRemoteAddress) {
+            suggestions.push({
+                title: destToolboxStore.nativeTokenRemoteAddress,
+                value: destToolboxStore.nativeTokenRemoteAddress,
+                description: `Native Bridge Endpoint on ${destL1?.name}`
+            });
+        }
+        return suggestions;
+    }, [destToolboxStore?.erc20TokenRemoteAddress, destToolboxStore?.nativeTokenRemoteAddress, destL1?.name]);
+
+    // Fetch token info from source contract on current chain
     const fetchSourceInfo = useCallback(async () => {
-        if (!homeContractAddress || !sourceChain || !walletEVMAddress) {
-            setSourceTokenAddress(null);
-            setSourceTokenDecimals(null);
-            setSourceTokenSymbol(null);
-            setSourceTokenBalance(null);
-            setSourceTokenAllowance(null);
+        if (!viemChain || !walletEVMAddress || !sourceContractAddress) {
+            setTokenAddress(null);
+            setTokenDecimals(null);
+            setTokenSymbol(null);
+            setTokenBalance(null);
+            setTokenAllowance(null);
             return;
         }
 
@@ -101,56 +126,116 @@ export default function TestSend() {
         setLocalError("");
         try {
             const publicClient = createPublicClient({
-                chain: sourceChain,
-                transport: http(sourceChain.rpcUrls.default.http[0])
+                chain: viemChain,
+                transport: http(viemChain.rpcUrls.default.http[0])
             });
 
+            // Try to get the token address from the bridge contract
             const fetchedTokenAddress = await publicClient.readContract({
-                address: homeContractAddress as Address,
+                address: sourceContractAddress as Address,
                 abi: ERC20TokenHomeABI.abi,
                 functionName: 'getTokenAddress',
-            }) as Address;
-            setSourceTokenAddress(fetchedTokenAddress);
+            }).catch(() => null) as Address | null;
 
-            if (!fetchedTokenAddress) throw new Error("Token address not found on Home contract");
+            if (!fetchedTokenAddress) {
+                throw new Error("Could not determine token address from bridge contract");
+            }
+
+            setTokenAddress(fetchedTokenAddress);
 
             const [fetchedDecimals, fetchedSymbol, fetchedBalance, fetchedAllowance] = await Promise.all([
-                publicClient.readContract({ address: fetchedTokenAddress, abi: ExampleERC20ABI.abi, functionName: 'decimals' }),
-                publicClient.readContract({ address: fetchedTokenAddress, abi: ExampleERC20ABI.abi, functionName: 'symbol' }),
-                publicClient.readContract({ address: fetchedTokenAddress, abi: ExampleERC20ABI.abi, functionName: 'balanceOf', args: [walletEVMAddress] }),
-                publicClient.readContract({ address: fetchedTokenAddress, abi: ExampleERC20ABI.abi, functionName: 'allowance', args: [walletEVMAddress, homeContractAddress as Address] })
+                publicClient.readContract({
+                    address: fetchedTokenAddress,
+                    abi: ExampleERC20ABI.abi,
+                    functionName: 'decimals'
+                }),
+                publicClient.readContract({
+                    address: fetchedTokenAddress,
+                    abi: ExampleERC20ABI.abi,
+                    functionName: 'symbol'
+                }),
+                publicClient.readContract({
+                    address: fetchedTokenAddress,
+                    abi: ExampleERC20ABI.abi,
+                    functionName: 'balanceOf',
+                    args: [walletEVMAddress as Address]
+                }),
+                publicClient.readContract({
+                    address: fetchedTokenAddress,
+                    abi: ExampleERC20ABI.abi,
+                    functionName: 'allowance',
+                    args: [walletEVMAddress, sourceContractAddress as Address]
+                })
             ]);
 
-            setSourceTokenDecimals(Number(fetchedDecimals as bigint));
-            setSourceTokenSymbol(fetchedSymbol as string);
-            setSourceTokenBalance(fetchedBalance as bigint);
-            setSourceTokenAllowance(fetchedAllowance as bigint);
+            setTokenDecimals(Number(fetchedDecimals as bigint));
+            setTokenSymbol(fetchedSymbol as string);
+            setTokenBalance(fetchedBalance as bigint);
+            setTokenAllowance(fetchedAllowance as bigint);
 
         } catch (error: any) {
-            console.error("Error fetching source info:", error);
-            setLocalError(`Error fetching source info: ${error.shortMessage || error.message}`);
-            setSourceTokenAddress(null);
-            // Keep other states potentially partially filled
+            console.error("Error fetching token info:", error);
+            setLocalError(`Error fetching token info: ${error.shortMessage || error.message}`);
+            setTokenAddress(null);
         } finally {
             setIsFetchingSourceInfo(false);
         }
-    }, [homeContractAddress, sourceChain, walletEVMAddress]);
+    }, [viemChain, walletEVMAddress, sourceContractAddress]);
+
+    // Fetch destination token balance
+    const fetchDestinationBalance = useCallback(async () => {
+        if (!destL1?.rpcUrl || !walletEVMAddress || !destinationContractAddress || !recipientAddress) {
+            setDestTokenBalance(null);
+            return;
+        }
+
+        setIsFetchingDestInfo(true);
+        try {
+            const publicClient = createPublicClient({
+                transport: http(destL1.rpcUrl)
+            });
+
+            // Try to get balance directly from the remote contract (it's ERC20-compatible)
+            const destBalance = await publicClient.readContract({
+                address: destinationContractAddress as Address,
+                abi: ExampleERC20ABI.abi,
+                functionName: 'balanceOf',
+                args: [recipientAddress as Address]
+            }).catch(() => null) as bigint | null;
+
+            if (destBalance !== null) {
+                setDestTokenBalance(destBalance);
+            } else {
+                setDestTokenBalance(null);
+            }
+        } catch (error) {
+            console.error("Error fetching destination balance:", error);
+            setDestTokenBalance(null);
+        } finally {
+            setIsFetchingDestInfo(false);
+        }
+    }, [destL1?.rpcUrl, walletEVMAddress, destinationContractAddress, recipientAddress]);
 
     useEffect(() => {
         fetchSourceInfo();
     }, [fetchSourceInfo]);
 
-    // Effect to set initial recipient address from wallet
+    useEffect(() => {
+        fetchDestinationBalance();
+    }, [fetchDestinationBalance, lastSendTxId]);
+
+    // Set initial recipient address to connected wallet
     useEffect(() => {
         if (walletEVMAddress && /^0x[a-fA-F0-9]{40}$/.test(walletEVMAddress)) {
             setRecipientAddress(walletEVMAddress as Address);
         } else {
-            setRecipientAddress(""); // Ensure it's cleared if wallet disconnects or address is invalid
+            setRecipientAddress("");
         }
     }, [walletEVMAddress]);
 
+    // Handle token approval
     const handleApprove = async () => {
-        if (!sourceChain || !coreWalletClient?.account || !homeContractAddress || !sourceTokenAddress || sourceTokenDecimals === null || !amount) {
+        if (!viemChain || !coreWalletClient?.account || !sourceContractAddress || !tokenAddress || tokenDecimals === null || !amount) {
             setLocalError("Missing required information for approval.");
             return;
         }
@@ -161,26 +246,26 @@ export default function TestSend() {
 
         try {
             const publicClient = createPublicClient({
-                chain: sourceChain,
-                transport: http(sourceChain.rpcUrls.default.http[0])
+                chain: viemChain,
+                transport: http(viemChain.rpcUrls.default.http[0])
             });
 
-            const amountParsed = parseUnits(amount, sourceTokenDecimals);
+            const amountParsed = parseUnits(amount, tokenDecimals);
 
             const { request } = await publicClient.simulateContract({
-                address: sourceTokenAddress,
+                address: tokenAddress,
                 abi: ExampleERC20ABI.abi,
                 functionName: 'approve',
-                args: [homeContractAddress as Address, amountParsed],
-                chain: sourceChain,
+                args: [sourceContractAddress as Address, amountParsed],
                 account: coreWalletClient.account,
+                chain: viemChain,
             });
 
             const hash = await coreWalletClient.writeContract(request);
             setLastApprovalTxId(hash);
 
             await publicClient.waitForTransactionReceipt({ hash });
-            await fetchSourceInfo(); // Refresh allowance
+            await fetchSourceInfo();
 
         } catch (error: any) {
             console.error("Approval failed:", error);
@@ -191,8 +276,10 @@ export default function TestSend() {
         }
     };
 
+    // Handle token sending
     const handleSend = async () => {
-        if (!sourceChain || !coreWalletClient?.account || !homeContractAddress || sourceTokenDecimals === null || !amount || !destinationContractAddress || !recipientAddress || !destinationBlockchainIDHex || !requiredGasLimit) {
+        if (!viemChain || !coreWalletClient?.account || !sourceContractAddress || tokenDecimals === null
+            || !amount || !destinationContractAddress || !recipientAddress || !destinationBlockchainIDHex || !requiredGasLimit) {
             setLocalError("Missing required information to send tokens.");
             return;
         }
@@ -203,52 +290,56 @@ export default function TestSend() {
 
         try {
             const publicClient = createPublicClient({
-                chain: sourceChain,
-                transport: http(sourceChain.rpcUrls.default.http[0])
+                chain: viemChain,
+                transport: http(viemChain.rpcUrls.default.http[0])
             });
 
-            const amountParsed = parseUnits(amount, sourceTokenDecimals);
+            const amountParsed = parseUnits(amount, tokenDecimals);
             const gasLimitParsed = BigInt(requiredGasLimit);
 
-            if (sourceTokenAllowance === null || sourceTokenAllowance < amountParsed) {
-                setLocalError(`Insufficient allowance. Please approve at least ${amount} ${sourceTokenSymbol || 'tokens'}.`);
+            if (tokenAllowance === null || tokenAllowance < amountParsed) {
+                setLocalError(`Insufficient allowance. Please approve at least ${amount} ${tokenSymbol || 'tokens'}.`);
                 setIsProcessingSend(false);
                 return;
             }
-            if (sourceTokenBalance === null || sourceTokenBalance < amountParsed) {
-                setLocalError(`Insufficient balance. You only have ${formatUnits(sourceTokenBalance ?? 0n, sourceTokenDecimals)} ${sourceTokenSymbol || 'tokens'}.`);
+            if (tokenBalance === null || tokenBalance < amountParsed) {
+                setLocalError(`Insufficient balance. You only have ${formatUnits(tokenBalance ?? 0n, tokenDecimals)} ${tokenSymbol || 'tokens'}.`);
                 setIsProcessingSend(false);
                 return;
             }
-
 
             const sendInput = {
                 destinationBlockchainID: destinationBlockchainIDHex as `0x${string}`,
                 destinationTokenTransferrerAddress: destinationContractAddress as Address,
                 recipient: recipientAddress as Address,
-                primaryFeeTokenAddress: zeroAddress, // Example uses 0
-                primaryFee: 0n,                     // Example uses 0
-                secondaryFee: 0n,                   // Example uses 0
+                primaryFeeTokenAddress: zeroAddress,
+                primaryFee: 0n,
+                secondaryFee: 0n,
                 requiredGasLimit: gasLimitParsed,
-                multiHopFallback: zeroAddress,      // Example uses 0 address
+                multiHopFallback: zeroAddress,
             };
 
             console.log("Calling send with input:", sendInput, "Amount:", amountParsed);
 
             const { request } = await publicClient.simulateContract({
-                address: homeContractAddress as Address,
+                address: sourceContractAddress as Address,
                 abi: ERC20TokenHomeABI.abi,
                 functionName: 'send',
                 args: [sendInput, amountParsed],
-                chain: sourceChain,
                 account: coreWalletClient.account,
+                chain: viemChain,
             });
 
             const hash = await coreWalletClient.writeContract(request);
             setLastSendTxId(hash);
 
             await publicClient.waitForTransactionReceipt({ hash });
-            await fetchSourceInfo(); // Refresh source balance
+            await fetchSourceInfo();
+
+            // Wait a moment before checking destination balance to allow for cross-chain message
+            setTimeout(() => {
+                fetchDestinationBalance();
+            }, 3000);
         } catch (error: any) {
             console.error("Send failed:", error);
             setLocalError(`Send failed: ${error.shortMessage || error.message}`);
@@ -258,150 +349,162 @@ export default function TestSend() {
         }
     };
 
-
     const amountParsed = useMemo(() => {
-        if (!amount || sourceTokenDecimals === null) return 0n;
+        if (!amount || tokenDecimals === null) return 0n;
         try {
-            return parseUnits(amount, sourceTokenDecimals);
+            return parseUnits(amount, tokenDecimals);
         } catch { return 0n; }
-    }, [amount, sourceTokenDecimals]);
+    }, [amount, tokenDecimals]);
 
     const hasSufficientAllowance = useMemo(() => {
-        if (sourceTokenAllowance === null || amountParsed === 0n) return false;
-        return sourceTokenAllowance >= amountParsed;
-    }, [sourceTokenAllowance, amountParsed]);
+        if (tokenAllowance === null || amountParsed === 0n) return false;
+        return tokenAllowance >= amountParsed;
+    }, [tokenAllowance, amountParsed]);
 
     const hasSufficientBalance = useMemo(() => {
-        if (sourceTokenBalance === null || amountParsed === 0n) return false;
-        return sourceTokenBalance >= amountParsed;
-    }, [sourceTokenBalance, amountParsed]);
-
+        if (tokenBalance === null || amountParsed === 0n) return false;
+        return tokenBalance >= amountParsed;
+    }, [tokenBalance, amountParsed]);
 
     const isValidAmount = amountParsed > 0n;
-    const isReadyToSend = isValidAmount && hasSufficientAllowance && hasSufficientBalance && destinationContractAddress && recipientAddress && destinationBlockchainIDHex && requiredGasLimit;
+    const isReadyToSend = isValidAmount && hasSufficientAllowance && hasSufficientBalance &&
+        destinationContractAddress && recipientAddress && destinationBlockchainIDHex && requiredGasLimit;
 
     return (
-        <div className="space-y-4" >
-            <h2 className="text-lg font-semibold" > Test Token Send(ERC20 Home) </h2>
+        <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Cross-Chain Token Bridge</h2>
 
-            < div className="p-4 border rounded-md bg-gray-50 dark:bg-gray-900/50" >
-                <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Select Source Chain (where ERC20 Home is deployed):</p>
-                <RadioGroup
-                    value={homeChainSelection}
-                    onChange={(value) => setHomeChainSelection(value as DeployOn)
-                    }
-                    items={deployOnOptions}
-                    idPrefix="send-home-on-"
-                />
-            </div>
-
-            {!homeContractAddress && <Note variant="warning" > ERC20 Token Home address for {homeChainSelection} not found in store.Please deploy it first.</Note>}
-
-            <div className="space-y-4" >
+            <div className="space-y-4">
                 <p>
-                    Send ERC20 tokens from the Home contract on <strong>{homeChainSelection}</strong> to a recipient on <strong>{destinationDeployOn}</strong>.
-                    This calls the `send` function on the `ERC20TokenHome` contract.
+                    Send tokens from the current chain ({selectedL1?.name}) to another chain.
                 </p>
 
-                {isFetchingSourceInfo && <div className="text-gray-500" > Loading source token info...</div>}
-
-                {
-                    sourceTokenAddress && sourceTokenSymbol && sourceTokenDecimals !== null && (
-                        <div className="p-3 border rounded-md text-sm space-y-1 bg-gray-100 dark:bg-gray-800" >
-                            <div>Sending Token: <code className="font-mono">{sourceTokenSymbol}</code> (<code className="font-mono">{sourceTokenAddress}</code>)</div>
-                            <div>Decimals: <code className="font-mono">{sourceTokenDecimals}</code></div>
-                            {sourceTokenBalance !== null && (
-                                <div>Your Balance({homeChainSelection}): <code className="font-mono">{formatUnits(sourceTokenBalance, sourceTokenDecimals)} {sourceTokenSymbol}</code></div>
-                            )
-                            }
-                            {
-                                sourceTokenAllowance !== null && (
-                                    <div>Current Allowance for Home Contract: <code className="font-mono">{formatUnits(sourceTokenAllowance, sourceTokenDecimals)} {sourceTokenSymbol}</code></div>
-                                )
-                            }
-                        </div>
-                    )}
+                <SelectChainID
+                    label="Destination Chain"
+                    value={destinationChainId}
+                    onChange={(value) => setDestinationChainId(value)}
+                    error={destChainError}
+                />
 
                 <Input
-                    label={`Destination Contract Address (Remote Contract on ${destinationDeployOn})`}
+                    label={`Source Bridge Contract on ${selectedL1?.name}`}
+                    value={sourceContractAddress}
+                    onChange={(value) => setSourceContractAddress(value as Address)}
+                    required
+                    suggestions={sourceContractSuggestions}
+                    placeholder="0x... Bridge contract on current chain"
+                />
+
+                <Input
+                    label={`Destination Bridge Contract on ${destL1?.name || 'destination chain'}`}
                     value={destinationContractAddress}
                     onChange={(value) => setDestinationContractAddress(value as Address)}
                     required
                     suggestions={destinationContractSuggestions}
-                    placeholder="0x... (Native or ERC20 Remote)"
-                    disabled={!homeContractAddress}
+                    placeholder="0x... Bridge contract on destination chain"
+                    disabled={!destinationChainId}
                 />
 
-                < Input
-                    label={`Recipient Address (on ${destinationDeployOn})`}
+                {isFetchingSourceInfo && <div className="text-gray-500">Loading token info...</div>}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {tokenAddress && tokenSymbol && tokenDecimals !== null && (
+                        <div className="p-3 border rounded-md text-sm space-y-1 bg-gray-100 dark:bg-gray-800">
+                            <h4 className="font-medium text-sm mb-1">Source Chain Balance</h4>
+                            <div>Token: <code className="font-mono">{tokenSymbol}</code></div>
+                            <div>Address: <code className="font-mono">{tokenAddress}</code></div>
+                            {tokenBalance !== null && (
+                                <div>Your Balance: <code className="font-mono">{formatUnits(tokenBalance, tokenDecimals)} {tokenSymbol}</code></div>
+                            )}
+                            {tokenAllowance !== null && (
+                                <div>Current Allowance: <code className="font-mono">{formatUnits(tokenAllowance, tokenDecimals)} {tokenSymbol}</code></div>
+                            )}
+                        </div>
+                    )}
+
+                    {destinationContractAddress && tokenDecimals !== null && (
+                        <div className="p-3 border rounded-md text-sm space-y-1 bg-gray-100 dark:bg-gray-800">
+                            <h4 className="font-medium text-sm mb-1">Destination Chain Balance</h4>
+                            <div>Token: <code className="font-mono">{tokenSymbol || "Token"}</code></div>
+                            <div>Address: <code className="font-mono">{destinationContractAddress}</code></div>
+                            {isFetchingDestInfo ? (
+                                <div>Loading balance...</div>
+                            ) : destTokenBalance !== null ? (
+                                <div>Recipient Balance: <code className="font-mono">{formatUnits(destTokenBalance, tokenDecimals)} {tokenSymbol}</code></div>
+                            ) : (
+                                <div>No balance information available</div>
+                            )}
+                            <div className="text-xs text-gray-500 mt-1">
+                                <button onClick={fetchDestinationBalance} className="text-blue-500 underline" disabled={isFetchingDestInfo}>
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <Input
+                    label={`Recipient Address on ${destL1?.name || 'destination chain'}`}
                     value={recipientAddress}
                     onChange={(value) => setRecipientAddress(value as Address)}
                     required
-                    button={< Button
+                    button={<Button
                         onClick={() => setRecipientAddress(walletEVMAddress ? walletEVMAddress as Address : "")}
                         stickLeft
                         disabled={!walletEVMAddress}
                     >
-                        Fill My Address
+                        Use My Address
                     </Button>}
-                    disabled={!homeContractAddress}
                 />
 
-                < Input
-                    label={`Amount of ${sourceTokenSymbol || 'Tokens'} to Send`}
+                <Input
+                    label={`Amount of ${tokenSymbol || 'Tokens'} to Send`}
                     value={amount}
                     onChange={setAmount}
                     type="number"
                     min="0"
-                    step={sourceTokenDecimals !== null ? `0.${'0'.repeat(sourceTokenDecimals - 1)}1` : 'any'}
+                    step={tokenDecimals !== null ? `0.${'0'.repeat(tokenDecimals - 1)}1` : 'any'}
                     required
-                    disabled={!sourceTokenAddress || isFetchingSourceInfo}
+                    disabled={!tokenAddress || isFetchingSourceInfo}
                     error={!isValidAmount && amount ? "Invalid amount" : (amount && !hasSufficientBalance ? "Insufficient balance" : undefined)}
                 />
 
-                < Input
-                    label="Required Gas Limit (for destination execution)"
+                <Input
+                    label="Required Gas Limit"
                     value={requiredGasLimit}
                     onChange={setRequiredGasLimit}
                     type="number"
                     min="0"
                     required
-                    disabled={!homeContractAddress}
                     helperText={`Default: ${DEFAULT_GAS_LIMIT}`}
                 />
 
+                {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
 
-                {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded" > {localError} </div>}
-
-                <div className="flex gap-2 pt-2 border-t mt-4 flex-wrap" >
+                <div className="flex gap-2 pt-2 border-t mt-4 flex-wrap">
                     <Button
                         onClick={handleApprove}
                         loading={isProcessingApproval}
-                        disabled={isProcessingApproval || isProcessingSend || !isValidAmount || !sourceTokenAddress || hasSufficientAllowance || isFetchingSourceInfo}
+                        disabled={isProcessingApproval || isProcessingSend || !isValidAmount || !tokenAddress || hasSufficientAllowance || isFetchingSourceInfo}
                         variant={hasSufficientAllowance ? "secondary" : "primary"}
                     >
-                        {hasSufficientAllowance ? `Approved (${formatUnits(sourceTokenAllowance ?? 0n, sourceTokenDecimals ?? 18)} ${sourceTokenSymbol})` : `1. Approve ${amount || 0} ${sourceTokenSymbol || ''}`}
+                        {hasSufficientAllowance ? `Approved (${formatUnits(tokenAllowance ?? 0n, tokenDecimals ?? 18)} ${tokenSymbol})` : `1. Approve ${amount || 0} ${tokenSymbol || ''}`}
                     </Button>
-                    < Button
+                    <Button
                         onClick={handleSend}
                         loading={isProcessingSend}
                         disabled={isProcessingApproval || isProcessingSend || !isReadyToSend || isFetchingSourceInfo}
                     >
-                        2. Send Tokens
+                        2. Send Tokens to {destL1?.name || 'Destination'}
                     </Button>
-
                 </div>
 
-                {
-                    lastApprovalTxId && (
-                        <Success label="Approval Transaction ID" value={lastApprovalTxId} />
-                    )
-                }
-                {
-                    lastSendTxId && (
-                        <Success label="Send Transaction ID" value={lastSendTxId} />
-                    )
-                }
+                {lastApprovalTxId && (
+                    <Success label="Approval Transaction ID" value={lastApprovalTxId} />
+                )}
+                {lastSendTxId && (
+                    <Success label="Send Transaction ID" value={lastSendTxId} />
+                )}
             </div>
         </div>
     );

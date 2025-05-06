@@ -144,9 +144,9 @@ export function Container({
           </div>
 
           <div className="flex flex-col justify-center h-[60px]">
-            <h3 className="text-base font-semibold mb-1 text-zinc-800 dark:text-white">{title}</h3>
-            {description && <p className="text-xs text-zinc-500 dark:text-zinc-400">{description}</p>}
-            {subDescription && <p className="text-xs text-zinc-500 dark:text-zinc-400">{subDescription}</p>}
+            <h3 className="text-base font-semibold mb-1 mt-0 text-zinc-800 dark:text-white">{title}</h3>
+            {description && <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">{description}</p>}
+            {subDescription && <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">{subDescription}</p>}
           </div>
         </div>
       </div>

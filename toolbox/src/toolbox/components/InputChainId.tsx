@@ -9,15 +9,12 @@ export default function InputChainId({ value, onChange, error, label = "Avalanch
     const chainIDSuggestions: Suggestion[] = useMemo(() => {
         const result: Suggestion[] = [];
 
-
         if (createChainStorechainID) {
             result.push({
                 title: createChainStorechainID,
                 value: createChainStorechainID,
                 description: "From the \"Create Chain\" tool"
             });
-
-
         }
 
         for (const l1 of l1List) {

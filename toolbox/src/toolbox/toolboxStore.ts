@@ -3,8 +3,6 @@ import { persist, createJSONStorage, combine } from 'zustand/middleware'
 import { useMemo } from 'react';
 import { useWalletStore } from '../lib/walletStore';
 
-export type DeployOn = "L1" | "C-Chain";
-
 const localStorageComp = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => { }, removeItem: () => { } }
 
 export const EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
@@ -67,13 +65,58 @@ type L1ListItem = {
     validatorManagerAddress: string;
 };
 
-const l1ListInitialState = {
-    l1List: [] as L1ListItem[],
+const l1ListInitialStateFuji = {
+    l1List: [
+        {
+            id: "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp",
+            name: "Avalanche Fuji",
+            rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
+            evmChainId: 43113,
+            coinName: "AVAX",
+            isTestnet: true,
+            subnetId: "11111111111111111111111111111111LpoYY",
+            validatorManagerAddress: "",
+        },
+        {
+            id: "98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp",
+            name: "Echo",
+            rpcUrl: "https://subnets.avax.network/echo/testnet/rpc",
+            evmChainId: 173750,
+            coinName: "ECH",
+            isTestnet: true,
+            subnetId: "i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK",
+            validatorManagerAddress: "0x0646263a231b4fde6f62d4de63e18df7e6ad94d6",
+        },
+        {
+            id: "2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY",
+            name: "Dispatch",
+            rpcUrl: "https://subnets.avax.network/dispatch/testnet/rpc",
+            evmChainId: 779672,
+            coinName: "DISP",
+            isTestnet: true,
+            subnetId: "7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5",
+            validatorManagerAddress: "",
+        }
+    ] as L1ListItem[],
 }
 
+const l1ListInitialStateMainnet = {
+    l1List: [
+        {
+            id: "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5",
+            name: "Avalanche Mainnet",
+            rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
+            evmChainId: 43114,
+            coinName: "AVAX",
+            isTestnet: false,
+            subnetId: "11111111111111111111111111111111LpoYY",
+            validatorManagerAddress: "",
+        }
+    ] as L1ListItem[],
+}
 const getL1ListStore = (isTestnet: boolean) => create(
     persist(
-        combine(l1ListInitialState, (set) => ({
+        combine(isTestnet ? l1ListInitialStateFuji : l1ListInitialStateMainnet, (set) => ({
             addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
             removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
             reset: () => {
@@ -100,10 +143,10 @@ const toolboxInitialState = {
     stakingManagerAddress: "",
     teleporterRegistryAddress: "",
     icmReceiverAddress: "",
-    exampleErc20Address: { "L1": "", "C-Chain": "" } as { L1: string, "C-Chain": string },
-    erc20TokenHomeAddress: { "L1": "", "C-Chain": "" } as { L1: string, "C-Chain": string },
-    erc20TokenRemoteAddress: { "L1": "", "C-Chain": "" } as { L1: string, "C-Chain": string },
-    nativeTokenRemoteAddress: { "L1": "", "C-Chain": "" } as { L1: string, "C-Chain": string },
+    exampleErc20Address: "",
+    erc20TokenHomeAddress: "",
+    erc20TokenRemoteAddress: "",
+    nativeTokenRemoteAddress: "",
 
     //unverifyed state - remove after testing
     // nodeRpcUrl: "",
@@ -121,16 +164,10 @@ export const getToolboxStore = (chainId: string) => create(
             setStakingManagerAddress: (stakingManagerAddress: string) => set({ stakingManagerAddress }),
             setTeleporterRegistryAddress: (address: string) => set({ teleporterRegistryAddress: address }),
             setIcmReceiverAddress: (address: string) => set({ icmReceiverAddress: address }),
-            setExampleErc20Address: (address: string, deployOn: DeployOn) => set((state) => ({ exampleErc20Address: { ...state.exampleErc20Address, [deployOn]: address } })),
-            setErc20TokenHomeAddress: (address: string, deployOn: DeployOn) => set((state) => ({ erc20TokenHomeAddress: { ...state.erc20TokenHomeAddress, [deployOn]: address } })),
-            setErc20TokenRemoteAddress: (address: string, deployOn: DeployOn) => set((state) => ({ erc20TokenRemoteAddress: { ...state.erc20TokenRemoteAddress, [deployOn]: address } })),
-            setNativeTokenRemoteAddress: (address: string, deployOn: DeployOn) => set((state) => ({ nativeTokenRemoteAddress: { ...state.nativeTokenRemoteAddress, [deployOn]: address } })),
-
-            //unverified methods - remove after testing
-            // setNodeRpcUrl: (nodeRpcUrl: string) => set({ nodeRpcUrl }),
-            // setEvmChainCoinName: (evmChainCoinName: string) => set({ evmChainCoinName }),
-            // setEvmChainIsTestnet: (evmChainIsTestnet: boolean) => set({ evmChainIsTestnet }),
-
+            setExampleErc20Address: (address: string) => set({ exampleErc20Address: address }),
+            setErc20TokenHomeAddress: (address: string) => set({ erc20TokenHomeAddress: address }),
+            setErc20TokenRemoteAddress: (address: string) => set({ erc20TokenRemoteAddress: address }),
+            setNativeTokenRemoteAddress: (address: string) => set({ nativeTokenRemoteAddress: address }),
 
             reset: () => {
                 if (typeof window !== 'undefined') {
@@ -215,6 +252,19 @@ export function useSelectedL1() {
             return l1List.find(l1 => l1.evmChainId === walletChainId) || undefined;
         },
         [walletChainId, l1ListStore]
+    );
+}
+
+
+export function useL1ByChainId(chainId: string) {
+    const l1ListStore = useL1ListStore();
+
+    return useMemo(() =>
+        () => {
+            const l1List = l1ListStore.getState().l1List;
+            return l1List.find(l1 => l1.id === chainId) || undefined;
+        },
+        [chainId, l1ListStore]
     );
 }
 

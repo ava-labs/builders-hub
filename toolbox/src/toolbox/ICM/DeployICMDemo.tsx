@@ -8,6 +8,7 @@ import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import ICMDemoABI from "../../../contracts/example-contracts/compiled/ICMDemo.json";
 import TeleporterMessengerAddress from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
+import { Container } from "../components/Container";
 
 export const SENDER_C_CHAIN_ADDRESS = "0xfD694e233f9D5196CF3747723ed00Bb8386a7FEe";
 
@@ -61,8 +62,10 @@ export default function DeployICMDemo() {
     }
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Deploy ICM Demo contract</h2>
+        <Container
+            title="Deploy ICM Demo contract"
+            description="Deploy a demo contract that can receive messages from the C-Chain using Avalanche's Inter-Chain Messaging (ICM) protocol."
+        >
             <div className="space-y-4">
                 <div className="">
                     This will deploy the <code>ICMDemo</code> contract to your connected network (Chain ID: <code>{selectedL1?.evmChainId}</code>). This contract can receive messages from the C-Chain using Avalanche's Inter-Chain Messaging (ICM) protocol. Once deployed, you can use the pre-deployed sender contract on the C-Chain at address <a href={`https://subnets-test.avax.network/c-chain/address/${SENDER_C_CHAIN_ADDRESS}`} target="_blank" className="text-blue-500 hover:underline">{SENDER_C_CHAIN_ADDRESS}</a> to send messages to this receiver.
@@ -92,6 +95,6 @@ export default function DeployICMDemo() {
                 />
             </div>
 
-        </div>
+        </Container>
     );
 }

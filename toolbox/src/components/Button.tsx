@@ -37,6 +37,7 @@ export function Button({
     "text-sm font-medium shadow-sm",
     "transition-colors duration-300",
     "flex items-center justify-center gap-2",
+    "cursor-pointer", // Add explicit cursor-pointer for all interactive buttons
   ];
 
   // Add rounded corners based on stickLeft
@@ -59,7 +60,7 @@ export function Button({
   if (variant === "primary") {
     variantClasses = "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600";
   } else if (variant === "secondary") {
-    variantClasses = "bg-zinc-200 text-zinc-800 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600";
+    variantClasses = "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-900/50";
   } else if (variant === "outline") {
     variantClasses = "border-2 border-zinc-300 bg-transparent text-zinc-800 hover:bg-zinc-100 hover:border-zinc-400 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:border-zinc-500";
   } else if (variant === "danger") {

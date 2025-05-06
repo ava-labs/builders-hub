@@ -2,13 +2,13 @@
 
 import { useCreateChainStore, EVM_VM_ID } from "../toolboxStore";
 import { useErrorBoundary } from "react-error-boundary";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Container } from "../components/Container";
-import { GenesisInput } from "../components/GenesisInput";
 import { ResultField } from "../components/ResultField";
 import { useWalletStore } from "../../lib/walletStore";
+import GenesisBuilder from "./GenesisBuilder";
 
 
 export default function CreateChain() {
@@ -28,11 +28,6 @@ export default function CreateChain() {
     const [isCreating, setIsCreating] = useState(false);
     const { coreWalletClient } = useWalletStore();
 
-    // Update localGenesisData when genesisData changes
-    useEffect(() => {
-        setLocalGenesisData(genesisData);
-    }, [genesisData]);
-
     function handleCreateChain() {
         setChainID("");
         setIsCreating(true);
@@ -48,21 +43,6 @@ export default function CreateChain() {
             setChainID(txID);
             setIsCreating(false);
         }).catch(showBoundary);
-    }
-
-    if (!localGenesisData) {
-        return (
-            <div className="space-y-4">
-                <h2 className="text-lg font-semibold ">Create Chain</h2>
-                <div className="flex items-center bg-amber-50 border border-amber-300 rounded-md p-3 text-amber-800">
-                    <span className="mr-2">⚠️</span>
-                    Please generate genesis data first using
-                    <a href="#genesisBuilder" className="text-amber-800 hover:text-amber-900 underline ml-1">
-                        the Genesis Builder tool
-                    </a>.
-                </div>
-            </div>
-        );
     }
 
     return (
@@ -90,18 +70,10 @@ export default function CreateChain() {
                 value={vmId}
                 onChange={setVmId}
                 placeholder="Enter VM ID"
-                helperText={`Default is ${EVM_VM_ID}`}
+                helperText={`For an L1 with an uncustomized EVM use ${EVM_VM_ID}`}
             />
 
-            <GenesisInput label="Genesis Data (JSON)" value={localGenesisData} onChange={setLocalGenesisData} />
-
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                Open the{" "}
-                <a href="https://build.avax.network/tools/l1-toolbox#genesisBuilder" className="text-primary hover:text-primary/80 dark:text-primary/90 dark:hover:text-primary/70">
-                    Genesis Builder tool
-                </a>{" "}
-                to generate custom genesis data.
-            </div>
+            <GenesisBuilder genesisData={localGenesisData} setGenesisData={setLocalGenesisData} />
 
             <Button onClick={handleCreateChain}
                 loading={isCreating} loadingText="Creating Chain...">

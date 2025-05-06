@@ -1,16 +1,14 @@
 "use client";
 
 import ExampleERC20 from "../../../contracts/icm-contracts/compiled/ExampleERC20.json"
-import { useToolboxStore, useViemChainStore, type DeployOn } from "../toolboxStore";
+import { useToolboxStore, useViemChainStore } from "../toolboxStore";
 import { useWalletStore } from "../../lib/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
-import { RadioGroup } from "../../components/RadioGroup";
-import { avalancheFuji } from "viem/chains";
-import { http } from "viem";
-import { createPublicClient } from "viem";
+import { http, createPublicClient } from "viem";
+import { Container } from "../components/Container";
 
 export default function DeployExampleERC20() {
     const { showBoundary } = useErrorBoundary();
@@ -18,39 +16,31 @@ export default function DeployExampleERC20() {
     const { coreWalletClient } = useWalletStore();
     const viemChain = useViemChainStore();
     const [isDeploying, setIsDeploying] = useState(false);
-    const [deployOn, setDeployOn] = useState<DeployOn>("C-Chain");
     const { walletChainId } = useWalletStore();
-
-    const deployOnOptions = [
-        { label: "L1", value: "L1" },
-        { label: "C-Chain", value: "C-Chain" }
-    ];
-
-    const requiredChain = deployOn === "L1" ? viemChain : avalancheFuji;
 
     async function handleDeploy() {
         setIsDeploying(true);
         try {
-            if (!requiredChain) throw new Error("No chain selected");
+            if (!viemChain) throw new Error("No chain selected");
 
-            const requiredPublicClient = createPublicClient({
-                transport: http(requiredChain.rpcUrls.default.http[0] || "")
+            const publicClient = createPublicClient({
+                transport: http(viemChain.rpcUrls.default.http[0] || "")
             });
 
             const hash = await coreWalletClient.deployContract({
                 abi: ExampleERC20.abi,
                 bytecode: ExampleERC20.bytecode.object as `0x${string}`,
                 args: [],
-                chain: requiredChain
+                chain: viemChain
             });
 
-            const receipt = await requiredPublicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
             if (!receipt.contractAddress) {
                 throw new Error('No contract address in receipt');
             }
 
-            setExampleErc20Address(receipt.contractAddress, deployOn);
+            setExampleErc20Address(receipt.contractAddress);
         } catch (error) {
             showBoundary(error);
         } finally {
@@ -59,18 +49,7 @@ export default function DeployExampleERC20() {
     }
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Deploy ERC20 Token</h2>
-
-            <div className="p-4 border rounded-md bg-gray-50 dark:bg-gray-900/50">
-                <RadioGroup
-                    value={deployOn}
-                    onChange={(value) => setDeployOn(value as "L1" | "C-Chain")}
-                    items={deployOnOptions}
-                    idPrefix="deploy-on-"
-                />
-            </div>
-
+        <Container title="Deploy ERC20 Token" description="Deploy an ERC20 token contract for testing.">
             <div className="space-y-4">
                 <div className="">
                     This will deploy an ERC20 token contract to your connected network (Chain ID: <code>{walletChainId}</code>).
@@ -78,20 +57,19 @@ export default function DeployExampleERC20() {
                 </div>
 
                 <Button
-                    variant={exampleErc20Address?.[deployOn] ? "secondary" : "primary"}
+                    variant={exampleErc20Address ? "secondary" : "primary"}
                     onClick={handleDeploy}
                     loading={isDeploying}
                     disabled={isDeploying}
                 >
-                    {exampleErc20Address?.[deployOn] ? "Re-Deploy ERC20 Token" : "Deploy ERC20 Token"}
+                    {exampleErc20Address ? "Re-Deploy ERC20 Token" : "Deploy ERC20 Token"}
                 </Button>
 
                 <Success
                     label="ERC20 Token Address"
-                    value={exampleErc20Address?.[deployOn] || ""}
+                    value={exampleErc20Address || ""}
                 />
             </div>
-
-        </div >
+        </Container>
     );
 }

@@ -1,0 +1,64 @@
+---
+title: Creating an L1
+description: Learn how to create an L1 blockchain in the Avalanche network using the Builder Tooling.
+updated: 2024-05-31
+authors: [martineckardt]
+icon: Book
+---
+
+Now that we've gone over what Avalanche L1s are, you are probably eager to test out the
+functionality of Avalanche L1s by creating one yourself! In this section, you will learn how to
+create an L1  blockchain using the the Avalanche Builder Tooling. 
+
+For production deployments you can leverage a [Blockchain-as-a-Service
+Provider](/integrations#Blockchain%20as%20a%20Service) to oursurce the setup and maintenance of the
+L1 infrastructure..
+
+## What You Will Learn
+
+In this section, you will go through the following steps:
+
+<Steps>
+<Step>
+
+### Claim Testnet AVAX Tokens 
+
+In the first step we will show you how to set up the Core wallet chrome extension. After, we will
+show how to claim some testnet AVAX tokens from the faucet. Finally, you will learn how to bridge
+the tokens from the C-Chain to the P-Chain.
+
+</Step>
+<Step>
+
+### Create the P-Chain records for the a Subnet and blockchain
+
+Here we will show you how to create the P-Chain records for the Subnet and the blockchain. You will
+issue a `CreateSubnetTx` transaction on the P-Chain to create a Subnet record. Then you will add a belockchain to
+the Subnet by issuing a `CreateChainTx` transaction on the P-Chain.
+
+</Step>
+<Step>
+
+### Set up a node to track the Subnet
+
+In this step you will learn how to set up a node to track the Subnet. We will leverage Docker to set
+up a node on a cloud server. When the node is up and running, you will connect your wallet to it.
+
+</Step>
+<Step>
+
+### Convert to an L1
+
+To finish the process, you will convert the Subnet to an L1. This is done by issuing a
+`ConvertSubnetToL1Tx` transaction on the P-Chain. This will turn your node into an actual validator
+for the L1. 
+
+</Step>
+<Step>
+
+### Test the L1
+
+In the final step, you will deploy a ERC-20 token on the L1 you had launched. 
+
+</Step>
+</Steps>

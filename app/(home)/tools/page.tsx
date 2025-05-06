@@ -23,10 +23,10 @@ const features = [
   {
     id: 2,
     label: "L1 Modules",
-    title: "<strong>L1 Launcher</strong>.",
-    description: "Guided deployment platform for launching self-hosted Avalanche L1s on Testnet and Mainnet.",
+    title: "<strong>Interchain Messaging Tools</strong>.",
+    description: "Set up Interchain Messaging (ICM) for your L1.",
     icon: CircleFadingPlus,
-    href: "/tools/l1-launcher"
+    href: "/tools/l1-toolbox"
   },
   {
     id: 3,

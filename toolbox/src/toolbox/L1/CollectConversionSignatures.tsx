@@ -8,7 +8,7 @@ import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
 import { CodeHighlighter } from "../../components/CodeHighlighter";
 import { Container } from "../components/Container";
 import { Input } from "../../components/Input";
-import InputChainId from "../components/SelectChainId";
+import InputChainId from "../components/InputChainId";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import { ResultField } from "../components/ResultField";
 

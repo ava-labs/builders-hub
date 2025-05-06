@@ -16,7 +16,8 @@ export const ConnectWalletPrompt = ({ onConnect }: ConnectWalletPromptProps) => 
         <div className="flex items-center justify-center mb-6">
           <div className="relative">
             <div className="absolute -inset-2 rounded-full"></div>
-            <img src="/core.png" alt="Avalanche Logo" className="h-24 w-auto relative" />
+            <img src="/core-logo.svg" alt="Core Logo" className="h-10 w-auto mt-1 mb-1 dark:hidden" />
+            <img src="/core-logo-dark.svg" alt="Core Logo" className="h-10 w-auto mt-1 mb-1 hidden dark:block" />
           </div>
         </div>
 
