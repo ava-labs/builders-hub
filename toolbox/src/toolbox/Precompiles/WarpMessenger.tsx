@@ -5,9 +5,8 @@ import { useWalletStore } from "../../lib/walletStore";
 import { useViemChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
-import { EVMAddressInput } from "../components/EVMAddressInput";
 import { ResultField } from "../components/ResultField";
-import { AllowListWrapper } from "../components/AllowListComponents";
+import { AllowlistComponent } from "../components/AllowListComponents";
 import warpMessengerAbi from "../../../contracts/precompiles/WarpMessenger.json";
 
 // Default Warp Messenger address
@@ -17,9 +16,6 @@ const DEFAULT_WARP_MESSENGER_ADDRESS =
 export default function WarpMessenger() {
   const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
-  const [warpMessengerAddress, setWarpMessengerAddress] = useState<string>(
-    DEFAULT_WARP_MESSENGER_ADDRESS
-  );
   const [messagePayload, setMessagePayload] = useState<string>("");
   const [blockIndex, setBlockIndex] = useState<string>("");
   const [messageIndex, setMessageIndex] = useState<string>("");
@@ -27,34 +23,11 @@ export default function WarpMessenger() {
   const [warpBlockHash, setWarpBlockHash] = useState<any>(null);
   const [warpMessage, setWarpMessage] = useState<any>(null);
   const [messageID, setMessageID] = useState<string | null>(null);
-  const [isAddressSet, setIsAddressSet] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isGettingBlockHash, setIsGettingBlockHash] = useState(false);
   const [isGettingMessage, setIsGettingMessage] = useState(false);
   const [isGettingBlockchainID, setIsGettingBlockchainID] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
-
-  const handleSetAddress = async () => {
-    setIsProcessing(true);
-
-    if (warpMessengerAddress === DEFAULT_WARP_MESSENGER_ADDRESS) {
-      setIsAddressSet(true);
-      setIsProcessing(false);
-      return;
-    }
-
-    const code = await publicClient.getBytecode({
-      address: warpMessengerAddress as `0x${string}`,
-    });
-
-    if (!code || code === "0x") {
-      throw new Error("Invalid contract address");
-    }
-
-    setIsAddressSet(true);
-    setIsProcessing(false);
-  };
 
   const handleSendWarpMessage = async () => {
     if (!coreWalletClient) throw new Error("Wallet client not found");
@@ -63,7 +36,7 @@ export default function WarpMessenger() {
 
     try {
       const hash = await coreWalletClient.writeContract({
-        address: warpMessengerAddress as `0x${string}`,
+        address: DEFAULT_WARP_MESSENGER_ADDRESS as `0x${string}`,
         abi: warpMessengerAbi.abi,
         functionName: "sendWarpMessage",
         args: [messagePayload],
@@ -102,7 +75,7 @@ export default function WarpMessenger() {
     setIsGettingBlockchainID(true);
 
     const result = await publicClient.readContract({
-      address: warpMessengerAddress as `0x${string}`,
+      address: DEFAULT_WARP_MESSENGER_ADDRESS as `0x${string}`,
       abi: warpMessengerAbi.abi,
       functionName: "getBlockchainID",
     });
@@ -115,7 +88,7 @@ export default function WarpMessenger() {
     setIsGettingBlockHash(true);
 
     const result = await publicClient.readContract({
-      address: warpMessengerAddress as `0x${string}`,
+      address: DEFAULT_WARP_MESSENGER_ADDRESS as `0x${string}`,
       abi: warpMessengerAbi.abi,
       functionName: "getVerifiedWarpBlockHash",
       args: [parseInt(blockIndex)],
@@ -129,7 +102,7 @@ export default function WarpMessenger() {
     setIsGettingMessage(true);
 
     const result = await publicClient.readContract({
-      address: warpMessengerAddress as `0x${string}`,
+      address: DEFAULT_WARP_MESSENGER_ADDRESS as `0x${string}`,
       abi: warpMessengerAbi.abi,
       functionName: "getVerifiedWarpMessage",
       args: [parseInt(messageIndex)],
@@ -138,12 +111,6 @@ export default function WarpMessenger() {
     setWarpMessage(result);
     setIsGettingMessage(false);
   };
-
-  const canSetAddress = Boolean(
-    warpMessengerAddress &&
-    walletEVMAddress &&
-    !isProcessing
-  );
 
   const canSendMessage = Boolean(
     messagePayload &&
@@ -165,48 +132,11 @@ export default function WarpMessenger() {
   );
 
   const isAnyOperationInProgress = Boolean(
-    isProcessing ||
     isSendingMessage ||
     isGettingBlockHash ||
     isGettingMessage ||
     isGettingBlockchainID
   );
-
-  if (!isAddressSet) {
-    return (
-      <Container
-        title="Configure Warp Messenger"
-        description="Set the address of the Warp Messenger precompile contract. The default address is pre-filled, but you can change it if needed."
-      >
-        <div className="space-y-4">
-          <EVMAddressInput
-            value={warpMessengerAddress}
-            onChange={setWarpMessengerAddress}
-            label="Warp Messenger Address"
-            disabled={isProcessing}
-          />
-
-          <div className="flex space-x-4">
-            <Button
-              variant="primary"
-              onClick={handleSetAddress}
-              disabled={!canSetAddress}
-              loading={isProcessing}
-            >
-              Use Default Address
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => setWarpMessengerAddress("")}
-              disabled={isProcessing}
-            >
-              Clear Address
-            </Button>
-          </div>
-        </div>
-      </Container>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -337,8 +267,8 @@ export default function WarpMessenger() {
       </Container>
 
       <div className="w-full">
-        <AllowListWrapper
-          precompileAddress={warpMessengerAddress}
+        <AllowlistComponent
+          precompileAddress={DEFAULT_WARP_MESSENGER_ADDRESS}
           precompileType="Warp Messenger"
         />
       </div>

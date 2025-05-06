@@ -8,7 +8,7 @@ import { Input } from "../../components/Input";
 import { Container } from "../components/Container";
 import { EVMAddressInput } from "../components/EVMAddressInput";
 import { ResultField } from "../components/ResultField";
-import { AllowListWrapper } from "../components/AllowListComponents";
+import { AllowlistComponent } from "../components/AllowListComponents";
 import feeManagerAbi from "../../../contracts/precompiles/FeeManager.json";
 
 // Default Fee Manager address
@@ -207,11 +207,6 @@ const InputWithValidation = ({
 export default function FeeManager() {
   const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
-  const [feeManagerAddress, setFeeManagerAddress] = useState<string>(
-    DEFAULT_FEE_MANAGER_ADDRESS
-  );
-  const [isAddressSet, setIsAddressSet] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   // Fee config state
   const [gasLimit, setGasLimit] = useState<string>("20000000");
@@ -299,29 +294,6 @@ export default function FeeManager() {
     blockGasCostStep,
   ]);
 
-  const handleSetAddress = async () => {
-    setIsProcessing(true);
-
-    // Skip bytecode verification for the default address
-    if (feeManagerAddress === DEFAULT_FEE_MANAGER_ADDRESS) {
-      setIsAddressSet(true);
-      setIsProcessing(false);
-      return;
-    }
-
-    // Verify the address is a valid Fee Manager contract
-    const code = await publicClient.getBytecode({
-      address: feeManagerAddress as `0x${string}`,
-    });
-
-    if (!code || code === "0x") {
-      throw new Error("Invalid contract address");
-    }
-
-    setIsAddressSet(true);
-    setIsProcessing(false);
-  };
-
   const handleSetFeeConfig = async () => {
     if (!coreWalletClient) throw new Error("Wallet client not found");
 
@@ -329,7 +301,7 @@ export default function FeeManager() {
 
     try {
       const hash = await coreWalletClient.writeContract({
-        address: feeManagerAddress as `0x${string}`,
+        address: DEFAULT_FEE_MANAGER_ADDRESS as `0x${string}`,
         abi: feeManagerAbi.abi,
         functionName: "setFeeConfig",
         args: [
@@ -363,7 +335,7 @@ export default function FeeManager() {
     setIsReadingConfig(true);
 
     const result = (await publicClient.readContract({
-      address: feeManagerAddress as `0x${string}`,
+      address: DEFAULT_FEE_MANAGER_ADDRESS as `0x${string}`,
       abi: feeManagerAbi.abi,
       functionName: "getFeeConfig",
     })) as [bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint];
@@ -394,19 +366,13 @@ export default function FeeManager() {
 
   const handleGetLastChangedAt = async () => {
     const result = await publicClient.readContract({
-      address: feeManagerAddress as `0x${string}`,
+      address: DEFAULT_FEE_MANAGER_ADDRESS as `0x${string}`,
       abi: feeManagerAbi.abi,
       functionName: "getFeeConfigLastChangedAt",
     });
 
     setLastChangedAt(Number(result));
   };
-
-  const canSetAddress = Boolean(
-    feeManagerAddress &&
-    walletEVMAddress &&
-    !isProcessing
-  );
 
   const isValidFeeConfig = Boolean(
     validateGasLimit(gasLimit).isValid &&
@@ -425,42 +391,6 @@ export default function FeeManager() {
     isValidFeeConfig &&
     !isSettingConfig
   );
-
-  if (!isAddressSet) {
-    return (
-      <Container
-        title="Configure Fee Manager"
-        description="Set the address of the Fee Manager precompile contract. The default address is pre-filled, but you can change it if needed."
-      >
-        <div className="space-y-4">
-          <EVMAddressInput
-            value={feeManagerAddress}
-            onChange={setFeeManagerAddress}
-            label="Fee Manager Address"
-            disabled={isProcessing}
-          />
-
-          <div className="flex space-x-4">
-            <Button
-              variant="primary"
-              onClick={handleSetAddress}
-              disabled={!canSetAddress}
-              loading={isProcessing}
-            >
-              Set Fee Manager Address
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => setFeeManagerAddress("")}
-              disabled={isProcessing}
-            >
-              Clear Address
-            </Button>
-          </div>
-        </div>
-      </Container>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -593,8 +523,8 @@ export default function FeeManager() {
       </Container>
 
       <div className="w-full">
-        <AllowListWrapper
-          precompileAddress={feeManagerAddress}
+        <AllowlistComponent
+          precompileAddress={DEFAULT_FEE_MANAGER_ADDRESS}
           precompileType="Fee Manager"
         />
       </div>

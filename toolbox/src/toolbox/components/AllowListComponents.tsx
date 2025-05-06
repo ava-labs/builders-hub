@@ -520,7 +520,7 @@ export function ReadAllowListComponent({
 }
 
 // Wrapper component for all allowlist components
-export function AllowListWrapper({
+export function AllowlistComponent({
   precompileAddress,
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,

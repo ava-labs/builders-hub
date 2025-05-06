@@ -6,7 +6,7 @@ import { useViemChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Container } from "../components/Container";
 import { EVMAddressInput } from "../components/EVMAddressInput";
-import { AllowListWrapper } from "../components/AllowListComponents";
+import { AllowlistComponent } from "../components/AllowListComponents";
 import rewardManagerAbi from "../../../contracts/precompiles/RewardManager.json";
 import { CheckCircle, Edit, Users, Wallet } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -45,11 +45,6 @@ const StatusBadge = ({ status, loadingText, isLoading }: StatusBadgeProps) => {
 export default function RewardManager() {
   const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
-  const [rewardManagerAddress, setRewardManagerAddress] = useState<string>(
-    DEFAULT_REWARD_MANAGER_ADDRESS
-  );
-  const [isAddressSet, setIsAddressSet] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   // Fee config state
   const [isAllowingFeeRecipients, setIsAllowingFeeRecipients] = useState(false);
@@ -63,28 +58,6 @@ export default function RewardManager() {
   const [isFeeRecipientsAllowed, setIsFeeRecipientsAllowed] = useState<boolean | null>(null);
   const [currentRewardAddress, setCurrentRewardAddress] = useState<string | null>(null);
 
-  const handleSetAddress = async () => {
-    setIsProcessing(true);
-
-    // Skip bytecode verification for the default address
-    if (rewardManagerAddress === DEFAULT_REWARD_MANAGER_ADDRESS) {
-      setIsAddressSet(true);
-      return;
-    }
-
-    // Verify the address is a valid Reward Manager contract
-    const code = await publicClient.getBytecode({
-      address: rewardManagerAddress as `0x${string}`,
-    });
-
-    if (!code || code === "0x") {
-      throw new Error("Invalid contract address");
-    }
-
-    setIsAddressSet(true);
-    setIsProcessing(false);
-  };
-
   const handleAllowFeeRecipients = async () => {
     if (!walletEVMAddress || !coreWalletClient) {
       throw new Error("Please connect your wallet first");
@@ -95,7 +68,7 @@ export default function RewardManager() {
 
     try {
       const hash = await coreWalletClient.writeContract({
-        address: rewardManagerAddress as `0x${string}`,
+        address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
         abi: rewardManagerAbi.abi,
         functionName: "allowFeeRecipients",
         account: walletEVMAddress as `0x${string}`,
@@ -119,7 +92,7 @@ export default function RewardManager() {
     setIsCheckingFeeRecipients(true);
 
     const result = await publicClient.readContract({
-      address: rewardManagerAddress as `0x${string}`,
+      address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
       abi: rewardManagerAbi.abi,
       functionName: "areFeeRecipientsAllowed",
     });
@@ -138,7 +111,7 @@ export default function RewardManager() {
 
     try {
       const hash = await coreWalletClient.writeContract({
-        address: rewardManagerAddress as `0x${string}`,
+        address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
         abi: rewardManagerAbi.abi,
         functionName: "disableRewards",
         account: walletEVMAddress as `0x${string}`,
@@ -162,7 +135,7 @@ export default function RewardManager() {
     setIsCheckingRewardAddress(true);
 
     const result = await publicClient.readContract({
-      address: rewardManagerAddress as `0x${string}`,
+      address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
       abi: rewardManagerAbi.abi,
       functionName: "currentRewardAddress",
     });
@@ -185,7 +158,7 @@ export default function RewardManager() {
 
     try {
       const hash = await coreWalletClient.writeContract({
-        address: rewardManagerAddress as `0x${string}`,
+        address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
         abi: rewardManagerAbi.abi,
         functionName: "setRewardAddress",
         args: [rewardAddress],
@@ -213,12 +186,6 @@ export default function RewardManager() {
     isCheckingFeeRecipients ||
     isCheckingRewardAddress;
 
-  const canSetAddress = Boolean(
-    rewardManagerAddress &&
-    walletEVMAddress &&
-    !isProcessing
-  );
-
   const canSetRewardAddress = Boolean(
     rewardAddress &&
     walletEVMAddress &&
@@ -227,42 +194,6 @@ export default function RewardManager() {
     !isDisablingRewards &&
     !isCheckingRewardAddress
   );
-
-  if (!isAddressSet) {
-    return (
-      <Container
-        title="Configure Reward Manager"
-        description="Set the address of the Reward Manager precompile contract. The default address is pre-filled, but you can change it if needed."
-      >
-        <div className="space-y-4">
-          <EVMAddressInput
-            value={rewardManagerAddress}
-            onChange={setRewardManagerAddress}
-            label="Reward Manager Address"
-            disabled={isProcessing}
-          />
-
-          <div className="flex space-x-4">
-            <Button
-              variant="primary"
-              onClick={handleSetAddress}
-              disabled={!canSetAddress}
-              loading={isProcessing}
-            >
-              Set Reward Manager Address
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => setRewardManagerAddress("")}
-              disabled={isProcessing}
-            >
-              Clear Address
-            </Button>
-          </div>
-        </div>
-      </Container>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -422,8 +353,8 @@ export default function RewardManager() {
       </Container>
 
       <div className="w-full">
-        <AllowListWrapper
-          precompileAddress={rewardManagerAddress}
+        <AllowlistComponent
+          precompileAddress={DEFAULT_REWARD_MANAGER_ADDRESS}
           precompileType="Reward Manager"
         />
       </div>

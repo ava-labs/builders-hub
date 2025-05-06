@@ -9,7 +9,7 @@ import { Container } from "../components/Container";
 import { ResultField } from "../components/ResultField";
 import { EVMAddressInput } from "../components/EVMAddressInput";
 import nativeMinterAbi from "../../../contracts/precompiles/NativeMinter.json";
-import { AllowListWrapper } from "../components/AllowListComponents";
+import { AllowlistComponent } from "../components/AllowListComponents";
 
 // Default Native Minter address
 const DEFAULT_NATIVE_MINTER_ADDRESS =
@@ -18,33 +18,10 @@ const DEFAULT_NATIVE_MINTER_ADDRESS =
 export default function NativeMinter() {
   const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
-  const [nativeMinterAddress, setNativeMinterAddress] = useState<string>(
-    DEFAULT_NATIVE_MINTER_ADDRESS
-  );
   const [amount, setAmount] = useState<string>("");
   const [recipient, setRecipient] = useState<string>("");
   const [isMinting, setIsMinting] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [isAddressSet, setIsAddressSet] = useState(false);
-
-  const handleSetAddress = async () => {
-    // Skip bytecode verification for the default address
-    if (nativeMinterAddress === DEFAULT_NATIVE_MINTER_ADDRESS) {
-      setIsAddressSet(true);
-      return;
-    }
-
-    // Verify the address is a valid Native Minter contract
-    const code = await publicClient.getBytecode({
-      address: nativeMinterAddress as `0x${string}`,
-    });
-
-    if (!code || code === "0x") {
-      throw new Error("Invalid contract address");
-    }
-
-    setIsAddressSet(true);
-  };
 
   const handleMint = async () => {
     if (!coreWalletClient) throw new Error("Wallet client not found");
@@ -57,7 +34,7 @@ export default function NativeMinter() {
 
       // Call the mintNativeCoin function using the contract ABI
       const hash = await coreWalletClient.writeContract({
-        address: nativeMinterAddress as `0x${string}`,
+        address: DEFAULT_NATIVE_MINTER_ADDRESS as `0x${string}`,
         abi: nativeMinterAbi.abi,
         functionName: "mintNativeCoin",
         args: [recipient, amountInWei],
@@ -81,41 +58,6 @@ export default function NativeMinter() {
 
   const isValidAmount = amount && Number(amount) > 0;
   const canMint = Boolean(recipient && isValidAmount && walletEVMAddress && coreWalletClient && !isMinting);
-
-  if (!isAddressSet) {
-    return (
-      <Container
-        title="Configure Native Minter"
-        description="Set the address of the Native Minter precompile contract. The default address is pre-filled, but you can change it if needed."
-      >
-        <div className="space-y-4">
-          <EVMAddressInput
-            value={nativeMinterAddress}
-            onChange={setNativeMinterAddress}
-            label="Native Minter Address"
-            disabled={isMinting}
-          />
-
-          <div className="flex space-x-4">
-            <Button
-              variant="primary"
-              onClick={handleSetAddress}
-              disabled={!nativeMinterAddress || !walletEVMAddress}
-            >
-              Set Native Minter Address
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => setNativeMinterAddress("")}
-              disabled={isMinting}
-            >
-              Clear Address
-            </Button>
-          </div>
-        </div>
-      </Container>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -164,8 +106,8 @@ export default function NativeMinter() {
       </Container>
 
       <div className="w-full">
-        <AllowListWrapper
-          precompileAddress={nativeMinterAddress}
+        <AllowlistComponent
+          precompileAddress={DEFAULT_NATIVE_MINTER_ADDRESS}
           precompileType="Minter"
         />
       </div>
