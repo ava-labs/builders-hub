@@ -207,6 +207,13 @@ async function main(): Promise<void> {
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/avm/",
     },
     { 
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/coreth/master/plugin/evm/api.md",
+      outputPath: "content/docs/api-reference/c-chain/api.mdx",
+      title: "C-Chain API",
+      description: "This page is an overview of the C-Chain API associated with AvalancheGo.",
+      contentUrl: "https://github.com/ava-labs/coreth/blob/master/plugin/evm/",
+    },
+    { 
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanche-cli/main/cmd/commands.md",
       outputPath: "content/docs/tooling/cli-commands.mdx",
       title: "CLI Commands",
