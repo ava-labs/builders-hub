@@ -12,48 +12,7 @@ import Token from "@/public/images/usdcToken.svg";
 import XP from "@/public/ambassador-dao-images/sparkles.png";
 
 import Loader from "../ui/Loader";
-
-const allTiers = [
-  {
-    id: "e3864e4e-789d-44a4-941c-fee3ba04f9ae",
-    name: "Snr Chiller",
-    description: "Description",
-    level: 2,
-    imageUrl:
-      "http://res.cloudinary.com/dh2nnm7ma/image/upload/v1742480496/tier/u1pks74smaaky8gl1wkt.png",
-    lowerBound: 2001,
-    upperBound: 5000,
-    userCount: 2,
-    createdAt: "2025-03-20T14:21:38.115Z",
-    updatedAt: "2025-03-20T14:21:38.115Z",
-  },
-  {
-    id: "20970632-bf10-4be3-9d36-979f4f88afa5",
-    name: "Supreeme Leader",
-    description: "Description",
-    level: 3,
-    imageUrl:
-      "http://res.cloudinary.com/dh2nnm7ma/image/upload/v1742480615/tier/vaj3vunnhulbarjl3tob.jpg",
-    lowerBound: 5001,
-    upperBound: 100000,
-    userCount: 3,
-    createdAt: "2025-03-20T14:23:36.923Z",
-    updatedAt: "2025-03-20T14:23:36.923Z",
-  },
-  {
-    id: "c50d3669-863c-4d4a-8d99-919ebc89aed6",
-    name: "Chill 001",
-    description: "Description",
-    level: 1,
-    imageUrl:
-      "http://res.cloudinary.com/dh2nnm7ma/image/upload/v1742480453/tier/eiwm1qmyrcweytwk04l5.jpg",
-    lowerBound: 0,
-    upperBound: 2000,
-    userCount: 3,
-    createdAt: "2025-03-20T14:20:56.074Z",
-    updatedAt: "2025-03-20T14:20:56.074Z",
-  },
-];
+import { useFetchUserXPTiers } from "@/services/ambassador-dao/requests/users";
 
 export default function XpSection({
   data,
@@ -76,6 +35,7 @@ export default function XpSection({
     availableOpportunities: any[];
   };
 }) {
+  const { data: allTiers } = useFetchUserXPTiers();
   return (
     <div className='border rounded-lg p-4 py-6 my-6 bg-[#fff] dark:bg-[#000]'>
       <div className='mb-6 md:mb-8'>
@@ -156,38 +116,48 @@ export default function XpSection({
             }}
           ></div>
 
-          {allTiers
-            .sort((a, b) => a.level - b.level)
-            .map((tier, index) => {
-              const isActive = data?.currentTier?.level
-                ? data?.currentTier?.level >= tier.level
-                : false;
-              return (
-                <div key={index} className='flex items-start relative'>
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      isActive ? "bg-red-500" : "bg-[#9F9FA9]"
-                    } z-10`}
-                  >
-                    <Image src={Trophy} alt='Trophy' width={20} height={20} />
-                  </div>
-                  <div className='ml-4'>
+          {!!allTiers?.tiers?.length &&
+            allTiers?.tiers
+              ?.sort((a, b) => a.level - b.level)
+              .map((tier, index) => {
+                const isActive = data?.currentTier?.level
+                  ? data?.currentTier?.level >= tier.level
+                  : false;
+                return (
+                  <div key={index} className='flex items-start relative'>
                     <div
-                      className={`${
-                        isActive ? "text-white" : "text-[#6A7282]"
-                      } text-xl font-medium`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        isActive ? "bg-red-500" : "bg-[#9F9FA9]"
+                      } z-10`}
                     >
-                      {tier.name}
+                      <Image src={Trophy} alt='Trophy' width={20} height={20} />
                     </div>
-                    <div className='text-sm text-[#6A7282]'>
-                      <p>{tier.description}</p>
-                      {tier.lowerBound.toLocaleString()} -{" "}
-                      {tier.upperBound.toLocaleString()} XP
+                    <div className='ml-4'>
+                      <div
+                        className={`${
+                          isActive ? "text-white" : "text-[#6A7282]"
+                        } text-xl font-medium`}
+                      >
+                        {tier.name}
+                      </div>
+                      <div className='text-sm text-[#6A7282]'>
+                        <p>
+                          {data?.currentTier?.level === tier.level
+                            ? "Current Tier"
+                            : data?.currentTier?.level &&
+                              data?.currentTier?.level > tier.level
+                            ? "Completed Tier"
+                            : "Continue contributing to be considered"}
+                        </p>
+                        <p className='text-xs text-[#6A7282]'>
+                          {tier.lowerBound.toLocaleString()} -{" "}
+                          {tier.upperBound.toLocaleString()} XP
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
         </div>
 
         <div className='col-span-2'>

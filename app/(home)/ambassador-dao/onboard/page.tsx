@@ -23,7 +23,7 @@ import {
   useUpdateSponsorProfileMutation,
   useUpdateTalentProfileMutation,
 } from "@/services/ambassador-dao/requests/onboard";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import CustomButton from "@/components/ambassador-dao/custom-button";
 import { useForm } from "react-hook-form";
 import {
@@ -62,8 +62,6 @@ const userTypes = [
 
 const AmbasssadorDaoOnboardPage = () => {
   const { data: userData, isLoading } = useFetchUserDataQuery();
-  const searchParams = useSearchParams();
-  const update = searchParams.get("update");
   const [userType, setUserType] = useState<"TALENT" | "SPONSOR">("TALENT");
   const [selectionStep, setShowSelectionStep] = useState<
     "account_option" | "account_form"
