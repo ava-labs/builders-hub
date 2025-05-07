@@ -230,7 +230,6 @@ const MainContent = ({ user }: { user: any }) => {
   };
 
   const handleCategoryChange = (category: string) => {
- 
     setSelectedCategory(category);
 
     const skillId = CATEGORY_SKILL_MAPPING[category] || "";
@@ -337,7 +336,7 @@ const MainContent = ({ user }: { user: any }) => {
     }
 
     return (
-      <>
+      <div className='space-y-3'>
         <div className={isBountiesLoading ? "min-h-32" : ""}>
           <BountiesSection
             isLoading={isBountiesLoading}
@@ -361,7 +360,7 @@ const MainContent = ({ user }: { user: any }) => {
             onResetFilters={resetAllFilters}
           />
         </div>
-      </>
+      </div>
     );
   };
 
@@ -374,11 +373,11 @@ const MainContent = ({ user }: { user: any }) => {
           initialCategory={selectedCategory}
         />
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-9 xl:gap-x-8 gap-y-8">
-        <div className="lg:col-span-6 order-1 xl:order-1">
+      <div className='grid grid-cols-1 xl:grid-cols-9 xl:gap-x-8 gap-y-8'>
+        <div className='lg:col-span-6 order-1 xl:order-1'>
           {renderContent()}
         </div>
-        <div className="order-2 xl:order-2 col-span-3">
+        <div className='order-2 xl:order-2 col-span-3'>
           <SideContent user={user} />
         </div>
       </div>

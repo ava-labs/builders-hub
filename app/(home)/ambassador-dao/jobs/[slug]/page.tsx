@@ -86,9 +86,9 @@ const GoBackButton = () => {
   return (
     <button
       onClick={handleGoBack}
-      className="flex items-center gap-2 text-[var(--primary-text-color)] hover:text-[var(--white-text-color)] mb-6 bg-[var(--default-background-color)] py-2 px-4 rounded-md border border-[var(--default-border-color)]"
+      className='flex items-center gap-2 text-[var(--primary-text-color)] hover:text-[var(--white-text-color)] mb-6 bg-[var(--default-background-color)] py-2 px-4 rounded-md border border-[var(--default-border-color)]'
     >
-      <ArrowLeft size={16} color="var(--primary-text-color)" />
+      <ArrowLeft size={16} color='var(--primary-text-color)' />
       <span>Go Back</span>
     </button>
   );
@@ -106,19 +106,19 @@ const Reply: React.FC<ReplyProps> = ({ reply, isOptimistic = false }) => {
         isOptimistic ? "border-blue-400 border-opacity-50" : ""
       }`}
     >
-      <div className="flex gap-3">
-        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center">
-          <span className="text-white text-xs">
+      <div className='flex gap-3'>
+        <div className='w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center'>
+          <span className='text-white text-xs'>
             {reply?.author?.first_name?.substring(0, 2).toUpperCase()}
           </span>
         </div>
-        <div className="flex-1">
-          <div className="mb-1">
-            <h3 className="font-medium text-[#FB2C36]">
+        <div className='flex-1'>
+          <div className='mb-1'>
+            <h3 className='font-medium text-[#FB2C36]'>
               {reply?.author?.first_name} {reply?.author?.last_name}
             </h3>
           </div>
-          <p className="text-[var(--secondary-text-color)] text-sm">
+          <p className='text-[var(--secondary-text-color)] text-sm'>
             {reply?.content}
           </p>
         </div>
@@ -257,21 +257,21 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
 
   if (displayRepliesCount === 0 && !isReplying && !isLoading) {
     return (
-      <div className="ml-12 my-2">
+      <div className='ml-12 my-2'>
         <button
-          type="button"
+          type='button'
           onClick={() => setIsReplying(!isReplying)}
-          className="hover:text-[var(--white-text-color)] text-[var(--secondary-text-color)] px-4 rounded-md text-sm transition"
+          className='hover:text-[var(--white-text-color)] text-[var(--secondary-text-color)] px-4 rounded-md text-sm transition'
         >
           Reply
         </button>
 
         {isReplying && (
-          <div className="mt-2">
+          <div className='mt-2'>
             <form onSubmit={handleReplySubmit}>
               <textarea
-                className="w-full border border-[var(--default-border-color)] rounded-md p-3 text-[var(--white-text-color)] resize-none focus:outline-none bg-[var(--default-background-color)]"
-                placeholder="Write a reply..."
+                className='w-full border border-[var(--default-border-color)] rounded-md p-3 text-[var(--white-text-color)] resize-none focus:outline-none bg-[var(--default-background-color)]'
+                placeholder='Write a reply...'
                 rows={1}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
@@ -279,17 +279,17 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
               ></textarea>
 
               {replyText.trim() !== "" && (
-                <div className="flex justify-end gap-2 mt-2">
+                <div className='flex justify-end gap-2 mt-2'>
                   <button
-                    type="button"
+                    type='button'
                     onClick={handleCancelReply}
-                    className="px-4 py-1 text-[var(--secondary-text-color)] border border-[var(--default-border-color)] hover:text-[var(--white-text-color)] rounded-md text-sm transition"
+                    className='px-4 py-1 text-[var(--secondary-text-color)] border border-[var(--default-border-color)] hover:text-[var(--white-text-color)] rounded-md text-sm transition'
                   >
                     Cancel
                   </button>
                   <button
-                    type="submit"
-                    className="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition"
+                    type='submit'
+                    className='px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition'
                   >
                     Reply
                   </button>
@@ -309,13 +309,13 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
   }
 
   return (
-    <div className="ml-12">
-      <div className="flex items-center gap-2 my-2">
+    <div className='ml-12'>
+      <div className='flex items-center gap-2 my-2'>
         {displayRepliesCount > 0 && (
           <button
-            type="button"
+            type='button'
             onClick={toggleReplies}
-            className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1 transition"
+            className='text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1 transition'
           >
             {isLoading ? (
               <span>Loading replies...</span>
@@ -323,29 +323,29 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
               <>
                 {displayRepliesCount}{" "}
                 {displayRepliesCount === 1 ? "Reply" : "Replies"}
-                <span className="text-xs">{showReplies ? "▲" : "▼"}</span>
+                <span className='text-xs'>{showReplies ? "▲" : "▼"}</span>
               </>
             )}
           </button>
         )}
 
-        <span className="text-gray-500">•</span>
+        <span className='text-gray-500'>•</span>
 
         <button
-          type="button"
+          type='button'
           onClick={() => setIsReplying(!isReplying)}
-          className="hover:text-[var(--white-text-color)] text-[var(--secondary-text-color)] text-sm transition"
+          className='hover:text-[var(--white-text-color)] text-[var(--secondary-text-color)] text-sm transition'
         >
           Reply
         </button>
       </div>
 
       {isReplying && (
-        <div className="mt-2">
+        <div className='mt-2'>
           <form onSubmit={handleReplySubmit}>
             <textarea
-              className="w-full border border-[var(--default-border-color)] rounded-md p-3 text-[var(--white-text-color)] resize-none focus:outline-none bg-[var(--default-background-color)]"
-              placeholder="Write a reply..."
+              className='w-full border border-[var(--default-border-color)] rounded-md p-3 text-[var(--white-text-color)] resize-none focus:outline-none bg-[var(--default-background-color)]'
+              placeholder='Write a reply...'
               rows={1}
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
@@ -353,17 +353,17 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
             ></textarea>
 
             {replyText.trim() !== "" && (
-              <div className="flex justify-end gap-2 mt-2">
+              <div className='flex justify-end gap-2 mt-2'>
                 <button
-                  type="button"
+                  type='button'
                   onClick={handleCancelReply}
-                  className="px-4 py-1 text-[var(--secondary-text-color)] hover:text-[var(--white-text-color)] rounded-md text-sm transition"
+                  className='px-4 py-1 text-[var(--secondary-text-color)] hover:text-[var(--white-text-color)] rounded-md text-sm transition'
                 >
                   Cancel
                 </button>
                 <button
-                  type="submit"
-                  className="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition"
+                  type='submit'
+                  className='px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition'
                 >
                   Reply
                 </button>
@@ -380,11 +380,11 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
       />
 
       {isError && !optimisticReplies.length && (
-        <div className="text-red-500 text-sm my-2">Failed to load replies</div>
+        <div className='text-red-500 text-sm my-2'>Failed to load replies</div>
       )}
 
       {showReplies && displayReplies.length > 0 && (
-        <div className="space-y-2 mt-2 pl-2 border-l-2 border-[var(--default-border-color)]">
+        <div className='space-y-2 mt-2 pl-2 border-l-2 border-[var(--default-border-color)]'>
           {displayReplies.map((reply, idx) => (
             <Reply
               key={`reply-${reply.id}-${idx}`}
@@ -465,35 +465,35 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
         comment.isOptimistic ? "border-blue-400 border-opacity-50" : ""
       }`}
     >
-      <div className="p-4 border border-[var(--default-border-color)] rounded-lg my-2 relative">
-        <div className="flex gap-3 w-full">
-          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center">
-            <span className="text-white text-sm">
+      <div className='p-4 border border-[var(--default-border-color)] rounded-lg my-2 relative'>
+        <div className='flex gap-3 w-full'>
+          <div className='w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center'>
+            <span className='text-white text-sm'>
               {comment?.author?.first_name?.substring(0, 2).toUpperCase()}
             </span>
           </div>
-          <div className="flex-1">
-            <div className="flex justify-between items-start mb-1 w-full">
-              <h3 className="font-medium text-[#FB2C36]">
+          <div className='flex-1'>
+            <div className='flex justify-between items-start mb-1 w-full'>
+              <h3 className='font-medium text-[#FB2C36]'>
                 {comment?.author?.first_name} {comment?.author?.last_name}
               </h3>
               {isEditable && (
                 <button
-                  className="p-1 text-[var(--secondary-text-color)] hover:text-[var(--white-text-color)] focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity"
+                  className='p-1 text-[var(--secondary-text-color)] hover:text-[var(--white-text-color)] focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity'
                   onClick={toggleOptions}
-                  aria-label="Comment options"
+                  aria-label='Comment options'
                 >
-                  <MoreVertical size={16} color="var(--white-text-color)" />
+                  <MoreVertical size={16} color='var(--white-text-color)' />
                 </button>
               )}
 
               {showOptions && isEditable && (
                 <div
                   ref={optionsRef}
-                  className="absolute right-4 top-4 bg-gray-800 rounded-md shadow-lg z-10 py-1 min-w-[100px]"
+                  className='absolute right-4 top-4 bg-[var(--default-background-color)] rounded-md shadow-lg z-10 py-1 min-w-[100px]'
                 >
                   <button
-                    className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700"
+                    className='w-full text-left px-4 py-2 text-sm text-[var(--white-text-color)] hover:bg-gray-700'
                     onClick={() => {
                       setIsEditing(true);
                       setShowOptions(false);
@@ -502,7 +502,7 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
                     Edit
                   </button>
                   <button
-                    className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-700"
+                    className='w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-700'
                     onClick={handleDeleteComment}
                   >
                     Delete
@@ -512,36 +512,36 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
             </div>
 
             {isEditing ? (
-              <form onSubmit={handleEditSubmit} className="mt-2">
+              <form onSubmit={handleEditSubmit} className='mt-2'>
                 <textarea
-                  className="w-full border border-[var(--default-border-color)] rounded-md p-3 text-[var(--white-text-color)] resize-none focus:outline-none bg-[var(--default-background-color)]"
-                  placeholder="Edit your comment"
+                  className='w-full border border-[var(--default-border-color)] rounded-md p-3 text-[var(--white-text-color)] resize-none focus:outline-none bg-[var(--default-background-color)]'
+                  placeholder='Edit your comment'
                   rows={2}
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
                   autoFocus
                 ></textarea>
-                <div className="flex justify-end gap-2 mt-2">
+                <div className='flex justify-end gap-2 mt-2'>
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => {
                       setEditText(comment?.content);
                       setIsEditing(false);
                     }}
-                    className="px-4 py-1 text-[var(--secondary-text-color)] hover:text-[var(--white-text-color)] rounded-md text-sm transition"
+                    className='px-4 py-1 text-[var(--secondary-text-color)] hover:text-[var(--white-text-color)] rounded-md text-sm transition'
                   >
                     Cancel
                   </button>
                   <button
-                    type="submit"
-                    className="px-4 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm transition"
+                    type='submit'
+                    className='px-4 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm transition'
                   >
                     Save
                   </button>
                 </div>
               </form>
             ) : (
-              <p className="text-[var(--secondary-text-color)] text-sm">
+              <p className='text-[var(--secondary-text-color)] text-sm'>
                 {comment?.content}
               </p>
             )}
@@ -683,18 +683,18 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
   };
 
   return (
-    <div className="mt-8 border-t border-[var(--default-border-color)] pt-6">
-      <div className="flex items-center gap-2 mb-4">
-        <MessagesSquare size={16} color="#9F9FA9" />
-        <h2 className="text-lg font-semibold">
+    <div className='mt-8 border-t border-[var(--default-border-color)] pt-6'>
+      <div className='flex items-center gap-2 mb-4'>
+        <MessagesSquare size={16} color='#9F9FA9' />
+        <h2 className='text-lg font-semibold'>
           {(metadata.total || 0) + optimisticComments.length} Comments
         </h2>
       </div>
 
-      <form onSubmit={handleSubmitComment} className="mt-6 relative">
+      <form onSubmit={handleSubmitComment} className='mt-6 relative'>
         <textarea
-          className="w-full border border-[var(--default-border-color)] bg-transparent rounded-md p-3 text-[var(--white-text-color)] resize-none focus:outline-none"
-          placeholder="Write Comments"
+          className='w-full border border-[var(--default-border-color)] bg-transparent rounded-md p-3 text-[var(--white-text-color)] resize-none focus:outline-none'
+          placeholder='Write Comments'
           rows={isFocused || newComment.length > 0 ? 2 : 1}
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
@@ -704,19 +704,19 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
 
         {(isFocused || newComment.trim() !== "") && (
           <>
-            <div className="text-[var(--secondary-text-color)] text-xs flex justify-end mt-1">
+            <div className='text-[var(--secondary-text-color)] text-xs flex justify-end mt-1'>
               {`${280 - newComment.length} characters left`}
             </div>
-            <div className="flex justify-end gap-2 mt-2">
+            <div className='flex justify-end gap-2 mt-2'>
               <button
-                type="button"
+                type='button'
                 onClick={handleCancelComment}
-                className="px-4 py-2 text-[var(--secondary-text-color)] border border-[var(--default-border-color)] hover:text-[var(--white-text-color)] rounded-md text-sm transition"
+                className='px-4 py-2 text-[var(--secondary-text-color)] border border-[var(--default-border-color)] hover:text-[var(--white-text-color)] rounded-md text-sm transition'
               >
                 Cancel
               </button>
               <button
-                type="submit"
+                type='submit'
                 className={`px-4 py-2 bg-red-500 text-white rounded-md text-sm transition ${
                   newComment.trim() === "" || isSubmitting
                     ? "opacity-50 cursor-not-allowed"
@@ -732,14 +732,14 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
       </form>
 
       {isLoadingComments ? (
-        <div className="flex justify-center my-8">
+        <div className='flex justify-center my-8'>
           <Loader />
         </div>
       ) : (
         <>
-          <div className="space-y-4 mt-6">
+          <div className='space-y-4 mt-6'>
             {displayComments.length === 0 ? (
-              <p className="text-[var(--secondary-text-color)] text-center py-8">
+              <p className='text-[var(--secondary-text-color)] text-center py-8'>
                 No comments yet. Be the first to comment!
               </p>
             ) : (
@@ -757,7 +757,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
             <Pagination
               metadata={metadata}
               onPageChange={handlePageChange}
-              className="my-8"
+              className='my-8'
             />
           )}
 
@@ -835,57 +835,57 @@ const AmbasssadorDaoSingleJobPage = () => {
   }
 
   return (
-    <div className="text-[var(--white-text-color)] min-h-screen bg-[var(--black-background-color)]">
-      <div className="max-w-7xl mx-auto my-6">
+    <div className='text-[var(--white-text-color)] min-h-screen bg-[var(--black-background-color)]'>
+      <div className='max-w-7xl mx-auto my-6'>
         <GoBackButton />
       </div>
 
       {!isFetchingOpportunityDetails && (
-        <div className="max-w-7xl mx-auto px-4 py-8 border border-[var(--default-border-color)] bg-[var(--default-background-color)] rounded-lg shadow-sm my-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 flex flex-col">
+        <div className='max-w-7xl mx-auto px-4 py-8 border border-[var(--default-border-color)] bg-[var(--default-background-color)] rounded-lg shadow-sm my-6'>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
+            <div className='md:col-span-2 flex flex-col'>
               <JobHeader job={headerData} />
 
-              <div className="border text-[var(--primary-text-color)] border-[var(--default-border-color)] p-4 mb-6 rounded-md">
-                <h2 className="mb-2 font-medium">Requirements</h2>
-                <p className="text-[13px] text-[var(--secondary-text-color)] whitespace-pre-line">
+              <div className='border text-[var(--primary-text-color)] border-[var(--default-border-color)] p-4 mb-6 rounded-md'>
+                <h2 className='mb-2 font-medium'>Requirements</h2>
+                <p className='text-[13px] text-[var(--secondary-text-color)] whitespace-pre-line'>
                   {headerData?.requirements}
                 </p>
               </div>
 
-              <div className="border text-[var(--primary-text-color)] border-[var(--default-border-color)] p-4 mb-6 rounded-md">
-                <h2 className="mb-4 font-medium">Contact Information</h2>
-                <p className="text-[13px] text-[var(--secondary-text-color)] whitespace-pre-line">
+              <div className='border text-[var(--primary-text-color)] border-[var(--default-border-color)] p-4 mb-6 rounded-md'>
+                <h2 className='mb-4 font-medium'>Contact Information</h2>
+                <p className='text-[13px] text-[var(--secondary-text-color)] whitespace-pre-line'>
                   For questions or clarification, please contact
                 </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+                <div className='grid grid-cols-2 md:grid-cols-4 gap-3 mt-6'>
                   <a
                     href={`mailto://${headerData?.point_of_contact_email}`}
-                    className="flex items-center justify-center gap-2 bg-[var(--default-border-color)] transition-colors rounded-lg py-3 px-4"
+                    className='flex items-center justify-center gap-2 bg-[var(--default-border-color)] transition-colors rounded-lg py-3 px-4'
                   >
-                    <Mail color="var(--white-text-color)" size={16} />
-                    <span className="text-[var(--white-text-color)] text-sm font-medium">
+                    <Mail color='var(--white-text-color)' size={16} />
+                    <span className='text-[var(--white-text-color)] text-sm font-medium'>
                       Email
                     </span>
                   </a>
 
                   <Link
                     href={`https://t.me/${headerData?.point_of_contact}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 bg-[var(--default-border-color)] transition-colors rounded-lg py-3 px-4"
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='flex items-center justify-center gap-2 bg-[var(--default-border-color)] transition-colors rounded-lg py-3 px-4'
                   >
-                    <div className="dark:bg-[#fff] bg-[#000] rounded-full p-1">
-                      <Send color="var(--black-background-color)" size={10} />
+                    <div className='dark:bg-[#fff] bg-[#000] rounded-full p-1'>
+                      <Send color='var(--black-background-color)' size={10} />
                     </div>
-                    <span className="text-[var(--white-text-color)] text-sm font-medium">
+                    <span className='text-[var(--white-text-color)] text-sm font-medium'>
                       Telegram
                     </span>
                   </Link>
                 </div>
               </div>
 
-              <div className="block md:hidden my-6">
+              <div className='block md:hidden my-6'>
                 <JobSidebar job={sidebarData} />
               </div>
 
@@ -894,7 +894,7 @@ const AmbasssadorDaoSingleJobPage = () => {
               <CommentsSection id={slug} />
             </div>
 
-            <div className="hidden md:block md:col-span-1">
+            <div className='hidden md:block md:col-span-1'>
               <JobSidebar job={sidebarData} />
             </div>
           </div>

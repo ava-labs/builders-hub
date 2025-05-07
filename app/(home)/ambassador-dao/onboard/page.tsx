@@ -295,6 +295,7 @@ const TalentForm = () => {
 
   const addSkill = (skill: string) => {
     if (selectedSkills.length >= 5) {
+      toast.remove();
       toast.error("You can only select up to 5 skills");
       return;
     }
@@ -423,6 +424,7 @@ const TalentForm = () => {
             <CustomInput
               id='years_of_experience'
               label='Years of experience'
+              type='number'
               placeholder='3'
               required
               {...register("years_of_experience")}
@@ -536,7 +538,7 @@ const TalentForm = () => {
               )}
             </div>
           </div>
-          <div>
+          <div className='space-y-2'>
             <CustomInput
               id='social-0'
               label='Social Link'
@@ -551,7 +553,7 @@ const TalentForm = () => {
               }}
             />
             {socialLinks.slice(1).map((link, idx) => (
-              <div key={idx + 1} className='mb-4'>
+              <div key={idx + 1}>
                 <CustomInput
                   id={`social-${idx + 1}`}
                   label={`Social ${idx + 2}`}
@@ -566,7 +568,7 @@ const TalentForm = () => {
                 <div className='flex justify-end'>
                   <button
                     type='button'
-                    className='flex items-center text-sm text-[var(--secondary-text-color)] font-medium gap-2 mt-2'
+                    className='flex items-center text-sm text-[var(--secondary-text-color)] font-medium gap-2 mt-1'
                     onClick={() => removeSocialLink(link)}
                   >
                     <Minus size={14} color='var(--secondary-text-color)' />{" "}
