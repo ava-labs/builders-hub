@@ -157,154 +157,6 @@ export const BountyDescription: React.FC<BountyDescriptionProps> = ({
   );
 };
 
-// export const BountySidebar: React.FC<BountySidebarProps> = ({
-//   bounty,
-//   nullAction,
-// }) => {
-//   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-//   const [isOnboardModalOpen, setIsOnboadModalOpen] = useState<boolean>(false);
-
-//   const timeLeft = useCountdown(bounty?.deadline);
-//   const [openAuthModal, setOpenAuthModal] = useState(false);
-
-//   const { data, isLoading } = useCheckBountyStatus(bounty.id);
-//   const { data: userData } = useFetchUserDataQuery();
-
-//   return (
-//     <div className='bg-transparent p-4 rounded-md border border-[var(--default-border-color)] sticky top-6'>
-//       <div className='flex items-center justify-between mb-4'>
-//         <div className='flex items-center gap-2'>
-//           <span className='text-[var(--white-text-color)] flex items-center gap-2'>
-//             <Image src={Token} alt='$' />
-//             {bounty?.total_budget} USDC
-//           </span>
-//         </div>
-//       </div>
-
-//       {bounty?.prize_distribution &&
-//         bounty?.prize_distribution?.map(
-//           (prize: { amount: number; position: number }, index: number) => (
-//             <div key={index} className='flex items-center gap-2 my-2'>
-//               <Image src={Token} alt='$' />
-//               {prize.amount} USDC{" "}
-//               <span className='text-[var(--secondary-text-color)]'>
-//                 {getOrdinalPosition(prize.position)}
-//               </span>
-//             </div>
-//           )
-//         )}
-
-//       <div className='flex gap-4 items-center mb-6 mt-2'>
-//         <div className='flex flex-col'>
-//           <span className='text-[var(--white-text-color)] flex items-center'>
-//             <BriefcaseBusiness
-//               size={16}
-//               className='inline mr-1'
-//               color='#9F9FA9'
-//             />
-//             <span>{bounty?.proposalsCount}</span>
-//           </span>
-//           <span className='text-[var(--secondary-text-color)] text-sm'>
-//             {bounty?.proposalsCount > 1 ? "Proposals" : "Proposal"}
-//           </span>
-//         </div>
-//         {/* <div className='flex flex-col justify-center'>
-//           <span className='text-[var(--white-text-color)] flex items-center'>
-//             <Hourglass size={16} className='inline mr-1' color='#9F9FA9' />
-//             <span>{timeLeft}</span>
-//           </span>
-//           <span className='text-[var(--secondary-text-color)] text-sm'>
-//             Remaining
-//           </span>
-//         </div> */}
-//       </div>
-
-//       <div className='mb-6'>
-//         <h2 className='text-lg font-medium mb-3 text-[var(--primary-text-color)]'>
-//           SKILL NEEDED
-//         </h2>
-//         {bounty?.skills?.length > 0 ? (
-//           <div className='flex flex-wrap gap-2'>
-//             {bounty?.skills?.map((skill: { name: string }, index: number) => (
-//               <div key={index}>
-//                 <Outline label={skill.name} />
-//               </div>
-//             ))}
-//           </div>
-//         ) : (
-//           <div className='text-[var(--secondary-text-color)] text-sm'>
-//             No skills available
-//           </div>
-//         )}
-//       </div>
-
-//       {(bounty.category === "AMBASSADOR_SPECIFIC" &&
-//         userData?.role !== "AMBASSADOR") ||
-//       userData?.role === "SPONSOR" ? null : bounty.status === "PUBLISHED" ? (
-//         <button
-//           disabled={data?.has_submitted}
-//           className={`w-full font-medium py-3 rounded-md transition ${
-//             data?.has_submitted
-//               ? "bg-gray-400 text-[var(--white-text-color)] cursor-not-allowed"
-//               : "bg-red-500 hover:bg-red-600 text-white"
-//           }`}
-//           onClick={() => {
-//             if (nullAction) return;
-
-//             if (!userData) {
-//               setOpenAuthModal(true);
-//               return;
-//             }
-//             if (
-//               !userData?.role ||
-//               !userData?.username ||
-//               !userData?.wallet_address
-//             ) {
-//               setIsOnboadModalOpen(true);
-//               return;
-//             }
-
-//             if (!data?.has_submitted) {
-//               setIsModalOpen(true);
-//             }
-//           }}
-//         >
-//           {isLoading ? (
-//             <div className='flex items-center justify-center'>
-//               <Loader2 color='var(--white-text-color)' />
-//             </div>
-//           ) : data?.has_submitted ? (
-//             "Already Submitted"
-//           ) : (
-//             "Participate"
-//           )}
-//         </button>
-//       ) : null}
-
-//       <AuthModal
-//         isOpen={openAuthModal}
-//         onClose={() => setOpenAuthModal(false)}
-//         stopRedirection={true}
-//       />
-
-//       {isModalOpen && (
-//         <BountySubmissionModal
-//           id={bounty.id}
-//           isOpen={isModalOpen}
-//           onClose={() => setIsModalOpen(false)}
-//         />
-//       )}
-
-//       {isOnboardModalOpen && (
-//         <OnboardModal
-//           isOpen={isOnboardModalOpen}
-//           onClose={() => setIsOnboadModalOpen(false)}
-//         />
-//       )}
-//     </div>
-//   );
-// };
-
 export const BountySidebar: React.FC<BountySidebarProps> = ({
   bounty,
   nullAction,
@@ -320,7 +172,6 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
 
   return (
     <div className='bg-transparent p-4 rounded-md border border-[var(--default-border-color)] sticky top-6'>
-      {/* Total budget section */}
       <div className='flex items-center gap-2 mb-4'>
         <Image src={Token} alt='$' className='mr-2' />
         <span className='text-[var(--white-text-color)] text-lg font-semibold'>
@@ -331,10 +182,8 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
         </span>
       </div>
 
-      {/* Prize distribution section */}
       {bounty?.prize_distribution && bounty.prize_distribution.length > 0 && (
         <div className='relative pl-10 mb-4'>
-          {/* Vertical line connecting prizes */}
           <div className='absolute left-[11px] top-2 bottom-2 w-0.5 bg-[#9F9FA9]'></div>
 
           {bounty.prize_distribution.map(
@@ -353,7 +202,6 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
         </div>
       )}
 
-      {/* Proposals and time remaining section */}
       <div className='flex gap-8 items-center mb-6 mt-4'>
         <div className='flex items-start'>
           <div className='flex flex-col items-start'>
@@ -386,7 +234,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
       {/* Skills section */}
       <div className='mb-6'>
         <h2 className='text-lg font-medium mb-3 text-[var(--primary-text-color)]'>
-          SKILL NEEDED
+          Skill Needed
         </h2>
         {bounty?.skills?.length > 0 ? (
           <div className='flex flex-wrap gap-2'>
@@ -403,7 +251,6 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
         )}
       </div>
 
-      {/* Participate button */}
       {(bounty.category === "AMBASSADOR_SPECIFIC" &&
         userData?.role !== "AMBASSADOR") ||
       userData?.role === "SPONSOR" ? null : bounty.status === "PUBLISHED" ? (

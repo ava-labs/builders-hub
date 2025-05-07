@@ -109,7 +109,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
 
       <div className='mb-6'>
         <h2 className='text-lg font-medium mb-3 text-[var(--primary-text-color)]'>
-          SKILL NEEDED
+          Skill Needed
         </h2>
         {job?.skills?.length > 0 ? (
           <div className='flex flex-wrap gap-2'>
