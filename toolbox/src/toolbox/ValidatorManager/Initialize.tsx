@@ -224,7 +224,7 @@ export default function Initialize() {
                         value={adminAddress}
                         onChange={setAdminAddress}
                         disabled={isInitializing}
-
+                        placeholder="Enter admin address"
                     />
                     <Button
                         variant="primary"

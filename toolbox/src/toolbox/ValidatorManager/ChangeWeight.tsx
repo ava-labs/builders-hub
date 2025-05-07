@@ -480,7 +480,6 @@ export default function ChangeWeight() {
             value={manualProxyAddress}
             onChange={setManualProxyAddress}
             disabled={isProcessing}
-            
           />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             Override the current proxy address ({manualProxyAddress?.substring(0, 10)}... or leave empty to use default)

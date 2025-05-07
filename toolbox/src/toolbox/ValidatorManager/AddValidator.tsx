@@ -381,7 +381,6 @@ export default function AddValidator() {
                             value={validatorManagerAddress}
                             onChange={setValidatorManagerAddress}
                             disabled={isProcessing}
-                            
                         />
                         {!validatorManagerAddress && hookError && <p className="text-xs text-red-500">Validator Manager Address is required</p>}
                     </div>

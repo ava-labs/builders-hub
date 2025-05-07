@@ -79,7 +79,6 @@ export default function ConvertToL1() {
                     onChange={setManagerAddress}
                     label="Validator Manager Contract Address"
                     disabled={isConverting}
-                    
                 />
                 <Callout type="info">
                     In the Genesis Builder an <a href="https://docs.openzeppelin.com/contracts/4.x/api/proxy" target="_blank">OpenZeppelin TransparentUpgradeableProxy</a> contract is pre-deployed at the address <code>0xfacade...</code>. This proxy can be pointed to a reference implementation or customized version of the <a href="https://github.com/ava-labs/icm-contracts/tree/main/contracts/validator-manager" target="_blank">validator manager contract</a>. Tools for the deployment of the reference implementations of validator manager contract are available in the <a href="http://build.avax.network/tools/l1-toolbox#deployValidatorManager" target="_blank">L1 Toolbox</a> for after the conversion.

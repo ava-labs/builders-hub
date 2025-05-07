@@ -57,14 +57,12 @@ export default function TransferOwnership() {
                     value={validatorManagerAddress}
                     onChange={setValidatorManagerAddress}
                     disabled={isTransferring}
-                    
                 />
                 <EVMAddressInput
                     label="Staking Manager Address"
                     value={stakingManagerAddress}
                     onChange={setStakingManagerAddress}
                     disabled={isTransferring}
-                    
                 />
                 <Button
                     variant="primary"

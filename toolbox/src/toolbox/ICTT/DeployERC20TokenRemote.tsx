@@ -185,7 +185,6 @@ export default function DeployERC20TokenRemote() {
                     value={teleporterRegistryAddress}
                     onChange={setTeleporterRegistryAddress}
                     disabled={isDeploying}
-                    
                 />
 
                 {!teleporterRegistryAddress && <Note variant="warning">
@@ -206,7 +205,7 @@ export default function DeployERC20TokenRemote() {
                     value={tokenHomeAddress}
                     onChange={setTokenHomeAddress}
                     disabled={true}
-                    
+                    helperText={!sourceToolboxStore.erc20TokenHomeAddress ? `Please deploy the Token Home contract on ${sourceL1?.name} first` : undefined}
                 />}
 
                 {tokenHomeBlockchainIDHex && <Input
@@ -242,7 +241,6 @@ export default function DeployERC20TokenRemote() {
                     value={teleporterManager}
                     onChange={setTeleporterManager}
                     disabled={isDeploying}
-                    
                 />
 
                 <Input

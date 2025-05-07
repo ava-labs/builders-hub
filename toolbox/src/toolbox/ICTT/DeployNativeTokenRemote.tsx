@@ -208,6 +208,7 @@ export default function DeployNativeTokenRemote() {
                     value={tokenHomeAddress}
                     onChange={setTokenHomeAddress}
                     disabled={true}
+                    helperText={!sourceToolboxStore.erc20TokenHomeAddress ? `Please deploy the Token Home contract on ${sourceL1?.name} first` : undefined}
                 />}
 
                 {tokenHomeBlockchainIDHex && <Input

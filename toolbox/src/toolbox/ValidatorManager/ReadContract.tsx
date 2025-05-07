@@ -143,7 +143,6 @@ export default function ReadContract() {
           value={proxyAddress}
           onChange={setProxyAddress}
           disabled={isReading}
-          
         />
         <Button
           variant="secondary"

@@ -340,7 +340,6 @@ export default function AddColateral() {
                     value={remoteContractAddress}
                     onChange={(value) => setRemoteContractAddress(value as Address)}
                     disabled={isProcessing}
-                    
                     suggestions={remoteContractSuggestions}
                     placeholder="0x... (Native or ERC20 Remote)"
                 />
