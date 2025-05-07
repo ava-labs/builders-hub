@@ -119,3 +119,28 @@ export const useUpdateWalletAddress = () => {
     onError: (err) => errorMsg(err),
   });
 };
+
+export const useFetchUserXPTiers = () => {
+  return useQuery({
+    queryFn: async () => {
+      const res = await axiosInstance.get(`${API_DEV}/users/tiers`);
+      return res.data.data as {
+        tiers: {
+          id: string;
+          name: string;
+          description: string;
+          level: number;
+          imageUrl: string;
+          lowerBound: number;
+          upperBound: number;
+          userCount: number;
+          createdAt: string;
+          updatedAt: string;
+        }[];
+      };
+    },
+    queryKey: ["userXPTiers"],
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
+};
