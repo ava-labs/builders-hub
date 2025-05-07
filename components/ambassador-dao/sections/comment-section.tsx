@@ -437,10 +437,10 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
               {showOptions && isEditable && (
                 <div
                   ref={optionsRef}
-                  className='absolute right-4 top-4 bg-gray-800 rounded-md shadow-lg z-10 py-1 min-w-[100px]'
+                  className='absolute right-4 top-4 bg-[var(--default-background-color)] rounded-md shadow-lg z-10 py-1 min-w-[100px]'
                 >
                   <button
-                    className='w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700'
+                    className='w-full text-left px-4 py-2 text-sm text-[var(--white-text-color)] hover:bg-gray-700'
                     onClick={() => {
                       setIsEditing(true);
                       setShowOptions(false);
