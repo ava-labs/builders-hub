@@ -56,7 +56,7 @@ const BountiesSection = ({
 
   console.log(filters)
   return (
-    <section className="border border-[var(--default-border-color)] rounded-md py-10 px-3">
+    <section className="border border-[var(--default-border-color)] rounded-md py-10 px-3 mb-12">
       <div className="flex justify-between">
         <h2 className="text-3xl font-medium mb-6 flex items-center gap-2">
           <Lightbulb size={36} color="var(--white-text-color)" /> Bounties

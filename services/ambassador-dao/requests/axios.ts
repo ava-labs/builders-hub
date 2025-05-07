@@ -1,6 +1,5 @@
 import axios from "axios";
 import { API_DEV } from "../data/constants";
-import toast from "react-hot-toast";
 
 // Create axios instance with default config
 const axiosInstance = axios.create({
@@ -75,8 +74,6 @@ axiosInstance.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError);
 
-      // If refresh token fails, redirect to home page
-      toast.error("Please login to perform this action.");
       window.location.href = "/";
       return Promise.reject(refreshError);
     } finally {

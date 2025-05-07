@@ -27,7 +27,9 @@ export const useCreateOpportunityMutation = () => {
       toast.success(data.message);
       queryclient.invalidateQueries({ queryKey: ["allListings"] });
     },
-    onError: (err) => errorMsg(err),
+    onError: (err:any) => {
+      err?.response?.status !== 401 && errorMsg(err)
+    },
   });
 };
 

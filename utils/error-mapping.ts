@@ -16,7 +16,7 @@ export default function mapCodeToErrorText(code?: string): string {
 }
 
 export function errorMsg(err: any) {
-  if (err?.response?.status === 401) return;
+  if (err?.response?.status === 401 || err?.statusCode === 401) return;
   const error_ = err as AxiosError<{ message: string }>;
   const msg = error_.response?.data?.message || DEFAULT_ERROR_MESSAGE;
   toast.remove();
