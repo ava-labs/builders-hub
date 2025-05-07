@@ -6,7 +6,6 @@ export const StatusBadge = ({ status }: { status: string }) => {
       case "PENDING":
       case "SUBMITTED":
       case "APPLIED":
-      case "Pending Review":
         return "bg-[#6D6D6D] text-white";
       case "Live Job":
       case "OPEN":

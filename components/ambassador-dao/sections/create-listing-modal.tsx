@@ -8,6 +8,7 @@ import React, { useState } from "react";
 import Avalance3d from "@/public/images/avalance3d.svg";
 import CustomButton from "../custom-button";
 import { useRouter } from "next/navigation";
+import { BriefcaseBusiness, Lightbulb } from "lucide-react";
 
 interface ICreateListingProps {
   isOpen: boolean;
@@ -77,6 +78,18 @@ export const CreateListingModal = ({
                     alt='avalance icon'
                     className='absolute object-cover right-0 h-full'
                   />
+
+                  <div className='px-6 py-1 bg-[#460809] border border-red-500 rounded-full flex items-center gap-2 justify-between absolute top-2 right-2 z-20'>
+                    {type.id === "JOB" ? (
+                      <BriefcaseBusiness className='w-4 h-4' color='white' />
+                    ) : (
+                      <Lightbulb className='w-4 h-4' color='white' />
+                    )}
+
+                    <p className='text-sm font-medium capitalize'>
+                      {type.id.toLowerCase()}
+                    </p>
+                  </div>
                 </div>
 
                 <div className='text-[var(--primary-text-color)]'>
@@ -91,7 +104,9 @@ export const CreateListingModal = ({
                   onClick={() => handleContinue(type.id.toUpperCase() as any)}
                   className='px-6 h-10 text-sm font-medium mt-4'
                 >
-                  Create A <span className='capitalize'>{type.name}</span>
+                  <p>
+                    Create A <span className='capitalize'>{type.name}</span>
+                  </p>
                 </CustomButton>
               </div>
             ))}

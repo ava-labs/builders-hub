@@ -133,16 +133,12 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                 </div>
 
                 <div className='flex items-center gap-2 shrink-0'>
-                  <Image
-                    src={USDCICON}
-                    alt='USDC'
-                    width={20}
-                    height={20}
-                    className='shrink-0'
-                  />
-                  <span className='text-[var(--white-text-color)] text-sm'>
-                    {listing.total_budget.toLocaleString()} USDC
-                  </span>
+                  {listing.total_budget > 0 && (
+                    <span className='dark:text-[#FFFFFF] dark:bg-[#162456] font-bold text-[#1C398E] bg-[#EFF6FF] border border-[#2B7FFF] rounded-md p-2 px-3 flex items-center gap-1 shrink-0 text-xs'>
+                      <Image src={USDCICON} alt='$' />
+                      {listing.total_budget.toLocaleString()}
+                    </span>
+                  )}
                 </div>
               </div>
 
