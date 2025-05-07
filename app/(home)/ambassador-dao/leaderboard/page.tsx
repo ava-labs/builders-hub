@@ -1,7 +1,7 @@
 "use client";
 import { PaginationComponent } from "@/components/ambassador-dao/pagination";
 import { useFetchLeaderboard } from "@/services/ambassador-dao/requests/sponsor";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Loader from "@/components/ambassador-dao/ui/Loader";
 import GoldReward from "@/public/ambassador-dao-images/GoldReward.svg";
@@ -10,51 +10,74 @@ import BronzeReward from "@/public/ambassador-dao-images/BronzeReward.svg";
 import DefaultAvatar from "@/public/ambassador-dao-images/Avatar.svg";
 import Avalance3d from "@/public/ambassador-dao-images/3d.png";
 import EmptyWhite from "@/public/ambassador-dao-images/emptyWhite.png";
+import { Input } from "@/components/ui/input";
 
 const LeaderboardPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const { data: leaderboardData, isLoading } = useFetchLeaderboard(currentPage);
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const { data: leaderboardData, isLoading } = useFetchLeaderboard(
+    currentPage,
+    debouncedQuery
+  );
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 400);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [query]);
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
   const getRankIcon = (index: number, currentPage: number) => {
     const position = (currentPage - 1) * 10 + index + 1;
-
-    if (position === 1) {
-      return (
-        <Image src={GoldReward} alt='First Place' width={46} height={46} />
-      );
-    } else if (position === 2) {
-      return (
-        <Image src={SilverReward} alt='Second Place' width={46} height={46} />
-      );
-    } else if (position === 3) {
-      return (
-        <Image src={BronzeReward} alt='Third Place' width={46} height={46} />
-      );
-    } else {
-      return (
-        <div
-          className='px-6 py-1 flex items-center justify-center rounded-full bg-[#2F2F33] w-fit'
-          style={{
-            background: "linear-gradient(90deg, #E84142 0%, #822425 100%)",
-          }}
-        >
-          <span className='text-white'>{position}</span>
-        </div>
-      );
-    }
+    return (
+      <div
+        className='px-6 py-1 flex items-center justify-center rounded-full bg-[#2F2F33] w-fit'
+        style={{
+          background: "linear-gradient(90deg, #E84142 0%, #822425 100%)",
+        }}
+      >
+        <span className='text-white text-sm'>{position}</span>
+      </div>
+    );
   };
 
   return (
-    <div className='p-6 '>
+    <div className='bg-[var(--default-background-color)] rounded-md text-[var(--white-text-color)] m-4 md:m-6 border border-[var(--default-border-color)] p-3 md:p-6 lg:p-8'>
       <div className='flex justify-between items-center mb-8'>
-        <h1 className='text-3xl font-bold text-[var(--white-text-color)]'>
-          Leaderboard
-        </h1>
-        <p className='text-[var(--secondary-text-color)] hidden md:block'>
-          Last updated: {new Date().toLocaleString()}
-        </p>
+        <div>
+          <h1 className='text-3xl font-bold text-[var(--white-text-color)]'>
+            Leaderboard
+          </h1>
+          <p className='text-[var(--secondary-text-color)] hidden md:block'>
+            Last updated:{" "}
+            {new Date().toLocaleString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: false,
+            })}
+          </p>
+        </div>
+
+        <div>
+          <Input
+            placeholder='Search...'
+            className='bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:ring-[#27272A]'
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+            }}
+          />
+        </div>
       </div>
 
       <div className='space-y-2'>
@@ -95,11 +118,11 @@ const LeaderboardPage = () => {
                     className='hidden md:block rounded-full'
                   />
                   <div className='flex flex-col md:flex-row gap-2 md:gap-4 md:items-center'>
-                    <span className='text-[var(--white-text-color)] capitalize'>
+                    <span className='text-[var(--white-text-color)] capitalize w-32 lg:w-full truncate'>
                       {user.nickname}
                     </span>
                     {user.tag === "ambassador" && (
-                      <span className='px-3 py-1 text-xs bg-[#fb2c36e9] dark:bg-[#FB2C3633] text-[#fff] dark:text-[#FB2C36] rounded-md capitalize'>
+                      <span className='px-3 py-1 w-fit text-xs bg-[#fb2c36e9] dark:bg-[#FB2C3633] text-[#fff] dark:text-[#FB2C36] rounded-md capitalize'>
                         {user.tag}
                       </span>
                     )}

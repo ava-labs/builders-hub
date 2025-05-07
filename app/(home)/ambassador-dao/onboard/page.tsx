@@ -23,7 +23,7 @@ import {
   useUpdateSponsorProfileMutation,
   useUpdateTalentProfileMutation,
 } from "@/services/ambassador-dao/requests/onboard";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import CustomButton from "@/components/ambassador-dao/custom-button";
 import { useForm } from "react-hook-form";
 import {
@@ -62,6 +62,8 @@ const userTypes = [
 
 const AmbasssadorDaoOnboardPage = () => {
   const { data: userData, isLoading } = useFetchUserDataQuery();
+  const searchParams = useSearchParams();
+  const update = searchParams.get("update");
   const [userType, setUserType] = useState<"TALENT" | "SPONSOR">("TALENT");
   const [selectionStep, setShowSelectionStep] = useState<
     "account_option" | "account_form"
@@ -168,13 +170,9 @@ const AmbasssadorDaoOnboardPage = () => {
       )}
       {selectionStep === "account_form" && (
         <div className='bg-[var(--default-background-color)] rounded-xl border border-[var(--default-border-color)] p-6 py-10'>
-          {userType === ("USER" as "TALENT") && (
-            <TalentForm handleClose={handleClose} />
-          )}
-          {userType === ("AMBASSADOR" as "TALENT") && (
-            <TalentForm handleClose={handleClose} />
-          )}
-          {userType === "SPONSOR" && <SponsorForm handleClose={handleClose} />}
+          {userType === ("USER" as "TALENT") && <TalentForm />}
+          {userType === ("AMBASSADOR" as "TALENT") && <TalentForm />}
+          {userType === "SPONSOR" && <SponsorForm />}
         </div>
       )}
     </div>
@@ -183,7 +181,7 @@ const AmbasssadorDaoOnboardPage = () => {
 
 export default AmbasssadorDaoOnboardPage;
 
-const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
+const TalentForm = () => {
   const router = useRouter();
   const { data: userData } = useFetchUserDataQuery();
   const [isDataFetched, setIsDataFetched] = useState(false);
@@ -211,6 +209,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
   const [usernameStatus, setUsernameStatus] = useState<
     "checking" | "available" | "unavailable" | null
   >(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [stage, setStage] = useState(1);
 
   const pathname = usePathname();
@@ -284,8 +283,9 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
               setUsernameStatus("unavailable");
             }
           },
-          onError: () => {
-            setUsernameStatus("unavailable");
+          onError: (error: any) => {
+            setUsernameStatus(null);
+            setUsernameError(error?.response?.data?.message);
           },
         });
       }, 500);
@@ -472,6 +472,10 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
                   Username is already taken
                 </p>
               )}
+
+              {usernameError && (
+                <p className='text-red-500 text-xs mt-1'>{usernameError}</p>
+              )}
             </div>
 
             <CustomSelect
@@ -595,7 +599,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
               className='px-6'
               disabled={!socialLinks.length || !selectedSkills.length}
             >
-              {isEditProfilePage ? "Update Profile" : "Create Profile"}
+              {isEditProfilePage ? "Submit Updated Details" : "Create Profile"}
             </CustomButton>
 
             {/* {isEditProfilePage && (
@@ -657,7 +661,7 @@ const TalentForm = ({ handleClose }: { handleClose: () => void }) => {
   );
 };
 
-const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
+const SponsorForm = () => {
   const [previewLogo, setPreviewLogo] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
@@ -691,6 +695,10 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
   const [companyUsernameStatus, setCompanyUsernameStatus] = useState<
     "checking" | "available" | "unavailable" | null
   >(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [companyUsernameError, setCompanyUsernameError] = useState<
+    string | null
+  >(null);
   const [profileImageName, setProfileImageName] = useState<string>("");
   const [companyLogoName, setCompanyLogoName] = useState<string>("");
   const [logoSize, setLogoSize] = useState<number>();
@@ -712,6 +720,9 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
   const { mutateAsync: uploadFile, isPending: isUploading } =
     useFileUploadMutation("image");
 
+  const pathname = usePathname();
+  const isEditProfilePage = pathname === "/ambassador-dao/edit-profile";
+
   useEffect(() => {
     if (username && username.length > 3) {
       setUsernameStatus("checking");
@@ -724,8 +735,9 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
               setUsernameStatus("unavailable");
             }
           },
-          onError: () => {
-            setUsernameStatus("unavailable");
+          onError: (error: any) => {
+            setUsernameStatus(null);
+            setUsernameError(error?.response?.data?.message);
           },
         });
       }, 500);
@@ -747,8 +759,9 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
               setCompanyUsernameStatus("unavailable");
             }
           },
-          onError: () => {
-            setCompanyUsernameStatus("unavailable");
+          onError: (error: any) => {
+            setCompanyUsernameStatus(null);
+            setCompanyUsernameError(error?.response?.data?.message);
           },
         });
       }, 500);
@@ -925,6 +938,9 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                 Username is already taken
               </p>
             )}
+            {usernameError && (
+              <p className='text-red-500 text-xs mt-1'>{usernameError}</p>
+            )}
           </div>
 
           <CustomSelect
@@ -1014,6 +1030,11 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
                   Company username is already taken
                 </p>
               )}
+              {companyUsernameError && (
+                <p className='text-red-500 text-xs mt-1'>
+                  {companyUsernameError}
+                </p>
+              )}
             </div>
           </div>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
@@ -1071,7 +1092,7 @@ const SponsorForm = ({ handleClose }: { handleClose: () => void }) => {
             isFullWidth={false}
             className='px-6'
           >
-            Create Sponsor
+            {isEditProfilePage ? "Submit Updated Details" : "Create Sponsor"}
           </CustomButton>
         </div>
       </form>

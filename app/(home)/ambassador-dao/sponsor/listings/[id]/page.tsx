@@ -45,9 +45,11 @@ import { useFetchOpportunityComment } from "@/services/ambassador-dao/requests/o
 import { CommentsModal } from "@/components/ambassador-dao/sections/comments-modal";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+
 const AmbasssadorDaoSponsorsListingsSubmissions = () => {
   const params = useParams<{ id: string }>();
-
+  const router = useRouter();
   const { data: listing, isLoading } = useFetchSingleListing(params.id);
 
   const { data: commentsData } = useFetchOpportunityComment(params.id, {
@@ -58,13 +60,15 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
   const [commentsModal, setCommentsModal] = useState(false);
   return (
     <div className='space-y-6'>
-      <Link
-        href={"/ambassador-dao/sponsor/listings"}
+      <div
         className='flex items-center text-sm gap-2 p-2 cursor-pointer rounded-md w-fit bg-[var(--default-background-color)] border border-[var(--default-border-color)]'
+        onClick={() => {
+          router.back();
+        }}
       >
         <ArrowLeft color='var(--white-text-color)' size={16} />
         Go Back
-      </Link>
+      </div>
 
       {isLoading ? (
         <Loader />
