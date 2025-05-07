@@ -186,7 +186,7 @@ export default function RegisterWithHome() {
                     value={remoteAddress}
                     onChange={setRemoteAddress}
                     disabled={isRegistering}
-                    showError={true}
+                    
                     suggestions={remoteAddressSuggestions}
                     helperText={!remoteAddress ? "Please enter a remote contract address" : undefined}
                 />

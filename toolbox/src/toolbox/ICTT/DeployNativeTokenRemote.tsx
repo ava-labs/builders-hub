@@ -37,6 +37,7 @@ export default function DeployNativeTokenRemote() {
     const [minTeleporterVersion, setMinTeleporterVersion] = useState("1");
     const [initialReserveImbalance, setInitialReserveImbalance] = useState("0");
     const [burnedFeesReportingRewardPercentage, setBurnedFeesReportingRewardPercentage] = useState("0");
+    const [tokenHomeAddress, setTokenHomeAddress] = useState("");
 
     const sourceL1 = useL1ByChainId(sourceChainId)();
     const sourceToolboxStore = getToolboxStore(sourceChainId)();
@@ -106,6 +107,11 @@ export default function DeployNativeTokenRemote() {
         fetchTokenDetails();
     }, [sourceChainId, sourceL1?.rpcUrl, sourceToolboxStore.erc20TokenHomeAddress]);
 
+    // Update tokenHomeAddress when sourceToolboxStore.erc20TokenHomeAddress changes
+    useEffect(() => {
+        setTokenHomeAddress(sourceToolboxStore.erc20TokenHomeAddress || "");
+    }, [sourceToolboxStore.erc20TokenHomeAddress]);
+
     async function handleDeploy() {
         setLocalError("");
         setIsDeploying(true);
@@ -174,6 +180,7 @@ export default function DeployNativeTokenRemote() {
                 <div className="">
                     This deploys a `NativeTokenRemote` contract to the current network ({selectedL1?.name}).
                     This contract acts as the bridge endpoint for your native token from the source chain.
+                    To mint native tokens, please use the <a href="#precompiles/nativeMinter" className="text-blue-500 hover:text-blue-600 underline">Native Minter Precompile</a>.
                 </div>
 
                 <EVMAddressInput
@@ -181,7 +188,6 @@ export default function DeployNativeTokenRemote() {
                     value={teleporterRegistryAddress}
                     onChange={setTeleporterRegistryAddress}
                     disabled={isDeploying}
-                    showError={true}
                 />
 
                 {!teleporterRegistryAddress && <Note variant="warning">
@@ -199,10 +205,9 @@ export default function DeployNativeTokenRemote() {
 
                 {sourceChainId && <EVMAddressInput
                     label={`Token Home Address on ${sourceL1?.name}`}
-                    value={sourceToolboxStore.erc20TokenHomeAddress || ""}
-                    onChange={() => { }}
+                    value={tokenHomeAddress}
+                    onChange={setTokenHomeAddress}
                     disabled={true}
-                    showError={true}
                 />}
 
                 {tokenHomeBlockchainIDHex && <Input
@@ -256,7 +261,6 @@ export default function DeployNativeTokenRemote() {
                     value={teleporterManager}
                     onChange={setTeleporterManager}
                     disabled={isDeploying}
-                    showError={true}
                     helperText="default: your address"
                 />
 

@@ -26,7 +26,6 @@ export default function UpgradeProxy() {
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [currentImplementation, setCurrentImplementation] = useState<string | null>(null);
     const [desiredImplementation, setDesiredImplementation] = useState<string | null>(null);
-    const [contractError, setContractError] = useState<string | null>(null);
     const [proxySlotAdmin, setProxySlotAdmin] = useState<string | null>(null);
     const viemChain = useViemChainStore();
 
@@ -97,7 +96,6 @@ export default function UpgradeProxy() {
         try {
             if (!proxyAddress || !proxyAdminAddress) {
                 setCurrentImplementation(null);
-                setContractError(null);
                 return;
             }
 
@@ -109,10 +107,8 @@ export default function UpgradeProxy() {
             });
 
             setCurrentImplementation(implementation as string);
-            setContractError(null);
         } catch (error: unknown) {
             setCurrentImplementation(null);
-            setContractError("No contract found at Proxy Address");
             console.error(error);
         }
     }
@@ -154,16 +150,12 @@ export default function UpgradeProxy() {
                 label="Proxy Address"
                 value={proxyAddress}
                 onChange={setProxyAddress}
-                showError={!!contractError}
-                disabled={isUpgrading}
             />
             <div className="space-y-1">
                 <EVMAddressInput
                     label="Proxy Admin Address"
                     value={proxyAdminAddress || ""}
                     onChange={(value: string) => setProxyAdminAddress(value as `0x${string}`)}
-                    showError={!!(proxySlotAdmin && proxyAdminAddress !== proxySlotAdmin)}
-                    disabled={isUpgrading}
                 />
                 {proxySlotAdmin && proxySlotAdmin !== proxyAdminAddress && (
                     <div className="flex justify-between items-center">
@@ -182,15 +174,12 @@ export default function UpgradeProxy() {
                 label="Desired Implementation"
                 value={desiredImplementation || ""}
                 onChange={(value: string) => setDesiredImplementation(value)}
-                disabled={isUpgrading}
-                showError={true}
             />
             <EVMAddressInput
                 label="Current Implementation"
                 value={currentImplementation || ""}
-                onChange={() => { }} // Read-only
+                onChange={() => { }}
                 disabled={true}
-                showError={!!contractError}
             />
             <Button
                 variant="primary"

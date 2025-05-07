@@ -392,7 +392,7 @@ export default function TokenBridge() {
                     value={sourceContractAddress}
                     onChange={(value) => setSourceContractAddress(value as Address)}
                     disabled={isProcessingSend || isProcessingApproval}
-                    showError={true}
+                    
                     suggestions={sourceContractSuggestions}
                     placeholder="0x... Bridge contract on current chain"
                 />
@@ -402,7 +402,7 @@ export default function TokenBridge() {
                     value={destinationContractAddress}
                     onChange={(value) => setDestinationContractAddress(value as Address)}
                     disabled={!destinationChainId || isProcessingSend || isProcessingApproval}
-                    showError={true}
+                    
                     suggestions={destinationContractSuggestions}
                     placeholder="0x... Bridge contract on destination chain"
                 />
@@ -450,7 +450,7 @@ export default function TokenBridge() {
                     value={recipientAddress}
                     onChange={(value) => setRecipientAddress(value as Address)}
                     disabled={isProcessingSend || isProcessingApproval}
-                    showError={true}
+                    
                     button={<Button
                         onClick={() => setRecipientAddress(walletEVMAddress ? walletEVMAddress as Address : "")}
                         stickLeft

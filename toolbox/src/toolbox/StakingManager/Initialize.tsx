@@ -156,7 +156,7 @@ export default function Initialize() {
                     value={stakingManagerAddress}
                     onChange={setStakingManagerAddress}
                     disabled={isInitializing}
-                    showError={true}
+                    
                     button={
                         <Button
                             variant="secondary"
@@ -176,14 +176,14 @@ export default function Initialize() {
                         value={managerAddress}
                         onChange={setManagerAddress}
                         disabled={isInitializing}
-                        showError={true}
+                        
                     />
                     <EVMAddressInput
                         label="Reward Calculator Address"
                         value={rewardCalculatorAddress}
                         onChange={setRewardCalculatorAddress}
                         disabled={isInitializing}
-                        showError={true}
+                        
                     />
                     <Input
                         label="Uptime Blockchain ID"

@@ -364,7 +364,7 @@ export default function RemoveValidator() {
             value={manualProxyAddress}
             onChange={setManualProxyAddress}
             disabled={isProcessing}
-            showError={true}
+            
           />
         </div>
 

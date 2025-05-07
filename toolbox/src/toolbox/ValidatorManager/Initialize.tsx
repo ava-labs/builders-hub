@@ -52,23 +52,18 @@ export default function Initialize() {
         console.error('Error decoding subnetId:', error);
     }
 
-
     useEffect(() => {
         if (proxyAddress) {
             checkIfInitialized();
         }
     }, [proxyAddress]);
 
-    const [contractAddressError, setContractAddressError] = useState<string>("");
-
     useEffect(() => {
-        setContractAddressError("");
         if (!subnetId) return;
         getSubnetInfo(subnetId).then((subnetInfo) => {
             setProxyAddress(subnetInfo.l1ValidatorManagerDetails?.contractAddress || "");
         }).catch((error) => {
             console.error('Error getting subnet info:', error);
-            setContractAddressError((error as Error)?.message || "Unknown error");
         });
     }, [subnetId]);
 
@@ -184,7 +179,6 @@ export default function Initialize() {
                         value={proxyAddress}
                         onChange={setProxyAddress}
                         disabled={isInitializing}
-                        showError={!!contractAddressError}
                     />
                     <Button
                         variant="secondary"
@@ -230,7 +224,7 @@ export default function Initialize() {
                         value={adminAddress}
                         onChange={setAdminAddress}
                         disabled={isInitializing}
-                        showError={true}
+
                     />
                     <Button
                         variant="primary"

@@ -316,8 +316,7 @@ export default function RewardManager() {
                 <EVMAddressInput
                   value={rewardAddress}
                   onChange={setRewardAddress}
-                  disabled={isAnyOperationInProgress}
-                  showError={isSettingRewardAddress && !rewardAddress}
+                  disabled={isSettingRewardAddress}
                 />
               </div>
 

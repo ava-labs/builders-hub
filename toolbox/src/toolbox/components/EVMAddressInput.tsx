@@ -7,7 +7,6 @@ interface EVMAddressInputProps {
   onChange: (value: string) => void;
   label?: string;
   disabled?: boolean;
-  showError?: boolean;
   helperText?: React.ReactNode;
   placeholder?: string;
   suggestions?: Suggestion[];
@@ -19,7 +18,6 @@ export function EVMAddressInput({
   onChange,
   label = "EVM Address",
   disabled = false,
-  showError = false,
   helperText,
   placeholder,
   suggestions,
@@ -65,7 +63,7 @@ export function EVMAddressInput({
         value={value}
         onChange={onChange}
         disabled={disabled}
-        error={showError && validationError ? validationError : undefined}
+        error={validationError}
         helperText={helperText}
         placeholder={placeholder}
         suggestions={suggestions}

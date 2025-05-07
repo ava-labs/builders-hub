@@ -136,7 +136,7 @@ export default function DeployERC20TokenHome() {
                         value={teleporterRegistryAddress}
                         onChange={setTeleporterRegistryAddress}
                         disabled={isDeploying}
-                        showError={true}
+                        
                     />
 
                     {!teleporterRegistryAddress && <Note variant="warning">
@@ -151,7 +151,7 @@ export default function DeployERC20TokenHome() {
                         onChange={setTeleporterManager}
                         placeholder={coreWalletClient?.account?.address}
                         disabled={isDeploying}
-                        showError={true}
+                        
                     />
 
                     <Input
@@ -167,7 +167,7 @@ export default function DeployERC20TokenHome() {
                         value={tokenAddress}
                         onChange={setTokenAddress}
                         disabled={isDeploying}
-                        showError={true}
+                        
                         helperText={<>Please <a href="#deployExampleERC20" className="underline">deploy an ERC20 token first</a>.</>}
                     />
 

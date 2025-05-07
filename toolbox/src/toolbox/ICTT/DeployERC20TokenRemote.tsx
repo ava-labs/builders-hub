@@ -35,6 +35,7 @@ export default function DeployERC20TokenRemote() {
     const [tokenSymbol, setTokenSymbol] = useState("");
     const [tokenDecimals, setTokenDecimals] = useState("0");
     const [minTeleporterVersion, setMinTeleporterVersion] = useState("1");
+    const [tokenHomeAddress, setTokenHomeAddress] = useState("");
 
     const sourceL1 = useL1ByChainId(sourceChainId)();
     const sourceToolboxStore = getToolboxStore(sourceChainId)();
@@ -103,6 +104,11 @@ export default function DeployERC20TokenRemote() {
 
         fetchTokenDetails();
     }, [sourceChainId, sourceL1?.rpcUrl, sourceToolboxStore.erc20TokenHomeAddress]);
+
+    // Update tokenHomeAddress when sourceToolboxStore.erc20TokenHomeAddress changes
+    useEffect(() => {
+        setTokenHomeAddress(sourceToolboxStore.erc20TokenHomeAddress || "");
+    }, [sourceToolboxStore.erc20TokenHomeAddress]);
 
     async function handleDeploy() {
         setLocalError("");
@@ -179,7 +185,7 @@ export default function DeployERC20TokenRemote() {
                     value={teleporterRegistryAddress}
                     onChange={setTeleporterRegistryAddress}
                     disabled={isDeploying}
-                    showError={true}
+                    
                 />
 
                 {!teleporterRegistryAddress && <Note variant="warning">
@@ -197,10 +203,10 @@ export default function DeployERC20TokenRemote() {
 
                 {sourceChainId && <EVMAddressInput
                     label={`Token Home Address on ${sourceL1?.name}`}
-                    value={sourceToolboxStore.erc20TokenHomeAddress || ""}
-                    onChange={() => { }}
+                    value={tokenHomeAddress}
+                    onChange={setTokenHomeAddress}
                     disabled={true}
-                    showError={true}
+                    
                 />}
 
                 {tokenHomeBlockchainIDHex && <Input
@@ -236,7 +242,7 @@ export default function DeployERC20TokenRemote() {
                     value={teleporterManager}
                     onChange={setTeleporterManager}
                     disabled={isDeploying}
-                    showError={true}
+                    
                 />
 
                 <Input
