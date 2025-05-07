@@ -79,6 +79,7 @@ const AmbasssadorDaoProfilePage = () => {
 
   const xpProgressionData = {
     currentXP: data?.points?.balance,
+    currentTier: data?.tier ?? undefined,
     monthlyGrowth: 850,
     availableOpportunities: opportunities?.data,
   };
