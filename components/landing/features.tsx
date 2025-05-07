@@ -4,7 +4,7 @@ import React from "react";
 import {
   GraduationCap,
   Ticket,
-  Speech
+  Newspaper
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
@@ -30,12 +30,12 @@ const features = [
   },
   {
     id: 3,
-    label: "Connect",
-    title: "Connect with <strong>other Students</strong>.",
+    label: "Guides",
+    title: "Learn from <strong>Guides</strong>.",
     description:
-      "Join our Telegram chat with other students and Avalanche experts.",
-    icon: Speech,
-    href: "https://t.me/avalancheacademy"
+      "Comprehensive technical guides with best practices and expert insights.",
+    icon: Newspaper,
+    href: "/guides"
   }
 ];
 
