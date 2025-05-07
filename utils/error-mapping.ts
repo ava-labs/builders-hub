@@ -19,5 +19,6 @@ export function errorMsg(err: any) {
   if (err?.response?.status === 401) return;
   const error_ = err as AxiosError<{ message: string }>;
   const msg = error_.response?.data?.message || DEFAULT_ERROR_MESSAGE;
+  toast.remove();
   toast.error(msg);
 }

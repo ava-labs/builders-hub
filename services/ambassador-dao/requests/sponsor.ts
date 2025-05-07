@@ -361,14 +361,15 @@ export const useMarkSubmissionAsPaidMutation = (
   });
 };
 
-export const useFetchLeaderboard = (page: number, per_page: number = 10) => {
+export const useFetchLeaderboard = (page: number, query?: string) => {
   return useQuery({
-    queryKey: ["leaderboard", page, per_page],
+    queryKey: ["leaderboard", page, query],
     queryFn: async () => {
       const res = await axiosInstance.get(`${API_DEV}/users/leaderboard`, {
         params: {
           page,
-          per_page,
+          per_page: 10,
+          query,
         },
       });
       return res.data.data as ILeaderboardResponse;

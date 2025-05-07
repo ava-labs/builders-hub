@@ -62,22 +62,45 @@ type TabType = "all" | "BOUNTY" | "JOB";
 
 export default function AmbasssadorDaoSponsorsListingsPage() {
   const searchParams = useSearchParams();
+
   const router = useRouter();
   const tab = (searchParams.get("tab") as TabType) || "all";
   const { data: user } = useFetchUserDataQuery();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [query, setQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(
+    Number(searchParams.get("page")) || 1
+  );
+  const [query, setQuery] = useState(searchParams.get("search") || "");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [type, setType] = useState(tab);
-  const [status, setStatus] = useState("ALL");
+  const [status, setStatus] = useState(searchParams.get("status") || "ALL");
   const limit = 10;
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedListingId, setSelectedListingId] = useState<string | null>(
     null
   );
 
+  const updateUrlParams = (params: {
+    tab?: string;
+    search?: string;
+    status?: string;
+    page?: number;
+  }) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        newParams.set(key, value.toString());
+      } else {
+        newParams.delete(key);
+      }
+    });
+
+    router.replace(`?${newParams.toString()}`);
+  };
+
   const handleTabChange = (newTab: TabType) => {
     setType(newTab);
+    updateUrlParams({ tab: newTab });
   };
 
   const { data: listings, isLoading } = useFetchAllListings(
@@ -117,19 +140,18 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
       )}
       {/* Dashboard rejected */}
       {user?.status === "REJECTED" && (
-        <div className='bg-[#FB2C36] rounded-md p-3 md:p-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between'>
+        <div className='bg-[#FB2C3666] rounded-md p-3 md:p-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between'>
           <div>
             <p className='text-white text-sm'>Uh oh! Something went wrong.</p>
-            <p className='text-zinc-300 text-sm font-light'>
+            <p className='text-zinc-200 text-sm font-light'>
               Review and resubmit your company details again for approval.
-              (TODO: Allow resubmission after admin rejection)
             </p>
           </div>
           <CustomButton
             variant='outlined'
             isFullWidth={false}
-            className='font-medium px-3 whitespace-nowrap'
-            onClick={() => router.push("/ambassador-dao/onboard")}
+            className='font-medium px-3 whitespace-nowrap !text-white border !border-red-500 !bg-transparent'
+            onClick={() => router.push("/ambassador-dao/edit-profile")}
           >
             Try Again
           </CustomButton>
@@ -183,7 +205,10 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
           <div className='flex space-x-2'>
             <Select
               defaultValue='ALL'
-              onValueChange={setStatus}
+              onValueChange={(value) => {
+                setStatus(value);
+                updateUrlParams({ status: value });
+              }}
               iconColor='var(--primary-text-color)'
             >
               <SelectTrigger className='w-36 bg-[var(--default-background-color)] border-[var(--default-border-color)]'>
@@ -203,7 +228,10 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
               placeholder='Search...'
               className='bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:ring-[#27272A]'
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                updateUrlParams({ search: e.target.value });
+              }}
             />
           </div>
         </div>
@@ -431,7 +459,10 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                   {/* Pagination */}
                   <PaginationComponent
                     currentPage={currentPage}
-                    onPageChange={handlePageChange}
+                    onPageChange={(page) => {
+                      handlePageChange(page);
+                      updateUrlParams({ page });
+                    }}
                     totalPages={listings?.metadata.last_page ?? 1}
                   />
                 </>
