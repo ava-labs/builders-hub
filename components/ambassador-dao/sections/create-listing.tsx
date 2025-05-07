@@ -11,6 +11,7 @@ import {
   BriefcaseBusiness,
   X,
   Trash2,
+  Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UsdcToken from "@/public/images/usdc-token.svg";
@@ -366,7 +367,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                 </SelectItem>
                                 <SelectItem value='BOUNTY'>
                                   <div className='flex items-center'>
-                                    <BriefcaseBusiness
+                                    <Lightbulb
                                       className='mr-2'
                                       color='var(--primary-text-color)'
                                     />
