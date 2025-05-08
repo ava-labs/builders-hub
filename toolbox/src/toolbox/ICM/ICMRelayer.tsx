@@ -1,6 +1,6 @@
 "use client";
 
-import { formatEther, parseEther, createPublicClient, http } from 'viem'
+import { formatEther, parseEther, createPublicClient, http, Chain } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { useSelectedL1, useL1ListStore } from '../toolboxStore';
 import { useWalletStore } from '../../lib/walletStore';
@@ -10,7 +10,7 @@ import { CodeHighlighter } from '../../components/CodeHighlighter';
 import { useState, useEffect } from 'react';
 import { useErrorBoundary } from "react-error-boundary";
 import { avalancheFuji } from 'viem/chains';
-import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Trash2, RefreshCw } from 'lucide-react';
 
 const MINIMUM_BALANCE = parseEther('100')
 const MINIMUM_BALANCE_CCHAIN = parseEther('1')
@@ -18,7 +18,7 @@ const MINIMUM_BALANCE_CCHAIN = parseEther('1')
 export default function ICMRelayer() {
     const selectedL1 = useSelectedL1()();
     const { showBoundary } = useErrorBoundary();
-    const { publicClient } = useWalletStore();
+    const { coreWalletClient } = useWalletStore();
     const { l1List } = useL1ListStore()();
 
     // Initialize state with one-time calculation
@@ -29,6 +29,9 @@ export default function ICMRelayer() {
     const [selectedDestinations, setSelectedDestinations] = useState<string[]>(selectedSources);
     const [error, setError] = useState<string | null>(null);
 
+    const [balances, setBalances] = useState<Record<string, string>>({});
+    const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+    const [isSending, setIsSending] = useState(false);
 
     // Use sessionStorage for private key to persist across refreshes
     const [privateKey] = useState(() => {
@@ -96,6 +99,73 @@ export default function ICMRelayer() {
                 privateKey: privateKey
             }));
     };
+
+    // Get unique chains from both sources and destinations
+    const selectedChains = [...new Set([...selectedSources, ...selectedDestinations])]
+        .map(id => l1List.find(l1 => l1.id === id))
+        .filter(Boolean) as typeof l1List;
+
+    const fetchBalances = async () => {
+        setIsLoadingBalances(true);
+        try {
+            const newBalances: Record<string, string> = {};
+            for (const chain of selectedChains) {
+                const client = createPublicClient({
+                    transport: http(chain.rpcUrl),
+                });
+                const balance = await client.getBalance({ address: relayerAddress });
+                newBalances[chain.id] = formatEther(balance);
+            }
+            setBalances(newBalances);
+        } catch (error) {
+            showBoundary(error);
+        } finally {
+            setIsLoadingBalances(false);
+        }
+    };
+
+    const sendOneCoin = async (chainId: string) => {
+        setIsSending(true);
+        try {
+            const chain = l1List.find(l1 => l1.id === chainId);
+            if (!chain) return;
+
+            const viemChain: Chain = {
+                id: chain.evmChainId,
+                name: chain.name,
+                rpcUrls: {
+                    default: { http: [chain.rpcUrl] },
+                },
+                nativeCurrency: {
+                    name: chain.coinName,
+                    symbol: chain.coinName,
+                    decimals: 18,
+                },
+            };
+
+            const txHash = await coreWalletClient.sendTransaction({
+                to: relayerAddress,
+                value: parseEther('1'),
+                chain: viemChain,
+            });
+
+            const publicClient = createPublicClient({
+                transport: http(chain.rpcUrl),
+            });
+
+            await publicClient.waitForTransactionReceipt({ hash: txHash });
+            await fetchBalances();
+        } catch (error) {
+            showBoundary(error);
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    // Add this to existing useEffect to fetch balances on mount
+    useEffect(() => {
+        fetchBalances();
+    }, []);
 
     return (
         <div className="space-y-4">
@@ -174,6 +244,40 @@ export default function ICMRelayer() {
                 code={relayerDockerCommand()}
                 lang="sh"
             />
+
+            {/* Balances Section */}
+            <div className="space-y-4">
+                <div className="text-lg font-bold">Relayer Balances</div>
+                <div className="space-y-2">
+                    {selectedChains.map(chain => (
+                        <div key={`balance-${chain.id}`} className="flex items-center justify-between p-3 border rounded-md">
+                            <div>
+                                <div className="font-medium">{chain.name}</div>
+                                <div className="flex items-center gap-1 text-sm text-gray-500">
+                                    {balances[chain.id] ? `${balances[chain.id]} ${chain.coinName}` : 'Loading...'}
+                                    <button
+                                        onClick={() => fetchBalances()}
+                                        disabled={isLoadingBalances}
+                                        className="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                                        style={{ lineHeight: 0 }}
+                                    >
+                                        <RefreshCw className={`h-4 w-4 ${isLoadingBalances ? 'animate-spin' : ''}`} />
+                                    </button>
+                                </div>
+                            </div>
+                            <Button
+                                size="sm"
+                                variant="primary"
+                                className="w-auto px-4 flex-shrink-0"
+                                onClick={() => sendOneCoin(chain.id)}
+                                loading={isSending}
+                            >
+                                Send 1 {chain.coinName}
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 }
