@@ -9,11 +9,8 @@ import { Button } from '../../components/Button';
 import { CodeHighlighter } from '../../components/CodeHighlighter';
 import { useState, useEffect } from 'react';
 import { useErrorBoundary } from "react-error-boundary";
-import { avalancheFuji } from 'viem/chains';
-import { ChevronDown, ChevronUp, Plus, Trash2, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
-const MINIMUM_BALANCE = parseEther('100')
-const MINIMUM_BALANCE_CCHAIN = parseEther('1')
 
 export default function ICMRelayer() {
     const selectedL1 = useSelectedL1()();
