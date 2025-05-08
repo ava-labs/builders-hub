@@ -39,6 +39,8 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
     const updateAllBalances = useWalletStore(state => state.updateAllBalances);
     const updatePChainBalance = useWalletStore(state => state.updatePChainBalance);
     const updateL1Balance = useWalletStore(state => state.updateL1Balance);
+    const isPChainBalanceLoading = useWalletStore(state => state.isPChainBalanceLoading);
+    const isL1BalanceLoading = useWalletStore(state => state.isL1BalanceLoading);
 
 
     const [hasWallet, setHasWallet] = useState<boolean>(false)
@@ -287,10 +289,11 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                                 {l1Balance.toFixed(2)} {walletChainId === avalanche.id || walletChainId === avalancheFuji.id ? "AVAX" : "Tokens"}
                                 <button
                                     onClick={updateL1Balance}
-                                    className="ml-2 p-1 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
+                                    className="ml-2 p-1 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     title="Refresh balance"
+                                    disabled={isL1BalanceLoading}
                                 >
-                                    <RefreshCw className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+                                    <RefreshCw className={`w-4 h-4 text-zinc-600 dark:text-zinc-300 ${isL1BalanceLoading ? 'animate-spin' : ''}`} />
                                 </button>
                                 {faucetUrl && (
                                     <button
@@ -335,10 +338,11 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                                 {pChainBalance.toFixed(2)} AVAX
                                 <button
                                     onClick={updatePChainBalance}
-                                    className="ml-2 p-1 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
+                                    className="ml-2 p-1 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     title="Refresh balance"
+                                    disabled={isPChainBalanceLoading}
                                 >
-                                    <RefreshCw className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+                                    <RefreshCw className={`w-4 h-4 text-zinc-600 dark:text-zinc-300 ${isPChainBalanceLoading ? 'animate-spin' : ''}`} />
                                 </button>
                             </div>
                             <div className="flex items-center justify-between">

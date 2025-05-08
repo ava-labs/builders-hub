@@ -24,28 +24,34 @@ export const useWalletStore = create(
         // cChainBalance: 0,
         pChainBalance: 0,
         l1Balance: 0,
+        isPChainBalanceLoading: false,
+        isL1BalanceLoading: false,
     }, (set, get) => {
         // Create actual update functions
         const _updatePChainBalance = async () => {
+            if (get().isPChainBalanceLoading) return; //  Return if already loading
             let newBalance = 0;
+            set({ isPChainBalanceLoading: true });
             try {
                 const response = await getPChainBalance(get().isTestnet ? "testnet" : "mainnet", get().pChainAddress);
                 console.log(response);
                 newBalance = Number(response.balances.unlockedUnstaked[0].amount) / 1e9;
             } finally {
-                set({ pChainBalance: newBalance });
+                set({ pChainBalance: newBalance, isPChainBalanceLoading: false });
             }
         };
 
         const _updateL1Balance = async () => {
+            if (get().isL1BalanceLoading) return; // Return if already loading
             let newBalance = 0;
+            set({ isL1BalanceLoading: true });
             try {
                 const l1Balance = await get().publicClient.getBalance({
                     address: get().walletEVMAddress as `0x${string}`,
                 });
                 newBalance = Number(l1Balance) / 1e18;
             } finally {
-                set({ l1Balance: newBalance });
+                set({ l1Balance: newBalance, isL1BalanceLoading: false });
             }
         };
 

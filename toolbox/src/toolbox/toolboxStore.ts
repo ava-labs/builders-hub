@@ -119,6 +119,7 @@ const l1ListInitialStateMainnet = {
         }
     ] as L1ListItem[],
 }
+
 const getL1ListStore = (isTestnet: boolean) => create(
     persist(
         combine(isTestnet ? l1ListInitialStateFuji : l1ListInitialStateMainnet, (set) => ({
@@ -141,7 +142,6 @@ export const useL1ListStore = () => {
 }
 
 const toolboxInitialState = {
-    //verified state
     validatorMessagesLibAddress: "",
     validatorManagerAddress: "",
     rewardCalculatorAddress: "",
@@ -152,17 +152,11 @@ const toolboxInitialState = {
     erc20TokenHomeAddress: "",
     erc20TokenRemoteAddress: "",
     nativeTokenRemoteAddress: "",
-
-    //unverifyed state - remove after testing
-    // nodeRpcUrl: "",
-    // evmChainCoinName: "COIN",
-    // evmChainIsTestnet: true,
 }
 
 export const getToolboxStore = (chainId: string) => create(
     persist(
         combine(toolboxInitialState, (set) => ({
-            //verified methods
             setValidatorMessagesLibAddress: (validatorMessagesLibAddress: string) => set({ validatorMessagesLibAddress }),
             setValidatorManagerAddress: (validatorManagerAddress: string) => set({ validatorManagerAddress }),
             setRewardCalculatorAddress: (rewardCalculatorAddress: string) => set({ rewardCalculatorAddress }),
