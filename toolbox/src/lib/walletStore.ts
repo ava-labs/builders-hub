@@ -5,9 +5,16 @@ import { createCoreWalletClient } from '../coreViem';
 import { createPublicClient, custom, http } from 'viem';
 import { avalancheFuji, avalanche } from 'viem/chains';
 import { zeroAddress } from 'viem';
-import { getPChainBalance, getNativeTokenBalance } from '../coreViem/utils/glacier';
+import { getPChainBalance, getNativeTokenBalance, getChains } from '../coreViem/utils/glacier';
 import debounce from 'debounce';
 
+let indexedChainsPromise: Promise<Number[]> | null = null;
+function getIndexedChains() {
+    if (!indexedChainsPromise) {
+        indexedChainsPromise = getChains().then(chains => chains.map(chain => parseInt(chain.chainId)));
+    }
+    return indexedChainsPromise as Promise<Number[]>;
+}
 
 export const useWalletStore = create(
     combine({
@@ -35,7 +42,6 @@ export const useWalletStore = create(
             set({ isPChainBalanceLoading: true });
             try {
                 const response = await getPChainBalance(get().isTestnet ? "testnet" : "mainnet", get().pChainAddress);
-                console.log(response);
                 newBalance = Number(response.balances.unlockedUnstaked[0].amount) / 1e9;
             } finally {
                 set({ pChainBalance: newBalance, isPChainBalanceLoading: false });
@@ -47,10 +53,19 @@ export const useWalletStore = create(
             let newBalance = 0;
             set({ isL1BalanceLoading: true });
             try {
-                const l1Balance = await get().publicClient.getBalance({
-                    address: get().walletEVMAddress as `0x${string}`,
-                });
-                newBalance = Number(l1Balance) / 1e18;
+                const indexedChains = await getIndexedChains();
+                console.log('indexedChains', indexedChains);
+                const isIndexedChain = indexedChains.includes(get().walletChainId);
+                console.log('isIndexedChain', isIndexedChain);
+                if (isIndexedChain) {
+                    const l1Balance = await getNativeTokenBalance(get().walletChainId, get().walletEVMAddress);
+                    newBalance = Number(l1Balance.balance) / (10 ** l1Balance.decimals);
+                } else {
+                    const l1Balance = await get().publicClient.getBalance({
+                        address: get().walletEVMAddress as `0x${string}`,
+                    });
+                    newBalance = Number(l1Balance) / 1e18;
+                }
             } finally {
                 set({ l1Balance: newBalance, isL1BalanceLoading: false });
             }
