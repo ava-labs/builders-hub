@@ -1,8 +1,12 @@
 import axios from "axios";
 import { API_DEV } from "../data/constants";
 
-// Create axios instance with default config
 const axiosInstance = axios.create({
+  baseURL: API_DEV,
+  withCredentials: true,
+});
+
+const refreshAxiosInstance = axios.create({
   baseURL: API_DEV,
   withCredentials: true,
 });
@@ -24,10 +28,21 @@ const processQueue = (error: any = null) => {
   failedQueue = [];
 };
 
-// Request interceptor
+const REFRESH_ENDPOINT = "/auth/refresh-token";
+const FULL_REFRESH_URL = `${API_DEV}${REFRESH_ENDPOINT}`;
+
+const isRefreshTokenUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  return url.includes(REFRESH_ENDPOINT) || url === FULL_REFRESH_URL;
+};
+
+refreshAxiosInstance.interceptors.response.use(
+  response => response,
+  error => Promise.reject(error)
+);
+
 axiosInstance.interceptors.request.use(
   (config) => {
-    // You can add any request preprocessing here
     return config;
   },
   (error) => {
@@ -35,23 +50,26 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const originalUrl = originalRequest?.url;
 
-    // Only handle 401 errors for POST requests
+    if (isRefreshTokenUrl(originalUrl)) {
+      console.log("Silently handling refresh token error");
+      window.location.href = "/";
+      return Promise.reject(new Error("Session expired"));
+    }
+
     if (
       error.response?.status !== 401 ||
-      originalRequest._retry ||
-      originalRequest.method?.toLowerCase() !== "post"
+      originalRequest._retry
     ) {
       return Promise.reject(error);
     }
 
     if (isRefreshing) {
-      // If token refresh is in progress, queue the request
       return new Promise((resolve, reject) => {
         failedQueue.push({ resolve, reject });
       })
@@ -67,19 +85,19 @@ axiosInstance.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      // Attempt to refresh the token
-      await axiosInstance.post("/auth/refresh-token");
+      await refreshAxiosInstance.post(REFRESH_ENDPOINT);
       processQueue();
       return axiosInstance(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError);
-
+      
       window.location.href = "/";
-      return Promise.reject(refreshError);
+      return Promise.reject(new Error("Session expired"));
     } finally {
       isRefreshing = false;
     }
   }
 );
+
 
 export default axiosInstance;
