@@ -396,7 +396,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                         href={`/ambassador-dao/sponsor/listing/${listing.id}/update?type=${listing.type}`}
                                         onClick={(e) => e.stopPropagation()}
                                       >
-                                        <DropdownMenuItem className='text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer'>
+                                        <DropdownMenuItem className='text-[var(--white-text-color)] hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer'>
                                           <PenLine
                                             className='h-4 w-4 mr-2'
                                             color='#9F9FA9'
@@ -407,7 +407,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                     )}
 
                                     <DropdownMenuItem
-                                      className='text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer'
+                                      className='text-[var(--white-text-color)] hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer'
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedListingId(listing.id);
@@ -422,7 +422,7 @@ export default function AmbasssadorDaoSponsorsListingsPage() {
                                     </DropdownMenuItem>
                                     {listing.status === "PUBLISHED" && (
                                       <DropdownMenuItem
-                                        className='text-[var(--white-text-color)] hover:bg-gray-700 cursor-pointer'
+                                        className='text-[var(--white-text-color)] hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer'
                                         onClick={(e) => {
                                           e.stopPropagation();
 
