@@ -54,7 +54,7 @@ const JobsSection = ({
   };
 
   return (
-    <section className="mb-12 border border-[var(--default-border-color)] rounded-md py-10 px-3">
+    <section className="mb-12 border border-[var(--default-border-color)] rounded-md py-10 px-6">
       <div className="flex justify-between">
         <h2 className="text-3xl font-medium mb-6 flex items-center gap-2">
           <BriefcaseBusiness size={36} color="var(--white-text-color)" /> Jobs

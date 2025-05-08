@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Code, Paintbrush, Monitor, FileText, Megaphone, MonitorPlay, PenTool, CodeXml } from 'lucide-react';
+import { Megaphone, MonitorPlay, PenTool, CodeXml } from 'lucide-react';
 
 type Category = {
   id: string;
@@ -70,7 +70,7 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
         <button
           key={category.id}
           onClick={() => handleCategorySelect(category.id)}
-          className={`
+          className={` hover:border-red-500 hover:bg-[var(--category-bg)] focus:bg-[var(--category-bg)]
             flex flex-wrap justify-center sm:justify-normal sm:flex-nowrap items-center gap-3 px-6 py-4 h-24 rounded-lg transition-all bg-[var(--primary-secondary-color)] 
             ${
               selectedCategory === category.id
@@ -83,7 +83,9 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
           <span className="text-[var(--white-text-color)] bg-[var(--category-bg-color)] p-2 rounded-sm">
             {category.icon}
           </span>
-          <span className="font-medium text-xs lg:!text-lg">{category.name}</span>
+          <span className="font-medium text-xs lg:!text-lg">
+            {category.name}
+          </span>
         </button>
       ))}
     </div>

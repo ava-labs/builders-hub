@@ -790,6 +790,8 @@ html body[data-scroll-locked] {
   --default-border-color: #d4d4d8;
   --default-background-color: #fafafa;
   --category-bg-color: #E4E4E7;
+  --drop-shadow: #FFFFFF66;
+  --category-bg: #F4F4F5;
 
 
 }
@@ -803,6 +805,9 @@ html body[data-scroll-locked] {
   --default-border-color: #27272a;
   --default-background-color: #09090b;
   --category-bg-color: #27272A;
+  --drop-shadow: #16161699;
+  --category-bg: #18181B;
+
 
   
   .bg-card-grad {
