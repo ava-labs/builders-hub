@@ -1,6 +1,6 @@
 //FIXME: Sooner or later we should use the SDK
 
-const endpoint = "https://glacier-api-dev.avax.network"
+const endpoint = "https://glacier-api.avax.network"
 
 interface BlockchainInfo {
     createBlockTimestamp: number;
@@ -165,6 +165,7 @@ export interface ChainDetails {
     vmName: string;
     explorerUrl: string;
     rpcUrl: string;
+    wsUrl?: string;
     isTestnet: boolean;
     utilityAddresses: UtilityAddressesInfo;
     networkToken: NetworkTokenInfo;
@@ -190,5 +191,66 @@ export async function getChainDetails(chainId: string): Promise<ChainDetails> {
 
     const data: ChainDetails = await response.json();
     return data;
+}
+
+interface GetChainsResponse {
+    chains: ChainDetails[];
+}
+
+export async function getChains(): Promise<ChainDetails[]> {
+    const url = `${endpoint}/v1/chains`;
+
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'accept': 'application/json',
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch chains: ${response.status} ${response.statusText}`);
+    }
+
+    const data: GetChainsResponse = await response.json();
+    return data.chains;
+}
+
+interface PriceInfo {
+    currencyCode: string;
+    value: string;
+}
+
+interface NativeTokenBalance {
+    name: string;
+    symbol: string;
+    decimals: number;
+    logoUri: string;
+    chainId: string;
+    price?: PriceInfo; // Optional
+    balance: string;
+    balanceValue?: PriceInfo; // Optional
+}
+
+interface GetNativeTokenBalanceResponse {
+    nativeTokenBalance: NativeTokenBalance;
+}
+
+export async function getNativeTokenBalance(chainId: string | number, address: string): Promise<NativeTokenBalance> {
+    const glacierProdEndpoint = "https://glacier-api.avax.network"; // Using production endpoint
+    const url = `${glacierProdEndpoint}/v1/chains/${chainId}/addresses/${address}/balances:getNative`;
+
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'accept': 'application/json',
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch native token balance for address ${address} on chain ${chainId}: ${response.status} ${response.statusText}`);
+    }
+
+    const data: GetNativeTokenBalanceResponse = await response.json();
+    return data.nativeTokenBalance;
 }
 

@@ -21,7 +21,19 @@ const faucets = {
 }
 const LOW_BALANCE_THRESHOLD = 0.5
 
-export const ConnectWallet = ({ children, required, extraElements }: { children: React.ReactNode; required: boolean; extraElements?: React.ReactNode }) => {
+export const ConnectWallet = ({
+    children,
+    required,
+    extraElements,
+    hidePChain = false,
+    forceCChain = false
+}: {
+    children: React.ReactNode;
+    required: boolean;
+    extraElements?: React.ReactNode;
+    hidePChain?: boolean;
+    forceCChain?: boolean;
+}) => {
     const setWalletChainId = useWalletStore(state => state.setWalletChainId);
     const walletEVMAddress = useWalletStore(state => state.walletEVMAddress);
     const setWalletEVMAddress = useWalletStore(state => state.setWalletEVMAddress);
@@ -39,16 +51,20 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
     const updateAllBalances = useWalletStore(state => state.updateAllBalances);
     const updatePChainBalance = useWalletStore(state => state.updatePChainBalance);
     const updateL1Balance = useWalletStore(state => state.updateL1Balance);
+    const updateCChainBalance = useWalletStore(state => state.updateCChainBalance);
+
     const isPChainBalanceLoading = useWalletStore(state => state.isPChainBalanceLoading);
     const isL1BalanceLoading = useWalletStore(state => state.isL1BalanceLoading);
-
+    const isCChainBalanceLoading = useWalletStore(state => state.isCChainBalanceLoading);
 
     const [hasWallet, setHasWallet] = useState<boolean>(false)
     const [isClient, setIsClient] = useState<boolean>(false)
     const pChainBalance = useWalletStore(state => state.pChainBalance);
     const l1Balance = useWalletStore(state => state.l1Balance);
+    const cChainBalance = useWalletStore(state => state.cChainBalance);
     const faucetUrl = faucets[walletChainId as keyof typeof faucets];
     const { showBoundary } = useErrorBoundary()
+    const coreEthAddress = useWalletStore(state => state.coreEthAddress); // This is the C-Chain address
 
     // Set isClient to true once component mounts (client-side only)
     useEffect(() => {
@@ -236,6 +252,35 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
         return <ConnectWalletPrompt onConnect={connectWallet} />
     }
 
+    // Determine what to display based on props
+    const isActuallyCChainSelected = walletChainId === avalanche.id || walletChainId === avalancheFuji.id;
+
+    const displayedL1ChainName = forceCChain ? "C-Chain" : evmChainName;
+    const displayedL1Balance = forceCChain ? cChainBalance : l1Balance;
+    const displayedL1TokenSymbol = (forceCChain || isActuallyCChainSelected) ? "AVAX" : "Tokens";
+    const displayedL1Address = forceCChain ? coreEthAddress : walletEVMAddress;
+    const updateDisplayedL1Balance = forceCChain ? updateCChainBalance : updateL1Balance;
+    const isDisplayedL1BalanceLoading = forceCChain ? isCChainBalanceLoading : isL1BalanceLoading;
+
+    const cChainTestnetFaucetUrl = isTestnet ? faucets[avalancheFuji.id as keyof typeof faucets] : undefined;
+    const displayedFaucetUrl = forceCChain
+        ? cChainTestnetFaucetUrl
+        : faucetUrl;
+
+    const showL1SelectedBadge = forceCChain ? true : !!walletChainId; // If forcing C-Chain, it's "selected" for display purposes
+
+    const showPChainCard = !hidePChain;
+    const showInterchainArrows = showPChainCard && (isActuallyCChainSelected || forceCChain);
+
+    let gridLayoutClass = "md:grid-cols-1";
+    if (showPChainCard && showInterchainArrows) {
+        gridLayoutClass = "md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]";
+    } else if (showPChainCard) {
+        gridLayoutClass = "md:grid-cols-2";
+    }
+
+    const glowConditionL1Balance = forceCChain ? cChainBalance : l1Balance;
+
     return (
         <div className="space-y-4 transition-all duration-300">
             {walletEVMAddress && (
@@ -271,34 +316,31 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                     </div>
 
                     {/* Chain cards */}
-                    <div className={`grid grid-cols-1 gap-4 items-center mb-4 ${(walletChainId === avalanche.id || walletChainId === avalancheFuji.id)
-                        ? 'md: grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]'
-                        : 'md: grid-cols-2'
-                        }`}>
+                    <div className={`grid grid-cols-1 gap-4 items-center mb-4 ${gridLayoutClass}`}>
                         {/* L1 Chain Card */}
                         <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 h-full">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">
-                                    {evmChainName}
+                                    {displayedL1ChainName}
                                 </span>
-                                {walletChainId && (
+                                {showL1SelectedBadge && (
                                     <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-full">Selected</span>
                                 )}
                             </div>
                             <div className="text-2xl font-semibold text-zinc-800 dark:text-zinc-100 mb-2 flex items-center">
-                                {l1Balance.toFixed(2)} {walletChainId === avalanche.id || walletChainId === avalancheFuji.id ? "AVAX" : "Tokens"}
+                                {displayedL1Balance.toFixed(2)} {displayedL1TokenSymbol}
                                 <button
-                                    onClick={updateL1Balance}
+                                    onClick={updateDisplayedL1Balance}
                                     className="ml-2 p-1 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     title="Refresh balance"
-                                    disabled={isL1BalanceLoading}
+                                    disabled={isDisplayedL1BalanceLoading}
                                 >
-                                    <RefreshCw className={`w-4 h-4 text-zinc-600 dark:text-zinc-300 ${isL1BalanceLoading ? 'animate-spin' : ''}`} />
+                                    <RefreshCw className={`w-4 h-4 text-zinc-600 dark:text-zinc-300 ${isDisplayedL1BalanceLoading ? 'animate-spin' : ''}`} />
                                 </button>
-                                {faucetUrl && (
+                                {displayedFaucetUrl && (
                                     <button
-                                        onClick={() => window.open(faucetUrl, "_blank")}
-                                        className={`ml-2 px-2 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors ${l1Balance < LOW_BALANCE_THRESHOLD
+                                        onClick={() => window.open(displayedFaucetUrl, "_blank")}
+                                        className={`ml-2 px-2 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors ${displayedL1Balance < LOW_BALANCE_THRESHOLD
                                             ? "shimmer"
                                             : ""
                                             }`}
@@ -311,47 +353,11 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                             {/* EVM Address inside the card */}
                             <div className="flex items-center justify-between">
                                 <div className="font-mono text-xs text-zinc-700 dark:text-black bg-zinc-100 dark:bg-zinc-300 px-3 py-1.5 rounded-md overflow-x-auto shadow-sm border border-zinc-200 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-200 transition-colors flex-1 mr-2 truncate">
-                                    {walletEVMAddress}
+                                    {displayedL1Address ? displayedL1Address : "Loading..."}
                                 </div>
-                                <button
-                                    onClick={() => copyToClipboard(walletEVMAddress)}
-                                    className="p-1.5 rounded-md bg-zinc-100 dark:bg-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-200 transition-colors border border-zinc-200 dark:border-zinc-600 shadow-sm"
-                                    title="Copy address"
-                                >
-                                    <Copy className="w-3.5 h-3.5 text-zinc-600 dark:text-black" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Arrows between cards */}
-                        {(walletChainId === avalanche.id || walletChainId === avalancheFuji.id) && (
-                            <InterchainTransfer glow={pChainBalance < LOW_BALANCE_THRESHOLD && l1Balance > LOW_BALANCE_THRESHOLD} />
-                        )}
-
-                        {/* P-Chain */}
-                        <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 h-full">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">P-Chain</span>
-                                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-full">Always Connected</span>
-                            </div>
-                            <div className="text-2xl font-semibold text-zinc-800 dark:text-zinc-100 mb-2 flex items-center">
-                                {pChainBalance.toFixed(2)} AVAX
-                                <button
-                                    onClick={updatePChainBalance}
-                                    className="ml-2 p-1 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Refresh balance"
-                                    disabled={isPChainBalanceLoading}
-                                >
-                                    <RefreshCw className={`w-4 h-4 text-zinc-600 dark:text-zinc-300 ${isPChainBalanceLoading ? 'animate-spin' : ''}`} />
-                                </button>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="font-mono text-xs text-zinc-700 dark:text-black bg-zinc-100 dark:bg-zinc-300 px-3 py-1.5 rounded-md overflow-x-auto shadow-sm border border-zinc-200 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-200 transition-colors flex-1 mr-2 truncate">
-                                    {pChainAddress ? pChainAddress : "Loading..."}
-                                </div>
-                                {pChainAddress && (
+                                {displayedL1Address && (
                                     <button
-                                        onClick={() => copyToClipboard(pChainAddress)}
+                                        onClick={() => copyToClipboard(displayedL1Address)}
                                         className="p-1.5 rounded-md bg-zinc-100 dark:bg-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-200 transition-colors border border-zinc-200 dark:border-zinc-600 shadow-sm"
                                         title="Copy address"
                                     >
@@ -360,6 +366,46 @@ export const ConnectWallet = ({ children, required, extraElements }: { children:
                                 )}
                             </div>
                         </div>
+
+                        {/* Arrows between cards */}
+                        {showInterchainArrows && (
+                            <InterchainTransfer glow={pChainBalance < LOW_BALANCE_THRESHOLD && glowConditionL1Balance > LOW_BALANCE_THRESHOLD} />
+                        )}
+
+                        {/* P-Chain */}
+                        {showPChainCard && (
+                            <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 h-full">
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">P-Chain</span>
+                                    <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-full">Always Connected</span>
+                                </div>
+                                <div className="text-2xl font-semibold text-zinc-800 dark:text-zinc-100 mb-2 flex items-center">
+                                    {pChainBalance.toFixed(2)} AVAX
+                                    <button
+                                        onClick={updatePChainBalance}
+                                        className="ml-2 p-1 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Refresh balance"
+                                        disabled={isPChainBalanceLoading}
+                                    >
+                                        <RefreshCw className={`w-4 h-4 text-zinc-600 dark:text-zinc-300 ${isPChainBalanceLoading ? 'animate-spin' : ''}`} />
+                                    </button>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <div className="font-mono text-xs text-zinc-700 dark:text-black bg-zinc-100 dark:bg-zinc-300 px-3 py-1.5 rounded-md overflow-x-auto shadow-sm border border-zinc-200 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-200 transition-colors flex-1 mr-2 truncate">
+                                        {pChainAddress ? pChainAddress : "Loading..."}
+                                    </div>
+                                    {pChainAddress && (
+                                        <button
+                                            onClick={() => copyToClipboard(pChainAddress)}
+                                            className="p-1.5 rounded-md bg-zinc-100 dark:bg-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-200 transition-colors border border-zinc-200 dark:border-zinc-600 shadow-sm"
+                                            title="Copy address"
+                                        >
+                                            <Copy className="w-3.5 h-3.5 text-zinc-600 dark:text-black" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {extraElements && extraElements}
