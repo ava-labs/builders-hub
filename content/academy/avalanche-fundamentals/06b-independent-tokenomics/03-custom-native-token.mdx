@@ -1,0 +1,35 @@
+---
+title: Custom Native Token
+description: Learn about custom native token of your Avalanche L1 blockchain.
+updated: 2024-06-28
+authors: [usmaneth]
+icon: BookOpen
+---
+
+Every Avalanche L1 blockchain has its own native token used for paying for transactions (gas). This isolates the fee to use the blockchain from any activity on other chains in the ecosystem.
+
+For example, if there is high usage of the primary network, it does not affect the fees on another Avalanche L1.
+
+![](/course-images/multi-chain-architecture/gas-comparison.png)
+
+Having their own blockchain with a custom native token in the Avalanche network can open up a wide range of new use cases for companies, ranging from financial institutions to gaming platforms. By having control over their gas token, these companies can revolutionize the blockchain landscape and enable innovative applications.
+
+Firstly, for financial institutions, having their blockchain with a custom native token can facilitate cheaper transactions compared to traditional banking systems. This flexibility can enable real-time payments, cross-border transactions, and micropayments, fostering financial inclusion and innovation.
+
+For gaming platforms, having their blockchain with a custom native token can revolutionize in-game economies and user experiences. They can design their tokenomics to incentivize gameplay, reward loyal players, and monetize virtual assets.
+
+## Valueless Native Token
+
+Many web3 startups want to provide a gas-free experience, especially if their target audience is not web3 native and is unfamiliar with paying for each action they take. If a startup deploys on a chain with no control over the gas token, the only option they have is to sponsor the transaction fees. This makes it very hard for many business models to be profitable.
+
+Let's take a simple web3 game where users issue on average 20 transactions a month, each costing on average \$0.20 (very optimistic). This means the dApp would have to sponsor $4 of transaction fee per user per month and also be prepared to sponsor a multiple of that in times of increased activity or a price increase of the native token.  
+
+Having control over the native token of their own blockchain allows companies to make it valueless, essentially providing a free Web2-like experience on their blockchain. This approach lowers the entry barriers for users, encourages adoption, and facilitates mass adoption of blockchain technology.
+
+Companies can leverage this to attract users from traditional platforms by offering familiar experiences without the costs and complexities associated with blockchain transactions. 
+
+## Tying the Native Token Value to an existing Token
+
+Some developers may also opt for tying the value of their native token to an existing token. One popular choice for this would be a stablecoin like USDC. This way they still preserve the isolated fees and protect against price increases of the native token, but avoid issuing their own token. 
+
+This can be achieved by hard-coding that a native token can only be received by depositing the tied asset into a smart contract. If the native token then changes hands (for example by the user issuing a transaction and the fee for that being redistributed to the validators) the new owner can redeem the tied asset.

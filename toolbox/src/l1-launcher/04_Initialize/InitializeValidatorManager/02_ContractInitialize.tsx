@@ -62,7 +62,7 @@ export default function ContractInitialize() {
 
             const settings = {
                 admin: address,
-                subnetId: utils.bufferToHex(utils.base58check.decode(subnetId)),
+                subnetID: utils.bufferToHex(utils.base58check.decode(subnetId)),
                 churnPeriodSeconds: BigInt(0),
                 maximumChurnPercentage: 20
             };

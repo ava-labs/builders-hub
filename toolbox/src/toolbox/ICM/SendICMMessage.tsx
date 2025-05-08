@@ -1,99 +1,102 @@
 "use client";
 
-import { useToolboxStore, useViemChainStore } from "../toolboxStore";
+import { useToolboxStore, useViemChainStore, useSelectedL1, getToolboxStore, useL1ByChainId } from "../toolboxStore";
 import { useWalletStore } from "../../lib/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import { createPublicClient, http } from 'viem';
 import ICMDemoABI from "../../../contracts/example-contracts/compiled/ICMDemo.json";
 import { utils } from "@avalabs/avalanchejs";
 import { Input } from "../../components/Input";
-import { avalancheFuji } from "viem/chains";
-import { RequireChain } from "../../components/RequireChain";
-import { SENDER_C_CHAIN_ADDRESS } from "./DeployICMDemo";
-import { RadioGroup } from "../../components/RadioGroup";
-
-type MessageDirection = "CtoL1" | "L1toC";
+import { Container } from "../components/Container";
+import SelectChainID from "../components/SelectChainID";
 
 export default function SendICMMessage() {
     const { showBoundary } = useErrorBoundary();
-    const { icmReceiverAddress, chainID, setChainID, evmChainRpcUrl, setEvmChainRpcUrl } = useToolboxStore();
-    const viemChain = useViemChainStore();
-    const { coreWalletClient, publicClient } = useWalletStore();
+    const { icmReceiverAddress } = useToolboxStore();
+    const { coreWalletClient } = useWalletStore();
+    const selectedL1 = useSelectedL1()();
     const [message, setMessage] = useState(Math.floor(Math.random() * 10000));
+    const [destinationChainId, setDestinationChainId] = useState<string>("");
     const [isSending, setIsSending] = useState(false);
     const [lastTxId, setLastTxId] = useState<string>();
-    const [lastReceivedMessage, setLastReceivedMessage] = useState<number>();
+    const viemChain = useViemChainStore();
     const [isQuerying, setIsQuerying] = useState(false);
-    const [messageDirection, setMessageDirection] = useState<MessageDirection>("CtoL1");
+    const [lastReceivedMessage, setLastReceivedMessage] = useState<number>();
 
-    const directionOptions = [
-        { value: "CtoL1", label: "C-Chain to Subnet (L1)" },
-        { value: "L1toC", label: "Subnet (L1) to C-Chain" },
-    ];
+    const targetToolboxStore = getToolboxStore(destinationChainId)()
+    const targetL1 = useL1ByChainId(destinationChainId)();
 
-    const chainIDHex = useMemo(() =>
-        utils.bufferToHex(utils.base58check.decode(chainID))
-        , [chainID]);
+    const sourceContractError = icmReceiverAddress ? undefined : (
+        <>Please <a href="#deployICMDemo">deploy the ICM Demo contract on {selectedL1?.name}</a> first</>
+    );
 
-    let receiverChainIDError: string | undefined;
-    useEffect(() => {
+    const targetContractError = targetToolboxStore.icmReceiverAddress ? undefined : (
+        <>Please <a href="#deployICMDemo">deploy the ICM Demo contract on {targetL1?.name}</a> first</>
+    );
+
+    let destinationChainError: string | undefined = undefined;
+    if (!destinationChainId) {
+        destinationChainError = "Please select a destination chain";
+    } else if (selectedL1?.id === destinationChainId) {
+        destinationChainError = "Source and destination chains must be different";
+    }
+
+    const destinationBlockchainIDHex = useMemo(() => {
+        if (!targetL1?.id) return undefined;
         try {
-            if (chainID && utils.base58check.decode(chainID).length !== 32) {
-                receiverChainIDError = `Invalid chain ID length: ${utils.base58check.decode(chainID).length}`;
-            } else {
-                receiverChainIDError = undefined;
-            }
+            return utils.bufferToHex(utils.base58check.decode(targetL1.id));
         } catch (e) {
-            // Handle potential decoding errors
-            receiverChainIDError = "Invalid base58check format";
+            console.error("Error decoding destination chain ID:", e);
+            return undefined;
         }
-    }, [chainID]);
-
-    // Get the appropriate chain for the current direction
-    const requiredChain = messageDirection === "CtoL1" ? avalancheFuji : viemChain;
-
-    // Get the destination and source addresses based on direction
-    const sourceAddress = messageDirection === "CtoL1"
-        ? SENDER_C_CHAIN_ADDRESS
-        : icmReceiverAddress as `0x${string}`;
-
-    const destinationAddress = messageDirection === "CtoL1"
-        ? icmReceiverAddress
-        : SENDER_C_CHAIN_ADDRESS;
-
-    // Get the appropriate blockchain ID based on direction
-    const destinationBlockchainID = messageDirection === "CtoL1"
-        ? chainIDHex
-        : utils.bufferToHex(utils.base58check.decode("yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp")); // Fuji BlockchainID
+    }, [targetL1?.id]);
 
     async function handleSendMessage() {
-        if (!destinationAddress) {
-            throw new Error('Destination address not available');
+        if (!icmReceiverAddress || !targetToolboxStore.icmReceiverAddress || !destinationBlockchainIDHex || !viemChain || !coreWalletClient) {
+            showBoundary(new Error('Missing required information to send message.'));
+            return;
         }
 
         setIsSending(true);
+        setLastTxId(undefined);
         try {
-            if (!requiredChain) throw new Error('Invalid chain');
+            const sourceAddress = icmReceiverAddress as `0x${string}`;
+            const destinationAddress = targetToolboxStore.icmReceiverAddress as `0x${string}`;
+
+            const publicClient = createPublicClient({
+                chain: viemChain,
+                transport: http(viemChain.rpcUrls.default.http[0]),
+            });
+
+            if (!coreWalletClient.account) {
+                throw new Error('No wallet account connected');
+            }
 
             const { request } = await publicClient.simulateContract({
                 address: sourceAddress,
                 abi: ICMDemoABI.abi,
                 functionName: 'sendMessage',
                 args: [
-                    destinationAddress as `0x${string}`,
-                    message,
-                    destinationBlockchainID as `0x${string}`
+                    destinationAddress,
+                    BigInt(message),
+                    destinationBlockchainIDHex as `0x${string}`
                 ],
-                chain: requiredChain,
+                account: coreWalletClient.account,
             });
 
-            const hash = await coreWalletClient.writeContract(request);
-            await publicClient.waitForTransactionReceipt({ hash });
+            const hash = await coreWalletClient.writeContract({
+                ...request,
+                chain: viemChain,
+            });
+
+            console.log("Transaction hash:", hash);
             setLastTxId(hash);
+
         } catch (error) {
+            console.error("ICM Send Error:", error);
             showBoundary(error);
         } finally {
             setIsSending(false);
@@ -101,166 +104,107 @@ export default function SendICMMessage() {
     }
 
     async function queryLastMessage() {
+        if (!targetL1?.rpcUrl || !targetToolboxStore.icmReceiverAddress) {
+            showBoundary(new Error('Missing required information to query message'));
+            return;
+        }
+
         setIsQuerying(true);
         try {
-            if (!viemChain) throw new Error('Invalid chain');
+            const destinationClient = createPublicClient({
+                transport: http(targetL1.rpcUrl),
+            });
 
-            // For CtoL1, we need to query the subnet
-            // For L1toC, we need to query the C-Chain
-            const targetClient = messageDirection === "CtoL1"
-                ? createPublicClient({
-                    transport: http(evmChainRpcUrl),
-                    chain: viemChain,
-                })
-                : createPublicClient({
-                    transport: http(avalancheFuji.rpcUrls.default.http[0]),
-                    chain: avalancheFuji,
-                });
-
-            const targetAddress = messageDirection === "CtoL1"
-                ? icmReceiverAddress as `0x${string}`
-                : SENDER_C_CHAIN_ADDRESS as `0x${string}`;
-
-            const lastMessage = await targetClient.readContract({
-                address: targetAddress,
+            const lastMessage = await destinationClient.readContract({
+                address: targetToolboxStore.icmReceiverAddress as `0x${string}`,
                 abi: ICMDemoABI.abi,
                 functionName: 'lastMessage',
             });
 
-            setLastReceivedMessage(lastMessage as number);
+            setLastReceivedMessage(Number(lastMessage));
         } catch (error) {
+            console.error("ICM Query Error:", error);
             showBoundary(error);
         } finally {
             setIsQuerying(false);
         }
     }
 
-    const sourceChainText = messageDirection === "CtoL1" ? "C-Chain" : "Subnet (L1)";
-    const destinationChainText = messageDirection === "CtoL1" ? "Subnet (L1)" : "C-Chain";
+    const isButtonDisabled = isSending ||
+        !!sourceContractError ||
+        !!targetContractError ||
+        !!destinationChainError ||
+        !message ||
+        !coreWalletClient ||
+        !destinationBlockchainIDHex;
 
-    if (!requiredChain) {
-        return <div>Invalid chain</div>;
-    }
+    const isQueryButtonDisabled = isQuerying ||
+        !targetToolboxStore.icmReceiverAddress ||
+        !targetL1?.rpcUrl;
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Send ICM Message</h2>
-
-            <div className="p-4 border rounded-md bg-gray-50 dark:bg-gray-900/50">
-                <RadioGroup
-                    items={directionOptions}
-                    value={messageDirection}
-                    onChange={(value) => setMessageDirection(value as MessageDirection)}
-                    idPrefix="message-direction-"
+        <Container title="Send ICM Message">
+            <div className="space-y-4">
+                <Input
+                    value={icmReceiverAddress}
+                    label={`ICM Demo Contract Address on ${selectedL1?.name}`}
+                    disabled
+                    error={sourceContractError}
                 />
-            </div>
+                <Input
+                    label="Message to deliver (Number)"
+                    value={message.toString()}
+                    onChange={(value) => setMessage(Number(value) || 0)}
+                    required
+                    type="number"
+                />
+                <SelectChainID
+                    label="Destination Chain"
+                    value={destinationChainId}
+                    onChange={(value) => setDestinationChainId(value)}
+                    error={destinationChainError}
+                />
+                <Input
+                    value={targetToolboxStore.icmReceiverAddress}
+                    label={`ICM Demo Contract Address on ${targetL1?.name}`}
+                    disabled
+                    error={targetContractError}
+                />
 
-            <RequireChain chain={requiredChain}>
-                <div className="space-y-4">
-                    {messageDirection === "CtoL1" && (
-                        <Input
-                            label="ICM Receiver Address on Subnet"
-                            value={icmReceiverAddress}
-                            disabled
-                        />
-                    )}
+                <Button
+                    variant="primary"
+                    onClick={handleSendMessage}
+                    loading={isSending}
+                    disabled={isButtonDisabled}
+                >
+                    Send Message from {selectedL1?.name || 'Source'} to {targetL1?.name || 'Destination'}
+                </Button>
 
-                    {messageDirection === "L1toC" && (
-                        <Input
-                            label="C-Chain Receiver Address"
-                            value={SENDER_C_CHAIN_ADDRESS}
-                            disabled
-                        />
-                    )}
-
-                    {messageDirection === "CtoL1" && (
-                        <Input
-                            label="Destination Chain ID"
-                            value={chainID}
-                            onChange={setChainID}
-                            error={receiverChainIDError}
-                        />
-                    )}
-
-                    {messageDirection === "CtoL1" && (
-                        <Input
-                            label="Destination Chain ID in Hex"
-                            value={chainIDHex}
-                            disabled
-                        />
-                    )}
-
-                    <Input
-                        label="Message (Number)"
-                        value={message.toString()}
-                        onChange={(value) => setMessage(Number(value) || 0)}
-                        required
-                        type="number"
-                    />
-
+                <div className="space-y-1">
                     <Success
-                        label={`Source Address (${sourceChainText})`}
-                        value={sourceAddress}
-                    />
-
-                    <Success
-                        label={`Destination Address (${destinationChainText})`}
-                        value={destinationAddress || ""}
-                    />
-
-                    {messageDirection === "CtoL1" && (
-                        <Input
-                            label="Subnet RPC URL"
-                            value={evmChainRpcUrl}
-                            onChange={setEvmChainRpcUrl}
-                        />
-                    )}
-
-                    <div className="p-3 bg-blue-50 border border-blue-100 rounded-md text-blue-800 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300">
-                        <p>Sending message from {sourceChainText} to {destinationChainText}</p>
-                    </div>
-
-                    <Button
-                        variant="primary"
-                        onClick={handleSendMessage}
-                        loading={isSending}
-                        disabled={isSending || !destinationAddress || !message}
-                    >
-                        Send Message from {sourceChainText} to {destinationChainText}
-                    </Button>
-
-                    <div className="space-y-2">
-                        <Success
-                            label="Transaction ID"
-                            value={lastTxId ?? ""}
-                        />
-                        {lastTxId && (
-                            <a
-                                href={`https://subnets-test.avax.network/${messageDirection === "CtoL1" ? "c-chain" : viemChain?.name?.toLowerCase()}/tx/${lastTxId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-blue-500 hover:underline"
-                            >
-                                View on Explorer
-                            </a>
-                        )}
-                    </div>
-
-                    <Button
-                        variant="primary"
-                        onClick={queryLastMessage}
-                        loading={isQuerying}
-                        disabled={isQuerying || (messageDirection === "CtoL1" && !icmReceiverAddress)}
-                    >
-                        Query Last Message on {destinationChainText}
-                    </Button>
-
-                    <Success
-                        label="Last Received Message"
-                        value={lastReceivedMessage?.toString() ?? ""}
+                        label="Transaction ID (on Source Chain)"
+                        value={lastTxId ?? ""}
                     />
                 </div>
-            </RequireChain>
-        </div>
+
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                    <Button
+                        variant="secondary"
+                        onClick={queryLastMessage}
+                        loading={isQuerying}
+                        disabled={isQueryButtonDisabled}
+                    >
+                        Query Last Message on {targetL1?.name || 'Destination Chain'}
+                    </Button>
+
+                    <div className="mt-2">
+                        <Success
+                            label="Last Received Message on Destination Chain"
+                            value={lastReceivedMessage !== undefined ? lastReceivedMessage.toString() : ""}
+                        />
+                    </div>
+                </div>
+            </div>
+        </Container>
     );
 }

@@ -104,7 +104,7 @@ export default function ContractInitializeValidatorSet() {
             if (!managerAddress) throw new Error("Manager address not found");
 
             const txArgs = [{
-                subnetId: utils.bufferToHex(utils.base58check.decode(signingSubnetId)),
+                subnetID: utils.bufferToHex(utils.base58check.decode(signingSubnetId)),
                 validatorManagerBlockchainID: utils.bufferToHex(utils.base58check.decode(chainId)),
                 validatorManagerAddress: managerAddress as `0x${string}`,
                 initialValidators: validators

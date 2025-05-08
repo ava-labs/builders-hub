@@ -19,6 +19,10 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { VerifyEmail } from "./verify/VerifyEmail";
 import axios from "axios";
+<<<<<<< HEAD
+=======
+import { LoadingButton } from "../ui/loading-button";
+>>>>>>> upstream/master
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -107,6 +111,7 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
                           )}
                         />
                       </div>
+<<<<<<< HEAD
                       <Button
                         type="submit"
                         variant={"red"}
@@ -114,6 +119,17 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
                       >
                         {isLoading ? "Sending..." : "SEND VERIFICATION CODE"}
                       </Button>
+=======
+                      <LoadingButton
+                        type="submit"
+                        variant="red"
+                        className="w-full p-2 rounded"
+                        isLoading={isLoading}
+                        loadingText="Sending..."
+                      >
+                         SEND VERIFICATION CODE
+                      </LoadingButton>
+>>>>>>> upstream/master
                     </form>
                   </Form>
                 </div>
@@ -121,7 +137,11 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
                 <div>
                   <footer className="pt-10">
                     <p className="text-zinc-400 items-center justify-center w-full max-w-[400px] text-center text-sm font-medium">
+<<<<<<< HEAD
                       By clicking continue, you agree to our{" "}
+=======
+                      By signing in, you agree to our{" "}
+>>>>>>> upstream/master
                       <Link
                         href="https://www.avax.network/terms-of-use"
                         target="_blank"

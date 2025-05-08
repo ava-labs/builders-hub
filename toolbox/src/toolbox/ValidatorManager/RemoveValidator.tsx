@@ -3,7 +3,7 @@
 import { AlertCircle, CheckCircle } from "lucide-react"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
 import { bytesToHex, hexToBytes } from "viem"
-import { Context, networkIDs, pvm, utils } from "@avalabs/avalanchejs"
+import { networkIDs } from "@avalabs/avalanchejs"
 import { useErrorBoundary } from "react-error-boundary"
 import { useState } from "react"
 
@@ -12,129 +12,95 @@ import { Container } from "../components/Container"
 import { GetRegistrationJustification } from "./justification"
 import { Input } from "../../components/Input"
 import { cn } from "../../lib/utils"
-import { getRPCEndpoint } from "../../coreViem/utils/rpc"
 import { packL1ValidatorRegistration } from "../../coreViem/utils/convertWarp"
 import { packWarpIntoAccessList } from "./packWarp"
-import { StepIndicator, StepStatus } from "../components/StepIndicator"
-import { useToolboxStore, useViemChainStore } from "../toolboxStore"
+import { StepIndicator } from "../components/StepIndicator"
+import { useSelectedL1, useViemChainStore } from "../toolboxStore"
 import { useWalletStore } from "../../lib/walletStore"
 import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
 import { getValidationIdHex } from "../../coreViem/hooks/getValidationID"
-// Define interfaces for step status tracking
-interface RemovalSteps {
-  getValidationID: StepStatus
-  initiateRemoval: StepStatus
-  signMessage: StepStatus
-  submitPChainTx: StepStatus
-  pChainSignature: StepStatus
-  completeRemoval: StepStatus
-}
+import { useStepProgress, StepsConfig } from "../hooks/useStepProgress"
+import { setL1ValidatorWeight } from "../../coreViem/methods/setL1ValidatorWeight"
+import SelectSubnetId from "../components/SelectSubnetId"
+import { EVMAddressInput } from "../components/EVMAddressInput"
+
+// Define step keys and configuration
+type RemovalStepKey =
+  | "getValidationID"
+  | "initiateRemoval"
+  | "signMessage"
+  | "submitPChainTx"
+  | "pChainSignature"
+  | "completeRemoval";
+
+const removalStepsConfig: StepsConfig<RemovalStepKey> = {
+  getValidationID: "Get Validation ID",
+  initiateRemoval: "Initiate Validator Removal",
+  signMessage: "Aggregate Signatures for Warp Message",
+  submitPChainTx: "Remove Validator from P-Chain",
+  pChainSignature: "Aggregate Signatures for P-Chain Warp Message",
+  completeRemoval: "Complete Removal",
+};
 
 export default function RemoveValidator() {
   const { showBoundary } = useErrorBoundary()
-  const { proxyAddress, subnetId } = useToolboxStore()
   const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore()
+  const selectedL1 = useSelectedL1()();
   const viemChain = useViemChainStore()
 
   const [nodeID, setNodeID] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [isProcessComplete, setIsProcessComplete] = useState(false)
+  const [manualProxyAddress, setManualProxyAddress] = useState(selectedL1?.validatorManagerAddress || "")
   const [validationIDHex, setValidationIDHex] = useState("")
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState("")
   const [signedWarpMessage, setSignedWarpMessage] = useState("")
   const [pChainSignature, setPChainSignature] = useState("")
+  const [justificationSubnetId, setJustificationSubnetId] = useState("")
 
-  const platformEndpoint = getRPCEndpoint(avalancheNetworkID !== networkIDs.MainnetID)
   const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji"
-  const pvmApi = new pvm.PVMApi(platformEndpoint)
 
-  
-  // Track steps for removal process
-  const [removalSteps, setRemovalSteps] = useState<RemovalSteps>({
-    getValidationID: { status: "pending" },
-    initiateRemoval: { status: "pending" },
-    signMessage: { status: "pending" },
-    submitPChainTx: { status: "pending" },
-    pChainSignature: { status: "pending" },
-    completeRemoval: { status: "pending" },
-  })
+  const {
+    steps,
+    stepKeys,
+    stepsConfig: config,
+    isProcessing,
+    isProcessComplete,
+    error,
+    success,
+    updateStepStatus,
+    resetSteps,
+    startProcessing,
+    completeProcessing,
+    handleRetry,
+    setError,
+  } = useStepProgress<RemovalStepKey>(removalStepsConfig);
 
-
-  // Update step status helper
-  const updateStepStatus = (step: keyof RemovalSteps, status: StepStatus["status"], error?: string) => {
-    setRemovalSteps((prev) => ({
-      ...prev,
-      [step]: { status, error },
-    }))
-  }
-
-  // Reset the removal process
-  const resetRemoval = () => {
-    setIsProcessing(false)
-    setIsProcessComplete(false)
-    setError(null)
-    setSuccess(null)
-    Object.keys(removalSteps).forEach((step) => {
-      updateStepStatus(step as keyof RemovalSteps, "pending")
-    })
-  }
-  // Handle retry of a specific step
-  const retryStep = async (step: keyof RemovalSteps) => {
-    // Reset status of current step and all following steps
-    const steps = Object.keys(removalSteps) as Array<keyof RemovalSteps>
-    const stepIndex = steps.indexOf(step)
-
-    // Only reset the statuses from the failed step onwards
-    steps.slice(stepIndex).forEach((currentStep) => {
-      updateStepStatus(currentStep, "pending")
-    })
-
-    // Start the removal process from the failed step
-    await handleRemove(step)
-  }
-
-  const handleRemove = async (startFromStep?: keyof RemovalSteps) => {
+  const handleRemove = async (startFromStep?: RemovalStepKey) => {
     if (!nodeID) {
       setError("Node ID is required")
       return
     }
 
     if (!startFromStep) {
-      setIsProcessing(true)
-      setIsProcessComplete(false)
-      setError(null)
-      setSuccess(null)
-      Object.keys(removalSteps).forEach((step) => {
-        updateStepStatus(step as keyof RemovalSteps, "pending")
-      })
+      startProcessing();
     }
 
-    // --- Local variables to pass results synchronously during initial run --- 
-    let currentValidationID = validationIDHex; // Initialize with state for retries
-    let currentUnsignedWarpMessage = unsignedWarpMessage; // Initialize with state for retries
-    let currentSignedWarpMessage = signedWarpMessage; // Initialize with state for retries
-    let currentPChainSignature = pChainSignature; // Initialize with state for retries
-    // --- End local variables --- 
+    let currentValidationID = startFromStep ? validationIDHex : "";
+    let currentUnsignedWarpMessage = startFromStep ? unsignedWarpMessage : "";
+    let currentSignedWarpMessage = startFromStep ? signedWarpMessage : "";
+    let currentPChainSignature = startFromStep ? pChainSignature : "";
 
     try {
-      setIsLoading(true)
-
       // Step 1: Get ValidationID
       if (!startFromStep || startFromStep === "getValidationID") {
         updateStepStatus("getValidationID", "loading")
         try {
-          const validationIDResult = await getValidationIdHex(publicClient, proxyAddress as `0x${string}`, nodeID) // Changed variable name
-          setValidationIDHex(validationIDResult as string) // Update state
-          currentValidationID = validationIDResult as string; // Use immediately
+          const validationIDResult = await getValidationIdHex(publicClient, manualProxyAddress as `0x${string}`, nodeID)
+          setValidationIDHex(validationIDResult as string)
+          currentValidationID = validationIDResult as string;
           console.log("ValidationID:", validationIDResult)
           updateStepStatus("getValidationID", "success")
         } catch (error: any) {
           updateStepStatus("getValidationID", "error", error.message)
-          setIsLoading(false)
-          showBoundary(error)
           return
         }
       }
@@ -143,41 +109,37 @@ export default function RemoveValidator() {
       if (!startFromStep || startFromStep === "initiateRemoval") {
         updateStepStatus("initiateRemoval", "loading")
         try {
-          // Use currentValidationID for initial run, or state (already in currentValidationID) for retry
-          if (!currentValidationID) { 
-            throw new Error("Validation ID is missing. Please ensure the previous step succeeded.")
+          if (!currentValidationID) {
+            throw new Error("Validation ID is missing. Retrying might be needed.")
           }
-          
+
           const removeValidatorTx = await coreWalletClient.writeContract({
-            address: proxyAddress as `0x${string}`,
+            address: manualProxyAddress as `0x${string}`,
             abi: validatorManagerAbi.abi,
             functionName: "initiateValidatorRemoval",
-            args: [currentValidationID], // Use local variable
+            args: [currentValidationID],
             chain: viemChain
           })
-          
+
           console.log("Removal transaction:", removeValidatorTx)
-          
+
           if (!publicClient) {
             throw new Error("Wallet connection not initialized")
           }
-          
+
           const receipt = await publicClient.waitForTransactionReceipt({
             hash: removeValidatorTx
           })
-          
+
           console.log("Receipt:", receipt)
-          
-          const warpMessageResult = receipt.logs[0].data || "" // Changed variable name
-          setUnsignedWarpMessage(warpMessageResult) // Update state
-          currentUnsignedWarpMessage = warpMessageResult; // Use immediately
+
+          const warpMessageResult = receipt.logs[0].data || ""
+          setUnsignedWarpMessage(warpMessageResult)
+          currentUnsignedWarpMessage = warpMessageResult;
           updateStepStatus("initiateRemoval", "success")
         } catch (error: any) {
-          // Extract base error message if available
           const message = error instanceof Error ? error.message : String(error);
           updateStepStatus("initiateRemoval", "error", `Failed to initiate removal: ${message}`)
-          setIsLoading(false)
-          showBoundary(error)
           return
         }
       }
@@ -186,29 +148,26 @@ export default function RemoveValidator() {
       if (!startFromStep || startFromStep === "signMessage") {
         updateStepStatus("signMessage", "loading")
         try {
-          // Use currentUnsignedWarpMessage for initial run, or state for retry
-          if (!currentUnsignedWarpMessage || currentUnsignedWarpMessage.length === 0) { 
-            throw new Error("Warp message is empty. Please try again from the previous step.")
+          if (!currentUnsignedWarpMessage || currentUnsignedWarpMessage.length === 0) {
+            throw new Error("Warp message is empty. Retrying might be needed.")
           }
-          
-          const { signedMessage: signedMessageResult } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({ // Changed variable name
+
+          const { signedMessage: signedMessageResult } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
             signatureAggregatorRequest: {
-              message: currentUnsignedWarpMessage, // Use local variable
-              signingSubnetId: subnetId || "",
+              message: currentUnsignedWarpMessage,
+              signingSubnetId: selectedL1?.subnetId || "",
               quorumPercentage: 67,
             },
           })
-          
+
           console.log("Signed message:", signedMessageResult)
-          setSignedWarpMessage(signedMessageResult) // Update state
-          currentSignedWarpMessage = signedMessageResult; // Use immediately
+          setSignedWarpMessage(signedMessageResult)
+          currentSignedWarpMessage = signedMessageResult;
           updateStepStatus("signMessage", "success")
         } catch (error: any) {
           const message = error instanceof Error ? error.message : String(error);
           updateStepStatus("signMessage", "error", `Failed to aggregate signatures: ${message}`)
-          setIsLoading(false)
-          showBoundary(error)
           return
         }
       }
@@ -217,53 +176,24 @@ export default function RemoveValidator() {
       if (!startFromStep || startFromStep === "submitPChainTx") {
         updateStepStatus("submitPChainTx", "loading")
         try {
-          // Use currentSignedWarpMessage for initial run, or state for retry
-          if (!currentSignedWarpMessage || currentSignedWarpMessage.length === 0) { 
-            throw new Error("Signed message is empty. Please try again from the previous step.")
+          if (!currentSignedWarpMessage || currentSignedWarpMessage.length === 0) {
+            throw new Error("Signed message is empty. Retrying might be needed.")
           }
-          
-          if (!publicClient) {
-            throw new Error("Wallet connection not initialized")
-          }
-          
-          const context = await Context.getContextFromURI(platformEndpoint)
-          const feeState = await pvmApi.getFeeState();
-          const { utxos } = await pvmApi.getUTXOs({ addresses: [pChainAddress] });
-          const pChainAddressBytes = utils.bech32ToBytes(pChainAddress)
-          
-          const changeValidatorWeightTx = pvm.e.newSetL1ValidatorWeightTx(
-            {
-              message: new Uint8Array(Buffer.from(currentSignedWarpMessage, 'hex')), // Use local variable
-              feeState,
-              fromAddressesBytes: [pChainAddressBytes],
-              utxos,
-            },
-            context,
-          )
-          
-          const changeValidatorWeightTxBytes = changeValidatorWeightTx.toBytes()
-          const changeValidatorWeightTxHex = bytesToHex(changeValidatorWeightTxBytes)
-          console.log("P-Chain transaction:", changeValidatorWeightTxHex)
 
           if (typeof window === "undefined" || !window.avalanche) {
             throw new Error("Core wallet not found")
           }
 
-          const coreTx = await window.avalanche.request({
-            method: "avalanche_sendTransaction",
-            params: {
-              transactionHex: changeValidatorWeightTxHex,
-              chainAlias: "P"  
-            }
+          const pChainTxId = await setL1ValidatorWeight(coreWalletClient, {
+            pChainAddress: pChainAddress!,
+            signedWarpMessage: currentSignedWarpMessage,
           })
-          
-          console.log("Core transaction:", coreTx)
+
+          console.log("P-Chain transaction ID:", pChainTxId)
           updateStepStatus("submitPChainTx", "success")
         } catch (error: any) {
           const message = error instanceof Error ? error.message : String(error);
           updateStepStatus("submitPChainTx", "error", `Failed to submit P-Chain transaction: ${message}`)
-          setIsLoading(false)
-          showBoundary(error)
           return
         }
       }
@@ -275,17 +205,20 @@ export default function RemoveValidator() {
           if (!viemChain) {
             throw new Error("Viem chain configuration is missing.")
           }
-          // Use currentValidationID for initial run, or state for retry
-          if (!currentValidationID) { 
-             throw new Error("Validation ID is missing. Please ensure the first step succeeded.")
+          if (!currentValidationID) {
+            throw new Error("Validation ID is missing. Retrying might be needed.")
           }
-          if (!subnetId) {
-            throw new Error("Subnet ID is missing. Please ensure the first step succeeded.")
+
+          // Use justificationSubnetId for the justification, falling back to selectedL1
+          const subnetIdForJustification = justificationSubnetId || selectedL1?.subnetId;
+          if (!subnetIdForJustification) {
+            throw new Error("Subnet ID is missing.")
           }
+
           const justification = await GetRegistrationJustification(
             nodeID,
             currentValidationID,
-            subnetId,
+            subnetIdForJustification,
             publicClient
           )
 
@@ -293,36 +226,33 @@ export default function RemoveValidator() {
             throw new Error("No justification logs found for this validation ID")
           }
 
-          const validationIDBytes = hexToBytes(currentValidationID as `0x${string}`) // Use local variable
+          const validationIDBytes = hexToBytes(currentValidationID as `0x${string}`)
           const removeValidatorMessage = packL1ValidatorRegistration(
             validationIDBytes,
             false,
             avalancheNetworkID,
-            "11111111111111111111111111111111LpoYY" //always from P-Chain (same on fuji and mainnet)
+            "11111111111111111111111111111111LpoYY"
           )
           console.log("Remove Validator Message:", removeValidatorMessage)
           console.log("Remove Validator Message Hex:", bytesToHex(removeValidatorMessage))
           console.log("Justification:", justification)
-          
           const signature = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
             signatureAggregatorRequest: {
               message: bytesToHex(removeValidatorMessage),
               justification: bytesToHex(justification),
-              signingSubnetId: subnetId || "",
+              signingSubnetId: selectedL1?.subnetId || "",
               quorumPercentage: 67,
             },
           })
           console.log("Signature:", signature)
-          setPChainSignature(signature.signedMessage) // Update state
-          currentPChainSignature = signature.signedMessage; // Use immediately
+          setPChainSignature(signature.signedMessage)
+          currentPChainSignature = signature.signedMessage;
           updateStepStatus("pChainSignature", "success")
 
         } catch (error: any) {
           const message = error instanceof Error ? error.message : String(error);
           updateStepStatus("pChainSignature", "error", `Failed to get P-Chain warp signature: ${message}`)
-          setIsLoading(false)
-          showBoundary(error)
           return
         }
       }
@@ -331,81 +261,52 @@ export default function RemoveValidator() {
       if (!startFromStep || startFromStep === "completeRemoval") {
         updateStepStatus("completeRemoval", "loading")
         try {
-          // Use currentPChainSignature for initial run, or state for retry
-          if (!currentPChainSignature) { 
-            throw new Error("P-Chain signature is missing. Please ensure the previous step succeeded.")
+          if (!currentPChainSignature) {
+            throw new Error("P-Chain signature is missing. Retrying might be needed.")
           }
           const signedPChainWarpMsgBytes = hexToBytes(`0x${currentPChainSignature}`)
           const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes)
-          
-          if (!proxyAddress) throw new Error("Proxy address is not set.");
+
+          if (!manualProxyAddress) throw new Error("Proxy address is not set.");
           if (!coreWalletClient) throw new Error("Core wallet client is not initialized.");
           if (!publicClient) throw new Error("Public client is not initialized.");
           if (!viemChain) throw new Error("Viem chain is not configured.");
 
-          let simulationResult;
-          try {
-            simulationResult = await publicClient.simulateContract({
-              address: proxyAddress as `0x${string}`,
-              abi: validatorManagerAbi.abi,
-              functionName: "completeValidatorRemoval",
-              args: [0],
-              accessList,
-              account: coreWalletClient.account, // Required for simulation with account context
-              chain: viemChain
-            })
-            console.log("Simulation successful:", simulationResult)
-          } catch (simError: any) {
-            console.error("Contract simulation failed:", simError);
-            // Try to extract a more specific revert reason
-            const baseError = simError.cause || simError;
-            const reason = baseError?.shortMessage || simError.message || "Simulation failed, reason unknown.";
-            throw new Error(`Contract simulation failed: ${reason}`);
-          }
-          
-          console.log("Simulation request:", simulationResult.request)
-
-          let txHash;
-          try {
-             txHash = await coreWalletClient.writeContract(simulationResult.request)
-             console.log("Transaction sent:", txHash)
-          } catch (writeError: any) {
-             console.error("Contract write failed:", writeError);
-             const baseError = writeError.cause || writeError;
-             const reason = baseError?.shortMessage || writeError.message || "Transaction submission failed, reason unknown.";
-             throw new Error(`Submitting transaction failed: ${reason}`);
-          }
-
+          const hash = await coreWalletClient.writeContract({
+            address: manualProxyAddress as `0x${string}`,
+            abi: validatorManagerAbi.abi,
+            functionName: "completeValidatorRemoval",
+            args: [0],
+            accessList,
+            account: coreWalletClient.account,
+            chain: viemChain
+          })
+          console.log("Transaction sent:", hash)
           let receipt;
           try {
-            receipt = await publicClient.waitForTransactionReceipt({ hash: txHash })
+            receipt = await publicClient.waitForTransactionReceipt({ hash })
             console.log("Transaction receipt:", receipt)
             if (receipt.status !== 'success') {
-               throw new Error(`Transaction failed with status: ${receipt.status}`);
+              throw new Error(`Transaction failed with status: ${receipt.status}`);
             }
           } catch (receiptError: any) {
-             console.error("Failed to get transaction receipt:", receiptError);
-             throw new Error(`Failed waiting for transaction receipt: ${receiptError.message}`);
+            console.error("Failed to get transaction receipt:", receiptError);
+            throw new Error(`Failed waiting for transaction receipt: ${receiptError.message}`);
           }
 
           updateStepStatus("completeRemoval", "success")
-          setSuccess(`Validator ${nodeID} removal process completed successfully.`)
-          setIsProcessComplete(true) // Mark process complete here
+          completeProcessing(`Validator ${nodeID} removal process completed successfully.`)
         } catch (error: any) {
-           const message = error instanceof Error ? error.message : String(error);
-          updateStepStatus("completeRemoval", "error", message) // Use the detailed error message
-          setIsLoading(false)
-          // showBoundary(error) // Decide if every error here should break the app or just show in the step
+          const message = error instanceof Error ? error.message : String(error);
+          updateStepStatus("completeRemoval", "error", message)
           return
         }
       }
-        
+
     } catch (err: any) {
       setError(`Failed to remove validator: ${err.message}`)
       console.error(err)
       showBoundary(err)
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -456,12 +357,31 @@ export default function RemoveValidator() {
           </p>
         </div>
 
+        <div className="space-y-2">
+          <EVMAddressInput
+            label="Proxy Address"
+            value={manualProxyAddress}
+            onChange={setManualProxyAddress}
+            disabled={isProcessing}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <SelectSubnetId
+            value={justificationSubnetId}
+            onChange={setJustificationSubnetId}
+          />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Optional: Subnet ID for justification retrieval (defaults to selected L1 subnet ID)
+          </p>
+        </div>
+
         {!isProcessing && (
           <Button
             onClick={() => handleRemove()}
-            disabled={isLoading || !nodeID}
+            disabled={!nodeID || isProcessing}
           >
-            {isLoading ? "Removing..." : "Remove Validator"}
+            {"Remove Validator"}
           </Button>
         )}
 
@@ -471,7 +391,7 @@ export default function RemoveValidator() {
               <h3 className="font-medium text-sm text-zinc-800 dark:text-zinc-200">Removal Progress</h3>
               {isProcessComplete && (
                 <button
-                  onClick={resetRemoval}
+                  onClick={resetSteps}
                   className="text-xs px-2 py-1 bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 rounded transition-colors"
                 >
                   Start New Removal
@@ -479,57 +399,20 @@ export default function RemoveValidator() {
               )}
             </div>
 
-            <StepIndicator
-              status={removalSteps.getValidationID.status}
-              label="Get Validation ID"
-              error={removalSteps.getValidationID.error}
-              onRetry={retryStep}
-              stepKey="getValidationID"
-            />
-
-            <StepIndicator
-              status={removalSteps.initiateRemoval.status}
-              label="Initiate Validator Removal"
-              error={removalSteps.initiateRemoval.error}
-              onRetry={retryStep}
-              stepKey="initiateRemoval"
-            />
-
-            <StepIndicator
-              status={removalSteps.signMessage.status}
-              label="Aggregate Signatures for Warp Message"
-              error={removalSteps.signMessage.error}
-              onRetry={retryStep}
-              stepKey="signMessage"
-            />
-
-            <StepIndicator
-              status={removalSteps.submitPChainTx.status}
-              label="Remove Validator from P-Chain"
-              error={removalSteps.submitPChainTx.error}
-              onRetry={retryStep}
-              stepKey="submitPChainTx"
-            />
-
-            <StepIndicator
-              status={removalSteps.pChainSignature.status}
-              label="Aggregate Signatures for P-Chain Warp Message"
-              error={removalSteps.pChainSignature.error}
-              onRetry={retryStep}
-              stepKey="pChainSignature"
-            />
-
-            <StepIndicator
-              status={removalSteps.completeRemoval.status}
-              label="Complete Removal"
-              error={removalSteps.completeRemoval.error}
-              onRetry={retryStep}
-              stepKey="completeRemoval"
-            />
+            {stepKeys.map((stepKey) => (
+              <StepIndicator
+                key={stepKey}
+                status={steps[stepKey].status}
+                label={config[stepKey]}
+                error={steps[stepKey].error}
+                onRetry={() => handleRetry(stepKey, handleRemove)}
+                stepKey={stepKey}
+              />
+            ))}
 
             {!isProcessComplete && (
               <Button
-                onClick={resetRemoval}
+                onClick={resetSteps}
                 className="mt-4 w-full py-2 px-4 rounded-md text-sm font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
               >
                 Cancel Removal

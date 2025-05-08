@@ -1,45 +1,24 @@
 "use client";
 
 import React from "react";
-import { Plus, ArrowUpRight, GitPullRequest } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
 
 const development = [
   {
-    id: 1,
-    title: "Build <strong>Consumer Apps</strong>.",
-    description:
-      "Guides to build high-performance consumer dApps on Avalanche C-Chain: Fast, Affordable, User-Centric.",
-    href: "/docs/dapps"
-  },
-  {
     id: 2,
-    title: "Build <strong>Avalanche L1s</strong>.",
+    title: "Explore our <strong>Docs</strong>.",
     description:
-      "Build your fast, interoperable Layer 1 blockchain with Avalanche's technology stack.",
-    href: "/docs/avalanche-l1s"
-  },
-  {
-    id: 3,
-    title: "Avalanche <strong>Academy</strong>.",
-    description:
-      "Master the art of building on Avalanche with Academy. Comprehensive Courses from Basic to Advanced.",
-    href: "/academy"
-  },
-  {
-    id: 4,
-    title: "Avalanche <strong>Starter Kit</strong>.",
-    description:
-      "Your all-in-one development launchpad. Ready-to-use boilerplates and examples for smart contracts, dApps, and more",
-    href: "https://github.com/ava-labs/avalanche-starter-kit"
+      "Find references for all Avalanche SDKs, APIs, and tools.",
+    href: "/docs",
   },
   {
     id: 5,
-    title: "<strong>Builder</strong>Kit.",
+    title: "<strong>Builder</strong> Tooling",
     description:
-      "Pre-built React components and hooks to seamlessly build frontend for dApps on Avalanche and it's L1s.",
-    href: "https://github.com/ava-labs/builderkit"
+      "Leverage our Builder Tooling to launch your L1 blockchain.",
+    href: "/tools/l1-toolbox"
   },
   {
     id: 6,
@@ -48,44 +27,17 @@ const development = [
       "Instant access to testnet tokens for seamless development and testing across multiple Avalanche L1s.",
     href: "https://core.app/tools/testnet-faucet/"
   },
-  {
-    id: 7,
-    title: "Integrate <strong>Core Wallet</strong>.",
-    description:
-      "Your all-in-one development launchpad. Ready-to-use boilerplates and examples for smart contracts, dApps, and more",
-    href: "https://docs.core.app/docs/connecting-core-extension/"
-  },
-  {
-    id: 8,
-    title: "Try <strong>AvaCloud</strong>.",
-    description:
-      "Instantly deploy your own Avalanche L1 in a few clicks using our enterprise-ready AvaCloud platform.",
-    href: "https://avacloud.io/"
-  },
-  {
-    id: 9,
-    title: "<strong>AvaCloud SDK</strong>.",
-    description:
-      "AvaCloud SDK offers all APIs, allowing developers to build and scale dApps with just a few lines of code.",
-    href: "https://developers.avacloud.io/avacloud-sdk/getting-started"
-  },
 ];
 
 export default function Development() {
   return (
     <div className="flex flex-col justify-center items-center px-4 mb-16" id="development">
       <h2 className="font-display text-3xl tracking-tight sm:text-5xl text-center flex items-center gap-3">
-        <GitPullRequest className="w-8 h-8 sm:w-10 sm:h-10" /> Development
+        Build on Avalanche
       </h2>
       <div className="mt-10 mx-auto font-geist relative md:border-l-0 md:border-b-0 md:border-[1.2px] rounded-none -pr-2">
         <div className="w-full md:mx-0">
-          <div className="grid grid-cols-1 relative md:grid-rows-3 md:grid-cols-3 border-b-[1.2px]">
-            <div className="hidden md:block absolute inset-0 pointer-events-none select-none z-10">
-              <Plus className="absolute w-8 h-8 text-neutral-300 dark:text-neutral-600 top-[33.33%] left-[33.33%] transform -translate-x-1/2 -translate-y-1/2" />
-              <Plus className="absolute w-8 h-8 text-neutral-300 dark:text-neutral-600 top-[33.33%] left-[66.66%] transform -translate-x-1/2 -translate-y-1/2" />
-              <Plus className="absolute w-8 h-8 text-neutral-300 dark:text-neutral-600 top-[66.66%] left-[33.33%] transform -translate-x-1/2 -translate-y-1/2" />
-              <Plus className="absolute w-8 h-8 text-neutral-300 dark:text-neutral-600 top-[66.66%] left-[66.66%] transform -translate-x-1/2 -translate-y-1/2" />
-            </div>
+          <div className="grid grid-cols-1 relative md:grid-rows-1 md:grid-cols-3 border-b-[1.2px]">
             
             {development.map((development, index) => (
               <Link

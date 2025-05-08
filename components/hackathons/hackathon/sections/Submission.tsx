@@ -87,7 +87,7 @@ export default async function Submission({
             Submission Process
           </h3>
           <p className='text-sm text-zinc-50'>
-            Submit your project through the Avalanche Builders Hub, add your
+            Submit your project through the Avalanche Builder Hub, add your
             team members, and upload your GitHub repo, presentation slides along with any other file that support your submission.
           </p>
         </div>
@@ -120,7 +120,7 @@ export default async function Submission({
             href={
               hackathon.content.submission_custom_link
                 ? hackathon.content.submission_custom_link
-                : `/hackathons/submit-project?hackaId=${hackathon.id}`
+                : `/hackathons/project-submission?hackathon=${hackathon.id}`
             }
             target={
               hackathon.content.submission_custom_link ? '_blank' : '_self'

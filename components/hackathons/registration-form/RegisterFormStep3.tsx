@@ -36,7 +36,7 @@ export function RegisterFormStep3() {
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
-                  className="border-zinc-400 bg-white data-[state=checked]:bg-white  data-[state=checked]:text-white rounded "
+                  className="border-zinc-400 bg-white data-[state=checked]:bg-white  data-[state=checked]:text-black rounded "
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
@@ -44,7 +44,7 @@ export function RegisterFormStep3() {
                   I have read and agree to the Event Participation Terms and Conditions.
                 </FormLabel>
                 <FormMessage className="text-zinc-400">
-                  You must agree to participate in any Builders Hub events. Event Terms and Conditions.
+                  You must agree to participate in any Builder Hub events. Event Terms and Conditions.
                 </FormMessage>
               </div>
             </FormItem>
@@ -60,7 +60,7 @@ export function RegisterFormStep3() {
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
-                  className="border-zinc-400 bg-white data-[state=checked]:bg-white data-[state=checked]:text-white rounded"
+                  className="border-zinc-400 bg-white data-[state=checked]:bg-white data-[state=checked]:text-black rounded"
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
@@ -82,7 +82,7 @@ export function RegisterFormStep3() {
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
-                  className="border-zinc-400 bg-white data-[state=checked]:bg-white data-[state=checked]:text-white rounded"
+                  className="border-zinc-400 bg-white data-[state=checked]:bg-white data-[state=checked]:text-black rounded"
                 />
               </FormControl>
               <div className="space-y-1 leading-none">

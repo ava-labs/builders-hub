@@ -1,8 +1,16 @@
+<<<<<<< HEAD
+=======
+generator client {
+  provider = "prisma-client-js"
+}
+
+>>>>>>> upstream/master
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+<<<<<<< HEAD
 generator client {
   provider = "prisma-client-js"
 }
@@ -36,6 +44,48 @@ model User {
   last_login     DateTime?
   image         String?
   registrations           RegisterForm[]
+=======
+model Hackathon {
+  id            String         @id @default(uuid())
+  title         String
+  description   String
+  location      String
+  total_prizes  Int
+  tags          String[]
+  content       Json           @default("{}")
+  end_date      DateTime       @default(now()) @db.Timestamptz(3)
+  start_date    DateTime       @default(now()) @db.Timestamptz(3)
+  timezone      String         @default("UTC")
+  banner        String         @default("")
+  icon          String         @default("")
+  small_banner  String         @default("")
+  participants  Int
+  top_most      Boolean?       @default(false)
+  organizers    String?
+  custom_link   String?
+  projects      Project[]
+  registrations RegisterForm[]
+}
+
+model User {
+  id                  String        @id @default(cuid())
+  name                String?
+  email               String?       @unique
+  image               String?
+  authentication_mode String?
+  integration         String?
+  last_login          DateTime?
+  user_name           String?
+  bio                 String?
+  notification_email  String?
+  profile_privacy     String?       @default("public")
+  social_media        String[]
+  notifications       Boolean?      @default(true)
+  custom_attributes   String[]
+  telegram_user       String?
+  memberships         Member[]
+  registrations       RegisterForm?
+>>>>>>> upstream/master
 }
 
 model VerificationToken {
@@ -47,6 +97,7 @@ model VerificationToken {
 }
 
 model RegisterForm {
+<<<<<<< HEAD
   id                     String   @id @default(uuid())
   hackathon_id            String
   hackathon              Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
@@ -74,3 +125,79 @@ model RegisterForm {
   @@unique([hackathon_id, email])
 
 }
+=======
+  id                      String    @id @default(uuid())
+  utm                     String
+  city                    String
+  dietary                 String?
+  email                   String    @unique
+  interests               String
+  languages               String
+  roles                   String
+  name                    String
+  role                    String
+  tools                   String
+  company_name            String?
+  created_at              DateTime  @default(now()) @db.Timestamptz(3)
+  github_portfolio        String?
+  hackathon_id            String
+  hackathon_participation String
+  newsletter_subscription Boolean   @default(false)
+  prohibited_items        Boolean   @default(false)
+  terms_event_conditions  Boolean   @default(false)
+  updated_at              DateTime  @updatedAt @db.Timestamptz(3)
+  web3_proficiency        String
+  telegram_user           String?
+  user                    User      @relation(fields: [email], references: [email], onDelete: Cascade)
+  hackathon               Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
+
+  @@unique([hackathon_id, email])
+}
+
+model Project {
+  id                  String    @id @default(uuid())
+  hackaton_id         String
+  project_name        String
+  short_description   String
+  full_description    String?   @default("")
+  tech_stack          String?   @default("")
+  github_repository   String?   @default("")
+  demo_link           String?   @default("")
+  logo_url            String?   @default("")
+  cover_url           String?   @default("")
+  demo_video_link     String?   @default("")
+  screenshots         String[]  @default([])
+  tracks              String[]  @default([])
+  created_at          DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at          DateTime  @updatedAt @db.Timestamptz(3)
+  explanation         String?   @default("")
+  is_preexisting_idea Boolean   @default(false)
+  small_cover_url     String?   @default("")
+  tags                String[]  @default([])
+  is_winner           Boolean?  @default(false)
+  members             Member[]
+  prizes              Prize[]
+  hackathon           Hackathon @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
+}
+
+model Prize {
+  id         String  @id @default(uuid())
+  icon       String
+  prize      Int
+  track      String
+  project_id String
+  Project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+}
+
+model Member {
+  id         String  @id @default(uuid())
+  user_id    String?
+  project_id String
+  role       String  @default("member")
+  status     String  @default("Pending Confirmation")
+  email      String?
+  project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  user       User?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+}
+>>>>>>> upstream/master

@@ -33,7 +33,12 @@ export class ValidationError extends Error {
 
 
 export function getHackathonLite(hackathon: any): HackathonHeader {
+<<<<<<< HEAD
     delete hackathon.content
+=======
+    if (!hackathon.top_most)
+        delete hackathon.content
+>>>>>>> upstream/master
     return hackathon;
 }
 
@@ -142,6 +147,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
 
     if (options.status) {
         switch (options.status) {
+<<<<<<< HEAD
             case "UPCOMING":
                 hackathonsLite = hackathons.filter(hackathon => hackathon.start_date.getTime() > Date.now());
                 break;
@@ -150,6 +156,13 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
                 break;
             case "ENDED":
                 hackathonsLite = hackathons.filter(hackathon => hackathon.end_date.getTime() < Date.now());
+=======
+            case "ENDED":
+                hackathonsLite = hackathons.filter(hackathon => hackathon.start_date.getTime() < Date.now());
+                break;
+            case "!ENDED":
+                hackathonsLite = hackathons.filter(hackathon => hackathon.start_date.getTime() >= Date.now());
+>>>>>>> upstream/master
                 break;
         }
     }
@@ -219,7 +232,11 @@ export async function updateHackathon(id: string, hackathonData: Partial<Hackath
     const content = { ...hackathonData.content } as Prisma.JsonObject
     await prisma.hackathon.update({
         where: { id },
+<<<<<<< HEAD
         data: {
+=======
+        data: {      
+>>>>>>> upstream/master
             id: hackathonData.id,
             title: hackathonData.title!,
             description: hackathonData.description!,
@@ -232,6 +249,13 @@ export async function updateHackathon(id: string, hackathonData: Partial<Hackath
             icon: hackathonData.icon!,
             banner: hackathonData.banner!,
             small_banner: hackathonData.small_banner!,
+<<<<<<< HEAD
+=======
+            participants: hackathonData.participants!,
+            top_most: hackathonData.top_most!,
+            organizers: hackathonData.organizers!,
+            custom_link: hackathonData.custom_link,
+>>>>>>> upstream/master
             content: content
 
         },

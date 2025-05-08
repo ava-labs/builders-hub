@@ -21,13 +21,18 @@ export async function upsertUser(user: User, account: Account | null, profile: P
     where: { email: user.email },
     update: {
       name: user.name || "",
+<<<<<<< HEAD
       image: user.image || "",
+=======
+      image: existingUser?.image || user.image || "",
+>>>>>>> upstream/master
       authentication_mode: updatedAuthMode,
       last_login: new Date(),
       user_name: (profile as any)?.login ?? "",
     },
     create: {
       email: user.email,
+<<<<<<< HEAD
       name: user.name || "",
       image: user.image || "",
       authentication_mode: account?.provider ?? "",
@@ -35,4 +40,15 @@ export async function upsertUser(user: User, account: Account | null, profile: P
       user_name: (profile as any)?.login ?? "",
     },
   });
+=======
+      notification_email: user.email,
+      name: user.name || "",
+      image: user.image || "",
+      authentication_mode: account?.provider ?? "",
+      last_login: null,
+      user_name: (profile as any)?.login ?? "",
+    },
+  });
+
+>>>>>>> upstream/master
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useWalletStore } from "../../lib/walletStore";
-import { useToolboxStore } from "../toolboxStore";
+import { useCreateChainStore } from "../toolboxStore";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { useErrorBoundary } from "react-error-boundary";
@@ -11,7 +11,7 @@ import { Container } from "../components/Container";
 
 export default function CreateSubnet() {
   const { showBoundary } = useErrorBoundary();
-  const { setSubnetID, subnetId } = useToolboxStore();
+  const { setSubnetID, subnetId } = useCreateChainStore()();
   const { coreWalletClient, pChainAddress } = useWalletStore();
   const [isCreating, setIsCreating] = useState(false);
 

@@ -15,7 +15,11 @@ import {
 import Link from "next/link";
 import { VerifyEmailProps } from "@/types/verifyEmailProps";
 import axios from "axios";
+<<<<<<< HEAD
 
+=======
+import { LoadingButton } from "@/components/ui/loading-button";
+>>>>>>> upstream/master
 const verifySchema = z.object({
   code: z
     .string()
@@ -29,7 +33,11 @@ export function VerifyEmail({
   callbackUrl = "/",
 }: VerifyEmailProps) {
   const [message, setMessage] = useState<string | null>(null);
+<<<<<<< HEAD
   const [resendCooldown, setResendCooldown] = useState(30);
+=======
+  const [resendCooldown, setResendCooldown] = useState(60);
+>>>>>>> upstream/master
   const [isResending, setIsResending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [sentTries, setSentTries] = useState(0);
@@ -60,7 +68,11 @@ export function VerifyEmail({
         callbackUrl: callbackUrl,
       });
       if (result?.error) {
+<<<<<<< HEAD
         console.log("resutlado",result)
+=======
+        console.error("Error: ", result);
+>>>>>>> upstream/master
         switch (result?.error) {
           case "INVALID":
             setSentTries((prev) => prev + 1);
@@ -82,14 +94,22 @@ export function VerifyEmail({
           case "OTP SENT":
             break;
           default:
+<<<<<<< HEAD
             setMessage("Error to sent OTP try again.");
+=======
+            setMessage("Error with OTP try again.");
+>>>>>>> upstream/master
             break;
         }
       } else if (result?.url) {
         window.location.href = result.url;
       }
     } catch (error) {
+<<<<<<< HEAD
       setMessage("wut");
+=======
+      setMessage("Error with OTP try again.");
+>>>>>>> upstream/master
     } finally {
       setIsVerifying(false);
     }
@@ -105,12 +125,21 @@ export function VerifyEmail({
       await axios.post("/api/send-otp", {
         email: email,
       });
+<<<<<<< HEAD
     
       setResendCooldown(30);
       setExpired(false);
       setSentTries(0);
     } catch (error) {
       setMessage("ErrError to sent OTP try againo.");
+=======
+
+      setResendCooldown(60);
+      setExpired(false);
+      setSentTries(0);
+    } catch (error) {
+      setMessage("Error sending OTP. Please try again.");
+>>>>>>> upstream/master
     } finally {
       setIsResending(false);
     }
@@ -165,13 +194,18 @@ export function VerifyEmail({
             {expired && (
               <Button
                 type="button"
+<<<<<<< HEAD
                 className="w-full px-4 py-2 gap-2 bg-zinc-50 Dark:text-zinc-800  hover:bg-primary/90"
+=======
+                className="w-full px-4 py-2 gap-2 dark:bg-zinc-50 Dark:text-zinc-800  hover:bg-primary/90"
+>>>>>>> upstream/master
                 onClick={handleResend}
               >
                 Get a New Code
               </Button>
             )}
             {!expired && sentTries <= 3 && (
+<<<<<<< HEAD
               <Button
                 type="submit"
                 className="w-full px-4 py-2 gap-2 bg-zinc-50 Dark:text-zinc-800  hover:bg-primary/90"
@@ -189,6 +223,26 @@ export function VerifyEmail({
                 Go back
               </Button>
             )}
+=======
+              <LoadingButton
+                type="submit"
+                className="w-full px-4 py-2 gap-2"
+                disabled={isVerifying || !isFilled}
+                isLoading={isVerifying}
+                loadingText="Verifying..."
+              >
+                Verify & Continue
+              </LoadingButton>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full px-4 py-2 gap-2 dark:bg-zinc-50 Dark:text-zinc-800  hover:bg-primary/90"
+              onClick={onBack}
+            >
+              Go back
+            </Button>
+>>>>>>> upstream/master
           </form>
         </Form>
         {sentTries <= 3 && (

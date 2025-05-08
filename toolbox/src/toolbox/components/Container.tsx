@@ -144,16 +144,18 @@ export function Container({
           </div>
 
           <div className="flex flex-col justify-center h-[60px]">
-            <h3 className="text-base font-semibold text-zinc-800 dark:text-white">{title}</h3>
-            {description && <p className="text-xs text-zinc-500 dark:text-zinc-400">{description}</p>}
-            {subDescription && <p className="text-xs text-zinc-500 dark:text-zinc-400">{subDescription}</p>}
+            <h3 className="text-base font-semibold mb-1 mt-0 text-zinc-800 dark:text-white">{title}</h3>
+            {description && <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">{description}</p>}
+            {subDescription && <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">{subDescription}</p>}
           </div>
         </div>
       </div>
 
       {/* Content area with left padding aligned with logo */}
       <div className="pl-4 pr-6 py-6 space-y-6 text-zinc-900 dark:text-zinc-100">
-        <div className="space-y-6">{children}</div>
+        <div className="space-y-6 pb-6 prose">
+          {children}
+        </div>
 
         <div className="pt-4 mt-6 border-t border-zinc-200 dark:border-zinc-800 text-center">
           <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">

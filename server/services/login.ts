@@ -52,6 +52,10 @@ export async function sendOTP(email: string) {
   try {
     await sgMail.send(msg);
   } catch (error) {
+<<<<<<< HEAD
     throw new Error('Error sending email');
+=======
+    throw new Error(`Error sending email: \n${error}`);
+>>>>>>> upstream/master
   }
 }

@@ -4,7 +4,7 @@ import { useL1LauncherStore } from '../L1LauncherStore';
 import { RefreshCw } from 'lucide-react';
 import NextPrev from '../components/NextPrev';
 import { useWalletStore } from '../../lib/walletStore';
-import CrossChainTransfer from '../../toolbox/Wallet/CrossChainTransfer';
+import CrossChainTransfer from '../components/CrossChainTransfer';
 
 const TRANSFER_BUFFER = 0.1; // Buffer amount to account for fees/precision loss
 

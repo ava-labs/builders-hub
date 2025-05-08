@@ -37,15 +37,30 @@ for file in \
     /teleporter_src/out/ERC20TokenHome.sol/ERC20TokenHome.json \
     /teleporter_src/out/ERC20TokenRemote.sol/ERC20TokenRemote.json \
     /teleporter_src/out/ExampleRewardCalculator.sol/ExampleRewardCalculator.json \
+<<<<<<< HEAD
+=======
+    /teleporter_src/out/NativeTokenRemote.sol/NativeTokenRemote.json \
+    /teleporter_src/out/INativeMinter.sol/INativeMinter.json \
+    /teleporter_src/out/validator-manager/NativeTokenStakingManager.sol/NativeTokenStakingManager.json \
+    /teleporter_src/out/ictt/TokenRemote/NativeTokenRemoteUpgradeable.sol/NativeTokenRemoteUpgradeable.json \
+    /teleporter_src/out/validator-manager/StakingManager.sol/StakingManager.json \
+    /teleporter_src/out/validator-manager/ExampleRewardCalculator.sol/ExampleRewardCalculator.json \
+    /teleporter_src/out/teleporter/TeleporterMessenger.sol/TeleporterMessenger.json \
+    /teleporter_src/out/governance/ValidatorSetSig.sol/ValidatorSetSig.json \
+>>>>>>> upstream/master
 ; do
     filename=$(basename "$file")
     jq '.' "$file" > "/compiled/$filename"
 done
 
+<<<<<<< HEAD
 # Commented out files:
 # /teleporter_src/out/ERC20TokenRemote.sol/ERC20TokenRemote.json
 # /teleporter_src/out/NativeTokenRemote.sol/NativeTokenRemote.json
 # /teleporter_src/out/NativeTokenHome.sol/NativeTokenHome.json
+=======
+ls -ltha /teleporter_src/out/
+>>>>>>> upstream/master
 
 chown -R $HOST_UID:$HOST_GID /compiled /teleporter_src
 echo "Compilation complete"

@@ -1,129 +1,34 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
 @custom-variant dark (&:is(.dark *));
-@import "fumadocs-ui/css/neutral.css";
-@import "fumadocs-ui/css/preset.css";
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
 
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
 @plugin 'tailwindcss-animate';
-
-@layer base {
-  :root {
-    /* Light mode variables */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 5%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 5%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 5%;
-    --primary: 0 0% 10%;
-    --primary-foreground: 0 0% 99%;
-    --secondary: 0 0% 93%;
-    --secondary-foreground: 0 0% 12%;
-    --muted: 0 0% 93%;
-    --muted-foreground: 0 0% 40%;
-    --accent: 0 0% 93%;
-    --accent-foreground: 0 0% 12%;
-    --border: 0 0% 86%;
-    --input: 0 0% 86%;
-    --ring: 0 0% 10%;
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    /* Dark mode variables */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 95%;
-    --card: 0 0% 4%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 4%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 0 0% 90%;
-    --primary-foreground: 0 0% 5%;
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 90%;
-    --muted: 0 0% 8%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 100%;
-    --border: 0 0% 14%;
-    --input: 0 0% 14%;
-    --ring: 0 0% 80%;
-  }
-}
-
-@layer utilities {
-  .bg-gradient-radial {
-    background-image: radial-gradient(circle, var(--tw-gradient-stops));
-  }
-  .bg-repeat-gradient-to-r {
-    background-image: repeating-linear-gradient(
-      to right,
-      var(--tw-gradient-stops)
-    );
-  }
-  .bg-repeat-gradient-to-br {
-    background-image: repeating-linear-gradient(
-      to bottom right,
-      var(--tw-gradient-stops)
-    );
-  }
-}
-
-@layer utilities {
-  @keyframes stroke {
-    from {
-      stroke-dasharray: 1000;
-    }
-    to {
-      stroke-dasharray: 1000;
-      stroke-dashoffset: 2000;
-    }
-  }
-  .animate-stroke {
-    animation: stroke 5s linear infinite;
-  }
-}
-
-@layer base {
-  :root {
-    --font-sans: var(--font-geist-sans);
-    --font-mono: var(--font-geist-mono);
-  }
-  button {
-    cursor: pointer;
-  }
-}
-
-@layer utilities {
-  .border-opacity-[amount] {
-    border-color: color-mix(
-      in srgb,
-      currentColor,
-      transparent calc(100% - var(--amount))
-    );
-  }
-}
-
-@layer utilities {
-  .text-opacity-[amount] {
-    color: color-mix(
-      in srgb,
-      currentColor,
-      transparent calc(100% - var(--amount))
-    );
-  }
-}
-
-@layer utilities {
-  .text-shadow-[shadow] {
-    text-shadow: var(--shadow);
-  }
-}
 
 @media (min-width: 768px) {
   #nd-sidebar > div:first-child {
     padding-top: calc(var(--spacing) * 3.5);
   }
+}
+/* @plugin "@tailwindcss/typography"; */
+
+.prose
+  :where(ul > li):not(
+    :where([class~='not-prose'], [class~='not-prose'] *)
+  )::marker {
+  color: #e84142;
+}
+/* .light .prose :where(a:not([data-card])):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  color: #18181B; 
+}
+.light .prose :where(h3):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  color: #18181B; 
+} */
+
+/* .dark .prose :where(a:not([data-card])):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+  color: #F5F5F9;
 }
 /* @plugin "@tailwindcss/typography"; */
 
@@ -140,9 +45,9 @@
   color: #18181B;
 } */
 
-/* .dark .prose :where(a:not([data-card])):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+.dark .prose :where(h3):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
   color: #F5F5F9;
-}
+} */
 
 .dark .prose :where(h3):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
   color: #F5F5F9;
@@ -176,13 +81,13 @@
   padding: 0 16px;
 }
 
-svg.lucide {
+/* svg.lucide {
   color: #1f66f4;
 }
 
 .my-6 > svg.lucide {
   color: #fff;
-}
+} */
 
 .text-fd-primary {
   --tw-text-opacity: 1;
@@ -191,10 +96,6 @@ svg.lucide {
 
 .bg-fd-primary\/10 {
   background-color: #1f66f41a;
-}
-
-.text-xs {
-  font-size: 0.7rem;
 }
 
 h2.text-sm.font-medium {
@@ -236,11 +137,6 @@ nav a:not(:first-child) {
 
 .bg-fd-foreground\/25 {
   background-color: #4bccff96;
-}
-
-.bg-zinc-100 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(229 229 229);
 }
 
 .border-avax-red {
@@ -351,31 +247,31 @@ nav a:not(:first-child) {
 }
 
 @media (max-width: 639px) {
-  [data-state="open"][data-orientation="horizontal"] {
+  [data-state='open'][data-orientation='horizontal'] {
     max-height: 75vh !important;
     overflow-y: auto !important;
     overscroll-behavior: contain !important;
   }
 
-  [data-state="open"][data-orientation="horizontal"]::-webkit-scrollbar {
+  [data-state='open'][data-orientation='horizontal']::-webkit-scrollbar {
     width: 4px;
   }
 
-  [data-state="open"][data-orientation="horizontal"]::-webkit-scrollbar-thumb {
+  [data-state='open'][data-orientation='horizontal']::-webkit-scrollbar-thumb {
     background-color: rgba(156, 163, 175, 0.5);
     border-radius: 2px;
   }
 
-  div[class*="flex flex-col sm:hidden"]:nth-last-of-type(-n + 3) > a {
+  div[class*='flex flex-col sm:hidden']:nth-last-of-type(-n + 3) > a {
     display: none;
   }
 
   /* for hiding avagpt */
-  [data-open="true"] {
+  [data-open='true'] {
     z-index: 250;
   }
 
-  [data-state="open"] {
+  [data-state='open'] {
     z-index: 450;
   }
 }
@@ -400,7 +296,7 @@ html body[data-scroll-locked] {
   overflow: visible !important;
   margin-right: 0 !important;
 }
-/*
+/* 
 @layer base {
   :root {
     --sidebar-background: 0 0% 98%;
@@ -534,7 +430,7 @@ html body[data-scroll-locked] {
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0 0 0);
   --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
+  --popover: oklch(0 0 0);
   --popover-foreground: oklch(0.984 0.003 247.858);
   --primary: oklch(0.929 0.013 255.508);
   --primary-foreground: oklch(0.208 0.042 265.755);
@@ -542,7 +438,7 @@ html body[data-scroll-locked] {
   --secondary-foreground: oklch(0.984 0.003 247.858);
   --muted: oklch(0.279 0.041 260.031);
   --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
+  --accent: oklch(1 0 0 / 5%);
   --accent-foreground: oklch(0.984 0.003 247.858);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
@@ -642,7 +538,7 @@ html body[data-scroll-locked] {
     );
   }
 
-  .bg-repeat-gradient-to-br {
+    .bg-repeat-gradient-to-br {
     background-image: repeating-linear-gradient(
       to bottom right,
       var(--tw-gradient-stops)
@@ -685,81 +581,6 @@ html body[data-scroll-locked] {
   .text-shadow-[shadow] {
     text-shadow: var(--shadow);
   }
-}
-
-.list-none a {
-  white-space: nowrap;
-}
-
-.custom-markdown-editor .mdxeditor-toolbar {
-  background-color: #27272ab2 !important;
-  width: fit-content;
-  color: #fafafa !important;
-
-  ._selectTrigger_uazmk_307 {
-    background-color: #fafafa !important;
-    color: #27272ab2 !important;
-  }
-  ._selectTrigger_uazmk_307 svg {
-    color: #27272ab2 !important;
-  }
-  svg {
-    color: #fafafa !important;
-  }
-}
-
-.custom-markdown-editor {
-  ol,
-  ul,
-  menu {
-    margin-left: 24px;
-    list-style: revert;
-  }
-}
-
-.custom-markdown-editor ._contentEditable_uazmk_379 {
-  min-height: 256px;
-  background-color: transparent;
-  border: solid 1px var(--default-border-color);
-  color: var(--primary-text-color);
-  border-radius: 6px;
-
-  ._code_1tncs_52 {
-    color: #27272a;
-  }
-  h1 {
-    font-size: 2.25rem; /* Example size */
-    font-weight: 700; /* Example weight */
-  }
-
-  h2 {
-    font-size: 1.875rem;
-    font-weight: 600;
-  }
-
-  h3 {
-    font-size: 1.5rem;
-    font-weight: 500;
-  }
-
-  h4 {
-    font-size: 1.25rem;
-    font-weight: 500;
-  }
-
-  h5 {
-    font-size: 1.125rem;
-    font-weight: 400;
-  }
-
-  h6 {
-    font-size: 1rem;
-    font-weight: 400;
-  }
-}
-
-.mdxeditor-root-contenteditable {
-  margin-top: 20px !important;
 }
 
 ._placeholder_uazmk_1084 {
