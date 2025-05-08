@@ -16,6 +16,7 @@ interface CommentAuthor {
   id: string;
   first_name: string;
   last_name: string;
+  role: string;
 }
 
 interface CommentReply {
@@ -63,7 +64,14 @@ const Reply: React.FC<ReplyProps> = ({ reply, isOptimistic = false }) => {
         <div className='flex-1'>
           <div className='mb-1'>
             <h3 className='font-medium text-[#FB2C36]'>
-              {reply?.author?.first_name} {reply?.author?.last_name}
+              {reply?.author?.role === "ADMIN" ||
+              reply?.author?.role === "SUPER_ADMIN" ? (
+                <>Admin</>
+              ) : (
+                <>
+                  {reply?.author?.first_name} {reply?.author?.last_name}
+                </>
+              )}
             </h3>
           </div>
           <p className='text-[var(--secondary-text-color)] text-sm'>
@@ -149,6 +157,7 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
             id: userData?.id || "",
             first_name: userData?.first_name || "You",
             last_name: userData?.last_name || "",
+            role: userData?.role || "",
           },
           isOptimistic: true,
         };
@@ -422,7 +431,14 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
           <div className='flex-1'>
             <div className='flex justify-between items-start mb-1 w-full'>
               <h3 className='font-medium text-[#FB2C36]'>
-                {comment?.author?.first_name} {comment?.author?.last_name}
+                {comment?.author?.role === "ADMIN" ||
+                comment?.author?.role === "SUPER_ADMIN" ? (
+                  <>Admin</>
+                ) : (
+                  <>
+                    {comment?.author?.first_name} {comment?.author?.last_name}
+                  </>
+                )}
               </h3>
               {isEditable && (
                 <button
@@ -591,6 +607,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
             id: userData?.id || "",
             first_name: userData?.first_name || "You",
             last_name: userData?.last_name || "",
+            role: userData?.role || "",
           },
           isOptimistic: true,
           _count: {
