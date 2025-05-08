@@ -307,7 +307,7 @@ const TalentForm = () => {
   const removeSkill = (skill: string) => {
     const updated = selectedSkills.filter((s) => s !== skill);
     setSelectedSkills(updated);
-    setValue("skills_ids", updated);
+    setValue("skill_ids", updated);
   };
 
   const addSocialLink = () => {
@@ -330,7 +330,7 @@ const TalentForm = () => {
     updateTalentProfile(
       {
         ...data,
-        skills_ids: selectedSkills,
+        skill_ids: selectedSkills,
         social_links: socialLinks,
         years_of_experience: +data.years_of_experience,
       },
