@@ -19,7 +19,7 @@ const WelcomeSection = ({ user }: { user: any }) => {
         <div className="relative z-10">
           {user && (
             <>
-              <h1 className="text-2xl sm:text-4xl font-bold text-[var(--white-text-color)] mb-2">
+              <h1 className="text-2xl sm:text-4xl font-normal text-[var(--white-text-color)] mb-2">
                 Welcome back, {user?.first_name}
               </h1>
               <p className="text-md sm:text-xl text-[var(--secondary-text-color)]">
@@ -76,19 +76,19 @@ const AmbasssadorDao = () => {
   return (
     <div className="bg-[#fff] dark:bg-[#000] text-[var(--white-text-color)] min-h-screen">
       <WelcomeSection user={user} />
-      <div className="max-w-7xl dark:bg-[#16161699] mx-auto px-8 py-2 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-4 -mt-4">
+      <div className="max-w-[1220px] bg-[var(--drop-shadow)] mx-auto px-8 py-8 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-4 -mt-8  shadow-sm backdrop-blur-xs border-[1px] border-[#FFFFFF66] dark:border-none">
         {user?.role !== "AMBASSADOR" && (
           <AmbassadorCard
             title="Become a Member"
             description="Reach 70,000+  talent from one single dashboard"
-            link="https://app.team1.io/ambassador/"
+            link="/"
           />
         )}
         {user?.role !== "AMBASSADOR" && (
           <AmbassadorCard
             title="Become a Client"
             description="Post projects and hire top talent for your business needs"
-            link="https://app.team1.io/ambassador/"
+            link="/"
           />
         )}
       </div>
