@@ -175,6 +175,11 @@ export default function ICMRelayer() {
                 value={relayerAddress}
                 disabled
             />
+            <Note variant="warning">
+                <span className="font-semibold">Important:</span> The Relayer EVM Address above uses a temporary private key generated in your browser.
+                This key is stored only in session storage and will be <span className="font-semibold">lost when you close this browser tab</span>.
+                Ensure you fund this address sufficiently.
+            </Note>
 
             {error && (
                 <div className="text-red-500 p-2 bg-red-50 rounded-md">
@@ -228,26 +233,12 @@ export default function ICMRelayer() {
                 </div>
             </div>
 
-            <div className="text-sm">
-                ⚠️ The private key is stored in your browser session storage and will persist until you close the browser.
-                Please save the address above as you will need to fund it later.
-            </div>
-
-            <div className="text-lg font-bold">Write the relayer config file</div>
-            <CodeHighlighter
-                code={genConfigCommand(getConfigSources(), getConfigDestinations())}
-                lang="sh"
-            />
-
-            <div className="text-lg font-bold">Run the relayer</div>
-            <CodeHighlighter
-                code={relayerDockerCommand()}
-                lang="sh"
-            />
-
             {/* Balances Section */}
             <div className="space-y-4">
                 <div className="text-lg font-bold">Relayer Balances</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Ensure the relayer address maintains a positive balance on all selected chains to cover transaction fees for message delivery.
+                </div>
                 <div className="space-y-2">
                     {selectedChains.map(chain => (
                         <div key={`balance-${chain.id}`} className="flex items-center justify-between p-3 border rounded-md">
@@ -278,6 +269,18 @@ export default function ICMRelayer() {
                     ))}
                 </div>
             </div>
+
+            <div className="text-lg font-bold">Write the relayer config file</div>
+            <CodeHighlighter
+                code={genConfigCommand(getConfigSources(), getConfigDestinations())}
+                lang="sh"
+            />
+
+            <div className="text-lg font-bold">Run the relayer</div>
+            <CodeHighlighter
+                code={relayerDockerCommand()}
+                lang="sh"
+            />
         </div>
     );
 }
@@ -337,6 +340,7 @@ const genConfigCommand = (
 }
 
 import versions from '../../versions.json';
+import { Note } from '../../components/Note';
 const relayerDockerCommand = () => {
     return `docker run --name relayer -d \\
     --restart on-failure  \\
