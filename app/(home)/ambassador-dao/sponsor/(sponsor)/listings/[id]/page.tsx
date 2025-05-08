@@ -143,7 +143,7 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
               </div>
 
               <div className='flex gap-3 flex-col md:flex-row md:justify-between md:items-center'>
-                <div className='flex gap-2 items-center overflow-x-auto py-2'>
+                <div className='flex gap-2 items-center overflow-x-auto py-2 flex-wrap'>
                   {listing.skills.map((skill, index) => (
                     <div key={index}>
                       <Outline label={skill.name} />
@@ -153,7 +153,7 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                 <div>
                   {!!commentsData?.data?.length && (
                     <CustomButton
-                      className='px-4 !bg-transparent border border-[var(--default-border-color)] gap-2'
+                      className='px-4 !bg-transparent border border-[var(--default-border-color)] gap-2 shrink-0'
                       onClick={() => {
                         setCommentsModal(true);
                       }}
@@ -162,7 +162,7 @@ const AmbasssadorDaoSponsorsListingsSubmissions = () => {
                         size={16}
                         color='var(--white-text-color)'
                       />
-                      <p className='text-sm text-[var(--white-text-color)]'>
+                      <p className='text-sm text-[var(--white-text-color)] shrink-0'>
                         Comments ({commentsData?.metadata?.total || 0})
                       </p>
                     </CustomButton>
