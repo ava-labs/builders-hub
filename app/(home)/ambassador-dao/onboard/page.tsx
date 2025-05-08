@@ -202,7 +202,7 @@ const TalentForm = () => {
     },
   });
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
-  const [socialLinks, setSocialLinks] = useState<string[]>([]);
+  const [socialLinks, setSocialLinks] = useState<string[]>([""]);
   const [currentSocialLink, setCurrentSocialLink] = useState("");
   const [usernameStatus, setUsernameStatus] = useState<
     "checking" | "available" | "unavailable" | null
@@ -539,42 +539,38 @@ const TalentForm = () => {
             </div>
           </div>
           <div className='space-y-2'>
-            <CustomInput
-              id='social-0'
-              label='Social Link'
-              placeholder='Enter social link'
-              type='url'
-              required
-              value={socialLinks[0] || ""}
-              onChange={(e) => {
-                const updatedLinks = [...socialLinks];
-                updatedLinks[0] = e.target.value;
-                setSocialLinks(updatedLinks);
-              }}
-            />
-            {socialLinks.slice(1).map((link, idx) => (
-              <div key={idx + 1}>
+            {socialLinks.map((link, idx) => (
+              <div key={idx}>
                 <CustomInput
-                  id={`social-${idx + 1}`}
-                  label={`Social ${idx + 2}`}
+                  id={`social-${idx}`}
+                  label={`Social Link ${idx + 1}`}
                   placeholder='Enter social link'
+                  type='url'
+                  required={idx === 0}
                   value={link}
                   onChange={(e) => {
                     const updatedLinks = [...socialLinks];
-                    updatedLinks[idx + 1] = e.target.value;
+                    updatedLinks[idx] = e.target.value;
                     setSocialLinks(updatedLinks);
                   }}
                 />
-                <div className='flex justify-end'>
-                  <button
-                    type='button'
-                    className='flex items-center text-sm text-[var(--secondary-text-color)] font-medium gap-2 mt-1'
-                    onClick={() => removeSocialLink(link)}
-                  >
-                    <Minus size={14} color='var(--secondary-text-color)' />{" "}
-                    Remove
-                  </button>
-                </div>
+                {socialLinks.length > 1 && (
+                  <div className='flex justify-end'>
+                    <button
+                      type='button'
+                      className='flex items-center text-sm text-[var(--secondary-text-color)] font-medium gap-2 mt-1'
+                      onClick={() => {
+                        const updatedLinks = socialLinks.filter(
+                          (_, i) => i !== idx
+                        );
+                        setSocialLinks(updatedLinks);
+                      }}
+                    >
+                      <Minus size={14} color='var(--secondary-text-color)' />{" "}
+                      Remove
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
             <div className='flex justify-end'>
