@@ -23,7 +23,7 @@ export default function Tokenomics() {
         setInitComplete(true)
 
         if (walletEVMAddress && tokenAllocations.length === 0) {
-            setTokenAllocations([{ address: walletEVMAddress, amount: 1_000_000 }])
+            setTokenAllocations([{ address: walletEVMAddress as `0x${string}`, amount: 1_000_000 }])
         }
 
         if (!evmTokenSymbol) {

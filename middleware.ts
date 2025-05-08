@@ -22,9 +22,19 @@ export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const isAuthenticated = !!token;
   const isLoginPage = pathname === "/login";
-  if (isAuthenticated && isLoginPage) {
-   
-    return NextResponse.redirect(new URL("/", req.url));
+  const isShowCase = pathname.startsWith("/showcase");
+  const custom_attributes = token?.custom_attributes as string[] ?? []
+  
+  if (isAuthenticated) {
+
+    if (isLoginPage)
+      return NextResponse.redirect(new URL("/", req.url));
+
+    //TODO Change this line to enable showcase to a different set of users
+    if (isShowCase && !custom_attributes.includes('showcase'))
+      return NextResponse.redirect(new URL("/hackathons", req.url))
+
+
   }
   return withAuth(
     (authReq: NextRequestWithAuth): NextMiddlewareResult => {
@@ -32,16 +42,22 @@ export async function middleware(req: NextRequest) {
     },
     {
       pages: {
-        signIn: "/login", 
+        signIn: "/login",
       },
       callbacks: {
-        authorized: ({ token }) => !!token, 
-        
+        authorized: ({ token }) => !!token,
+
       }
     }
   )(req as NextRequestWithAuth, {} as any);
 }
 
 export const config = {
-    matcher: ["/hackathons/registration-form/:path*","/login/:path*"],
+  matcher: [
+    "/hackathons/registration-form/:path*",
+    "/hackathons/project-submission/:path*",
+    "/showcase/:path*",
+    "/login/:path*",
+    "/profile/:path*",
+  ],
 };

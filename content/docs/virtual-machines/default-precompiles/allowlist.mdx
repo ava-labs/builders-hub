@@ -8,6 +8,7 @@ description: The AllowList interface is used by many default precompiles to perm
 The AllowList is a security feature used by precompiles to manage which addresses have permission to interact with certain contract functionalities. For example, in the Native Minter Precompile, the allow list is used to control who can mint new native tokens.
 
 The AllowList consists of three roles:
+
 - **Admin**: Full control over the allow list, including the ability to add or remove Admins, Managers, and Enabled addresses.
 - **Manager**: Can add or remove **Enabled** addresses but cannot modify Admins or Managers.
 - **Enabled**: These addresses can use the precompiled contract (e.g., mint native tokens) but cannot modify the allow list.
@@ -51,7 +52,7 @@ The AllowList interface is implemented by multiple precompiles in the Subnet-EVM
 Several precompiles in Subnet-EVM use the AllowList interface:
 
 - [Native Minter](/docs/virtual-machines/default-precompiles/nativeminter)
-- [Fee Manager](/docs/virtual-machines/default-precompiles/feemanager)  
+- [Fee Manager](/docs/virtual-machines/default-precompiles/feemanager)
 - [Reward Manager](/docs/virtual-machines/default-precompiles/rewardmanager)
-- Contract Deployer Allow List (at address `0x0200000000000000000000000000000000000000`)
-- Transaction Allow List (at address `0x0200000000000000000000000000000000000002`)
+- [Contract Deployer Allow List](/docs/virtual-machines/default-precompiles/deployerallowlist)
+- [Transaction Allow List](/docs/virtual-machines/default-precompiles/transactionallowlist)

@@ -1,0 +1,36 @@
+---
+title: Set up Validator Nodes
+description: Learn how to set up a AvalancheGo node tracking a Subnet with Docker and the Builder Tooling.
+updated: 2025-03-19
+authors: [owenwahlgren]
+icon: Terminal
+---
+
+Now that the P-Chain records are set up, you can start the nodes tracking the Subnet. We will use Docker to run the node. Docker is a containerization platform that allows you to run applications in isolated environments called containers. This makes it easy to deploy and manage applications, as well as to ensure that they run consistently across different environments.
+
+Ideally you would run the node on a cloud linux server. You can use any cloud provider you like,
+like AWS, GCP, Azure, or Digital Ocean. You can also run the node on your local machine, but this is
+not recommended, because the ports should not be open to the public. You can complete most of the
+steps without opening the ports, but your L1 will not be be able to use the interoperability features of the Avalanche network.
+
+<AvalancheGoDocker />
+
+### Stop Node
+
+To stop the node, you can use the following command:
+
+```bash
+docker stop avago
+```
+
+The node credentials and the blockchain state is persisted in the `~/.avalanchego` directory. When
+you restart the node it will pick up where it left off.
+
+### Remove Node
+
+```bash
+docker rm avago
+```
+
+This will not remove the state and credentials of the node. To remove these you need to delete the `~/.avalanchego` directory.
+

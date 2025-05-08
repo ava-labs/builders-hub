@@ -10,6 +10,8 @@ import Chatbot from "@/components/ui/chatbot"
 import { PrivacyPolicyBox } from "@/components/privacy-policy"
 import { ClientProvider } from './layout.client';
 import { SearchRootProvider } from './searchRootProvider';
+import "./global.css";
+import "katex/dist/katex.css";
 import { Banner } from "fumadocs-ui/components/banner";
 import "./global.css";
 import "katex/dist/katex.css";
@@ -39,13 +41,26 @@ export default function Layout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
     >
       <PHProvider>
-        <Banner id="banner" className="border-b border-border"><span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">NEW</span> Register for the <a href="https://lu.ma/avalanchesummitlondonhackathon?utm_source=builder_hub" target="_blank" rel="noopener noreferrer" className="underline hover:text-red-600 transition-colors">London Hackathon</a>!</Banner>
         <ClientProvider>
-        <Banner id="banner" className="border-b border-border"><div className='max-w-10/12'><span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">NEW</span> Register for the <a href="https://lu.ma/avalanchesummitlondonhackathon?utm_source=builder_hub" target="_blank" rel="noopener noreferrer" className="underline hover:text-red-600 transition-colors">London Hackathon</a>!</div></Banner>
+        <Banner id="banner" className="border-b border-border">
+          <span>
+            <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">
+              NEW
+            </span>{" "}
+            Register for the{" "}
+            <a
+              href="https://lu.ma/avalanchesummitlondonhackathon?utm_source=builder_hub"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-red-600 transition-colors"
+            >
+              London Hackathon
+            </a>
+            !
+          </span>
+        </Banner>
         <body className="flex min-h-screen flex-col">
-          <SearchRootProvider>
-            {children}
-          </SearchRootProvider>
+          <SearchRootProvider>{children}</SearchRootProvider>
           <Chatbot />
           <div id="privacy-banner-root" className="relative">
             <PrivacyPolicyBox />

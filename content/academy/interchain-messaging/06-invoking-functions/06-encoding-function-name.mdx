@@ -79,7 +79,7 @@ contract CalculatorSenderOnCChain {
 }
 ```
 
-As you can see here we are calling `abi.encode` twice in the encode helpers. The first time we encode the function paramters and the second time we encode the function name with the byte array containing paramters.
+As you can see here we are calling `abi.encode` twice in the encode helpers. The first time we encode the function parameters and the second time we encode the function name with the byte array containing parameters.
 
 ## Decode the Function Name and Parameters
 
@@ -150,7 +150,7 @@ You can see that we first decode the `CalculatorAction` enum:
 (CalculatorAction actionType, bytes memory paramsData) = abi.decode(message, (CalculatorAction, bytes)); 
 ```
 
-Then based on the function name we decide how to unpack the paramters
+Then based on the function name we decide how to unpack the parameters
 
 ```solidity
 // Route to the appropriate function. 

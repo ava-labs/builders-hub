@@ -12,6 +12,8 @@ SUBNET_EVM_VERSION="v0.7.2-fuji"
 CURRENT_UID=$(id -u)
 CURRENT_GID=$(id -g)
 
+rm -rf "$SCRIPT_DIR/compiled"
+
 docker build -t validator-manager-compiler --build-arg SUBNET_EVM_VERSION=$SUBNET_EVM_VERSION --build-arg ICM_COMMIT=$ICM_COMMIT "$SCRIPT_DIR"
 docker run -it --rm \
     -v "${SCRIPT_DIR}/compiled":/compiled \

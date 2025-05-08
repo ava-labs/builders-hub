@@ -3,11 +3,36 @@ import {
   SquareGanttChart, MonitorCog, Logs, MonitorCheck, Settings, Cable, Webhook, Github,
   Wrench,
   GraduationCap,
-  Rocket
+  Rocket,
+  Terminal
 } from 'lucide-react';
 import Link from 'next/link';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/utils/cn';
+import type { Metadata } from 'next';
+import { createMetadata } from '@/utils/metadata';
+
+export const metadata: Metadata = createMetadata({
+  title: 'Documentation',
+  description: 'Developer documentation for everything related to the Avalanche ecosystem',
+  openGraph: {
+    url: '/docs',
+    images: {
+      url: '/api/og/docs',
+      width: 1200,
+      height: 630,
+      alt: 'Avalanche Documentation',
+    },
+  },
+  twitter: {
+    images: {
+      url: '/api/og/docs',
+      width: 1200,
+      height: 630,
+      alt: 'Avalanche Documentation',
+    },
+  },
+});
 
 export default function HomePage(): React.ReactElement {
   return (
@@ -29,22 +54,22 @@ function Highlights(): React.ReactElement {
   return (
     <div className="grid grid-cols-1 border-r md:grid-cols-2 lg:grid-cols-3">
       <Highlight icon={GraduationCap} heading="Learn the Fundamentals" link="/academy/avalanche-fundamentals">
-        Learn about the Avalanche Protocol and it's groundbreaking consensus algorithm.
+        Learn about Avalanche and how to launch your own L1 blockchain.
       </Highlight>
       <Highlight icon={Logs} heading="Avalanche L1s" link="/docs/avalanche-l1s">
-        Utilize the Avalanche tech stack to build your own layer 1 blockchain.
+        Utilize the configuration options for an Avalanche L1.
       </Highlight>
       <Highlight icon={Cable} heading="Interoperability" link="/docs/cross-chain">
-        Advanced interoperability protocols to communicate with other blockchains.
-      </Highlight>
-      <Highlight icon={SquareGanttChart} heading="Build Applications" link="/docs/dapps">
-        Your one stop shop to deploy smart contracts on the Avalanche C-Chain.
+        Native interoperability enables the transfer of assets quickly and securely between L1s.
       </Highlight>
       <Highlight icon={MonitorCog} heading="Virtual Machines" link="/docs/virtual-machines">
-        Learn how to customize the EVM or build new virtual machines from scratch.
+        Learn how to customize the EVM or build new virtual machines from scratch for your L1.
       </Highlight>
       <Highlight icon={MonitorCheck} heading="Nodes & Validators" link="/docs/nodes">
         Become an active participant in the network by running a node or validator.
+      </Highlight>
+      <Highlight icon={SquareGanttChart} heading="Build Applications" link="/docs/dapps">
+        Your one stop shop to deploy smart contracts on the Avalanche C-Chain.
       </Highlight>
 
     </div>
@@ -99,13 +124,6 @@ function Features(): React.ReactElement {
         description="We provide a suite of tools to make your development experience as smooth as possible."
       >
         <div className="mt-8 flex flex-col gap-4">
-          <Link href="/tools/l1-launcher" className="rounded-xl border bg-fd-background p-4 shadow-lg transition-colors hover:bg-fd-accent">
-            <Rocket />
-            <h3 className="font-semibold">L1 Launcher</h3>
-            <p className="text-sm text-fd-muted-foreground">
-              Launch your EVM L1 with Docker and Core Wallet.
-            </p>
-          </Link>
           <Link href="/tools/l1-toolbox" className="rounded-xl border bg-fd-background p-4 shadow-lg transition-colors hover:bg-fd-accent">
             <Wrench />
             <h3 className="font-semibold">L1 Toolbox</h3>
@@ -113,11 +131,25 @@ function Features(): React.ReactElement {
               Simple atomic tools to launch and maintain your L1.
             </p>
           </Link>
+          <Link href="/tools/l1-launcher" className="rounded-xl border bg-fd-background p-4 shadow-lg transition-colors hover:bg-fd-accent">
+            <Rocket />
+            <h3 className="font-semibold">L1 Launcher</h3>
+            <p className="text-sm text-fd-muted-foreground">
+              Launch your EVM L1 with Docker and Core Wallet.
+            </p>
+          </Link>
+          <Link href="/docs/tooling/get-avalanche-cli" className="rounded-xl border bg-fd-background p-4 shadow-lg transition-colors hover:bg-fd-accent">
+            <Terminal />
+            <h3 className="font-semibold">Avalanche CLI</h3>
+            <p className="text-sm text-fd-muted-foreground">
+              Command-line interface for local development with L1s.
+            </p>
+          </Link>
           <Link href="https://github.com/ava-labs/avalanche-starter-kit" className="rounded-xl border bg-fd-background p-4 shadow-lg transition-colors hover:bg-fd-accent">
             <Github />
             <h3 className="font-semibold">Avalanche Starter Kit</h3>
             <p className="text-sm text-fd-muted-foreground">
-              Quickstart your journey into Avalanche with our Starter Kit.
+              Containerized Development Environment including Avalanche CLI, Foundry and our interoperability contract implementations.
             </p>
           </Link>
         </div>

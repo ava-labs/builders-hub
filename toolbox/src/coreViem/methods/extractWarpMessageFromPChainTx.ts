@@ -94,11 +94,46 @@ export type ExtractWarpMessageFromTxParams = {
 export type ExtractWarpMessageFromTxResponse = {
     message: string;
     justification: string;
+    subnetId: string;
     signingSubnetId: string;
     networkId: typeof networkIDs.FujiID | typeof networkIDs.MainnetID;
     validators: Validator[];
     chainId: string;
     managerAddress: string;
+}
+
+// FIXME: This should be included in avacloud-sdk but I'm afraid to version bump right now
+// if you have better idea to get the subnetId from a blockchainId, please go ahead and change it
+/**
+ * Fetches blockchain information from Glacier API
+ * @param network "fuji" or "mainnet"
+ * @param blockchainId The blockchain ID to query
+ * @returns The subnet ID associated with the blockchain
+ */
+export async function getSubnetIdFromChainId(network: "fuji" | "mainnet", blockchainId: string): Promise<string> {
+    try {
+        const response = await fetch(`https://glacier-api.avax.network/v1/networks/${network}/blockchains/${blockchainId}`, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Glacier API returned ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.subnetId) {
+            throw new Error('No subnetId found in response');
+        }
+        
+        return data.subnetId;
+    } catch (error) {
+        console.error('Error fetching subnet info from Glacier:', error);
+        throw error;
+    }
 }
 
 //TODO: rename
@@ -146,11 +181,13 @@ export async function extractWarpMessageFromPChainTx(client: WalletClient<any, a
     };
 
     const [message, justification] = packL1ConversionMessage(conversionArgs, networkId, data.result.tx.unsignedTx.blockchainID);
-
+    const network = networkId === networkIDs.FujiID ? "fuji" : "mainnet";
+    const signingSubnetId = await getSubnetIdFromChainId(network, data.result.tx.unsignedTx.chainID);
     return {
         message: utils.bufferToHex(message),
         justification: utils.bufferToHex(justification),
-        signingSubnetId: data.result.tx.unsignedTx.subnetID,
+        subnetId: data.result.tx.unsignedTx.subnetID,
+        signingSubnetId: signingSubnetId,
         networkId,
         validators: data.result.tx.unsignedTx.validators,
         chainId: data.result.tx.unsignedTx.chainID,

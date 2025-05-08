@@ -22,7 +22,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ambassador-dao/custom-select";
 import CustomButton from "@/components/ambassador-dao/custom-button";
 import {
   useExportCsv,
