@@ -72,7 +72,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
   const { data: userData } = useFetchUserDataQuery();
 
   return (
-    <div className='bg-transparent p-4 rounded-md border border-[var(--default-border-color)] sticky top-6'>
+    <div className='bg-transparent p-4 rounded-md border border-[var(--default-border-color)] sticky top-20'>
       <div className='flex items-center justify-between mb-4'>
         <div className='flex items-center gap-2'>
           <span className='text-[var(--white-text-color)] flex items-center gap-2'>

@@ -493,7 +493,7 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
                   className='absolute right-4 top-4 bg-[var(--default-background-color)] rounded-md shadow-lg z-10 py-1 min-w-[100px]'
                 >
                   <button
-                    className='w-full text-left px-4 py-2 text-sm text-[var(--white-text-color)] hover:bg-gray-700'
+                    className='w-full text-left px-4 py-2 text-sm text-[var(--white-text-color)] hover:bg-gray-200 dark:hover:bg-gray-800'
                     onClick={() => {
                       setIsEditing(true);
                       setShowOptions(false);
@@ -502,7 +502,7 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
                     Edit
                   </button>
                   <button
-                    className='w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-700'
+                    className='w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-200 dark:hover:bg-gray-700'
                     onClick={handleDeleteComment}
                   >
                     Delete

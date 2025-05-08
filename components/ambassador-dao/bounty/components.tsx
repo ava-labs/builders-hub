@@ -171,7 +171,7 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
   const { data: userData } = useFetchUserDataQuery();
 
   return (
-    <div className='bg-transparent p-4 rounded-md border border-[var(--default-border-color)] sticky top-6'>
+    <div className='bg-transparent p-4 rounded-md border border-[var(--default-border-color)] sticky top-20'>
       <div className='flex items-center gap-2 mb-4'>
         <Image src={Token} alt='$' className='mr-2' />
         <span className='text-[var(--white-text-color)] text-lg font-semibold'>
