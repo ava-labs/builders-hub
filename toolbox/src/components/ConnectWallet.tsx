@@ -71,13 +71,17 @@ export const ConnectWallet = ({
         setIsClient(true)
     }, [])
 
-    // Fetch initial EVM balance and set up polling
     useEffect(() => {
-        if (walletEVMAddress && walletChainId && pChainAddress) {
-            updateAllBalances();
-        }
-    }, [updateAllBalances, walletEVMAddress, walletChainId, pChainAddress]); // Depend on the memoized fetch function
+        if (!walletEVMAddress || !walletChainId || !pChainAddress) return;
 
+        updateAllBalances();
+
+        const intervalId = setInterval(() => {
+            updateAllBalances();
+        }, 30_000);
+
+        return () => clearInterval(intervalId);
+    }, [updateAllBalances, walletEVMAddress, walletChainId, pChainAddress]);
 
     useEffect(() => {
         if (!isClient) return;

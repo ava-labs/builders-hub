@@ -54,9 +54,8 @@ export const useWalletStore = create(
             set({ isL1BalanceLoading: true });
             try {
                 const indexedChains = await getIndexedChains();
-                console.log('indexedChains', indexedChains);
                 const isIndexedChain = indexedChains.includes(get().walletChainId);
-                console.log('isIndexedChain', isIndexedChain);
+
                 if (isIndexedChain) {
                     const l1Balance = await getNativeTokenBalance(get().walletChainId, get().walletEVMAddress);
                     newBalance = Number(l1Balance.balance) / (10 ** l1Balance.decimals);
