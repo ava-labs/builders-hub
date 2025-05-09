@@ -2,7 +2,7 @@ import { Input, Suggestion } from "../../components/Input";
 import { useState, useEffect } from "react";
 import type React from "react";
 
-interface EVMAddressInputProps {
+export interface EVMAddressInputProps {
   value: string;
   onChange: (value: string) => void;
   label?: string;

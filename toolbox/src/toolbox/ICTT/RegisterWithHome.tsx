@@ -186,7 +186,6 @@ export default function RegisterWithHome() {
                     value={remoteAddress}
                     onChange={setRemoteAddress}
                     disabled={isRegistering}
-                    
                     suggestions={remoteAddressSuggestions}
                     helperText={!remoteAddress ? "Please enter a remote contract address" : undefined}
                 />
@@ -197,7 +196,7 @@ export default function RegisterWithHome() {
                     variant="primary"
                     onClick={handleRegister}
                     loading={isRegistering}
-                    disabled={isRegistering || !remoteAddress || !sourceChainId || !!sourceChainError}
+                    disabled={isRegistering || !remoteAddress || !sourceChainId || !!sourceChainError || isRegistered}
                 >
                     Register Remote with Home
                 </Button>
