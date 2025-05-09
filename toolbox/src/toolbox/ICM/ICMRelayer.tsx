@@ -6,10 +6,14 @@ import { useSelectedL1, useL1ListStore } from '../toolboxStore';
 import { useWalletStore } from '../../lib/walletStore';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
-import { CodeHighlighter } from '../../components/CodeHighlighter';
 import { useState, useEffect } from 'react';
 import { useErrorBoundary } from "react-error-boundary";
 import { RefreshCw } from 'lucide-react';
+
+import versions from '../../versions.json';
+import { Note } from '../../components/Note';
+import { Container } from '../components/Container';
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 
 
 export default function ICMRelayer() {
@@ -165,8 +169,10 @@ export default function ICMRelayer() {
     }, []);
 
     return (
-        <div className="space-y-4">
-            <div className="text-lg font-bold">Relayer Configuration</div>
+        <Container
+            title="ICM Relayer"
+            description="Configure the ICM Relayer for cross-chain message delivery."
+            >
             <Input
                 label="Relayer EVM Address"
                 value={relayerAddress}
@@ -268,17 +274,17 @@ export default function ICMRelayer() {
             </div>
 
             <div className="text-lg font-bold">Write the relayer config file</div>
-            <CodeHighlighter
+            <DynamicCodeBlock
                 code={genConfigCommand(getConfigSources(), getConfigDestinations())}
-                lang="sh"
+                lang="bash"
             />
 
-            <div className="text-lg font-bold">Run the relayer</div>
-            <CodeHighlighter
+            <div className="text-lg mt-8 font-bold">Run the relayer</div>
+            <DynamicCodeBlock
                 code={relayerDockerCommand()}
                 lang="sh"
             />
-        </div>
+        </Container>
     );
 }
 
@@ -336,8 +342,7 @@ const genConfigCommand = (
     return `mkdir -p ~/.icm-relayer && echo '${configStr}' > ~/.icm-relayer/config.json`;
 }
 
-import versions from '../../versions.json';
-import { Note } from '../../components/Note';
+
 const relayerDockerCommand = () => {
     return `docker run --name relayer -d \\
     --restart on-failure  \\
