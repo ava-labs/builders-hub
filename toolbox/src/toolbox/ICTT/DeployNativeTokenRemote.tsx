@@ -16,6 +16,7 @@ import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20To
 import ExampleERC20 from "../../../contracts/icm-contracts/compiled/ExampleERC20.json";
 import SelectChainID from "../components/SelectChainID";
 import { CheckPrecompile } from "../components/CheckPrecompile";
+import { Container } from "../components/Container";
 
 export default function DeployNativeTokenRemote() {
     const { showBoundary } = useErrorBoundary();
@@ -181,127 +182,129 @@ export default function DeployNativeTokenRemote() {
             docsLink="https://build.avax.network/docs/avalanche-l1s/upgrade/customize-avalanche-l1#network-upgrades-enabledisable-precompiles"
             docsLinkText="Learn how to activate the Native Minter precompile"
         >
-            <div className="">
-                <h2 className="text-lg font-semibold mb-4">Deploy Native Token Remote Contract</h2>
+            <Container
+                title="Deploy Native Token Remote Contract"
+                description="Deploy the NativeTokenRemote contract for your native token."
+            >
 
-                <div className="space-y-4 mt-4">
-                    <div className="">
+                <div>
+                    <p className="mt-2">
                         This deploys a `NativeTokenRemote` contract to the current network ({selectedL1?.name}).
                         This contract acts as the bridge endpoint for your native token from the source chain.
                         To mint native tokens, please use the <a href="#precompiles/nativeMinter" className="text-blue-500 hover:text-blue-600 underline">Native Minter Precompile</a>.
-                    </div>
-
-                    <EVMAddressInput
-                        label="Teleporter Registry Address"
-                        value={teleporterRegistryAddress}
-                        onChange={setTeleporterRegistryAddress}
-                        disabled={isDeploying}
-                    />
-
-                    {!teleporterRegistryAddress && <Note variant="warning">
-                        <p>
-                            Please <a href="#teleporterRegistry" className="text-blue-500">deploy the Teleporter Registry contract first</a>.
-                        </p>
-                    </Note>}
-
-                    <SelectChainID
-                        label="Source Chain (where token home is deployed)"
-                        value={sourceChainId}
-                        onChange={(value) => setSourceChainId(value)}
-                        error={sourceChainError}
-                    />
-
-                    {sourceChainId && <EVMAddressInput
-                        label={`Token Home Address on ${sourceL1?.name}`}
-                        value={tokenHomeAddress}
-                        onChange={setTokenHomeAddress}
-                        disabled={true}
-                        helperText={!sourceToolboxStore.erc20TokenHomeAddress ? `Please deploy the Token Home contract on ${sourceL1?.name} first` : undefined}
-                    />}
-
-                    {tokenHomeBlockchainIDHex && <Input
-                        label="Token Home Blockchain ID (hex)"
-                        value={tokenHomeBlockchainIDHex}
-                        disabled
-                    />}
-
-                    {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Input
-                            label="Token Name (from source)"
-                            value={tokenName}
-                            disabled
-                        />
-
-                        <Input
-                            label="Token Symbol (from source)"
-                            value={tokenSymbol}
-                            disabled
-                        />
-
-                        <Input
-                            label="Token Decimals (from source)"
-                            value={tokenDecimals}
-                            disabled
-                        />
-                    </div>
-
-                    <Input
-                        label="Initial Reserve Imbalance"
-                        value={initialReserveImbalance}
-                        onChange={setInitialReserveImbalance}
-                        type="number"
-                        helperText="The initial reserve imbalance that must be collateralized before minting"
-                        required
-                    />
-
-                    <Input
-                        label="Burned Fees Reporting Reward Percentage"
-                        value={burnedFeesReportingRewardPercentage}
-                        onChange={setBurnedFeesReportingRewardPercentage}
-                        type="number"
-                        helperText="The percentage of burned transaction fees that will be rewarded to sender of the report"
-                        required
-                    />
-
-                    <EVMAddressInput
-                        label="Teleporter Manager Address"
-                        value={teleporterManager}
-                        onChange={setTeleporterManager}
-                        disabled={isDeploying}
-                        helperText="default: your address"
-                    />
-
-                    <Input
-                        label="Min Teleporter Version"
-                        value={minTeleporterVersion}
-                        onChange={setMinTeleporterVersion}
-                        type="number"
-                        required
-                    />
-
-                    <Success
-                        label={`Native Token Remote Address (on ${selectedL1?.name})`}
-                        value={nativeTokenRemoteAddress || ""}
-                    />
-
-                    <Button
-                        variant={nativeTokenRemoteAddress ? "secondary" : "primary"}
-                        onClick={handleDeploy}
-                        loading={isDeploying}
-                        disabled={isDeploying ||
-                            !sourceToolboxStore.erc20TokenHomeAddress ||
-                            !tokenHomeBlockchainIDHex ||
-                            tokenDecimals === "0" ||
-                            !tokenSymbol ||
-                            !teleporterRegistryAddress ||
-                            !!sourceChainError}
-                    >
-                        {nativeTokenRemoteAddress ? "Re-Deploy Native Token Remote" : "Deploy Native Token Remote"}
-                    </Button>
+                    </p>
                 </div>
-            </div>
+
+                <EVMAddressInput
+                    label="Teleporter Registry Address"
+                    value={teleporterRegistryAddress}
+                    onChange={setTeleporterRegistryAddress}
+                    disabled={isDeploying}
+                />
+
+                {!teleporterRegistryAddress && <Note variant="warning">
+                    <p>
+                        Please <a href="#teleporterRegistry" className="text-blue-500">deploy the Teleporter Registry contract first</a>.
+                    </p>
+                </Note>}
+
+                <SelectChainID
+                    label="Source Chain (where token home is deployed)"
+                    value={sourceChainId}
+                    onChange={(value) => setSourceChainId(value)}
+                    error={sourceChainError}
+                />
+
+                {sourceChainId && <EVMAddressInput
+                    label={`Token Home Address on ${sourceL1?.name}`}
+                    value={tokenHomeAddress}
+                    onChange={setTokenHomeAddress}
+                    disabled={true}
+                    helperText={!sourceToolboxStore.erc20TokenHomeAddress ? `Please deploy the Token Home contract on ${sourceL1?.name} first` : undefined}
+                />}
+
+                {tokenHomeBlockchainIDHex && <Input
+                    label="Token Home Blockchain ID (hex)"
+                    value={tokenHomeBlockchainIDHex}
+                    disabled
+                />}
+
+                {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Input
+                        label="Token Name (from source)"
+                        value={tokenName}
+                        disabled
+                    />
+
+                    <Input
+                        label="Token Symbol (from source)"
+                        value={tokenSymbol}
+                        disabled
+                    />
+
+                    <Input
+                        label="Token Decimals (from source)"
+                        value={tokenDecimals}
+                        disabled
+                    />
+                </div>
+
+                <Input
+                    label="Initial Reserve Imbalance"
+                    value={initialReserveImbalance}
+                    onChange={setInitialReserveImbalance}
+                    type="number"
+                    helperText="The initial reserve imbalance that must be collateralized before minting"
+                    required
+                />
+
+                <Input
+                    label="Burned Fees Reporting Reward Percentage"
+                    value={burnedFeesReportingRewardPercentage}
+                    onChange={setBurnedFeesReportingRewardPercentage}
+                    type="number"
+                    helperText="The percentage of burned transaction fees that will be rewarded to sender of the report"
+                    required
+                />
+
+                <EVMAddressInput
+                    label="Teleporter Manager Address"
+                    value={teleporterManager}
+                    onChange={setTeleporterManager}
+                    disabled={isDeploying}
+                    helperText="default: your address"
+                />
+
+                <Input
+                    label="Min Teleporter Version"
+                    value={minTeleporterVersion}
+                    onChange={setMinTeleporterVersion}
+                    type="number"
+                    required
+                />
+
+                <Success
+                    label={`Native Token Remote Address (on ${selectedL1?.name})`}
+                    value={nativeTokenRemoteAddress || ""}
+                />
+
+                <Button
+                    variant={nativeTokenRemoteAddress ? "secondary" : "primary"}
+                    onClick={handleDeploy}
+                    loading={isDeploying}
+                    disabled={isDeploying ||
+                        !sourceToolboxStore.erc20TokenHomeAddress ||
+                        !tokenHomeBlockchainIDHex ||
+                        tokenDecimals === "0" ||
+                        !tokenSymbol ||
+                        !teleporterRegistryAddress ||
+                        !!sourceChainError}
+                >
+                    {nativeTokenRemoteAddress ? "Re-Deploy Native Token Remote" : "Deploy Native Token Remote"}
+                </Button>
+            </Container>
         </CheckPrecompile>
     );
 } 

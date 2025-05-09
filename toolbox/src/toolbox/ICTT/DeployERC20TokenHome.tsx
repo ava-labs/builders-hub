@@ -12,6 +12,7 @@ import { EVMAddressInput } from "../components/EVMAddressInput";
 import ExampleERC20 from "../../../contracts/icm-contracts/compiled/ExampleERC20.json"
 import { createPublicClient, http } from "viem";
 import { Note } from "../../components/Note";
+import { Container } from "../components/Container";
 
 
 export default function DeployERC20TokenHome() {
@@ -118,80 +119,80 @@ export default function DeployERC20TokenHome() {
     }
 
     return (
-        <div className="">
-            <h2 className="text-lg font-semibold mb-4">Deploy ERC20 Token Home Contract</h2>
+        <Container
+            title="Deploy ERC20 Token Home Contract"
+            description="Deploy the ERC20TokenHome contract for your ERC20 token."
+        >
 
-            <div className="space-y-4">
-                <div className="space-y-4">
-                    <div className="mt-4">
-                        This will deploy an ERC20TokenHome contract to your connected network (Chain ID: <code>{walletChainId}</code>).
-                        This contract serves as the home chain endpoint for cross-chain token transfers.
-                    </div>
-
-                    {localError && <div className="text-red-500">{localError}</div>}
-                    {deployError && <div className="text-red-500 mt-2">{deployError}</div>}
-
-                    <EVMAddressInput
-                        label="Teleporter Registry Address"
-                        value={teleporterRegistryAddress}
-                        onChange={setTeleporterRegistryAddress}
-                        disabled={isDeploying}
-
-                    />
-
-                    {!teleporterRegistryAddress && <Note variant="warning">
-                        <p>
-                            Please <a href="#teleporterRegistry" className="text-blue-500">deploy the Teleporter Registry contract first</a>.
-                        </p>
-                    </Note>}
-
-                    <EVMAddressInput
-                        label="L1 Teleporter Manager Address"
-                        value={teleporterManager}
-                        onChange={setTeleporterManager}
-                        disabled={isDeploying}
-                    />
-
-                    <Input
-                        label="Min Teleporter Version"
-                        value={minTeleporterVersion}
-                        onChange={setMinTeleporterVersion}
-                        type="number"
-                        required
-                    />
-
-                    <EVMAddressInput
-                        label="Token Address"
-                        value={tokenAddress}
-                        onChange={setTokenAddress}
-                        disabled={isDeploying}
-                        helperText={<>Please <a href="#deployExampleERC20" className="underline">deploy an ERC20 token first</a>.</>}
-                    />
-
-                    <Input
-                        label="Token Decimals"
-                        value={tokenDecimals}
-                        onChange={setTokenDecimals}
-                        type="number"
-                        disabled
-                        helperText="This is automatically fetched from the token contract."
-                    />
-
-                    <Success
-                        label="ERC20 Token Home Address"
-                        value={erc20TokenHomeAddress || ""}
-                    />
-
-                    <Button
-                        variant={erc20TokenHomeAddress ? "secondary" : "primary"}
-                        onClick={handleDeploy}
-                        loading={isDeploying}
-                        disabled={!teleporterRegistryAddress || !tokenAddress || tokenDecimals === "0"}
-                    >
-                        {erc20TokenHomeAddress ? "Re-Deploy ERC20 Token Home" : "Deploy ERC20 Token Home"}
-                    </Button>
-                </div>
+            <div>
+                <p className="mt-2">
+                    This will deploy an ERC20TokenHome contract to your connected network (Chain ID: <code>{walletChainId}</code>).
+                    This contract serves as the home chain endpoint for cross-chain token transfers.
+                </p>
             </div>
-        </div>
+
+            {localError && <div className="text-red-500">{localError}</div>}
+            {deployError && <div className="text-red-500 mt-2">{deployError}</div>}
+
+            <EVMAddressInput
+                label="Teleporter Registry Address"
+                value={teleporterRegistryAddress}
+                onChange={setTeleporterRegistryAddress}
+                disabled={isDeploying}
+
+            />
+
+            {!teleporterRegistryAddress && <Note variant="warning" className="px-2 py-1">
+                <p>
+                    Please <a href="#teleporterRegistry" className="text-blue-500 no-underline">deploy the Teleporter Registry contract first</a>.
+                </p>
+            </Note>}
+
+            <EVMAddressInput
+                label="L1 Teleporter Manager Address"
+                value={teleporterManager}
+                onChange={setTeleporterManager}
+                disabled={isDeploying}
+            />
+
+            <Input
+                label="Min Teleporter Version"
+                value={minTeleporterVersion}
+                onChange={setMinTeleporterVersion}
+                type="number"
+                required
+            />
+
+            <EVMAddressInput
+                label="Token Address"
+                value={tokenAddress}
+                onChange={setTokenAddress}
+                disabled={isDeploying}
+                helperText={<>Please <a href="#deployExampleERC20" className="underline">deploy an ERC20 token first</a>.</>}
+            />
+
+            <Input
+                label="Token Decimals"
+                value={tokenDecimals}
+                onChange={setTokenDecimals}
+                type="number"
+                disabled
+                helperText="This is automatically fetched from the token contract."
+            />
+
+            <Success
+                label="ERC20 Token Home Address"
+                value={erc20TokenHomeAddress || ""}
+            />
+
+            <Button
+                variant={erc20TokenHomeAddress ? "secondary" : "primary"}
+                onClick={handleDeploy}
+                loading={isDeploying}
+                disabled={!teleporterRegistryAddress || !tokenAddress || tokenDecimals === "0"}
+            >
+                {erc20TokenHomeAddress ? "Re-Deploy ERC20 Token Home" : "Deploy ERC20 Token Home"}
+            </Button>
+        </Container>
     );
 } 

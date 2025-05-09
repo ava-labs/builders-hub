@@ -15,6 +15,8 @@ import { utils } from "@avalabs/avalanchejs";
 import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import ExampleERC20 from "../../../contracts/icm-contracts/compiled/ExampleERC20.json";
 import SelectChainID from "../components/SelectChainID";
+import { Container } from "../components/Container";
+
 
 export default function DeployERC20TokenRemote() {
     const { showBoundary } = useErrorBoundary();
@@ -171,14 +173,17 @@ export default function DeployERC20TokenRemote() {
     }
 
     return (
-        <div className="">
-            <h2 className="text-lg font-semibold mb-4">Deploy ERC20 Token Remote Contract</h2>
+        <Container
+            title="Deploy ERC20 Token Remote Contract"
+            description="Deploy the ERC20TokenRemote contract for your ERC20 token."
+        >
 
-            <div className="space-y-4 mt-4">
-                <div className="">
+            <div>
+                <p className="mt-2">
                     This deploys an `ERC20TokenRemote` contract to the current network ({selectedL1?.name}).
                     This contract acts as the bridge endpoint for your ERC20 token from the source chain.
-                </div>
+                </p>
+            </div>
 
                 <EVMAddressInput
                     label="Teleporter Registry Address"
@@ -271,7 +276,6 @@ export default function DeployERC20TokenRemote() {
                 >
                     {erc20TokenRemoteAddress ? "Re-Deploy ERC20 Token Remote" : "Deploy ERC20 Token Remote"}
                 </Button>
-            </div>
-        </div>
+        </Container>
     );
 } 
