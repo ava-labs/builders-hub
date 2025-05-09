@@ -179,8 +179,8 @@ export default function ICMRelayer() {
                 disabled
             />
             <Note variant="warning">
-                <span className="font-semibold">Important:</span> The Relayer EVM Address above uses a temporary private key generated in your browser.
-                This key is stored only in session storage and will be <span className="font-semibold">lost when you close this browser tab</span>.
+                <span className="font-semibold">Important:</span> The Relayer EVM Address above uses a temporary private key generated in your browser. Feel free to replace it with another private key in the ralyer config file (field <code>account-private-key</code> of all destination blockchains) below.
+                This generated key is stored only in session storage and will be <span className="font-semibold">lost when you close this browser tab</span>.
                 Ensure you fund this address sufficiently.
             </Note>
 
