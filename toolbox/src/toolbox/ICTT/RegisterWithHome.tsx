@@ -196,7 +196,7 @@ export default function RegisterWithHome() {
                     variant="primary"
                     onClick={handleRegister}
                     loading={isRegistering}
-                    disabled={isRegistering || !remoteAddress || !sourceChainId || !!sourceChainError || isRegistered}
+                    disabled={isRegistering || !remoteAddress || !sourceChainId || !!sourceChainError || isRegistered || isCheckingRegistration}
                 >
                     Register Remote with Home
                 </Button>
