@@ -66,7 +66,6 @@ export const ConnectWallet = ({
     const { showBoundary } = useErrorBoundary();
     const [isRequestingPTokens, setIsRequestingPTokens] = useState(false);
     const [pTokenRequestError, setPTokenRequestError] = useState<string | null>(null);
-    const coreEthAddress = useWalletStore(state => state.coreEthAddress); // This is the C-Chain address
 
     // Set isClient to true once component mounts (client-side only)
     useEffect(() => {
@@ -264,7 +263,7 @@ export const ConnectWallet = ({
     const displayedL1ChainName = forceCChain ? "C-Chain" : evmChainName;
     const displayedL1Balance = forceCChain ? cChainBalance : l1Balance;
     const displayedL1TokenSymbol = (forceCChain || isActuallyCChainSelected) ? "AVAX" : "Tokens";
-    const displayedL1Address = forceCChain ? coreEthAddress : walletEVMAddress;
+    const displayedL1Address = walletEVMAddress;
     const updateDisplayedL1Balance = forceCChain ? updateCChainBalance : updateL1Balance;
     const isDisplayedL1BalanceLoading = forceCChain ? isCChainBalanceLoading : isL1BalanceLoading;
 
