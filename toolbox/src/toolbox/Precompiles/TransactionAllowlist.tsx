@@ -1,6 +1,7 @@
 "use client";
 
 import { AllowlistComponent } from "../components/AllowListComponents";
+import { CheckPrecompile } from "../components/CheckPrecompile";
 
 // Default Transaction AllowList address
 const DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS =
@@ -8,13 +9,14 @@ const DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS =
 
 export default function TransactionAllowlist() {
   return (
-    <div className="space-y-6">
-      <div className="w-full">
-        <AllowlistComponent
-          precompileAddress={DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS}
-          precompileType="Transaction"
-        />
-      </div>
-    </div>
+    <CheckPrecompile
+      configKey="txAllowListConfig"
+      precompileName="Transaction Allowlist"
+    >
+      <AllowlistComponent
+        precompileAddress={DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS}
+        precompileType="Transaction"
+      />
+    </CheckPrecompile>
   );
 }

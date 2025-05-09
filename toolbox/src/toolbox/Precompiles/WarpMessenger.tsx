@@ -12,6 +12,7 @@ import warpMessengerAbi from "../../../contracts/precompiles/WarpMessenger.json"
 import { RadioGroup } from "../../components/RadioGroup";
 import { avalancheFuji } from 'viem/chains';
 import { createPublicClient, http } from 'viem';
+import { CheckPrecompile } from "../components/CheckPrecompile";
 
 // Default Warp Messenger address
 const DEFAULT_WARP_MESSENGER_ADDRESS =
@@ -163,7 +164,10 @@ export default function WarpMessenger() {
   const destinationChainText = messageDirection === "CtoL1" ? "Subnet (L1)" : "C-Chain";
 
   return (
-    <div className="space-y-6">
+    <CheckPrecompile
+      configKey="warpConfig"
+      precompileName="Warp Messenger"
+    >
       <Container
         title="Warp Messenger"
         description="Send and verify cross-chain messages using the Warp protocol."
@@ -311,12 +315,10 @@ export default function WarpMessenger() {
         </div>
       </Container>
 
-      <div className="w-full">
-        <AllowlistComponent
-          precompileAddress={DEFAULT_WARP_MESSENGER_ADDRESS}
-          precompileType="Warp Messenger"
-        />
-      </div>
-    </div>
+      <AllowlistComponent
+        precompileAddress={DEFAULT_WARP_MESSENGER_ADDRESS}
+        precompileType="Warp Messenger"
+      />
+    </CheckPrecompile>
   );
 }

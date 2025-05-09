@@ -10,6 +10,7 @@ import { AllowlistComponent } from "../components/AllowListComponents";
 import rewardManagerAbi from "../../../contracts/precompiles/RewardManager.json";
 import { CheckCircle, Edit, Users, Wallet } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { CheckPrecompile } from "../components/CheckPrecompile";
 
 // Default Reward Manager address
 const DEFAULT_REWARD_MANAGER_ADDRESS =
@@ -196,7 +197,10 @@ export default function RewardManager() {
   );
 
   return (
-    <div className="space-y-6">
+    <CheckPrecompile
+      configKey="rewardManagerConfig"
+      precompileName="Reward Manager"
+    >
       <Container
         title="Reward Manager"
         description="Manage reward settings for the network"
@@ -351,12 +355,10 @@ export default function RewardManager() {
         </div>
       </Container>
 
-      <div className="w-full">
-        <AllowlistComponent
-          precompileAddress={DEFAULT_REWARD_MANAGER_ADDRESS}
-          precompileType="Reward Manager"
-        />
-      </div>
-    </div>
+      <AllowlistComponent
+        precompileAddress={DEFAULT_REWARD_MANAGER_ADDRESS}
+        precompileType="Reward Manager"
+      />
+    </CheckPrecompile>
   );
 }

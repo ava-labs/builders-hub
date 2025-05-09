@@ -530,32 +530,36 @@ export function AllowlistComponent({
   abi?: any;
 }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <SetEnabledComponent
-        precompileAddress={precompileAddress}
-        precompileType={precompileType}
-        abi={abi}
-      />
-      <SetManagerComponent
-        precompileAddress={precompileAddress}
-        precompileType={precompileType}
-        abi={abi}
-      />
-      <SetAdminComponent
-        precompileAddress={precompileAddress}
-        precompileType={precompileType}
-        abi={abi}
-      />
-      <RemoveAllowListComponent
-        precompileAddress={precompileAddress}
-        precompileType={precompileType}
-        abi={abi}
-      />
-      <ReadAllowListComponent
-        precompileAddress={precompileAddress}
-        precompileType={precompileType}
-        abi={abi}
-      />
+    <div className="space-y-6">
+      <div className="w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SetEnabledComponent
+            precompileAddress={precompileAddress}
+            precompileType={precompileType}
+            abi={abi}
+          />
+          <SetManagerComponent
+            precompileAddress={precompileAddress}
+            precompileType={precompileType}
+            abi={abi}
+          />
+          <SetAdminComponent
+            precompileAddress={precompileAddress}
+            precompileType={precompileType}
+            abi={abi}
+          />
+          <RemoveAllowListComponent
+            precompileAddress={precompileAddress}
+            precompileType={precompileType}
+            abi={abi}
+          />
+          <ReadAllowListComponent
+            precompileAddress={precompileAddress}
+            precompileType={precompileType}
+            abi={abi}
+          />
+        </div>
+      </div>
     </div>
   );
 }

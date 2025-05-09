@@ -1,6 +1,7 @@
 "use client";
 
 import { AllowlistComponent } from "../components/AllowListComponents";
+import { CheckPrecompile } from "../components/CheckPrecompile";
 
 // Default Deployer AllowList address
 const DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS =
@@ -8,13 +9,14 @@ const DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS =
 
 export default function DeployerAllowlist() {
   return (
-    <div className="space-y-6">
-      <div className="w-full">
-        <AllowlistComponent
-          precompileAddress={DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS}
-          precompileType="Deployer"
-        />
-      </div>
-    </div>
+    <CheckPrecompile
+      configKey="contractDeployerAllowListConfig"
+      precompileName="Deployer Allowlist"
+    >
+      <AllowlistComponent
+        precompileAddress={DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS}
+        precompileType="Deployer"
+      />
+    </CheckPrecompile>
   );
 }

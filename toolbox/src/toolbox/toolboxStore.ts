@@ -3,6 +3,8 @@ import { persist, createJSONStorage, combine } from 'zustand/middleware'
 import { useMemo } from 'react';
 import { useWalletStore } from '../lib/walletStore';
 
+export const STORE_VERSION = "v1"
+
 const localStorageComp = () => typeof window !== 'undefined' ? localStorage : { getItem: () => null, setItem: () => { }, removeItem: () => { } }
 
 export const EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
@@ -39,11 +41,11 @@ const getCreateChainStore = (isTestnet: boolean) => create(
             setNodePopJsons: (nodePopJsons: string[]) => set({ nodePopJsons }),
 
             reset: () => {
-                window?.localStorage.removeItem(`create-chain-store-${isTestnet ? 'testnet' : 'mainnet'}`);
+                window?.localStorage.removeItem(`${STORE_VERSION}-create-chain-store-${isTestnet ? 'testnet' : 'mainnet'}`);
             },
         })),
         {
-            name: `create-chain-store-${isTestnet ? 'testnet' : 'mainnet'}`,
+            name: `${STORE_VERSION}-create-chain-store-${isTestnet ? 'testnet' : 'mainnet'}`,
             storage: createJSONStorage(localStorageComp),
         },
     ),
@@ -126,11 +128,11 @@ const getL1ListStore = (isTestnet: boolean) => create(
             addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
             removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
             reset: () => {
-                window?.localStorage.removeItem(`l1-list-store-${isTestnet ? 'testnet' : 'mainnet'}`);
+                window?.localStorage.removeItem(`${STORE_VERSION}-l1-list-store-${isTestnet ? 'testnet' : 'mainnet'}`);
             },
         })),
         {
-            name: `l1-list-store-${isTestnet ? 'testnet' : 'mainnet'}`,
+            name: `${STORE_VERSION}-l1-list-store-${isTestnet ? 'testnet' : 'mainnet'}`,
             storage: createJSONStorage(localStorageComp),
         },
     ),
@@ -170,12 +172,12 @@ export const getToolboxStore = (chainId: string) => create(
 
             reset: () => {
                 if (typeof window !== 'undefined') {
-                    window.localStorage.removeItem(`toolbox-storage-${chainId}`);
+                    window.localStorage.removeItem(`${STORE_VERSION}-toolbox-storage-${chainId}`);
                 }
             },
         })),
         {
-            name: `toolbox-storage-${chainId}`,
+            name: `${STORE_VERSION}-toolbox-storage-${chainId}`,
             storage: createJSONStorage(localStorageComp),
         },
     ),
@@ -266,4 +268,3 @@ export function useL1ByChainId(chainId: string) {
         [chainId, l1ListStore]
     );
 }
-
