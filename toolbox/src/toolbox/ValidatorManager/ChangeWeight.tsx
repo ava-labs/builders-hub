@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useErrorBoundary } from "react-error-boundary"
 
 import { useSelectedL1, useViemChainStore, useCreateChainStore } from "../toolboxStore"
@@ -12,7 +12,6 @@ import { Button } from "../../components/Button"
 import { StepIndicator } from "../components/StepIndicator"
 import { AlertCircle, CheckCircle } from "lucide-react"
 import SelectSubnetId from "../components/SelectSubnetId"
-import { EVMAddressInput } from "../components/EVMAddressInput"
 
 import { cn } from "../../lib/utils"
 import { bytesToHex, hexToBytes } from "viem"
@@ -26,6 +25,7 @@ import { packWarpIntoAccessList } from "./packWarp"
 import { getValidationIdHex } from "../../coreViem/hooks/getValidationID"
 import { useStepProgress, StepsConfig } from "../hooks/useStepProgress"
 import { setL1ValidatorWeight } from "../../coreViem/methods/setL1ValidatorWeight"
+import { getSubnetInfoForNetwork, getBlockchainInfoForNetwork } from "../../coreViem/utils/glacier"
 
 // Define step keys and configuration
 type ChangeWeightStepKey =
@@ -53,11 +53,20 @@ export default function ChangeWeight() {
   const selectedL1 = useSelectedL1()()
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId)
 
+  // Add a ref to track which subnet IDs we've already fetched
+  const subnetCache = useRef<Record<string, {
+    validatorManagerAddress: string;
+    blockchainId: string;
+    signingSubnetId: string;
+  }>>({});
+
   // --- Form Input State ---
   const [nodeID, setNodeID] = useState("")
   const [weight, setWeight] = useState("")
-  const [manualProxyAddress, setManualProxyAddress] = useState(selectedL1?.validatorManagerAddress || "")
-  const [currentSubnetId, setCurrentSubnetId] = useState(createChainStoreSubnetId || selectedL1?.subnetId || "")
+  const [subnetId, setSubnetId] = useState(createChainStoreSubnetId || selectedL1?.subnetId || "")
+  const [validatorManagerAddress, setValidatorManagerAddress] = useState("")
+  const [validatorManagerError, setValidatorManagerError] = useState<string | null>(null)
+  const [signingSubnetId, setSigningSubnetId] = useState("")
 
   // --- Intermediate Data State ---
   const [validationIDHex, setValidationIDHex] = useState("")
@@ -90,6 +99,109 @@ export default function ChangeWeight() {
 
   const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji"
 
+  // Update the useEffect to fetch validator manager address from the subnet ID
+  useEffect(() => {
+    const fetchVMCDetails = async () => {
+      if (!subnetId || subnetId === "11111111111111111111111111111111LpoYY") {
+        setValidatorManagerAddress("")
+        setValidatorManagerError("Please select a valid subnet ID")
+        return
+      }
+
+      // Skip API calls if we've already fetched this subnet ID
+      const cacheKey = `${avalancheNetworkID}-${subnetId}`;
+      if (subnetCache.current[cacheKey]) {
+        console.log(`Skipping API call for already processed subnet: ${subnetId}`);
+        // Restore cached values
+        const cachedValues = subnetCache.current[cacheKey];
+        setValidatorManagerAddress(cachedValues.validatorManagerAddress);
+        setSigningSubnetId(cachedValues.signingSubnetId);
+        setValidatorManagerError(null); // Clear any previous errors
+        return;
+      }
+
+      try {
+        // Determine network based on avalancheNetworkID
+        const network = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "testnet"
+        console.log(`Using Glacier API with network: ${network}`)
+        
+        const subnetInfo = await getSubnetInfoForNetwork(network, subnetId)
+        
+        // Check if subnet is an L1
+        if (!subnetInfo.isL1 || !subnetInfo.l1ValidatorManagerDetails) {
+          setValidatorManagerAddress("")
+          setValidatorManagerError("Selected subnet is not an L1 or doesn't have a Validator Manager Contract")
+          return
+        }
+        
+        // Get VMC details
+        const vmcAddress = subnetInfo.l1ValidatorManagerDetails.contractAddress
+        
+        // Fetch chain details to get EVM chain ID - use the same network
+        try {
+          const blockchainInfoForVMC: { evmChainId: number } = await getBlockchainInfoForNetwork(
+            network, 
+            subnetInfo.l1ValidatorManagerDetails.blockchainId
+          )
+          const expectedChainIdForVMC = blockchainInfoForVMC.evmChainId
+          
+          // Check viemChain compatibility
+          if (viemChain && viemChain.id !== expectedChainIdForVMC) {
+            setValidatorManagerError(`Please use chain ID ${expectedChainIdForVMC} in your wallet. Current selected chain ID: ${viemChain.id}`)
+            console.warn(`Chain ID mismatch: viemChain.id (${viemChain.id}) doesn't match expected EVM chain ID (${expectedChainIdForVMC})`)
+            return
+          }
+          
+          // Check connected chain via publicClient
+          if (!publicClient) {
+            throw new Error("No public client available")
+          }
+          
+          const connectedChainId = await publicClient.getChainId()
+          
+          if (connectedChainId !== expectedChainIdForVMC) {
+            setValidatorManagerError(`Please connect to chain ID ${expectedChainIdForVMC} to use this L1's Validator Manager`)
+            return
+          }
+          
+          // If we get here, both checks passed
+          setValidatorManagerError(null)
+          setValidatorManagerAddress(vmcAddress)
+          
+          // Fetch the signing subnet ID - the useEffect dependency on subnetId 
+          // ensures this only runs when subnet changes
+          try {
+            const blockchainInfo = await getBlockchainInfoForNetwork(network, subnetInfo.l1ValidatorManagerDetails.blockchainId)
+            setSigningSubnetId(blockchainInfo.subnetId)
+          } catch (subnetIdError) {
+            console.error("Error getting subnet ID from blockchain ID:", subnetIdError)
+            // Fall back to regular subnetId if we can't get it from blockchain ID
+            setSigningSubnetId(subnetId)
+          }
+          
+          // Mark this subnet ID as fetched to avoid redundant API calls
+          subnetCache.current[cacheKey] = {
+            validatorManagerAddress: vmcAddress,
+            blockchainId: subnetInfo.l1ValidatorManagerDetails.blockchainId,
+            signingSubnetId: signingSubnetId,
+          };
+          
+        } catch (chainError) {
+          console.error("Error checking chain compatibility:", chainError)
+          setValidatorManagerError("Failed to verify chain compatibility. Please ensure your wallet is connected.")
+          return
+        }
+        
+      } catch (error) {
+        console.error("Error fetching Validator Manager details:", error)
+        setValidatorManagerAddress("")
+        setValidatorManagerError("Failed to fetch Validator Manager information for this subnet")
+      }
+    }
+    
+    fetchVMCDetails()
+  }, [subnetId, publicClient, viemChain, avalancheNetworkID])
+
   const handleChangeWeight = async (startFromStep?: ChangeWeightStepKey) => {
     // Initial Form Validation
     if (!nodeID.trim()) {
@@ -103,6 +215,10 @@ export default function ChangeWeight() {
     const weightNum = Number(weight)
     if (isNaN(weightNum) || weightNum <= 0) {
       setError("Weight must be a positive number")
+      return
+    }
+    if (!validatorManagerAddress) {
+      setError("Validator Manager Address is required. Please select a valid L1 subnet.")
       return
     }
 
@@ -123,7 +239,7 @@ export default function ChangeWeight() {
       if (!startFromStep || startFromStep === "getValidationID") {
         updateStepStatus("getValidationID", "loading")
         try {
-          const validationIDResult = await getValidationIdHex(publicClient, manualProxyAddress as `0x${string}`, nodeID)
+          const validationIDResult = await getValidationIdHex(publicClient, validatorManagerAddress as `0x${string}`, nodeID)
           // Update local and state
           setValidationIDHex(validationIDResult as string)
           localValidationID = validationIDResult as string;
@@ -148,7 +264,7 @@ export default function ChangeWeight() {
           const weightBigInt = BigInt(weight)
 
           const changeWeightTx = await coreWalletClient.writeContract({
-            address: manualProxyAddress as `0x${string}`,
+            address: validatorManagerAddress as `0x${string}`,
             abi: validatorManagerAbi.abi,
             functionName: "initiateValidatorWeightUpdate",
             args: [validationIDToUse, weightBigInt], // Use potentially updated local ID
@@ -229,15 +345,11 @@ export default function ChangeWeight() {
             throw new Error("Warp message is empty. Retry step 2.")
           }
 
-          if (!selectedL1?.subnetId) {
-            throw new Error("No subnet ID available. Please select a valid L1 or specify a subnet ID.")
-          }
-
           const { signedMessage: signedMessageResult } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
             signatureAggregatorRequest: {
               message: warpMessageToSign,
-              signingSubnetId: selectedL1.subnetId,
+              signingSubnetId: signingSubnetId || subnetId,
               quorumPercentage: 67,
             },
           })
@@ -293,13 +405,13 @@ export default function ChangeWeight() {
 
           if (!viemChain) throw new Error("Viem chain configuration is missing.")
           if (!validationIDForJustification) throw new Error("Validation ID is missing.")
-          if (!currentSubnetId) throw new Error("Subnet ID is missing.")
+          if (!subnetId) throw new Error("Subnet ID is missing.")
           if (!eventDataForPacking) throw new Error("Event data missing. Retry step 2.")
 
           const justification = await GetRegistrationJustification(
             nodeID,
             validationIDForJustification,
-            currentSubnetId,
+            subnetId,
             publicClient
           )
 
@@ -323,16 +435,12 @@ export default function ChangeWeight() {
           console.log("Change Weight Message Hex:", bytesToHex(changeWeightMessage))
           console.log("Justification:", justification)
 
-          if (!selectedL1?.subnetId) {
-            throw new Error("No subnet ID available. Please select a valid L1 or specify a subnet ID.")
-          }
-
           const signature = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
             signatureAggregatorRequest: {
               message: bytesToHex(changeWeightMessage),
               justification: bytesToHex(justification),
-              signingSubnetId: selectedL1.subnetId,
+              signingSubnetId: signingSubnetId || subnetId,
               quorumPercentage: 67,
             },
           })
@@ -363,14 +471,14 @@ export default function ChangeWeight() {
           const signedPChainWarpMsgBytes = hexToBytes(`0x${finalPChainSig}`) // Use potentially updated local sig
           const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes)
 
-          if (!manualProxyAddress) throw new Error("Proxy address is not set.")
+          if (!validatorManagerAddress) throw new Error("Validator Manager address is not set.")
           if (!coreWalletClient) throw new Error("Core wallet client is not initialized.")
           if (!publicClient) throw new Error("Public client is not initialized.")
           if (!viemChain) throw new Error("Viem chain is not configured.")
 
 
           const hash = await coreWalletClient.writeContract({
-            address: manualProxyAddress as `0x${string}`,
+            address: validatorManagerAddress as `0x${string}`,
             abi: validatorManagerAbi.abi,
             functionName: "completeValidatorWeightUpdate",
             args: [0],
@@ -475,32 +583,24 @@ export default function ChangeWeight() {
         </div>
 
         <div className="space-y-2">
-          <EVMAddressInput
-            label="Proxy Address"
-            value={manualProxyAddress}
-            onChange={setManualProxyAddress}
-            disabled={isProcessing}
-          />
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Override the current proxy address ({manualProxyAddress?.substring(0, 10)}... or leave empty to use default)
-          </p>
-        </div>
-
-        <div className="space-y-2">
           <SelectSubnetId
-            value={currentSubnetId}
-            onChange={setCurrentSubnetId}
-            error={null}
+            value={subnetId}
+            onChange={setSubnetId}
+            error={validatorManagerError}
           />
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Select a subnet ID (defaults to subnet from Create Subnet tool if available)
-          </p>
+          {validatorManagerAddress && (
+            <div className="mt-2">
+              <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Validator Manager Address</div>
+              <div className="font-mono text-xs text-zinc-800 dark:text-zinc-200 truncate">{validatorManagerAddress}</div>
+            </div>
+          )}
         </div>
 
         {!isProcessing && (
           <Button
             onClick={() => handleChangeWeight()}
-            disabled={isProcessing || !nodeID || !weight}
+            disabled={isProcessing || !nodeID || !weight || !validatorManagerAddress || !!validatorManagerError}
+            error={validatorManagerError || (!validatorManagerAddress ? "Select a valid L1 subnet" : "")}
           >
             {"Change Weight"}
           </Button>

@@ -5,7 +5,7 @@ import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
 import { bytesToHex, hexToBytes } from "viem"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { useErrorBoundary } from "react-error-boundary"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 
 import { Button } from "../../components/Button"
 import { Container } from "../components/Container"
@@ -22,7 +22,7 @@ import { getValidationIdHex } from "../../coreViem/hooks/getValidationID"
 import { useStepProgress, StepsConfig } from "../hooks/useStepProgress"
 import { setL1ValidatorWeight } from "../../coreViem/methods/setL1ValidatorWeight"
 import SelectSubnetId from "../components/SelectSubnetId"
-import { EVMAddressInput } from "../components/EVMAddressInput"
+import { getSubnetInfoForNetwork, getBlockchainInfoForNetwork } from "../../coreViem/utils/glacier"
 
 // Define step keys and configuration
 type RemovalStepKey =
@@ -48,13 +48,22 @@ export default function RemoveValidator() {
   const selectedL1 = useSelectedL1()();
   const viemChain = useViemChainStore()
 
+  // Add a ref to track which subnet IDs we've already fetched
+  const subnetCache = useRef<Record<string, {
+    validatorManagerAddress: string;
+    blockchainId: string;
+    signingSubnetId: string;
+  }>>({});
+
   const [nodeID, setNodeID] = useState("")
-  const [manualProxyAddress, setManualProxyAddress] = useState(selectedL1?.validatorManagerAddress || "")
+  const [subnetId, setSubnetId] = useState(selectedL1?.subnetId || "")
+  const [validatorManagerAddress, setValidatorManagerAddress] = useState("")
+  const [validatorManagerError, setValidatorManagerError] = useState<string | null>(null)
   const [validationIDHex, setValidationIDHex] = useState("")
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState("")
   const [signedWarpMessage, setSignedWarpMessage] = useState("")
   const [pChainSignature, setPChainSignature] = useState("")
-  const [justificationSubnetId, setJustificationSubnetId] = useState("")
+  const [signingSubnetId, setSigningSubnetId] = useState("")
 
   const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji"
 
@@ -74,9 +83,118 @@ export default function RemoveValidator() {
     setError,
   } = useStepProgress<RemovalStepKey>(removalStepsConfig);
 
+  // Update the useEffect to check viemChain compatibility
+  useEffect(() => {
+    const fetchVMCDetails = async () => {
+      if (!subnetId || subnetId === "11111111111111111111111111111111LpoYY") {
+        setValidatorManagerAddress("")
+        setValidatorManagerError("Please select a valid subnet ID")
+        return
+      }
+
+      // Skip API calls if we've already fetched this subnet ID
+      const cacheKey = `${avalancheNetworkID}-${subnetId}`;
+      if (subnetCache.current[cacheKey]) {
+        console.log(`Skipping API call for already processed subnet: ${subnetId}`);
+        // Restore cached values
+        const cachedValues = subnetCache.current[cacheKey];
+        setValidatorManagerAddress(cachedValues.validatorManagerAddress);
+        setSigningSubnetId(cachedValues.signingSubnetId);
+        setValidatorManagerError(null); // Clear any previous errors
+        return;
+      }
+
+      try {
+        // Determine network based on avalancheNetworkID
+        const network = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "testnet"
+        console.log(`Using Glacier API with network: ${network}`)
+        
+        const subnetInfo = await getSubnetInfoForNetwork(network, subnetId)
+        
+        // Check if subnet is an L1
+        if (!subnetInfo.isL1 || !subnetInfo.l1ValidatorManagerDetails) {
+          setValidatorManagerAddress("")
+          setValidatorManagerError("Selected subnet is not an L1 or doesn't have a Validator Manager Contract")
+          return
+        }
+        
+        // Get VMC details
+        const vmcAddress = subnetInfo.l1ValidatorManagerDetails.contractAddress
+        const vmcBlockchainId = subnetInfo.l1ValidatorManagerDetails.blockchainId
+        
+        // Fetch chain details to get EVM chain ID - use the same network
+        try {
+          const blockchainInfoForVMC: { evmChainId: number } = await getBlockchainInfoForNetwork(
+            network, 
+            vmcBlockchainId
+          )
+          const expectedChainIdForVMC = blockchainInfoForVMC.evmChainId
+          
+          // Check viemChain compatibility
+          if (viemChain && viemChain.id !== expectedChainIdForVMC) {
+            setValidatorManagerError(`Please use chain ID ${expectedChainIdForVMC} in your wallet. Current selected chain ID: ${viemChain.id}`)
+            console.warn(`Chain ID mismatch: viemChain.id (${viemChain.id}) doesn't match expected EVM chain ID (${expectedChainIdForVMC})`)
+            return
+          }
+          
+          // Check connected chain via publicClient
+          if (!publicClient) {
+            throw new Error("No public client available")
+          }
+          
+          const connectedChainId = await publicClient.getChainId()
+          
+          if (connectedChainId !== expectedChainIdForVMC) {
+            setValidatorManagerError(`Please connect to chain ID ${expectedChainIdForVMC} to use this L1's Validator Manager`)
+            return
+          }
+          
+          // If we get here, both checks passed
+          setValidatorManagerError(null)
+          setValidatorManagerAddress(vmcAddress)
+          
+          // Fetch the signing subnet ID - the useEffect dependency on subnetId 
+          // ensures this only runs when subnet changes
+          try {
+            const blockchainInfo = await getBlockchainInfoForNetwork(network, vmcBlockchainId)
+            setSigningSubnetId(blockchainInfo.subnetId)
+          } catch (subnetIdError) {
+            console.error("Error getting subnet ID from blockchain ID:", subnetIdError)
+            // Fall back to regular subnetId if we can't get it from blockchain ID
+            setSigningSubnetId(subnetId)
+          }
+          
+          // Mark this subnet ID as fetched to avoid redundant API calls
+          subnetCache.current[cacheKey] = {
+            validatorManagerAddress: vmcAddress,
+            blockchainId: vmcBlockchainId,
+            signingSubnetId: signingSubnetId,
+          };
+          
+        } catch (chainError) {
+          console.error("Error checking chain compatibility:", chainError)
+          setValidatorManagerError("Failed to verify chain compatibility. Please ensure your wallet is connected.")
+          return
+        }
+        
+      } catch (error) {
+        console.error("Error fetching Validator Manager details:", error)
+        setValidatorManagerAddress("")
+        setValidatorManagerError("Failed to fetch Validator Manager information for this subnet")
+      }
+    }
+    
+    fetchVMCDetails()
+  }, [subnetId, publicClient, viemChain, avalancheNetworkID])
+
   const handleRemove = async (startFromStep?: RemovalStepKey) => {
     if (!nodeID) {
       setError("Node ID is required")
+      return
+    }
+
+    if (!validatorManagerAddress) {
+      setError("Validator Manager Address is required. Please select a valid L1 subnet.")
       return
     }
 
@@ -94,7 +212,7 @@ export default function RemoveValidator() {
       if (!startFromStep || startFromStep === "getValidationID") {
         updateStepStatus("getValidationID", "loading")
         try {
-          const validationIDResult = await getValidationIdHex(publicClient, manualProxyAddress as `0x${string}`, nodeID)
+          const validationIDResult = await getValidationIdHex(publicClient, validatorManagerAddress as `0x${string}`, nodeID)
           setValidationIDHex(validationIDResult as string)
           currentValidationID = validationIDResult as string;
           console.log("ValidationID:", validationIDResult)
@@ -114,7 +232,7 @@ export default function RemoveValidator() {
           }
 
           const removeValidatorTx = await coreWalletClient.writeContract({
-            address: manualProxyAddress as `0x${string}`,
+            address: validatorManagerAddress as `0x${string}`,
             abi: validatorManagerAbi.abi,
             functionName: "initiateValidatorRemoval",
             args: [currentValidationID],
@@ -156,7 +274,7 @@ export default function RemoveValidator() {
             network: networkName,
             signatureAggregatorRequest: {
               message: currentUnsignedWarpMessage,
-              signingSubnetId: selectedL1?.subnetId || "",
+              signingSubnetId: signingSubnetId || subnetId,
               quorumPercentage: 67,
             },
           })
@@ -209,16 +327,10 @@ export default function RemoveValidator() {
             throw new Error("Validation ID is missing. Retrying might be needed.")
           }
 
-          // Use justificationSubnetId for the justification, falling back to selectedL1
-          const subnetIdForJustification = justificationSubnetId || selectedL1?.subnetId;
-          if (!subnetIdForJustification) {
-            throw new Error("Subnet ID is missing.")
-          }
-
           const justification = await GetRegistrationJustification(
             nodeID,
             currentValidationID,
-            subnetIdForJustification,
+            signingSubnetId || subnetId,
             publicClient
           )
 
@@ -242,7 +354,7 @@ export default function RemoveValidator() {
             signatureAggregatorRequest: {
               message: bytesToHex(removeValidatorMessage),
               justification: bytesToHex(justification),
-              signingSubnetId: selectedL1?.subnetId || "",
+              signingSubnetId: signingSubnetId || subnetId,
               quorumPercentage: 67,
             },
           })
@@ -268,13 +380,13 @@ export default function RemoveValidator() {
           const signedPChainWarpMsgBytes = hexToBytes(`0x${currentPChainSignature}`)
           const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes)
 
-          if (!manualProxyAddress) throw new Error("Proxy address is not set.");
+          if (!validatorManagerAddress) throw new Error("Proxy address is not set.");
           if (!coreWalletClient) throw new Error("Core wallet client is not initialized.");
           if (!publicClient) throw new Error("Public client is not initialized.");
           if (!viemChain) throw new Error("Viem chain is not configured.");
 
           const hash = await coreWalletClient.writeContract({
-            address: manualProxyAddress as `0x${string}`,
+            address: validatorManagerAddress as `0x${string}`,
             abi: validatorManagerAbi.abi,
             functionName: "completeValidatorRemoval",
             args: [0],
@@ -359,28 +471,24 @@ export default function RemoveValidator() {
         </div>
 
         <div className="space-y-2">
-          <EVMAddressInput
-            label="Proxy Address"
-            value={manualProxyAddress}
-            onChange={setManualProxyAddress}
-            disabled={isProcessing}
-          />
-        </div>
-
-        <div className="space-y-2">
           <SelectSubnetId
-            value={justificationSubnetId}
-            onChange={setJustificationSubnetId}
+            value={subnetId}
+            onChange={setSubnetId}
+            error={validatorManagerError}
           />
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Optional: Subnet ID for justification retrieval (defaults to selected L1 subnet ID)
-          </p>
+          {validatorManagerAddress && (
+            <div className="mt-2">
+              <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Validator Manager Address</div>
+              <div className="font-mono text-xs text-zinc-800 dark:text-zinc-200 truncate">{validatorManagerAddress}</div>
+            </div>
+          )}
         </div>
 
         {!isProcessing && (
           <Button
             onClick={() => handleRemove()}
-            disabled={!nodeID || isProcessing}
+            disabled={!nodeID || !validatorManagerAddress || isProcessing || !!validatorManagerError}
+            error={validatorManagerError || (!validatorManagerAddress ? "Select a valid L1 subnet" : "")}
           >
             {"Remove Validator"}
           </Button>
