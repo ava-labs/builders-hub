@@ -1,0 +1,118 @@
+---
+title: Background and Requirements
+description: Learn about the background and requirements for customizing Ethereum Virtual Machine.
+---
+
+This is a brief overview of what this tutorial will cover.
+
+- Write a Solidity interface
+- Generate the precompile template
+- Implement the precompile functions in Golang
+- Write and run tests
+
+<Callout type="warn">
+Stateful precompiles are [alpha software](https://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha). Build at your own risk.
+</Callout>
+
+In this tutorial, we used a branch based on Subnet-EVM version `v0.5.2`. You can find the branch [here](https://github.com/ava-labs/subnet-evm/tree/helloworld-official-tutorial-v2). The code in this branch is the same as Subnet-EVM except for the `precompile/contracts/helloworld` directory. The directory contains the code for the `HelloWorld` precompile. We will be using this precompile as an example to learn how to write a stateful precompile. The code in this branch can become outdated. You should always use the latest version of Subnet-EVM when you develop your own precompile.
+
+## Precompile-EVM
+
+Subnet-EVM precompiles can be registered from an external repo. This allows developer to build their precompiles without maintaining a fork of Subnet-EVM. The precompiles are then registered in the Subnet-EVM at build time.
+
+The difference between using Subnet-EVM and Precompile-EVM is that with Subnet-EVM you can change EVM internals to interact with your precompiles. Such as changing fee structure, adding new opcodes, changing how to build a block, etc. With Precompile-EVM you can only add new stateful precompiles that can interact with the StateDB. Precompiles built with Precompile-EVM are still very powerful because it can directly access to the state and modify it.
+
+There is a template repo for how to build a precompile with this way called [Precompile-EVM](https://github.com/ava-labs/precompile-evm). Both Subnet-EVM and Precompile-EVM share similar directory structures and common codes.
+
+You can reference the Precompile-EVM PR that adds Hello World precompile [here](https://github.com/ava-labs/precompile-evm/pull/12).
+
+## Requirements
+
+This tutorial assumes familiarity with Golang and JavaScript.
+
+Additionally, users should be deeply familiar with the EVM in order to understand its invariants since adding a Stateful Precompile modifies the EVM itself.
+
+Here are some recommended resources to learn the ins and outs of the EVM:
+
+- [The Ethereum Virtual Machine](https://github.com/ethereumbook/ethereumbook/blob/develop/13evm.asciidoc)
+- [Precompiles in Solidity](https://medium.com/@rbkhmrcr/precompiles-solidity-e5d29bd428c4)
+- [Deconstructing a Smart Contract](https://blog.openzeppelin.com/deconstructing-a-solidity-contract-part-i-introduction-832efd2d7737/)
+- [Layout of State Variables in Storage](https://docs.soliditylang.org/en/v0.8.10/internals/layout_in_storage.html)
+- [Layout in Memory](https://docs.soliditylang.org/en/v0.8.10/internals/layout_in_memory.html)
+- [Layout of Call Data](https://docs.soliditylang.org/en/v0.8.10/internals/layout_in_calldata.html)
+- [Contract ABI Specification](https://docs.soliditylang.org/en/v0.8.10/abi-spec.html)
+- [Customizing the EVM with Stateful Precompiles](https://medium.com/avalancheavax/customizing-the-evm-with-stateful-precompiles-f44a34f39efd)
+
+Please install the following before getting started.
+
+First, install the latest version of Go. Follow the instructions [here](https://go.dev/doc/install). You can verify by running `go version`.
+
+Set the `$GOPATH` environment variable properly for Go to look for Go Workspaces. Please read [this](https://go.dev/doc/gopath_code) for details. You can verify by running `echo $GOPATH`.
+
+<Callout title="Note">
+See [here](https://github.com/golang/go/wiki/SettingGOPATH) for instructions on setting the GOPATH based on system configurations.
+</Callout>
+
+As a few things will be installed into `$GOPATH/bin`, please make sure that `$GOPATH/bin` is in your `$PATH`, otherwise, you may get an error running the commands below. To do that, run the command: `export PATH=$PATH:$GOROOT/bin:$GOPATH/bin`
+
+Download the following prerequisites into your `$GOPATH`:
+
+- Git Clone the repository (Subnet-EVM or Precompile-EVM)
+- Git Clone [AvalancheGo](https://github.com/ava-labs/avalanchego) repository
+- Install [Avalanche Network Runner](/docs/tooling/avalanche-network-runner/introduction)
+- Install [solc](https://github.com/ethereum/solc-js#usage-on-the-command-line)
+- Install [Node.js and NPM](https://nodejs.org/en/download) For easy copy paste, use the below commands:
+
+```bash
+cd $GOPATH
+mkdir -p src/github.com/ava-labs
+cd src/github.com/ava-labs
+```
+
+Clone the repository:
+
+<Tabs items={['Subnet-EVM', 'Precompile-EVM']}>
+<Tab value="Subnet-EVM">
+```bash
+git clone git@github.com:ava-labs/subnet-evm.git
+```
+
+Then run the following commands:
+
+```bash
+git clone git@github.com:ava-labs/avalanchego.git
+curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-network-runner/main/scripts/install.sh | sh -s
+npm install -g solc
+```
+</Tab>
+<Tab value="Precompile-EVM">
+```bash
+git clone git@github.com:ava-labs/precompile-evm.git
+```
+
+Alternatively you can use it as a template repo from github.
+
+Then run the following commands:
+
+```bash
+git clone git@github.com:ava-labs/avalanchego.git
+curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-network-runner/main/scripts/install.sh | sh -s
+npm install -g solc
+```
+</Tab>
+</Tabs>
+
+## Complete Code
+
+You can inspect example pull request for the complete code.
+
+<Tabs items={['Subnet-EVM', 'Precompile-EVM']}>
+  <Tab value="Subnet-EVM">
+    [Subnet-EVM Hello World Pull Request](https://github.com/ava-labs/subnet-evm/pull/565/)
+  </Tab>
+  <Tab value="Precompile-EVM">
+    [Precompile-EVM Hello World Pull Request](https://github.com/ava-labs/precompile-evm/pull/12/)
+  </Tab>
+</Tabs>
+
+For a full-fledged example, you can also check out the [Reward Manager Precompile](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/precompile/contracts/rewardmanager/).

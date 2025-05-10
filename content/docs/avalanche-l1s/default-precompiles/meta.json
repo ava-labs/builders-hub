@@ -1,0 +1,12 @@
+{
+    "title": "Default Precompiles",
+    "pages": [
+        "allowlist",
+        "deployerallowlist",
+        "nativeminter",
+        "transactionallowlist",
+        "feemanager",
+        "rewardmanager",
+        "warpmessenger"
+    ]
+}

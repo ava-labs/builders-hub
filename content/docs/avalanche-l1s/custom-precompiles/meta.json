@@ -1,0 +1,11 @@
+{
+    "title": "Custom Precompiles",
+    "pages": [
+        "background-requirements",
+        "create-precompile",
+        "defining-precompile",
+        "defining-test-cases",
+        "executing-test-cases",
+        "precompile-deployment"
+    ]
+}

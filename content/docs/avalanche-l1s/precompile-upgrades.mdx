@@ -1,0 +1,170 @@
+---
+title: Precompile Upgrades
+description: Learn how to enable, disable, and configure precompiles in your Subnet-EVM.
+---
+
+# Precompile Upgrades
+
+<Callout type="warn">
+Performing a network upgrade requires coordinating the upgrade network-wide. A network upgrade changes the rule set used to process and verify blocks, such that any node that upgrades incorrectly or fails to upgrade by the time that upgrade goes into effect may become out of sync with the rest of the network.
+
+Any mistakes in configuring network upgrades or coordinating them on validators may cause the network to halt and recovering may be difficult.
+</Callout>
+
+Subnet-EVM precompiles can be individually enabled or disabled at a given timestamp as a network upgrade. When disabling a precompile, it disables calling the precompile and destructs its storage, allowing it to be enabled later with a new configuration if desired.
+
+## Configuration File
+
+These upgrades must be specified in a file named `upgrade.json` placed in the same directory where `config.json` resides: `{chain-config-dir}/{blockchainID}/upgrade.json`. For example, `WAGMI Subnet` upgrade should be placed in `~/.avalanchego/configs/chains/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/upgrade.json`.
+
+The content of the `upgrade.json` should be formatted according to the following:
+
+```json
+{
+  "precompileUpgrades": [
+    {
+      "[PRECOMPILE_NAME]": {
+        "blockTimestamp": "[ACTIVATION_TIMESTAMP]", // unix timestamp precompile should activate at
+        "[PARAMETER]": "[VALUE]" // precompile specific configuration options, eg. "adminAddresses"
+      }
+    }
+  ]
+}
+```
+
+<Callout type="warn">
+An invalid `blockTimestamp` in an upgrade file results the update failing. The `blockTimestamp` value should be set to a valid Unix timestamp value which is in the _future_ relative to the _head of the chain_. If the node encounters a `blockTimestamp` which is in the past, it will fail on startup.
+</Callout>
+
+## Disabling Precompiles
+
+To disable a precompile, use the following format:
+
+```json
+{
+  "precompileUpgrades": [
+    {
+      "<precompileName>": {
+        "blockTimestamp": "[DEACTIVATION_TIMESTAMP]", // unix timestamp the precompile should deactivate at
+        "disable": true
+      }
+    }
+  ]
+}
+```
+
+Each item in `precompileUpgrades` must specify exactly one precompile to enable or disable and the block timestamps must be in increasing order. Once an upgrade has been activated (a block after the specified timestamp has been accepted), it must always be present in `upgrade.json` exactly as it was configured at the time of activation (otherwise the node will refuse to start).
+
+<Callout type="warn">
+For safety, you should always treat `precompileUpgrades` as append-only.
+
+As a last resort measure, it is possible to abort or reconfigure a precompile upgrade that has not been activated since the chain is still processing blocks using the prior rule set.
+</Callout>
+
+If aborting an upgrade becomes necessary, you can remove the precompile upgrade from `upgrade.json` from the end of the list of upgrades. As long as the blockchain has not accepted a block with a timestamp past that upgrade's timestamp, it will abort the upgrade for that node.
+
+## Example Configuration
+
+Here's a complete example that demonstrates enabling and disabling precompiles:
+
+```json
+{
+  "precompileUpgrades": [
+    {
+      "feeManagerConfig": {
+        "blockTimestamp": 1668950000,
+        "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+      }
+    },
+    {
+      "txAllowListConfig": {
+        "blockTimestamp": 1668960000,
+        "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+      }
+    },
+    {
+      "feeManagerConfig": {
+        "blockTimestamp": 1668970000,
+        "disable": true
+      }
+    }
+  ]
+}
+```
+
+This example:
+1. Enables the `feeManagerConfig` at timestamp `1668950000`
+2. Enables `txAllowListConfig` at timestamp `1668960000`
+3. Disables `feeManagerConfig` at timestamp `1668970000`
+
+## Initial Precompile Configurations
+
+Precompiles can be managed by privileged addresses to change their configurations and activate their effects. For example, the `feeManagerConfig` precompile can have `adminAddresses` which can change the fee structure of the network:
+
+```json
+{
+  "precompileUpgrades": [
+    {
+      "feeManagerConfig": {
+        "blockTimestamp": 1668950000,
+        "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+      }
+    }
+  ]
+}
+```
+
+In this example, only the specified address can change the network's fee structure. The admin must call the precompile to activate changes by sending a transaction with a new fee config.
+
+### Initial Configurations Without Admin
+
+Precompiles can also activate their effect immediately at the activation timestamp without admin addresses. For example:
+
+```json
+{
+  "precompileUpgrades": [
+    {
+      "feeManagerConfig": {
+        "blockTimestamp": 1668950000,
+        "initialFeeConfig": {
+          "gasLimit": 20000000,
+          "targetBlockRate": 2,
+          "minBaseFee": 1000000000,
+          "targetGas": 100000000,
+          "baseFeeChangeDenominator": 48,
+          "minBlockGasCost": 0,
+          "maxBlockGasCost": 10000000,
+          "blockGasCostStep": 500000
+        }
+      }
+    }
+  ]
+}
+```
+
+<Callout title="Note">
+It's still possible to add `adminAddresses` or `enabledAddresses` along with these initial configurations. In this case, the precompile will be activated with the initial configuration, and admin/enabled addresses can access to the precompiled contract normally.
+</Callout>
+
+<Callout title="Note">
+If you want to change the precompile initial configuration, you will need to first disable it then activate the precompile again with the new configuration.
+</Callout>
+
+## Verifying Upgrades
+
+After creating or modifying `upgrade.json`, restart your node to load the changes. The node will print the chain configuration on startup, allowing you to verify the upgrade configuration:
+
+```bash
+INFO [08-15|15:09:36.772] <2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt Chain>
+github.com/ava-labs/subnet-evm/eth/backend.go:155: Initialised chain configuration
+config="{ChainID: 11111 Homestead: 0 EIP150: 0 EIP155: 0 EIP158: 0 Byzantium: 0
+Constantinople: 0 Petersburg: 0 Istanbul: 0, Muir Glacier: 0, Subnet EVM: 0, FeeConfig:
+{\"gasLimit\":20000000,\"targetBlockRate\":2,\"minBaseFee\":1000000000,\"targetGas\
+":100000000,\"baseFeeChangeDenominator\":48,\"minBlockGasCost\":0,\"maxBlockGasCost\
+":10000000,\"blockGasCostStep\":500000}, AllowFeeRecipients: false, NetworkUpgrades: {\
+"subnetEVMTimestamp\":0}, PrecompileUpgrade: {}, UpgradeConfig: {\"precompileUpgrades\":[{\"feeManagerConfig\":{\"adminAddresses\":[\"0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc\"],\"enabledAddresses\":null,\"blockTimestamp\":1668950000}},{\"txAllowListConfig\":{\"adminAddresses\":[\"0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc\"],\"enabledAddresses\":null,\"blockTimestamp\":1668960000}},{\"feeManagerConfig\":{\"adminAddresses\":null,\"enabledAddresses\":null,\"blockTimestamp\":1668970000,\"disable\":true}}]}, Engine: Dummy Consensus Engine}"
+```
+
+You can also verify precompile configurations using:
+- [`eth_getActivePrecompilesAt`](/docs/api-reference/subnet-evm-api#eth_getactiveprecompilesat) RPC method to check activated precompiles at a timestamp
+- [`eth_getChainConfig`](/docs/api-reference/subnet-evm-api#eth_getchainconfig) RPC method to view the complete configuration including upgrades 

@@ -1,0 +1,80 @@
+---
+title: Deploying Your Precompile
+description: Now that we have defined our precompile, let's deploy it to a local network.
+---
+
+We made it! Everything works in our Ginkgo tests, and now we want to spin up a local network with the Hello World precompile activated.
+
+Start the server in a terminal in a new tab using avalanche-network-runner. Please check out [this link](/docs/tooling/avalanche-network-runner/introduction) for more information on Avalanche Network Runner, how to download it, and how to use it. The server will be in "listening" mode waiting for API calls.
+
+We will start the server from the Subnet-EVM directory so that we can use a relative file path to the genesis JSON file:
+
+<Tabs items={['Subnet-EVM', 'Precompile-EVM']}>
+<Tab value="Subnet-EVM">
+```bash
+cd $GOPATH/src/github.com/ava-labs/subnet-evm
+```
+</Tab>
+
+<Tab value="Precompile-EVM">
+```bash
+cd $GOPATH/src/github.com/ava-labs/precompile-evm
+```
+</Tab>
+</Tabs>
+
+Then run ANR:
+
+```bash
+avalanche-network-runner server \
+--log-level debug \
+--port=":8080" \
+--grpc-gateway-port=":8081"
+```
+
+Since we already compiled AvalancheGo and Subnet-EVM/Precompile-EVM in a previous step, we should have the AvalancheGo and Subnet-EVM binaries ready to go.
+
+We can now set the following paths. `AVALANCHEGO_EXEC_PATH` points to the latest AvalancheGo binary we have just built. `AVALANCHEGO_PLUGIN_PATH` points to the plugins path which should have the Subnet-EVM binary we have just built:
+
+```bash
+export AVALANCHEGO_EXEC_PATH="${GOPATH}/src/github.com/ava-labs/avalanchego/build/avalanchego"
+export AVALANCHEGO_PLUGIN_PATH="${GOPATH}/src/github.com/ava-labs/avalanchego/build/plugins"
+```
+
+The following command will "issue requests" to the server we just spun up. We can use avalanche-network-runner to spin up some nodes that run the latest version of Subnet-EVM:
+
+```bash
+  avalanche-network-runner control start \
+  --log-level debug \
+  --endpoint="0.0.0.0:8080" \
+  --number-of-nodes=5 \
+  --avalanchego-path ${AVALANCHEGO_EXEC_PATH} \
+  --plugin-dir ${AVALANCHEGO_PLUGIN_PATH} \
+  --blockchain-specs '[{"vm_name": "subnetevm", "genesis": "./tests/precompile/genesis/hello_world.json"}]'
+```
+
+We can look at the server terminal tab and see it booting up the local network. If the network startup is successful then you should see something like this:
+
+```bash
+[blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9650/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
+[blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9652/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
+[blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9654/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
+[blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9656/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
+[blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9658/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
+```
+
+This shows the extension to the API server on AvalancheGo that's specific to the Subnet-EVM Blockchain instance. To interact with it, you will want to append the `/rpc` extension, which will supply the standard Ethereum API calls.
+
+For example, you can use the RPC URL: `http://127.0.0.1:9650/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU/rpc`
+
+## Maintenance
+
+You should always keep your fork up to date with the latest changes in the official Subnet-EVM repo. If you have forked the Subnet-EVM repo, there could be conflicts and you may need to manually resolve them.
+
+If you used Precompile-EVM, you can update your repo by bumping Subnet-EVM versions in [`go.mod`](https://github.com/ava-labs/precompile-evm/blob/hello-world-example/go.mod#L7) and [`version.sh`](https://github.com/ava-labs/precompile-evm/blob/hello-world-example/scripts/versions.sh#L4)
+
+## Conclusion
+
+We have now created a stateful precompile from scratch with the precompile generation tool. We hope you had fun and learned a little more about the Subnet-EVM. Now that you have created a simple stateful precompile, we urge you to create one of your own.
+
+If you have an idea for a stateful precompile that may be useful to the community, feel free to create a fork of [Subnet-EVM](https://github.com/ava-labs/subnet-evm) and create a pull request.

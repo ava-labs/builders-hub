@@ -1,0 +1,44 @@
+---
+title: Introduction
+description: Learn how to customize the Ethereum Virtual Machine with Subnet-EVM and Precompiles.
+root: true
+---
+
+Welcome to the Subnet-EVM customization guide. This documentation explores how to extend and customize your Avalanche L1 using **Subnet-EVM** and **precompiles**. Building upon the Validator Manager capabilities we discussed in the previous section, we'll now dive into other powerful customization features available in Subnet-EVM.
+
+## Overview of Subnet-EVM
+
+Subnet-EVM is Avalanche's customized version of the Ethereum Virtual Machine, tailored to run on Avalanche L1s. It allows developers to deploy Solidity smart contracts with enhanced capabilities, benefiting from Avalanche's high throughput and low latency. Subnet-EVM enables more flexibility and performance optimizations compared to the standard EVM.
+
+Beyond the Validator Manager functionality we've covered, Subnet-EVM provides additional customization options through precompiles, allowing you to extend your L1's capabilities even further.
+
+## Precompiles
+
+Precompiles are specialized smart contracts that execute native Go code within the EVM context. They act as a bridge between Solidity and lower-level functionalities, allowing for performance optimizations and access to features not available in Solidity alone.
+
+### Default Precompiles in Subnet-EVM
+
+Subnet-EVM comes with a set of default precompiles that extend the EVM's functionality:
+
+- **AllowList**: Interface that manages access control by allowing or restricting specific addresses, inherited by all precompiles.
+- **Deployer AllowList**: Restricts which addresses can deploy smart contracts.
+- **Native Minter**: Manages the minting and burning of native tokens.
+- **Transaction AllowList**: Controls which addresses can submit transactions.
+- **Fee Manager**: Controls gas fee parameters and fee markets.
+- **Reward Manager**: Handles the distribution of staking rewards to validators.
+- **Warp Messenger**: Enables cross-chain communication between Avalanche L1s.
+
+These precompiles enhance the capabilities of your smart contracts and enable more complex decentralized applications.
+
+## Custom Precompiles
+
+One of the powerful features of Subnet-EVM is the ability to create custom precompiles. By writing Go code and integrating it as a precompile, you can extend the EVM's functionality to suit specific use cases. Custom precompiles allow you to:
+
+- Achieve higher performance for computationally intensive tasks.
+- Access lower-level system functions not available in Solidity.
+- Implement custom cryptographic functions or algorithms.
+- Interact with external systems or data sources.
+
+Creating custom precompiles opens up a wide range of possibilities for developers to optimize and expand their decentralized applications on Avalanche L1s.
+
+In the following sections, we'll explore both the default precompiles that come with Subnet-EVM and how to create your own custom precompiles to enhance your L1's functionality. You'll learn how to leverage these powerful features to build highly customized and efficient decentralized applications.

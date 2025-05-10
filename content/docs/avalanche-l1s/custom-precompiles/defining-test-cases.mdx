@@ -1,0 +1,369 @@
+---
+title: Writing Test Cases
+description: In this section, we will go over the different ways we can write test cases for our stateful precompile.
+---
+
+## Adding Config Tests
+
+Precompile generation tool generates skeletons for unit tests as well. Generated config tests will be under [`./precompile/contracts/helloworld/config_test.go`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/precompile/contracts/helloworld/config_test.go) for Subnet-EVM and [`./helloworld/config_test.go`](https://github.com/ava-labs/precompile-evm/blob/hello-world-example/helloworld/config_test.go) for Precompile-EVM. There are mainly two functions we need to test: `Verify` and `Equal`. `Verify` checks if the precompile is configured correctly. `Equal` checks if the precompile is equal to another precompile. Generated `Verify` tests contain a valid case.
+
+You can add more invalid cases depending on your implementation. `Equal` tests generate some invalid cases to test different timestamps, types, and AllowList cases. You can check each `config_test.go` files for other precompiles under the Subnet-EVM's [`./precompile/contracts`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/precompile/contracts/) directory for more examples.
+
+## Adding Contract Tests
+
+The tool also generates contract tests to make sure our precompile is working correctly. Generated tests include cases to test allow list capabilities, gas costs, and calling functions in read-only mode. You can check other `contract_test.go` files in the `/precompile/contracts`. Hello World contract tests will be under [`./precompile/contracts/helloworld/contract_test.go`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/precompile/contracts/helloworld/contract_test.go) for Subnet-EVM and [`./helloworld/contract_test.go`](https://github.com/ava-labs/precompile-evm/blob/hello-world-example/helloworld/contract_test.go) for Precompile-EVM.
+
+We will also add more test to cover functionalities of `sayHello()` and `setGreeting()`. Contract tests are defined in a standard structure that each test can customize to their needs. The test structure is as follows:
+
+```go
+// PrecompileTest is a test case for a precompile
+type PrecompileTest struct {
+	// Caller is the address of the precompile caller
+	Caller common.Address
+	// Input the raw input bytes to the precompile
+	Input []byte
+	// InputFn is a function that returns the raw input bytes to the precompile
+	// If specified, Input will be ignored.
+	InputFn func(t *testing.T) []byte
+	// SuppliedGas is the amount of gas supplied to the precompile
+	SuppliedGas uint64
+	// ReadOnly is whether the precompile should be called in read only
+	// mode. If true, the precompile should not modify the state.
+	ReadOnly bool
+	// Config is the config to use for the precompile
+	// It should be the same precompile config that is used in the
+	// precompile's configurator.
+	// If nil, Configure will not be called.
+	Config precompileconfig.Config
+	// BeforeHook is called before the precompile is called.
+	BeforeHook func(t *testing.T, state contract.StateDB)
+	// AfterHook is called after the precompile is called.
+	AfterHook func(t *testing.T, state contract.StateDB)
+	// ExpectedRes is the expected raw byte result returned by the precompile
+	ExpectedRes []byte
+	// ExpectedErr is the expected error returned by the precompile
+	ExpectedErr string
+	// BlockNumber is the block number to use for the precompile's block context
+	BlockNumber int64
+}
+```
+
+Each test can populate the fields of the `PrecompileTest` struct to customize the test. This test uses an AllowList helper function `allowlist.RunPrecompileWithAllowListTests(t, Module, state.NewTestStateDB, tests)` which can run all specified tests plus AllowList test suites. If you don't plan to use AllowList, you can directly run them as follows:
+
+```go
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			test.Run(t, module, newStateDB(t))
+		})
+	}
+```
+
+## Adding VM Tests (Optional)
+
+This is only applicable for direct Subnet-EVM forks as test files are not directly exported in Golang. If you use Precompile-EVM you can skip this step.
+
+VM tests are tests that run the precompile by calling it through the Subnet-EVM. These are the most comprehensive tests that we can run. If your precompile modifies how the Subnet-EVM works, for example changing blockchain rules, you should add a VM test. For example, you can take a look at the `TestRewardManagerPrecompileSetRewardAddress` function in [here](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/plugin/evm/vm_test.go#L2675).
+
+For this Hello World example, we don't modify any Subnet-EVM rules, so we don't need to add any VM tests.
+
+## Adding Solidity Test Contracts
+
+Let's add our test contract to `./contracts/contracts`. This smart contract lets us interact with our precompile! We cast the `HelloWorld` precompile address to the `IHelloWorld` interface. In doing so, `helloWorld` is now a contract of type `IHelloWorld` and when we call any functions on that contract, we will be redirected to the HelloWorld precompile address.
+
+The below code snippet can be copied and pasted into a new file called `ExampleHelloWorld.sol`:
+
+```go
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+import "./IHelloWorld.sol";
+
+// ExampleHelloWorld shows how the HelloWorld precompile can be used in a smart contract.
+contract ExampleHelloWorld {
+  address constant HELLO_WORLD_ADDRESS =
+    0x0300000000000000000000000000000000000000;
+  IHelloWorld helloWorld = IHelloWorld(HELLO_WORLD_ADDRESS);
+
+  function sayHello() public view returns (string memory) {
+    return helloWorld.sayHello();
+  }
+
+  function setGreeting(string calldata greeting) public {
+    helloWorld.setGreeting(greeting);
+  }
+}
+```
+
+<Callout type="warn">
+Hello World Precompile is a different contract than ExampleHelloWorld and has a different address. Since the precompile uses AllowList for a permissioned access, any call to the precompile including from ExampleHelloWorld will be denied unless the caller is added to the AllowList.
+</Callout>
+
+Please note that this contract is simply a wrapper and is calling the precompile functions. The reason why we add another example smart contract is to have a simpler stateless tests.
+
+For the test contract we write our test in `./contracts/test/ExampleHelloWorldTest.sol`.
+<Tabs items={['Subnet-EVM', 'Precompile-EVM']}>
+<Tab value="Subnet-EVM">
+```solidity
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+import "../ExampleHelloWorld.sol";
+import "../interfaces/IHelloWorld.sol";
+import "./AllowListTest.sol";
+
+contract ExampleHelloWorldTest is AllowListTest {
+  IHelloWorld helloWorld = IHelloWorld(HELLO_WORLD_ADDRESS);
+
+  function step_getDefaultHelloWorld() public {
+    ExampleHelloWorld example = new ExampleHelloWorld();
+    address exampleAddress = address(example);
+    assertRole(helloWorld.readAllowList(exampleAddress), AllowList.Role.None);
+    assertEq(example.sayHello(), "Hello World!");
+  }
+
+  function step_doesNotSetGreetingBeforeEnabled() public {
+    ExampleHelloWorld example = new ExampleHelloWorld();
+    address exampleAddress = address(example);
+    assertRole(helloWorld.readAllowList(exampleAddress), AllowList.Role.None);
+    try example.setGreeting("testing") {
+      assertTrue(false, "setGreeting should fail");
+    } catch {}
+  }
+
+  function step_setAndGetGreeting() public {
+    ExampleHelloWorld example = new ExampleHelloWorld();
+    address exampleAddress = address(example);
+    assertRole(helloWorld.readAllowList(exampleAddress), AllowList.Role.None);
+    helloWorld.setEnabled(exampleAddress);
+    assertRole(
+      helloWorld.readAllowList(exampleAddress),
+      AllowList.Role.Enabled
+    );
+    string memory greeting = "testgreeting";
+    example.setGreeting(greeting);
+    assertEq(example.sayHello(), greeting);
+  }
+}
+```
+</Tab>
+<Tab value="Precompile-EVM">
+For Precompile-EVM, you should import AllowListTest with `@avalabs/subnet-evm-contracts` NPM package:
+
+```solidity
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+import "../ExampleHelloWorld.sol";
+import "../interfaces/IHelloWorld.sol";
+import "@avalabs/subnet-evm-contracts/contracts/test/AllowListTest.sol";
+
+contract ExampleHelloWorldTest is AllowListTest {
+  IHelloWorld helloWorld = IHelloWorld(HELLO_WORLD_ADDRESS);
+
+  function step_getDefaultHelloWorld() public {
+    ExampleHelloWorld example = new ExampleHelloWorld();
+    address exampleAddress = address(example);
+    assertRole(helloWorld.readAllowList(exampleAddress), AllowList.Role.None);
+    assertEq(example.sayHello(), "Hello World!");
+  }
+
+  function step_doesNotSetGreetingBeforeEnabled() public {
+    ExampleHelloWorld example = new ExampleHelloWorld();
+    address exampleAddress = address(example);
+    assertRole(helloWorld.readAllowList(exampleAddress), AllowList.Role.None);
+    try example.setGreeting("testing") {
+      assertTrue(false, "setGreeting should fail");
+    } catch {}
+  }
+
+  function step_setAndGetGreeting() public {
+    ExampleHelloWorld example = new ExampleHelloWorld();
+    address exampleAddress = address(example);
+    assertRole(helloWorld.readAllowList(exampleAddress), AllowList.Role.None);
+    helloWorld.setEnabled(exampleAddress);
+    assertRole(
+      helloWorld.readAllowList(exampleAddress),
+      AllowList.Role.Enabled
+    );
+    string memory greeting = "testgreeting";
+    example.setGreeting(greeting);
+    assertEq(example.sayHello(), greeting);
+  }
+}```
+
+</Tab>
+</Tabs>
+
+## Adding DS-Test Case
+
+We can now trigger this test contract via `hardhat` tests. The test script uses Subnet-EVM's `test` framework test in `./contracts/test`. You can find more information about the test framework [here](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/contracts/test/utils.ts). We also can test the events emitted by the precompile. The test script looks like this:
+
+<Tabs items={['Subnet-EVM', 'Precompile-EVM']}>
+<Tab value="Subnet-EVM">
+The test script looks like this:
+
+```go
+// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
+import { expect } from "chai";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { Contract } from "ethers";
+import { ethers } from "hardhat";
+import { test } from "./utils";
+
+// make sure this is always an admin for hello world precompile
+const ADMIN_ADDRESS = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC";
+const HELLO_WORLD_ADDRESS = "0x0300000000000000000000000000000000000000";
+
+describe("ExampleHelloWorldTest", function () {
+  this.timeout("30s");
+
+  beforeEach("Setup DS-Test contract", async function () {
+    const signer = await ethers.getSigner(ADMIN_ADDRESS);
+    const helloWorldPromise = ethers.getContractAt(
+      "IHelloWorld",
+      HELLO_WORLD_ADDRESS,
+      signer
+    );
+
+    return ethers
+      .getContractFactory("ExampleHelloWorldTest", { signer })
+      .then((factory) => factory.deploy())
+      .then((contract) => {
+        this.testContract = contract;
+        return contract.deployed().then(() => contract);
+      })
+      .then(() => Promise.all([helloWorldPromise]))
+      .then(([helloWorld]) => helloWorld.setAdmin(this.testContract.address))
+      .then((tx) => tx.wait());
+  });
+
+  test("should gets default hello world", ["step_getDefaultHelloWorld"]);
+
+  test(
+    "should not set greeting before enabled",
+    "step_doesNotSetGreetingBeforeEnabled"
+  );
+
+  test(
+    "should set and get greeting with enabled account",
+    "step_setAndGetGreeting"
+  );
+});
+
+describe("IHelloWorld events", function () {
+  let owner: SignerWithAddress;
+  let contract: Contract;
+  let defaultGreeting = "Hello, World!";
+  before(async function () {
+    owner = await ethers.getSigner(ADMIN_ADDRESS);
+    contract = await ethers.getContractAt(
+      "IHelloWorld",
+      HELLO_WORLD_ADDRESS,
+      owner
+    );
+
+    // reset greeting
+    let tx = await contract.setGreeting(defaultGreeting);
+    await tx.wait();
+  });
+
+  it("should emit GreetingChanged event", async function () {
+    let newGreeting = "helloprecompile";
+    await expect(contract.setGreeting(newGreeting))
+      .to.emit(contract, "GreetingChanged")
+      .withArgs(
+        owner.address,
+        // old greeting
+        defaultGreeting,
+        // new greeting
+        newGreeting
+      );
+  });
+});
+```
+</Tab>
+<Tab value="Precompile-EVM">
+The test script looks like this:
+
+```go 
+// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
+import { expect } from "chai";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { Contract } from "ethers";
+import { ethers } from "hardhat";
+import { test } from "@avalabs/subnet-evm-contracts";
+
+// make sure this is always an admin for hello world precompile
+const ADMIN_ADDRESS = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC";
+const HELLO_WORLD_ADDRESS = "0x0300000000000000000000000000000000000000";
+
+describe("ExampleHelloWorldTest", function () {
+  this.timeout("30s");
+
+  beforeEach("Setup DS-Test contract", async function () {
+    const signer = await ethers.getSigner(ADMIN_ADDRESS);
+    const helloWorldPromise = ethers.getContractAt(
+      "IHelloWorld",
+      HELLO_WORLD_ADDRESS,
+      signer
+    );
+
+    return ethers
+      .getContractFactory("ExampleHelloWorldTest", { signer })
+      .then((factory) => factory.deploy())
+      .then((contract) => {
+        this.testContract = contract;
+        return contract.deployed().then(() => contract);
+      })
+      .then(() => Promise.all([helloWorldPromise]))
+      .then(([helloWorld]) => helloWorld.setAdmin(this.testContract.address))
+      .then((tx) => tx.wait());
+  });
+
+  test("should gets default hello world", ["step_getDefaultHelloWorld"]);
+
+  test(
+    "should not set greeting before enabled",
+    "step_doesNotSetGreetingBeforeEnabled"
+  );
+
+  test(
+    "should set and get greeting with enabled account",
+    "step_setAndGetGreeting"
+  );
+});
+
+describe("IHelloWorld events", function () {
+  let owner: SignerWithAddress;
+  let contract: Contract;
+  let defaultGreeting = "Hello, World!";
+  before(async function () {
+    owner = await ethers.getSigner(ADMIN_ADDRESS);
+    contract = await ethers.getContractAt(
+      "IHelloWorld",
+      HELLO_WORLD_ADDRESS,
+      owner
+    );
+
+    // reset greeting
+    let tx = await contract.setGreeting(defaultGreeting);
+    await tx.wait();
+  });
+
+  it("should emit GreetingChanged event", async function () {
+    let newGreeting = "helloprecompile";
+    await expect(contract.setGreeting(newGreeting))
+      .to.emit(contract, "GreetingChanged")
+      .withArgs(
+        owner.address,
+        // old greeting
+        defaultGreeting,
+        // new greeting
+        newGreeting
+      );
+  });
+});
+```
+</Tab>
+</Tabs>
