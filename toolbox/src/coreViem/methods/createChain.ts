@@ -8,6 +8,7 @@ import { getPChainAddress } from "./getPChainAddress";
 import { getRPCEndpoint } from "../utils/rpc";
 import { pvm } from "@avalabs/avalanchejs";
 import { Context } from "@avalabs/avalanchejs";
+import { getChains } from "../utils/glacier";
 
 export type CreateChainParams = {
     chainName: string;
@@ -30,6 +31,7 @@ export async function createChain(client: WalletClient<any, any, any, CoreWallet
         addresses: [pChainAddress]
     });
 
+    // Create the unsigned transaction to get the chain ID before sending
     const tx = pvm.e.newCreateChainTx({
         feeState,
         fromAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
@@ -42,6 +44,20 @@ export async function createChain(client: WalletClient<any, any, any, CoreWallet
         genesisData: JSON.parse(params.genesisData),
     }, context);
 
+    // Get the chain ID from the unsigned transaction
+    const chainID = tx.getBlockchainId().toString();
+
+    // Check for chain ID collisions using Glacier API
+    const existingChains = await getChains();
+    const chainIdCollision = existingChains.find(chain =>
+        chain.platformChainId === chainID
+    );
+
+    if (chainIdCollision) {
+        throw new Error(`Chain ID collision detected. The generated chain ID "${chainID}" already exists.`);
+    }
+
+    // If no collision, proceed with sending the transaction
     const txID = await window.avalanche!.request({
         method: 'avalanche_sendTransaction',
         params: {
@@ -51,5 +67,4 @@ export async function createChain(client: WalletClient<any, any, any, CoreWallet
     }) as string;
 
     return txID;
-
 }
