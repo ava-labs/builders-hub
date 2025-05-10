@@ -359,7 +359,7 @@ export default function AvalanchegoDocker() {
 
                                 <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, "127.0.0.1:9650", false)} />
 
-                                <p> Once it the bootstrapping is complete it will return a repsonse like <code>{'{"jsonrpc":"2.0","id":1,"result":"..."}'}</code>.</p>
+                                <p> Once it the bootstrapping is complete it will return a response like <code>{'{"jsonrpc":"2.0","id":1,"result":"..."}'}</code>.</p>
                             </Step>
                             {isRPC && (
                                 <>
@@ -383,7 +383,7 @@ export default function AvalanchegoDocker() {
                                                 />
 
                                                 {domain && (<>
-                                                    <p>Run the following comand on the machine of your node:</p>
+                                                    <p>Run the following command on the machine of your node:</p>
                                                     <DynamicCodeBlock lang="bash" code={reverseProxyCommand(domain)} />
                                                 </>)}
                                             </Step>
