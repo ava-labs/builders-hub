@@ -65,6 +65,7 @@ type L1ListItem = {
     isTestnet: boolean;
     subnetId: string;
     validatorManagerAddress: string;
+    teleporterRegistryAddress: string;
     logoUrl: string;
 };
 
@@ -79,6 +80,7 @@ const l1ListInitialStateFuji = {
             isTestnet: true,
             subnetId: "11111111111111111111111111111111LpoYY",
             validatorManagerAddress: "",
+            teleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
         },
         {
@@ -90,6 +92,7 @@ const l1ListInitialStateFuji = {
             isTestnet: true,
             subnetId: "i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK",
             validatorManagerAddress: "0x0646263a231b4fde6f62d4de63e18df7e6ad94d6",
+            teleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/7kyTY75fdtnO6mh7f0osix/4c92c93dd688082bfbb43d5d910cbfeb/Echo_Subnet_Logo.png",
         },
         {
@@ -101,6 +104,7 @@ const l1ListInitialStateFuji = {
             isTestnet: true,
             subnetId: "7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5",
             validatorManagerAddress: "",
+            teleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/60XrKdf99PqQKrHiuYdwTE/908622f5204311dbb11be9c6008ead44/Dispatch_Subnet_Logo.png",
         }
     ] as L1ListItem[],
@@ -117,6 +121,7 @@ const l1ListInitialStateMainnet = {
             isTestnet: false,
             subnetId: "11111111111111111111111111111111LpoYY",
             validatorManagerAddress: "",
+            teleporterRegistryAddress: "0x7C43605E14F391720e1b37E49C78C4b03A488d98",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
         }
     ] as L1ListItem[],

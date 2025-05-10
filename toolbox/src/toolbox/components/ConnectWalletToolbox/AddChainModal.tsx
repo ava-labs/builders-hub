@@ -21,6 +21,7 @@ interface AddChainModalProps {
         isTestnet: boolean;
         subnetId: string;
         validatorManagerAddress: string;
+        teleporterRegistryAddress: string;
         logoUrl: string;
     }) => void;
     allowLookup?: boolean;
@@ -42,6 +43,7 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
     const [coinName, setCoinName] = useState("COIN");
     const [subnetId, setSubnetId] = useState("");
     const [validatorManagerAddress, setValidatorManagerAddress] = useState("");
+    const [teleporterRegistryAddress, setTeleporterRegistryAddress] = useState("");
     const [localError, setLocalError] = useState("");
     const { coreWalletClient } = useWalletStore();
     const [logoUrl, setLogoUrl] = useState("");
@@ -72,7 +74,7 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
                 setIsTestnet(blockchainInfo.isTestnet);
                 const subnetInfo = await getSubnetInfo(blockchainInfo.subnetId);
                 setValidatorManagerAddress(subnetInfo.l1ValidatorManagerDetails?.contractAddress || "");
-
+                setTeleporterRegistryAddress("");
                 // Fetch logo URL
                 try {
                     const chainDetails = await getChainDetails(String(ethereumChainId));
@@ -126,6 +128,7 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
                 isTestnet: isTestnet,
                 subnetId: subnetId,
                 validatorManagerAddress: validatorManagerAddress,
+                teleporterRegistryAddress: teleporterRegistryAddress,
                 logoUrl: logoUrl,
             });
             onClose();
@@ -208,6 +211,13 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
                         <Input
                             label="Validator Manager Address"
                             value={validatorManagerAddress}
+                            disabled={true}
+                            placeholder="0x1234567890123456789012345678901234567890"
+                        />
+
+                        <Input
+                            label="Teleporter Registry Address"
+                            value={teleporterRegistryAddress}
                             disabled={true}
                             placeholder="0x1234567890123456789012345678901234567890"
                         />
