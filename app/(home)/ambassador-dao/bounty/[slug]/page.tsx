@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, Suspense, Key, useEffect, useRef } from "react";
-import { ArrowLeft, MessagesSquare, MoreVertical } from "lucide-react";
+import {
+  ArrowLeft,
+  Mail,
+  MessagesSquare,
+  MoreVertical,
+  Send,
+} from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import {
   useDeleteOpportunityComment,
@@ -23,6 +29,7 @@ import {
   BountyDescription,
 } from "@/components/ambassador-dao/bounty/components";
 import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
+import Link from "next/link";
 
 interface CommentAuthor {
   id: string;
@@ -775,6 +782,8 @@ const AmbasssadorDaoSingleBountyPage = () => {
     id: data?.id,
     title: data?.title,
     requirements: data?.requirements,
+    point_of_contact_email: data?.point_of_contact_email,
+    point_of_contact: data?.point_of_contact,
     companyName: data?.created_by?.company_profile?.name || "Unknown",
     companyLogo: data?.created_by?.company_profile?.logo,
     createdBy: `${data?.created_by?.first_name} ${data?.created_by?.last_name}`,
@@ -842,6 +851,39 @@ const AmbasssadorDaoSingleBountyPage = () => {
                   </p>
                 </div>
               )}
+
+              <div className='border text-[var(--primary-text-color)] border-[var(--default-border-color)] p-4 mb-6 rounded-md'>
+                <h2 className='mb-4 font-medium'>Contact Information</h2>
+                <p className='text-[13px] text-[var(--secondary-text-color)] whitespace-pre-line'>
+                  For questions or clarification, please contact
+                </p>
+                <div className='grid grid-cols-2 md:grid-cols-4 gap-3 mt-6'>
+                  <a
+                    href={`mailto://${headerData?.point_of_contact_email}`}
+                    className='flex items-center justify-center gap-2 bg-[var(--default-border-color)] transition-colors rounded-lg py-3 px-4'
+                  >
+                    <Mail color='var(--white-text-color)' size={16} />
+                    <span className='text-[var(--white-text-color)] text-sm font-medium'>
+                      Email
+                    </span>
+                  </a>
+
+                  <Link
+                    href={`https://t.me/${headerData?.point_of_contact}`}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='flex items-center justify-center gap-2 bg-[var(--default-border-color)] transition-colors rounded-lg py-3 px-4'
+                  >
+                    <div className='dark:bg-[#fff] bg-[#000] rounded-full p-1'>
+                      <Send color='var(--black-background-color)' size={10} />
+                    </div>
+                    <span className='text-[var(--white-text-color)] text-sm font-medium'>
+                      Telegram
+                    </span>
+                  </Link>
+                </div>
+              </div>
+
               <div className='block md:hidden my-6'>
                 <BountySidebar bounty={sidebarData} />
               </div>
