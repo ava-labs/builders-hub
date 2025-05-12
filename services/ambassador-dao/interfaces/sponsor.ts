@@ -98,6 +98,7 @@ export enum OpportunityApplicationStatus {
   APPROVED = "APPROVED",
   COMPLETED = "COMPLETED",
   WITHDRAWN = "WITHDRAWN",
+  IN_PROGRESS = "IN_PROGRESS"
 }
 
 export enum OpportunitySubmissionStatus {

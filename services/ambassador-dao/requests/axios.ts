@@ -29,11 +29,19 @@ const processQueue = (error: any = null) => {
 };
 
 const REFRESH_ENDPOINT = "/auth/refresh-token";
+const VERIFY_PASSCODE_ENDPOINT = "/auth/verify-passcode";
+const REQUEST_PASSCODE_ENDPOINT = "/auth/request-passcode"; // Added this constant
 const FULL_REFRESH_URL = `${API_DEV}${REFRESH_ENDPOINT}`;
 
 const isRefreshTokenUrl = (url: string | undefined): boolean => {
   if (!url) return false;
   return url.includes(REFRESH_ENDPOINT) || url === FULL_REFRESH_URL;
+};
+
+// Fix this function to properly check for either endpoint
+const isPasscodeUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  return url.includes(VERIFY_PASSCODE_ENDPOINT) || url.includes(REQUEST_PASSCODE_ENDPOINT);
 };
 
 refreshAxiosInstance.interceptors.response.use(
@@ -55,6 +63,13 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     const originalUrl = originalRequest?.url;
+
+    // Check if it's one of the passcode endpoints first
+    if (isPasscodeUrl(originalUrl) && error.response?.status === 401) {
+      // Just return the error as is without refresh token attempts or page redirects
+      console.log("Handling 401 from passcode endpoint");
+      return Promise.reject(error);
+    }
 
     if (isRefreshTokenUrl(originalUrl)) {
       console.log("Silently handling refresh token error");
@@ -98,6 +113,5 @@ axiosInstance.interceptors.response.use(
     }
   }
 );
-
 
 export default axiosInstance;
