@@ -26,6 +26,7 @@ import {
   ListFilter,
   Ticket,
   Earth,
+  ArrowLeftRight,
 } from 'lucide-react';
 import Image from 'next/image';
 import Preview9000 from '@/public/nav-banner/9000-logo.png';
@@ -40,6 +41,7 @@ import { SiGithub } from '@icons-pack/react-simple-icons';
 import UserWrapper from '@/components/login/user-button/UserWrapper';
 import CustomButton from "@/components/ambassador-dao/custom-button";
 import { AuthButton } from '@/components/ambassador-dao/auth-button';
+import { UserButton } from '@/components/login/user-button/UserButton';
 
 export const integrationsMenu: LinkItemType = {
   type: 'menu',
@@ -207,13 +209,23 @@ export const academyMenu: LinkItemType = {
       url: '/academy/avalanche-fundamentals',
     },
     {
-      icon: <Logs />,
-      text: 'Multi-Chain Architecture',
+      icon: <SendHorizontal />,
+      text: 'Avalanche Interchain Messaging',
       description:
-        "Dive deeper into Avalanche's multi-chain architecture and deploy your own Blockchain.",
-      url: '/academy/multi-chain-architecture',
+        'Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche ecosystem.',
+      url: '/academy/interchain-messaging',
       menu: {
-        className: 'lg:col-start-2',
+        className: 'lg:col-start-2 lg:row-start-1',
+      },
+    },
+    {
+      icon: <ArrowLeftRight />,
+      text: 'Avalanche Interchain Token Transfer',
+      description:
+        'Bridge tokens between Avalanche L1s using the Interchain Token Transfer protocol.',
+      url: '/academy/interchain-token-transfer',
+      menu: {
+        className: 'lg:col-start-2 lg:row-start-2',
       },
     },
     {
@@ -222,16 +234,6 @@ export const academyMenu: LinkItemType = {
       description:
         'Learn how to customize the Ethereum Virtual Machine and add your own custom precompiles.',
       url: '/academy/customizing-evm',
-      menu: {
-        className: 'lg:col-start-2',
-      },
-    },
-    {
-      icon: <SendHorizontal />,
-      text: 'Avalanche Interchain Messaging',
-      description:
-        'Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche ecosystem.',
-      url: '/academy/interchain-messaging',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },
@@ -276,6 +278,11 @@ export const toolsMenu: LinkItemType = {
       url: '/tools/l1-toolbox',
     },
     {
+      icon: <SendHorizontal />,
+      text: 'Interchain Messaging Tools',
+      description:
+        'Set up Interchain Messaging (ICM) for your L1.',
+      url: '/tools/l1-toolbox',
       menu: {
         banner: (
           <div className='-mx-3 -mt-3'>
@@ -291,11 +298,23 @@ export const toolsMenu: LinkItemType = {
         ),
         className: 'md:row-span-2 lg:col-span-1',
       },
+    },
+    {
       icon: <Server />,
       text: 'L1 Launcher (Beta)',
       description:
         'Launch your self-hosted Testnet or Mainnet L1 on your own infrastructure.',
       url: '/tools/l1-launcher',
+    },
+    {
+      icon: <ArrowLeftRight />,
+      text: 'Interchain Token Transfer Tools',
+      description:
+        'Set up cross-L1 bridges using the Interchain Token Transfer protocol.',
+      url: '/tools/l1-toolbox',
+      menu: {
+        className: 'lg:col-start-3 lg:row-start-1',
+      },
     },
     {
       icon: <HandCoins />,
@@ -314,7 +333,7 @@ export const toolsMenu: LinkItemType = {
         'Spin up short-lived test environments for building dApps using interoperability features like ICM and ICTT.',
       url: 'https://github.com/ava-labs/avalanche-starter-kit',
       menu: {
-        className: "lg:col-start-3 lg:row-start-2",
+        className: 'lg:col-start-3 lg:row-start-2',
       },
     },
   ],
@@ -464,10 +483,9 @@ export const eventsMenu: LinkItemType = {
   ],
 };
 const userMenu: LinkItemType = {
-  type: 'icon',
-  icon: <UserWrapper />,
-  url: '#',
-  text: 'User',
+  type: 'custom',
+  children: <UserButton />,
+  secondary: true
 };
 
 const github: LinkItemType = {
@@ -490,10 +508,10 @@ export const ambassadorMenu: LinkItemType = {
   url: "/ambassador-dao",
   active: "nested-url",
 };
+  
 
 export const baseOptions: BaseLayoutProps = {
   // githubUrl: 'https://github.com/ava-labs/builders-hub',
-  
   nav: {
     title: (
       <>

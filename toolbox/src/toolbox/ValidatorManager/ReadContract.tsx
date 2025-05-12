@@ -1,16 +1,16 @@
 "use client"
 
-import { useToolboxStore } from "../toolboxStore"
+import { useSelectedL1 } from "../toolboxStore"
 import { useWalletStore } from "../../lib/walletStore"
 import { useErrorBoundary } from "react-error-boundary"
 import type { AbiEvent } from "viem"
 import { useEffect, useState } from "react"
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
 import { Button } from "../../components/Button"
-import { Input } from "../../components/Input"
-import { RequireChainToolboxL1 } from "../components/RequireChainToolboxL1"
 import { Container } from "../components/Container"
 import { ChevronDown, ChevronRight } from "lucide-react"
+import { getSubnetInfo } from "../../coreViem/utils/glacier"
+import { EVMAddressInput } from "../components/EVMAddressInput"
 
 type ViewData = {
   [key: string]: any
@@ -31,12 +31,29 @@ const serializeValue = (value: any): any => {
 
 export default function ReadContract() {
   const { showBoundary } = useErrorBoundary()
-  const { proxyAddress, setProxyAddress } = useToolboxStore()
+  const [proxyAddress, setProxyAddress] = useState<string>("");
   const [viewData, setViewData] = useState<ViewData>({})
   const [isReading, setIsReading] = useState(false)
   const [eventLogs, setEventLogs] = useState<Record<string, any[]>>({})
   const { publicClient } = useWalletStore()
   const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({})
+  const selectedL1 = useSelectedL1()();
+
+  useEffect(() => {
+    (async function () {
+      try {
+        const subnetId = selectedL1?.subnetId;
+        if (!subnetId) {
+          throw new Error("No subnet ID found, this should never happen");
+        }
+        const info = await getSubnetInfo(subnetId);
+        const newProxyAddress = info.l1ValidatorManagerDetails?.contractAddress || "";
+        setProxyAddress(newProxyAddress);
+      } catch (error) {
+        showBoundary(error);
+      }
+    })()
+  }, [selectedL1]);
 
   async function readContractData() {
     if (!proxyAddress) {
@@ -115,120 +132,124 @@ export default function ReadContract() {
   }
 
   return (
-    <RequireChainToolboxL1>
-      <Container
-        title="Read Proxy Contract"
-        description="This will read the data from the ValidatorManager contract."
-      >
-        <div className="space-y-4">
-          <Input
-            label="Proxy Address"
-            value={proxyAddress || ""}
-            placeholder="0x..."
-            onChange={(value) => setProxyAddress(value)}
-            button={
-              <Button variant="secondary" onClick={readContractData} loading={isReading} disabled={isReading}>
-                Refresh
-              </Button>
-            }
-          />
-        </div>
 
-        {Object.keys(viewData).length > 0 && (
-          <div className="mt-6">
-            <h3 className="text-base font-semibold mb-3 text-zinc-800 dark:text-zinc-200">Contract Data</h3>
-            <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm">
-              <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
-                <thead className="bg-zinc-50 dark:bg-zinc-800/50">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider w-1/3"
-                    >
-                      Function
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider w-2/3"
-                    >
-                      Value
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-800">
-                  {Object.entries(viewData).map(([key, value], index) => (
-                    <tr
-                      key={key}
-                      className={index % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-zinc-50/50 dark:bg-zinc-800/20"}
-                    >
-                      <td className="px-4 py-3 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                        <div className="font-mono">{key}</div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-zinc-800 dark:text-zinc-200">
-                        <div className="bg-zinc-50 dark:bg-zinc-800 rounded-md p-2.5 overflow-x-auto">
-                          <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
-                            {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
-                          </pre>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+    <Container
+      title="Read Proxy Contract"
+      description="This will read the data from the ValidatorManager contract."
+    >
+      <div className="space-y-4">
+        <EVMAddressInput
+          label="Proxy Address"
+          value={proxyAddress}
+          onChange={setProxyAddress}
+          disabled={isReading}
+        />
+        <Button
+          variant="secondary"
+          onClick={readContractData}
+          loading={isReading}
+          disabled={isReading}
+          className="w-full"
+        >
+          Refresh
+        </Button>
+      </div>
 
-        {Object.keys(eventLogs).length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-base font-semibold mb-3 text-zinc-800 dark:text-zinc-200">Events</h3>
-            <div className="space-y-3">
-              {Object.entries(eventLogs).map(([eventName, logs]) => (
-                <div
-                  key={eventName}
-                  className="rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm"
-                >
-                  <div
-                    className="flex items-center justify-between px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 cursor-pointer"
-                    onClick={() => toggleEventExpansion(eventName)}
+      {Object.keys(viewData).length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-base font-semibold mb-3 text-zinc-800 dark:text-zinc-200">Contract Data</h3>
+          <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
+              <thead className="bg-zinc-50 dark:bg-zinc-800/50">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider w-1/3"
                   >
-                    <h4 className="font-medium text-zinc-800 dark:text-zinc-200 flex items-center">
-                      {expandedEvents[eventName] ? (
-                        <ChevronDown className="w-4 h-4 mr-2" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4 mr-2" />
-                      )}
-                      {eventName}
-                      <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                        {logs.length}
-                      </span>
-                    </h4>
-                  </div>
-
-                  {expandedEvents[eventName] && (
-                    <div className="p-4 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
-                      {logs.length > 0 ? (
-                        <div className="space-y-3">
-                          {logs.map((log, index) => (
-                            <div key={index} className="bg-zinc-50 dark:bg-zinc-800 rounded-md p-3 overflow-x-auto">
-                              <pre className="text-xs font-mono leading-relaxed text-zinc-800 dark:text-zinc-200">
-                                {JSON.stringify(log, null, 2)}
-                              </pre>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">No events found</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    Function
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider w-2/3"
+                  >
+                    Value
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-800">
+                {Object.entries(viewData).map(([key, value], index) => (
+                  <tr
+                    key={key}
+                    className={index % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-zinc-50/50 dark:bg-zinc-800/20"}
+                  >
+                    <td className="px-4 py-3 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      <div className="font-mono">{key}</div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-zinc-800 dark:text-zinc-200">
+                      <div className="bg-zinc-50 dark:bg-zinc-800 rounded-md p-2.5 overflow-x-auto">
+                        <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
+                          {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
+                        </pre>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-      </Container>
-    </RequireChainToolboxL1>
+        </div>
+      )}
+
+      {Object.keys(eventLogs).length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-base font-semibold mb-3 text-zinc-800 dark:text-zinc-200">Events</h3>
+          <div className="space-y-3">
+            {Object.entries(eventLogs).map(([eventName, logs]) => (
+              <div
+                key={eventName}
+                className="rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm"
+              >
+                <div
+                  className="flex items-center justify-between px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 cursor-pointer"
+                  onClick={() => toggleEventExpansion(eventName)}
+                >
+                  <h4 className="font-medium text-zinc-800 dark:text-zinc-200 flex items-center">
+                    {expandedEvents[eventName] ? (
+                      <ChevronDown className="w-4 h-4 mr-2" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 mr-2" />
+                    )}
+                    {eventName}
+                    <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                      {logs.length}
+                    </span>
+                  </h4>
+                </div>
+
+                {expandedEvents[eventName] && (
+                  <div className="p-4 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
+                    {logs.length > 0 ? (
+                      <div className="space-y-3">
+                        {logs.map((log, index) => (
+                          <div key={index} className="bg-zinc-50 dark:bg-zinc-800 rounded-md p-3 overflow-x-auto">
+                            <pre className="text-xs font-mono leading-relaxed text-zinc-800 dark:text-zinc-200">
+                              {JSON.stringify(log, null, 2)}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">No events found</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </Container>
+
   )
 }
 

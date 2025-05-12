@@ -3,165 +3,134 @@
 import { useState } from "react"
 import { useErrorBoundary } from "react-error-boundary"
 
-import { useToolboxStore, useViemChainStore } from "../toolboxStore"
+import { useSelectedL1, useViemChainStore, useCreateChainStore } from "../toolboxStore"
 import { useWalletStore } from "../../lib/walletStore"
 
 import { Container } from "../components/Container"
 import { Input } from "../../components/Input"
 import { Button } from "../../components/Button"
-import { StepIndicator, StepStatus } from "../components/StepIndicator"
+import { StepIndicator } from "../components/StepIndicator"
 import { AlertCircle, CheckCircle } from "lucide-react"
+import SelectSubnetId from "../components/SelectSubnetId"
+import { EVMAddressInput } from "../components/EVMAddressInput"
 
 import { cn } from "../../lib/utils"
 import { bytesToHex, hexToBytes } from "viem"
-import { pvm, utils, Context, networkIDs } from "@avalabs/avalanchejs"
+import { networkIDs } from "@avalabs/avalanchejs"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
-import { getRPCEndpoint } from "../../coreViem/utils/rpc"
 
 import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
 import { GetRegistrationJustification } from "./justification"
 import { packL1ValidatorWeightMessage } from "../../coreViem/utils/convertWarp"
 import { packWarpIntoAccessList } from "./packWarp"
 import { getValidationIdHex } from "../../coreViem/hooks/getValidationID"
+import { useStepProgress, StepsConfig } from "../hooks/useStepProgress"
+import { setL1ValidatorWeight } from "../../coreViem/methods/setL1ValidatorWeight"
 
-interface ChangeWeightSteps {
-  getValidationID: StepStatus
-  initiateChangeWeight: StepStatus
-  signMessage: StepStatus
-  submitPChainTx: StepStatus
-  pChainSignature: StepStatus
-  completeChangeWeight: StepStatus
+// Define step keys and configuration
+type ChangeWeightStepKey =
+  | "getValidationID"
+  | "initiateChangeWeight"
+  | "signMessage"
+  | "submitPChainTx"
+  | "pChainSignature"
+  | "completeChangeWeight"
+
+const changeWeightStepsConfig: StepsConfig<ChangeWeightStepKey> = {
+  getValidationID: "Get Validation ID",
+  initiateChangeWeight: "Initiate Weight Change",
+  signMessage: "Aggregate Signatures for Warp Message",
+  submitPChainTx: "Change Validator Weight on P-Chain",
+  pChainSignature: "Aggregate Signatures for P-Chain Warp Message",
+  completeChangeWeight: "Complete Weight Change",
 }
 
 export default function ChangeWeight() {
   const { showBoundary } = useErrorBoundary()
 
-  const { proxyAddress, subnetId } = useToolboxStore()
-  const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore() 
+  const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore()
   const viemChain = useViemChainStore()
+  const selectedL1 = useSelectedL1()()
+  const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId)
 
+  // --- Form Input State ---
   const [nodeID, setNodeID] = useState("")
   const [weight, setWeight] = useState("")
+  const [manualProxyAddress, setManualProxyAddress] = useState(selectedL1?.validatorManagerAddress || "")
+  const [currentSubnetId, setCurrentSubnetId] = useState(createChainStoreSubnetId || selectedL1?.subnetId || "")
 
-  const [isLoading, setIsLoading] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [isProcessComplete, setIsProcessComplete] = useState(false)
-
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-
+  // --- Intermediate Data State ---
   const [validationIDHex, setValidationIDHex] = useState("")
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState("")
   const [signedWarpMessage, setSignedWarpMessage] = useState("")
   const [pChainSignature, setPChainSignature] = useState("")
-
-  const platformEndpoint = getRPCEndpoint(avalancheNetworkID !== networkIDs.MainnetID)
-  const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji"
-  const pvmApi = new pvm.PVMApi(platformEndpoint)
-
-  // Add state variables for event data
   const [eventData, setEventData] = useState<{
     validationID: `0x${string}`;
     nonce: bigint;
     weight: bigint;
     messageID: `0x${string}`;
   } | null>(null)
-  
-  // Track steps for change weight process
-  const [changeWeightSteps, setChangeWeightSteps] = useState<ChangeWeightSteps>({
-    getValidationID: { status: "pending" },
-    initiateChangeWeight: { status: "pending" },
-    signMessage: { status: "pending" },
-    submitPChainTx: { status: "pending" },
-    pChainSignature: { status: "pending" },
-    completeChangeWeight: { status: "pending" },
-  })
 
-  // Update step status helper
-  const updateStepStatus = (step: keyof ChangeWeightSteps, status: StepStatus["status"], error?: string) => {
-    setChangeWeightSteps((prev) => ({
-      ...prev,
-      [step]: { status, error },
-    }))
-  }
+  // Initialize the hook
+  const {
+    steps,
+    stepKeys,
+    stepsConfig: config,
+    isProcessing,
+    isProcessComplete,
+    error,
+    success,
+    updateStepStatus,
+    resetSteps,
+    startProcessing,
+    completeProcessing,
+    handleRetry,
+    setError,
+  } = useStepProgress<ChangeWeightStepKey>(changeWeightStepsConfig)
 
-  // Reset the change weight process
-  const resetChangeWeight = () => {
-    setIsProcessing(false)
-    setIsProcessComplete(false)
-    setError(null)
-    setSuccess(null)
-    Object.keys(changeWeightSteps).forEach((step) => {
-      updateStepStatus(step as keyof ChangeWeightSteps, "pending")
-    })
-  }
-  // Handle retry of a specific step
-  const retryStep = async (step: keyof ChangeWeightSteps) => {
-    // Reset status of current step and all following steps
-    const steps = Object.keys(changeWeightSteps) as Array<keyof ChangeWeightSteps>
-    const stepIndex = steps.indexOf(step)
+  const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji"
 
-    // Only reset the statuses from the failed step onwards
-    steps.slice(stepIndex).forEach((currentStep) => {
-      updateStepStatus(currentStep, "pending")
-    })
-
-    // Start the change weight process from the failed step
-    await handleChangeWeight(step)
-  }
-
-  const handleChangeWeight = async (startFromStep?: keyof ChangeWeightSteps) => {
+  const handleChangeWeight = async (startFromStep?: ChangeWeightStepKey) => {
+    // Initial Form Validation
     if (!nodeID.trim()) {
       setError("Node ID is required")
       return
     }
-
     if (!weight.trim()) {
       setError("Weight is required")
       return
     }
-
-    // Validate weight is a number
     const weightNum = Number(weight)
     if (isNaN(weightNum) || weightNum <= 0) {
       setError("Weight must be a positive number")
       return
     }
 
+    // Start processing if it's a fresh run
     if (!startFromStep) {
-      setIsProcessing(true)
-      setIsProcessComplete(false)
-      setError(null)
-      setSuccess(null)
-      Object.keys(changeWeightSteps).forEach((step) => {
-        updateStepStatus(step as keyof ChangeWeightSteps, "pending")
-      })
+      startProcessing()
     }
 
-    // --- Local variables to pass results synchronously during initial run --- 
-    let currentValidationID = validationIDHex; // Initialize with state for retries
-    let currentUnsignedWarpMessage = unsignedWarpMessage; // Initialize with state for retries
-    let currentSignedWarpMessage = signedWarpMessage; // Initialize with state for retries
-    let currentPChainSignature = pChainSignature; // Initialize with state for retries
-    let currentEventData = eventData; // Initialize with state for retries
-    // --- End local variables --- 
+    // Local variables for synchronous data passing
+    let localValidationID = startFromStep ? validationIDHex : "";
+    let localUnsignedWarpMessage = startFromStep ? unsignedWarpMessage : "";
+    let localSignedMessage = startFromStep ? signedWarpMessage : "";
+    let localPChainSignature = startFromStep ? pChainSignature : "";
+    let localEventData = startFromStep ? eventData : null;
 
     try {
-      setIsLoading(true)
-
       // Step 1: Get ValidationID
       if (!startFromStep || startFromStep === "getValidationID") {
         updateStepStatus("getValidationID", "loading")
         try {
-          const validationIDResult = await getValidationIdHex(publicClient, proxyAddress as `0x${string}`, nodeID)
+          const validationIDResult = await getValidationIdHex(publicClient, manualProxyAddress as `0x${string}`, nodeID)
+          // Update local and state
           setValidationIDHex(validationIDResult as string)
-          currentValidationID = validationIDResult as string;
+          localValidationID = validationIDResult as string;
           console.log("ValidationID:", validationIDResult)
           updateStepStatus("getValidationID", "success")
         } catch (error: any) {
           updateStepStatus("getValidationID", "error", error.message)
-          setIsLoading(false)
-          showBoundary(error)
           return
         }
       }
@@ -170,108 +139,82 @@ export default function ChangeWeight() {
       if (!startFromStep || startFromStep === "initiateChangeWeight") {
         updateStepStatus("initiateChangeWeight", "loading")
         try {
-          if (!currentValidationID) { 
-            throw new Error("Validation ID is missing. Please ensure the previous step succeeded.")
+          // Use local var first, fallback to state for retry
+          const validationIDToUse = localValidationID || validationIDHex;
+          if (!validationIDToUse) {
+            throw new Error("Validation ID is missing. Retry step 1.")
           }
-          
-          // Convert weight to uint64 (BigInt) for Solidity
-          const weightBigInt = BigInt(weight);
-          
+
+          const weightBigInt = BigInt(weight)
+
           const changeWeightTx = await coreWalletClient.writeContract({
-            address: proxyAddress as `0x${string}`,
+            address: manualProxyAddress as `0x${string}`,
             abi: validatorManagerAbi.abi,
             functionName: "initiateValidatorWeightUpdate",
-            args: [currentValidationID, weightBigInt], // Use validation ID and weight as BigInt
+            args: [validationIDToUse, weightBigInt], // Use potentially updated local ID
             chain: viemChain,
             account: coreWalletClient.account,
           })
-          
-          console.log("Change weight transaction:", changeWeightTx)
-          
+
           if (!publicClient) {
             throw new Error("Wallet connection not initialized")
           }
-          
-          const receipt = await publicClient.waitForTransactionReceipt({
-            hash: changeWeightTx
-          })
-          
-          console.log("Receipt:", receipt)
-          
-          const warpMessageResult = receipt.logs[0].data || ""
-          setUnsignedWarpMessage(warpMessageResult)
-          currentUnsignedWarpMessage = warpMessageResult;
-          
-          // Decode event data from logs
+
+          const receipt = await publicClient.waitForTransactionReceipt({ hash: changeWeightTx })
+
+          // Update local and state
+          const currentUnsignedWarpMessage = receipt.logs[0].data || ""
+          setUnsignedWarpMessage(currentUnsignedWarpMessage)
+          localUnsignedWarpMessage = currentUnsignedWarpMessage;
+
           try {
-            // The correct event topic hash for InitiatedValidatorWeightUpdate
             const eventTopic = "0x6e350dd49b060d87f297206fd309234ed43156d890ced0f139ecf704310481d3"
             const eventLog = receipt.logs.find((log: unknown) => {
-              // Type assertion inside the function body
-              const typedLog = log as { topics: string[] };
-              return typedLog.topics[0].toLowerCase() === eventTopic.toLowerCase();
+              const typedLog = log as { topics: string[] }
+              return typedLog.topics[0].toLowerCase() === eventTopic.toLowerCase()
             })
-            
-            // Type assertion for eventLog
-            const typedEventLog = eventLog as { topics: string[]; data: string } | undefined;
-            
+            const typedEventLog = eventLog as { topics: string[]; data: string } | undefined
+
             if (typedEventLog) {
-              console.log("Found event log:", typedEventLog);
-              
-              // Extract data from the event
-              // InitiatedValidatorWeightUpdate(bytes32 indexed validationID, uint64 nonce, bytes32 weightUpdateMessageID, uint64 weight)
-              // Topics[0] is the event signature
-              // Topics[1] is the indexed validationID
-              const validationID = typedEventLog.topics[1];
-              
-              // Data contains nonce, messageID, and weight (non-indexed parameters)
-              // Parse the data - remove '0x' prefix and convert to a readable format
-              const dataWithoutPrefix = typedEventLog.data.slice(2);
-              
+              const dataWithoutPrefix = typedEventLog.data.slice(2)
               try {
-                // Each parameter is 32 bytes (64 hex chars)
-                // Using BigInt for proper parsing of uint64 values
-                const nonce = BigInt("0x" + dataWithoutPrefix.slice(0, 64));
-                const messageID = "0x" + dataWithoutPrefix.slice(64, 128);
-                const weight = BigInt("0x" + dataWithoutPrefix.slice(128, 192)) || weightBigInt; // Fallback to input weight if needed
-                
+                const nonce = BigInt("0x" + dataWithoutPrefix.slice(0, 64))
+                const messageID = "0x" + dataWithoutPrefix.slice(64, 128)
+                const eventWeight = BigInt("0x" + dataWithoutPrefix.slice(128, 192)) || weightBigInt
+
                 const eventDataObj = {
-                  validationID: validationID as `0x${string}`,
+                  validationID: typedEventLog.topics[1] as `0x${string}`,
                   nonce,
                   messageID: messageID as `0x${string}`,
-                  weight
+                  weight: eventWeight
                 }
-                console.log("Extracted event data:", eventDataObj)
+                // Update local and state
                 setEventData(eventDataObj)
-                currentEventData = eventDataObj; // Store in local variable
+                localEventData = eventDataObj;
+                console.log("Saved event data:", eventDataObj)
               } catch (parseError) {
-                console.error("Error parsing event data:", parseError, {
-                  dataWithoutPrefix,
-                  dataLength: dataWithoutPrefix.length
-                });
-                // Don't set eventData if parsing fails
-                currentEventData = null; // Also ensure local variable is marked as null
+                console.error("Error parsing event data:", parseError)
+                // Clear local and state
+                setEventData(null)
+                localEventData = null;
               }
             } else {
-              console.warn("Could not find event log with topic:", eventTopic);
-              
-              // Check all logs for debugging
-              receipt.logs.forEach((log: unknown, index: number) => {
-                console.log(`Log ${index} topics:`, (log as any).topics);
-              });
+              console.warn("Could not find InitiatedValidatorWeightUpdate event log")
+              // Clear local and state
+              setEventData(null)
+              localEventData = null;
             }
           } catch (decodeError) {
             console.warn("Error decoding event data:", decodeError)
-            // Continue anyway as we'll fall back to unpacking method if needed
+            // Clear local and state
+            setEventData(null)
+            localEventData = null;
           }
-          
+
           updateStepStatus("initiateChangeWeight", "success")
         } catch (error: any) {
-          // Extract base error message if available
-          const message = error instanceof Error ? error.message : String(error);
+          const message = error instanceof Error ? error.message : String(error)
           updateStepStatus("initiateChangeWeight", "error", `Failed to initiate weight change: ${message}`)
-          setIsLoading(false)
-          showBoundary(error)
           return
         }
       }
@@ -280,28 +223,33 @@ export default function ChangeWeight() {
       if (!startFromStep || startFromStep === "signMessage") {
         updateStepStatus("signMessage", "loading")
         try {
-          if (!currentUnsignedWarpMessage || currentUnsignedWarpMessage.length === 0) { 
-            throw new Error("Warp message is empty. Please try again from the previous step.")
+          // Use local var first, fallback to state for retry
+          const warpMessageToSign = localUnsignedWarpMessage || unsignedWarpMessage;
+          if (!warpMessageToSign || warpMessageToSign.length === 0) {
+            throw new Error("Warp message is empty. Retry step 2.")
           }
-          
+
+          if (!selectedL1?.subnetId) {
+            throw new Error("No subnet ID available. Please select a valid L1 or specify a subnet ID.")
+          }
+
           const { signedMessage: signedMessageResult } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
             signatureAggregatorRequest: {
-              message: currentUnsignedWarpMessage,
-              signingSubnetId: subnetId || "",
+              message: warpMessageToSign,
+              signingSubnetId: selectedL1.subnetId,
               quorumPercentage: 67,
             },
           })
-          
-          console.log("Signed message:", signedMessageResult)
+
+          // Update local and state
           setSignedWarpMessage(signedMessageResult)
-          currentSignedWarpMessage = signedMessageResult;
+          localSignedMessage = signedMessageResult;
+          console.log("Signed message:", signedMessageResult)
           updateStepStatus("signMessage", "success")
         } catch (error: any) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message = error instanceof Error ? error.message : String(error)
           updateStepStatus("signMessage", "error", `Failed to aggregate signatures: ${message}`)
-          setIsLoading(false)
-          showBoundary(error)
           return
         }
       }
@@ -310,51 +258,27 @@ export default function ChangeWeight() {
       if (!startFromStep || startFromStep === "submitPChainTx") {
         updateStepStatus("submitPChainTx", "loading")
         try {
-          if (!currentSignedWarpMessage || currentSignedWarpMessage.length === 0) { 
-            throw new Error("Signed message is empty. Please try again from the previous step.")
+          // Use local var first, fallback to state for retry
+          const signedMessageToSubmit = localSignedMessage || signedWarpMessage;
+          if (!signedMessageToSubmit || signedMessageToSubmit.length === 0) {
+            throw new Error("Signed message is empty. Retry step 3.")
           }
-          
-          if (!publicClient) {
-            throw new Error("Wallet connection not initialized")
-          }
-          
-          const feeState = await pvmApi.getFeeState();
-          const { utxos } = await pvmApi.getUTXOs({ addresses: [pChainAddress] });
-          const pChainAddressBytes = utils.bech32ToBytes(pChainAddress)
-          
-          const changeValidatorWeightTx = pvm.e.newSetL1ValidatorWeightTx(
-            {
-              message: new Uint8Array(Buffer.from(currentSignedWarpMessage, 'hex')),
-              feeState,
-              fromAddressesBytes: [pChainAddressBytes],
-              utxos,
-            },
-            await Context.getContextFromURI(platformEndpoint),
-          )
-          
-          const changeValidatorWeightTxBytes = changeValidatorWeightTx.toBytes()
-          const changeValidatorWeightTxHex = bytesToHex(changeValidatorWeightTxBytes)
-          console.log("P-Chain transaction:", changeValidatorWeightTxHex)
 
           if (typeof window === "undefined" || !window.avalanche) {
             throw new Error("Core wallet not found")
           }
 
-          const coreTx = await window.avalanche.request({
-            method: "avalanche_sendTransaction",
-            params: {
-              transactionHex: changeValidatorWeightTxHex,
-              chainAlias: "P"  
-            }
+          // Call the new coreViem method to set validator weight on P-Chain
+          const pChainTxId = await setL1ValidatorWeight(coreWalletClient, {
+            pChainAddress: pChainAddress!,
+            signedWarpMessage: signedMessageToSubmit,
           })
-          
-          console.log("Core transaction:", coreTx)
+
+          console.log("P-Chain transaction ID:", pChainTxId)
           updateStepStatus("submitPChainTx", "success")
         } catch (error: any) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message = error instanceof Error ? error.message : String(error)
           updateStepStatus("submitPChainTx", "error", `Failed to submit P-Chain transaction: ${message}`)
-          setIsLoading(false)
-          showBoundary(error)
           return
         }
       }
@@ -363,19 +287,19 @@ export default function ChangeWeight() {
       if (!startFromStep || startFromStep === "pChainSignature") {
         updateStepStatus("pChainSignature", "loading")
         try {
-          if (!viemChain) {
-            throw new Error("Viem chain configuration is missing.")
-          }
-          if (!currentValidationID) { 
-             throw new Error("Validation ID is missing. Please ensure the first step succeeded.")
-          }
-          if (!subnetId) {
-            throw new Error("Subnet ID is missing. Please ensure the first step succeeded.")
-          }
+          // Use local vars first, fallback to state for retry
+          const validationIDForJustification = localValidationID || validationIDHex;
+          const eventDataForPacking = localEventData || eventData;
+
+          if (!viemChain) throw new Error("Viem chain configuration is missing.")
+          if (!validationIDForJustification) throw new Error("Validation ID is missing.")
+          if (!currentSubnetId) throw new Error("Subnet ID is missing.")
+          if (!eventDataForPacking) throw new Error("Event data missing. Retry step 2.")
+
           const justification = await GetRegistrationJustification(
             nodeID,
-            currentValidationID,
-            subnetId,
+            validationIDForJustification,
+            currentSubnetId,
             publicClient
           )
 
@@ -383,48 +307,45 @@ export default function ChangeWeight() {
             throw new Error("No justification logs found for this validation ID")
           }
 
-          // Simply check if event data exists
-          if (!currentEventData) {
-            throw new Error("Event data could not be extracted from transaction logs. Please restart the process.")
-          }
-          
-          console.log("Using event data from logs:", currentEventData)
-          // Convert hex validationID to Uint8Array for packing
-          const warpValidationID = hexToBytes(currentEventData.validationID);
-          const warpNonce = currentEventData.nonce;
-          const warpWeight = currentEventData.weight;
-          
+          console.log("Using event data:", eventDataForPacking)
+          const warpValidationID = hexToBytes(eventDataForPacking.validationID)
+          const warpNonce = eventDataForPacking.nonce
+          const warpWeight = eventDataForPacking.weight
+
           const changeWeightMessage = packL1ValidatorWeightMessage({
             validationID: warpValidationID,
             nonce: warpNonce,
             weight: warpWeight,
           },
             avalancheNetworkID,
-            "11111111111111111111111111111111LpoYY" //always from P-Chain (same on fuji and mainnet)
+            "11111111111111111111111111111111LpoYY"
           )
-          console.log("Change Weight Message:", changeWeightMessage)
           console.log("Change Weight Message Hex:", bytesToHex(changeWeightMessage))
           console.log("Justification:", justification)
-          
+
+          if (!selectedL1?.subnetId) {
+            throw new Error("No subnet ID available. Please select a valid L1 or specify a subnet ID.")
+          }
+
           const signature = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
             network: networkName,
             signatureAggregatorRequest: {
               message: bytesToHex(changeWeightMessage),
               justification: bytesToHex(justification),
-              signingSubnetId: subnetId || "",
+              signingSubnetId: selectedL1.subnetId,
               quorumPercentage: 67,
             },
           })
-          console.log("Signature:", signature)
+
+          // Update local and state
           setPChainSignature(signature.signedMessage)
-          currentPChainSignature = signature.signedMessage;
+          localPChainSignature = signature.signedMessage;
+          console.log("Signature:", signature)
           updateStepStatus("pChainSignature", "success")
 
         } catch (error: any) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message = error instanceof Error ? error.message : String(error)
           updateStepStatus("pChainSignature", "error", `Failed to get P-Chain warp signature: ${message}`)
-          setIsLoading(false)
-          showBoundary(error)
           return
         }
       }
@@ -433,80 +354,58 @@ export default function ChangeWeight() {
       if (!startFromStep || startFromStep === "completeChangeWeight") {
         updateStepStatus("completeChangeWeight", "loading")
         try {
-          if (!currentPChainSignature) { 
-            throw new Error("P-Chain signature is missing. Please ensure the previous step succeeded.")
+          // Use local var first, fallback to state for retry
+          const finalPChainSig = localPChainSignature || pChainSignature;
+          if (!finalPChainSig) {
+            throw new Error("P-Chain signature is missing. Retry step 5.")
           }
-          
-          const signedPChainWarpMsgBytes = hexToBytes(`0x${currentPChainSignature}`)
+
+          const signedPChainWarpMsgBytes = hexToBytes(`0x${finalPChainSig}`) // Use potentially updated local sig
           const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes)
-          
-          if (!proxyAddress) throw new Error("Proxy address is not set.");
-          if (!coreWalletClient) throw new Error("Core wallet client is not initialized.");
-          if (!publicClient) throw new Error("Public client is not initialized.");
-          if (!viemChain) throw new Error("Viem chain is not configured.");
 
-          let simulationResult;
-          try {
-            simulationResult = await publicClient.simulateContract({
-              address: proxyAddress as `0x${string}`,
-              abi: validatorManagerAbi.abi,
-              functionName: "completeValidatorWeightUpdate",
-              args: [0],
-              accessList,
-              account: coreWalletClient.account,
-              chain: viemChain
-            })
-            console.log("Simulation successful:", simulationResult)
-          } catch (simError: any) {
-            console.error("Contract simulation failed:", simError);
-            // Try to extract a more specific revert reason
-            const baseError = simError.cause || simError;
-            const reason = baseError?.shortMessage || simError.message || "Simulation failed, reason unknown.";
-            throw new Error(`Contract simulation failed: ${reason}`);
-          }
-          
-          console.log("Simulation request:", simulationResult.request)
+          if (!manualProxyAddress) throw new Error("Proxy address is not set.")
+          if (!coreWalletClient) throw new Error("Core wallet client is not initialized.")
+          if (!publicClient) throw new Error("Public client is not initialized.")
+          if (!viemChain) throw new Error("Viem chain is not configured.")
 
-          let txHash;
-          try {
-             txHash = await coreWalletClient.writeContract(simulationResult.request)
-             console.log("Transaction sent:", txHash)
-          } catch (writeError: any) {
-             console.error("Contract write failed:", writeError);
-             const baseError = writeError.cause || writeError;
-             const reason = baseError?.shortMessage || writeError.message || "Transaction submission failed, reason unknown.";
-             throw new Error(`Submitting transaction failed: ${reason}`);
-          }
 
-          let receipt;
+          const hash = await coreWalletClient.writeContract({
+            address: manualProxyAddress as `0x${string}`,
+            abi: validatorManagerAbi.abi,
+            functionName: "completeValidatorWeightUpdate",
+            args: [0],
+            accessList,
+            account: coreWalletClient.account,
+            chain: viemChain
+          })
+          console.log("Transaction sent:", hash)
+
+          let receipt
           try {
-            receipt = await publicClient.waitForTransactionReceipt({ hash: txHash })
+            receipt = await publicClient.waitForTransactionReceipt({ hash })
             console.log("Transaction receipt:", receipt)
             if (receipt.status !== 'success') {
-               throw new Error(`Transaction failed with status: ${receipt.status}`);
+              throw new Error(`Transaction failed with status: ${receipt.status}`)
             }
           } catch (receiptError: any) {
-             console.error("Failed to get transaction receipt:", receiptError);
-             throw new Error(`Failed waiting for transaction receipt: ${receiptError.message}`);
+            console.error("Failed to get transaction receipt:", receiptError)
+            throw new Error(`Failed waiting for transaction receipt: ${receiptError.message}`)
           }
-          
+
           updateStepStatus("completeChangeWeight", "success")
-          setSuccess(`Validator ${nodeID} weight has been changed to ${weight} successfully.`)
-          setIsProcessComplete(true)
+          completeProcessing(`Validator ${nodeID} weight changed to ${weight}.`)
+
         } catch (error: any) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message = error instanceof Error ? error.message : String(error)
           updateStepStatus("completeChangeWeight", "error", message)
-          setIsLoading(false)
           return
         }
       }
-        
+
     } catch (err: any) {
       setError(`Failed to change validator weight: ${err.message}`)
       console.error(err)
       showBoundary(err)
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -575,12 +474,35 @@ export default function ChangeWeight() {
           <p className="text-xs text-zinc-500 dark:text-zinc-400">Enter the new weight for this validator</p>
         </div>
 
+        <div className="space-y-2">
+          <EVMAddressInput
+            label="Proxy Address"
+            value={manualProxyAddress}
+            onChange={setManualProxyAddress}
+            disabled={isProcessing}
+          />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Override the current proxy address ({manualProxyAddress?.substring(0, 10)}... or leave empty to use default)
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <SelectSubnetId
+            value={currentSubnetId}
+            onChange={setCurrentSubnetId}
+            error={null}
+          />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Select a subnet ID (defaults to subnet from Create Subnet tool if available)
+          </p>
+        </div>
+
         {!isProcessing && (
           <Button
             onClick={() => handleChangeWeight()}
-            disabled={isLoading || !nodeID || !weight}
+            disabled={isProcessing || !nodeID || !weight}
           >
-            {isLoading ? "Changing Weight..." : "Change Weight"}
+            {"Change Weight"}
           </Button>
         )}
 
@@ -590,7 +512,7 @@ export default function ChangeWeight() {
               <h3 className="font-medium text-sm text-zinc-800 dark:text-zinc-200">Change Weight Progress</h3>
               {isProcessComplete && (
                 <button
-                  onClick={resetChangeWeight}
+                  onClick={resetSteps}
                   className="text-xs px-2 py-1 bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 rounded transition-colors"
                 >
                   Start New Change
@@ -598,57 +520,20 @@ export default function ChangeWeight() {
               )}
             </div>
 
-            <StepIndicator
-              status={changeWeightSteps.getValidationID.status}
-              label="Get Validation ID"
-              error={changeWeightSteps.getValidationID.error}
-              onRetry={retryStep}
-              stepKey="getValidationID"
-            />
-
-            <StepIndicator
-              status={changeWeightSteps.initiateChangeWeight.status}
-              label="Initiate Weight Change"
-              error={changeWeightSteps.initiateChangeWeight.error}
-              onRetry={retryStep}
-              stepKey="initiateChangeWeight"
-            />
-
-            <StepIndicator
-              status={changeWeightSteps.signMessage.status}
-              label="Aggregate Signatures for Warp Message"
-              error={changeWeightSteps.signMessage.error}
-              onRetry={retryStep}
-              stepKey="signMessage"
-            />
-
-            <StepIndicator
-              status={changeWeightSteps.submitPChainTx.status}
-              label="Change Validator Weight on P-Chain"
-              error={changeWeightSteps.submitPChainTx.error}
-              onRetry={retryStep}
-              stepKey="submitPChainTx"
-            />
-
-            <StepIndicator
-              status={changeWeightSteps.pChainSignature.status}
-              label="Aggregate Signatures for P-Chain Warp Message"
-              error={changeWeightSteps.pChainSignature.error}
-              onRetry={retryStep}
-              stepKey="pChainSignature"
-            />
-
-            <StepIndicator
-              status={changeWeightSteps.completeChangeWeight.status}
-              label="Complete Weight Change"
-              error={changeWeightSteps.completeChangeWeight.error}
-              onRetry={retryStep}
-              stepKey="completeChangeWeight"
-            />
+            {stepKeys.map((stepKey) => (
+              <StepIndicator
+                key={stepKey}
+                status={steps[stepKey].status}
+                label={config[stepKey]}
+                error={steps[stepKey].error}
+                onRetry={() => handleRetry(stepKey, handleChangeWeight)}
+                stepKey={stepKey}
+              />
+            ))}
 
             {!isProcessComplete && (
               <Button
-                onClick={resetChangeWeight}
+                onClick={resetSteps}
                 className="mt-4 w-full py-2 px-4 rounded-md text-sm font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
               >
                 Cancel Weight Change

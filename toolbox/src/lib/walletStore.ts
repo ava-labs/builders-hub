@@ -1,0 +1,73 @@
+import { create } from 'zustand'
+import { combine } from 'zustand/middleware'
+import { networkIDs } from "@avalabs/avalanchejs";
+import { createCoreWalletClient } from '../coreViem';
+import { createPublicClient, custom, http } from 'viem';
+import { avalancheFuji } from 'viem/chains';
+import { zeroAddress } from 'viem';
+import { getPChainBalance } from '../coreViem/utils/glacier';
+import debounce from 'debounce';
+
+export const useWalletStore = create(
+    combine({
+        coreWalletClient: createCoreWalletClient(zeroAddress) as ReturnType<typeof createCoreWalletClient>,
+        publicClient: createPublicClient({
+            transport: typeof window !== 'undefined' && window.avalanche ? custom(window.avalanche) : http(avalancheFuji.rpcUrls.default.http[0]),
+        }) as ReturnType<typeof createPublicClient>,
+        walletChainId: 0,
+        walletEVMAddress: "",
+        avalancheNetworkID: networkIDs.FujiID as typeof networkIDs.FujiID | typeof networkIDs.MainnetID,
+        pChainAddress: "",
+        coreEthAddress: "",
+        isTestnet: undefined as boolean | undefined,//Even though it can be undefined, the components will never use it as undefined
+        evmChainName: "",
+        // cChainBalance: 0,
+        pChainBalance: 0,
+        l1Balance: 0,
+    }, (set, get) => {
+        // Create actual update functions
+        const _updatePChainBalance = async () => {
+            let newBalance = 0;
+            try {
+                const response = await getPChainBalance(get().isTestnet ? "testnet" : "mainnet", get().pChainAddress);
+                console.log(response);
+                newBalance = Number(response.balances.unlockedUnstaked[0].amount) / 1e9;
+            } finally {
+                set({ pChainBalance: newBalance });
+            }
+        };
+
+        const _updateL1Balance = async () => {
+            let newBalance = 0;
+            try {
+                const l1Balance = await get().publicClient.getBalance({
+                    address: get().walletEVMAddress as `0x${string}`,
+                });
+                newBalance = Number(l1Balance) / 1e18;
+            } finally {
+                set({ l1Balance: newBalance });
+            }
+        };
+
+        // Create debounced versions (500ms wait time)
+        const debouncedUpdatePChainBalance = debounce(_updatePChainBalance, 500);
+        const debouncedUpdateL1Balance = debounce(_updateL1Balance, 500);
+
+        return {
+            setCoreWalletClient: (coreWalletClient: ReturnType<typeof createCoreWalletClient>) => set({ coreWalletClient }),
+            setWalletChainId: (walletChainId: number) => set({ walletChainId }),
+            setWalletEVMAddress: (walletEVMAddress: string) => set({ walletEVMAddress }),
+            setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => set({ avalancheNetworkID }),
+            setPChainAddress: (pChainAddress: string) => set({ pChainAddress }),
+            setCoreEthAddress: (coreEthAddress: string) => set({ coreEthAddress }),
+            setIsTestnet: (isTestnet: boolean) => set({ isTestnet }),
+            setEvmChainName: (evmChainName: string) => set({ evmChainName }),
+            updatePChainBalance: () => debouncedUpdatePChainBalance(),
+            updateL1Balance: () => debouncedUpdateL1Balance(),
+            updateAllBalances: async () => {
+                debouncedUpdatePChainBalance();
+                debouncedUpdateL1Balance();
+            }
+        }
+    })
+)

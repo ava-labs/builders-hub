@@ -23,14 +23,14 @@ export async function GET(req: NextRequest, context: any) {
   }
 }
 
-export async function PUT(req: NextRequest) {
+export async function PUT(req: NextRequest, context: any) {
   try {
     if (req.headers.get("x-api-key") != env.APIKEY)
       throw new Error('Unauthorized')
-    const id = req.nextUrl.searchParams.get('id')!;
+    const { id } = await context.params;
     const partialEditedHackathon = (await req.json()) as Partial<HackathonHeader>;
 
-    const updatedHackathon = await updateHackathon(id ?? partialEditedHackathon.id, partialEditedHackathon);
+    const updatedHackathon = await updateHackathon(partialEditedHackathon.id ?? id, partialEditedHackathon);
 
     return NextResponse.json(updatedHackathon);
   } catch (error) {

@@ -1,0 +1,68 @@
+---
+title: Parallel Markets
+category: KYC / Identity Verification
+available: ["C-Chain"]
+description: Parallel Markets provides comprehensive KYC/AML solutions with a portable identity system ideal for crypto platforms implementing txAllowlist precompiles.
+logo: /images/parallel-markets.png
+developer: Parallel Markets
+website: https://parallelmarkets.com/
+documentation: https://developer.parallelmarkets.com/
+---
+
+## Overview
+
+Parallel Markets offers a suite of streamlined identity verification and compliance solutions designed for financial institutions and blockchain platforms. Their innovative KYC (Know Your Customer) and AML (Anti-Money Laundering) tools verify user identities without the traditional friction in onboarding processes. For blockchain applications implementing txAllowlist precompiles, Parallel Markets provides a portable identity solution that enables users to verify once and access multiple platforms, creating a seamless experience while maintaining robust compliance.
+
+## Features
+
+- **Portable Identity Verification**: Users can complete KYC verification once and reuse their verified credentials across platforms in the Parallel Markets ecosystem.
+- **Comprehensive KYC/AML Screening**: Automated verification against global sanctions lists, PEP (Politically Exposed Persons) databases, and adverse media sources.
+- **Business Verification (KYB)**: Verify corporate entities, map beneficial ownership structures, and perform due diligence checks for institutional users.
+- **No-Code Integration**: Implement identity verification with minimal development resources through their JavaScript SDK or API integration.
+- **Real-Time Monitoring**: Continuous monitoring of user profiles for changes in risk status or sanctions exposure.
+- **Customizable Verification Flows**: Design verification journeys specific to your platform's risk profile and regulatory requirements.
+- **Dashboard Analytics**: Access verification results and monitor compliance metrics through a unified dashboard.
+
+## Getting Started
+
+To integrate Parallel Markets into your Avalanche-based application with txAllowlist precompiles, follow these steps:
+
+1. **Account Setup**: Contact Parallel Markets to create an account and obtain API credentials.
+2. **Integration Planning**: Choose between JavaScript SDK for frontend integration or direct API calls from your backend.
+3. **Configure Verification Flow**: Set up your verification requirements based on your compliance needs.
+4. **Implementation**: Follow the [documentation](https://developer.parallelmarkets.com/) to add the verification flow to your application.
+5. **Testing**: Verify the integration in a sandbox environment before going live.
+6. **Verification-to-Allowlist Mapping**: Connect user verification status to your txAllowlist management to ensure only verified users can transact.
+
+## Integration with txAllowlist
+
+Parallel Markets is particularly well-suited for platforms implementing txAllowlist precompiles because:
+
+1. **Streamlined Allowlisting**: When a user completes verification through Parallel Markets, your application can automatically add their wallet address to the txAllowlist.
+2. **Verification Status Monitoring**: If a user's compliance status changes (e.g., they appear on a sanctions list), your application can receive webhook notifications and remove their address from the allowlist.
+3. **Programmatic Control**: The API-driven approach allows for complete automation of the allowlist management based on identity verification results.
+4. **Reduced Onboarding Friction**: Users who have already verified with another platform in the Parallel Markets ecosystem can be fast-tracked through your verification process.
+
+## Documentation
+
+Comprehensive integration guides and API documentation are available in the [Parallel Markets Developer Documentation](https://developer.parallelmarkets.com/). The documentation includes details on:
+
+- JavaScript SDK implementation
+- Server-side API integration
+- Webhook setup for status notifications
+- Testing and sandbox environments
+- Handling verification results
+
+## Use Cases
+
+Parallel Markets' identity verification solutions are ideal for various Avalanche-based applications:
+
+- **Permissioned DeFi Protocols**: Ensure participants in lending or trading pools meet regulatory requirements.
+- **Tokenized Securities**: Verify investor accreditation status and identity for compliant security token offerings.
+- **Enterprise Blockchains**: Create permissioned networks with verified corporate and individual participants.
+- **Regulated Exchanges**: Build compliant DEXs that satisfy regulatory requirements while maintaining a good user experience.
+- **Cross-Chain Applications**: Apply consistent compliance standards across multiple blockchain networks.
+
+## Conclusion
+
+Parallel Markets offers a powerful solution for blockchain platforms looking to implement identity verification alongside txAllowlist precompiles. By providing a portable, user-friendly verification system that maintains high compliance standards, Parallel Markets enables platforms to create secure, regulated environments without sacrificing the user experience. The combination of their verification tools with Avalanche's txAllowlist functionality creates a comprehensive solution for building compliant blockchain applications. 

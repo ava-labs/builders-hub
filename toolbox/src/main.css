@@ -1,0 +1,41 @@
+.shimmer {
+    position: relative;
+    overflow: hidden;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -100% 0;
+    }
+
+    30% {
+        background-position: 200% 0;
+    }
+
+    /* Pause for the remaining 70% of the animation time */
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.shimmer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    background: linear-gradient(110deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0) 42%,
+            rgba(255, 255, 255, 0.7) 48%,
+            rgba(255, 255, 255, 1) 50%,
+            rgba(255, 255, 255, 0.7) 52%,
+            rgba(255, 255, 255, 0) 58%,
+            rgba(255, 255, 255, 0) 100%);
+    background-size: 200% 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 3.5s infinite linear;
+    pointer-events: none;
+}

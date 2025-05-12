@@ -1,21 +1,21 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   getFilteredHackathons,
   getHackathon,
-} from '@/server/services/hackathons';
-import Image from 'next/image';
-import { NavigationMenu } from '@/components/hackathons/NavigationMenu';
-import Schedule from '@/components/hackathons/hackathon/sections/Schedule';
-import Tracks from '@/components/hackathons/hackathon/sections/Tracks';
-import Sponsors from '@/components/hackathons/hackathon/sections/Sponsors';
-import Submission from '@/components/hackathons/hackathon/sections/Submission';
-import Resources from '@/components/hackathons/hackathon/sections/Resources';
-import Community from '@/components/hackathons/hackathon/sections/Community';
-import MentorsJudges from '@/components/hackathons/hackathon/sections/MentorsJudges';
-import OverviewBanner from '@/components/hackathons/hackathon/sections/OverviewBanner';
+} from "@/server/services/hackathons";
+import Image from "next/image";
+import { NavigationMenu } from "@/components/hackathons/NavigationMenu";
+import Schedule from "@/components/hackathons/hackathon/sections/Schedule";
+import Tracks from "@/components/hackathons/hackathon/sections/Tracks";
+import Sponsors from "@/components/hackathons/hackathon/sections/Sponsors";
+import Submission from "@/components/hackathons/hackathon/sections/Submission";
+import Resources from "@/components/hackathons/hackathon/sections/Resources";
+import Community from "@/components/hackathons/hackathon/sections/Community";
+import MentorsJudges from "@/components/hackathons/hackathon/sections/MentorsJudges";
+import OverviewBanner from "@/components/hackathons/hackathon/sections/OverviewBanner";
 export const revalidate = 60;
 export const dynamicParams = true;
 
@@ -35,68 +35,77 @@ export default async function HackathonPage({
   const hackathon = await getHackathon(id);
 
   const menuItems = [
-    { name: 'Prizes & Tracks', ref: 'tracks' },
-    { name: 'Resources', ref: 'resources' },
-    { name: 'Schedule', ref: 'schedule' },
-    { name: 'Submission', ref: 'submission' },
-    { name: 'Mentors & Judges', ref: 'speakers' },
-    { name: 'Partners', ref: 'sponsors' },
+    { name: "Prizes & Tracks", ref: "tracks" },
+    { name: "Resources", ref: "resources" },
+    { name: "Schedule", ref: "schedule" },
+    { name: "Submission", ref: "submission" },
+    { name: "Mentors & Judges", ref: "speakers" },
+    { name: "Partners", ref: "sponsors" },
   ];
 
-  if (!hackathon) redirect('/hackathons');
+  if (!hackathon) redirect("/hackathons");
 
   return (
-    <main className='container sm:px-2 py-4 lg:py-16'>
-      <div className='pl-4 flex gap-4 items-center'>
+    <main className="container sm:px-2 py-4 lg:py-16">
+      <div className="pl-4 flex gap-4 items-center">
         <Image
-          src={hackathon.icon}
-          alt='Hackathon background'
+          src={
+            hackathon.icon.trim().length > 0
+              ? hackathon.icon
+              : "/hackathon-images/project-logo.png"
+          }
+          alt="Hackathon background"
           width={40}
           height={40}
         />
-        <span className='text-sm sm:text-xl font-bold'>{hackathon.title}</span>{' '}
+        <span className="text-sm sm:text-xl font-bold">{hackathon.title}</span>{" "}
         <Button
-          asChild variant='red'
-          className='w-2/5 md:w-1/3 lg:w-1/4 cursor-pointer'
+          asChild
+          variant="red"
+          className="w-2/5 md:w-1/3 lg:w-1/4 cursor-pointer"
         >
           <Link
             href={
               hackathon.content.join_custom_link
                 ? hackathon.content.join_custom_link
-                : `/hackathons/registration-form?hackaId=${id}`
+                : `/hackathons/registration-form?hackathon=${id}`
             }
-            target={hackathon.content.join_custom_link ? '_blank' : '_self'}
+            target={hackathon.content.join_custom_link ? "_blank" : "_self"}
           >
-            {hackathon.content.join_custom_text ?? 'Join now'}
+            {hackathon.content.join_custom_text ?? "Join now"}
           </Link>
         </Button>
       </div>
-      <div className='p-4 flex flex-col gap-24'>
+      <div className="p-4 flex flex-col gap-24">
         <NavigationMenu items={menuItems} />
       </div>
-      <div className='flex flex-col mt-2 '>
-        <div className='sm:px-8 pt-6 '>
-          <div className='sm:block relative w-full'>
-            <OverviewBanner hackathon={hackathon} id={id} />
+      <div className="flex flex-col mt-2 ">
+        <div className="sm:px-8 pt-6 ">
+          <div className="sm:block relative w-full">
+            <OverviewBanner hackathon={hackathon} id={id} isTopMost={false} />
             <Link
               href={
                 hackathon.content.join_custom_link
                   ? hackathon.content.join_custom_link
-                  : `/hackathons/registration-form?hackaId=${id}`
+                  : `/hackathons/registration-form?hackathon=${id}`
               }
-              target={hackathon.content.join_custom_link ? '_blank' : '_self'}
+              target={hackathon.content.join_custom_link ? "_blank" : "_self"}
             >
               <Image
-                src={hackathon.banner}
-                alt='Hackathon background'
+                src={
+                  hackathon.banner?.trim().length > 0
+                    ? hackathon.banner
+                    : "/hackathon-images/main_banner_img.png"
+                }
+                alt="Hackathon background"
                 width={1270}
                 height={760}
-                className='w-full h-full'
+                className="w-full h-full"
                 priority
               />
             </Link>
           </div>
-          <div className='py-8 sm:p-8 flex flex-col gap-20'>
+          <div className="py-8 sm:p-8 flex flex-col gap-20">
             {hackathon.content.tracks && <Tracks hackathon={hackathon} />}
             <Resources hackathon={hackathon} />
             {hackathon.content.schedule && <Schedule hackathon={hackathon} />}
@@ -105,7 +114,9 @@ export default async function HackathonPage({
               <MentorsJudges hackathon={hackathon} />
             )}
             <Community hackathon={hackathon} />
-            {hackathon.content.partners && <Sponsors hackathon={hackathon} />}
+            {hackathon.content.partners?.length > 0 && (
+              <Sponsors hackathon={hackathon} />
+            )}
           </div>
         </div>
       </div>

@@ -135,12 +135,6 @@ export function AcademyDropdown() {
       url: "https://academy.avax.network/course/avalanche-fundamentals",
     },
     {
-      title: "Multi-Chain Architecture",
-      description: "Deploy your own blockchain with multi-chain architecture.",
-      icon: <SquareStackIcon className="w-5 h-5" />,
-      url: "https://academy.avax.network/course/multi-chain-architecture",
-    },
-    {
       title: "Interchain Messaging",
       description: "Build cross-chain dApps on Avalanche.",
       icon: <MailIcon className="w-5 h-5" />,

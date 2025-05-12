@@ -1,0 +1,22 @@
+---
+title: Create a Subnet
+description: Learn how to create a record for a Subnet on the P-Chain by issuing a CreateSubnetTx transaction with the Builder Tooling.
+updated: 2025-03-13
+authors: [owenwahlgren]
+icon: SquareMousePointer
+---
+
+Now that you have Core wallet set up and some AVAX on the P-Chain you can create a Subnet. You will
+do this by issuing a `CreateSubnetTx` transaction. This will create a Subnet that is uniquely
+identified by the transaction hash of the `CreateSubnetTx` transaction.
+
+The `CreateSubnetTx` transaction only has a single parameter: The owner of the Subnet. The owner can
+add blockchains to the Subnet and convert it to an L1. With the conversion to an L1 the owner will loose it's
+privileges. Therefore, the owner is only relevant during the creation time and does not have to be
+secured by a mulit-sig if a immediate conversion to an L1 is planned. We will just use your P-Chain
+address as the owner.
+
+<ToolboxMdxWrapper>
+    <CreateSubnet />
+</ToolboxMdxWrapper>
+

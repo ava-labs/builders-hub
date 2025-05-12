@@ -87,7 +87,7 @@ export function TimeZoneSelect({ timeZone, setTimeZone }: Props) {
         </PopoverTrigger>
         <PopoverContent className="p-0 bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
           <Command className="w-full">
-            <CommandInput placeholder="Search framework..." />
+            <CommandInput placeholder="Search time zone..." />
             <CommandList>
               <CommandEmpty>No time zone found.</CommandEmpty>
               <CommandGroup>

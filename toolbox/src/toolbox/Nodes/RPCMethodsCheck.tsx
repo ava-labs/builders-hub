@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Button } from "../../components/Button";
 import { createPublicClient, http } from 'viem';
 import { useErrorBoundary } from "react-error-boundary";
-import { useToolboxStore } from "../toolboxStore";
 import { pvm } from '@avalabs/avalanchejs';
 import { RPCURLInput } from "../components/RPCURLInput";
 import { useWalletStore } from "../../lib/walletStore";
@@ -238,10 +237,7 @@ const isInExtBcFormat = (rpcUrl: string) => {
 };
 
 export default function RPCMethodsCheck() {
-    const {
-        evmChainRpcUrl,
-        setEvmChainRpcUrl
-    } = useToolboxStore();
+    const [evmChainRpcUrl, setEvmChainRpcUrl] = useState<string>("");
     const { pChainAddress, walletEVMAddress } = useWalletStore();
 
     const { showBoundary } = useErrorBoundary();

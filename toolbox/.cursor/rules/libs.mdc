@@ -1,0 +1,24 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- icons: lucid-react
+- ui: @radix-ui/react-*
+
+Use buttons from src/components/Button.tsx
+If you do a button next to input, pass it like this
+```
+<Input
+                    value={poaOwnerAddress}
+                    onChange={setPoaOwnerAddress}
+                    button={<Button
+                        onClick={() => setPoaOwnerAddress(walletEVMAddress)}
+                        stickLeft
+                    >
+                        Fill from Wallet
+                    </Button>}
+                />
+```
+
+Actively use error property of an input to show errors.  

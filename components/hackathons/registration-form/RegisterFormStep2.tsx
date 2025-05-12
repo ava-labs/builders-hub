@@ -22,13 +22,12 @@ import { Check } from "lucide-react";
 export function RegisterFormStep2() {
   const form = useFormContext<RegisterFormValues>();
 
-
   const web3ProficiencyOptions = [
-    { value: "1", label: "Amateur" },
+    { value: "1", label: "1" },
     { value: "2", label: "2" },
     { value: "3", label: "3" },
     { value: "4", label: "4" },
-    { value: "5", label: "Expert" },
+    { value: "5", label: "5" },
   ];
 
   const roleOptions = [
@@ -66,7 +65,6 @@ export function RegisterFormStep2() {
   const hackathonParticipationOptions = [
     { value: "yes", label: "Yes" },
     { value: "no", label: "No" },
-    { value: "firstTime", label: "First Time" },
   ];
 
   const formatSelectedValues = (values: string[] | undefined) => {
@@ -81,7 +79,7 @@ export function RegisterFormStep2() {
           Step 2: Experience & Skills
         </h3>
         <p className="text-zinc-600">
-          Share your skills and expertise to tailor your experience on Builders
+          Share your skills and expertise to tailor your experience on Builder
           Hub.
         </p>
         <div className="w-full h-px bg-zinc-300 mt-2" />
@@ -304,7 +302,9 @@ export function RegisterFormStep2() {
                 >
                   <FormControl>
                     <SelectTrigger className="text-zinc-600">
-                      <SelectValue placeholder={formatSelectedValues(field.value)}> 
+                      <SelectValue
+                        placeholder={formatSelectedValues(field.value)}
+                      >
                         {formatSelectedValues(field.value)}
                       </SelectValue>
                     </SelectTrigger>
@@ -334,19 +334,7 @@ export function RegisterFormStep2() {
             )}
           />
 
-          <div className="space-y-6">
-            <div className="w-full h-px bg-zinc-300" />
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">
-                Hackathon Participation
-              </h3>
-              <FormMessage className="text-zinc-600">
-                Tell us about your hackathon experience to help us customize
-                your journey on Builders Hub.
-              </FormMessage>
-            </div>
-            <div className="w-full h-px bg-zinc-300" />
-          </div>
+          <div className="w-full h-px bg-zinc-300" />
 
           <FormField
             control={form.control}
@@ -387,11 +375,9 @@ export function RegisterFormStep2() {
                 <FormControl>
                   <div className="relative">
                     <Input
-                      
                       placeholder="Enter your GitHub or Portfolio link"
                       {...field}
                       className="bg-transparent placeholder-zinc-600 pr-10"
-                   
                     />
                     <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-600">
                       🔗
@@ -400,6 +386,29 @@ export function RegisterFormStep2() {
                 </FormControl>
                 <FormMessage className="text-zinc-600">
                   Provide a link to showcase your past work.
+                </FormMessage>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="telegram_user"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Telegram User</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Input
+                      placeholder="Enter your Telegram user without the @"
+                      {...field}
+                      className="bg-transparent placeholder-zinc-600 pr-10"
+                    />
+                   
+                  </div>
+                </FormControl>
+                <FormMessage className="text-zinc-600">
+                  We can be in touch through telegram.
                 </FormMessage>
               </FormItem>
             )}

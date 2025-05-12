@@ -1,111 +1,79 @@
 "use client";
 
 import ERC20TokenRemote from "../../../contracts/icm-contracts/compiled/ERC20TokenRemote.json";
-import { useToolboxStore, useViemChainStore, type DeployOn } from "../toolboxStore";
+import { useSelectedL1, useToolboxStore, useViemChainStore, getToolboxStore, useL1ByChainId } from "../toolboxStore";
 import { useWalletStore } from "../../lib/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import { Input } from "../../components/Input";
-import { avalancheFuji } from "viem/chains";
-import { RadioGroup } from "../../components/RadioGroup";
+import { EVMAddressInput } from "../components/EVMAddressInput";
 import { createPublicClient, http } from "viem";
-import { RequireChainToolbox } from "../components/RequireChainToolboxL1";
 import { Note } from "../../components/Note";
 import { utils } from "@avalabs/avalanchejs";
 import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import ExampleERC20 from "../../../contracts/icm-contracts/compiled/ExampleERC20.json";
-
-const C_CHAIN_TELEPORTER_REGISTRY_ADDRESS = "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228";
-export const FUJI_C_BLOCKCHAIN_ID = "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp";
-
-// Solidity pseudocode for reference
-
-// struct TokenRemoteSettings {
-//     address teleporterRegistryAddress;
-//     address teleporterManager;
-//     uint256 minTeleporterVersion;
-//     bytes32 tokenHomeBlockchainID;
-//     address tokenHomeAddress;
-//     uint8 tokenHomeDecimals;
-// }
-
-// struct TeleporterFeeInfo {
-//     address feeTokenAddress;
-//     uint256 amount;
-// }
-
-// contract ExampleToken {
-//     constructor(
-//         TokenRemoteSettings memory settings,
-//         string memory tokenName,
-//         string memory tokenSymbol,
-//         uint8 tokenDecimals
-//     ) {
-//     }
-
-//     function registerWithHome(TeleporterFeeInfo memory feeInfo) public {
-//     }
-// }
-
+import SelectChainID from "../components/SelectChainID";
 
 export default function DeployERC20TokenRemote() {
     const { showBoundary } = useErrorBoundary();
     const {
         teleporterRegistryAddress,
-        erc20TokenHomeAddress,
+        setTeleporterRegistryAddress,
         erc20TokenRemoteAddress,
         setErc20TokenRemoteAddress,
-        setErc20TokenHomeAddress,
-        setTeleporterRegistryAddress,
-        chainID,
-        setChainID
     } = useToolboxStore();
     const { coreWalletClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
+    const selectedL1 = useSelectedL1()();
     const [isDeploying, setIsDeploying] = useState(false);
-    const [deployOn, setDeployOn] = useState<DeployOn>("L1");
+    const [sourceChainId, setSourceChainId] = useState<string>("");
     const [teleporterManager, setTeleporterManager] = useState(walletEVMAddress);
     const [localError, setLocalError] = useState("");
     const [tokenName, setTokenName] = useState("");
     const [tokenSymbol, setTokenSymbol] = useState("");
     const [tokenDecimals, setTokenDecimals] = useState("0");
     const [minTeleporterVersion, setMinTeleporterVersion] = useState("1");
+    const [tokenHomeAddress, setTokenHomeAddress] = useState("");
 
-    const deployOnReversed = useMemo(() => {
-        return deployOn === "L1" ? "C-Chain" : "L1";
-    }, [deployOn]);
-
-    const deployOnOptions = [
-        { label: "L1", value: "L1" },
-        { label: "C-Chain", value: "C-Chain" }
-    ];
+    const sourceL1 = useL1ByChainId(sourceChainId)();
+    const sourceToolboxStore = getToolboxStore(sourceChainId)();
 
     const tokenHomeBlockchainIDHex = useMemo(() => {
-        let chainIDBase58 = deployOn === "L1" ? FUJI_C_BLOCKCHAIN_ID : chainID;
-        return utils.bufferToHex(utils.base58check.decode(chainIDBase58));
-    }, [deployOn, chainID]);
+        if (!sourceL1?.id) return undefined;
+        try {
+            return utils.bufferToHex(utils.base58check.decode(sourceL1.id));
+        } catch (e) {
+            console.error("Error decoding source chain ID:", e);
+            return undefined;
+        }
+    }, [sourceL1?.id]);
+
+    let sourceChainError: string | undefined = undefined;
+    if (!sourceChainId) {
+        sourceChainError = "Please select a source chain";
+    } else if (selectedL1?.id === sourceChainId) {
+        sourceChainError = "Source and destination chains must be different";
+    }
 
     //Updates token decimals
     useEffect(() => {
-        const fetchTokenDecimals = async () => {
+        const fetchTokenDetails = async () => {
             try {
                 setLocalError("");
                 setTokenDecimals("0");
                 setTokenName("loading...");
                 setTokenSymbol("loading...");
 
-                const sourceChain = deployOnReversed === "L1" ? viemChain : avalancheFuji;
-                if (!sourceChain) return;
+                if (!sourceL1?.rpcUrl || !sourceToolboxStore.erc20TokenHomeAddress) return;
 
                 const publicClient = createPublicClient({
-                    chain: sourceChain,
-                    transport: http(sourceChain.rpcUrls.default.http[0])
+                    transport: http(sourceL1.rpcUrl)
                 });
 
                 const tokenAddress = await publicClient.readContract({
-                    address: erc20TokenHomeAddress[deployOnReversed] as `0x${string}`,
+                    address: sourceToolboxStore.erc20TokenHomeAddress as `0x${string}`,
                     abi: ERC20TokenHomeABI.abi,
                     functionName: "getTokenAddress"
                 });
@@ -114,71 +82,66 @@ export default function DeployERC20TokenRemote() {
                     abi: ExampleERC20.abi,
                     functionName: "decimals"
                 });
-                const tokenName = await publicClient.readContract({
+                const name = await publicClient.readContract({
                     address: tokenAddress as `0x${string}`,
                     abi: ExampleERC20.abi,
                     functionName: "name"
                 });
-                const tokenSymbol = await publicClient.readContract({
+                const symbol = await publicClient.readContract({
                     address: tokenAddress as `0x${string}`,
                     abi: ExampleERC20.abi,
                     functionName: "symbol"
                 });
 
                 setTokenDecimals(String(decimals));
-                setTokenName(tokenName as string);
-                setTokenSymbol(tokenSymbol as string);
+                setTokenName(name as string);
+                setTokenSymbol(symbol as string);
             } catch (error: any) {
                 console.error(error);
-                setLocalError("Fetching token decimals failed: " + error.message);
+                setLocalError("Fetching token details failed: " + error.message);
             }
         };
 
-        fetchTokenDecimals();
-    }, [deployOnReversed, erc20TokenHomeAddress, viemChain]);
+        fetchTokenDetails();
+    }, [sourceChainId, sourceL1?.rpcUrl, sourceToolboxStore.erc20TokenHomeAddress]);
 
-    const requiredChain = deployOn === "L1" ? viemChain : avalancheFuji;
+    // Update tokenHomeAddress when sourceToolboxStore.erc20TokenHomeAddress changes
+    useEffect(() => {
+        setTokenHomeAddress(sourceToolboxStore.erc20TokenHomeAddress || "");
+    }, [sourceToolboxStore.erc20TokenHomeAddress]);
 
     async function handleDeploy() {
-        setLocalError(""); // Clear previous errors
-
+        setLocalError("");
         setIsDeploying(true);
+
         try {
-            // Re-check requiredChain just in case, though button should prevent this state
-            if (!requiredChain) {
-                throw new Error("Required chain configuration is missing.");
+            if (!viemChain || !selectedL1) {
+                throw new Error("Destination chain configuration is missing.");
             }
 
-            // Re-fetch values needed for args, ensuring they are available
-            const homeAddress = erc20TokenHomeAddress?.[deployOnReversed];
-            const registryAddress = deployOn === "L1" ? teleporterRegistryAddress : C_CHAIN_TELEPORTER_REGISTRY_ADDRESS;
+            const homeAddress = sourceToolboxStore.erc20TokenHomeAddress;
 
-            // Double check critical values before proceeding
-            if (!homeAddress || !registryAddress || !tokenHomeBlockchainIDHex || tokenDecimals === "0" || !tokenName || !tokenSymbol) {
-                throw new Error("Critical deployment parameters missing or invalid despite button being enabled. Please refresh and try again.");
+            if (!homeAddress || !teleporterRegistryAddress || !tokenHomeBlockchainIDHex ||
+                tokenDecimals === "0" || !tokenName || !tokenSymbol) {
+                throw new Error("Critical deployment parameters missing or invalid.");
             }
 
             const publicClient = createPublicClient({
-                chain: requiredChain,
-                transport: http(requiredChain.rpcUrls.default.http[0])
+                chain: viemChain,
+                transport: http(viemChain.rpcUrls.default.http[0])
             });
 
-            // Construct arguments for the contract constructor
             const constructorArgs = [
-                // 1. settings (struct)
                 {
-                    teleporterRegistryAddress: registryAddress as `0x${string}`,
+                    teleporterRegistryAddress: teleporterRegistryAddress as `0x${string}`,
                     teleporterManager: teleporterManager || coreWalletClient.account.address,
                     minTeleporterVersion: BigInt(minTeleporterVersion),
                     tokenHomeBlockchainID: tokenHomeBlockchainIDHex as `0x${string}`,
                     tokenHomeAddress: homeAddress as `0x${string}`,
-                    tokenHomeDecimals: parseInt(tokenDecimals) // Decimals from source token
+                    tokenHomeDecimals: parseInt(tokenDecimals)
                 },
-                // 2. tokenName (from source token)
                 tokenName,
-                // 3. tokenSymbol (from source token)
                 tokenSymbol,
-                // 4. tokenDecimals (for this new remote token, same as source)
                 parseInt(tokenDecimals)
             ];
 
@@ -188,7 +151,7 @@ export default function DeployERC20TokenRemote() {
                 abi: ERC20TokenRemote.abi,
                 bytecode: ERC20TokenRemote.bytecode.object as `0x${string}`,
                 args: constructorArgs,
-                chain: requiredChain
+                chain: viemChain
             });
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -197,7 +160,7 @@ export default function DeployERC20TokenRemote() {
                 throw new Error("No contract address in receipt");
             }
 
-            setErc20TokenRemoteAddress(receipt.contractAddress, deployOn);
+            setErc20TokenRemoteAddress(receipt.contractAddress);
         } catch (error: any) {
             console.error("Deployment failed:", error);
             setLocalError(`Deployment failed: ${error.shortMessage || error.message}`);
@@ -211,122 +174,104 @@ export default function DeployERC20TokenRemote() {
         <div className="">
             <h2 className="text-lg font-semibold mb-4">Deploy ERC20 Token Remote Contract</h2>
 
-            <div className="p-4 border rounded-md bg-gray-50 dark:bg-gray-900/50">
-                <RadioGroup
-                    value={deployOn}
-                    onChange={(value) => setDeployOn(value as DeployOn)}
-                    items={deployOnOptions}
-                    idPrefix="deploy-remote-on-"
-                />
-            </div>
-            <RequireChainToolbox requireChain={deployOn}>
-                <div className="space-y-4 mt-4">
-                    <div className="">
-                        This deploys an `ERC20TokenRemote` contract to the selected network. This contract acts as the bridge endpoint on the destination chain for your ERC20 token.
-                    </div>
-
-
-                    {deployOn === "L1" && <><Input
-                        label="Teleporter Registry Address"
-                        value={teleporterRegistryAddress}
-                        onChange={setTeleporterRegistryAddress}
-                    />
-
-                        {!teleporterRegistryAddress && <Note variant="warning">
-                            <p>
-                                Please <a href="#teleporterRegistry" className="text-blue-500">deploy the Teleporter Registry contract first</a>.
-                            </p>
-                        </Note>}
-
-                    </>}
-
-                    {deployOn === "C-Chain" && <Input
-                        label="C-Chain Teleporter Registry Address"
-                        value={C_CHAIN_TELEPORTER_REGISTRY_ADDRESS}
-                        disabled
-                    />}
-
-                    {/* Source ChainID */}
-                    {deployOn === "C-Chain" && <Input
-                        label="L1 Chain ID (source chain)"
-                        value={chainID}
-                        onChange={setChainID}
-                    />}
-
-                    {deployOn === "L1" && <Input
-                        label="C-Chain Chain ID (source chain)"
-                        value={FUJI_C_BLOCKCHAIN_ID}
-                        disabled
-                    />}
-
-                    {<Input
-                        label={`Token Home Blockchain ID, hex (${deployOnReversed} in this case)`}
-                        value={tokenHomeBlockchainIDHex}
-                        disabled
-                    />}
-
-                    {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
-
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Input
-                            label="Token Name (from source)"
-                            value={tokenName}
-                            disabled
-                        />
-
-                        <Input
-                            label="Token Symbol (from source)"
-                            value={tokenSymbol}
-                            disabled
-                        />
-
-                        <Input
-                            label="Token Decimals (from source)"
-                            value={tokenDecimals}
-                            disabled
-                        />
-                    </div>
-
-                    <Input
-                        label="L1 Teleporter Manager Address"
-                        value={teleporterManager}
-                        onChange={setTeleporterManager}
-                        placeholder={coreWalletClient?.account?.address}
-                        helperText="default: your address"
-                    />
-
-                    <Input
-                        label="Min Teleporter Version"
-                        value={minTeleporterVersion}
-                        onChange={setMinTeleporterVersion}
-                        type="number"
-                        required
-                    />
-
-                    <Input
-                        label={`Token Home Address on ${deployOnReversed}`}
-                        value={erc20TokenHomeAddress[deployOnReversed]}
-                        onChange={(value) => setErc20TokenHomeAddress(value, deployOnReversed)}
-                        required
-                    />
-
-                    <Success
-                        label={`ERC20 Token Remote Address (on ${deployOn})`}
-                        value={erc20TokenRemoteAddress?.[deployOn] || ""}
-                    />
-
-                    <Button
-                        variant={erc20TokenRemoteAddress?.[deployOn] ? "secondary" : "primary"}
-                        onClick={handleDeploy}
-                        loading={isDeploying}
-                        disabled={isDeploying || !erc20TokenHomeAddress?.[deployOnReversed] || !tokenHomeBlockchainIDHex || tokenDecimals === "0" || !tokenName || !tokenSymbol || (deployOn === "L1" && !teleporterRegistryAddress)}
-                    >
-                        {erc20TokenRemoteAddress?.[deployOn] ? "Re-Deploy ERC20 Token Remote" : "Deploy ERC20 Token Remote"}
-                    </Button>
-
+            <div className="space-y-4 mt-4">
+                <div className="">
+                    This deploys an `ERC20TokenRemote` contract to the current network ({selectedL1?.name}).
+                    This contract acts as the bridge endpoint for your ERC20 token from the source chain.
                 </div>
-            </RequireChainToolbox >
-        </div >
+
+                <EVMAddressInput
+                    label="Teleporter Registry Address"
+                    value={teleporterRegistryAddress}
+                    onChange={setTeleporterRegistryAddress}
+                    disabled={isDeploying}
+                />
+
+                {!teleporterRegistryAddress && <Note variant="warning">
+                    <p>
+                        Please <a href="#teleporterRegistry" className="text-blue-500">deploy the Teleporter Registry contract first</a>.
+                    </p>
+                </Note>}
+
+                <SelectChainID
+                    label="Source Chain (where token home is deployed)"
+                    value={sourceChainId}
+                    onChange={(value) => setSourceChainId(value)}
+                    error={sourceChainError}
+                />
+
+                {sourceChainId && <EVMAddressInput
+                    label={`Token Home Address on ${sourceL1?.name}`}
+                    value={tokenHomeAddress}
+                    onChange={setTokenHomeAddress}
+                    disabled={true}
+                    helperText={!sourceToolboxStore.erc20TokenHomeAddress ? `Please deploy the Token Home contract on ${sourceL1?.name} first` : undefined}
+                />}
+
+                {tokenHomeBlockchainIDHex && <Input
+                    label="Token Home Blockchain ID (hex)"
+                    value={tokenHomeBlockchainIDHex}
+                    disabled
+                />}
+
+                {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Input
+                        label="Token Name"
+                        value={tokenName}
+                        disabled
+                    />
+
+                    <Input
+                        label="Token Symbol"
+                        value={tokenSymbol}
+                        disabled
+                    />
+
+                    <Input
+                        label="Token Decimals"
+                        value={tokenDecimals}
+                        disabled
+                    />
+                </div>
+
+                <EVMAddressInput
+                    label="Teleporter Manager Address"
+                    value={teleporterManager}
+                    onChange={setTeleporterManager}
+                    disabled={isDeploying}
+                />
+
+                <Input
+                    label="Min Teleporter Version"
+                    value={minTeleporterVersion}
+                    onChange={setMinTeleporterVersion}
+                    type="number"
+                    required
+                />
+
+                <Success
+                    label={`ERC20 Token Remote Address (on ${selectedL1?.name})`}
+                    value={erc20TokenRemoteAddress || ""}
+                />
+
+                <Button
+                    variant={erc20TokenRemoteAddress ? "secondary" : "primary"}
+                    onClick={handleDeploy}
+                    loading={isDeploying}
+                    disabled={isDeploying ||
+                        !sourceToolboxStore.erc20TokenHomeAddress ||
+                        !tokenHomeBlockchainIDHex ||
+                        tokenDecimals === "0" ||
+                        !tokenName ||
+                        !tokenSymbol ||
+                        !teleporterRegistryAddress ||
+                        !!sourceChainError}
+                >
+                    {erc20TokenRemoteAddress ? "Re-Deploy ERC20 Token Remote" : "Deploy ERC20 Token Remote"}
+                </Button>
+            </div>
+        </div>
     );
 } 

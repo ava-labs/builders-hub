@@ -7,8 +7,10 @@ description: List of default precompiles supported by Subnet-EVM on Avalanche L1
 
 The Subnet-EVM provides several precompiled contracts that you can use in your Avalanche L1 blockchain. Each precompile has its own page with detailed documentation:
 
-- [AllowList Interface](/docs/virtual-machines/default-precompiles/allowlist) - A reusable interface for permission management
+- [AllowList](/docs/virtual-machines/default-precompiles/allowlist) - A reusable interface for permission management
+- [Deployer Allowlist](/docs/virtual-machines/default-precompiles/deployerallowlist) - Control which addresses can deploy contracts
 - [Native Minter](/docs/virtual-machines/default-precompiles/nativeminter) - Mint additional native tokens
+- [Transaction Allowlist](/docs/virtual-machines/default-precompiles/transactionallowlist) - Control which addresses can submit transactions
 - [Fee Manager](/docs/virtual-machines/default-precompiles/feemanager) - Configure fee parameters
 - [Reward Manager](/docs/virtual-machines/default-precompiles/rewardmanager) - Configure fee reward mechanisms
 - [Warp Messenger](/docs/virtual-machines/default-precompiles/warpmessenger) - Perform cross-chain operations
@@ -19,14 +21,14 @@ If a precompile is enabled within the `genesis.json` using the respective `Confi
 
 Below are the addresses and `ConfigKey` values of default precompiles available in Subnet-EVM. The address and `ConfigKey` [are defined in the `module.go` of each precompile contract](https://github.com/ava-labs/subnet-evm/tree/master/precompile/contracts).
 
-| Precompile             | ConfigKey | Address                                     |
-|------------------------|-----------|---------------------------------------------|
-| Deployer Allow List    | `contractDeployerAllowListConfig` | `0x0200000000000000000000000000000000000000`|
-| Native Minter          | `contractNativeMinterConfig`      | `0x0200000000000000000000000000000000000001`|
-| Transaction Allow List | `txAllowListConfig`               | `0x0200000000000000000000000000000000000002`|
-| Fee Manager            | `feeManagerConfig`                | `0x0200000000000000000000000000000000000003`|
-| Reward Manager         | `rewardManagerConfig`             | `0x0200000000000000000000000000000000000004`|
-| Warp Messenger         | `warpConfig`                      | `0x0200000000000000000000000000000000000005`|
+| Precompile             | ConfigKey                         | Address                                      |
+| ---------------------- | --------------------------------- | -------------------------------------------- |
+| Deployer Allow List    | `contractDeployerAllowListConfig` | `0x0200000000000000000000000000000000000000` |
+| Native Minter          | `contractNativeMinterConfig`      | `0x0200000000000000000000000000000000000001` |
+| Transaction Allow List | `txAllowListConfig`               | `0x0200000000000000000000000000000000000002` |
+| Fee Manager            | `feeManagerConfig`                | `0x0200000000000000000000000000000000000003` |
+| Reward Manager         | `rewardManagerConfig`             | `0x0200000000000000000000000000000000000004` |
+| Warp Messenger         | `warpConfig`                      | `0x0200000000000000000000000000000000000005` |
 
 ## Example Interaction
 
@@ -40,7 +42,7 @@ For example, if `contractDeployerAllowListConfig` is enabled in the `genesis.jso
       ],
       "blockTimestamp": 0,
       "enabledAddresses": [
-        "0x09c6fa19dd5d41ec6d0f4ca6f923ec3d941cc569" // Addresses that can only deploy contracts 
+        "0x09c6fa19dd5d41ec6d0f4ca6f923ec3d941cc569" // Addresses that can only deploy contracts
       ]
     },
 ```

@@ -10,6 +10,7 @@ interface ResultFieldProps {
 }
 
 export function ResultField({ label, value, showCheck = false }: ResultFieldProps) {
+  if (!value) return null;
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
