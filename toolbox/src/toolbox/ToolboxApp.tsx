@@ -7,6 +7,7 @@ import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
 import { GithubLink } from "./components/GithubLink";
 import { ErrorFallback } from "../components/ErrorFallback";
+import { ErrorBoundaryWithWarning } from "../components/ErrorBoundaryWithWarning";
 import { ConnectWalletToolbox } from "./components/ConnectWalletToolbox/ConnectWalletToolbox";
 import "../main.css";
 
@@ -455,7 +456,7 @@ export default function ToolboxApp() {
     allComponents.push({
       id: "dev",
       label: "Dev",
-      component: lazy(() => Promise.resolve({ default: () => <div>Dev</div> })),
+      component: lazy(() => import('./Dev')),
       fileNames: [],
       walletRequired: "with-l1",
     });
@@ -474,24 +475,26 @@ export default function ToolboxApp() {
           window.location.reload();
         }}
       >
-        <ConnectWalletToolbox required={comp.walletRequired === "required" || comp.walletRequired === "with-l1"} chainRequired={comp.walletRequired === "with-l1"}>
-          <div className="space-y-4">
-            <Suspense fallback={<ComponentLoader />}>
-              <Component />
-            </Suspense>
-          </div>
-          <div className="mt-4 space-y-1 border-t pt-3">
-            {comp.fileNames.map((fileName, index) => (
-              <GithubLink
-                key={index}
-                user="ava-labs"
-                repo="builders-hub"
-                branch={import.meta.env?.VITE_GIT_BRANCH_NAME || "master"}
-                filePath={fileName}
-              />
-            ))}
-          </div>
-        </ConnectWalletToolbox>
+        <ErrorBoundaryWithWarning>
+          <ConnectWalletToolbox required={comp.walletRequired === "required" || comp.walletRequired === "with-l1"} chainRequired={comp.walletRequired === "with-l1"}>
+            <div className="space-y-4">
+              <Suspense fallback={<ComponentLoader />}>
+                <Component />
+              </Suspense>
+            </div>
+            <div className="mt-4 space-y-1 border-t pt-3">
+              {comp.fileNames.map((fileName, index) => (
+                <GithubLink
+                  key={index}
+                  user="ava-labs"
+                  repo="builders-hub"
+                  branch={import.meta.env?.VITE_GIT_BRANCH_NAME || "master"}
+                  filePath={fileName}
+                />
+              ))}
+            </div>
+          </ConnectWalletToolbox>
+        </ErrorBoundaryWithWarning>
       </ErrorBoundary>
     );
   };
