@@ -172,7 +172,7 @@ export default function ICMRelayer() {
         <Container
             title="ICM Relayer"
             description="Configure the ICM Relayer for cross-chain message delivery."
-            >
+        >
             <Input
                 label="Relayer EVM Address"
                 value={relayerAddress}
@@ -273,7 +273,7 @@ export default function ICMRelayer() {
                 </div>
             </div>
 
-            <div className="text-lg font-bold">Write the relayer config file</div>
+            <div className="text-lg font-bold">Relayer Configuration</div>
             <DynamicCodeBlock
                 code={genConfigCommand(getConfigSources(), getConfigDestinations())}
                 lang="bash"
@@ -302,6 +302,7 @@ const genConfigCommand = (
     }[]
 ) => {
     const config = {
+        "api-port": 63123,
         "info-api": {
             "base-url": "https://api.avax-test.network"
         },
