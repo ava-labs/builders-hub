@@ -371,7 +371,8 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                     <StatusBadge
                       status={
                         application.status === "APPLIED"
-                          ? "Pending Review"
+                          ? "Pending Review" : application.status === "IN_PROGRESS"
+                            ? "Sponsor Review"
                           : application.status ?? "N/A"
                       }
                     />
