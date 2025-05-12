@@ -35,6 +35,7 @@ export const opportunityApplicationStatusOptions = [
   { value: "APPROVED", label: "Approved" },
   { value: "WITHDRAWN", label: "Withdrawn" },
   { value: "APPLIED", label: "Pending Review" },
+  { value: "IN_PROGRESS", label: "Sponsor Review" },
 ];
 
 export const opportunitySubmissionStatusOptions = [
@@ -42,4 +43,5 @@ export const opportunitySubmissionStatusOptions = [
   { value: "REJECTED", label: "Rejected" },
   { value: "ACCEPTED", label: "Accepted" },
   { value: "REWARDED", label: "Rewarded" },
+  { value: "IN_PROGRESS", label: "Sponsor Review" },
 ];
