@@ -20,7 +20,43 @@ import { Button } from "../../components/Button";
 import { ResultField } from "../components/ResultField";
 import { RadioGroup } from "../../components/RadioGroup";
 
-const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number) => {
+
+const debugConfigBase64 = (chainId: string) => {
+    const debugConfig = {
+        "log-level": "debug",
+        "warp-api-enabled": true,
+        "eth-apis": [
+            "eth",
+            "eth-filter",
+            "net",
+            "admin",
+            "web3",
+            "internal-eth",
+            "internal-blockchain",
+            "internal-transaction",
+            "internal-debug",
+            "internal-account",
+            "internal-personal",
+            "debug",
+            "debug-tracer",
+            "debug-file-tracer",
+            "debug-handler"
+        ]
+    }
+
+    // First encode the inner config object
+    const debugConfigEncoded = btoa(JSON.stringify(debugConfig));
+
+    const configMap: Record<string, { Config: string, Upgrade: any }> = {}
+    configMap[chainId] = { Config: debugConfigEncoded, Upgrade: null }
+
+    console.log('configMap', configMap);
+
+    return btoa(JSON.stringify(configMap))
+}
+
+
+const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, debugChainId?: string) => {
     const env: Record<string, string> = {
         AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true",
         AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
@@ -42,6 +78,10 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
 
     if (isRPC) {
         env.AVAGO_HTTP_ALLOWED_HOSTS = "\"*\"";
+    }
+
+    if (debugChainId) {
+        env.AVAGO_CHAIN_CONFIG_CONTENT = debugConfigBase64(debugChainId);
     }
 
     const chunks = [
@@ -73,31 +113,6 @@ const reverseProxyCommand = (domain: string) => {
   caddy:2.8-alpine \\
   caddy reverse-proxy --from ${domain} --to localhost:9650`
 }
-
-const enableDebugNTraceCommand = (chainId: string) => `sudo mkdir -p $HOME/.avalanchego/configs/chains/${chainId}; 
-sudo chown -R $USER:$USER $HOME/.avalanchego/configs/chains/;
-
-sudo echo '{
-  "log-level": "debug",
-  "warp-api-enabled": true,
-  "eth-apis": [
-    "eth",
-    "eth-filter",
-    "net",
-    "admin",
-    "web3",
-    "internal-eth",
-    "internal-blockchain",
-    "internal-transaction",
-    "internal-debug",
-    "internal-account",
-    "internal-personal",
-    "debug",
-    "debug-tracer",
-    "debug-file-tracer",
-    "debug-handler"
-  ]
-}' > $HOME/.avalanchego/configs/chains/${chainId}/config.json`
 
 const checkNodeCommand = (chainID: string, domain: string, isDebugTrace: boolean) => {
     domain = nipify(domain);
@@ -169,11 +184,11 @@ export default function AvalanchegoDocker() {
 
     useEffect(() => {
         try {
-            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID));
+            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID, enableDebugTrace ? chainId : undefined));
         } catch (error) {
             setRpcCommand((error as Error).message);
         }
-    }, [subnetId, isRPC, avalancheNetworkID]);
+    }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId]);
 
     useEffect(() => {
         if (!isRPC) {
@@ -299,17 +314,6 @@ export default function AvalanchegoDocker() {
                                     </ul>
                                 </p>
                             </Step>)}
-                            {chainId && enableDebugTrace && isRPC && (
-                                <Step>
-                                    <h3 className="text-xl font-bold mb-4">Create Chain Config File</h3>
-                                    <p>Create the file for the Chain Config:</p>
-
-                                    <p>TBD: Change to environmant variable: https://build.avax.network/docs/nodes/configure/configs-flags#--chain-config-content-string</p>
-
-
-                                    <DynamicCodeBlock lang="bash" code={enableDebugNTraceCommand(chainId)} />
-                                </Step>
-                            )}
                             <Step>
                                 <h3 className="text-xl font-bold">Start AvalancheGo Node</h3>
                                 <p>Run the following Docker command to start your node:</p>
@@ -361,6 +365,15 @@ export default function AvalanchegoDocker() {
 
                                 <p> Once it the bootstrapping is complete it will return a response like <code>{'{"jsonrpc":"2.0","id":1,"result":"..."}'}</code>.</p>
                             </Step>
+                            {chainId && enableDebugTrace && (
+                                <Step>
+                                    <h3 className="text-xl font-bold mb-4">Test Debug & Trace</h3>
+                                    <div className="space-y-4">
+                                        <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, "127.0.0.1:9650", true)} />
+                                        <div className="mt-4">Make sure you make at least one transaction on your chain, or it will error "genesis is untracable".</div>
+                                    </div>
+                                </Step>
+                            )}
                             {isRPC && (
                                 <>
                                     {nodeRunningMode === "server" && (
@@ -393,15 +406,6 @@ export default function AvalanchegoDocker() {
                                                     <p>Do a final check from a machine different then the one that your node is running on.</p>
 
                                                     <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, false)} />
-
-                                                    {enableDebugTrace && (
-                                                        <div className="mt-4">
-                                                            <h3 className="text-md font-medium mb-2">Check that debug & trace is working:</h3>
-                                                            <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, true)} />
-                                                        </div>
-                                                    )}
-
-                                                    TBD: Replace with RPC check component used for monitoring?
                                                 </Step>
                                             </>
                                             )}
