@@ -34,18 +34,21 @@ export default function DeployERC20TokenHome() {
     const [localError, setLocalError] = useState("");
     const [deployError, setDeployError] = useState("");
 
-    // Initialize token address with exampleErc20Address when it becomes available
+    const [initTokenAddressRan, setInitTokenAddressRan] = useState(false);
     useEffect(() => {
-        if (exampleErc20Address && !tokenAddress) {
+        if (exampleErc20Address && !tokenAddress && !initTokenAddressRan) {
             setTokenAddress(exampleErc20Address);
+            setInitTokenAddressRan(true);
         }
-    }, [exampleErc20Address, tokenAddress]);
+    }, [exampleErc20Address, tokenAddress, initTokenAddressRan]);
 
+    const [initTeleporterManagerRan, setInitTeleporterManagerRan] = useState(false);
     useEffect(() => {
-        if (!teleporterManager && walletEVMAddress) {
+        if (!teleporterManager && walletEVMAddress && !initTeleporterManagerRan) {
             setTeleporterManager(walletEVMAddress);
+            setInitTeleporterManagerRan(true);
         }
-    }, [walletEVMAddress]);
+    }, [walletEVMAddress, teleporterManager, initTeleporterManagerRan]);
 
     useEffect(() => {
         if (!tokenAddress) return;
@@ -66,7 +69,7 @@ export default function DeployERC20TokenHome() {
         }).catch((error) => {
             setLocalError("Failed to fetch token decimals: " + error);
         });
-    }, [tokenAddress, viemChain]);
+    }, [tokenAddress, viemChain?.id]);
 
     async function handleDeploy() {
         setDeployError("");
