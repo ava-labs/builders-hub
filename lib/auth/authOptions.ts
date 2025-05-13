@@ -125,7 +125,7 @@ export const AuthOptions: NextAuthOptions = {
         user.id = dbUser.id;
         return true;
       } catch (error) {
-        console.error('Error procesing user:', error);
+        console.error('Error processing user:', error);
         return false;
       }
     },

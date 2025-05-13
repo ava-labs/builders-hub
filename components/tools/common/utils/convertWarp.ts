@@ -1,4 +1,4 @@
-// FIXME: this is a quick hack solution untill AvalancheJS supports this
+// FIXME: this is a quick hack solution until AvalancheJS supports this
 // Please don't copy this code to other projects!
 import { sha256 } from '@noble/hashes/sha256';
 import { cb58ToBytes } from "../../common/utils/cb58";

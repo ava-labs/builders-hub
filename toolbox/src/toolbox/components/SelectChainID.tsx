@@ -2,11 +2,13 @@ import { useState, useId } from "react";
 import { useCreateChainStore, useL1ListStore } from "../toolboxStore";
 import { useMemo } from "react";
 import { cn } from "../../lib/utils";
+import { Link } from 'lucide-react';
 
 interface ChainOption {
     id: string;
     name: string;
     description: string;
+    logoUrl?: string;
 }
 
 export default function SelectChainID({
@@ -40,7 +42,8 @@ export default function SelectChainID({
             result.push({
                 id: l1.id,
                 name: `${l1.name} (${l1.id})`,
-                description: "From your chain list"
+                description: "From your chain list",
+                logoUrl: l1.logoUrl
             });
         }
 
@@ -74,9 +77,16 @@ export default function SelectChainID({
                     )}
                 >
                     {selectedOption ? (
-                        <div>
-                            <div className="font-medium">{selectedOption.name}</div>
-                            <div className="text-xs text-zinc-500 dark:text-zinc-400">{selectedOption.description}</div>
+                        <div className="flex items-center gap-2">
+                            {selectedOption.logoUrl && (
+                                <div className="flex items-center h-7">
+                                    <img src={selectedOption.logoUrl} alt={`${selectedOption.name} logo`} className="w-7 h-7 rounded-full object-cover block" />
+                                </div>
+                            )}
+                            <div>
+                                <div className="font-medium mb-0.5">{selectedOption.name}</div>
+                                <div className="text-xs text-zinc-500 dark:text-zinc-400">{selectedOption.description}</div>
+                            </div>
                         </div>
                     ) : (
                         <div className="text-zinc-400 dark:text-zinc-500">Select a chain ID</div>
@@ -89,14 +99,25 @@ export default function SelectChainID({
                             {options.map((option) => (
                                 <div
                                     key={option.id}
-                                    className="px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer transition-colors text-left"
+                                    className="px-3 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer transition-colors text-left"
                                     onClick={() => {
                                         onChange(option.id);
                                         setIsOpen(false);
                                     }}
                                 >
-                                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{option.name}</div>
-                                    <div className="text-xs text-zinc-500 dark:text-zinc-400">{option.description}</div>
+                                    <div className="flex items-center gap-2 py-2">
+                                        {option.logoUrl ? (
+                                            <div className="flex items-center h-7">
+                                                <img src={option.logoUrl} alt={`${option.name} logo`} className="w-7 h-7 rounded-full object-cover block" />
+                                            </div>
+                                        ) : (
+                                            <Link className="w-7 h-7 text-zinc-400 dark:text-zinc-500" />
+                                        )}
+                                        <div>
+                                            <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-0.5">{option.name}</div>
+                                            <div className="text-xs text-zinc-500 dark:text-zinc-400">{option.description}</div>
+                                        </div>
+                                    </div>
                                 </div>
                             ))}
                         </div>

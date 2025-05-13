@@ -1,11 +1,27 @@
-import { Input, Suggestion } from "../../components/Input";
+import { TokenInput as Input, Suggestion } from "../../components/TokenInput";
 import { useState, useEffect } from "react";
-import { isAddress } from "viem";
+import { Address, isAddress } from "viem";
 import type React from "react";
 
-interface EVMAddressInputProps {
+export interface Token {
+    address: Address;
+    name: string;
+    symbol: string;
+    decimals: number;
+    balance: bigint;
+    allowance: bigint;
+    chain: {
+        name: string;
+        id: string;
+        logoUrl: string;
+    };
+}
+
+interface TokenInputProps {
   value: string;
+  tokenValue: Token | null;
   onChange: (value: string) => void;
+  verify: (value: string) => Promise<any>;
   label?: string;
   disabled?: boolean;
   helperText?: React.ReactNode;
@@ -14,16 +30,18 @@ interface EVMAddressInputProps {
   button?: React.ReactNode;
 }
 
-export function EVMAddressInput({
+export function TokenInput({
   value,
+  tokenValue,
   onChange,
+  verify,
   label = "EVM Address",
   disabled = false,
   helperText,
   placeholder,
   suggestions,
   button,
-}: EVMAddressInputProps) {
+}: TokenInputProps) {
   const [validationError, setValidationError] = useState<string | undefined>();
 
   const validateAddress = (address: string) => {
@@ -60,6 +78,7 @@ export function EVMAddressInput({
 
   useEffect(() => {
     validateAddress(value);
+    verify(value);
   }, [value]);
 
   return (
@@ -74,6 +93,7 @@ export function EVMAddressInput({
         placeholder={placeholder}
         suggestions={suggestions}
         button={button}
+        selected={tokenValue}
       />
     </div>
   );

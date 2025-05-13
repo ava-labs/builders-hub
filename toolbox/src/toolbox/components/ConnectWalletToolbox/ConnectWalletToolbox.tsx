@@ -11,7 +11,7 @@ export const ConnectWalletToolbox = ({ children, required, chainRequired }: { ch
 
     return (
         <>
-            <ConnectWallet required={required} extraElements={chainRequired ? <ChainSelector /> : null} >
+            <ConnectWallet required={required} extraElements={chainRequired ? <ChainSelector /> : null} hidePChain={chainRequired} forceCChain={!chainRequired}>
                 {(chainRequired && !viemChain) ? (
                     <div className="p-4 border-2 border-gray-500 rounded-md mb-4">
                         ⚠️ Please connect to an L1 chain before using this component.

@@ -14,6 +14,7 @@ import { EVMAddressInput } from "../components/EVMAddressInput";
 import { utils } from "@avalabs/avalanchejs";
 import { Note } from "../../components/Note";
 import SelectChainID from "../components/SelectChainID";
+import { Container } from "../components/Container";
 
 export default function AddColateral() {
     const { showBoundary } = useErrorBoundary();
@@ -313,14 +314,10 @@ export default function AddColateral() {
     }, [erc20TokenRemoteAddress, nativeTokenRemoteAddress, selectedL1?.name]);
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Add Collateral to Home Bridge</h2>
-
-            <div className="space-y-4">
-                <p>
-                    Approve and add collateral (ERC20 tokens) to the Token Home contract
-                    on the source chain for a remote bridge contract on the current chain ({selectedL1?.name}).
-                </p>
+        <Container
+            title="Add Collateral"
+            description="Approve and add collateral (ERC20 tokens) to the Token Home contract on the source chain for a remote bridge contract on the current chain."
+        >
 
                 <SelectChainID
                     label="Source Chain (where token home is deployed)"
@@ -428,7 +425,6 @@ export default function AddColateral() {
                 {lastAddCollateralTxId && (
                     <Success label="Add Collateral Transaction ID" value={lastAddCollateralTxId} />
                 )}
-            </div>
-        </div>
+        </Container>
     );
 }
