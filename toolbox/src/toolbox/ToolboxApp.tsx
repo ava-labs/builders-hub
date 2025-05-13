@@ -305,10 +305,10 @@ const componentGroups: Record<string, ComponentGroupType> = {
         walletRequired: "with-l1"
       },
       {
-        id: "addColateral",
-        label: "Add Colateral",
-        component: lazy(() => import('./ICTT/AddColateral')),
-        fileNames: ["toolbox/src/toolbox/ICTT/AddColateral.tsx"],
+        id: "addCollateral",
+        label: "Add Collateral",
+        component: lazy(() => import('./ICTT/AddCollateral')),
+        fileNames: ["toolbox/src/toolbox/ICTT/AddCollateral.tsx"],
         walletRequired: "with-l1"
       },
       {

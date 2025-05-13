@@ -17,7 +17,7 @@ import SelectChainID from "../components/SelectChainID";
 import { Container } from "../components/Container";
 import ERC20TokenRemoteABI from "../../../contracts/icm-contracts/compiled/ERC20TokenRemote.json";
 
-export default function AddColateral() {
+export default function AddCollateral() {
     const { showBoundary } = useErrorBoundary();
     const { erc20TokenRemoteAddress, nativeTokenRemoteAddress } = useToolboxStore();
     const { coreWalletClient, walletEVMAddress } = useWalletStore();
