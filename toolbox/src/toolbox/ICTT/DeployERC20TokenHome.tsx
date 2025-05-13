@@ -13,7 +13,7 @@ import ExampleERC20 from "../../../contracts/icm-contracts/compiled/ExampleERC20
 import { createPublicClient, http } from "viem";
 import { Note } from "../../components/Note";
 import { Container } from "../components/Container";
-import TeleporterRegistryAddress from "../components/TeleporterRegistryAddress";
+import TeleporterRegistryAddressInput from "../components/TeleporterRegistryAddressInput";
 
 export default function DeployERC20TokenHome() {
     const { showBoundary } = useErrorBoundary();
@@ -138,7 +138,7 @@ export default function DeployERC20TokenHome() {
             {localError && <div className="text-red-500">{localError}</div>}
             {deployError && <div className="text-red-500 mt-2">{deployError}</div>}
 
-            <TeleporterRegistryAddress
+            <TeleporterRegistryAddressInput
                 value={teleporterRegistryAddress}
                 onChange={setTeleporterRegistryAddress}
                 disabled={isDeploying}

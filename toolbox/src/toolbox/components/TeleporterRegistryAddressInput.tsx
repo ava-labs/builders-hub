@@ -4,7 +4,7 @@ import { Suggestion } from "../../components/Input"
 import { useSelectedL1, useToolboxStore } from "../toolboxStore";
 import { EVMAddressInput } from "./EVMAddressInput"
 
-export default function TeleporterRegistryAddress({ value, onChange, disabled }: { value: string, onChange: (value: string) => void, disabled: boolean }) {
+export default function TeleporterRegistryAddressInput({ value, onChange, disabled }: { value: string, onChange: (value: string) => void, disabled: boolean }) {
     const {
         teleporterRegistryAddress,
     } = useToolboxStore();

@@ -17,7 +17,7 @@ import ExampleERC20 from "../../../contracts/icm-contracts/compiled/ExampleERC20
 import SelectChainID from "../components/SelectChainID";
 import { CheckPrecompile } from "../components/CheckPrecompile";
 import { Container } from "../components/Container";
-import TeleporterRegistryAddress from "../components/TeleporterRegistryAddress";
+import TeleporterRegistryAddressInput from "../components/TeleporterRegistryAddressInput";
 export default function DeployNativeTokenRemote() {
     const { showBoundary } = useErrorBoundary();
     const {
@@ -194,7 +194,7 @@ export default function DeployNativeTokenRemote() {
                     </p>
                 </div>
 
-                <TeleporterRegistryAddress
+                <TeleporterRegistryAddressInput
                     value={teleporterRegistryAddress}
                     onChange={setTeleporterRegistryAddress}
                     disabled={isDeploying}
