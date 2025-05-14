@@ -75,7 +75,13 @@ export const ConnectWallet = ({
     const [pTokenRequestError, setPTokenRequestError] = useState<string | null>(null);
     const [rpcUrl, setRpcUrl] = useState<string>("");
 
-    const selectedL1 = walletMode === "c-chain" ? useL1ByChainId(isTestnet ? "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp" : "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5")() : useSelectedL1()();
+    // Call toolboxStore hooks unconditionally.
+    // 'isTestnet' is defined earlier via useWalletStore and is available here.
+    const l1ByChainIdForCChainMode = useL1ByChainId(isTestnet ? "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp" : "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5")();
+    const selectedL1FromStore = useSelectedL1()();
+
+    // Now, conditionally use the results of the unconditional hook calls.
+    const selectedL1 = walletMode === "c-chain" ? l1ByChainIdForCChainMode : selectedL1FromStore;
     const faucetUrl = selectedL1?.faucetUrl;
 
     // Set isClient to true once component mounts (client-side only)
@@ -250,26 +256,6 @@ export const ConnectWallet = ({
         }
     }
 
-    // Server-side rendering placeholder
-    if (!isClient) {
-        return (
-            <div className="space-y-4 transition-all duration-300">
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md rounded-xl p-4 relative overflow-hidden animate-pulse">
-                    <div className="h-10 bg-zinc-200 dark:bg-zinc-800 rounded mb-4 w-1/3"></div>
-                    <div className="h-32 bg-zinc-100 dark:bg-zinc-800 rounded-xl mb-4"></div>
-                </div>
-                <div className="transition-all duration-300">{children}</div>
-            </div>
-        )
-    }
-
-    if (!hasWallet) {
-        return <WalletRequiredPrompt />
-    }
-
-    if (!walletEVMAddress) {
-        return <ConnectWalletPrompt onConnect={connectWallet} />
-    }
 
     // Determine what to display based on props
     const isActuallyCChainSelected = walletChainId === avalanche.id || walletChainId === avalancheFuji.id;
@@ -295,6 +281,28 @@ export const ConnectWallet = ({
 
     const glowConditionL1Balance = walletMode === "c-chain" ? cChainBalance : l1Balance;
     const displayedEvmChainId = walletMode === "c-chain" ? (isTestnet ? avalancheFuji.id : avalanche.id) : walletChainId;
+
+    // Server-side rendering placeholder
+    if (!isClient) {
+        return (
+            <div className="space-y-4 transition-all duration-300">
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md rounded-xl p-4 relative overflow-hidden animate-pulse">
+                    <div className="h-10 bg-zinc-200 dark:bg-zinc-800 rounded mb-4 w-1/3"></div>
+                    <div className="h-32 bg-zinc-100 dark:bg-zinc-800 rounded-xl mb-4"></div>
+                </div>
+                <div className="transition-all duration-300">{children}</div>
+            </div>
+        )
+    }
+
+    if (!hasWallet) {
+        return <WalletRequiredPrompt />
+    }
+
+    if (!walletEVMAddress) {
+        return <ConnectWalletPrompt onConnect={connectWallet} />
+    }
+
 
     return (
         <div className="space-y-4 transition-all duration-300">
