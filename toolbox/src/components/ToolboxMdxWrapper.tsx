@@ -4,7 +4,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { ConnectWallet } from "./ConnectWallet/ConnectWallet";
 import { ErrorFallback } from "./ErrorFallback";
 
-export default function ToolboxMdxWrapper({ children }: { children: React.ReactNode }) {
+export default function ToolboxMdxWrapper({ children, walletMode }: { children: React.ReactNode, walletMode: "l1" | "c-chain" }) {
     const handleReset = () => {
         if (typeof window !== 'undefined') {
             window.location.reload();
@@ -15,7 +15,7 @@ export default function ToolboxMdxWrapper({ children }: { children: React.ReactN
         FallbackComponent={ErrorFallback}
         onReset={handleReset}
     >
-        <ConnectWallet walletMode="l1">
+        <ConnectWallet walletMode={walletMode}>
             {children}
         </ConnectWallet>
     </ErrorBoundary>;
