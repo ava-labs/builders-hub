@@ -8,32 +8,39 @@ import { Copy, RefreshCw } from "lucide-react"
 import { createCoreWalletClient } from "../../coreViem"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { useWalletStore } from "../../stores/walletStore"
+import { useSelectedL1, useL1ByChainId } from "../../stores/toolboxStore"
 import { WalletRequiredPrompt } from "../WalletRequiredPrompt"
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt"
 import { RemountOnWalletChange } from "../RemountOnWalletChange"
 import { avalanche, avalancheFuji } from "viem/chains"
 import InterchainTransfer from "../InterchainTransfer"
 import { ExplorerButton } from "./ExplorerButton"
+import { ChainSelector } from "./ChainSelector"
 
-const faucets = {
-    43113: "https://test.core.app/tools/testnet-faucet/?subnet=c&token=c",
-    173750: "https://test.core.app/tools/testnet-faucet/?subnet=echo&token=echo",
-    779672: "https://test.core.app/tools/testnet-faucet/?subnet=dispatch&token=dispatch"
-}
+export type WalletMode = "optional" | "l1" | "c-chain"
+
 const LOW_BALANCE_THRESHOLD = 0.5
 
-export const ConnectWallet = ({
+export const OptionalConnectWallet = ({
     children,
-    required,
-    extraElements,
-    hidePChain = false,
-    forceCChain = false
+    walletMode
 }: {
     children: React.ReactNode;
-    required: boolean;
-    extraElements?: React.ReactNode;
-    hidePChain?: boolean;
-    forceCChain?: boolean;
+    walletMode: "optional" | "l1" | "c-chain";
+}) => {
+    if (walletMode === "optional") {
+        return children
+    }
+
+    return <ConnectWallet walletMode={walletMode}>{children}</ConnectWallet>
+}
+
+export const ConnectWallet = ({
+    walletMode,
+    children
+}: {
+    walletMode: "l1" | "c-chain";
+    children: React.ReactNode;
 }) => {
     const setWalletChainId = useWalletStore(state => state.setWalletChainId);
     const walletEVMAddress = useWalletStore(state => state.walletEVMAddress);
@@ -63,12 +70,13 @@ export const ConnectWallet = ({
     const pChainBalance = useWalletStore(state => state.pChainBalance);
     const l1Balance = useWalletStore(state => state.l1Balance);
     const cChainBalance = useWalletStore(state => state.cChainBalance);
-    const faucetUrl = faucets[walletChainId as keyof typeof faucets];
     const { showBoundary } = useErrorBoundary();
     const [isRequestingPTokens, setIsRequestingPTokens] = useState(false);
     const [pTokenRequestError, setPTokenRequestError] = useState<string | null>(null);
     const [rpcUrl, setRpcUrl] = useState<string>("");
 
+    const selectedL1 = walletMode === "c-chain" ? useL1ByChainId(isTestnet ? "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp" : "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5")() : useSelectedL1()();
+    const faucetUrl = selectedL1?.faucetUrl;
 
     // Set isClient to true once component mounts (client-side only)
     useEffect(() => {
@@ -255,33 +263,28 @@ export const ConnectWallet = ({
         )
     }
 
-    if (required && !hasWallet) {
+    if (!hasWallet) {
         return <WalletRequiredPrompt />
     }
 
-    if (required && !walletEVMAddress) {
+    if (!walletEVMAddress) {
         return <ConnectWalletPrompt onConnect={connectWallet} />
     }
 
     // Determine what to display based on props
     const isActuallyCChainSelected = walletChainId === avalanche.id || walletChainId === avalancheFuji.id;
 
-    const displayedL1ChainName = forceCChain ? "C-Chain" : evmChainName;
-    const displayedL1Balance = forceCChain ? cChainBalance : l1Balance;
-    const displayedL1TokenSymbol = (forceCChain || isActuallyCChainSelected) ? "AVAX" : "Tokens";
+    const displayedL1ChainName = walletMode === "c-chain" ? "C-Chain" : evmChainName;
+    const displayedL1Balance = walletMode === "c-chain" ? cChainBalance : l1Balance;
+    const displayedL1TokenSymbol = (walletMode === "c-chain" || isActuallyCChainSelected) ? "AVAX" : "Tokens";
     const displayedL1Address = walletEVMAddress;
-    const updateDisplayedL1Balance = forceCChain ? updateCChainBalance : updateL1Balance;
-    const isDisplayedL1BalanceLoading = forceCChain ? isCChainBalanceLoading : isL1BalanceLoading;
+    const updateDisplayedL1Balance = walletMode === "c-chain" ? updateCChainBalance : updateL1Balance;
+    const isDisplayedL1BalanceLoading = walletMode === "c-chain" ? isCChainBalanceLoading : isL1BalanceLoading;
 
-    const cChainTestnetFaucetUrl = isTestnet ? faucets[avalancheFuji.id as keyof typeof faucets] : undefined;
-    const displayedFaucetUrl = forceCChain
-        ? cChainTestnetFaucetUrl
-        : faucetUrl;
+    const showL1SelectedBadge = walletMode === "c-chain" ? true : !!walletChainId; // If forcing C-Chain, it's "selected" for display purposes
 
-    const showL1SelectedBadge = forceCChain ? true : !!walletChainId; // If forcing C-Chain, it's "selected" for display purposes
-
-    const showPChainCard = !hidePChain;
-    const showInterchainArrows = showPChainCard && (isActuallyCChainSelected || forceCChain);
+    const showPChainCard = walletMode === "c-chain";
+    const showInterchainArrows = showPChainCard && isActuallyCChainSelected;
 
     let gridLayoutClass = "md:grid-cols-1";
     if (showPChainCard && showInterchainArrows) {
@@ -290,8 +293,8 @@ export const ConnectWallet = ({
         gridLayoutClass = "md:grid-cols-2";
     }
 
-    const glowConditionL1Balance = forceCChain ? cChainBalance : l1Balance;
-    const displayedEvmChainId = forceCChain ? (isTestnet ? avalancheFuji.id : avalanche.id) : walletChainId;
+    const glowConditionL1Balance = walletMode === "c-chain" ? cChainBalance : l1Balance;
+    const displayedEvmChainId = walletMode === "c-chain" ? (isTestnet ? avalancheFuji.id : avalanche.id) : walletChainId;
 
     return (
         <div className="space-y-4 transition-all duration-300">
@@ -349,9 +352,9 @@ export const ConnectWallet = ({
                                 >
                                     <RefreshCw className={`w-4 h-4 text-zinc-600 dark:text-zinc-300 ${isDisplayedL1BalanceLoading ? 'animate-spin' : ''}`} />
                                 </button>
-                                {displayedFaucetUrl && (
+                                {faucetUrl && (
                                     <button
-                                        onClick={() => window.open(displayedFaucetUrl, "_blank")}
+                                        onClick={() => window.open(faucetUrl, "_blank")}
                                         className={`ml-2 px-2 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors ${displayedL1Balance < LOW_BALANCE_THRESHOLD
                                             ? "shimmer"
                                             : ""
@@ -477,7 +480,7 @@ export const ConnectWallet = ({
                         )}
                     </div>
 
-                    {extraElements && extraElements}
+                    {walletMode !== "c-chain" && <ChainSelector />}
                 </div>
             )}
 

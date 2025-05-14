@@ -8,7 +8,8 @@ import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
 import { GithubLink } from "../components/GithubLink";
 import { ErrorFallback } from "../components/ErrorFallback";
 import { ErrorBoundaryWithWarning } from "../components/ErrorBoundaryWithWarning";
-import { ConnectWalletToolbox } from "../components/ConnectWallet/ConnectWalletToolbox";
+import { ConnectWallet, type WalletMode, OptionalConnectWallet } from "../components/ConnectWallet/ConnectWallet";
+
 import "../main.css";
 
 type ComponentType = {
@@ -16,7 +17,7 @@ type ComponentType = {
   label: string;
   component: React.LazyExoticComponent<(props?: any) => ReactElement | null>;
   fileNames: string[];
-  walletRequired: "not-required" | "required" | "with-l1";
+  walletMode: WalletMode;
 }
 
 type ComponentGroupType = {
@@ -39,35 +40,35 @@ const componentGroups: Record<string, ComponentGroupType> = {
         label: "Create Subnet",
         component: lazy(() => import('./L1/CreateSubnet')),
         fileNames: ["toolbox/src/toolbox/L1/CreateSubnet.tsx"],
-        walletRequired: "required"
+        walletMode: "c-chain"
       },
       {
         id: 'createChain',
         label: "Create Chain",
         component: lazy(() => import('./L1/CreateChain')),
         fileNames: ["toolbox/src/toolbox/L1/CreateChain.tsx"],
-        walletRequired: "required"
+        walletMode: "c-chain"
       },
       {
         id: 'convertToL1',
         label: "Convert Subnet to L1",
         component: lazy(() => import('./L1/ConvertToL1')),
         fileNames: ["toolbox/src/toolbox/L1/ConvertToL1.tsx"],
-        walletRequired: "required"
+        walletMode: "c-chain"
       },
       {
         id: 'collectConversionSignatures',
         label: "Collect conversion signatures",
         component: lazy(() => import('./L1/CollectConversionSignatures')),
         fileNames: ["toolbox/src/toolbox/L1/CollectConversionSignatures.tsx", "toolbox/src/toolbox/L1/convertWarp.ts"],
-        walletRequired: "not-required"
+        walletMode: "optional"
       },
       {
         id: 'queryL1Details',
         label: "Query L1 Details",
         component: lazy(() => import('./L1/QueryL1Details')),
         fileNames: ["toolbox/src/toolbox/L1/QueryL1Details.tsx"],
-        walletRequired: "required"
+        walletMode: "c-chain"
       }
     ]
   },
@@ -78,28 +79,28 @@ const componentGroups: Record<string, ComponentGroupType> = {
         label: "Node Setup with Docker",
         component: lazy(() => import('./Nodes/AvalanchegoDocker')),
         fileNames: ["toolbox/src/toolbox/Nodes/AvalanchegoDocker.tsx"],
-        walletRequired: "not-required",
+        walletMode: "optional",
       },
       {
         id: 'balanceTopup',
         label: "L1 Validator Balance Topup",
         component: lazy(() => import('./Nodes/BalanceTopup')),
         fileNames: ["toolbox/src/toolbox/Nodes/BalanceTopup.tsx"],
-        walletRequired: "required"
+        walletMode: "c-chain"
       },
       {
         id: "rpcMethodsCheck",
         label: "RPC Methods Check",
         component: lazy(() => import('./Nodes/RPCMethodsCheck')),
         fileNames: ["toolbox/src/toolbox/Nodes/RPCMethodsCheck.tsx"],
-        walletRequired: "not-required",
+        walletMode: "optional",
       },
       {
         id: "performanceMonitor",
         label: "Performance Monitor",
         component: lazy(() => import('./Nodes/PerformanceMonitor')),
         fileNames: ["toolbox/src/toolbox/Nodes/PerformanceMonitor.tsx"],
-        walletRequired: "not-required",
+        walletMode: "optional",
       }
     ]
   },
@@ -114,35 +115,35 @@ const componentGroups: Record<string, ComponentGroupType> = {
         label: "Deploy Validator Manager Contract",
         component: lazy(() => import('./ValidatorManager/DeployValidatorManager')),
         fileNames: ["toolbox/src/toolbox/ValidatorManager/DeployValidatorManager.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "upgradeProxy",
         label: "Upgrade Proxy Contract",
         component: lazy(() => import('./ValidatorManager/UpgradeProxy')),
         fileNames: ["toolbox/src/toolbox/ValidatorManager/UpgradeProxy.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "initialize",
         label: "Set Initial Configuration",
         component: lazy(() => import('./ValidatorManager/Initialize')),
         fileNames: ["toolbox/src/toolbox/ValidatorManager/Initialize.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "initValidatorSet",
         label: "Initialize Validator Set",
         component: lazy(() => import('./ValidatorManager/InitValidatorSet')),
         fileNames: ["toolbox/src/toolbox/ValidatorManager/InitValidatorSet.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "readContract",
         label: "Read Validator Manager Contract",
         component: lazy(() => import('./ValidatorManager/ReadContract')),
         fileNames: ["toolbox/src/toolbox/ValidatorManager/ReadContract.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
     ]
   },
@@ -153,28 +154,28 @@ const componentGroups: Record<string, ComponentGroupType> = {
         label: "Add L1 Validator",
         component: lazy(() => import('./ValidatorManager/AddValidator')),
         fileNames: ["toolbox/src/toolbox/ValidatorManager/AddValidator.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "removeValidator",
         label: "Remove L1 Validator",
         component: lazy(() => import('./ValidatorManager/RemoveValidator')),
         fileNames: ["toolbox/src/toolbox/ValidatorManager/RemoveValidator.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "changeWeight",
         label: "Change L1 Validator Weight",
         component: lazy(() => import('./ValidatorManager/ChangeWeight')),
         fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeight.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "queryL1ValidatorSet",
         label: "Query L1 Validator Set",
         component: lazy(() => import('./ValidatorManager/QueryL1ValidatorSet')),
         fileNames: ["toolbox/src/toolbox/ValidatorManager/QueryL1ValidatorSet.tsx"],
-        walletRequired: "not-required"
+        walletMode: "optional"
       },
     ]
   },
@@ -189,28 +190,28 @@ const componentGroups: Record<string, ComponentGroupType> = {
         label: "Deploy Reward Calculator",
         component: lazy(() => import('./StakingManager/DeployRewardCalculator')),
         fileNames: ["toolbox/src/toolbox/StakingManager/DeployRewardCalculator.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "deployStakingManager",
         label: "Deploy Staking Manager",
         component: lazy(() => import('./StakingManager/DeployStakingManager')),
         fileNames: ["toolbox/src/toolbox/StakingManager/DeployStakingManager.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "initializeStakingManager",
         label: "Set Initial Configuration",
         component: lazy(() => import('./StakingManager/Initialize')),
         fileNames: ["toolbox/src/toolbox/StakingManager/Initialize.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "transferOwnership",
         label: "Transfer Validator Manager Ownership",
         component: lazy(() => import('./StakingManager/TransferOwnership')),
         fileNames: ["toolbox/src/toolbox/StakingManager/TransferOwnership.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       }
     ]
   },
@@ -225,21 +226,21 @@ const componentGroups: Record<string, ComponentGroupType> = {
         label: "Deploy Teleporter Messenger",
         component: lazy(() => import('./ICM/TeleporterMessenger')),
         fileNames: ["toolbox/src/toolbox/ICM/TeleporterMessenger.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "teleporterRegistry",
         label: "Deploy Teleporter Registry",
         component: lazy(() => import('./ICM/TeleporterRegistry')),
         fileNames: ["toolbox/src/toolbox/ICM/TeleporterRegistry.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "icmRelayer",
         label: "ICM Relayer Setup",
         component: lazy(() => import('./ICM/ICMRelayer')),
         fileNames: ["toolbox/src/toolbox/ICM/ICMRelayer.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "deployICMDemo",
@@ -249,7 +250,7 @@ const componentGroups: Record<string, ComponentGroupType> = {
           "toolbox/src/toolbox/ICM/DeployICMDemo.tsx",
           "toolbox/contracts/example-contracts/contracts/ICMDemo.sol",
         ],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "sendICMMessage",
@@ -259,7 +260,7 @@ const componentGroups: Record<string, ComponentGroupType> = {
           "toolbox/src/toolbox/ICM/SendICMMessage.tsx",
           "toolbox/contracts/example-contracts/contracts/senderOnCChain.sol",
         ],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
     ]
   },
@@ -274,49 +275,49 @@ const componentGroups: Record<string, ComponentGroupType> = {
         label: "Deploy Example ERC20",
         component: lazy(() => import('./ICTT/DeployExampleERC20')),
         fileNames: ["toolbox/src/toolbox/ICTT/DeployExampleERC20.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "deployERC20TokenHome",
         label: "Deploy ERC20 Token Home Contract",
         component: lazy(() => import('./ICTT/DeployERC20TokenHome')),
         fileNames: ["toolbox/src/toolbox/ICTT/DeployERC20TokenHome.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "deployERC20TokenRemote",
         label: "Deploy ERC20 Token Remote Contract",
         component: lazy(() => import('./ICTT/DeployERC20TokenRemote')),
         fileNames: ["toolbox/src/toolbox/ICTT/DeployERC20TokenRemote.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "deployNativeTokenRemote",
         label: "Deploy Native Token Remote Contract",
         component: lazy(() => import('./ICTT/DeployNativeTokenRemote')),
         fileNames: ["toolbox/src/toolbox/ICTT/DeployNativeTokenRemote.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "registerWithHome",
         label: "Register Token Remote with Home",
         component: lazy(() => import('./ICTT/RegisterWithHome')),
         fileNames: ["toolbox/src/toolbox/ICTT/RegisterWithHome.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "addCollateral",
         label: "Add Collateral",
         component: lazy(() => import('./ICTT/AddCollateral')),
         fileNames: ["toolbox/src/toolbox/ICTT/AddCollateral.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       },
       {
         id: "testSend",
         label: "Test Sending ERC20 Tokens",
         component: lazy(() => import('./ICTT/TestSend')),
         fileNames: ["toolbox/src/toolbox/ICTT/TestSend.tsx"],
-        walletRequired: "with-l1"
+        walletMode: "l1"
       }
     ]
   },
@@ -331,42 +332,42 @@ const componentGroups: Record<string, ComponentGroupType> = {
         label: "Deployer Allowlist",
         component: lazy(() => import("./Precompiles/DeployerAllowlist")),
         fileNames: ["toolbox/src/toolbox/Precompiles/DeployerAllowlist.tsx"],
-        walletRequired: "with-l1",
+        walletMode: "l1",
       },
       {
         id: "nativeMinter",
         label: "Native Minter",
         component: lazy(() => import("./Precompiles/NativeMinter")),
         fileNames: ["toolbox/src/toolbox/Precompiles/NativeMinter.tsx"],
-        walletRequired: "with-l1",
+        walletMode: "l1",
       },
       {
         id: "transactionAllowlist",
         label: "Transaction Allowlist",
         component: lazy(() => import("./Precompiles/TransactionAllowlist")),
         fileNames: ["toolbox/src/toolbox/Precompiles/TransactionAllowlist.tsx"],
-        walletRequired: "with-l1",
+        walletMode: "l1",
       },
       {
         id: "feeManager",
         label: "Fee Manager",
         component: lazy(() => import("./Precompiles/FeeManager")),
         fileNames: ["toolbox/src/toolbox/Precompiles/FeeManager.tsx"],
-        walletRequired: "with-l1",
+        walletMode: "l1",
       },
       {
         id: "rewardManager",
         label: "Reward Manager",
         component: lazy(() => import("./Precompiles/RewardManager")),
         fileNames: ["toolbox/src/toolbox/Precompiles/RewardManager.tsx"],
-        walletRequired: "with-l1",
+        walletMode: "l1",
       },
       {
         id: "warpMessenger",
         label: "Warp Messenger",
         component: lazy(() => import("./Precompiles/WarpMessenger")),
         fileNames: ["toolbox/src/toolbox/Precompiles/WarpMessenger.tsx"],
-        walletRequired: "with-l1",
+        walletMode: "l1",
       }
     ]
   },
@@ -377,14 +378,14 @@ const componentGroups: Record<string, ComponentGroupType> = {
         label: "Format Converter",
         component: lazy(() => import('./Conversion/FormatConverter')),
         fileNames: [],
-        walletRequired: "not-required",
+        walletMode: "optional",
       },
       {
         id: 'unitConverter',
         label: "AVAX Unit Converter",
         component: lazy(() => import('./Conversion/UnitConverter')),
         fileNames: [],
-        walletRequired: "not-required",
+        walletMode: "optional",
       }
     ]
   },
@@ -458,7 +459,7 @@ export default function ToolboxApp() {
       label: "Dev",
       component: lazy(() => import('./Dev')),
       fileNames: [],
-      walletRequired: "with-l1",
+      walletMode: "l1",
     });
 
     const comp = allComponents.find(c => c.id === selectedTool);
@@ -476,7 +477,7 @@ export default function ToolboxApp() {
         }}
       >
         <ErrorBoundaryWithWarning>
-          <ConnectWalletToolbox required={comp.walletRequired === "required" || comp.walletRequired === "with-l1"} chainRequired={comp.walletRequired === "with-l1"}>
+          <OptionalConnectWallet walletMode={comp.walletMode}>
             <div className="space-y-4">
               <Suspense fallback={<ComponentLoader />}>
                 <Component />
@@ -493,7 +494,7 @@ export default function ToolboxApp() {
                 />
               ))}
             </div>
-          </ConnectWalletToolbox>
+          </OptionalConnectWallet>
         </ErrorBoundaryWithWarning>
       </ErrorBoundary>
     );

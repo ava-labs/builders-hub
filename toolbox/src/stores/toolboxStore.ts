@@ -67,7 +67,10 @@ type L1ListItem = {
     validatorManagerAddress: string;
     logoUrl: string;
     wellKnownTeleporterRegistryAddress?: string;
+    faucetUrl?: string;
 };
+
+
 
 const l1ListInitialStateFuji = {
     l1List: [
@@ -82,6 +85,7 @@ const l1ListInitialStateFuji = {
             validatorManagerAddress: "",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
+            faucetUrl: "https://test.core.app/tools/testnet-faucet/?subnet=c&token=c",
         },
         {
             id: "98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp",
@@ -94,6 +98,7 @@ const l1ListInitialStateFuji = {
             validatorManagerAddress: "0x0646263a231b4fde6f62d4de63e18df7e6ad94d6",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/7kyTY75fdtnO6mh7f0osix/4c92c93dd688082bfbb43d5d910cbfeb/Echo_Subnet_Logo.png",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
+            faucetUrl: "https://test.core.app/tools/testnet-faucet/?subnet=echo&token=echo",
         },
         {
             id: "2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY",
@@ -106,6 +111,7 @@ const l1ListInitialStateFuji = {
             validatorManagerAddress: "",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/60XrKdf99PqQKrHiuYdwTE/908622f5204311dbb11be9c6008ead44/Dispatch_Subnet_Logo.png",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
+            faucetUrl: "https://test.core.app/tools/testnet-faucet/?subnet=dispatch&token=dispatch",
         }
     ] as L1ListItem[],
 }

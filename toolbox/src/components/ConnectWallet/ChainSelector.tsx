@@ -1,4 +1,3 @@
-import { ConnectWallet } from "./ConnectWallet";
 import { isDefaultChain, useL1ListStore, useViemChainStore } from "../../stores/toolboxStore";
 import { useWalletStore } from "../../stores/walletStore";
 import { ChainTile } from "./ChainTile"
@@ -6,23 +5,8 @@ import { AddChainModal } from "./AddChainModal";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useCallback } from "react";
 
-export const ConnectWalletToolbox = ({ children, required, chainRequired }: { children: React.ReactNode, required: boolean, chainRequired: boolean }) => {
-    const viemChain = useViemChainStore();
 
-    return (
-        <>
-            <ConnectWallet required={required} extraElements={chainRequired ? <ChainSelector /> : null} hidePChain={chainRequired} forceCChain={!chainRequired}>
-                {(chainRequired && !viemChain) ? (
-                    <div className="p-4 border-2 border-gray-500 rounded-md mb-4">
-                        ⚠️ Please connect to an L1 chain before using this component.
-                    </div>
-                ) : children}
-            </ConnectWallet>
-        </>
-    );
-};
-
-const ChainSelector = () => {
+export const ChainSelector = () => {
     const { walletChainId } = useWalletStore();
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState(false)
     const { l1List, addL1, removeL1 } = useL1ListStore()();
