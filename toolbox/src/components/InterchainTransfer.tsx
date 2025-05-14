@@ -1,7 +1,7 @@
 import { ArrowRight, Loader2, X } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useWalletStore } from '../lib/walletStore';
+import { useWalletStore } from '../stores/walletStore';
 import { Button } from './Button';
 import { Input } from './Input';
 import { evmImportTx } from "../coreViem/methods/evmImport"

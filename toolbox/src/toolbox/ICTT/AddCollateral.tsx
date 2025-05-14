@@ -1,7 +1,7 @@
 "use client";
 
-import { useSelectedL1, useToolboxStore, useViemChainStore, getToolboxStore, useL1ByChainId } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useSelectedL1, useToolboxStore, useViemChainStore, getToolboxStore, useL1ByChainId } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "../../components/Button";
@@ -10,11 +10,11 @@ import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20To
 import ExampleERC20ABI from "../../../contracts/icm-contracts/compiled/ExampleERC20.json";
 import { createPublicClient, http, formatUnits, parseUnits, Address, Chain } from "viem";
 import { Input, Suggestion } from "../../components/Input";
-import { EVMAddressInput } from "../components/EVMAddressInput";
+import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { utils } from "@avalabs/avalanchejs";
 import { Note } from "../../components/Note";
-import SelectChainID from "../components/SelectChainID";
-import { Container } from "../components/Container";
+import SelectChainID from "../../components/SelectChainID";
+import { Container } from "../../components/Container";
 import ERC20TokenRemoteABI from "../../../contracts/icm-contracts/compiled/ERC20TokenRemote.json";
 
 export default function AddCollateral() {

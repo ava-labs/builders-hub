@@ -1,8 +1,8 @@
 // src/toolbox/ICTT/TestSend.ts
 "use client";
 
-import { useSelectedL1, useToolboxStore, useViemChainStore, getToolboxStore, useL1ByChainId } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useSelectedL1, useToolboxStore, useViemChainStore, getToolboxStore, useL1ByChainId } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "../../components/Button";
@@ -13,11 +13,11 @@ import ITeleporterMessenger from "../../../contracts/example-contracts/compiled/
 import { createPublicClient, http, formatUnits, parseUnits, Address, zeroAddress, decodeEventLog, AbiEvent } from "viem";
 import { AmountInput } from "../../components/AmountInput";
 import { Suggestion } from "../../components/TokenInput";
-import { EVMAddressInput } from "../components/EVMAddressInput";
-import { Token, TokenInput } from "../components/TokenInput";
+import { EVMAddressInput } from "../../components/EVMAddressInput";
+import { Token, TokenInput } from "../../components/TokenInputToolbox";
 import { utils } from "@avalabs/avalanchejs";
-import SelectChainID from "../components/SelectChainID";
-import { Container } from "../components/Container";
+import SelectChainID from "../../components/SelectChainID";
+import { Container } from "../../components/Container";
 import { Toggle } from "../../components/Toggle";
 import { Ellipsis } from "lucide-react";
 

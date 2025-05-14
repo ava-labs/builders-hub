@@ -1,7 +1,7 @@
 "use client";
 
-import { AllowlistComponent } from "../components/AllowListComponents";
-import { CheckPrecompile } from "../components/CheckPrecompile";
+import { AllowlistComponent } from "../../components/AllowListComponents";
+import { CheckPrecompile } from "../../components/CheckPrecompile";
 
 // Default Deployer AllowList address
 const DEFAULT_DEPLOYER_ALLOWLIST_ADDRESS =

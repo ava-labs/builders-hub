@@ -1,6 +1,6 @@
 "use client"
 
-import { useWalletStore } from "../../lib/walletStore"
+import { useWalletStore } from "../../stores/walletStore"
 import { useState, useEffect } from "react"
 import {
   AlertCircle,
@@ -14,10 +14,10 @@ import {
 } from "lucide-react"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { Button } from "../../components/Button"
-import { Container } from "../components/Container"
+import { Container } from "../../components/Container"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
 import { GlobalParamNetwork, Subnet } from "@avalabs/avacloud-sdk/models/components"
-import SelectSubnetId from "../components/SelectSubnetId"
+import SelectSubnetId from "../../components/SelectSubnetId"
 
 export default function QueryL1Details() {
   const [subnetId, setSubnetID] = useState("")
@@ -100,10 +100,10 @@ export default function QueryL1Details() {
           )}
 
           <div className="mb-4 relative z-10">
-            <SelectSubnetId 
-              value={subnetId} 
-              onChange={setSubnetID} 
-              error={null} 
+            <SelectSubnetId
+              value={subnetId}
+              onChange={setSubnetID}
+              error={null}
             />
           </div>
 

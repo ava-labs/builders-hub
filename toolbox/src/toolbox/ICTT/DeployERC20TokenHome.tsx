@@ -1,19 +1,19 @@
 "use client";
 
 import ERC20TokenHome from "../../../contracts/icm-contracts/compiled/ERC20TokenHome.json";
-import { useToolboxStore, useViemChainStore } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useEffect } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import { Input } from "../../components/Input";
-import { EVMAddressInput } from "../components/EVMAddressInput";
+import { EVMAddressInput } from "../../components/EVMAddressInput";
 import ExampleERC20 from "../../../contracts/icm-contracts/compiled/ExampleERC20.json"
 import { createPublicClient, http } from "viem";
 import { Note } from "../../components/Note";
-import { Container } from "../components/Container";
-import TeleporterRegistryAddressInput from "../components/TeleporterRegistryAddressInput";
+import { Container } from "../../components/Container";
+import TeleporterRegistryAddressInput from "../../components/TeleporterRegistryAddressInput";
 
 export default function DeployERC20TokenHome() {
     const { showBoundary } = useErrorBoundary();

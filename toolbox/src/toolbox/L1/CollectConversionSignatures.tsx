@@ -1,16 +1,16 @@
 "use client";
 
-import { useWalletStore } from "../../lib/walletStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useEffect, useState } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
 import { Button } from "../../components/Button";
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
 import { CodeHighlighter } from "../../components/CodeHighlighter";
-import { Container } from "../components/Container";
+import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
-import InputChainId from "../components/InputChainId";
+import InputChainId from "../../components/InputChainId";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
-import { ResultField } from "../components/ResultField";
+import { ResultField } from "../../components/ResultField";
 
 export default function CollectConversionSignatures() {
     const { coreWalletClient } = useWalletStore();

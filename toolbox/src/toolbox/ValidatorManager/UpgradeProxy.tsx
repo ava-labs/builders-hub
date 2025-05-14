@@ -1,16 +1,16 @@
 "use client";
 
-import { useWalletStore } from "../../lib/walletStore";
-import { useSelectedL1, useViemChainStore } from "../toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
+import { useSelectedL1, useViemChainStore } from "../../stores/toolboxStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useEffect } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import ProxyAdminABI from "../../../contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
-import { Container } from "../components/Container";
-import { useToolboxStore } from "../toolboxStore";
+import { Container } from "../../components/Container";
+import { useToolboxStore } from "../../stores/toolboxStore";
 import { getSubnetInfo } from "../../coreViem/utils/glacier";
-import { EVMAddressInput } from "../components/EVMAddressInput";
+import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { Input } from "../../components/Input";
 
 // Storage slot with the admin of the proxy (following EIP1967)

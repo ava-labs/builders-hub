@@ -1,14 +1,14 @@
 "use client"
 
-import { useWalletStore } from "../../lib/walletStore"
+import { useWalletStore } from "../../stores/walletStore"
 import { useState, useEffect } from "react"
 import { Calendar, Clock, Users, Coins, Info, Copy, Check, Search, ChevronDown } from "lucide-react"
-import { Container } from "../components/Container"
+import { Container } from "../../components/Container"
 import { Button } from "../../components/Button"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { GlobalParamNetwork, L1ValidatorDetailsFull } from "@avalabs/avacloud-sdk/models/components"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
-import SelectSubnetId from "../components/SelectSubnetId"
+import SelectSubnetId from "../../components/SelectSubnetId"
 import { Tooltip } from "../../components/Tooltip"
 import { formatAvaxBalance } from "../../coreViem/utils/format"
 
@@ -91,18 +91,18 @@ export default function QueryL1ValidatorSet() {
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
-    
+
     if (!term.trim()) {
       setFilteredValidators(validators);
       return;
     }
-    
-    const filtered = validators.filter(validator => 
+
+    const filtered = validators.filter(validator =>
       validator.nodeId.toLowerCase().includes(term)
     );
     setFilteredValidators(filtered);
   };
-  
+
   // Update filtered validators when validators change
   useEffect(() => {
     setFilteredValidators(validators);
@@ -115,12 +115,12 @@ export default function QueryL1ValidatorSet() {
 
         <div className="relative">
           <div className="mb-4">
-            <SelectSubnetId value={subnetId} onChange={setSubnetId} hidePrimaryNetwork={true}/>
+            <SelectSubnetId value={subnetId} onChange={setSubnetId} hidePrimaryNetwork={true} />
             <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
               Leave empty to query the Primary Network validators
             </p>
           </div>
-          
+
           <Button
             onClick={() => fetchValidators()}
             disabled={isLoading}
@@ -168,7 +168,7 @@ export default function QueryL1ValidatorSet() {
                 </span>
               </h3>
             </div>
-            
+
             <div className="relative w-full sm:w-72">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-zinc-400" />
@@ -182,7 +182,7 @@ export default function QueryL1ValidatorSet() {
               />
             </div>
           </div>
-          
+
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mb-3"></div>
@@ -225,8 +225,8 @@ export default function QueryL1ValidatorSet() {
                   </thead>
                   <tbody className="bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-700">
                     {filteredValidators.map((validator, index) => (
-                      <tr 
-                        key={index} 
+                      <tr
+                        key={index}
                         className="hover:bg-zinc-50 dark:hover:bg-zinc-800/70 transition-colors duration-150"
                       >
                         <td className="px-4 py-4 text-sm font-mono truncate max-w-[200px] text-zinc-800 dark:text-zinc-200">
@@ -524,7 +524,8 @@ export default function QueryL1ValidatorSet() {
         <a href="https://developers.avacloud.io/data-api/primary-network/list-validators" target="_blank" rel="noopener noreferrer" className="underline hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">Data retrieved from Data API</a>
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }

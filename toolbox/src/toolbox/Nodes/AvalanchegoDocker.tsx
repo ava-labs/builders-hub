@@ -1,23 +1,23 @@
 "use client";
 
-import { useWalletStore } from "../../lib/walletStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useState, useEffect } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
 import versions from "../../versions.json";
-import { Container } from "../components/Container";
+import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
 import { getBlockchainInfo } from "../../coreViem/utils/glacier";
-import InputChainId from "../components/InputChainId";
+import InputChainId from "../../components/InputChainId";
 import { Checkbox } from "../../components/Checkbox";
 
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import { AddChainModal } from "../components/ConnectWalletToolbox/AddChainModal";
-import { useL1ListStore } from "../toolboxStore";
+import { AddChainModal } from "../../components/ConnectWallet/AddChainModal";
+import { useL1ListStore } from "../../stores/toolboxStore";
 import { Button } from "../../components/Button";
-import { ResultField } from "../components/ResultField";
+import { ResultField } from "../../components/ResultField";
 import { RadioGroup } from "../../components/RadioGroup";
 
 

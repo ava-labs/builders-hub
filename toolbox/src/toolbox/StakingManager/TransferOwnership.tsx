@@ -1,14 +1,14 @@
 "use client";
 
-import { useToolboxStore, useViemChainStore } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Button } from "../../components/Button";
-import { ResultField } from "../components/ResultField";
+import { ResultField } from "../../components/ResultField";
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
-import { Container } from "../components/Container";
-import { EVMAddressInput } from "../components/EVMAddressInput";
+import { Container } from "../../components/Container";
+import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { TransactionReceipt } from "viem";
 
 export default function TransferOwnership() {

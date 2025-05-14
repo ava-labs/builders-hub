@@ -1,23 +1,23 @@
 "use client";
 
 import NativeTokenRemote from "../../../contracts/icm-contracts/compiled/NativeTokenRemote.json";
-import { useSelectedL1, useToolboxStore, useViemChainStore, getToolboxStore, useL1ByChainId } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useSelectedL1, useToolboxStore, useViemChainStore, getToolboxStore, useL1ByChainId } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import { Input } from "../../components/Input";
-import { EVMAddressInput } from "../components/EVMAddressInput";
+import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { createPublicClient, http } from "viem";
 import { Note } from "../../components/Note";
 import { utils } from "@avalabs/avalanchejs";
 import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import ExampleERC20 from "../../../contracts/icm-contracts/compiled/ExampleERC20.json";
-import SelectChainID from "../components/SelectChainID";
-import { CheckPrecompile } from "../components/CheckPrecompile";
-import { Container } from "../components/Container";
-import TeleporterRegistryAddressInput from "../components/TeleporterRegistryAddressInput";
+import SelectChainID from "../../components/SelectChainID";
+import { CheckPrecompile } from "../../components/CheckPrecompile";
+import { Container } from "../../components/Container";
+import TeleporterRegistryAddressInput from "../../components/TeleporterRegistryAddressInput";
 export default function DeployNativeTokenRemote() {
     const { showBoundary } = useErrorBoundary();
     const {

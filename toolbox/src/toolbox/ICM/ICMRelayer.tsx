@@ -2,8 +2,8 @@
 
 import { formatEther, parseEther, createPublicClient, http, Chain } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { useSelectedL1, useL1ListStore } from '../toolboxStore';
-import { useWalletStore } from '../../lib/walletStore';
+import { useSelectedL1, useL1ListStore } from '../../stores/toolboxStore';
+import { useWalletStore } from '../../stores/walletStore';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { useState, useEffect } from 'react';
@@ -12,7 +12,7 @@ import { RefreshCw } from 'lucide-react';
 
 import versions from '../../versions.json';
 import { Note } from '../../components/Note';
-import { Container } from '../components/Container';
+import { Container } from '../../components/Container';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 
 

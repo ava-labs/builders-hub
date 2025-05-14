@@ -8,20 +8,20 @@ import { useErrorBoundary } from "react-error-boundary"
 import { useState, useEffect } from "react"
 
 import { Button } from "../../components/Button"
-import { Container } from "../components/Container"
+import { Container } from "../../components/Container"
 import { GetRegistrationJustification } from "./justification"
 import { Input } from "../../components/Input"
 import { cn } from "../../lib/utils"
 import { packL1ValidatorRegistration } from "../../coreViem/utils/convertWarp"
 import { packWarpIntoAccessList } from "./packWarp"
-import { StepIndicator } from "../components/StepIndicator"
-import { useViemChainStore, useCreateChainStore} from "../toolboxStore"
-import { useWalletStore } from "../../lib/walletStore"
+import { StepIndicator } from "../../components/StepIndicator"
+import { useViemChainStore, useCreateChainStore } from "../../stores/toolboxStore"
+import { useWalletStore } from "../../stores/walletStore"
 import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
 import { getValidationIdHex } from "../../coreViem/hooks/getValidationID"
 import { useStepProgress, StepsConfig } from "../hooks/useStepProgress"
 import { setL1ValidatorWeight } from "../../coreViem/methods/setL1ValidatorWeight"
-import SelectSubnetId from "../components/SelectSubnetId"
+import SelectSubnetId from "../../components/SelectSubnetId"
 import { useValidatorManagerDetails } from "../hooks/useValidatorManagerDetails"
 import { validateContractOwner } from "../../coreViem/hooks/validateContractOwner"
 import { ValidatorManagerDetails } from "../../components/ValidatorManagerDetails"
@@ -59,12 +59,12 @@ export default function RemoveValidator() {
   const [pChainSignature, setPChainSignature] = useState("")
   const [isContractOwner, setIsContractOwner] = useState<boolean | null>(null)
 
-  const { 
-      validatorManagerAddress, 
-      signingSubnetId, 
-      error: validatorManagerError, 
-      isLoading: isLoadingVMCDetails,
-      blockchainId,
+  const {
+    validatorManagerAddress,
+    signingSubnetId,
+    error: validatorManagerError,
+    isLoading: isLoadingVMCDetails,
+    blockchainId,
   } = useValidatorManagerDetails({ subnetId });
 
   const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji"
@@ -116,7 +116,7 @@ export default function RemoveValidator() {
       setError("Validator Manager Address is required. Please select a valid L1 subnet.")
       return
     }
-    
+
     // Check if user is contract owner
     if (isContractOwner === false) {
       setError("You are not the owner of this contract. Only the contract owner can remove validators.")

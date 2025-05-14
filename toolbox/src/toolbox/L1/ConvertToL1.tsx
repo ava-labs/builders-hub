@@ -1,18 +1,18 @@
 "use client";
 
-import { useCreateChainStore } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useCreateChainStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useState, useEffect } from "react";
 import { Button } from "../../components/Button";
 import { type ConvertToL1Validator } from "../../components/ValidatorListInput";
 import { useErrorBoundary } from "react-error-boundary";
-import { Container } from "../components/Container";
-import { ResultField } from "../components/ResultField";
+import { Container } from "../../components/Container";
+import { ResultField } from "../../components/ResultField";
 import { ValidatorListInput } from "../../components/ValidatorListInput";
-import InputChainId from "../components/InputChainId";
-import SelectSubnetId from "../components/SelectSubnetId";
+import InputChainId from "../../components/InputChainId";
+import SelectSubnetId from "../../components/SelectSubnetId";
 import { Callout } from "fumadocs-ui/components/callout";
-import { EVMAddressInput } from "../components/EVMAddressInput";
+import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { getPChainBalance } from "../../coreViem/methods/getPChainbalance";
 
 export default function ConvertToL1() {

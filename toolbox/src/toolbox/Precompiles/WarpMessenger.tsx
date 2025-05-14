@@ -1,18 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useWalletStore } from "../../lib/walletStore";
-import { useViemChainStore } from "../toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
+import { useViemChainStore } from "../../stores/toolboxStore";
 import { Button } from "../../components/Button";
-import { Container } from "../components/Container";
+import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
 import { Success } from "../../components/Success";
-import { AllowlistComponent } from "../components/AllowListComponents";
+import { AllowlistComponent } from "../../components/AllowListComponents";
 import warpMessengerAbi from "../../../contracts/precompiles/WarpMessenger.json";
 import { RadioGroup } from "../../components/RadioGroup";
 import { avalancheFuji } from 'viem/chains';
 import { createPublicClient, http } from 'viem';
-import { CheckPrecompile } from "../components/CheckPrecompile";
+import { CheckPrecompile } from "../../components/CheckPrecompile";
 
 // Default Warp Messenger address
 const DEFAULT_WARP_MESSENGER_ADDRESS =

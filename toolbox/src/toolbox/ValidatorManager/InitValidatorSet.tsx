@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useSelectedL1, useViemChainStore } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useSelectedL1, useViemChainStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { hexToBytes, decodeErrorResult, Abi } from 'viem';
 import { packWarpIntoAccessList } from './packWarp';
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
@@ -11,8 +11,8 @@ import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { networkIDs, utils } from '@avalabs/avalanchejs';
 import { CodeHighlighter } from '../../components/CodeHighlighter';
-import { Container } from '../components/Container';
-import { ResultField } from '../components/ResultField';
+import { Container } from '../../components/Container';
+import { ResultField } from '../../components/ResultField';
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
 import { getSubnetInfo } from '../../coreViem/utils/glacier';
 

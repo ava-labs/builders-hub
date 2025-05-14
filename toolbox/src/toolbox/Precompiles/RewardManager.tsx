@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useWalletStore } from "../../lib/walletStore";
-import { useViemChainStore } from "../toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
+import { useViemChainStore } from "../../stores/toolboxStore";
 import { Button } from "../../components/Button";
-import { Container } from "../components/Container";
-import { EVMAddressInput } from "../components/EVMAddressInput";
-import { AllowlistComponent } from "../components/AllowListComponents";
+import { Container } from "../../components/Container";
+import { EVMAddressInput } from "../../components/EVMAddressInput";
+import { AllowlistComponent } from "../../components/AllowListComponents";
 import rewardManagerAbi from "../../../contracts/precompiles/RewardManager.json";
 import { CheckCircle, Edit, Users, Wallet } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { CheckPrecompile } from "../components/CheckPrecompile";
+import { CheckPrecompile } from "../../components/CheckPrecompile";
 
 // Default Reward Manager address
 const DEFAULT_REWARD_MANAGER_ADDRESS =

@@ -3,15 +3,15 @@
 import { useState, useEffect } from "react"
 import { useErrorBoundary } from "react-error-boundary"
 
-import { useViemChainStore, useCreateChainStore } from "../toolboxStore"
-import { useWalletStore } from "../../lib/walletStore"
+import { useViemChainStore, useCreateChainStore } from "../../stores/toolboxStore"
+import { useWalletStore } from "../../stores/walletStore"
 
-import { Container } from "../components/Container"
+import { Container } from "../../components/Container"
 import { Input } from "../../components/Input"
 import { Button } from "../../components/Button"
-import { StepIndicator } from "../components/StepIndicator"
+import { StepIndicator } from "../../components/StepIndicator"
 import { AlertCircle, CheckCircle } from "lucide-react"
-import SelectSubnetId from "../components/SelectSubnetId"
+import SelectSubnetId from "../../components/SelectSubnetId"
 import { ValidatorManagerDetails } from "../../components/ValidatorManagerDetails"
 
 import { cn } from "../../lib/utils"
@@ -60,15 +60,15 @@ export default function ChangeWeight() {
   const [nodeID, setNodeID] = useState("")
   const [weight, setWeight] = useState("")
   const [subnetId, setSubnetId] = useState(createChainStoreSubnetId || "")
-  const { 
-      validatorManagerAddress, 
-      signingSubnetId, 
-      error: validatorManagerError, 
-      isLoading: isLoadingVMCDetails,
-      contractTotalWeight,
-      blockchainId
+  const {
+    validatorManagerAddress,
+    signingSubnetId,
+    error: validatorManagerError,
+    isLoading: isLoadingVMCDetails,
+    contractTotalWeight,
+    blockchainId
   } = useValidatorManagerDetails({ subnetId });
-  
+
   // Add isContractOwner state
   const [isContractOwner, setIsContractOwner] = useState<boolean | null>(null)
 
@@ -143,7 +143,7 @@ export default function ChangeWeight() {
       setError("Validator Manager Address is required. Please select a valid L1 subnet.")
       return
     }
-    
+
     // Check if user is contract owner
     if (isContractOwner === false) {
       setError("You are not the owner of this contract. Only the contract owner can change validator weights.")
@@ -153,19 +153,19 @@ export default function ChangeWeight() {
     // Get the validation ID and current weight before validating the percentage
     let validatorValidationID: string | null = null;
     let validatorCurrentWeight: bigint | null = null;
-    
+
     try {
       // Only do this preflight check if we're starting fresh
       if (!startFromStep) {
         validatorValidationID = await getValidationIdHex(publicClient, validatorManagerAddress as `0x${string}`, nodeID) as string;
-        
+
         if (validatorValidationID) {
           validatorCurrentWeight = await getValidatorWeight(
-            publicClient, 
-            validatorManagerAddress as `0x${string}`, 
+            publicClient,
+            validatorManagerAddress as `0x${string}`,
             validatorValidationID
           );
-          
+
           // Log these values to understand what's happening
           console.log("Pre-flight Check: contractTotalWeight", contractTotalWeight);
           console.log("Pre-flight Check: validatorCurrentWeight", validatorCurrentWeight);
@@ -178,13 +178,13 @@ export default function ChangeWeight() {
               weightBigInt,
               validatorCurrentWeight || 0n
             );
-    
+
             // Log validationDetails
             console.log("Pre-flight Check: validationDetails", validationDetails);
 
             if (validationDetails.exceedsMaximum) {
-              const weightAdjustment = weightBigInt > (validatorCurrentWeight || 0n) 
-                ? weightBigInt - (validatorCurrentWeight || 0n) 
+              const weightAdjustment = weightBigInt > (validatorCurrentWeight || 0n)
+                ? weightBigInt - (validatorCurrentWeight || 0n)
                 : (validatorCurrentWeight || 0n) - weightBigInt;
               const currentWeightDisplay = validatorCurrentWeight?.toString() || "0";
               const errorMessage = `The proposed weight change from ${currentWeightDisplay} to ${weight} (an adjustment of ${weightAdjustment}) represents ${validationDetails.percentageChange.toFixed(2)}% of the current total L1 stake (${contractTotalWeight}). This adjustment percentage must be less than 20%.`;
@@ -221,17 +221,17 @@ export default function ChangeWeight() {
           setValidationIDHex(validationIDResult as string)
           localValidationID = validationIDResult as string;
           console.log("ValidationID:", validationIDResult)
-          
+
           // Get current validator weight if validation ID exists
           if (validationIDResult) {
             const currentWeight = await getValidatorWeight(
-              publicClient, 
-              validatorManagerAddress as `0x${string}`, 
+              publicClient,
+              validatorManagerAddress as `0x${string}`,
               validationIDResult as string
             );
             console.log("Current validator weight:", currentWeight);
           }
-            
+
           updateStepStatus("getValidationID", "success")
         } catch (error: any) {
           updateStepStatus("getValidationID", "error", error.message)

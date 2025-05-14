@@ -1,14 +1,14 @@
 "use client";
 
 import ExampleERC20 from "../../../contracts/icm-contracts/compiled/ExampleERC20.json"
-import { useToolboxStore, useViemChainStore } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import { http, createPublicClient } from "viem";
-import { Container } from "../components/Container";
+import { Container } from "../../components/Container";
 
 export default function DeployExampleERC20() {
     const { showBoundary } = useErrorBoundary();

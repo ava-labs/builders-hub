@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
 import { getTotalStake } from "../../coreViem/hooks/getTotalStake";
 import { getSubnetInfoForNetwork, getBlockchainInfoForNetwork } from "../../coreViem/utils/glacier";
-import { useWalletStore } from "../../lib/walletStore";
-import { useViemChainStore } from "../toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
+import { useViemChainStore } from "../../stores/toolboxStore";
 
 interface ValidatorManagerDetails {
     validatorManagerAddress: string;
@@ -110,7 +110,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                     setIsLoading(false);
                     return;
                 }
-                
+
                 // Successfully fetched VMC address and blockchain ID, now get signing subnet ID
                 const blockchainInfoForSigning = await getBlockchainInfoForNetwork(network, vmcBlockchainId);
                 const fetchedSigningSubnetId = blockchainInfoForSigning.subnetId;
@@ -146,14 +146,14 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
         const fetchL1TotalWeight = async () => {
             if (!publicClient) {
                 setContractTotalWeight(0n);
-                setL1WeightError(null); 
+                setL1WeightError(null);
                 setIsLoadingL1Weight(false);
                 return;
             }
 
             if (!validatorManagerAddress) { // If no VMC address yet, don't attempt to fetch
                 setContractTotalWeight(0n);
-                setL1WeightError(null); 
+                setL1WeightError(null);
                 setIsLoadingL1Weight(false);
                 return;
             }
@@ -179,7 +179,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                 console.error("Error fetching total L1 weight from contract:", e);
                 setContractTotalWeight(0n); // Reset on error
                 // Check for specific error messages indicating VMC issues
-                if (e.message?.includes('returned no data ("0x")') || 
+                if (e.message?.includes('returned no data ("0x")') ||
                     e.message?.includes('The contract function "l1TotalWeight" returned no data')) {
                     setL1WeightError("Validator Manager contract weight is 0, is the contract initialized?"); // User's requested message for "0x" error
                 } else if (e.message?.includes('address is not a contract')) {
@@ -196,14 +196,14 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
         fetchL1TotalWeight();
     }, [validatorManagerAddress, publicClient]); // Re-run if VMC address or publicClient changes
 
-    return { 
-        validatorManagerAddress, 
-        blockchainId, 
-        signingSubnetId, 
-        error, 
-        isLoading, 
-        contractTotalWeight, 
-        l1WeightError, 
-        isLoadingL1Weight 
+    return {
+        validatorManagerAddress,
+        blockchainId,
+        signingSubnetId,
+        error,
+        isLoading,
+        contractTotalWeight,
+        l1WeightError,
+        isLoadingL1Weight
     };
 } 

@@ -1,16 +1,16 @@
 "use client"
 
-import { useSelectedL1 } from "../toolboxStore"
-import { useWalletStore } from "../../lib/walletStore"
+import { useSelectedL1 } from "../../stores/toolboxStore"
+import { useWalletStore } from "../../stores/walletStore"
 import { useErrorBoundary } from "react-error-boundary"
 import type { AbiEvent } from "viem"
 import { useEffect, useState } from "react"
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
 import { Button } from "../../components/Button"
-import { Container } from "../components/Container"
+import { Container } from "../../components/Container"
 import { ChevronDown, ChevronRight } from "lucide-react"
 import { getSubnetInfo } from "../../coreViem/utils/glacier"
-import { EVMAddressInput } from "../components/EVMAddressInput"
+import { EVMAddressInput } from "../../components/EVMAddressInput"
 
 type ViewData = {
   [key: string]: any

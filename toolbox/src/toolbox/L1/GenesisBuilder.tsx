@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, SetStateAction } from "react";
-import { useWalletStore } from "../../lib/walletStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { Button } from "../../components/Button";
 import { Copy, Download, AlertCircle, Check } from "lucide-react";
 import { Address } from "viem";

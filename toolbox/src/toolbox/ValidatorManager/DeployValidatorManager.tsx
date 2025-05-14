@@ -1,15 +1,15 @@
 "use client";
 
-import { useToolboxStore, useViemChainStore } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Button } from "../../components/Button";
-import { ResultField } from "../components/ResultField";
+import { ResultField } from "../../components/ResultField";
 import { keccak256 } from 'viem';
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
 import ValidatorMessagesABI from "../../../contracts/icm-contracts/compiled/ValidatorMessages.json";
-import { Container } from "../components/Container";
+import { Container } from "../../components/Container";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 
 function calculateLibraryHash(libraryPath: string) {
@@ -124,7 +124,7 @@ export default function DeployValidatorContracts() {
                             >
                                 Deploy Library
                             </Button>
-                            
+
                             {validatorMessagesLibAddress && (
                                 <div className="mt-3 pt-3 border-t">
                                     <ResultField
@@ -153,7 +153,7 @@ export default function DeployValidatorContracts() {
                             >
                                 Deploy Manager Contract
                             </Button>
-                            
+
                             {validatorManagerAddress && (
                                 <div className="mt-3 pt-3 border-t">
                                     <ResultField

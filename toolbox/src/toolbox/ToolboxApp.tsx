@@ -2,13 +2,13 @@
 
 import { Button } from "../components/Button";
 import { ErrorBoundary } from "react-error-boundary";
-import { resetAllStores } from '../toolbox/toolboxStore';
+import { resetAllStores } from '../stores/toolboxStore';
 import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
-import { GithubLink } from "./components/GithubLink";
+import { GithubLink } from "../components/GithubLink";
 import { ErrorFallback } from "../components/ErrorFallback";
 import { ErrorBoundaryWithWarning } from "../components/ErrorBoundaryWithWarning";
-import { ConnectWalletToolbox } from "./components/ConnectWalletToolbox/ConnectWalletToolbox";
+import { ConnectWalletToolbox } from "../components/ConnectWallet/ConnectWalletToolbox";
 import "../main.css";
 
 type ComponentType = {

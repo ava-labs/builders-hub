@@ -5,12 +5,12 @@ import { useErrorBoundary } from "react-error-boundary";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import { formatEther, parseEther } from 'viem';
-import { useViemChainStore } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useViemChainStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import TeleporterMessengerDeploymentTransaction from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployment_Transaction_v1.0.0.txt.json';
 import TeleporterMessengerDeployerAddress from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployer_Address_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
-import { Container } from "../components/Container";
+import { Container } from "../../components/Container";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 
 const MINIMUM_BALANCE = parseEther('11');

@@ -1,7 +1,7 @@
 "use client";
 
-import { AllowlistComponent } from "../components/AllowListComponents";
-import { CheckPrecompile } from "../components/CheckPrecompile";
+import { AllowlistComponent } from "../../components/AllowListComponents";
+import { CheckPrecompile } from "../../components/CheckPrecompile";
 
 // Default Transaction AllowList address
 const DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS =
