@@ -19,9 +19,7 @@ const ADMIN_SLOT = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b
 
 export default function UpgradeProxy() {
     const { showBoundary } = useErrorBoundary();
-    const {
-        validatorManagerAddress,
-    } = useToolboxStore();
+    const { validatorManagerAddress } = useToolboxStore();
     const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
     const selectedL1 = useSelectedL1()();
     const { coreWalletClient, publicClient, walletChainId } = useWalletStore();
@@ -68,10 +66,8 @@ export default function UpgradeProxy() {
                 const adminAddress = `0x${data.slice(-40)}` as `0x${string}`;
                 setProxySlotAdmin(adminAddress);
 
-                // Update proxy admin in the store if not set
-                if (!proxyAdminAddress) {
-                    setProxyAdminAddress(adminAddress);
-                }
+                // Always use the admin from storage
+                setProxyAdminAddress(adminAddress);
             }
         } catch (error) {
             console.error("Failed to read proxy admin slot:", error);
@@ -85,14 +81,14 @@ export default function UpgradeProxy() {
     }, [proxyAddress]);
 
     useEffect(() => {
-        if (validatorManagerAddress && !desiredImplementation && validatorManagerAddress !== desiredImplementation) {
+        if (validatorManagerAddress && !desiredImplementation) {
             setDesiredImplementation(validatorManagerAddress);
         }
     }, [validatorManagerAddress, desiredImplementation]);
 
     useEffect(() => {
         checkCurrentImplementation();
-    }, [viemChain, validatorManagerAddress, proxyAddress, proxyAdminAddress]);
+    }, [viemChain, proxyAddress, proxyAdminAddress]);
 
 
     async function checkCurrentImplementation() {
@@ -121,18 +117,25 @@ export default function UpgradeProxy() {
     }
 
     async function handleUpgrade() {
-        if (!validatorManagerAddress) {
-            throw new Error('Validator Manager must be deployed first');
+        if (!desiredImplementation) {
+            throw new Error('Implementation address is required');
+        }
+        
+        if (!proxyAddress) {
+            throw new Error('Proxy address is required');
+        }
+        
+        if (!proxyAdminAddress) {
+            throw new Error('Proxy admin address is required');
         }
 
         setIsUpgrading(true);
         try {
-
             const hash = await coreWalletClient.writeContract({
                 address: proxyAdminAddress,
                 abi: ProxyAdminABI.abi,
                 functionName: 'upgrade',
-                args: [proxyAddress, validatorManagerAddress as `0x${string}`],
+                args: [proxyAddress, desiredImplementation as `0x${string}`],
                 chain: viemChain,
             });
 
@@ -146,9 +149,9 @@ export default function UpgradeProxy() {
     }
 
     const isUpgradeNeeded = currentImplementation?.toLowerCase() !== desiredImplementation?.toLowerCase();
+    const canUpgrade = !!proxyAddress && !!proxyAdminAddress && !!desiredImplementation && isUpgradeNeeded;
 
     return (
-
         <Container
             title="Upgrade Proxy Implementation"
             description="This will upgrade the proxy implementation to the desired implementation."
@@ -160,27 +163,12 @@ export default function UpgradeProxy() {
                 disabled={isUpgrading}
                 placeholder="Enter proxy address"
             />
-            <div className="space-y-1">
-                <EVMAddressInput
-                    label="Proxy Admin Address"
-                    value={proxyAdminAddress || ""}
-                    onChange={(value: string) => setProxyAdminAddress(value as `0x${string}`)}
-                    placeholder="Enter proxy admin address"
-                    disabled={isUpgrading}
-                />
-                {proxySlotAdmin && proxySlotAdmin !== proxyAdminAddress && (
-                    <div className="flex justify-between items-center">
-                        <span className="text-sm text-yellow-600">Address doesn't match the admin in storage ({proxySlotAdmin})</span>
-                        <Button
-                            onClick={() => setProxyAdminAddress(proxySlotAdmin as `0x${string}`)}
-                            variant="secondary"
-                            size="sm"
-                        >
-                            Use Storage Admin
-                        </Button>
-                    </div>
-                )}
-            </div>
+            <Input
+                label="Proxy Admin Address"
+                value={proxySlotAdmin || ""}
+                disabled={true}
+                placeholder="Proxy admin address will be read from storage"
+            />
             <EVMAddressInput
                 label="Desired Implementation"
                 value={desiredImplementation || ""}
@@ -198,17 +186,14 @@ export default function UpgradeProxy() {
                 variant="primary"
                 onClick={handleUpgrade}
                 loading={isUpgrading}
-                disabled={isUpgrading || !validatorManagerAddress || !isUpgradeNeeded}
+                disabled={isUpgrading || !canUpgrade}
             >
-                {!validatorManagerAddress ? "Deploy ValidatorManager First" :
-                    !isUpgradeNeeded ? "Already Up To Date" :
-                        "Upgrade Proxy"}
+                {!canUpgrade ? (isUpgradeNeeded ? "Enter All Required Addresses" : "Already Up To Date") : "Upgrade Proxy"}
             </Button>
-            {!isUpgradeNeeded && <Success
+            {!isUpgradeNeeded && currentImplementation && <Success
                 label="Current Implementation"
                 value={"No change needed"}
             />}
         </Container>
-
     );
 };

@@ -118,13 +118,6 @@ const componentGroups: Record<string, ComponentGroupType> = {
         walletMode: "l1"
       },
       {
-        id: "upgradeProxy",
-        label: "Upgrade Proxy Contract",
-        component: lazy(() => import('./ValidatorManager/UpgradeProxy')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/UpgradeProxy.tsx"],
-        walletMode: "l1"
-      },
-      {
         id: "initialize",
         label: "Set Initial Configuration",
         component: lazy(() => import('./ValidatorManager/Initialize')),
@@ -317,6 +310,24 @@ const componentGroups: Record<string, ComponentGroupType> = {
         label: "Test Sending ERC20 Tokens",
         component: lazy(() => import('./ICTT/TestSend')),
         fileNames: ["toolbox/src/toolbox/ICTT/TestSend.tsx"],
+        walletMode: "l1"
+      }
+    ]
+  },
+  "Proxy Utils": {
+    components: [
+      {
+        id: "deployProxyContract",
+        label: "Deploy Proxy Contract",
+        component: lazy(() => import('./Proxy/DeployProxyContract')),
+        fileNames: ["toolbox/src/toolbox/Proxy/DeployProxyContract.tsx"],
+        walletMode: "l1"
+      },
+      {
+        id: "upgradeProxy",
+        label: "Upgrade Proxy Implementation",
+        component: lazy(() => import('./Proxy/UpgradeProxy')),
+        fileNames: ["toolbox/src/toolbox/Proxy/UpgradeProxy.tsx"],
         walletMode: "l1"
       }
     ]
