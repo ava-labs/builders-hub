@@ -6,7 +6,7 @@ import { useState, useCallback } from "react";
 import { isDefaultChain, useL1ListStore } from "../../stores/l1ListStore";
 
 
-export const ChainSelector = () => {
+export const ChainSelector = ({ enforceChainId }: { enforceChainId?: number }) => {
     const { walletChainId } = useWalletStore();
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState(false)
     const { l1List, addL1, removeL1 } = useL1ListStore()();
@@ -27,18 +27,23 @@ export const ChainSelector = () => {
 
                 {l1List.length > 0 ? (
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                        {l1List.map((chain) => (
-                            <ChainTile
-                                key={chain.id}
-                                chain={chain}
-                                isActive={walletChainId === chain.evmChainId}
-                                onClick={() => handleSwitchChain(chain.evmChainId)}
-                                onDelete={isDefaultChain(chain.id) ? undefined : () => removeL1(chain.id)}
-                            />
-                        ))}
+                        {l1List.map((chain) => {
+                            const isChainEnforced = enforceChainId !== undefined && chain.evmChainId !== enforceChainId;
+                            return (
+                                <ChainTile
+                                    key={chain.id}
+                                    chain={chain}
+                                    isActive={walletChainId === chain.evmChainId}
+                                    onClick={isChainEnforced ? () => { } : () => handleSwitchChain(chain.evmChainId)}
+                                    onDelete={isDefaultChain(chain.id) ? undefined : () => removeL1(chain.id)}
+                                    isDimmed={isChainEnforced}
+                                />
+                            );
+                        })}
                         <ChainTile
                             isAddTile
                             onClick={() => setIsAddChainModalOpen(true)}
+                            isDimmed={enforceChainId !== undefined}
                         />
                     </div>
                 ) : (
@@ -46,6 +51,7 @@ export const ChainSelector = () => {
                         <ChainTile
                             isAddTile
                             onClick={() => setIsAddChainModalOpen(true)}
+                            isDimmed={enforceChainId !== undefined}
                         />
                     </div>
                 )}

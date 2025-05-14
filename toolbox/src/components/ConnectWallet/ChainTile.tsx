@@ -19,6 +19,7 @@ interface ChainTileProps {
     isAddTile?: boolean;
     onClick: () => void;
     onDelete?: () => void;
+    isDimmed?: boolean;
 }
 
 export const ChainTile: React.FC<ChainTileProps> = ({
@@ -26,13 +27,14 @@ export const ChainTile: React.FC<ChainTileProps> = ({
     isActive = false,
     isAddTile = false,
     onClick,
-    onDelete
+    onDelete,
+    isDimmed = false
 }) => {
 
 
     return (
         <div
-            onClick={onClick}
+            onClick={isDimmed ? () => { } : onClick}
             className={`
         ${isAddTile ? 'h-20 flex items-center justify-center' : 'h-20 flex items-center p-3 gap-3'} 
         w-full rounded-lg border cursor-pointer transition-all relative
@@ -46,6 +48,7 @@ export const ChainTile: React.FC<ChainTileProps> = ({
         ${isActive
                     ? "border-2 border-black dark:border-white shadow-sm"
                     : "border-zinc-200 dark:border-zinc-700 hover:bg-opacity-80 dark:hover:bg-opacity-80"}
+        ${isDimmed ? 'opacity-50 pointer-events-none' : ''}
       `}
             title={chain?.name || "Add new chain"}
             style={{ overflow: 'visible' }}

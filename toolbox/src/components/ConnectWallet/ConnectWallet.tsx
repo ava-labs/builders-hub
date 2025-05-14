@@ -24,23 +24,27 @@ const LOW_BALANCE_THRESHOLD = 0.5
 
 export const OptionalConnectWallet = ({
     children,
-    walletMode
+    walletMode,
+    enforceChainId
 }: {
     children: React.ReactNode;
     walletMode: WalletMode;
+    enforceChainId?: number;
 }) => {
     if (walletMode === "optional") {
         return children
     }
 
-    return <ConnectWallet walletMode={walletMode}>{children}</ConnectWallet>
+    return <ConnectWallet walletMode={walletMode} enforceChainId={enforceChainId}>{children}</ConnectWallet>
 }
 
 export const ConnectWallet = ({
     walletMode,
+    enforceChainId,
     children
 }: {
     walletMode: WalletModeRequired;
+    enforceChainId?: number;
     children: React.ReactNode;
 }) => {
     const setWalletChainId = useWalletStore(state => state.setWalletChainId);
@@ -304,7 +308,6 @@ export const ConnectWallet = ({
         return <ConnectWalletPrompt onConnect={connectWallet} />
     }
 
-
     return (
         <div className="space-y-4 transition-all duration-300">
             {walletEVMAddress && (
@@ -489,14 +492,17 @@ export const ConnectWallet = ({
                         )}
                     </div>
 
-                    {walletMode !== "c-chain" && <ChainSelector />}
+                    {walletMode !== "c-chain" && <ChainSelector enforceChainId={enforceChainId} />}
                 </div>
             )}
 
-            {/* Children content */}
-            <RemountOnWalletChange>
-                <div className="transition-all duration-300">{children}</div>
-            </RemountOnWalletChange>
+            {enforceChainId && walletChainId !== enforceChainId && (
+                <div className="text-red-500 text-xs mb-2">Oops, you're not connected to the correct chain. Please switch to {enforceChainId} and try again.</div>
+            ) || (
+                    <RemountOnWalletChange>
+                        <div className="transition-all duration-300">{children}</div>
+                    </RemountOnWalletChange>
+                )}
         </div>
     )
 }
