@@ -10,7 +10,6 @@
     "---Deploy an Avalanche L1---",
     "[SquareTerminal][Using Avalanche CLI](https://build.avax.network/docs/tooling/create-avalanche-l1)",
     "[Globe][Using BaaS Providers](https://build.avax.network/integrations#Blockchain%20as%20a%20Service)",
-    "[CircleFadingPlus][Using L1 Launcher](https://build.avax.network/tools/l1-launcher)",
     "---Validator Manager---",
     "validator-manager/poa-vs-pos",
     "validator-manager/contract",

@@ -131,13 +131,6 @@ function Features(): React.ReactElement {
               Simple atomic tools to launch and maintain your L1.
             </p>
           </Link>
-          <Link href="/tools/l1-launcher" className="rounded-xl border bg-fd-background p-4 shadow-lg transition-colors hover:bg-fd-accent">
-            <Rocket />
-            <h3 className="font-semibold">L1 Launcher</h3>
-            <p className="text-sm text-fd-muted-foreground">
-              Launch your EVM L1 with Docker and Core Wallet.
-            </p>
-          </Link>
           <Link href="/docs/tooling/get-avalanche-cli" className="rounded-xl border bg-fd-background p-4 shadow-lg transition-colors hover:bg-fd-accent">
             <Terminal />
             <h3 className="font-semibold">Avalanche CLI</h3>
