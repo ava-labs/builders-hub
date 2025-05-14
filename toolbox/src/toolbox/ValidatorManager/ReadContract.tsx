@@ -1,6 +1,6 @@
 "use client"
 
-import { useSelectedL1 } from "../../stores/toolboxStore"
+import { useSelectedL1 } from "../../stores/l1ListStore"
 import { useWalletStore } from "../../stores/walletStore"
 import { useErrorBoundary } from "react-error-boundary"
 import type { AbiEvent } from "viem"

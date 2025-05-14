@@ -1,5 +1,6 @@
 import { useState, useId } from "react";
-import { useCreateChainStore, useL1ListStore } from "../stores/toolboxStore";
+import { useCreateChainStore } from "../stores/createChainStore";
+import { useL1ListStore } from "../stores/l1ListStore";
 import { useMemo } from "react";
 import { cn } from "../lib/utils";
 import { Link } from 'lucide-react';

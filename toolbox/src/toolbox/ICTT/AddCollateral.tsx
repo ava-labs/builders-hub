@@ -1,6 +1,5 @@
 "use client";
 
-import { useSelectedL1, useToolboxStore, useViemChainStore, getToolboxStore, useL1ByChainId } from "../../stores/toolboxStore";
 import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useCallback, useEffect, useMemo } from "react";
@@ -16,6 +15,8 @@ import { Note } from "../../components/Note";
 import SelectChainID from "../../components/SelectChainID";
 import { Container } from "../../components/Container";
 import ERC20TokenRemoteABI from "../../../contracts/icm-contracts/compiled/ERC20TokenRemote.json";
+import { useViemChainStore } from "../../stores/toolboxStore";
+import { useToolboxStore } from "../../stores/toolboxStore";
 
 export default function AddCollateral() {
     const { showBoundary } = useErrorBoundary();

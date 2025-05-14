@@ -1,7 +1,7 @@
 "use client";
 
 import { useWalletStore } from "../../stores/walletStore";
-import { useCreateChainStore } from "../../stores/toolboxStore";
+import { useCreateChainStore } from "../../stores/createChainStore";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { useErrorBoundary } from "react-error-boundary";

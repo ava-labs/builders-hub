@@ -1,6 +1,6 @@
 "use client";
 
-import { useCreateChainStore, EVM_VM_ID } from "../../stores/toolboxStore";
+import { useCreateChainStore, EVM_VM_ID } from "../../stores/createChainStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Button } from "../../components/Button";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCreateChainStore } from "../../stores/toolboxStore";
+import { useCreateChainStore } from "../../stores/createChainStore";
 import { useWalletStore } from "../../stores/walletStore";
 import { useState, useEffect } from "react";
 import { Button } from "../../components/Button";

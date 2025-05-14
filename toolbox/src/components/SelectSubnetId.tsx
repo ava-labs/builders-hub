@@ -1,5 +1,6 @@
 import { Input, type Suggestion } from "./Input";
-import { useCreateChainStore, useL1ListStore } from "../stores/toolboxStore";
+import { useCreateChainStore } from "../stores/createChainStore";
+import { useL1ListStore } from "../stores/l1ListStore";
 import { useMemo } from "react";
 
 export default function InputSubnetId({ value, onChange, error, onlyNotConverted = false, hidePrimaryNetwork = false }: { value: string, onChange: (value: string) => void, error?: string | null, onlyNotConverted?: boolean, hidePrimaryNetwork?: boolean }) {
