@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react"
-import { useCreateChainStore, useSelectedL1, useViemChainStore } from "../../stores/toolboxStore"
+import { useCreateChainStore } from "../../stores/createChainStore"
+import { useViemChainStore } from "../../stores/toolboxStore"
+import { useSelectedL1 } from "../../stores/l1ListStore"
 
 import { useWalletStore } from "../../stores/walletStore"
 import { useErrorBoundary } from "react-error-boundary"

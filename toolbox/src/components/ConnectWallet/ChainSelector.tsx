@@ -1,9 +1,9 @@
-import { isDefaultChain, useL1ListStore, useViemChainStore } from "../../stores/toolboxStore";
 import { useWalletStore } from "../../stores/walletStore";
 import { ChainTile } from "./ChainTile"
 import { AddChainModal } from "./AddChainModal";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useCallback } from "react";
+import { isDefaultChain, useL1ListStore } from "../../stores/l1ListStore";
 
 
 export const ChainSelector = () => {

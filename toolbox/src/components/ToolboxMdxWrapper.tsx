@@ -15,7 +15,7 @@ export default function ToolboxMdxWrapper({ children }: { children: React.ReactN
         FallbackComponent={ErrorFallback}
         onReset={handleReset}
     >
-        <ConnectWallet required={true}>
+        <ConnectWallet walletMode="l1">
             {children}
         </ConnectWallet>
     </ErrorBoundary>;

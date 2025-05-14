@@ -2,7 +2,8 @@
 
 import { formatEther, parseEther, createPublicClient, http, Chain } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { useSelectedL1, useL1ListStore } from '../../stores/toolboxStore';
+import { useSelectedL1 } from '../../stores/l1ListStore';
+import { useL1ListStore } from '../../stores/l1ListStore';
 import { useWalletStore } from '../../stores/walletStore';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';

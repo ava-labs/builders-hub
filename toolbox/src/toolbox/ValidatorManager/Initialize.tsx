@@ -1,6 +1,5 @@
 "use client";
 
-import { useSelectedL1, useViemChainStore, useCreateChainStore } from "../../stores/toolboxStore";
 import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useEffect, useState } from "react";
@@ -14,6 +13,9 @@ import SelectSubnetId from "../../components/SelectSubnetId";
 import { Container } from "../../components/Container";
 import { getSubnetInfo } from "../../coreViem/utils/glacier";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
+import { useViemChainStore } from "../../stores/toolboxStore";
+import { useSelectedL1 } from "../../stores/l1ListStore";
+import { useCreateChainStore } from "../../stores/createChainStore";
 
 export default function Initialize() {
     const { showBoundary } = useErrorBoundary();

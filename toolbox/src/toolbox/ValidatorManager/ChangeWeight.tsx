@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react"
 import { useErrorBoundary } from "react-error-boundary"
 
-import { useViemChainStore, useCreateChainStore } from "../../stores/toolboxStore"
+import { useViemChainStore } from "../../stores/toolboxStore"
 import { useWalletStore } from "../../stores/walletStore"
+import { useCreateChainStore } from "../../stores/createChainStore"
 
 import { Container } from "../../components/Container"
 import { Input } from "../../components/Input"

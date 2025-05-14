@@ -15,7 +15,7 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { AddChainModal } from "../../components/ConnectWallet/AddChainModal";
-import { useL1ListStore } from "../../stores/toolboxStore";
+import { useL1ListStore } from "../../stores/l1ListStore";
 import { Button } from "../../components/Button";
 import { ResultField } from "../../components/ResultField";
 import { RadioGroup } from "../../components/RadioGroup";

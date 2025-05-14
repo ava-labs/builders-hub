@@ -15,8 +15,9 @@ import { Note } from "../../components/Note";
 import SelectChainID from "../../components/SelectChainID";
 import { Container } from "../../components/Container";
 import ERC20TokenRemoteABI from "../../../contracts/icm-contracts/compiled/ERC20TokenRemote.json";
-import { useViemChainStore } from "../../stores/toolboxStore";
+import { getToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
 import { useToolboxStore } from "../../stores/toolboxStore";
+import { useL1ByChainId, useSelectedL1 } from "../../stores/l1ListStore";
 
 export default function AddCollateral() {
     const { showBoundary } = useErrorBoundary();

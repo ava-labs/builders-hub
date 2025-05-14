@@ -1,6 +1,6 @@
 "use client";
 
-import { useToolboxStore, useViemChainStore, useSelectedL1, getToolboxStore, useL1ByChainId } from "../../stores/toolboxStore";
+import { useToolboxStore, useViemChainStore, getToolboxStore } from "../../stores/toolboxStore";
 import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useMemo } from "react";
@@ -12,7 +12,7 @@ import { utils } from "@avalabs/avalanchejs";
 import { Input } from "../../components/Input";
 import { Container } from "../../components/Container";
 import SelectChainID from "../../components/SelectChainID";
-
+import { useL1ByChainId, useSelectedL1 } from "../../stores/l1ListStore";
 export default function SendICMMessage() {
     const { showBoundary } = useErrorBoundary();
     const { icmReceiverAddress } = useToolboxStore();

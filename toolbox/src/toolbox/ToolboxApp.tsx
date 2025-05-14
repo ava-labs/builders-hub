@@ -2,15 +2,15 @@
 
 import { Button } from "../components/Button";
 import { ErrorBoundary } from "react-error-boundary";
-import { resetAllStores } from '../stores/toolboxStore';
 import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
 import { GithubLink } from "../components/GithubLink";
 import { ErrorFallback } from "../components/ErrorFallback";
 import { ErrorBoundaryWithWarning } from "../components/ErrorBoundaryWithWarning";
-import { ConnectWallet, type WalletMode, OptionalConnectWallet } from "../components/ConnectWallet/ConnectWallet";
+import { OptionalConnectWallet, type WalletMode } from "../components/ConnectWallet/ConnectWallet";
 
 import "../main.css";
+import { resetAllStores } from "../stores/reset";
 
 type ComponentType = {
   id: string;

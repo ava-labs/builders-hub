@@ -1,7 +1,8 @@
 "use client";
 
 import NativeTokenRemote from "../../../contracts/icm-contracts/compiled/NativeTokenRemote.json";
-import { useSelectedL1, useToolboxStore, useViemChainStore, getToolboxStore, useL1ByChainId } from "../../stores/toolboxStore";
+import { useL1ByChainId, useSelectedL1 } from "../../stores/l1ListStore";
+import { useToolboxStore, useViemChainStore, getToolboxStore } from "../../stores/toolboxStore";
 import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useEffect, useMemo } from "react";

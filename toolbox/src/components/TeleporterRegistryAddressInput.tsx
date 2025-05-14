@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { useState } from "react";
 import { Suggestion } from "./Input"
-import { useSelectedL1, useToolboxStore } from "../stores/toolboxStore";
+import { useSelectedL1 } from "../stores/l1ListStore";
+import { useToolboxStore } from "../stores/toolboxStore";
 import { EVMAddressInput } from "./EVMAddressInput"
 
 export default function TeleporterRegistryAddressInput({ value, onChange, disabled }: { value: string, onChange: (value: string) => void, disabled: boolean }) {

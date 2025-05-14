@@ -17,7 +17,8 @@ import InterchainTransfer from "../InterchainTransfer"
 import { ExplorerButton } from "./ExplorerButton"
 import { ChainSelector } from "./ChainSelector"
 
-export type WalletMode = "optional" | "l1" | "c-chain"
+export type WalletModeRequired = "l1" | "c-chain"
+export type WalletMode = "optional" | WalletModeRequired
 
 const LOW_BALANCE_THRESHOLD = 0.5
 
@@ -26,7 +27,7 @@ export const OptionalConnectWallet = ({
     walletMode
 }: {
     children: React.ReactNode;
-    walletMode: "optional" | "l1" | "c-chain";
+    walletMode: WalletMode;
 }) => {
     if (walletMode === "optional") {
         return children
@@ -39,7 +40,7 @@ export const ConnectWallet = ({
     walletMode,
     children
 }: {
-    walletMode: "l1" | "c-chain";
+    walletMode: WalletModeRequired;
     children: React.ReactNode;
 }) => {
     const setWalletChainId = useWalletStore(state => state.setWalletChainId);
