@@ -134,18 +134,18 @@ export default function GenesisBuilder() {
                 value={ownerAddress}
                 onChange={setOwnerAddress}
                 placeholder="0x..."
-                helperText={genesisData.includes("Invalid") ? genesisData : undefined}
+                helperText={genesisData?.includes("Invalid") ? genesisData : undefined}
             />
             <Input
                 label="Desired Chain ID"
-                value={evmChainId.toString()}
+                value={evmChainId?.toString()}
                 onChange={(value) => setEvmChainId(Number(value))}
                 placeholder="Enter desired chain ID"
                 type="number"
             />
             <Input
                 label="Gas Limit"
-                value={gasLimit.toString()}
+                value={gasLimit?.toString()}
                 onChange={(value) => setGasLimit(Number(value))}
                 placeholder="Enter gas limit"
                 type="number"
@@ -153,13 +153,13 @@ export default function GenesisBuilder() {
             />
             <Input
                 label="Target Block Rate (seconds)"
-                value={targetBlockRate.toString()}
+                value={targetBlockRate?.toString()}
                 onChange={(value) => setTargetBlockRate(Number(value))}
                 placeholder="Enter target block rate"
                 type="number"
                 helperText="Target time between blocks in seconds"
             />
-            {genesisData && !genesisData.includes("Invalid") && (
+            {genesisData && !genesisData?.includes("Invalid") && (
                 <CodeHighlighter
                     code={genesisData}
                     lang="json"
