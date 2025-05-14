@@ -127,6 +127,12 @@ const l1ListInitialStateMainnet = {
     ] as L1ListItem[],
 }
 
+const defaultChainIds = [
+    ...l1ListInitialStateFuji.l1List.map((l1) => l1.id),
+    ...l1ListInitialStateMainnet.l1List.map((l1) => l1.id),
+]
+export const isDefaultChain = (chainId: string) => defaultChainIds.includes(chainId)
+
 const getL1ListStore = (isTestnet: boolean) => create(
     persist(
         combine(isTestnet ? l1ListInitialStateFuji : l1ListInitialStateMainnet, (set) => ({

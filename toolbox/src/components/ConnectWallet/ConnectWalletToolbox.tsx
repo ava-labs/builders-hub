@@ -1,5 +1,5 @@
 import { ConnectWallet } from "./ConnectWallet";
-import { useL1ListStore, useViemChainStore } from "../../stores/toolboxStore";
+import { isDefaultChain, useL1ListStore, useViemChainStore } from "../../stores/toolboxStore";
 import { useWalletStore } from "../../stores/walletStore";
 import { ChainTile } from "./ChainTile"
 import { AddChainModal } from "./AddChainModal";
@@ -49,7 +49,7 @@ const ChainSelector = () => {
                                 chain={chain}
                                 isActive={walletChainId === chain.evmChainId}
                                 onClick={() => handleSwitchChain(chain.evmChainId)}
-                                onDelete={() => removeL1(chain.id)}
+                                onDelete={isDefaultChain(chain.id) ? undefined : () => removeL1(chain.id)}
                             />
                         ))}
                         <ChainTile
