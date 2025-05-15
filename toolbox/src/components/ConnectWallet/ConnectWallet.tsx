@@ -373,7 +373,7 @@ export const ConnectWallet = ({
                                             }`}
                                         title="Open faucet"
                                     >
-                                        Free tokens
+                                        Get tokens
                                     </button>
                                 )}
                                 <ExplorerButton
@@ -420,7 +420,7 @@ export const ConnectWallet = ({
                                     >
                                         <RefreshCw className={`w-4 h-4 text-zinc-600 dark:text-zinc-300 ${isPChainBalanceLoading ? 'animate-spin' : ''}`} />
                                     </button>
-                                    {pChainAddress && (
+                                    {pChainAddress && isTestnet && (
                                         <button
                                             onClick={async () => {
                                                 if (!isRequestingPTokens) {
