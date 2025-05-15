@@ -9,6 +9,7 @@ import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import { http, createPublicClient } from "viem";
 import { Container } from "../../components/Container";
+import { ExternalLink } from "lucide-react";
 
 export default function DeployExampleERC20() {
     const { showBoundary } = useErrorBoundary();
@@ -53,7 +54,21 @@ export default function DeployExampleERC20() {
             <div className="space-y-4">
                 <div className="">
                     This will deploy an ERC20 token contract to your connected network (Chain ID: <code>{walletChainId}</code>).
-                    You can use this token for testing token transfers and other ERC20 interactions. <a href="https://github.com/ava-labs/icm-contracts/blob/51dd21550444e7141d938fd721d994e29a58f7af/contracts/mocks/ExampleERC20.sol" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">View the contract source code</a>.
+                    You can use this token for testing token transfers and other ERC20 interactions, where a total supply of 1,000,000 tokens will be minted to your wallet - view the contract{" "}
+                    <a href="https://github.com/ava-labs/icm-contracts/blob/51dd21550444e7141d938fd721d994e29a58f7af/contracts/mocks/ExampleERC20.sol" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                        source code
+                    </a>
+                    <p className="flex items-center gap-1 mt-2">
+                        To deploy more custom ERC20 tokens, you can use the{" "}
+                        <a href="https://wizard.openzeppelin.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline inline-flex items-center gap-1">
+                            OpenZeppelin ERC20 Contract Wizard
+                            <ExternalLink className="h-4 w-4" />
+                        </a>
+                    </p>
+
                 </div>
 
                 <Button
