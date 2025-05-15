@@ -362,13 +362,10 @@ export default function AddValidator() {
                     // Process P-Chain Address
                     const pChainAddressBytes = utils.bech32ToBytes(pChainAddress)
                     const pChainAddressHex = fromBytes(pChainAddressBytes, "hex")
-                    const expiry = BigInt(Math.floor(Date.now() / 1000) + 43200) // 12 hours
-
                     // Build arguments for transaction
                     const args = [
                         parseNodeID(validator.nodeID),
                         validator.nodePOP.publicKey,
-                        expiry,
                         {
                             threshold: 1,
                             addresses: [pChainAddressHex],
