@@ -347,9 +347,15 @@ export const ConnectWallet = ({
                         {/* L1 Chain Card */}
                         <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 h-full">
                             <div className="flex justify-between items-start mb-2">
+                                <div>
                                 <span className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">
                                     {displayedL1ChainName}
                                 </span>
+                                <ExplorerButton
+                                    rpcUrl={rpcUrl}
+                                    evmChainId={displayedEvmChainId}
+                                />
+                                </div>
                                 {showL1SelectedBadge && (
                                     <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-full">Selected</span>
                                 )}
@@ -376,10 +382,6 @@ export const ConnectWallet = ({
                                         Get tokens
                                     </button>
                                 )}
-                                <ExplorerButton
-                                    rpcUrl={rpcUrl}
-                                    evmChainId={displayedEvmChainId}
-                                />
                             </div>
                             {/* EVM Address inside the card */}
                             <div className="flex items-center justify-between">
