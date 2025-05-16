@@ -5,6 +5,7 @@ import { useMemo } from "react";
 
 export default function InputChainId({ value, onChange, error, label = "Avalanche Blockchain ID" }: { value: string, onChange: (value: string) => void, error?: string | null, label?: string }) {
     const createChainStorechainID = useCreateChainStore()(state => state.chainID);
+    const createChainStoredChainName = useCreateChainStore()(state => state.chainName);
     const { l1List } = useL1ListStore()();
 
     const chainIDSuggestions: Suggestion[] = useMemo(() => {
@@ -12,7 +13,7 @@ export default function InputChainId({ value, onChange, error, label = "Avalanch
 
         if (createChainStorechainID) {
             result.push({
-                title: createChainStorechainID,
+                title: `${createChainStoredChainName} (${createChainStorechainID})`,
                 value: createChainStorechainID,
                 description: "From the \"Create Chain\" tool"
             });
