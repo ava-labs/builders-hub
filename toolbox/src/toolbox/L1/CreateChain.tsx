@@ -9,6 +9,18 @@ import { Container } from "../../components/Container";
 import { ResultField } from "../../components/ResultField";
 import { useWalletStore } from "../../stores/walletStore";
 import GenesisBuilder from "./GenesisBuilder";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import generateName from 'boring-name-generator'
+
+const generateRandomName = () => {
+    //makes sure the name doesn't contain a dash
+    const firstLetterUppercase = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
+    for (let i = 0; i < 1000; i++) {
+        const randomName = generateName({ words: 3 }).raw.map(firstLetterUppercase).join(' ');
+        if (!randomName.includes('-')) return randomName + " Chain";
+    }
+    throw new Error("Could not generate a name with a dash after 1000 attempts");
+}
 
 
 export default function CreateChain() {
@@ -18,69 +30,141 @@ export default function CreateChain() {
         chainName,
         vmId,
         setVmId,
-        chainID,
         setChainID,
         setSubnetID,
         genesisData,
         setChainName,
     } = useCreateChainStore()();
+    const { coreWalletClient, pChainAddress } = useWalletStore();
+
+    const [isCreatingSubnet, setIsCreatingSubnet] = useState(false);
+    const [createdSubnetId, setCreatedSubnetId] = useState("");
+    
+    const [isCreatingChain, setIsCreatingChain] = useState(false);
+    const [createdChainId, setCreatedChainId] = useState("");
+    
     const [localGenesisData, setLocalGenesisData] = useState<string>(genesisData);
-    const [isCreating, setIsCreating] = useState(false);
-    const { coreWalletClient } = useWalletStore();
+    const [localChainName, setLocalChainName] = useState<string>(generateRandomName());
 
-    function handleCreateChain() {
-        setChainID("");
-        setIsCreating(true);
 
-        coreWalletClient.createChain({
-            chainName: chainName,
-            subnetId: subnetId,
-            vmId,
-            fxIds: [],
-            genesisData: localGenesisData,
-            subnetAuth: [0],
-        }).then((txID: string) => {
+    async function handleCreateSubnet() {
+        setIsCreatingSubnet(true);
+
+        try {
+            const txID = await coreWalletClient.createSubnet({
+                subnetOwners: [pChainAddress]
+            });
+
+            setSubnetID(txID);
+            setCreatedSubnetId(txID);
+        } catch (error) {
+            showBoundary(error);
+        } finally {
+            setIsCreatingSubnet(false);
+        }
+    }
+
+    async function handleCreateChain() {
+        setIsCreatingChain(true);
+
+        try {
+            const txID = await coreWalletClient.createChain({
+                chainName: chainName,
+                subnetId: subnetId,
+                vmId,
+                fxIds: [],
+                genesisData: localGenesisData,
+                subnetAuth: [0],
+            })
+
             setChainID(txID);
-            setIsCreating(false);
-        }).catch(showBoundary);
+            setChainName(localChainName);
+
+            setCreatedChainId(txID);
+
+            setLocalChainName(generateRandomName());
+        } catch (error) {
+            showBoundary(error);
+        } finally {
+            setIsCreatingChain(false);
+        }
     }
 
     return (
         <Container
             title="Create Chain"
-            description="Create a new blockchain on your subnet with custom parameters and genesis data."
+            description="Create a new blockchain with custom parameters and genesis data."
         >
-            <Input
-                label="Chain Name"
-                value={chainName}
-                onChange={setChainName}
-                placeholder="Enter chain name"
-            />
+            <Steps>
+                <Step>
+                    <h2 className="text-lg font-semibold">Step 1: Create a Subnet</h2>
+                    <p className="text-sm text-gray-500">
+                        Every chain needs to be associated with a Subnet. If you don't have a Subnet, create one here. If you already have a Subnet, skip to the next step.
+                    </p>
+                    <div className="space-y-4">
+                        <Input
+                            label="Subnet Owner"
+                            value={pChainAddress}
+                            disabled={true}
+                            type="text"
+                        />
+                        <Button
+                            onClick={handleCreateSubnet}
+                            loading={isCreatingSubnet}
+                            variant="primary"
+                        >
+                            Create Subnet
+                        </Button>
+                    </div>
+                    {createdSubnetId && (
+                        <ResultField
+                            label="Subnet ID"
+                            value={createdSubnetId}
+                            showCheck={!!createdSubnetId}
+                        />
+                    )}
+                </Step>
+                <Step>
+                    <h2 className="text-lg font-semibold">Step 2: Create a Chain</h2>
+                    <p className="text-sm text-gray-500">
+                        Enter the parameters for your new chain.
+                    </p>
 
-            <Input
-                label="Subnet ID"
-                value={subnetId}
-                type="text"
-                onChange={setSubnetID}
-                placeholder="Create a subnet to generate a subnet ID"
-            />
+                    <Input
+                        label="Subnet ID"
+                        value={subnetId}
+                        type="text"
+                        onChange={setSubnetID}
+                        placeholder="Create a Subnet in Step 1 or enter a SubnetID."
+                    />
 
-            <Input
-                label="VM ID"
-                value={vmId}
-                onChange={setVmId}
-                placeholder="Enter VM ID"
-                helperText={`For an L1 with an uncustomized EVM use ${EVM_VM_ID}`}
-            />
+                    <Input
+                        label="Chain Name"
+                        value={localChainName}
+                        onChange={setLocalChainName}
+                        placeholder="Enter chain name"
+                    />
 
-            <GenesisBuilder genesisData={localGenesisData} setGenesisData={setLocalGenesisData} />
+                    <Input
+                        label="VM ID"
+                        value={vmId}
+                        onChange={setVmId}
+                        placeholder="Enter VM ID"
+                        helperText={`For an L1 with an uncustomized EVM use ${EVM_VM_ID}`}
+                    />
 
-            <Button onClick={handleCreateChain}
-                loading={isCreating} loadingText="Creating Chain...">
-                Create Chain
-            </Button>
+                    <GenesisBuilder genesisData={localGenesisData} setGenesisData={setLocalGenesisData} />
 
-            {chainID && <ResultField label="Chain ID:" value={chainID} showCheck />}
+                    <Button 
+                        onClick={handleCreateChain}
+                        loading={isCreatingChain} 
+                        loadingText="Creating Chain..."
+                        >
+                        Create Chain
+                    </Button>
+                </Step>
+            </Steps>
+            {createdChainId && <ResultField label="Chain ID:" value={createdChainId} showCheck />}
         </Container>
     );
 };
