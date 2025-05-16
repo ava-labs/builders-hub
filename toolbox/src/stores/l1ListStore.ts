@@ -23,7 +23,7 @@ const l1ListInitialStateFuji = {
     l1List: [
         {
             id: "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp",
-            name: "Avalanche Fuji",
+            name: "C-Chain Fuji Testnet",
             rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
             evmChainId: 43113,
             coinName: "AVAX",
