@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useErrorBoundary } from "react-error-boundary";
+
 import { useSelectedL1 } from "../../stores/l1ListStore";
 import { useViemChainStore } from "../../stores/toolboxStore";
 import { useWalletStore } from "../../stores/walletStore";
@@ -20,6 +22,7 @@ import { getSubnetInfo } from '../../coreViem/utils/glacier';
 const cb58ToHex = (cb58: string) => utils.bufferToHex(utils.base58check.decode(cb58));
 const add0x = (hex: string): `0x${string}` => hex.startsWith('0x') ? hex as `0x${string}` : `0x${hex}`;
 export default function InitValidatorSet() {
+    const { showBoundary } = useErrorBoundary();
     const [conversionTxID, setConversionTxID] = useState<string>("");
     const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
     const viemChain = useViemChainStore();
@@ -52,7 +55,7 @@ export default function InitValidatorSet() {
             });
             setL1ConversionSignature(signedMessage);
         } catch (error) {
-            console.error('Error aggregating signatures:', error);
+            showBoundary(error);
             setL1ConversionSignatureError((error as Error)?.message || "Unknown error");
         } finally {
             setIsAggregating(false);
