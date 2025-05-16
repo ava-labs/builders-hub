@@ -343,7 +343,7 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
 
     // --- Render --- 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 mb-4">
             {/* Tabs */}
             <div className="border-b border-zinc-200 dark:border-zinc-800">
                 <div className="flex -mb-px">

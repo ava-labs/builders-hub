@@ -177,7 +177,7 @@ export default function Initialize() {
             <div className="space-y-4">
                 <div className="space-y-2">
                     <EVMAddressInput
-                        label="Proxy Address"
+                        label="Proxy Address of ValidatorManager"
                         value={proxyAddress}
                         onChange={setProxyAddress}
                         disabled={isInitializing}
