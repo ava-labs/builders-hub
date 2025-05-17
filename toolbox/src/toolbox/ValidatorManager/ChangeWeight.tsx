@@ -453,7 +453,7 @@ export default function ChangeWeight() {
           // Use local var first, fallback to state for retry
           const finalPChainSig = localPChainSignature || pChainSignature;
           if (!finalPChainSig) {
-            throw new Error("P-Chain signature is missing. Retry step 5.")
+            throw new Error("P-Chain signature is missing. Retry the previous step before this one.")
           }
 
           const signedPChainWarpMsgBytes = hexToBytes(`0x${finalPChainSig}`) // Use potentially updated local sig
@@ -620,6 +620,8 @@ export default function ChangeWeight() {
                 </button>
               )}
             </div>
+
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2 italic">Click on any step to retry from that point</p>
 
             {stepKeys.map((stepKey) => (
               <StepIndicator

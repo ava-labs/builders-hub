@@ -1,4 +1,5 @@
-import { CheckCircle, Loader2, XCircle } from "lucide-react"
+import { CheckCircle, Loader2, RefreshCw, XCircle } from "lucide-react"
+import { Button } from "./Button"
 
 export interface StepStatus {
   status: "pending" | "loading" | "success" | "error"
@@ -22,8 +23,9 @@ export function StepIndicator<T extends string>({
 }: StepIndicatorProps<T>) {
   return (
     <div 
-      className={`flex flex-col space-y-1 my-2 ${onRetry ? 'cursor-pointer' : ''}`}
+      className={`flex flex-col space-y-1 my-2 ${onRetry ? 'cursor-pointer group' : ''}`}
       onClick={() => onRetry && onRetry(stepKey)}
+      title={onRetry ? "Click to retry this step" : undefined}
     >
       <div className="flex items-center space-x-2">
         {status === "loading" && (
@@ -44,10 +46,24 @@ export function StepIndicator<T extends string>({
         {status === "pending" && <div className="h-5 w-5 rounded-full border-2 border-zinc-200 flex-shrink-0" />}
 
         <span
-          className={`text-sm ${status === "error" ? "text-red-600 font-medium" : "text-zinc-700 dark:text-zinc-300"}`}
+          className={`text-sm ${status === "error" ? "text-red-600 font-medium" : "text-zinc-700 dark:text-zinc-300"} ${onRetry ? "group-hover:underline" : ""}`}
         >
           {label}
         </span>
+        
+        {status === "error" && onRetry && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              onRetry(stepKey);
+            }}
+            className="ml-2"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Retry
+          </Button>
+        )}
       </div>
 
       {status === "error" && error && (

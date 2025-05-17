@@ -326,10 +326,10 @@ export default function RemoveValidator() {
             receipt = await publicClient.waitForTransactionReceipt({ hash })
             console.log("Transaction receipt:", receipt)
             if (receipt.status !== 'success') {
-              throw new Error(`Transaction failed with status: ${receipt.status}`);
+              throw new Error(`Transaction failed with status: ${receipt.status}, please retry the previous step before this one.`);
             }
           } catch (receiptError: any) {
-            throw new Error(`Failed waiting for transaction receipt: ${receiptError.message}`);
+            throw new Error(`Failed waiting for transaction receipt: ${receiptError.message}, please retry the previous step before this one.`);
           }
 
           updateStepStatus("completeRemoval", "success")
@@ -441,6 +441,8 @@ export default function RemoveValidator() {
                 </button>
               )}
             </div>
+            
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2 italic">Click on any step to retry from that point</p>
 
             {stepKeys.map((stepKey) => (
               <StepIndicator
