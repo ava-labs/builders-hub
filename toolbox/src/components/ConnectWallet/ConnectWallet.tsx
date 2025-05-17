@@ -13,6 +13,7 @@ import { ConnectWalletPrompt } from "./ConnectWalletPrompt"
 import { RemountOnWalletChange } from "../RemountOnWalletChange"
 import { avalanche, avalancheFuji } from "viem/chains"
 import { ExplorerButton } from "./ExplorerButton"
+import { PChainExplorerButton } from "./PChainExplorerButton"
 import { ChainSelector } from "./ChainSelector"
 import { 
     AlertDialog, 
@@ -23,6 +24,7 @@ import {
     AlertDialogHeader, 
     AlertDialogTitle 
 } from "../AlertDialog"
+
 
 export type WalletModeRequired = "l1" | "c-chain" | "testnet-mainnet"
 export type WalletMode = "optional" | WalletModeRequired
@@ -508,7 +510,10 @@ export const ConnectWallet = ({
                                 {showPChainCard && (
                                     <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 h-full">
                                         <div className="flex justify-between items-start mb-2">
+                                            <div>
                                             <span className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">P-Chain</span>
+                                                <PChainExplorerButton />
+                                            </div>
                                             <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-full">Always Connected</span>
                                         </div>
                                         <div className="text-2xl font-semibold text-zinc-800 dark:text-zinc-100 mb-2 flex items-center">
