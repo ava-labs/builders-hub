@@ -6,8 +6,22 @@ authors: [martineckardt]
 icon: BookOpen
 ---
 
-import Networks from "@/content/common/avalanche-starter-kit/networks.mdx";
+In this section, we'll explore the different networks available in Avalanche and understand how they can be used for development and testing of your cross-chain applications.
 
-You just deployed and interacted with your first local network. But what does that mean? You can interact with your Avalanche L1, but you will notice that no one else can. Therefore, we have to understand what different Networks are in Avalanche.
+## Networks
 
-<Networks/>
+### Mainnet
+When our Avalanche L1 goes into production, we want to run it on mainnet. With the introduction of ACP-77, Avalanche L1 validators no longer must validate the primary network.
+
+### Testnet (Fuji)
+When we want to test our Avalanche L1, we can deploy it to the Fuji Testnet. The easiest way to do this is to run a Fuji Node. On Testnet, it only costs 1 AVAX to run a node. That AVAX can be obtained for free from the Testnet Faucet we used in the Avalanche Fundamentals course. All tokens on the Testnet are valueless.
+
+When deploying the Avalanche L1 to Fuji, anyone can interact with it, so long as at least one validator is online. This is great for more intense testing with multiple parties. Further, the Avalanche L1 can interact with other Avalanche L1s deployed in Fuji to test more complex behavior.
+
+### Test L1s (Echo and Dispatch)
+Echo and Dispatch are two pre-configured test L1s available on the Fuji testnet that you can interact with:
+
+- **Echo L1**: A test chain available at `https://subnets.avax.network/echo/testnet/rpc` with chain ID 173750 and native token ECH
+- **Dispatch L1**: A test chain available at `https://subnets.avax.network/dispatch/testnet/rpc` with chain ID 779672 and native token DISP
+
+Both chains are configured with the Teleporter registry at address `0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228` and can be used for testing cross-chain interactions on the Fuji testnet.

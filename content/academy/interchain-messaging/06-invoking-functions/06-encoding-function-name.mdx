@@ -41,8 +41,8 @@ contract CalculatorSenderOnCChain {
     function sendAddMessage(address destinationAddress, uint256 num1, uint256 num2) external {
         teleporterMessenger.sendCrossChainMessage(
             TeleporterMessageInput({
-                // Replace with chain id of your Avalanche L1 (see instructions in Readme)
-                destinationBlockchainID: 0x92756d698399805f0088fc07fc42af47c67e1d38c576667ac6c7031b8df05293,
+                // Replace with chain id of the Dispatch test L1 (see instructions in Readme)
+                destinationBlockchainID: 0x6391b85bafc78f1b10aec35695c2399c2fb7fff9f3b18ea903f77345e9e96e3e,
                 destinationAddress: destinationAddress,
                 feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
                 requiredGasLimit: 100000,
@@ -55,8 +55,8 @@ contract CalculatorSenderOnCChain {
     function sendConcatenateMessage(address destinationAddress, string memory text1, string memory text2) external {
         teleporterMessenger.sendCrossChainMessage(
             TeleporterMessageInput({
-                // Replace with chain id of your Avalanche L1 (see instructions in Readme)
-                destinationBlockchainID: 0x382d2a20c299b03b638dd4d42b96e7401f6c3e88209b764abce83cf71c0c30cd,
+                // Replace with chain id of the Dispatch test L1 (see instructions in Readme)
+                destinationBlockchainID: 0x6391b85bafc78f1b10aec35695c2399c2fb7fff9f3b18ea903f77345e9e96e3e,
                 destinationAddress: destinationAddress,
                 feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
                 requiredGasLimit: 100000,
@@ -176,10 +176,10 @@ Deploy the sender and receiver contracts and try out the `add` and `concatenate`
 
 ### Deploy the Sender Contract
 
-<Callout type="warn" title="Don't forget to replace BOTH destinationBlockchainIDs in CalculatorSenderOnCChain with the Blockchain ID (HEX) from your Avalanche L1!" />
+<Callout type="warn" title="Don't forget to replace BOTH destinationBlockchainIDs in CalculatorSenderOnCChain with the Blockchain ID (HEX) of the Dispatch test L1!" />
 
 ```bash
-forge create --rpc-url local-c --private-key $PK contracts/interchain-messaging/invoking-functions/CalculatorSenderOnCChain.sol:CalculatorSenderOnCChain --broadcast
+forge create --rpc-url fuji-c --private-key $PK contracts/interchain-messaging/invoking-functions/CalculatorSenderOnCChain.sol:CalculatorSenderOnCChain --broadcast
 ```
 ```
 [⠃] Compiling...
@@ -206,7 +206,7 @@ export SENDER_ADDRESS=0x8B3BC4270BE2abbB25BC04717830bd1Cc493a461
 ### Deploy the Receiver Contract:
 
 ```bash
-forge create --rpc-url myblockchain --private-key $PK contracts/interchain-messaging/invoking-functions/CalculatorReceiverOnSubnet.sol:CalculatorReceiverOnSubnet --broadcast
+forge create --rpc-url dispatch --private-key $PK contracts/interchain-messaging/invoking-functions/CalculatorReceiverOnSubnet.sol:CalculatorReceiverOnSubnet --broadcast
 ```
 ```
 [⠊] Compiling...
@@ -234,7 +234,7 @@ export RECEIVER_ADDRESS=0x5DB9A7629912EBF95876228C24A848de0bfB43A9
 Now you can call the `sendAddMessage` and `sendConcatenateMessage` functions on the sender contract and see the results on the receiver contract. 
 
 ```bash
-cast send --rpc-url local-c --private-key $PK $SENDER_ADDRESS "sendAddMessage(address, uint, uint)" $RECEIVER_ADDRESS 1 2
+cast send --rpc-url fuji-c --private-key $PK $SENDER_ADDRESS "sendAddMessage(address, uint, uint)" $RECEIVER_ADDRESS 1 2
 ```
 
 </Step>
@@ -243,7 +243,7 @@ cast send --rpc-url local-c --private-key $PK $SENDER_ADDRESS "sendAddMessage(ad
 ### Verify the Result:
 
 ```bash
-cast call --rpc-url myblockchain $RECEIVER_ADDRESS "result_num()(uint)"
+cast call --rpc-url dispatch $RECEIVER_ADDRESS "result_num()(uint)"
 ```
 
 </Step>

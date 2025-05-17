@@ -51,7 +51,7 @@ The key things to understand:
 
 - **Importing ITeleporterMessenger (Line 8):** We are importing the `ITeleporterMessenger` Interface we looked at in the previous activity.
 - **Defining teleporterMessenger contract (Line 12):** We are defining a `teleporterMessenger` contract using the imported interface. It is important to note, that our cross-chain dApp is not implementing the interface itself, but initializes a contract using that interface.
-- **Sending the message (Line 21):** We are sending the message by calling the function of our `teleporterMessenger`. As an input we are defining a `TeleporterMessageInput`. Make sure to replace the `destinationChainId` with the one of your Blockchain. We will need to provide the address of the receiving contract on the Avalanche L1 as a parameter to the function, since we have not deployed it yet and don't know the address at this time.   
+- **Sending the message (Line 21):** We are sending the message by calling the function of our `teleporterMessenger`. As an input we are defining a `TeleporterMessageInput`. The `destinationChainId` should be set to the Dispatch test L1's blockchain ID. We will need to provide the address of the receiving contract on the Dispatch test L1 as a parameter to the function, since we have not deployed it yet and don't know the address at this time.   
 - **No fees (Line 25):** In this exercise we are not providing any fees to the relayer for relaying the message. This is only possible since the relayer we are running here is configured to pick up any message even if it does not provide any rewards.
 - **Encoding the Message (Line 31):** The `TeleporterMessageInput` defines a message as an array of bytes. For now we will just simply encode the string with `abi.encode()`. In the future activities, you will see how we can encode multiple values of any type in that message.
 
@@ -60,34 +60,10 @@ The key things to understand:
 
 ### Get destinationBlockchainID
 
-To get the blockchainID on our Avalanche L1 let's use the Avalanche-CLI built in feature with the command:
+To get the blockchainID of the Dispatch test L1, you can find it in the foundry.toml configuration file or use the following value:
 
-``` bash
-avalanche blockchain describe myblockchain
 ```
-
-In the output you will find the blockchain details:
- 
-```
-+---------------------------------------------------------------------------------------------------------------+
-|                                                  MYBLOCKCHAIN                                                 |
-+---------------+-----------------------------------------------------------------------------------------------+
-| Name          | myblockchain                                                                                  |
-+---------------+-----------------------------------------------------------------------------------------------+
-| VM ID         | qDNV9vtxZYYNqm7TN1mYBuaaknLdefDbFK8bFmMLTJQJKaWjV                                             |
-+---------------+-----------------------------------------------------------------------------------------------+
-| VM Version    | v0.6.9                                                                                        |
-+---------------+--------------------------+--------------------------------------------------------------------+
-| Local Network | ChainID                  | 1                                                                  |
-|               +--------------------------+--------------------------------------------------------------------+
-|               | SubnetID                 | 2AKbBT8jFUfUsUJ2hhRiDUnAAajJdNhTKeNgEe3q77spMj1N8F                 |
-|               +--------------------------+--------------------------------------------------------------------+
-|               | Owners (Threhold=1)      | P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p                    |
-|               +--------------------------+--------------------------------------------------------------------+
-|               | BlockchainID (CB58)      | krN11ZE6BNgenbX71Wu3YWv2SS5C3p9pD3WLkkRLVhuETGNJb                  |
-|               +--------------------------+--------------------------------------------------------------------+
-|               | BlockchainID (HEX)       | 0x6391b85bafc78f1b10aec35695c2399c2fb7fff9f3b18ea903f77345e9e96e3e | // [!code highlight]
-+---------------+--------------------------+--------------------------------------------------------------------+
+BlockchainID (HEX): 0x6391b85bafc78f1b10aec35695c2399c2fb7fff9f3b18ea903f77345e9e96e3e
 ```
 
 </Step>
@@ -95,7 +71,7 @@ In the output you will find the blockchain details:
 
 ### Replace `destinationBlockchainID`
 
-Replace the destinationBlockchainID in `senderOnCChain.sol` with `BlockchainID (HEX)`
+Replace the destinationBlockchainID in `senderOnCChain.sol` with the Dispatch test L1's BlockchainID:
 
 ```solidity
 contract SenderOnCChain {
@@ -127,7 +103,7 @@ contract SenderOnCChain {
 To deploy a contract using Foundry use the following command:
 
 ```bash
-forge create --rpc-url local-c --private-key $PK contracts/interchain-messaging/send-receive/senderOnCChain.sol:SenderOnCChain --broadcast
+forge create --rpc-url fuji-c --private-key $PK contracts/interchain-messaging/send-receive/senderOnCChain.sol:SenderOnCChain --broadcast
 ```
 ```
 [⠊] Compiling...

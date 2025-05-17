@@ -26,8 +26,8 @@ contract SenderOnCChain {
 
         messenger.sendCrossChainMessage(
             TeleporterMessageInput({
-                // Replace with blockchainID of your Avalanche L1 (see instructions in Readme)
-                destinationBlockchainID: 0x92756d698399805f0088fc07fc42af47c67e1d38c576667ac6c7031b8df05293,
+                // Replace with blockchainID of the Dispatch test L1 (see instructions in Readme)
+                destinationBlockchainID: 0x6391b85bafc78f1b10aec35695c2399c2fb7fff9f3b18ea903f77345e9e96e3e,
                 destinationAddress: destinationAddress,
                 feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
                 requiredGasLimit: 100000,
@@ -39,7 +39,7 @@ contract SenderOnCChain {
 }
 ```
 
-<Callout type="warn" title="Don't forget to replace the destinationBlockchainID with Blockchain ID (HEX) from your Avalanche L1!" />
+<Callout type="warn" title="Don't forget to replace the destinationBlockchainID with Blockchain ID (HEX) of the Dispatch test L1!" />
 
 The key things to understand:
 

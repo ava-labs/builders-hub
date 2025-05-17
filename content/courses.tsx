@@ -45,7 +45,7 @@ const officialCourses: Course[] = [
         duration: "3 hours",
         tools: ["Avalanche CLI"],
         languages: ["Solidity"],
-        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash"] // + Usman
+        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Nicolas Arnedo"] // + Usman
     },
     {
         name: "Interchain Token Transfer",

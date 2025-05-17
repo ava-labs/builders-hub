@@ -10,7 +10,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 Now we have all the Smart Contract 📜 set we can start sending incentivized cross-chain messages. Now let complete the flow 
 
 - Deploy sender contract on C-Chain
-- Deploy receiver contract on `myblockchain`
+- Deploy receiver contract on `dispatch`
 - Approve the sender contract to spend ERC20 funds from the message sender address
 - Send the message
 
@@ -22,7 +22,7 @@ Now we have all the Smart Contract 📜 set we can start sending incentivized cr
 To deploy the sender contract run:
 
 ```bash
-forge create --rpc-url local-c --private-key $PK contracts/interchain-messaging/incentivize-relayer/senderWithFees.sol:SenderWithFeesOnCChain --broadcast
+forge create --rpc-url fuji-c --private-key $PK contracts/interchain-messaging/incentivize-relayer/senderWithFees.sol:SenderWithFeesOnCChain --broadcast
 ```
 ```
 [⠊] Compiling...
@@ -50,7 +50,7 @@ export SENDER_ADDRESS=0xa4DfF80B4a1D748BF28BC4A271eD834689Ea3407
 Now, deploy the receiver contract.
 
 ```bash
-forge create --rpc-url myblockchain --private-key $PK contracts/interchain-messaging/incentivize-relayer/receiverWithFees.sol:ReceiverOnSubnet --broadcast
+forge create --rpc-url dispatch --private-key $PK contracts/interchain-messaging/incentivize-relayer/receiverWithFees.sol:ReceiverOnSubnet --broadcast
 ```
 ```
 [⠊] Compiling...
@@ -79,7 +79,7 @@ export RECEIVER_ADDRESS=0xe336d36FacA76840407e6836d26119E1EcE0A2b4
 👩 The Message Sender (User) requires to approve the Cross-Avalanche L1 dApp as a spender on the ERC20 contract to be used as fee. To do that lets use the function "approve" on our deployed FEE contract.
 
 ```bash
-cast send --rpc-url local-c --private-key $PK $ERC20_fee_address "approve(address,uint256)" $SENDER_ADDRESS 500000000000000
+cast send --rpc-url fuji-c --private-key $PK $ERC20_fee_address "approve(address,uint256)" $SENDER_ADDRESS 500000000000000
 ```
 
 </Step>
@@ -88,7 +88,7 @@ cast send --rpc-url local-c --private-key $PK $ERC20_fee_address "approve(addres
 ### Send an incentivized message
 
 ```bash
-cast send --rpc-url local-c --private-key $PK $SENDER_ADDRESS "sendMessage(address, string, address)" $RECEIVER_ADDRESS "Hello" $ERC20_fee_address
+cast send --rpc-url fuji-c --private-key $PK $SENDER_ADDRESS "sendMessage(address, string, address)" $RECEIVER_ADDRESS "Hello" $ERC20_fee_address
 ```
 
 </Step>
@@ -97,7 +97,7 @@ cast send --rpc-url local-c --private-key $PK $SENDER_ADDRESS "sendMessage(addre
 ### Verify message was received on Avalanche L1 
 
 ```bash
-cast call --rpc-url myblockchain $RECEIVER_ADDRESS "lastMessage()(string)"
+cast call --rpc-url dispatch $RECEIVER_ADDRESS "lastMessage()(string)"
 ```
 ```bash
 "Hello"

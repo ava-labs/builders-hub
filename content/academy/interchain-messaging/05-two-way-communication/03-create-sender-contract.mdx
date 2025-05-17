@@ -17,7 +17,7 @@ Go ahead and deploy the sender contract on the C-Chain.
 
 Perform the changes on `senderOnCChain.sol` described in the [previous section.](/academy/interchain-messaging/04-icm-basics/04-create-sender-contract)
 
-<Callout type="warn" title="Don't forget to replace the destinationBlockchainID with the Blockchain ID (HEX) from your Avalanche L1!" />
+<Callout type="warn" title="Don't forget to replace the destinationBlockchainID with the Blockchain ID (HEX) of the Dispatch test L1!" />
 
 </Step>
 <Step>
@@ -25,7 +25,7 @@ Perform the changes on `senderOnCChain.sol` described in the [previous section.]
 ### Deploy the Sender Contract
 
 ```bash
-forge create --rpc-url local-c --private-key $PK contracts/interchain-messaging/send-roundtrip/senderOnCChain.sol:SenderOnCChain --broadcast
+forge create --rpc-url fuji-c --private-key $PK contracts/interchain-messaging/send-roundtrip/senderOnCChain.sol:SenderOnCChain --broadcast
 ```
 ```
 [⠊] Compiling...
@@ -33,7 +33,7 @@ forge create --rpc-url local-c --private-key $PK contracts/interchain-messaging/
 [⠆] Solc 0.8.18 finished in 165.79ms
 Compiler run successful!
 Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-Deployed to: 0xA4cD3b0Eb6E5Ab5d8CE4065BcCD70040ADAB1F00 // [!code highlight]
+Deployed to: 0xA4cD3b0Eb6E5Ab5d8CE4065BcCD70040ADAB1F00
 Transaction hash: 0x4f41cf829fbc525b64d9773c41dc9fabb3b93dfd03bf6c1568dcc4a4c6bdeb1a
 ```
 </Step>

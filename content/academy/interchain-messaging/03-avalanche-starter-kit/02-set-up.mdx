@@ -6,8 +6,66 @@ authors: [martineckardt]
 icon: Terminal
 ---
 
-import SetUp from "@/content/common/avalanche-starter-kit/set-up.mdx";
+import Link from 'next/link';
+import { cn } from '@/utils/cn';
+import { buttonVariants } from '@/components/ui/button.tsx'
+import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-import defaultMdxComponents from "fumadocs-ui/mdx";
+The Avalanche Starter Kit contains everything you need to get started quickly with Avalanche. The kit provides a self-contained environment with Foundry so you can follow the course without the need of installing anything else other than launching the environment.
 
-<SetUp components={defaultMdxComponents}/>
+In this course we will run the Avalanche Starter Kit in a hosted environment on Github. This is the quickest way to get started.
+
+<Steps>
+<Step>
+
+### Set Up Avalanche Starter Kit:
+
+### Create a Codespace
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=interchain-messaging&repo=769886086&machine=standardLinux32gb)
+
+The Codespace will open in a new tab. You must be logged into a GitHub account, otherwise codespaces will not be available. Wait a few minutes until it's fully built. Alternatively, you can also clone the repo:
+
+<Link
+    href="https://github.com/ava-labs/avalanche-starter-kit/tree/interchain-messaging"
+    className={cn(
+    buttonVariants({ variant: 'default', className: 'mt-4' }),
+    )}
+    target='_blank'
+>Open Avalanche Starter Kit</Link>
+
+</Step>
+<Step>
+
+### Verify everything is working correctly
+
+Open the terminal with `` Ctrl + ` `` or by opening it through the menu:
+
+![](/common-images/avalanche-starter-kit/new-terminal.png)
+
+Now enter forge --version to verify everything is working:
+
+```bash
+forge --version
+```
+
+As a result you should see the version of Forge installed:
+
+```
+forge 0.2.0 (...)
+```
+
+If you see this output, Foundry is properly installed and you're ready to start developing smart contracts.
+
+</Step>
+<Step>
+
+### Optional: Open Codespace locally in Visual Studio Code
+
+You can switch any time from the browser IDE to Visual Studio Code:
+
+![](/course-images/codespaces/open-locally.png)
+
+The first time you switch, you will be asked to install the [Codespaces extension](https://marketplace.visualstudio.com/items?itemName=GitHub.codespaces) and connect VS Code to you GitHub account, if it is not already connceted.
+
+</Step>
+</Steps>

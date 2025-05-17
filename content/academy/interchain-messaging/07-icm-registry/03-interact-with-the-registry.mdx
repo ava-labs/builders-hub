@@ -8,12 +8,12 @@ icon: Terminal
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 
-Let's start by interacting with the registry. Registry is deployed on specific addresses depending the chain you're operating and the status of the network at the deployment time. For your local network you can find it out with the following command:
+Let's start by interacting with the registry. Registry is deployed on specific addresses depending the chain you're operating and the status of the network at the deployment time. For the Fuji testnet and Dispatch test L1, you can find it out with the following commands:
 
 <Steps>
 <Step>
 
-### Get C-Chain Registry Address
+### Get Fuji C-Chain Registry Address
 
 ```bash
 avalanche primary describe
@@ -56,38 +56,38 @@ avalanche primary describe
 </Step>
 <Step>
 
-### Save C-Chain Registry Address
+### Save Fuji C-Chain Registry Address
 
 Let's put the address of the registry in an environment variable:
 
 ```bash
-export C_CHAIN_REGISTRY_ADDRESS=0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25
+export FUJI_REGISTRY_ADDRESS=0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25
 ```
 
 </Step>
 <Step>
 
-### Get L1 Registry Address
+### Get Dispatch Registry Address
 
 ```bash
-avalanche blockchain describe myblockchain
+avalanche blockchain describe dispatch
 ```
 ```
 +-------------------------------------------------------------------------------------------+
 |                                         ICM                                               |
 +---------------+------------------------------+--------------------------------------------+
-| Local Network | ICM Messenger Address        | 0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf |
+| Test Network  | ICM Messenger Address        | 0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf |
 |               +------------------------------+--------------------------------------------+
-|               | ICM Registry Address         | 0x98F9971D3832B94241A2FbBC39712d6e13D8Df99 | // [!code highlight]
+|               | ICM Registry Address         | 0x98F9971D3832B94241A2FbBC39712d6e13D8Df99 |
 +---------------+------------------------------+--------------------------------------------+
 ```
 </Step>
 <Step>
 
-### Save L1 Registry Address
+### Save Dispatch Registry Address
 
 ```bash
-export MYBLOCKCHAIN_REGISTRY_ADDRESS=0x98F9971D3832B94241A2FbBC39712d6e13D8Df99
+export DISPATCH_REGISTRY_ADDRESS=0x98F9971D3832B94241A2FbBC39712d6e13D8Df99
 ```
 
 </Step>
@@ -95,10 +95,10 @@ export MYBLOCKCHAIN_REGISTRY_ADDRESS=0x98F9971D3832B94241A2FbBC39712d6e13D8Df99
 
 ### Retrieve Latest ICM Messenger Version:
 
-Let's interact with the Registry by getting the latest version of the Interchain Messaging Messenger deployed on C-Chain:
+Let's interact with the Registry by getting the latest version of the Interchain Messaging Messenger deployed on Fuji C-Chain:
 
 ```bash
-cast call --rpc-url local-c $C_CHAIN_REGISTRY_ADDRESS "latestVersion()(uint256)" 
+cast call --rpc-url fuji-c $FUJI_REGISTRY_ADDRESS "latestVersion()(uint256)" 
 ```
 
 </Step>
