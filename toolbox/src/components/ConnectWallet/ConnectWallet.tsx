@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useErrorBoundary } from "react-error-boundary"
-import { Link } from "lucide-react"
+import { Globe } from "lucide-react"
 import { createCoreWalletClient } from "../../coreViem"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { useWalletStore } from "../../stores/walletStore"
@@ -316,7 +316,7 @@ export const ConnectWallet = ({
                                                 {selectedL1?.logoUrl ? (
                                                     <img src={selectedL1.logoUrl} alt={`${selectedL1.name} logo`} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <Link className="w-6 h-6 text-zinc-400 dark:text-zinc-500" />
+                                                    <Globe className="w-6 h-6 text-zinc-400 dark:text-zinc-500" />
                                                 )}
                                             </div>
                                             <span className="text-zinc-600 dark:text-zinc-400 text-xl font-medium">
