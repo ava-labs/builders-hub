@@ -339,7 +339,7 @@ export const grantsMenu: LinkItemType = {
       text: 'Codebase',
       description:
         'We help transform good ideas into great web3 companies & ambitious builders into extraordinary founders.',
-      url: 'https://codebase.avax.network/',
+      url: 'https://build.avax.network/codebase',
     },
     {
       icon: <Cpu />,
