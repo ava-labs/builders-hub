@@ -47,8 +47,8 @@ export const L1DetailsModal = ({
                     <DynamicCodeBlock lang="bash" code={l1.id} />
                     
 
-                    <p>Validator ManagerAddress:</p>
-                    <DynamicCodeBlock lang="bash" code={l1.validatorManagerAddress} />
+                    {l1.validatorManagerAddress && (<><p>Validator ManagerAddress:</p>
+                    <DynamicCodeBlock lang="bash" code={l1.validatorManagerAddress} /></>)}
 
                     {l1.wellKnownTeleporterRegistryAddress && (
                         <>

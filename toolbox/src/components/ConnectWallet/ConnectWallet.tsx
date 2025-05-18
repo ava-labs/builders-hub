@@ -7,7 +7,7 @@ import { Copy, RefreshCw } from "lucide-react"
 import { createCoreWalletClient } from "../../coreViem"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { useWalletStore } from "../../stores/walletStore"
-import { useSelectedL1, useCChain } from "../../stores/l1ListStore"
+import { useL1ByChainId, useSelectedL1 } from "../../stores/l1ListStore"
 import { WalletRequiredPrompt } from "../WalletRequiredPrompt"
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt"
 import { RemountOnWalletChange } from "../RemountOnWalletChange"
@@ -79,8 +79,13 @@ export const ConnectWallet = ({
     const { showBoundary } = useErrorBoundary();
     const [rpcUrl, setRpcUrl] = useState<string>("");
 
+     // Call toolboxStore hooks unconditionally.
+    // 'isTestnet' is defined earlier via useWalletStore and is available here.
+    const l1ByChainIdForCChainMode = useL1ByChainId(isTestnet ? "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp" : "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5")();
+    const selectedL1FromStore = useSelectedL1()();
+
     // Now, conditionally use the results of the unconditional hook calls.
-    const selectedL1 = walletMode === "c-chain" ? useCChain() : useSelectedL1()();
+    const selectedL1 = walletMode === "c-chain" ? l1ByChainIdForCChainMode : selectedL1FromStore;
 
     // Set isClient to true once component mounts (client-side only)
     useEffect(() => {
