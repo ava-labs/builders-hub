@@ -12,11 +12,12 @@ import { WalletRequiredPrompt } from "../WalletRequiredPrompt"
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt"
 import { RemountOnWalletChange } from "../RemountOnWalletChange"
 import { avalanche, avalancheFuji } from "viem/chains"
-import { ExplorerButton } from "./ExplorerButton"
+import { L1ExplorerButton } from "./L1ExplorerButton"
 import { PChainExplorerButton } from "./PChainExplorerButton"
 import { ChainSelector } from "./ChainSelector"
 import { PChainFaucet } from "./PChainFaucet"
 import { PChainBridgeButton } from "./PChainBridgeButton"
+import { L1DetailsModal } from "./L1DetailsModal"
 
 export type WalletModeRequired = "l1" | "c-chain" | "testnet-mainnet"
 export type WalletMode = "optional" | WalletModeRequired
@@ -348,7 +349,8 @@ export const ConnectWallet = ({
                                             <span className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">
                                                 {displayedL1ChainName}
                                             </span>
-                                            <ExplorerButton
+                                            {selectedL1 && walletMode !== "c-chain" && <L1DetailsModal blockchainId={selectedL1?.id} />}
+                                            <L1ExplorerButton
                                                 rpcUrl={rpcUrl}
                                                 evmChainId={displayedEvmChainId}
                                             />
