@@ -14,7 +14,7 @@ export const L1FaucetButton = ({
 
     return l1 && l1.faucetUrl && <button
         onClick={() => window.open(l1.faucetUrl, "_blank")}
-        className={`ml-2 px-2 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors ${displayedL1Balance < LOW_BALANCE_THRESHOLD
+        className={`px-2 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors ${displayedL1Balance < LOW_BALANCE_THRESHOLD
             ? "shimmer"
             : ""
             }`}

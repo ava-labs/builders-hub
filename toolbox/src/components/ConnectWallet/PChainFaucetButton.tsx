@@ -114,7 +114,7 @@ export const PChainFaucetButton = ({
             <button
                 onClick={handlePChainTokenRequest}
                 disabled={isRequestingPTokens}
-                className={`ml-2 px-2 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors ${
+                className={`px-2 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors ${
                     pChainBalance < LOW_BALANCE_THRESHOLD ? "shimmer" : ""
                 } ${isRequestingPTokens ? "opacity-50 cursor-not-allowed" : ""}`}
                 title="Get free P-Chain AVAX"

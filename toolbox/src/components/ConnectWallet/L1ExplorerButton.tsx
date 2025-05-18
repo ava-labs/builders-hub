@@ -16,7 +16,7 @@ export const L1ExplorerButton = ({ rpcUrl, evmChainId }: { rpcUrl: string, evmCh
         return (
             <button
                 onClick={handleExplorerClick}
-                className="ml-2 px-2 py-1 text-xs font-medium bg-zinc-600 hover:bg-zinc-700 text-white rounded transition-colors"
+                className="px-2 py-1 text-xs font-medium bg-zinc-600 hover:bg-zinc-700 text-white rounded transition-colors"
                 title="Open explorer"
             >
                 Explorer

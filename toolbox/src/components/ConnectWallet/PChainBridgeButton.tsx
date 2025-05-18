@@ -15,7 +15,6 @@ import { Loader2, X } from 'lucide-react';
 
 export function PChainBridgeButton() {
     const [open, setOpen] = useState(false);
-    const [direction, setDirection] = useState<'c-to-p' | 'p-to-c'>('c-to-p');
     const [amount, setAmount] = useState<string>("");
     const [exportLoading, setExportLoading] = useState<boolean>(false);
     const [importLoading, setImportLoading] = useState<boolean>(false);
@@ -26,19 +25,19 @@ export function PChainBridgeButton() {
     const isFetchingRef = useRef(false);
 
     const { showBoundary } = useErrorBoundary();
-    const { pChainAddress, walletEVMAddress, coreWalletClient, isTestnet, coreEthAddress, l1Balance, updateL1Balance, pChainBalance, updatePChainBalance } = useWalletStore();
+    const { cChainBalance, pChainAddress, walletEVMAddress, coreWalletClient, isTestnet, coreEthAddress, updateCChainBalance, pChainBalance, updatePChainBalance } = useWalletStore();
 
-    const sourceChain = direction === 'c-to-p' ? 'c-chain' : 'p-chain';
-    const destinationChain = direction === 'c-to-p' ? 'p-chain' : 'c-chain';
-    const currentBalance = direction === 'c-to-p' ? l1Balance : pChainBalance;
-    const importableUTXOs = direction === 'c-to-p' ? cToP_UTXOs : pToC_UTXOs;
+    const sourceChain = 'c-chain'
+    const destinationChain = 'p-chain';
+    const currentBalance = cChainBalance;
+    const importableUTXOs = cToP_UTXOs;
 
     const LOW_BALANCE_THRESHOLD = 0.5;
 
     const onBalanceChanged = useCallback(() => {
-        updateL1Balance()?.catch(showBoundary)
+        updateCChainBalance()?.catch(showBoundary)
         updatePChainBalance()?.catch(showBoundary)
-    }, [updateL1Balance, updatePChainBalance, showBoundary]);
+    }, [updateCChainBalance, updatePChainBalance, showBoundary]);
 
     // Fetch UTXOs from both chains
     const fetchUTXOs = useCallback(async () => {
@@ -199,11 +198,6 @@ export function PChainBridgeButton() {
         }
     };
 
-    const openDialog = (transferDirection: 'c-to-p' | 'p-to-c') => {
-        setDirection(transferDirection);
-        setOpen(true);
-    };
-
     // Calculate total AVAX in UTXOs
     const totalUtxoAmount = importableUTXOs.reduce((sum, utxo) => {
         return sum + Number(utxo.output.amt.value()) / 1_000_000_000;
@@ -214,8 +208,8 @@ export function PChainBridgeButton() {
             <div className="hidden md:flex flex-col items-center justify-center space-y-2 text-zinc-400 dark:text-zinc-600">
                 <Dialog.Trigger asChild>
                     <button
-                        onClick={() => openDialog('c-to-p')}
-                        className={`ml-2 px-2 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors ${pChainBalance < LOW_BALANCE_THRESHOLD ? "shimmer" : ""
+                        onClick={() => setOpen(true)}
+                        className={`px-2 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors ${pChainBalance < LOW_BALANCE_THRESHOLD ? "shimmer" : ""
                         } ${open ? "opacity-50 cursor-not-allowed" : ""}`}
                         aria-label="Transfer C-Chain to P-Chain"
                     >
