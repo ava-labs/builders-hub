@@ -7,7 +7,7 @@ import { Copy, RefreshCw } from "lucide-react"
 import { createCoreWalletClient } from "../../coreViem"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { useWalletStore } from "../../stores/walletStore"
-import { useSelectedL1, useL1ByChainId, useCChain } from "../../stores/l1ListStore"
+import { useSelectedL1, useCChain } from "../../stores/l1ListStore"
 import { WalletRequiredPrompt } from "../WalletRequiredPrompt"
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt"
 import { RemountOnWalletChange } from "../RemountOnWalletChange"
@@ -22,8 +22,6 @@ import { L1FaucetButton } from "./L1FaucetButton"
 
 export type WalletModeRequired = "l1" | "c-chain" | "testnet-mainnet"
 export type WalletMode = "optional" | WalletModeRequired
-
-const LOW_BALANCE_THRESHOLD = 0.5
 
 export const OptionalConnectWallet = ({
     children,
