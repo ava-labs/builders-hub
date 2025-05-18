@@ -364,7 +364,7 @@ const componentGroups: Record<string, ComponentGroupType> = {
         label: "RPC Methods Check",
         component: lazy(() => import('./Nodes/RPCMethodsCheck')),
         fileNames: ["toolbox/src/toolbox/Nodes/RPCMethodsCheck.tsx"],
-        walletMode: "optional",
+        walletMode: "testnet-mainnet",
       },
       {
         id: "performanceMonitor",
