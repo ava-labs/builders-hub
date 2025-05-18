@@ -6,7 +6,7 @@ const knownExplorerUrls: Record<number, string> = {
     779672: "https://subnets-test.avax.network/dispatch"
 }
 
-export const ExplorerButton = ({ rpcUrl, evmChainId }: { rpcUrl: string, evmChainId: number }) => {
+export const L1ExplorerButton = ({ rpcUrl, evmChainId }: { rpcUrl: string, evmChainId: number }) => {
     const handleExplorerClick = () => {
         const url = knownExplorerUrls[evmChainId];
         window.open(url, "_blank");
