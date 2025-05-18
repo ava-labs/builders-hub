@@ -119,7 +119,7 @@ export const PChainFaucet = ({
                 } ${isRequestingPTokens ? "opacity-50 cursor-not-allowed" : ""}`}
                 title="Get free P-Chain AVAX"
             >
-                {isRequestingPTokens ? "Requesting..." : "Get tokens"}
+                {isRequestingPTokens ? "Requesting..." : "Faucet"}
             </button>
         </>
     );
