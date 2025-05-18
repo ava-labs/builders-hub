@@ -56,7 +56,7 @@ export default function DeployProxyContract() {
             if (!implementationAddress) throw new Error("Implementation address is required");
             if (!proxyAdminAddress) throw new Error("ProxyAdmin address is required");
             if (!viemChain) throw new Error("Viem chain not found");
-            
+
             await coreWalletClient.addChain({ chain: viemChain });
             await coreWalletClient.switchChain({ id: viemChain!.id });
 
@@ -89,92 +89,92 @@ export default function DeployProxyContract() {
         >
             <Callout type="info" className="mb-8">
                 <p className="mb-3">
-                    <a href="https://github.com/OpenZeppelin/openzeppelin-contracts/tree/release-v4.9/contracts/proxy/transparent" 
-                       target="_blank" 
-                       rel="noopener noreferrer">
+                    <a href="https://github.com/OpenZeppelin/openzeppelin-contracts/tree/release-v4.9/contracts/proxy/transparent"
+                        target="_blank"
+                        rel="noopener noreferrer">
                         OpenZeppelin's Transparent Proxy Pattern
                     </a> enables upgradeability of smart contracts while preserving state and contract addresses.
                 </p>
-                
+
                 <p className="mb-3"><strong>How It Works:</strong> The proxy contract stores state and forwards function calls, while the implementation contract contains only the logic. The proxy admin manages implementation upgrades securely.</p>
-                
+
                 <p className="mb-3"><strong>For <code>ValidatorManager</code> and <code>StakingManager</code>:</strong> These critical contracts manage validator operations and staking in Avalanche's consensus system. Using transparent proxies allows upgrading contract logic without disrupting the network or losing state.</p>
             </Callout>
 
             <div className="space-y-8">
                 <Steps>
                     <Step>
-                        <div className="p-6 border rounded-lg">
-                            <h3 className="text-xl font-bold mb-6">Deploy Proxy Admin Contract</h3>
-                            <div className="mb-6">
-                                This will deploy the <code>ProxyAdmin</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ProxyAdmin</code> is used to manage upgrades for the proxy contract.
-                            </div>
-                            <div className="mb-8">
-                                <Button
-                                    variant="primary"
-                                    onClick={deployProxyAdmin}
-                                    loading={isDeployingProxyAdmin}
-                                    disabled={isDeployingProxyAdmin || !!proxyAdminAddress}
-                                    className="mt-4"
-                                >
-                                    Deploy Proxy Admin
-                                </Button>
-                            </div>
-                            
-                            {proxyAdminAddress && (
-                                <div className="mt-10 pt-6 border-t">
-                                    <ResultField
-                                        label="ProxyAdmin Address"
-                                        value={proxyAdminAddress}
-                                        showCheck={!!proxyAdminAddress}
-                                    />
-                                </div>
-                            )}
+
+                        <h3 className="text-xl font-bold mb-6">Deploy Proxy Admin Contract</h3>
+                        <div className="mb-6">
+                            This will deploy the <code>ProxyAdmin</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ProxyAdmin</code> is used to manage upgrades for the proxy contract.
                         </div>
+                        <div className="mb-8">
+                            <Button
+                                variant="primary"
+                                onClick={deployProxyAdmin}
+                                loading={isDeployingProxyAdmin}
+                                disabled={isDeployingProxyAdmin || !!proxyAdminAddress}
+                                className="mt-4"
+                            >
+                                Deploy Proxy Admin
+                            </Button>
+                        </div>
+
+                        {proxyAdminAddress && (
+                            <div className="mt-10 pt-6 border-t">
+                                <ResultField
+                                    label="ProxyAdmin Address"
+                                    value={proxyAdminAddress}
+                                    showCheck={!!proxyAdminAddress}
+                                />
+                            </div>
+                        )}
+
                     </Step>
 
                     <Step>
-                        <div className="p-6 border rounded-lg mt-8">
-                            <h3 className="text-xl font-bold mb-6">Deploy Transparent Proxy Contract</h3>
-                            <div className="mb-6">
-                                This will deploy the <code>TransparentUpgradeableProxy</code> contract to the EVM network <code>{viemChain?.id}</code>.
-                            </div>
-                            <div className="mb-6">
-                                The proxy requires the <code>ProxyAdmin</code> contract at address: <code>{proxyAdminAddress || "Not deployed"}</code>
-                            </div>
-                            
-                            <div className="mb-4">
-                                <EVMAddressInput
-                                    label="Implementation Address"
-                                    value={implementationAddress}
-                                    onChange={setImplementationAddress}
-                                    placeholder="Enter implementation contract address (e.g. ValidatorManager or StakingManager)"
-                                    disabled={isDeployingProxy}
+
+                        <h3 className="text-xl font-bold mb-6">Deploy Transparent Proxy Contract</h3>
+                        <div className="mb-6">
+                            This will deploy the <code>TransparentUpgradeableProxy</code> contract to the EVM network <code>{viemChain?.id}</code>.
+                        </div>
+                        <div className="mb-6">
+                            The proxy requires the <code>ProxyAdmin</code> contract at address: <code>{proxyAdminAddress || "Not deployed"}</code>
+                        </div>
+
+                        <div className="mb-4">
+                            <EVMAddressInput
+                                label="Implementation Address"
+                                value={implementationAddress}
+                                onChange={setImplementationAddress}
+                                placeholder="Enter implementation contract address (e.g. ValidatorManager or StakingManager)"
+                                disabled={isDeployingProxy}
+                            />
+                        </div>
+
+                        <div className="mb-8">
+                            <Button
+                                variant="primary"
+                                onClick={deployTransparentProxy}
+                                loading={isDeployingProxy}
+                                disabled={isDeployingProxy || !proxyAdminAddress || !implementationAddress}
+                                className="mt-4"
+                            >
+                                Deploy Proxy Contract
+                            </Button>
+                        </div>
+
+                        {proxyAddress && (
+                            <div className="mt-10 pt-6 border-t">
+                                <ResultField
+                                    label="Proxy Contract Address"
+                                    value={proxyAddress}
+                                    showCheck={!!proxyAddress}
                                 />
                             </div>
-                            
-                            <div className="mb-8">
-                                <Button
-                                    variant="primary"
-                                    onClick={deployTransparentProxy}
-                                    loading={isDeployingProxy}
-                                    disabled={isDeployingProxy || !proxyAdminAddress || !implementationAddress}
-                                    className="mt-4"
-                                >
-                                    Deploy Proxy Contract
-                                </Button>
-                            </div>
-                            
-                            {proxyAddress && (
-                                <div className="mt-10 pt-6 border-t">
-                                    <ResultField
-                                        label="Proxy Contract Address"
-                                        value={proxyAddress}
-                                        showCheck={!!proxyAddress}
-                                    />
-                                </div>
-                            )}
-                        </div>
+                        )}
+
                     </Step>
                 </Steps>
             </div>
