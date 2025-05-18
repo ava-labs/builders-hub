@@ -70,7 +70,7 @@ export const L1DetailsModal = ({
                 className={`ml-2 px-2 py-1 text-xs font-medium bg-zinc-600 hover:bg-zinc-700 text-white rounded transition-colors`}
                 aria-label="Open L1 details"
             >
-                Details
+                L1 Details
             </button>
         </>
     );

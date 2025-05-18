@@ -12,7 +12,7 @@ import {
 
 const LOW_BALANCE_THRESHOLD = 0.5
 
-export const PChainFaucet = ({
+export const PChainFaucetButton = ({
     pChainAddress,
     pChainBalance,
     updatePChainBalance,

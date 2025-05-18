@@ -7,7 +7,7 @@ import { Copy, RefreshCw } from "lucide-react"
 import { createCoreWalletClient } from "../../coreViem"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { useWalletStore } from "../../stores/walletStore"
-import { useSelectedL1, useL1ByChainId } from "../../stores/l1ListStore"
+import { useSelectedL1, useL1ByChainId, useCChain } from "../../stores/l1ListStore"
 import { WalletRequiredPrompt } from "../WalletRequiredPrompt"
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt"
 import { RemountOnWalletChange } from "../RemountOnWalletChange"
@@ -15,9 +15,10 @@ import { avalanche, avalancheFuji } from "viem/chains"
 import { L1ExplorerButton } from "./L1ExplorerButton"
 import { PChainExplorerButton } from "./PChainExplorerButton"
 import { ChainSelector } from "./ChainSelector"
-import { PChainFaucet } from "./PChainFaucet"
+import { PChainFaucetButton } from "./PChainFaucetButton"
 import { PChainBridgeButton } from "./PChainBridgeButton"
 import { L1DetailsModal } from "./L1DetailsModal"
+import { L1FaucetButton } from "./L1FaucetButton"
 
 export type WalletModeRequired = "l1" | "c-chain" | "testnet-mainnet"
 export type WalletMode = "optional" | WalletModeRequired
@@ -80,14 +81,8 @@ export const ConnectWallet = ({
     const { showBoundary } = useErrorBoundary();
     const [rpcUrl, setRpcUrl] = useState<string>("");
 
-    // Call toolboxStore hooks unconditionally.
-    // 'isTestnet' is defined earlier via useWalletStore and is available here.
-    const l1ByChainIdForCChainMode = useL1ByChainId(isTestnet ? "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp" : "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5")();
-    const selectedL1FromStore = useSelectedL1()();
-
     // Now, conditionally use the results of the unconditional hook calls.
-    const selectedL1 = walletMode === "c-chain" ? l1ByChainIdForCChainMode : selectedL1FromStore;
-    const faucetUrl = selectedL1?.faucetUrl;
+    const selectedL1 = walletMode === "c-chain" ? useCChain() : useSelectedL1()();
 
     // Set isClient to true once component mounts (client-side only)
     useEffect(() => {
@@ -345,11 +340,11 @@ export const ConnectWallet = ({
                                 {/* L1 Chain Card */}
                                 <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 h-full">
                                     <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <span className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">
+                                        <div className="flex items-center">
+                                            <span className="text-zinc-600 dark:text-zinc-400 text-xl font-medium">
                                                 {displayedL1ChainName}
                                             </span>
-                                            {selectedL1 && walletMode !== "c-chain" && <L1DetailsModal blockchainId={selectedL1?.id} />}
+                                            {selectedL1 && <L1DetailsModal blockchainId={selectedL1.id} />}
                                             <L1ExplorerButton
                                                 rpcUrl={rpcUrl}
                                                 evmChainId={displayedEvmChainId}
@@ -369,18 +364,7 @@ export const ConnectWallet = ({
                                         >
                                             <RefreshCw className={`w-4 h-4 text-zinc-600 dark:text-zinc-300 ${isDisplayedL1BalanceLoading ? 'animate-spin' : ''}`} />
                                         </button>
-                                        {faucetUrl && (
-                                            <button
-                                                onClick={() => window.open(faucetUrl, "_blank")}
-                                                className={`ml-2 px-2 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors ${displayedL1Balance < LOW_BALANCE_THRESHOLD
-                                                    ? "shimmer"
-                                                    : ""
-                                                    }`}
-                                                title="Open faucet"
-                                            >
-                                                Faucet
-                                            </button>
-                                        )}
+                                        {selectedL1 && <L1FaucetButton blockchainId={selectedL1.id} displayedL1Balance={displayedL1Balance}/>}
                                     </div>
                                     {/* EVM Address inside the card */}
                                     <div className="flex items-center justify-between">
@@ -403,8 +387,8 @@ export const ConnectWallet = ({
                                 {showPChainCard && (
                                     <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 h-full">
                                         <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <span className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">P-Chain</span>
+                                        <div className="flex items-center">
+                                            <span className="text-zinc-600 dark:text-zinc-400 text-xl font-medium">P-Chain</span>
                                                 <PChainExplorerButton />
                                             </div>
                                             <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-full">Always Connected</span>
@@ -420,7 +404,7 @@ export const ConnectWallet = ({
                                                 <RefreshCw className={`w-4 h-4 text-zinc-600 dark:text-zinc-300 ${isPChainBalanceLoading ? 'animate-spin' : ''}`} />
                                             </button>
                                             {pChainAddress && (<>
-                                                <PChainFaucet
+                                                <PChainFaucetButton
                                                     pChainAddress={pChainAddress}
                                                     pChainBalance={pChainBalance}
                                                     updatePChainBalance={updatePChainBalance}
