@@ -67,7 +67,7 @@ export const L1DetailsModal = ({
 
             <button
                 onClick={() => setIsAlertDialogOpen(true)}
-                className={`ml-2 px-2 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors`}
+                className={`ml-2 px-2 py-1 text-xs font-medium bg-zinc-600 hover:bg-zinc-700 text-white rounded transition-colors`}
                 aria-label="Open L1 details"
             >
                 Details
