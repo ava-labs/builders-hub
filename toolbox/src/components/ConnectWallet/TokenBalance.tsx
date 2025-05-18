@@ -22,8 +22,6 @@ const TokenBalance = ({
   const handleRefresh = async () => {
     if (isLoading) return;
     
-    console.log('Refreshing balance...');
-
     setIsLoading(true);
     try {
       if (onClick) await onClick();
