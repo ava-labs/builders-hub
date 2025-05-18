@@ -95,7 +95,7 @@ Proof-of-Stake Validator management is provided by the abstract contract `PoSVal
 ```
 
 #### ERC20TokenStakingManager
-`ERC20TokenStakingManager` allows permissionless addition and removal of Validators that post the an ERC20 token as stake. The ERC20 is specified in the call to `initialize`, and must implement [`IERC20Mintable`](https://github.com/ava-labs/teleporter/blob/validator-manager/contracts/validator-manager/interfaces/IERC20Mintable.sol). Care should be taken to enforce that only authorized users are able to call `mint`.
+`ERC20TokenStakingManager` allows permissionless addition and removal of Validators that post the an ERC20 token as stake. The ERC20 is specified in the call to `initialize`, and must implement [`IERC20Mintable`](https://github.com/ava-labs/icm-contracts/blob/prorated-rewards-v2/contracts/validator-manager/interfaces/IERC20Mintable.sol). Care should be taken to enforce that only authorized users are able to call `mint`.
 
 ### Convert PoA to PoS
 
@@ -132,7 +132,7 @@ Delegators removal may be initiated by calling `initializeEndDelegation`, as lon
 
 ### (PoS only) Submit an Uptime Proof
 
-The [rewards calculater](https://github.com/ava-labs/teleporter/blob/validator-manager/contracts/validator-manager/interfaces/IRewardCalculator.sol) is a function of uptime seconds since the Validator's start time. In addition to doing so in the calls to `initializeEndValidation` and `initializeEndDelegation` as described above, uptime proofs may also be supplied by calling `submitUptimeProof`. Unlike `initializeEndValidation` and `initializeEndDelegation`, `submitUptimeProof` may be called by anyone, decreasing the likelihood of a Validation or Delegation not being able to claim rewards that it deserved based on its actual uptime.
+The [rewards calculater](https://github.com/ava-labs/icm-contracts/blob/prorated-rewards-v2/contracts/validator-manager/interfaces/IRewardCalculator.sol) is a function of uptime seconds since the Validator's start time. In addition to doing so in the calls to `initializeEndValidation` and `initializeEndDelegation` as described above, uptime proofs may also be supplied by calling `submitUptimeProof`. Unlike `initializeEndValidation` and `initializeEndDelegation`, `submitUptimeProof` may be called by anyone, decreasing the likelihood of a Validation or Delegation not being able to claim rewards that it deserved based on its actual uptime.
 
 ### (PoS only) Collect Staking Rewards
 #### Validation Rewards
