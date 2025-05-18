@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useErrorBoundary } from "react-error-boundary"
-import { Copy, Link } from "lucide-react"
+import { Link } from "lucide-react"
 import { createCoreWalletClient } from "../../coreViem"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { useWalletStore } from "../../stores/walletStore"
@@ -251,13 +251,6 @@ export const ConnectWallet = ({
             showBoundary(error)
         }
     }
-
-    const copyToClipboard = (text: string) => {
-        if (isClient) {
-            navigator.clipboard.writeText(text)
-        }
-    }
-
 
     // Determine what to display based on props
     const isActuallyCChainSelected = walletChainId === avalanche.id || walletChainId === avalancheFuji.id;
