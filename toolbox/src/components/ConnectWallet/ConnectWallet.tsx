@@ -3,7 +3,6 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useErrorBoundary } from "react-error-boundary"
-import { Globe } from "lucide-react"
 import { createCoreWalletClient } from "../../coreViem"
 import { networkIDs } from "@avalabs/avalanchejs"
 import { useWalletStore } from "../../stores/walletStore"
@@ -20,8 +19,6 @@ import { PChainBridgeButton } from "./PChainBridgeButton"
 import { L1DetailsModal } from "./L1DetailsModal"
 import { L1FaucetButton } from "./L1FaucetButton"
 import { TestnetMainnetSwitch } from "./TestnetMainnetSwitch"
-import TokenBalance from "./TokenBalance"
-import { AddressCopy } from "./AddressCopy"
 import { ChainCard } from "./ChainCard"
 
 export type WalletModeRequired = "l1" | "c-chain" | "testnet-mainnet"
@@ -52,32 +49,27 @@ export const ConnectWallet = ({
     enforceChainId?: number;
     children: React.ReactNode;
 }) => {
-    const setWalletChainId = useWalletStore(state => state.setWalletChainId);
-    const walletEVMAddress = useWalletStore(state => state.walletEVMAddress);
-    const setWalletEVMAddress = useWalletStore(state => state.setWalletEVMAddress);
-    const setCoreWalletClient = useWalletStore(state => state.setCoreWalletClient);
-    const coreWalletClient = useWalletStore(state => state.coreWalletClient);
-    const setAvalancheNetworkID = useWalletStore(state => state.setAvalancheNetworkID);
-    const setPChainAddress = useWalletStore(state => state.setPChainAddress);
-    const setCoreEthAddress = useWalletStore(state => state.setCoreEthAddress);
-    const pChainAddress = useWalletStore(state => state.pChainAddress);
-    const walletChainId = useWalletStore(state => state.walletChainId);
-    const setIsTestnet = useWalletStore(state => state.setIsTestnet);
-    const setEvmChainName = useWalletStore(state => state.setEvmChainName);
-    const isTestnet = useWalletStore(state => state.isTestnet);
-    const updateAllBalances = useWalletStore(state => state.updateAllBalances);
-    const updatePChainBalance = useWalletStore(state => state.updatePChainBalance);
-    const updateL1Balance = useWalletStore(state => state.updateL1Balance);
-    const updateCChainBalance = useWalletStore(state => state.updateCChainBalance);
-
-    const [hasWallet, setHasWallet] = useState<boolean>(false)
-    const [isClient, setIsClient] = useState<boolean>(false)
-    const pChainBalance = useWalletStore(state => state.pChainBalance);
-    const l1Balance = useWalletStore(state => state.l1Balance);
-    const cChainBalance = useWalletStore(state => state.cChainBalance);
     const { showBoundary } = useErrorBoundary();
 
-    const [rpcUrl, setRpcUrl] = useState<string>("");
+    const { 
+        walletChainId, setWalletChainId, 
+        walletEVMAddress, setWalletEVMAddress, 
+        coreWalletClient, 
+        setPChainAddress, 
+        setCoreWalletClient, 
+        setAvalancheNetworkID, 
+        setCoreEthAddress, 
+        pChainAddress, 
+        isTestnet, setIsTestnet, 
+        setEvmChainName, 
+        updateAllBalances, 
+        pChainBalance, updatePChainBalance, 
+        l1Balance, updateL1Balance, 
+        cChainBalance, updateCChainBalance 
+    } = useWalletStore();
+
+    const [hasWallet, setHasWallet] = useState<boolean>(false);
+    const [isClient, setIsClient] = useState<boolean>(false);
 
     // Call toolboxStore hooks unconditionally.
     // 'isTestnet' is defined earlier via useWalletStore and is available here.
@@ -91,7 +83,6 @@ export const ConnectWallet = ({
     useEffect(() => {
         setIsClient(true)
     }, [])
-
 
     useEffect(() => {
         if (!walletEVMAddress || !walletChainId || !pChainAddress) return;
@@ -170,11 +161,10 @@ export const ConnectWallet = ({
         coreWalletClient
             .getEthereumChain()
             .then((data: { isTestnet: boolean, chainName: string, rpcUrls: string[] }) => {
-                const { isTestnet, chainName, rpcUrls } = data;
+                const { isTestnet, chainName } = data;
                 setAvalancheNetworkID(isTestnet ? networkIDs.FujiID : networkIDs.MainnetID)
                 setIsTestnet(isTestnet)
                 setEvmChainName(chainName)
-                setRpcUrl(rpcUrls[0]!)
             })
             .catch(showBoundary)
     }
