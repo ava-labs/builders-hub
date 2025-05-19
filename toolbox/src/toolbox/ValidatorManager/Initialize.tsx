@@ -197,6 +197,7 @@ export default function Initialize() {
                 <SelectSubnetId
                     value={subnetId}
                     onChange={setSubnetId}
+                    hidePrimaryNetwork={true}
                 />
                 <Input
                     label={`Subnet ID (Hex), ${utils.hexToBuffer(subnetIDHex).length} bytes`}
