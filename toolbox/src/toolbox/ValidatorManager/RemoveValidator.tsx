@@ -10,8 +10,6 @@ import { useState, useEffect } from "react"
 import { Button } from "../../components/Button"
 import { Container } from "../../components/Container"
 import { GetRegistrationJustification } from "./justification"
-import { Input } from "../../components/Input"
-import { cn } from "../../lib/utils"
 import { packL1ValidatorRegistration } from "../../coreViem/utils/convertWarp"
 import { packWarpIntoAccessList } from "./packWarp"
 import { StepIndicator } from "../../components/StepIndicator"
@@ -19,17 +17,16 @@ import { useViemChainStore } from "../../stores/toolboxStore"
 import { useCreateChainStore } from "../../stores/createChainStore"
 import { useWalletStore } from "../../stores/walletStore"
 import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
-import { getValidationIdHex } from "../../coreViem/hooks/getValidationID"
 import { useStepProgress, StepsConfig } from "../hooks/useStepProgress"
 import { setL1ValidatorWeight } from "../../coreViem/methods/setL1ValidatorWeight"
 import SelectSubnetId from "../../components/SelectSubnetId"
 import { useValidatorManagerDetails } from "../hooks/useValidatorManagerDetails"
 import { validateContractOwner } from "../../coreViem/hooks/validateContractOwner"
 import { ValidatorManagerDetails } from "../../components/ValidatorManagerDetails"
+import SelectValidationID, { ValidationSelection } from "../../components/SelectValidationID"
 
 // Define step keys and configuration
 type RemovalStepKey =
-  | "getValidationID"
   | "initiateRemoval"
   | "signMessage"
   | "submitPChainTx"
@@ -37,7 +34,6 @@ type RemovalStepKey =
   | "completeRemoval";
 
 const removalStepsConfig: StepsConfig<RemovalStepKey> = {
-  getValidationID: "Get Validation ID",
   initiateRemoval: "Initiate Validator Removal",
   signMessage: "Aggregate Signatures for Warp Message",
   submitPChainTx: "Remove Validator from P-Chain",
@@ -53,12 +49,15 @@ export default function RemoveValidator() {
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
   const [subnetId, setSubnetId] = useState(createChainStoreSubnetId || "")
 
-  const [nodeID, setNodeID] = useState("")
-  const [validationIDHex, setValidationIDHex] = useState("")
+  const [validationSelection, setValidationSelection] = useState<ValidationSelection>({
+    validationId: "",
+    nodeId: ""
+  })
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState("")
   const [signedWarpMessage, setSignedWarpMessage] = useState("")
   const [pChainSignature, setPChainSignature] = useState("")
   const [isContractOwner, setIsContractOwner] = useState<boolean | null>(null)
+  const [componentKey, setComponentKey] = useState<number>(0)
 
   const {
     validatorManagerAddress,
@@ -108,8 +107,8 @@ export default function RemoveValidator() {
   }, [validatorManagerAddress, publicClient, coreWalletClient])
 
   const handleRemove = async (startFromStep?: RemovalStepKey) => {
-    if (!nodeID) {
-      setError("Node ID is required")
+    if (!validationSelection.validationId || !validationSelection.nodeId) {
+      setError("Validation ID is required")
       return
     }
 
@@ -128,28 +127,13 @@ export default function RemoveValidator() {
       startProcessing();
     }
 
-    let currentValidationID = startFromStep ? validationIDHex : "";
+    const currentValidationID = validationSelection.validationId;
     let currentUnsignedWarpMessage = startFromStep ? unsignedWarpMessage : "";
     let currentSignedWarpMessage = startFromStep ? signedWarpMessage : "";
     let currentPChainSignature = startFromStep ? pChainSignature : "";
 
     try {
-      // Step 1: Get ValidationID
-      if (!startFromStep || startFromStep === "getValidationID") {
-        updateStepStatus("getValidationID", "loading")
-        try {
-          const validationIDResult = await getValidationIdHex(publicClient, validatorManagerAddress as `0x${string}`, nodeID)
-          setValidationIDHex(validationIDResult as string)
-          currentValidationID = validationIDResult as string;
-          console.log("ValidationID:", validationIDResult)
-          updateStepStatus("getValidationID", "success")
-        } catch (error: any) {
-          updateStepStatus("getValidationID", "error", error.message)
-          return
-        }
-      }
-
-      // Step 2: Initiate Validator Removal
+      // Step 1: Initiate Validator Removal
       if (!startFromStep || startFromStep === "initiateRemoval") {
         updateStepStatus("initiateRemoval", "loading")
         try {
@@ -188,7 +172,7 @@ export default function RemoveValidator() {
         }
       }
 
-      // Step 3: Sign Warp Message
+      // Step 2: Sign Warp Message
       if (!startFromStep || startFromStep === "signMessage") {
         updateStepStatus("signMessage", "loading")
         try {
@@ -216,7 +200,7 @@ export default function RemoveValidator() {
         }
       }
 
-      // Step 4: Submit P-Chain Transaction
+      // Step 3: Submit P-Chain Transaction
       if (!startFromStep || startFromStep === "submitPChainTx") {
         updateStepStatus("submitPChainTx", "loading")
         try {
@@ -242,7 +226,7 @@ export default function RemoveValidator() {
         }
       }
 
-      // Step 5: pChainSignature (Prepare data for final step)
+      // Step 4: pChainSignature (Prepare data for final step)
       if (!startFromStep || startFromStep === "pChainSignature") {
         updateStepStatus("pChainSignature", "loading")
         try {
@@ -254,7 +238,7 @@ export default function RemoveValidator() {
           }
 
           const justification = await GetRegistrationJustification(
-            nodeID,
+            validationSelection.nodeId,
             currentValidationID,
             signingSubnetId || subnetId,
             publicClient
@@ -296,7 +280,7 @@ export default function RemoveValidator() {
         }
       }
 
-      // Step 6: completeRemoval
+      // Step 5: completeRemoval
       if (!startFromStep || startFromStep === "completeRemoval") {
         updateStepStatus("completeRemoval", "loading")
         try {
@@ -333,7 +317,7 @@ export default function RemoveValidator() {
           }
 
           updateStepStatus("completeRemoval", "success")
-          completeProcessing(`Validator ${nodeID} removal process completed successfully.`)
+          completeProcessing(`Validator ${validationSelection.nodeId} removal process completed successfully.`)
         } catch (error: any) {
           const message = error instanceof Error ? error.message : String(error);
           updateStepStatus("completeRemoval", "error", message)
@@ -345,6 +329,18 @@ export default function RemoveValidator() {
       setError(`Failed to remove validator: ${err.message}`)
       showBoundary(err)
     }
+  }
+
+  const handleReset = () => {
+    resetSteps();
+    setValidationSelection({ validationId: "", nodeId: "" });
+    setComponentKey(prevKey => prevKey + 1); // Force refresh
+  }
+
+  const handleCancel = () => {
+    resetSteps();
+    setValidationSelection({ validationId: "", nodeId: "" });
+    // Don't increment componentKey here
   }
 
   return (
@@ -381,29 +377,6 @@ export default function RemoveValidator() {
         )}
 
         <div className="space-y-2">
-          <Input
-            id="nodeID"
-            type="text"
-            value={nodeID}
-            onChange={(e) => setNodeID(e)}
-            placeholder="Enter validator Node ID"
-            className={cn(
-              "w-full px-3 py-2 border rounded-md",
-              "text-zinc-900 dark:text-zinc-100",
-              "bg-white dark:bg-zinc-800",
-              "border-zinc-300 dark:border-zinc-700",
-              "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
-              "placeholder:text-zinc-400 dark:placeholder:text-zinc-500",
-            )}
-            label="Node ID"
-            disabled={isProcessing}
-          />
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Enter the Node ID of the validator you want to remove
-          </p>
-        </div>
-
-        <div className="space-y-2">
           <SelectSubnetId
             value={subnetId}
             onChange={setSubnetId}
@@ -418,10 +391,23 @@ export default function RemoveValidator() {
           />
         </div>
 
+        <div className="space-y-2">
+          <SelectValidationID
+            key={`validation-selector-${componentKey}-${subnetId}`}
+            value={validationSelection.validationId}
+            onChange={setValidationSelection}
+            subnetId={subnetId}
+            format="hex"
+          />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Select the validator you want to remove by its Validation ID
+          </p>
+        </div>
+
         {!isProcessing && (
           <Button
             onClick={() => handleRemove()}
-            disabled={!nodeID || !validatorManagerAddress || isProcessing || !!validatorManagerError || isLoadingVMCDetails || isContractOwner === false}
+            disabled={!validationSelection.validationId || !validatorManagerAddress || isProcessing || !!validatorManagerError || isLoadingVMCDetails || isContractOwner === false}
             error={validatorManagerError || (!validatorManagerAddress ? "Select a valid L1 subnet" : "") || (isContractOwner === false ? "Not the contract owner" : "")}
           >
             {"Remove Validator"}
@@ -434,7 +420,7 @@ export default function RemoveValidator() {
               <h3 className="font-medium text-sm text-zinc-800 dark:text-zinc-200">Removal Progress</h3>
               {isProcessComplete && (
                 <button
-                  onClick={resetSteps}
+                  onClick={handleReset}
                   className="text-xs px-2 py-1 bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 rounded transition-colors"
                 >
                   Start New Removal
@@ -457,7 +443,7 @@ export default function RemoveValidator() {
 
             {!isProcessComplete && (
               <Button
-                onClick={resetSteps}
+                onClick={handleCancel}
                 className="mt-4 w-full py-2 px-4 rounded-md text-sm font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
               >
                 Cancel Removal
