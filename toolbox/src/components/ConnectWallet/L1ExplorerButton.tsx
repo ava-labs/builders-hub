@@ -1,13 +1,18 @@
 import { useL1ByChainId } from "../../stores/l1ListStore";
+import { useWalletStore } from "../../stores/walletStore";
 
 export const L1ExplorerButton = ({ blockchainId }: { blockchainId: string }) => {
     const l1 = useL1ByChainId(blockchainId)();
+    const { walletEVMAddress } = useWalletStore();
 
     if (!l1) return null;
 
     // Determine the URL based on available data
-    let explorerUrl = l1.explorerUrl;
-    if (!explorerUrl && l1.rpcUrl) {
+    let explorerUrl = "";
+
+    if (l1.explorerUrl) {
+        explorerUrl = `${l1.explorerUrl}/address/${walletEVMAddress}`;
+    } else if (l1.rpcUrl) {
         explorerUrl = `https://devnet.routescan.io/?rpc=${encodeURIComponent(l1.rpcUrl)}`;
     }
 
