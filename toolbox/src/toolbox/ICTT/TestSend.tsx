@@ -220,7 +220,7 @@ export default function TokenBridge() {
                     address: tokenAddress,
                     abi: ExampleERC20ABI.abi,
                     functionName: 'allowance',
-                    args: [walletEVMAddress === "" ? zeroAddress : walletEVMAddress as Address, sourceContractAddress === "" ? zeroAddress : sourceContractAddress as Address]
+                    args: [walletEVMAddress === "" ? zeroAddress : walletEVMAddress as Address, address as Address]
                 })
             ]);
 
