@@ -310,7 +310,7 @@ const componentGroups: Record<string, ComponentGroupType> = {
   "Precompiles": {
     academy: {
       text: "Learn about Subnet-EVM precompiled contracts",
-      link: "https://build.avax.network/docs/virtual-machines/default-precompiles"
+      link: "https://build.avax.network/docs/virtual-machines/default-precompiles/rewardmanager"
     },
     components: [
       {
