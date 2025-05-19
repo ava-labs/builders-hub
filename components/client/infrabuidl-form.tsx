@@ -1127,7 +1127,7 @@ export default function GrantApplicationForm({ programType, headerComponent }: G
                   distribution, project accountability, and long-term success.
                 </p>
                 <div className="mt-6">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Milestone Format</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Milestone Format (Upto 4)</h3>
                   <ul className="list-disc pl-6 mt-2 space-y-2">
                     <li>
                       <span className="font-medium">Milestone Name:</span> A short, clear title describing the milestone's focus (e.g. Smart Contract Development & Initial Audit).

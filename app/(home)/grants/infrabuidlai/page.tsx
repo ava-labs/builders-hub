@@ -15,12 +15,15 @@ const InfraBUIDLAIHeader = () => (
         />
       </div>
       <h1 className="text-7xl font-bold mb-4 leading-tight font-mono">Avalanche<br/>infraBUIDL(AI)<br/>Program</h1>
-      <h2 className="text-2xl mb-6 font-semibold text-red-500 font-mono">Application Form</h2>
+      <h2 className="text-2xl mb-6 font-semibold text-blue-500 font-mono">Application Form</h2>
       
       <div className="mb-12 space-y-4">
         <p className="text-lg">
           The infraBUIDL(AI) Program is designed to energize the Avalanche ecosystem by supporting 
-          projects that fuse artificial intelligence (AI) with decentralized infrastructure. 
+          projects that fuse artificial intelligence (AI) with decentralized infrastructure.
+        </p>
+
+        <p className="text-gray-400 text-sm">
           Through robust funding and community engagement, the initiative encourages developers 
           to create intelligent tooling, coin-operated agents (COAs), AI-driven launchpads, 
           and other next-generation solutions that enhance usability, foster developer adoption, 
@@ -35,7 +38,7 @@ const InfraBUIDLAIHeader = () => (
         
         <p className="text-gray-400 text-sm">
           For further information on the infraBUILD() Program, including eligibility criteria
-          and application requirements, visit the <a href="#" className="text-red-500 underline">Forum</a>.
+          and application requirements, visit the <a href="https://forum.avax.network" className="text-blue-500 underline">Forum</a>.
         </p>
       </div>
   </>
