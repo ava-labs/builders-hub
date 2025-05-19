@@ -73,6 +73,7 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
                 setSubnetId(blockchainInfo.subnetId);
                 setChainName(blockchainInfo.blockchainName || "");
                 setIsTestnet(blockchainInfo.isTestnet);
+                setWrappedTokenAddress("");
                 const subnetInfo = await getSubnetInfo(blockchainInfo.subnetId);
                 setValidatorManagerAddress(subnetInfo.l1ValidatorManagerDetails?.contractAddress || "");
 
