@@ -15,6 +15,7 @@ type L1ListItem = {
     logoUrl: string;
     wellKnownTeleporterRegistryAddress?: string;
     faucetUrl?: string;
+    explorerUrl?: string;
 };
 
 
@@ -33,6 +34,7 @@ const l1ListInitialStateFuji = {
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
             faucetUrl: "https://test.core.app/tools/testnet-faucet/?subnet=c&token=c",
+            explorerUrl: "https://subnets-test.avax.network/c-chain"
         },
         {
             id: "98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp",
@@ -46,6 +48,7 @@ const l1ListInitialStateFuji = {
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/7kyTY75fdtnO6mh7f0osix/4c92c93dd688082bfbb43d5d910cbfeb/Echo_Subnet_Logo.png",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
             faucetUrl: "https://test.core.app/tools/testnet-faucet/?subnet=echo&token=echo",
+            explorerUrl: "https://subnets-test.avax.network/echo",
         },
         {
             id: "2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY",
@@ -59,6 +62,7 @@ const l1ListInitialStateFuji = {
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/60XrKdf99PqQKrHiuYdwTE/908622f5204311dbb11be9c6008ead44/Dispatch_Subnet_Logo.png",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
             faucetUrl: "https://test.core.app/tools/testnet-faucet/?subnet=dispatch&token=dispatch",
+            explorerUrl: "https://subnets-test.avax.network/dispatch"
         }
     ] as L1ListItem[],
 }
@@ -76,6 +80,7 @@ const l1ListInitialStateMainnet = {
             validatorManagerAddress: "",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
             wellKnownTeleporterRegistryAddress: "0x7C43605E14F391720e1b37E49C78C4b03A488d98",
+            explorerUrl: "https://subnets.avax.network/c-chain"
         }
     ] as L1ListItem[],
 }

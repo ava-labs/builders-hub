@@ -22,6 +22,7 @@ import { L1FaucetButton } from "./L1FaucetButton"
 import { TestnetMainnetSwitch } from "./TestnetMainnetSwitch"
 import TokenBalance from "./TokenBalance"
 import { AddressCopy } from "./AddressCopy"
+import { ChainCard } from "./ChainCard"
 
 export type WalletModeRequired = "l1" | "c-chain" | "testnet-mainnet"
 export type WalletMode = "optional" | WalletModeRequired
@@ -63,7 +64,6 @@ export const ConnectWallet = ({
     const walletChainId = useWalletStore(state => state.walletChainId);
     const setIsTestnet = useWalletStore(state => state.setIsTestnet);
     const setEvmChainName = useWalletStore(state => state.setEvmChainName);
-    const evmChainName = useWalletStore(state => state.evmChainName);
     const isTestnet = useWalletStore(state => state.isTestnet);
     const updateAllBalances = useWalletStore(state => state.updateAllBalances);
     const updatePChainBalance = useWalletStore(state => state.updatePChainBalance);
@@ -76,15 +76,16 @@ export const ConnectWallet = ({
     const l1Balance = useWalletStore(state => state.l1Balance);
     const cChainBalance = useWalletStore(state => state.cChainBalance);
     const { showBoundary } = useErrorBoundary();
+
     const [rpcUrl, setRpcUrl] = useState<string>("");
 
     // Call toolboxStore hooks unconditionally.
     // 'isTestnet' is defined earlier via useWalletStore and is available here.
     const l1ByChainIdForCChainMode = useL1ByChainId(isTestnet ? "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp" : "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5")();
-    const selectedL1FromStore = useSelectedL1()();
+    const currentlySelectedL1 = useSelectedL1()();
 
     // Now, conditionally use the results of the unconditional hook calls.
-    const selectedL1 = walletMode === "c-chain" ? l1ByChainIdForCChainMode : selectedL1FromStore;
+    const selectedL1 = walletMode === "c-chain" ? l1ByChainIdForCChainMode : currentlySelectedL1;
 
     // Set isClient to true once component mounts (client-side only)
     useEffect(() => {
@@ -255,22 +256,10 @@ export const ConnectWallet = ({
     // Determine what to display based on props
     const isActuallyCChainSelected = walletChainId === avalanche.id || walletChainId === avalancheFuji.id;
 
-    const displayedL1ChainName = walletMode === "c-chain" ? "C-Chain" : evmChainName;
     const displayedL1Balance = walletMode === "c-chain" ? cChainBalance : l1Balance;
     const displayedL1TokenSymbol = (walletMode === "c-chain" || isActuallyCChainSelected) ? "AVAX" : "Tokens";
     const displayedL1Address = walletEVMAddress;
     const updateDisplayedL1Balance = walletMode === "c-chain" ? updateCChainBalance : updateL1Balance;
-
-    const showL1SelectedBadge = walletMode === "c-chain" ? true : !!walletChainId; // If forcing C-Chain, it's "selected" for display purposes
-
-    const showPChainCard = walletMode === "c-chain";
-
-    let gridLayoutClass = "md:grid-cols-1";
-    if (showPChainCard) {
-        gridLayoutClass = "md:grid-cols-2";
-    }
-
-    const displayedEvmChainId = walletMode === "c-chain" ? (isTestnet ? avalancheFuji.id : avalanche.id) : walletChainId;
 
     // Server-side rendering placeholder
     if (!isClient) {
@@ -306,79 +295,38 @@ export const ConnectWallet = ({
                     {/* Chain cards */}
                     {walletMode !== "testnet-mainnet" && (
                         <>
-                            <div className={`grid grid-cols-1 gap-4 items-center mt-4 mb-4 ${gridLayoutClass}`}>
+                            <div className={`grid grid-cols-1 gap-4 items-center mt-4 mb-4 md:grid-cols-2`}>
 
-                                {/* L1 Chain Card */}
-                                <div className="flex flex-col gap-2 bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 h-full">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex-shrink-0 w-10 h-10 rounded-md overflow-hidden flex items-center justify-center">
-                                                {selectedL1?.logoUrl ? (
-                                                    <img src={selectedL1.logoUrl} alt={`${selectedL1.name} logo`} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <Globe className="w-6 h-6 text-zinc-400 dark:text-zinc-500" />
-                                                )}
-                                            </div>
-                                            <span className="text-zinc-600 dark:text-zinc-400 text-xl font-medium">
-                                                {displayedL1ChainName}
-                                            </span>
-
-                                        </div>
-                                        {showL1SelectedBadge && (
-                                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-full">Selected</span>
-                                        )}
-                                    </div>
-
-                                    <TokenBalance
-                                        balance={displayedL1Balance}
-                                        symbol={displayedL1TokenSymbol}
-                                        onClick={updateDisplayedL1Balance}
+                                {selectedL1 && <ChainCard
+                                    name={selectedL1.name}
+                                    logoUrl={selectedL1.logoUrl}
+                                    badgeText="Connected"
+                                    tokenBalance={pChainBalance}
+                                    tokenSymbol={displayedL1TokenSymbol}
+                                    onTokenRefreshClick={updateDisplayedL1Balance}
+                                    address={displayedL1Address}
+                                    buttons={[
+                                        <L1FaucetButton blockchainId={selectedL1.id} displayedL1Balance={displayedL1Balance} />,
+                                        <L1ExplorerButton blockchainId={selectedL1.id} />,
+                                        <L1DetailsModal blockchainId={selectedL1.id} />
+                                    ]}
                                     />
+                                }
 
-                                    <div className="flex gap-2">
-                                        {selectedL1 && <L1FaucetButton blockchainId={selectedL1.id} displayedL1Balance={displayedL1Balance} />}
-                                        {selectedL1 && <L1DetailsModal blockchainId={selectedL1.id} />}
-                                        <L1ExplorerButton
-                                            rpcUrl={rpcUrl}
-                                            evmChainId={displayedEvmChainId}
-                                        />
-                                    </div>
-
-                                    <AddressCopy address={displayedL1Address} />
-                                </div>
-
-                                {/* P-Chain */}
-                                {showPChainCard && (
-                                    <div className="flex flex-col gap-2 bg-zinc-50 dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700 h-full">
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex-shrink-0 w-10 h-10 rounded-md overflow-hidden flex items-center justify-center">
-                                                    <img src="https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg" alt="P-Chain Logo" className="w-full h-full object-cover" />
-                                                </div>
-                                                <span className="text-zinc-600 dark:text-zinc-400 text-xl font-medium">P-Chain</span>
-
-                                            </div>
-                                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded-full">Always Connected</span>
-                                        </div>
-
-                                        <TokenBalance
-                                            balance={pChainBalance}
-                                            symbol="AVAX"
-                                            onClick={updatePChainBalance}
-                                        />
-
-                                        <div className="flex gap-2">
-                                            {pChainAddress && (<>
-                                                <PChainFaucetButton/>
-                                                <PChainBridgeButton />
-                                                <PChainExplorerButton />
-                                            </>
-                                            )}
-                                        </div>
-
-                                        <AddressCopy address={pChainAddress} />
-                                    </div>
-                                )}
+                                <ChainCard
+                                    name="P-Chain"
+                                    logoUrl="https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg"
+                                    badgeText="Always Connected"
+                                    tokenBalance={displayedL1Balance}
+                                    tokenSymbol={"AVAX"}
+                                    onTokenRefreshClick={updatePChainBalance}
+                                    address={pChainAddress}
+                                    buttons={[
+                                        <PChainFaucetButton/>,
+                                        <PChainBridgeButton />,
+                                        <PChainExplorerButton />
+                                    ]}
+                                    />
                             </div>
 
                             {walletMode !== "c-chain" && <ChainSelector enforceChainId={enforceChainId} />}
