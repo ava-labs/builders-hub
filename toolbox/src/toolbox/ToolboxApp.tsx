@@ -246,10 +246,10 @@ const componentGroups: Record<string, ComponentGroupType> = {
         walletMode: "l1"
       },
       {
-        id: "deployERC20TokenHome",
-        label: "Deploy ERC20 Token Home Contract",
-        component: lazy(() => import('./ICTT/DeployERC20TokenHome')),
-        fileNames: ["toolbox/src/toolbox/ICTT/DeployERC20TokenHome.tsx"],
+        id: "deployTokenHome",
+        label: "Deploy Token Home Contract",
+        component: lazy(() => import('./ICTT/DeployTokenHome')),
+        fileNames: ["toolbox/src/toolbox/ICTT/DeployTokenHome.tsx"],
         walletMode: "l1"
       },
       {

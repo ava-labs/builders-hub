@@ -1,9 +1,9 @@
 ---
-title: Multi-hop Transfer
-description: Perform the multi-hop transfer of `TOK` from `myblockchain` to `myblockchain2`, with a 'hop' through the Avalanche C-Chain.
+title: Transfer Tokens
+description: Transfer an ERC20 from C-chain to your own blockchain
 updated: 2024-05-31
-authors: [owenwahlgren]
-icon: Book
+authors: [ashucoder9]
+icon: Terminal
 ---
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
@@ -20,11 +20,10 @@ Make sure you have:
 2. Deployed your ERC20Home contract (from [Deploy Home](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/03-deploy-home))
 3. Deployed your ERC20TokenRemote contract (from [Deploy Remote](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/04-deploy-remote))
 4. Registered your remote bridge with the home bridge (from [Register Remote](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/05-register-remote))
-5. Have enough ERC-20 tokens on the _R<sub>a</sub>_ chain: `Echo` (you can transfer tokens from the _H_ chain to the _R<sub>a</sub>_ chain first) (from [Transfer Tokens](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/06-transfer-tokens))
-6. Have enough test ECH for gas fees
+5. Have enough test AVAX for gas fees
 </Callout>
 
-<ToolboxMdxWrapper enforceChainId={173750}>
+<ToolboxMdxWrapper enforceChainId={43113}>
     <TestSend />
 </ToolboxMdxWrapper>
 

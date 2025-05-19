@@ -11,6 +11,7 @@ type L1ListItem = {
     coinName: string;
     isTestnet: boolean;
     subnetId: string;
+    wrappedTokenAddress: string;
     validatorManagerAddress: string;
     logoUrl: string;
     wellKnownTeleporterRegistryAddress?: string;
@@ -29,6 +30,7 @@ const l1ListInitialStateFuji = {
             coinName: "AVAX",
             isTestnet: true,
             subnetId: "11111111111111111111111111111111LpoYY",
+            wrappedTokenAddress: "0xd00ae08403B9bbb9124bB305C09058E32C39A48c",
             validatorManagerAddress: "",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
@@ -42,6 +44,7 @@ const l1ListInitialStateFuji = {
             coinName: "ECH",
             isTestnet: true,
             subnetId: "i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK",
+            wrappedTokenAddress: "",
             validatorManagerAddress: "0x0646263a231b4fde6f62d4de63e18df7e6ad94d6",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/7kyTY75fdtnO6mh7f0osix/4c92c93dd688082bfbb43d5d910cbfeb/Echo_Subnet_Logo.png",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
@@ -55,6 +58,7 @@ const l1ListInitialStateFuji = {
             coinName: "DISP",
             isTestnet: true,
             subnetId: "7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5",
+            wrappedTokenAddress: "",
             validatorManagerAddress: "",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/60XrKdf99PqQKrHiuYdwTE/908622f5204311dbb11be9c6008ead44/Dispatch_Subnet_Logo.png",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
@@ -73,6 +77,7 @@ const l1ListInitialStateMainnet = {
             coinName: "AVAX",
             isTestnet: false,
             subnetId: "11111111111111111111111111111111LpoYY",
+            wrappedTokenAddress: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
             validatorManagerAddress: "",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
             wellKnownTeleporterRegistryAddress: "0x7C43605E14F391720e1b37E49C78C4b03A488d98",

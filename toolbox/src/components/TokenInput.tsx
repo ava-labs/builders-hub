@@ -107,7 +107,7 @@ export function TokenInput({
           {label}
         </label>
         { selected && <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
-          Balance: {formatEther(selected?.balance || 0n)}
+          Balance: {Number(formatEther(selected?.balance || 0n)).toFixed(2)}
           <button
             type="button"
             className="p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer"

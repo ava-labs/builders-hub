@@ -1,78 +1,74 @@
 ---
 title: Transfer Native Tokens
-description: Interact with native tokens 
+description: Learn how to transfer native tokens using Core Wallet
 updated: 2024-05-31
 authors: [ashucoder9]
 icon: Terminal
 ---
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-In this exercise, you will learn how to transfer native tokens on your own L1 in the Avalanche network using Foundry, a powerful toolkit for EVM application development. We will use the blockchain you have create in the last chapter.
+In this exercise, you will learn how to transfer native tokens (AVAX) between accounts using Core Wallet. We'll demonstrate this using the Fuji testnet.
 
 <Steps>
 <Step>
 
-## Create account
-```bash
-avalanche key create myAddress
-```
+## Open Core Wallet
+
+First, make sure you have Core Wallet installed. If you don't have Core Wallet installed already, click the Download Core Wallet button below.
+
+<ToolboxMdxWrapper />
 
 </Step>
 <Step>
 
-### Save the Key to an Environment Variable
+## Switch to Fuji Testnet
 
-Retrieve the new address with and store it in an environment variable to match the following commands.
- 
-```bash
-avalanche key list -l --blockchains myblockchain --keys myAddress
-```
-
-```bash
-export MYADDRESS=0x...
-```
+<ToolboxMdxWrapper enforceChainId={43113} />
 
 </Step>
 <Step>
 
-### Check the Balance
+## Get Test AVAX
 
-Now we are checking the balance of that key on your L1. Make sure to replace the `--rpc-url` flag with appropriate name of your L1.
+Before transferring tokens, ensure you have some test AVAX:
 
-```bash
-cast balance $MYADDRESS --rpc-url myblockchain
+Copy the coupon code:
+
 ```
+avalanche-academy
+```
+
+Now head to the [Avalanche Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c) and claim some AVAX tokens on the C-Chain of the Fuji testnet. Enter the coupon code in the according field.
 
 </Step>
 <Step>
 
-### Transfer funds
+## Transfer AVAX
 
-```bash
-cast send $MYADDRESS --value 200000  --private-key $PK --rpc-url myblockchain
-```
+To transfer AVAX to another address:
 
-If you encounter the following error:
-
-```bash
-error: a value is required for '--private-key <RAW_PRIVATE_KEY>' but none was supplied
-```
-
-This means the private key environment variable isn't set properly. You'll need to export your private key using the command below:
-```bash
-export PK=56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027
-```
+1. Click the "Send" button in Core Wallet
+2. Enter the recipient's address
+3. Enter the amount of AVAX to send
+4. Review the transaction details
+5. Click "Send" to confirm
 
 </Step>
 <Step>
 
-### Check balances to confirm transfer
+## Verify the Transfer
 
-```bash
-cast balance $MYADDRESS --rpc-url myblockchain
-```
+To verify the transfer was successful:
+
+1. Check the transaction status in Core Wallet
+2. View the transaction details on the [Fuji Explorer](https://testnet.snowtrace.io)
+3. The recipient can check their balance in their Core Wallet
 
 </Step>
 </Steps>
 
-As you saw, funds were transfered from one count to another within the same chain (myblockchain)
+<Callout>
+Remember that you need to have enough AVAX in your wallet to cover both the transfer amount and the gas fees. Always double-check the recipient address before sending to avoid any loss of funds.
+</Callout>
+
+Now that you know how to transfer native tokens, you can proceed to learn about transferring ERC-20 tokens in the next section.

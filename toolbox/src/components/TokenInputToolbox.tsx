@@ -10,6 +10,7 @@ export interface Token {
     decimals: number;
     balance: bigint;
     allowance: bigint;
+    isNative: boolean;
     chain: {
         name: string;
         id: string;

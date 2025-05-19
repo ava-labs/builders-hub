@@ -1,20 +1,19 @@
 ---
-title: Deploy a Remote Contract
-description: Deploy the Token Remote on your own blockchain
+title: Deploy Token Remote for Multi-hop
+description: Deploy and configure the ERC20TokenRemote contract on the second blockchain.
 updated: 2024-05-31
-authors: [ashucoder9]
-icon: Terminal
+authors: [owenwahlgren]
+icon: Book
 ---
-
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 To ensure the wrapped token is bridged into the destination chain (in this case, C-Chain) you'll need to deploy a _remote_ contract that implements the `IERC20Bridge` interface, as well as inheriting the properties of `TeleporterTokenRemote`. In order for the bridged tokens to have all the normal functionality of a locally deployed ERC20 token, this remote contract must also inherit the properties of a standard `ERC20` contract.
 
 <Steps>
 <Step>
-### Get Test ECH
+### Get Test DIS
 
-Before deploying the remote contract, ensure you have some test DIS, head to the [Avalanche Faucet](https://core.app/tools/testnet-faucet/?subnet=echo&token=dispatch) and claim some DIS tokens on the Dispatch of the Fuji testnet.
+Before deploying the remote contract, ensure you have some test DIS, head to the [Avalanche Faucet](https://core.app/tools/testnet-faucet/?subnet=dispatch&token=dispatch) and claim some DIS tokens on the Dispatch of the Fuji testnet.
 
 </Step>
 
@@ -30,7 +29,7 @@ Make sure you have:
 3. Have enough test ECH for gas fees
 </Callout>
 
-<ToolboxMdxWrapper enforceChainId={173750}>
+<ToolboxMdxWrapper enforceChainId={779672}>
     <DeployERC20TokenRemote />
 </ToolboxMdxWrapper>
 

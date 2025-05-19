@@ -11,26 +11,34 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 <Step>
 ### Transfer the L1's Native Token to the C-Chain
 
-Now that all the bridge contracts have been deployed and configured, send some native tokens from your Avalanche L1 to C-Chain with the [`cast send`](https://book.getfoundry.sh/reference/cast/cast-send) foundry command.
+Now that all the bridge contracts have been deployed and configured, you can transfer native tokens from your C-Chain to Echo using our toolbox:
 
-```bash
-cast send --rpc-url myblockchain --private-key $PK $ERC20_HOME_BRIDGE_L1 \
-"send((bytes32, address, address, address, uint256, uint256, uint256, address))" \
-"(${C_CHAIN_BLOCKCHAIN_ID_HEX}, ${ERC20_TOKEN_REMOTE_C_CHAIN}, ${FUNDED_ADDRESS}, 0x0000000000000000000000000000000000000000, 0, 0, 250000, 0x0000000000000000000000000000000000000000)"  --value 1ether
-```
+<Callout>
+Make sure you have:
+1. Successfully registered your remote bridge
+2. Have enough native tokens in your C-Chain wallet for the transfer
+3. Have enough test AVAX for gas fees
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={43113}>
+    <TestSend />
+</ToolboxMdxWrapper>
+
 </Step>
 
 <Step>
-### Check Balance
-To confirm the token was bridged from Avalanche L1 to C-Chain, we will check the recipient's balance of wrapped tokens on the C-Chain with the [`cast call`](https://book.getfoundry.sh/reference/cast/cast-call?highlight=cast%20call#cast-call) foundry command:
 
-```bash
-cast call --rpc-url local-c $ERC20_TOKEN_REMOTE_C_CHAIN "balanceOf(address)(uint)" $FUNDED_ADDRESS
-```
+### Verify the Transfer
 
-```bash
-1000000000000000000
-```
-**Success!** We have bridged 1 native token from our Avalanche L1 to the C-Chain as an ERC-20 token.
+After initiating the transfer, you can verify it was successful by:
+
+1. Checking the transaction status in the toolbox
+2. Checking the transaction status in Core Wallet
+3. Viewing the transaction details on the [Fuji Explorer](https://testnet.snowtrace.io)
+4. Checking your token balance in Core Wallet on the destination chain
+
+<Callout title="Note" type="info">
+The transfer process may take a few moments to complete as it involves cross-chain communication. You can track the progress through the transaction hash.
+</Callout>
 </Step>
 </Steps>

@@ -1,0 +1,42 @@
+---
+title: Register Remote Bridge
+description: Register the remote bridge with the home bridge
+updated: 2024-05-31
+authors: [ashucoder9]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+After deploying both the home and remote bridge contracts, you need to register the remote bridge with the home bridge. This registration process informs the Home Bridge about your destination blockchain and bridge settings.
+
+<Steps>
+<Step>
+### Register Remote Bridge
+
+To register your remote bridge with the home bridge, use our toolbox:
+
+<Callout>
+Make sure you have:
+1. Deployed your ERC-20 token (from [Deploy ERC-20 Token](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/02-deploy-erc-20-token))
+2. Deployed your ERC20Home contract (from [Deploy Home](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/03-deploy-home))
+3. Deployed your ERC20TokenRemote contract (from [Deploy Remote](/academy/interchain-token-transfer/07-tokens-on-multiple-chains/02-deploy-token-remote))
+4. Have enough test DIS for gas fees
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={779672}>
+    <RegisterWithHome />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Verify Registration
+
+After registration, you can verify the process was successful by looking for the registration event in the transaction logs. You can find the registration confirmation in the toolbox.
+
+<Callout title="Note" type="info">
+The registration process is a one-time setup that establishes the connection between your home and remote bridges. Once completed, you can proceed with token transfers.
+</Callout>
+</Step>
+</Steps> 
