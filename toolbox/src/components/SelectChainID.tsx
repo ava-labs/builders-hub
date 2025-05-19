@@ -3,7 +3,7 @@ import { useCreateChainStore } from "../stores/createChainStore";
 import { useL1ListStore } from "../stores/l1ListStore";
 import { useMemo } from "react";
 import { cn } from "../lib/utils";
-import { Link } from 'lucide-react';
+import { Globe } from 'lucide-react';
 
 interface ChainOption {
     id: string;
@@ -112,7 +112,7 @@ export default function SelectChainID({
                                                 <img src={option.logoUrl} alt={`${option.name} logo`} className="w-7 h-7 rounded-full object-cover block" />
                                             </div>
                                         ) : (
-                                            <Link className="w-7 h-7 text-zinc-400 dark:text-zinc-500" />
+                                            <Globe className="w-7 h-7 text-zinc-400 dark:text-zinc-500" />
                                         )}
                                         <div>
                                             <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-0.5">{option.name}</div>
