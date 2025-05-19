@@ -346,7 +346,7 @@ export const grantsMenu: LinkItemType = {
       text: 'InfraBUIDL',
       description:
         "Strengthening Avalanche's infrastructure. Build the foundation for next-gen blockchain applications.",
-      url: 'https://www.avax.network/infrabuidl-program',
+      url: '/grants/infrabuidl',
       menu: {
         className: 'lg:col-start-2',
       },
@@ -356,7 +356,7 @@ export const grantsMenu: LinkItemType = {
       text: 'InfraBUIDL (AI)',
       description:
         'Supports projects that fuse artificial intelligence (AI) with decentralized infrastructure.',
-      url: 'https://www.avax.network/infrabuidl-ai-program',
+      url: '/grants/infrabuidlai',
       menu: {
         className: 'lg:col-start-2',
       },
@@ -366,7 +366,7 @@ export const grantsMenu: LinkItemType = {
       text: 'Retro9000',
       description:
         'Build innovative projects on Avalanche. Get rewarded for your creativity.',
-      url: 'https://retro9000.avax.network/',
+      url: 'https://build.avax.network/grants/retro9000',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },

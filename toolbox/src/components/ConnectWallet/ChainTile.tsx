@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, X, Link } from 'lucide-react';
+import { ExternalLink, X, Globe } from 'lucide-react';
 
 // Use the correct interface from the L1ListStore
 interface ChainInfo {
@@ -64,7 +64,7 @@ export const ChainTile: React.FC<ChainTileProps> = ({
                         {chain?.logoUrl ? (
                             <img src={chain.logoUrl} alt={`${chain.name} logo`} className="w-full h-full object-cover" />
                         ) : (
-                            <Link className="w-6 h-6 text-zinc-400 dark:text-zinc-500" />
+                            <Globe className="w-6 h-6 text-zinc-400 dark:text-zinc-500" />
                         )}
                     </div>
 

@@ -8,7 +8,7 @@ import { Input } from "../../components/Input";
 import { Container } from "../../components/Container";
 
 // Utility functions for conversions
-const hexToBytes = (hex: string): Uint8Array => {
+export const hexToBytes = (hex: string): Uint8Array => {
   // Remove 0x prefix if present
   hex = hex.startsWith("0x") ? hex.slice(2) : hex;
   // Ensure even length
@@ -23,13 +23,13 @@ const hexToBytes = (hex: string): Uint8Array => {
   return bytes;
 };
 
-const bytesToHex = (bytes: Uint8Array): string => {
+export const bytesToHex = (bytes: Uint8Array): string => {
   return Array.from(bytes)
     .map(b => b.toString(16).padStart(2, "0"))
     .join("");
 };
 
-const cleanHexString = (hex: string): string => {
+export const cleanHexString = (hex: string): string => {
   // Remove non-hex characters but preserve 0x prefix if present
   const hasPrefix = hex.startsWith("0x");
   const cleaned = hex.replace(/^0x/, "").replace(/[^0-9a-fA-F]/g, "");
@@ -37,7 +37,7 @@ const cleanHexString = (hex: string): string => {
 };
 
 // Add a new formatHexString function that adds spaces between bytes
-const formatHexString = (hex: string): string => {
+export const formatHexString = (hex: string): string => {
   // First clean the hex string
   let cleanedHex = cleanHexString(hex);
 
@@ -59,7 +59,7 @@ const formatHexString = (hex: string): string => {
 };
 
 // Convert hex to CB58
-const hexToCB58 = (hex: string): string => {
+export const hexToCB58 = (hex: string): string => {
   try {
     // First validate it's a valid hex string
     const cleanedHex = cleanHexString(hex);
@@ -100,7 +100,7 @@ export const cb58ToHex = (cb58: string): string => {
 
 // For CB58 to hex with checksum, we add 0x prefix and preserve the checksum
 //instead of using utils.base58check.decode() which removes the checksum, use base58 directly and manually work with the raw bytes
-const cb58ToHexWithChecksum = (cb58: string): string => {
+export const cb58ToHexWithChecksum = (cb58: string): string => {
   try {
     if (!cb58 || cb58.trim() === "") {
       throw new Error("Empty CB58 string");
