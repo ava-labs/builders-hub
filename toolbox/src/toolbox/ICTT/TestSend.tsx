@@ -307,7 +307,7 @@ export default function TokenBridge() {
             setLastApprovalTxId(hash);
 
             await publicClient.waitForTransactionReceipt({ hash });
-            await fetchTokenInfoFromBridgeContract(sourceContractAddress as Address, "source");
+            await fetchTokenInfoFromBridgeContract(sourceContractAddress as Address, "source", true);
 
         } catch (error: any) {
             console.error("Approval failed:", error);
@@ -395,7 +395,7 @@ export default function TokenBridge() {
                 ...prev,
                 source: { ...prev?.source, confirmedAt: Date.now() }
             }));
-            await fetchTokenInfoFromBridgeContract(sourceContractAddress as Address, "source");
+            await fetchTokenInfoFromBridgeContract(sourceContractAddress as Address, "source", true);
         } catch (error: any) {
             console.error("Send failed:", error);
             setLocalError(`Send failed: ${error.shortMessage || error.message}`);
