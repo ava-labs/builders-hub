@@ -24,37 +24,26 @@ export const ChainSelector = ({ enforceChainId }: { enforceChainId?: number }) =
             {/* Network section - Always displayed */}
             <div className="mb-6">
                 <h4 className="text-sm font-medium text-zinc-600 dark:text-zinc-300 mb-2">Your Networks</h4>
-
-                {l1List.length > 0 ? (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                        {l1List.map((chain) => {
-                            const isChainEnforced = enforceChainId !== undefined && chain.evmChainId !== enforceChainId;
-                            return (
-                                <ChainTile
-                                    key={chain.id}
-                                    chain={chain}
-                                    isActive={walletChainId === chain.evmChainId}
-                                    onClick={isChainEnforced ? () => { } : () => handleSwitchChain(chain.evmChainId)}
-                                    onDelete={isDefaultChain(chain.id) ? undefined : () => removeL1(chain.id)}
-                                    isDimmed={isChainEnforced}
-                                />
-                            );
-                        })}
-                        <ChainTile
-                            isAddTile
-                            onClick={() => setIsAddChainModalOpen(true)}
-                            isDimmed={enforceChainId !== undefined}
-                        />
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                        <ChainTile
-                            isAddTile
-                            onClick={() => setIsAddChainModalOpen(true)}
-                            isDimmed={enforceChainId !== undefined}
-                        />
-                    </div>
-                )}
+                <div className="grid grid-cols-4 sm:grid-cols-2 md:grid-cols-4 gap-2">
+                    {l1List.map((chain) => {
+                        const isChainEnforced = enforceChainId !== undefined && chain.evmChainId !== enforceChainId;
+                        return (
+                            <ChainTile
+                                key={chain.id}
+                                chain={chain}
+                                isActive={walletChainId === chain.evmChainId}
+                                onClick={isChainEnforced ? () => { } : () => handleSwitchChain(chain.evmChainId)}
+                                onDelete={isDefaultChain(chain.id) ? undefined : () => removeL1(chain.id)}
+                                isDimmed={isChainEnforced}
+                            />
+                        );
+                    })}
+                    <ChainTile
+                        isAddTile
+                        onClick={() => setIsAddChainModalOpen(true)}
+                        isDimmed={enforceChainId !== undefined}
+                    />
+                </div>
             </div>
 
             {/* Add Chain Modal */}

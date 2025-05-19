@@ -25,7 +25,7 @@ const l1ListInitialStateFuji = {
     l1List: [
         {
             id: "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp",
-            name: "C-Chain Fuji Testnet",
+            name: "C-Chain",
             rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
             evmChainId: 43113,
             coinName: "AVAX",
@@ -75,7 +75,7 @@ const l1ListInitialStateMainnet = {
     l1List: [
         {
             id: "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5",
-            name: "C-Chain Mainnet",
+            name: "C-Chain",
             rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
             evmChainId: 43114,
             coinName: "AVAX",
