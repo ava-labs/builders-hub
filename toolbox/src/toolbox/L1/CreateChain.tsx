@@ -6,11 +6,11 @@ import { useState } from "react";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Container } from "../../components/Container";
-import { ResultField } from "../../components/ResultField";
 import { useWalletStore } from "../../stores/walletStore";
 import GenesisBuilder from "./GenesisBuilder";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import generateName from 'boring-name-generator'
+import { Success } from "../../components/Success";
 
 const generateRandomName = () => {
     //makes sure the name doesn't contain a dash
@@ -117,10 +117,9 @@ export default function CreateChain() {
                         </Button>
                     </div>
                     {createdSubnetId && (
-                        <ResultField
-                            label="Subnet ID"
+                        <Success
+                            label="Subnet Created Successfully"
                             value={createdSubnetId}
-                            showCheck={!!createdSubnetId}
                         />
                     )}
                 </Step>
@@ -164,7 +163,10 @@ export default function CreateChain() {
                     </Button>
                 </Step>
             </Steps>
-            {createdChainId && <ResultField label="Chain ID:" value={createdChainId} showCheck />}
+            {createdChainId && <Success 
+                label="Chain Created Successfully" 
+                value={createdChainId}
+            />}
         </Container>
     );
 };
