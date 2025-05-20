@@ -37,40 +37,48 @@ contract NumberStorage {
 
 ## Private Key Management
 
-To interact with smart contracts on the testnet, you'll need:
-1. A private key from your Core Wallet
+To interact with smart contracts on Avalanche's C-Chain, you'll need:
+1. A wallet with a private key
 2. Test tokens to pay for transaction fees
 
-### Getting Your Private Key
+### Creating Your Wallet
 
-You can get your private key from Core Wallet. However, remember to:
-- Never share your private key with anyone
-- Never commit it to version control
-- Use environment variables to store it securely
-
-Once you have your private key, you can store it in an environment variable:
+We'll use Foundry's built-in wallet management system to create and manage our keys securely:
 
 ```bash
-export PK=your_private_key_here
+# Create a new wallet named 'my-avalanche-wallet'
+cast wallet new my-avalanche-wallet
 ```
 
-Then you can use it in your Foundry commands with:
+This will create a new wallet and show you both the address and private key. The wallet will be stored securely in `~/.foundry/wallets/my-avalanche-wallet`.
 
+To get your wallet's address for the faucet:
 ```bash
---private-key $PK
+cast wallet address my-avalanche-wallet
+```
+
+To use the wallet's private key in commands:
+```bash
+--private-key $(cast wallet private-key my-avalanche-wallet)
 ```
 
 ### Getting Test Tokens
 
-Before deploying contracts or sending transactions, you'll need test tokens. You can get these from the following faucets:
+Before deploying contracts or sending transactions on Fuji testnet, you'll need test tokens. You can get these from:
 
-1. For Fuji C-Chain (AVAX): [Fuji Testnet Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c)
-2. For Dispatch Testnet: [Dispatch Testnet Faucet](https://core.app/tools/testnet-faucet/?subnet=dispatch&token=dispatch)
+1. [Fuji C-Chain Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c) - For test AVAX on the C-Chain
+2. [Dispatch Testnet Faucet](https://core.app/tools/testnet-faucet/?subnet=dispatch&token=dispatch) - For test AVAX on Dispatch
 
 To use the faucets:
-1. Connect your Core Wallet
-2. Request tokens (there might be a cooldown period between requests)
-3. Wait for the tokens to arrive in your wallet
+1. Copy your wallet address (using `cast wallet address my-avalanche-wallet`)
+2. Visit the faucet links above and paste your address
+3. Request tokens (there might be a cooldown period between requests)
+4. Wait for the tokens to arrive in your wallet
+
+You can check your balance with:
+```bash
+cast balance $(cast wallet address my-avalanche-wallet) --rpc-url https://api.avax-test.network/ext/bc/C/rpc
+```
 
 > Remember: These are testnet tokens with no real value, only used for development and testing purposes.
 
