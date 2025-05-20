@@ -35,7 +35,48 @@ contract NumberStorage {
 }
 ```
 
-## forge create
+## Private Key Management
+
+To interact with smart contracts on the testnet, you'll need:
+1. A private key from your Core Wallet
+2. Test tokens to pay for transaction fees
+
+### Getting Your Private Key
+
+You can get your private key from Core Wallet. However, remember to:
+- Never share your private key with anyone
+- Never commit it to version control
+- Use environment variables to store it securely
+
+Once you have your private key, you can store it in an environment variable:
+
+```bash
+export PK=your_private_key_here
+```
+
+Then you can use it in your Foundry commands with:
+
+```bash
+--private-key $PK
+```
+
+### Getting Test Tokens
+
+Before deploying contracts or sending transactions, you'll need test tokens. You can get these from the following faucets:
+
+1. For Fuji C-Chain (AVAX): [Fuji Testnet Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c)
+2. For Dispatch Testnet: [Dispatch Testnet Faucet](https://core.app/tools/testnet-faucet/?subnet=dispatch&token=dispatch)
+
+To use the faucets:
+1. Connect your Core Wallet
+2. Request tokens (there might be a cooldown period between requests)
+3. Wait for the tokens to arrive in your wallet
+
+> Remember: These are testnet tokens with no real value, only used for development and testing purposes.
+
+## Using Foundry Commands
+
+### forge create
 
 This command can be used to deploy smart contracts from a solidity file. The syntax is:
 
@@ -51,12 +92,13 @@ forge create --rpc-url fuji-c --private-key $PK src/my-contracts/NumberStorage.s
 
 Let's look at the different parameters:
 
-- **--rpc-url:** The URL of the RPC server that the transaction will be sent to. Every blockchain can have multiple RPC servers. You will learn more about what RPCs are below.
+- **--rpc-url:** The URL of the RPC server that the transaction will be sent to. Every blockchain can have multiple RPC servers.
 - **--private-key:** The private key that will be used for signing the transaction for the smart contract deployment
 - **contract:** The path to the contract is in the format `<path>:<contract>`, e.g. src/Contract.sol:Contract. A single solidity file can contain multiple contracts, therefore we have to also specify the contract name and not only the path to the file here.
 
-## cast send
-When we want to sign and publish a transaction we will use cast send. We can either issue simple value transfers or call smart contracts The syntax is:
+### cast send
+
+When we want to sign and publish a transaction we will use cast send. We can either issue simple value transfers or call smart contracts. The syntax is:
 
 ```bash
 cast send [options] to [sig] [args…]
@@ -75,7 +117,7 @@ Let's look at the different parameters:
 - **sig:** The function signature of a function of the smart contract, e.g. "setNum(uint)"
 - **args:** The arguments of that function (can be multiple or none)
 
-## cast call
+### cast call
 
 Call a read-only function of a smart contract. We do not have to issue a transaction for reading state from the blockchain, since the state won't change. Therefore we don't have to pay for a transaction and don't need a private key. The syntax is:
 
@@ -91,64 +133,10 @@ cast call --rpc-url fuji-c 0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25 "getNum()(
 
 Let's look at the different parameters:
 - **--rpc-url:** See above
-- **--private-key:** See above
 - **to:** address of an account or a smart contract
 - **sig:** The function signature of a function of the smart contract, e.g. "getNum()(uint)". In this example our function does not have any arguments and returns a single value of type uint.
 - **args:** The arguments of that function (can be multiple or none)
 
+## Learn More
 
-## Private Key Management with Foundry
-
-We need to pay for the fees of transactions that manipulate the state (deploying a contract, sending tokens or calling a non-view function of a smart contract). The ewoq address is an address where the private key is commonly known:
-
-**Address:** 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-**Private Key:** 56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027
-
-> Do not send any funds on any public blockchain to the ewoq address. The funds will most likely be lost immediately.
-
-When you create an Avalanche L1 you will be offered an option to configure the initial token allocation. The second option will allocate 1m tokens to that address so you can easily deploy all contracts and pay for the transactions from that address:
-
-```bash
-? How would you like to distribute funds: 
-    Airdrop 1 million tokens to a newly generate address (stored key)
-  ▸ Airdrop 1 million tokens to the default ewoq address (do not use in production)
-    Customize your airdrop
-    Go back to previous step
-```
-
-The private key for the ewoq address is already stored in the environment variable $PK in the Avalanche Starter Kit. Therefore, we can easily access it by using the following flag for the transactions:
-
-```bash
---private-key $PK
-```
-
-This address is obviously not suitable for any production use, since the private key is publicly known. We will look into how we can manage key for the deployment to the Fuji Testnet and the Mainnet later in this course.
-
-
-## RPC URLs
-
-To issue our transactions, we need to send them to an RPC server. You can put the RPC URL directly after the --rpc-url flag. Foundry also allows to configure aliases for the URLs to make it more simple for you to send the transactions in shorter commands.
-
-```bash
---rpc-url fuji-c
-```
-
-These aliases are defined in the foundry.toml file in the root of the Avalanche Starter Kit.
-
-```toml
-[rpc_endpoints]
-fuji-c = "https://api.avax-test.network/ext/bc/C/rpc"
-dispatch = "https://subnets.avax.network/dispatch/testnet/rpc"
-```
-
-The RPC URLs defined by default are the following:
-- **fuji-c:** The C-Chain of the Fuji Testnet
-- **dispatch:** An Avalanche L1 on the Fuji Testnet called Dispatch. It was specifically created for testing Avalanche Interchain Messaging dApps. 
-
-The ability to use an RPC with the name of our L1 comes from the alias API in our nodes. You can read more about it [here](/docs/api-reference/admin-api#methods).
-
-Feel free to add more RPC URLs to Avalanche L1s you create. You can also add more aliases for the RPC URLs to make it easier for you to send transactions to them.
-
-## Learn more about Foundry
-
-Foundry has an extensive documentation collected in the [Foundry Book](https://book.getfoundry.sh/).
+For more detailed information about Foundry and its capabilities, check out the [Foundry Book](https://book.getfoundry.sh/).
