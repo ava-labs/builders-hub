@@ -50,7 +50,7 @@ export SENDER_ADDRESS=0xa4DfF80B4a1D748BF28BC4A271eD834689Ea3407
 Now, deploy the receiver contract.
 
 ```bash
-forge create --rpc-url dispatch-l1 --private-key $PK contracts/interchain-messaging/incentivize-relayer/receiverWithFees.sol:ReceiverOnDispatch --broadcast
+forge create --rpc-url fuji-dispatch --private-key $PK contracts/interchain-messaging/incentivize-relayer/receiverWithFees.sol:ReceiverOnDispatch --broadcast
 ```
 ```
 [⠊] Compiling...
@@ -97,7 +97,7 @@ cast send --rpc-url fuji-c --private-key $PK $SENDER_ADDRESS "sendMessage(addres
 ### Verify message was received on Avalanche L1 
 
 ```bash
-cast call --rpc-url dispatch-l1 $RECEIVER_ADDRESS "lastMessage()(string)"
+cast call --rpc-url fuji-dispatch $RECEIVER_ADDRESS "lastMessage()(string)"
 ```
 ```bash
 "Hello"

@@ -206,7 +206,7 @@ export SENDER_ADDRESS=0x8B3BC4270BE2abbB25BC04717830bd1Cc493a461
 ### Deploy the Receiver Contract:
 
 ```bash
-forge create --rpc-url dispatch-l1 --private-key $PK contracts/interchain-messaging/invoking-functions/CalculatorReceiverOnDispatch.sol:CalculatorReceiverOnDispatch --broadcast
+forge create --rpc-url fuji-dispatch --private-key $PK contracts/interchain-messaging/invoking-functions/CalculatorReceiverOnDispatch.sol:CalculatorReceiverOnDispatch --broadcast
 ```
 ```
 [⠊] Compiling...
@@ -243,7 +243,7 @@ cast send --rpc-url fuji-c --private-key $PK $SENDER_ADDRESS "sendAddMessage(add
 ### Verify the Result:
 
 ```bash
-cast call --rpc-url dispatch-l1 $RECEIVER_ADDRESS "result_num()(uint)"
+cast call --rpc-url fuji-dispatch $RECEIVER_ADDRESS "result_num()(uint)"
 ```
 
 </Step>
