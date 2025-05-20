@@ -29,8 +29,8 @@ contract SimpleCalculatorSenderOnCChain {
     function sendAddMessage(address destinationAddress, uint256 num1, uint256 num2) external {
         teleporterMessenger.sendCrossChainMessage(
             TeleporterMessageInput({
-                // Replace with chain id of the Dispatch test L1 (see instructions in Readme) // [!code highlight]
-                destinationBlockchainID: 0x6391b85bafc78f1b10aec35695c2399c2fb7fff9f3b18ea903f77345e9e96e3e, // [!code highlight]
+                // BlockchainID of Dispatch L1
+                destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7,
                 destinationAddress: destinationAddress,
                 feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
                 requiredGasLimit: 100000,
@@ -50,12 +50,6 @@ contract SimpleCalculatorSenderOnCChain {
 ```
 
 To increase the readability of the code, we have created a helper function `encodeAddData` that encodes the two numbers into a single byte array.
-
-</Step>
-<Step>
-
-### Replace `destinationBlockchainID`
-<Callout type="warn" title="Don't forget to replace the destinationBlockchainID with the Blockchain ID (HEX) of the Dispatch test L1!" />
 
 </Step>
 <Step>
