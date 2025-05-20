@@ -108,7 +108,7 @@ export default function Page() {
         <section id="programs" className="space-y-12">
           <h2 className="text-3xl md:text-5xl font-bold text-center">Our Programs</h2>
           <div className="grid md:grid-cols-2 gap-6">
-          <a href="https://retro9000.avax.network/" target="_blank" rel="noopener noreferrer">
+          <a href="/grants/retro9000" target="_blank" rel="noopener noreferrer">
             <ProgramCard
             title="Retro9000"
             description="Build innovative projects on Avalanche. Get rewarded for your creativity."
@@ -117,7 +117,7 @@ export default function Page() {
             arrowColor={arrowColor}
             />
           </a>
-          <a href="https://www.avax.network/infrabuidl-program" target="_blank" rel="noopener noreferrer">
+          <a href="/grants/infrabuidl" target="_blank" rel="noopener noreferrer">
             <ProgramCard
             title="InfraBUIDL()"
             description="Strengthening Avalanche's infrastructure. Build the foundation for next-gen blockchain applications."
@@ -126,7 +126,7 @@ export default function Page() {
             arrowColor={arrowColor}
             />
           </a>
-          <a href="https://codebase.avax.network/" target="_blank" rel="noopener noreferrer">
+          <a href="/codebase" target="_blank" rel="noopener noreferrer">
             <ProgramCard
             title="Codebase"
             description="Empowering developers to create innovative solutions. Turn your blockchain vision into reality."
@@ -144,7 +144,7 @@ export default function Page() {
             arrowColor={arrowColor}
             />
           </a>
-          <a href="https://www.avax.network/infrabuidl-ai-program" target="_blank" rel="noopener noreferrer">
+          <a href="/grants/infrabuidlai" target="_blank" rel="noopener noreferrer">
             <ProgramCard
             title="InfraBUIDL (AI)"
             description="Supports projects that fuse artificial intelligence (AI) with decentralized infrastructure."
