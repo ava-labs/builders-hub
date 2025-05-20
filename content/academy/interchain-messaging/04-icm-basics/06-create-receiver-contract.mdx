@@ -16,7 +16,7 @@ Now it's time to deploy our receiver contract to our L1. It will implement the c
 
 The following contract is located inside `contracts/interchain-messaging/send-receive` directory. Read through the contract below and and understand what is happening:
 
-```solidity title="contracts/interchain-messaging/send-receive/receiverOnSubnet.sol"
+```solidity title="contracts/interchain-messaging/send-receive/receiverOnDispatch.sol"
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
@@ -27,14 +27,14 @@ pragma solidity ^0.8.18;
 import "@teleporter/ITeleporterMessenger.sol";
 import "@teleporter/ITeleporterReceiver.sol";
 
-contract ReceiverOnSubnet is ITeleporterReceiver {
+contract ReceiverOnDispatch is ITeleporterReceiver {
     ITeleporterMessenger public immutable messenger = ITeleporterMessenger(0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf);
 
     string public lastMessage;
 
     function receiveTeleporterMessage(bytes32, address, bytes calldata message) external {
         // Only the Interchain Messaging receiver can deliver a message.
-        require(msg.sender == address(messenger), "ReceiverOnSubnet: unauthorized TeleporterMessenger");
+        require(msg.sender == address(messenger), "ReceiverOnDispatch: unauthorized TeleporterMessenger");
 
         // Store the message.
         lastMessage = abi.decode(message, (string));
@@ -57,7 +57,7 @@ contract ReceiverOnSubnet is ITeleporterReceiver {
 To deploy a contract using Foundry use the following command:
 
 ```bash
-forge create --rpc-url dispatch --private-key $PK contracts/interchain-messaging/send-receive/receiverOnSubnet.sol:ReceiverOnSubnet --broadcast
+forge create --rpc-url dispatch-l1-l1 --private-key $PK contracts/interchain-messaging/send-receive/receiverOnDispatch.sol:ReceiverOnDispatch --broadcast
 ```
 ```
 [⠊] Compiling...

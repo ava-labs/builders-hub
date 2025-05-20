@@ -85,14 +85,14 @@ As you can see here we are calling `abi.encode` twice in the encode helpers. The
 
 Let's now look at the receiver:
 
-```solidity title="contracts/interchain-messaging/invoking-functions/CalculatorReceiverOnSubnet.sol"
+```solidity title="contracts/interchain-messaging/invoking-functions/CalculatorReceiverOnDispatch.sol"
 pragma solidity ^0.8.18;
 
 import "@teleporter/ITeleporterMessenger.sol";
 import "@teleporter/ITeleporterReceiver.sol";
 import "./CalculatorActions.sol";
 
-contract CalculatorReceiverOnSubnet is ITeleporterReceiver {
+contract CalculatorReceiverOnDispatch is ITeleporterReceiver {
     ITeleporterMessenger public immutable teleporterMessenger =
         ITeleporterMessenger(0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf);
     uint256 public result_num;
@@ -101,7 +101,7 @@ contract CalculatorReceiverOnSubnet is ITeleporterReceiver {
     function receiveTeleporterMessage(bytes32, address, bytes calldata message) external {
         // Only the Interchain Messaging receiver can deliver a message.
         require(
-            msg.sender == address(teleporterMessenger), "CalculatorReceiverOnSubnet: unauthorized TeleporterMessenger"
+            msg.sender == address(teleporterMessenger), "CalculatorReceiverOnDispatch: unauthorized TeleporterMessenger"
         );
 
         // Decoding the Action type: // [!code highlight:2]
@@ -115,7 +115,7 @@ contract CalculatorReceiverOnSubnet is ITeleporterReceiver {
             (string memory text1, string memory text2) = abi.decode(paramsData, (string, string));
             _calculatorConcatenateStrings(text1, text2);
         } else {
-            revert("CalculatorReceiverOnSubnet: invalid action");
+            revert("CalculatorReceiverOnDispatch: invalid action");
         }
     }
 
@@ -161,7 +161,7 @@ if (actionType == CalculatorAction.add) {
     (string memory text1, string memory text2) = abi.decode(paramsData, (string, string)); // [!code highlight]
     _calculatorConcatenateStrings(text1, text2);
 } else {
-    revert("CalculatorReceiverOnSubnet: invalid action");
+    revert("CalculatorReceiverOnDispatch: invalid action");
 }
 ```
 
@@ -206,7 +206,7 @@ export SENDER_ADDRESS=0x8B3BC4270BE2abbB25BC04717830bd1Cc493a461
 ### Deploy the Receiver Contract:
 
 ```bash
-forge create --rpc-url dispatch --private-key $PK contracts/interchain-messaging/invoking-functions/CalculatorReceiverOnSubnet.sol:CalculatorReceiverOnSubnet --broadcast
+forge create --rpc-url dispatch-l1 --private-key $PK contracts/interchain-messaging/invoking-functions/CalculatorReceiverOnDispatch.sol:CalculatorReceiverOnDispatch --broadcast
 ```
 ```
 [⠊] Compiling...
@@ -243,7 +243,7 @@ cast send --rpc-url fuji-c --private-key $PK $SENDER_ADDRESS "sendAddMessage(add
 ### Verify the Result:
 
 ```bash
-cast call --rpc-url dispatch $RECEIVER_ADDRESS "result_num()(uint)"
+cast call --rpc-url dispatch-l1 $RECEIVER_ADDRESS "result_num()(uint)"
 ```
 
 </Step>

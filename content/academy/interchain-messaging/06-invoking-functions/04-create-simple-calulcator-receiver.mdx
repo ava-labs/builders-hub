@@ -15,13 +15,13 @@ On the Dispatch test L1, we need to create the receiver part of our cross-chain 
 
 ### Create Receiver Contract
 
-```solidity title="contracts/interchain-messaging/invoking-functions/SimpleCalculatorReceiverOnSubnet.sol"
+```solidity title="contracts/interchain-messaging/invoking-functions/SimpleCalculatorReceiverOnDispatch.sol"
 pragma solidity ^0.8.18;
 
 import "@teleporter/ITeleporterMessenger.sol";
 import "@teleporter/ITeleporterReceiver.sol";
 
-contract SimpleCalculatorReceiverOnSubnet is ITeleporterReceiver {
+contract SimpleCalculatorReceiverOnDispatch is ITeleporterReceiver {
     ITeleporterMessenger public immutable teleporterMessenger =
         ITeleporterMessenger(0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf);
 
@@ -30,7 +30,7 @@ contract SimpleCalculatorReceiverOnSubnet is ITeleporterReceiver {
     function receiveTeleporterMessage(bytes32, address, bytes calldata message) external {
         // Only the Interchain Messaging receiver can deliver a message.
         require(
-            msg.sender == address(teleporterMessenger), "CalculatorReceiverOnSubnet: unauthorized TeleporterMessenger"
+            msg.sender == address(teleporterMessenger), "CalculatorReceiverOnDispatch: unauthorized TeleporterMessenger"
         );
 
         (uint256 a, uint256 b) = abi.decode(message, (uint256, uint256)); // [!code highlight:2]
@@ -52,7 +52,7 @@ contract SimpleCalculatorReceiverOnSubnet is ITeleporterReceiver {
 Deploy the receiver contract on the Dispatch test L1:
 
 ```bash
-forge create --rpc-url dispatch --private-key $PK contracts/interchain-messaging/invoking-functions/SimpleCalculatorReceiverOnSubnet.sol:SimpleCalculatorReceiverOnSubnet --broadcast
+forge create --rpc-url dispatch --private-key $PK contracts/interchain-messaging/invoking-functions/SimpleCalculatorReceiverOnDispatch.sol:SimpleCalculatorReceiverOnDispatch --broadcast
 ```
 
 ```

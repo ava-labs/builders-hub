@@ -34,8 +34,8 @@ contract SenderOnCChain {
     function sendMessage(address destinationAddress, string calldata message) external {
         messenger.sendCrossChainMessage( // [!code highlight]
             TeleporterMessageInput({
-                // Replace with blockchainID of your Avalanche L1 (see instructions in Readme)
-                destinationBlockchainID: 0x3861e061737eaeb8d00f0514d210ad1062bfacdb4bd22d1d1f5ef876ae3a8921, // [!code highlight]
+                // BlockchainID of Dispatch L1
+                destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7, // [!code highlight]
                 destinationAddress: destinationAddress, 
                 feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
                 requiredGasLimit: 100000,
@@ -60,10 +60,10 @@ The key things to understand:
 
 ### Get destinationBlockchainID
 
-To get the blockchainID of the Dispatch test L1, you can find it in the foundry.toml configuration file or use the following value:
+To get the blockchainID of the Fuji C-Chain, you can use the following value:
 
 ```
-BlockchainID (HEX): 0x6391b85bafc78f1b10aec35695c2399c2fb7fff9f3b18ea903f77345e9e96e3e
+BlockchainID (HEX): 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7
 ```
 
 </Step>
@@ -84,7 +84,7 @@ contract SenderOnCChain {
         messenger.sendCrossChainMessage(
             TeleporterMessageInput({
                 // Replace with blockchainID of your L1 (see instructions in Readme)
-                destinationBlockchainID: 0x6391b85bafc78f1b10aec35695c2399c2fb7fff9f3b18ea903f77345e9e96e3e, // [!code highlight]
+                destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7, // [!code highlight]
                 destinationAddress: destinationAddress,
                 feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
                 requiredGasLimit: 100000,
