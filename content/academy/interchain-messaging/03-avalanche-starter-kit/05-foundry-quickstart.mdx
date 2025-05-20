@@ -6,145 +6,127 @@ authors: [martineckardt]
 icon: BookOpen
 ---
 
-Foundry serves as a comprehensive toolchain for smart contract development. It handles dependency management, project compilation, testing, deployment, and facilitates interaction with the blockchain through both command-line interface and Solidity scripts. 
+Foundry serves as our primary toolchain for smart contract development in this course. It handles dependency management, project compilation, testing, deployment, and facilitates interaction with the blockchain through both command-line interface and Solidity scripts.
 
-In this course we will mainly use three commands:
+## Wallet Management
 
-- **forge create:** Deploying smart contracts
-- **cast send:** Issuing transactions interacting with a smart contract
-- **cast call:** Read-only operations on the blockchain
-
-Let's look at these three in a little more detail for this example contract:
-
-```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-contract NumberStorage {
- 
-    uint256 num;
-  
-    function getNum() public view returns(uint) {
-        return num; 
-    }
-  
-    function setNum(uint _num) public {
-        num = _num;
-    }
-  
-}
-```
-
-## Private Key Management
-
-To interact with smart contracts on Avalanche's C-Chain, you'll need:
+To interact with smart contracts on Avalanche's networks, you'll need:
 1. A wallet with a private key
 2. Test tokens to pay for transaction fees
 
 ### Creating Your Wallet
 
-We'll use Foundry's built-in wallet management system to create and manage our keys securely:
+We'll use Foundry's built-in wallet management system:
 
 ```bash
-# Create a new wallet named 'my-avalanche-wallet'
-cast wallet new my-avalanche-wallet
+# Create a new wallet
+cast wallet new
 ```
 
-This will create a new wallet and show you both the address and private key. The wallet will be stored securely in `~/.foundry/wallets/my-avalanche-wallet`.
+You'll receive output like:
+```
+Address:     0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+Private key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+```
 
-To get your wallet's address for the faucet:
+### Setting Up Environment Variables
+
+1. Copy the example environment file:
 ```bash
-cast wallet address my-avalanche-wallet
+cp .env.example .env
 ```
 
-To use the wallet's private key in commands:
+2. Update your `.env` file with your wallet information:
 ```bash
---private-key $(cast wallet private-key my-avalanche-wallet)
+# Your private key (starts with 0x...)
+PK=your_private_key_here
+# Your wallet address (starts with 0x...)
+FUNDED_ADDRESS=your_wallet_address_here
 ```
+
+> ⚠️ **IMPORTANT**: 
+> - Never commit your `.env` file or share your private key
+> - Store your private key securely as backup
+> - The example values above are for demonstration only
 
 ### Getting Test Tokens
 
-Before deploying contracts or sending transactions on Fuji testnet, you'll need test tokens. You can get these from:
+Before deploying contracts or sending transactions, you'll need test tokens from:
 
 1. [Fuji C-Chain Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c) - For test AVAX on the C-Chain
 2. [Dispatch Testnet Faucet](https://core.app/tools/testnet-faucet/?subnet=dispatch&token=dispatch) - For test AVAX on Dispatch
 
-To use the faucets:
-1. Copy your wallet address (using `cast wallet address my-avalanche-wallet`)
-2. Visit the faucet links above and paste your address
-3. Request tokens (there might be a cooldown period between requests)
-4. Wait for the tokens to arrive in your wallet
-
-You can check your balance with:
+Check your balances:
 ```bash
-cast balance $(cast wallet address my-avalanche-wallet) --rpc-url https://api.avax-test.network/ext/bc/C/rpc
-```
+# Check C-Chain balance
+cast balance $FUNDED_ADDRESS --rpc-url fuji-c
 
-> Remember: These are testnet tokens with no real value, only used for development and testing purposes.
+# Check Dispatch balance
+cast balance $FUNDED_ADDRESS --rpc-url fuji-dispatch
+```
 
 ## Using Foundry Commands
 
-### forge create
+### Deploying Smart Contracts
 
-This command can be used to deploy smart contracts from a solidity file. The syntax is:
-
-```bash
-forge create [options] contract
-```
-
-An example usage could look something like this:
+Deploy to either network using `forge create`:
 
 ```bash
-forge create --rpc-url fuji-c --private-key $PK src/my-contracts/NumberStorage.sol:NumberStorage 
+# Deploy to Fuji C-Chain
+forge create --rpc-url fuji-c \
+  --private-key $PK \
+  src/contracts/YourContract.sol:YourContract
+
+# Deploy to Dispatch
+forge create --rpc-url fuji-dispatch \
+  --private-key $PK \
+  src/contracts/YourContract.sol:YourContract
 ```
 
-Let's look at the different parameters:
+### Sending Transactions
 
-- **--rpc-url:** The URL of the RPC server that the transaction will be sent to. Every blockchain can have multiple RPC servers.
-- **--private-key:** The private key that will be used for signing the transaction for the smart contract deployment
-- **contract:** The path to the contract is in the format `<path>:<contract>`, e.g. src/Contract.sol:Contract. A single solidity file can contain multiple contracts, therefore we have to also specify the contract name and not only the path to the file here.
-
-### cast send
-
-When we want to sign and publish a transaction we will use cast send. We can either issue simple value transfers or call smart contracts. The syntax is:
+Use `cast send` to make state-changing calls:
 
 ```bash
-cast send [options] to [sig] [args…]
+# On Fuji C-Chain
+cast send --rpc-url fuji-c \
+  --private-key $PK \
+  $CONTRACT_ADDRESS "functionName(uint256)" 123
+
+# On Dispatch
+cast send --rpc-url fuji-dispatch \
+  --private-key $PK \
+  $CONTRACT_ADDRESS "functionName(uint256)" 123
 ```
 
-An example usage could look something like this:
+### Reading Contract State
+
+Use `cast call` for read-only operations:
 
 ```bash
-cast send --rpc-url fuji-c --private-key $PK 0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25 "setNum(uint)" 42
+# On Fuji C-Chain
+cast call --rpc-url fuji-c \
+  $CONTRACT_ADDRESS "functionName()(uint256)"
+
+# On Dispatch
+cast call --rpc-url fuji-dispatch \
+  $CONTRACT_ADDRESS "functionName()(uint256)"
 ```
 
-Let's look at the different parameters:
-- **--rpc-url:** See above
-- **--private-key:** See above
-- **to:** address of an account or a smart contract
-- **sig:** The function signature of a function of the smart contract, e.g. "setNum(uint)"
-- **args:** The arguments of that function (can be multiple or none)
+## Cross-Chain Development Notes
 
-### cast call
+When developing cross-chain applications:
 
-Call a read-only function of a smart contract. We do not have to issue a transaction for reading state from the blockchain, since the state won't change. Therefore we don't have to pay for a transaction and don't need a private key. The syntax is:
-
-```bash
-cast call [options] to sig [args…]
-```
-
-An example usage could look something like this:
-
-```bash
-cast call --rpc-url fuji-c 0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25 "getNum()(uint)"
-```
-
-Let's look at the different parameters:
-- **--rpc-url:** See above
-- **to:** address of an account or a smart contract
-- **sig:** The function signature of a function of the smart contract, e.g. "getNum()(uint)". In this example our function does not have any arguments and returns a single value of type uint.
-- **args:** The arguments of that function (can be multiple or none)
+1. The Teleporter Registry is pre-deployed at `0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf` on both networks
+2. Always use the correct RPC URLs:
+   - Fuji C-Chain: `fuji-c`
+   - Dispatch: `fuji-dispatch`
+3. Store contract addresses after deployment for future interactions
+4. Test cross-chain messaging with small amounts first
 
 ## Learn More
 
-For more detailed information about Foundry and its capabilities, check out the [Foundry Book](https://book.getfoundry.sh/).
+For more detailed information about the tools and concepts used:
+- [Foundry Book](https://book.getfoundry.sh/)
+- [Avalanche Documentation](https://docs.avax.network/)
+- [Teleporter Documentation](https://docs.avax.network/build/cross-chain/teleporter/overview)
