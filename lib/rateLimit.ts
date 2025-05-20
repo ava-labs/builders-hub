@@ -17,15 +17,11 @@ const DEFAULT_OPTIONS: RateLimitOptions = {
   maxRequests: 1,
 };
 
-async function defaultIdentifier(req: NextRequest): Promise<string> {
-  try {
+async function defaultIdentifier(): Promise<string> {
     const session = await import('@/lib/auth/authSession').then(mod => mod.getAuthSession());
-    const userId = session?.user?.id || 'anonymous';
+    if (!session) throw new Error('Authentication required');
+    const userId = session.user.id;
     return userId;
-  } catch (authError) {
-    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'anonymous';
-    return ip;
-  }
 }
 
 function getResetTime(timestamp: number): string {
@@ -72,9 +68,13 @@ export function rateLimit(handler: Function, options?: Partial<RateLimitOptions>
       return handler(req, ...args);
     } catch (error) {
       console.error('Error in rate limiter middleware', error);
+      const status = error instanceof Error && error.message === 'Authentication required' ? 401 : 500;
+      const message = error instanceof Error && error.message === 'Authentication required' 
+        ? 'Authentication required: Please login to continue' 
+        : 'Error processing request';   
       return NextResponse.json(
-        { success: false, message: 'Error processing request' },
-        { status: 500 }
+        { success: false, message },
+        { status }
       );
     }
   };

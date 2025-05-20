@@ -16,47 +16,55 @@ Cross-chain communication is a crucial building block of multi-chain systems. Ut
 
 Transfering tokens between multiple chains is a common use case in multi-chain systems. This course will help you understand how to transfer assets between multiple Avalanche blockchains using the Avalanche Interchain Token Transfer protocol.
 
+<Callout>
+This course focuses on using the existing testnet chains (Fuji C-Chain, Echo, and Dispatch). If you want to create your own L1 blockchain, please refer to the [Creating an L1](/academy/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1) course.
+</Callout>
+
+<Callout>
+Since Interchain Token Transfer relies on Interchain Messaging (ICM), you must run your own relayer to enable cross-chain communication. Follow the [Running a Relayer](/academy/interchain-messaging/10-running-a-relayer/01-running-a-relayer) course to set up your relayer.
+</Callout>
+
 ## Course Content
 
-### Avalanche Starter Kit
+### Getting Started with Interchain Token Transfer
 
-In this section, you will learn how to set up your development environment with the Avalanche Starter Kit. Using this development environment you will be able to perform the exercises in this course.
+In this section, you will learn how to use our Interchain Token Transfer toolbox to perform cross-chain operations. We'll guide you through the process of using our user-friendly interface to deploy contracts, create bridges, and transfer assets across the testnet chains (Fuji C-Chain, Echo, and Dispatch).
 
-### Tokens
+### Tokens and Token Types
 
-In this section, you will learn about the different types of tokens that can be transferred between Avalanche blockchains. We will cover ERC-20 and native tokens and interact with them on chain. Furthermore, you will learn what wrapped native tokens are and how they can be used to transfer assets between chains.
+In this section, you will learn about the different types of tokens that can be transferred between Avalanche blockchains. We will cover ERC-20 and native tokens and how to deploy and transfer them using our toolbox. Furthermore, you will learn what wrapped native tokens are and how they can be used to transfer assets between chains.
 
 ### Token Bridging
 
-Next we will talk about the high level concepts of token bridging and use a demo bridge.
+Next we will talk about the high level concepts of token bridging and demonstrate how to use our toolbox to create and manage bridge contracts for cross-chain transfers between the testnet chains.
 
-### Interchain Token Transfer
+### Interchain Token Transfer Architecture
 
 In this chapter we will look at the design of Avalanche Interchain Token Transfer. You will learn about the file structure of the contracts and the concepts of the token home and token remote.
 
-### ERC-20 to ERC-20 bridge
+### ERC-20 to ERC-20 Bridge Implementation
 
-You will learn how to set up a bridge to bridge an ERC-20 token from one L1 blockchain to another.
+You will learn how to use our toolbox to deploy ERC-20 tokens and create bridges to transfer them between the testnet chains.
 
-### Token on multiple chains
+### Multi-Chain Token Operations
 
-Here you will learn about the concept of multi-hops and how tokens can be bridged between multiple remote chains.
+Here you will learn about the concept of multi-hops and how to use our toolbox to bridge tokens between multiple testnet chains.
 
-### Native to ERC-20 bridge
+### Native to ERC-20 Bridge Implementation
 
-In this chapter you will learn how to bridge a native token as an ERC-20 token to another chain.
+In this chapter you will learn how to use our toolbox to bridge a native token as an ERC-20 token to another testnet chain.
 
-### Send and Call
+### Send and Call Operations
 
-In this chapter you will learn how to call smart contracts with the tokens after sending them to another chain.
+In this chapter you will learn how to use our toolbox to call smart contracts with the tokens after sending them to another testnet chain.
 
 ### Cross-Chain Token Swaps
 
-In this chapter you will learn how to swap tokens on another chain.
+In this chapter you will learn how to perform cross-chain token swaps between the testnet chains using our toolbox.
 
 ## Prerequisites
 
-### Avalanche
+### Avalanche Knowledge
 
 This course is intended for people with knowledge about Cross-Chain communication protocols, and a solid understanding of the basic concepts of Avalanche. You should be familiar with these concepts:
 
@@ -67,18 +75,25 @@ If some of this is not clear, we strongly recommend taking the Avalanche Fundame
 
 ### Software Development
 
-You will need a general understanding of Software Development. You won't have to write a lot of code, but you will have to be able to understand some. Therefore, we recommend:
+You will need a general understanding of how to use Web3 applications. We recommend:
 
-1. Solidity: Basic Knowledge, familiarity with types and interfaces. 
-2. Foundry: Familiarity with Foundry will help to deploy and interact with contracts. 
+1. Basic understanding of how to use Core Wallet
+   - Download from [core.app](https://core.app)
+
+2. Test tokens for development
+   - Get test AVAX from the [Avalanche Faucet](https://faucet.avax.network)
+
+3. Understanding of token standards (ERC-20, etc.)
 
 ## Learning Outcomes
 
 By the end of this course, you will:
 
 - Understand what Avalanche Interchain Token Transfer is and when to use it.
-- Understand the differents options on how you can transfer assets between multiple chains.
-- Apply the knowledge gained in the course by enabiling assets to be transfered between multiple Avalanche blockchains.
+- Understand the different options for transferring assets between multiple chains.
+- Be able to deploy tokens and create bridges using our toolbox.
+- Be able to perform cross-chain token transfers between testnet chains using our toolbox.
+- Apply the knowledge gained in the course by enabling assets to be transferred between multiple Avalanche blockchains.
 
 We are still working on enabling some features, so in the future you will be able to evaluate your own understanding of the material through quizzes and claim a certificate for successful completion at the end.
 

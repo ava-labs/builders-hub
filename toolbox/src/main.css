@@ -39,3 +39,7 @@
     animation: shimmer 3.5s infinite linear;
     pointer-events: none;
 }
+
+div.group\/accordion h3  {
+    margin-top: 0 !important;
+}

@@ -17,6 +17,7 @@ const toolboxInitialState = {
     exampleErc20Address: "",
     erc20TokenHomeAddress: "",
     erc20TokenRemoteAddress: "",
+    nativeTokenHomeAddress: "",
     nativeTokenRemoteAddress: "",
 }
 
@@ -32,6 +33,7 @@ export const getToolboxStore = (chainId: string) => create(
             setIcmReceiverAddress: (address: string) => set({ icmReceiverAddress: address }),
             setExampleErc20Address: (address: string) => set({ exampleErc20Address: address }),
             setErc20TokenHomeAddress: (address: string) => set({ erc20TokenHomeAddress: address }),
+            setNativeTokenHomeAddress: (address: string) => set({ nativeTokenHomeAddress: address }),
             setErc20TokenRemoteAddress: (address: string) => set({ erc20TokenRemoteAddress: address }),
             setNativeTokenRemoteAddress: (address: string) => set({ nativeTokenRemoteAddress: address }),
 

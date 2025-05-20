@@ -65,7 +65,7 @@ export default function Page() {
                   Learn More
                 </Button>
               </Link>  
-              <Link href="/codebase/apply">
+              <Link href="https://share.hsforms.com/2a0QdJS_ERtKijK1Xh13vpA4h8ew">
                 <Button className="w-full rounded-full text-sm px-4 py-1.5 text-white shadow-lg hover:shadow-xl transition-all duration-300" style={{background: "linear-gradient(90deg, rgb(255 110 243) 0%, rgb(128 174 201) 100%)"}}>
                   Apply Now
                 </Button>

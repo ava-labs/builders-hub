@@ -11,6 +11,7 @@ import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
 import SelectSubnetId from "../../components/SelectSubnetId"
 import { Tooltip } from "../../components/Tooltip"
 import { formatAvaxBalance } from "../../coreViem/utils/format"
+import { cb58ToHex } from "../Conversion/FormatConverter"
 
 export default function QueryL1ValidatorSet() {
   const { avalancheNetworkID } = useWalletStore()
@@ -334,6 +335,40 @@ export default function QueryL1ValidatorSet() {
                         <Copy size={14} className="text-zinc-500 dark:text-zinc-400" />
                       )}
                     </button>
+                  </div>
+                  
+                  {/* Display Hex Format */}
+                  <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-700">
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Validation ID (Hex)</p>
+                    <div className="flex items-center">
+                      {(() => {
+                        try {
+                          const hexId = cb58ToHex(selectedValidator.validationId);
+                          return (
+                            <>
+                              <p className="font-mono text-sm break-all text-zinc-800 dark:text-zinc-200" title={'0x' + hexId}>
+                                {'0x' + hexId}
+                              </p>
+                              <button
+                                onClick={() => copyToClipboard('0x' + hexId)}
+                                className="ml-1.5 p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                                title="Copy Hex ID"
+                              >
+                                {copiedNodeId === hexId ? (
+                                  <Check size={14} className="text-green-500" />
+                                ) : (
+                                  <Copy size={14} className="text-zinc-500 dark:text-zinc-400" />
+                                )}
+                              </button>
+                            </>
+                          );
+                        } catch (error) {
+                          return (
+                            <p className="font-mono text-sm text-red-500">Unable to convert to hex</p>
+                          );
+                        }
+                      })()}
+                    </div>
                   </div>
                 </div>
 

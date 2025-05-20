@@ -9,9 +9,9 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button.tsx'
 
-## Transfer an ERC-20 Token &rarr; Avalanche L1 as an ERC-20 Token
+## Transfer an ERC-20 Token &rarr; Echo as an ERC-20 Token
 
-This chapter will show you how to send an ERC-20 Token on C-Chain to an Avalanche L1 using Interchain Messaging and Foundry. This demo is conducted on a local network, but can be applied to Fuji Testnet and Avalanche Mainnet directly.
+This chapter will show you how to send an ERC-20 Token from C-Chain to Echo using Interchain Messaging and Toolbox. This guide is conducted on the Fuji testnet, where we'll bridge tokens from C-Chain to Echo.
 
 **All Avalanche Interchain Token Transfer contracts and interfaces implemented in this chapter implementation are maintained in the [`avalanche-interchain-token-transfer`](https://github.com/ava-labs/avalanche-interchain-token-transfer/tree/main/contracts/src) repository.**
 
@@ -22,7 +22,7 @@ _Disclaimer: The avalanche-interchain-token-transfer contracts used in this tuto
 ## What we will do
 
 1. Deploy an ERC-20 Contract on C-Chain
-2. Deploy the Interchain Token Transferer Contracts on C-Chain and Avalanche L1
+2. Deploy the Interchain Token Transferer Contracts on C-Chain and Echo
 3. Register Remote Token contract with the Home Transferer contract
 4. Add Collateral and Start Sending Tokens
 

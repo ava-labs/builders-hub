@@ -177,7 +177,7 @@ export default function Initialize() {
             <div className="space-y-4">
                 <div className="space-y-2">
                     <EVMAddressInput
-                        label="Proxy Address"
+                        label="Proxy Address of ValidatorManager"
                         value={proxyAddress}
                         onChange={setProxyAddress}
                         disabled={isInitializing}
@@ -197,6 +197,7 @@ export default function Initialize() {
                 <SelectSubnetId
                     value={subnetId}
                     onChange={setSubnetId}
+                    hidePrimaryNetwork={true}
                 />
                 <Input
                     label={`Subnet ID (Hex), ${utils.hexToBuffer(subnetIDHex).length} bytes`}

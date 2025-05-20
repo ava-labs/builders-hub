@@ -35,6 +35,16 @@ Avalanche L1s are powered by gas tokens, and building your own blockchain gives 
 
 Once you have selected your virtual machine, further customization may be necessary to align the blockchain with your specific needs. This might involve configuring the token allocation in the genesis block, setting gas fee rates, or making changes to the VM's behavior through precompiles. Such customizations often require careful iterative testing to perfect. For detailed instructions, refer to [Customize Your EVM-Powered Avalanche L1](/docs/avalanche-l1s/upgrade/customize-avalanche-l1).
 
+### Available Subnet-EVM Precompiles
+
+The Subnet-EVM provides several precompiled contracts that you can use in your Avalanche L1 blockchain:
+
+- [AllowList Interface](/docs/avalanche-l1s/allowlist) - A reusable interface for permission management
+- [Permissions](/docs/avalanche-l1s/permissions) - Control contract deployment and transaction submission
+- [Tokenomics](/docs/avalanche-l1s/tokenomics) - Manage native token supply and minting
+- [Transaction Fees & Validator Rewards](/docs/avalanche-l1s/transaction-fees) - Configure fee parameters and reward mechanisms
+- [Warp Messenger](/docs/avalanche-l1s/warpmessenger) - Perform cross-chain operations
+
 ## Learn Avalanche-CLI
 
 After defining your requirements, the next step is to get acquainted with Avalanche-CLI. This tool is essential for rapid prototyping and deployment, covering the full lifecycle from development to production. Begin your journey by following the [Avalanche-CLI Installation and Setup](https://build.avax.network/docs/tooling/get-avalanche-cli) instructions.

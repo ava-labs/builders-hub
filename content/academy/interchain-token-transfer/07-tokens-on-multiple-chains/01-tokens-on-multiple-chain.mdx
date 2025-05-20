@@ -8,14 +8,13 @@ icon: Book
 
 The token bridge also supports "multi-hop" transfers, where tokens can be transferred between remote chains via the home chain. To illustrate, consider two remotes _R<sub>a</sub>_ and _R<sub>b</sub>_ that are both connected to the same home _H_. A multi-hop transfer from _R<sub>a</sub>_ to _R<sub>b</sub>_ first gets routed from _R<sub>a</sub>_ to _H_, where the remote balances are updated, and then _H_ automatically routes the transfer on to _R<sub>b</sub>_.
 
-In this example, our _R<sub>a</sub>_ chain is `myblockchain`, our _R<sub>b</sub>_ chain is `myblockchain2`, and _H_ chain is the Avalanche C-Chain.
+In this example, our _R<sub>a</sub>_ chain is `Echo`, our _R<sub>b</sub>_ chain is `Dispatch`, and _H_ chain is the Avalanche C-Chain.
 
 ### What we will do
 
-1. Deploy a new local blockchain `myblockchain2`
-2. Deploy a new `ERC20TokenRemote` contract to `myblockchain2`
-3. Register the new `ERC20TokenRemote` contract with the `TokenHome` contract on the Avalanche C-Chain
-3. Perform a multi-hop transfer of `TOK` from `myblockchain` to `myblockchain2`, with a 'hop' through the Avalanche C-Chain
+1. Deploy a new `ERC20TokenRemote` contract to `Dispatch`
+2. Register the new `ERC20TokenRemote` contract with the `TokenHome` contract on the Avalanche C-Chain
+3. Perform a multi-hop transfer of a token from `Echo` to `Dispatch`, with a 'hop' through the Avalanche C-Chain
 
 
 <Quiz quizId="127"/>

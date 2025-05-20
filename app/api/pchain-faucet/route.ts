@@ -5,7 +5,7 @@ import { rateLimit } from '@/lib/rateLimit';
 
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
 const FAUCET_P_CHAIN_ADDRESS = process.env.FAUCET_P_CHAIN_ADDRESS;
-const NETWORK_API = process.env.NETWORK_API || 'https://api.avax-test.network';
+const NETWORK_API = 'https://api.avax-test.network';
 const FIXED_AMOUNT = 2;
 
 if (!SERVER_PRIVATE_KEY || !FAUCET_P_CHAIN_ADDRESS) {
@@ -59,7 +59,7 @@ async function transferPToP(
   return pvmApi.issueSignedTx(tx.getSignedTx());
 }
 
-async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> {
+async function validateFaucetRequest(request: NextRequest): Promise<NextResponse | null> {
   try {
     const session = await getAuthSession();    
     if (!session?.user) {
@@ -92,10 +92,27 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
         { status: 400 }
       );
     }
+    return null;
+  } catch (error) {
+    console.error('Validation failed:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Failed to validate request' 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const destinationAddress = searchParams.get('address')!;
     
     const tx = await transferPToP(
-      SERVER_PRIVATE_KEY,
-      FAUCET_P_CHAIN_ADDRESS,
+      SERVER_PRIVATE_KEY!,
+      FAUCET_P_CHAIN_ADDRESS!,
       destinationAddress
     );
 
@@ -121,7 +138,17 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
   }
 }
 
-export const GET = rateLimit(handleFaucetRequest, {
-  windowMs: 24 * 60 * 60 * 1000,
-  maxRequests: 1
-});
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const validationResponse = await validateFaucetRequest(request);
+
+  if (validationResponse) {
+    return validationResponse;
+  }
+
+  const rateLimitHandler = rateLimit(handleFaucetRequest, {
+    windowMs: 24 * 60 * 60 * 1000,
+    maxRequests: 1
+  });
+ 
+  return rateLimitHandler(request);
+}

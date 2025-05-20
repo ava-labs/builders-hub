@@ -8,6 +8,7 @@
     "index",
     "when-to-build-avalanche-l1",
     "---Deploy an Avalanche L1---",
+    "[Wrench][Using L1 Toolbox](https://build.avax.network/tools/l1-toolbox#createSubnet)",
     "[SquareTerminal][Using Avalanche CLI](https://build.avax.network/docs/tooling/create-avalanche-l1)",
     "[Globe][Using BaaS Providers](https://build.avax.network/integrations#Blockchain%20as%20a%20Service)",
     "---Validator Manager---",
@@ -17,6 +18,14 @@
     "validator-manager/remove-validator",
     "validator-manager/upgrade",
     "validator-manager/custom-validator-manager",
+    "---EVM Configuration---",
+    "evm-configuration/evm-l1-customization",
+    "evm-configuration/allowlist",
+    "evm-configuration/permissions",
+    "evm-configuration/tokenomics",
+    "evm-configuration/transaction-fees",
+    "evm-configuration/warpmessenger",
+    "evm-configuration/precompile-upgrades",
     "---Upgrade an Avalanche L1---",
     "...upgrade"
   ]

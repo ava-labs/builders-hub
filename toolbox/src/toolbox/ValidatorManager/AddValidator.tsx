@@ -611,7 +611,7 @@ export default function AddValidator() {
                     // Use local var for current run, state is fallback for retry
                     const warpMsgToUse = localPChainWarpMsg || savedPChainWarpMsg;
                     if (!warpMsgToUse || warpMsgToUse.length === 0) {
-                        throw new Error("P-Chain warp message is empty. Retry the previous step.")
+                        throw new Error("P-Chain warp message is empty. Retry the previous step before this one.")
                     }
 
                     // Convert to bytes and pack into access list

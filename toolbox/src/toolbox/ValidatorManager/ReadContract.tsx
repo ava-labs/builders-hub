@@ -44,7 +44,7 @@ export default function ReadContract() {
       try {
         const subnetId = selectedL1?.subnetId;
         if (!subnetId) {
-          throw new Error("No subnet ID found, this should never happen");
+          return;
         }
         const info = await getSubnetInfo(subnetId);
         const newProxyAddress = info.l1ValidatorManagerDetails?.contractAddress || "";

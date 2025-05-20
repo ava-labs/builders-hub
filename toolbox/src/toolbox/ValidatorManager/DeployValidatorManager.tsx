@@ -5,12 +5,12 @@ import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Button } from "../../components/Button";
-import { ResultField } from "../../components/ResultField";
 import { keccak256 } from 'viem';
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
 import ValidatorMessagesABI from "../../../contracts/icm-contracts/compiled/ValidatorMessages.json";
 import { Container } from "../../components/Container";
 import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Success } from "../../components/Success";
 
 function calculateLibraryHash(libraryPath: string) {
     const hash = keccak256(
@@ -110,9 +110,9 @@ export default function DeployValidatorContracts() {
             <div className="space-y-4">
                 <Steps>
                     <Step>
-                        <div className="p-4 border rounded-lg">
-                            <h3 className="text-lg font-bold mb-2">Deploy Validator Messages Library</h3>
-                            <div className="mb-3 text-sm">
+                        <div className="flex flex-col gap-2">
+                            <h3 className="text-lg font-bold">Deploy Validator Messages Library</h3>
+                            <div className="text-sm">
                                 This will deploy the <code>ValidatorMessages</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ValidatorMessages</code> is a library required by the <code>ValidatorManager</code> family of contracts.
                             </div>
                             <Button
@@ -120,27 +120,24 @@ export default function DeployValidatorContracts() {
                                 onClick={deployValidatorMessages}
                                 loading={isDeployingMessages}
                                 disabled={isDeployingMessages || !!validatorMessagesLibAddress}
-                                className="mt-1"
                             >
                                 Deploy Library
                             </Button>
 
                             {validatorMessagesLibAddress && (
-                                <div className="mt-3 pt-3 border-t">
-                                    <ResultField
-                                        label="ValidatorMessages Library Address"
-                                        value={validatorMessagesLibAddress}
-                                        showCheck={!!validatorMessagesLibAddress}
-                                    />
-                                </div>
+                                <Success
+                                    label="ValidatorMessages Library Deployed"
+                                    value={validatorMessagesLibAddress}
+                                />
                             )}
                         </div>
+
                     </Step>
 
                     <Step>
-                        <div className="p-4 border rounded-lg mt-4">
-                            <h3 className="text-lg font-bold mb-2">Deploy Validator Manager Contract</h3>
-                            <div className="mb-2 text-sm">
+                        <div className="flex flex-col gap-2">
+                            <h3 className="text-lg font-bold">Deploy Validator Manager Contract</h3>
+                            <div className="text-sm">
                                 This will deploy the <code>ValidatorManager</code> contract to the EVM network <code>{viemChain?.id}</code>.
                                 The contract requires the <code>ValidatorMessages</code> library at address: <code>{validatorMessagesLibAddress || "Not deployed"}</code>
                             </div>
@@ -155,13 +152,10 @@ export default function DeployValidatorContracts() {
                             </Button>
 
                             {validatorManagerAddress && (
-                                <div className="mt-3 pt-3 border-t">
-                                    <ResultField
-                                        label="ValidatorManager Address"
-                                        value={validatorManagerAddress}
-                                        showCheck={!!validatorManagerAddress}
-                                    />
-                                </div>
+                                <Success
+                                    label="ValidatorManager Address"
+                                    value={validatorManagerAddress}
+                                />
                             )}
                         </div>
                     </Step>

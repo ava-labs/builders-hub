@@ -17,8 +17,8 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { AddChainModal } from "../../components/ConnectWallet/AddChainModal";
 import { useL1ListStore } from "../../stores/l1ListStore";
 import { Button } from "../../components/Button";
-import { ResultField } from "../../components/ResultField";
 import { RadioGroup } from "../../components/RadioGroup";
+import { Success } from "../../components/Success";
 
 
 const debugConfigBase64 = (chainId: string) => {
@@ -87,7 +87,7 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
     const chunks = [
         "docker run -it -d",
         `--name avago`,
-        `-p ${isRPC ? "" : "127.0.0.1: "}9650:9650 -p 9651:9651`,
+        `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
         `-v ~/.avalanchego:/root/.avalanchego`,
         ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
         `avaplatform/subnet-evm:${versions['avaplatform/subnet-evm']}`
@@ -275,6 +275,7 @@ export default function AvalanchegoDocker() {
                         <InputChainId
                             value={chainId}
                             onChange={setChainId}
+                            hidePrimaryNetwork={true}
                         />
 
                         <Input
@@ -431,7 +432,7 @@ export default function AvalanchegoDocker() {
 
                 </Steps>
 
-                {chainAddedToWallet && <ResultField label="Chain added to Wallet" value={chainAddedToWallet} showCheck />}
+                {chainAddedToWallet && <Success label="Chain added to Wallet" value={chainAddedToWallet}/>}
 
             </Container >
         </>

@@ -2,15 +2,13 @@ import { create } from "zustand";
 import { persist, createJSONStorage, combine } from 'zustand/middleware'
 import { useWalletStore } from "./walletStore";
 import { localStorageComp, STORE_VERSION } from "./utils";
-
 export const EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
-
 
 const createChainInitialState = {
     subnetId: "",
     vmId: EVM_VM_ID,
     chainID: "",
-    chainName: "My Chain",
+    chainName: "",
     managerAddress: "0xfacade0000000000000000000000000000000000",
     genesisData: "",
     targetBlockRate: 2,

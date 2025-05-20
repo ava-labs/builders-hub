@@ -9,6 +9,7 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20TokenHome.json";
+import NativeTokenHomeABI from "../../../contracts/icm-contracts/compiled/NativeTokenHome.json";
 import ExampleERC20ABI from "../../../contracts/icm-contracts/compiled/ExampleERC20.json";
 import ITeleporterMessenger from "../../../contracts/example-contracts/compiled/ITeleporterMessenger.json";
 import { createPublicClient, http, formatUnits, parseUnits, Address, zeroAddress, decodeEventLog, AbiEvent } from "viem";
@@ -74,7 +75,7 @@ export default function TokenBridge() {
     const destL1 = useL1ByChainId(destinationChainId)();
     const destToolboxStore = getToolboxStore(destinationChainId)();
 
-    const { erc20TokenHomeAddress } = useToolboxStore();
+    const { erc20TokenHomeAddress, nativeTokenHomeAddress } = useToolboxStore();
 
     // Destination chain validation
     let destChainError: string | undefined = undefined;
@@ -106,8 +107,17 @@ export default function TokenBridge() {
                 suggestions.push({
                     title: erc20TokenHomeAddress,
                     value: erc20TokenHomeAddress,
-                    description: `Token Bridge on ${selectedL1?.name}`,
+                    description: `ERC20 Token Bridge on ${selectedL1?.name}`,
                     token: await fetchTokenInfoFromBridgeContract(erc20TokenHomeAddress as Address, "source", false)
+                });
+            }
+
+            if (nativeTokenHomeAddress) {
+                suggestions.push({
+                    title: nativeTokenHomeAddress,
+                    value: nativeTokenHomeAddress,
+                    description: `Native Token Bridge on ${selectedL1?.name}`,
+                    token: await fetchTokenInfoFromBridgeContract(nativeTokenHomeAddress as Address, "source", false)
                 });
             }
             setSourceContractSuggestions(suggestions);
@@ -127,7 +137,7 @@ export default function TokenBridge() {
                     title: destToolboxStore.erc20TokenRemoteAddress,
                     value: destToolboxStore.erc20TokenRemoteAddress,
                     description: `ERC20 Bridge Endpoint on ${destL1?.name}`,
-                    token: await fetchTokenInfoFromBridgeContract(destToolboxStore.erc20TokenRemoteAddress as Address, "destination", false, destL1)
+                    token: await fetchTokenInfoFromBridgeContract(destToolboxStore.erc20TokenRemoteAddress as Address, "destination", false)
                 });
             }
             if (destToolboxStore?.nativeTokenRemoteAddress) {
@@ -146,15 +156,18 @@ export default function TokenBridge() {
     }, [destToolboxStore?.erc20TokenRemoteAddress, destToolboxStore?.nativeTokenRemoteAddress, destL1?.id]);
 
     // Fetch token info from bridge contract on current chain
-    const fetchTokenInfoFromBridgeContract = useCallback(async (address: Address, direction: "source" | "destination", updateState: boolean = true, _destL1?: any) => {
-        const __destL1 = _destL1 || destL1;
-        if (!address || (direction === "source" && !viemChain) || (direction === "destination" && !__destL1?.rpcUrl)) {
+    const fetchTokenInfoFromBridgeContract = useCallback(async (address: Address, direction: "source" | "destination", updateState: boolean = true) => {
+        if (!address || (direction === "source" && !viemChain) || (direction === "destination" && !destL1?.rpcUrl)) {
             return;
+        }
+
+        if (direction === "source" && updateState) {
+            setIsFetchingSourceInfo(true);
         }
 
         try {
             const publicClient = createPublicClient({
-                transport: http(direction === "source" ? viemChain!.rpcUrls.default.http[0] : __destL1!.rpcUrl)
+                transport: http(direction === "source" ? viemChain!.rpcUrls.default.http[0] : destL1!.rpcUrl)
             });
 
 
@@ -175,6 +188,10 @@ export default function TokenBridge() {
                 tokenAddress = fetchedTokenAddress;
             }
 
+
+            const code = await publicClient.getCode({ address: tokenAddress });
+            const isWrapped = code?.includes('d0e30db0') && code.includes('2e1a7d4d');
+
             const [fetchedDecimals, fetchedName, fetchedSymbol, fetchedBalance, fetchedAllowance] = await Promise.all([
                 publicClient.readContract({
                     address: tokenAddress,
@@ -191,7 +208,9 @@ export default function TokenBridge() {
                     abi: ExampleERC20ABI.abi,
                     functionName: 'symbol'
                 }),
-                publicClient.readContract({
+                isWrapped === true ? publicClient.getBalance({
+                    address: walletEVMAddress === "" ? zeroAddress : walletEVMAddress as Address,
+                }) : publicClient.readContract({
                     address: tokenAddress,
                     abi: ExampleERC20ABI.abi,
                     functionName: 'balanceOf',
@@ -201,115 +220,51 @@ export default function TokenBridge() {
                     address: tokenAddress,
                     abi: ExampleERC20ABI.abi,
                     functionName: 'allowance',
-                    args: [walletEVMAddress === "" ? zeroAddress : walletEVMAddress as Address, sourceContractAddress === "" ? zeroAddress : sourceContractAddress as Address]
+                    args: [walletEVMAddress === "" ? zeroAddress : walletEVMAddress as Address, address as Address]
                 })
             ]);
 
             const token: Token = {
                 address: tokenAddress,
-                name: fetchedName as string,
-                symbol: fetchedSymbol as string,
+                name: (isWrapped === true ? selectedL1?.coinName : fetchedName) as string,
+                symbol: (isWrapped === true ? selectedL1?.coinName : fetchedSymbol) as string,
                 decimals: Number(fetchedDecimals as bigint),
                 balance: fetchedBalance as bigint,
                 allowance: fetchedAllowance as bigint,
+                isNative: isWrapped || false,
                 chain: {
-                    name: direction === "source" ? selectedL1!.name : __destL1!.name,
-                    id: direction === "source" ? selectedL1!.id : __destL1!.id,
-                    logoUrl: direction === "source" ? selectedL1!.logoUrl : __destL1!.logoUrl
+                    name: direction === "source" ? selectedL1!.name : destL1!.name,
+                    id: direction === "source" ? selectedL1!.id : destL1!.id,
+                    logoUrl: direction === "source" ? selectedL1!.logoUrl : destL1!.logoUrl
                 }
             }
 
             if (updateState) {
                 if (direction === "source") {
                     setSourceToken(token);
+                    setTokenAddress(tokenAddress);
+                    setTokenDecimals(token?.decimals);
+                    setTokenSymbol(token?.symbol);
+                    setTokenBalance(token?.balance);
+                    setTokenAllowance(token?.allowance);
                 } else {
                     setDestinationToken(token);
                 }
             }
 
+            if (direction === "source" && updateState) {
+                setIsFetchingSourceInfo(false);
+            }
             return token;
 
         } catch (error: any) {
             console.error("Error fetching token info:", error);
-            return;
-        }
-    }, [viemChain?.id, walletEVMAddress, sourceContractAddress]);
-
-    // Fetch token info from source contract on current chain 
-    // todo: duplicate remove this
-    const fetchSourceInfo = useCallback(async () => {
-        if (!viemChain || !walletEVMAddress || !sourceContractAddress) {
-            setTokenAddress(null);
-            setTokenDecimals(null);
-            setTokenSymbol(null);
-            setTokenBalance(null);
-            setTokenAllowance(null);
-            return;
-        }
-
-        setIsFetchingSourceInfo(true);
-        setLocalError("");
-        try {
-            const publicClient = createPublicClient({
-                chain: viemChain,
-                transport: http(viemChain.rpcUrls.default.http[0])
-            });
-
-            // Try to get the token address from the bridge contract
-            const fetchedTokenAddress = await publicClient.readContract({
-                address: sourceContractAddress as Address,
-                abi: ERC20TokenHomeABI.abi,
-                functionName: 'getTokenAddress',
-            }).catch(() => null) as Address | null;
-
-            if (!fetchedTokenAddress) {
-                throw new Error("Could not determine token address from bridge contract");
+            if (direction === "source" && updateState) {
+                setIsFetchingSourceInfo(false);
             }
-
-            setTokenAddress(fetchedTokenAddress);
-
-            const [fetchedDecimals, fetchedSymbol, fetchedBalance, fetchedAllowance] = await Promise.all([
-                publicClient.readContract({
-                    address: fetchedTokenAddress,
-                    abi: ExampleERC20ABI.abi,
-                    functionName: 'decimals'
-                }),
-                publicClient.readContract({
-                    address: fetchedTokenAddress,
-                    abi: ExampleERC20ABI.abi,
-                    functionName: 'symbol'
-                }),
-                publicClient.readContract({
-                    address: fetchedTokenAddress,
-                    abi: ExampleERC20ABI.abi,
-                    functionName: 'balanceOf',
-                    args: [walletEVMAddress as Address]
-                }),
-                publicClient.readContract({
-                    address: fetchedTokenAddress,
-                    abi: ExampleERC20ABI.abi,
-                    functionName: 'allowance',
-                    args: [walletEVMAddress, sourceContractAddress as Address]
-                })
-            ]);
-
-            setTokenDecimals(Number(fetchedDecimals as bigint));
-            setTokenSymbol(fetchedSymbol as string);
-            setTokenBalance(fetchedBalance as bigint);
-            setTokenAllowance(fetchedAllowance as bigint);
-
-        } catch (error: any) {
-            console.error("Error fetching token info:", error);
-            setLocalError(`Error fetching token info: ${error.shortMessage || error.message}`);
-            setTokenAddress(null);
-        } finally {
-            setIsFetchingSourceInfo(false);
+            return;
         }
-    }, [viemChain?.id, walletEVMAddress, sourceContractAddress]);
-
-    useEffect(() => {
-        fetchSourceInfo();
-    }, [fetchSourceInfo]);
+    }, [viemChain?.id, walletEVMAddress, destL1?.id]);
 
     // Set initial recipient address to connected wallet
     const [useMyAddress, setUseMyAddress] = useState(true);
@@ -352,7 +307,7 @@ export default function TokenBridge() {
             setLastApprovalTxId(hash);
 
             await publicClient.waitForTransactionReceipt({ hash });
-            await fetchSourceInfo();
+            await fetchTokenInfoFromBridgeContract(sourceContractAddress as Address, "source", true);
 
         } catch (error: any) {
             console.error("Approval failed:", error);
@@ -386,7 +341,7 @@ export default function TokenBridge() {
             const amountParsed = parseUnits(amount, tokenDecimals);
             const gasLimitParsed = BigInt(requiredGasLimit);
 
-            if (tokenAllowance === null || tokenAllowance < amountParsed) {
+            if (sourceToken.isNative === false && (tokenAllowance === null || tokenAllowance < amountParsed)) {
                 setLocalError(`Insufficient allowance. Please approve at least ${amount} ${tokenSymbol || 'tokens'}.`);
                 setIsProcessingSend(false);
                 return;
@@ -410,9 +365,10 @@ export default function TokenBridge() {
 
             const { request } = await publicClient.simulateContract({
                 address: sourceContractAddress as Address,
-                abi: ERC20TokenHomeABI.abi,
+                abi: sourceToken.isNative === true ? NativeTokenHomeABI.abi : ERC20TokenHomeABI.abi,
                 functionName: 'send',
-                args: [sendInput, amountParsed],
+                args: sourceToken.isNative === true ? [sendInput] : [sendInput, amountParsed],
+                value: sourceToken.isNative === true ? amountParsed : 0n,
                 account: coreWalletClient.account,
                 chain: viemChain,
             });
@@ -439,8 +395,7 @@ export default function TokenBridge() {
                 ...prev,
                 source: { ...prev?.source, confirmedAt: Date.now() }
             }));
-            await fetchSourceInfo(); // todo: duplicate remove this
-            await fetchTokenInfoFromBridgeContract(sourceContractAddress as Address, "source");
+            await fetchTokenInfoFromBridgeContract(sourceContractAddress as Address, "source", true);
         } catch (error: any) {
             console.error("Send failed:", error);
             setLocalError(`Send failed: ${error.shortMessage || error.message}`);
@@ -501,6 +456,7 @@ export default function TokenBridge() {
     }, [amount, tokenDecimals]);
 
     const hasSufficientAllowance = useMemo(() => {
+        if (sourceToken?.isNative === true) return true;
         if (tokenAllowance === null || amountParsed === 0n) return false;
         return tokenAllowance >= amountParsed;
     }, [tokenAllowance, amountParsed]);
@@ -511,7 +467,7 @@ export default function TokenBridge() {
     }, [tokenBalance, amountParsed]);
 
     const isValidAmount = amountParsed > 0n;
-    const isReadyToSend = isValidAmount && hasSufficientAllowance && hasSufficientBalance &&
+    const isReadyToSend = isValidAmount && (hasSufficientAllowance || sourceToken?.isNative === true) && hasSufficientBalance &&
         destinationContractAddress && recipientAddress && destinationBlockchainIDHex && requiredGasLimit;
 
     const [isGasLimitEditing, setIsGasLimitEditing] = useState(false);

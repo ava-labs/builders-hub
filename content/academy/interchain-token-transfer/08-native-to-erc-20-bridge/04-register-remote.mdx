@@ -1,0 +1,37 @@
+---
+title: Register Remote Bridge
+description: Register the ERC20TokenRemote contract with the NativeTokenHome contract.
+updated: 2024-05-31
+authors: [owenwahlgren]
+icon: Book
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+<Steps>
+<Step>
+### Register Remote Bridge
+
+After deploying the bridge contracts, you need to register the remote bridge with the home bridge. Use our toolbox to complete the registration:
+
+<Callout>
+Make sure you have:
+1. Successfully deployed your ERC20TokenRemote contract
+2. Have enough test ECH for gas fees
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={173750}>
+    <RegisterWithHome />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Verify Registration
+
+After registration, you can verify the process was successful by looking for the registration event in the transaction logs. You can find the registration confirmation in the toolbox.
+
+<Callout title="Note" type="info">
+The registration process is a one-time setup that establishes the connection between your home and remote bridges. Once completed, you can proceed with token transfers.
+</Callout>
+</Step>
+</Steps> 

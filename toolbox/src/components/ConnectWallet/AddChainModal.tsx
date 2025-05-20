@@ -20,6 +20,7 @@ interface AddChainModalProps {
         coinName: string;
         isTestnet: boolean;
         subnetId: string;
+        wrappedTokenAddress: string;
         validatorManagerAddress: string;
         logoUrl: string;
         wellKnownTeleporterRegistryAddress?: string;
@@ -42,6 +43,7 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
     const [evmChainId, setEvmChainId] = useState(0);
     const [coinName, setCoinName] = useState("COIN");
     const [subnetId, setSubnetId] = useState("");
+    const [wrappedTokenAddress, setWrappedTokenAddress] = useState("");
     const [validatorManagerAddress, setValidatorManagerAddress] = useState("");
     const [localError, setLocalError] = useState("");
     const { coreWalletClient } = useWalletStore();
@@ -71,6 +73,7 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
                 setSubnetId(blockchainInfo.subnetId);
                 setChainName(blockchainInfo.blockchainName || "");
                 setIsTestnet(blockchainInfo.isTestnet);
+                setWrappedTokenAddress("");
                 const subnetInfo = await getSubnetInfo(blockchainInfo.subnetId);
                 setValidatorManagerAddress(subnetInfo.l1ValidatorManagerDetails?.contractAddress || "");
 
@@ -126,6 +129,7 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
                 coinName: coinName,
                 isTestnet: isTestnet,
                 subnetId: subnetId,
+                wrappedTokenAddress: wrappedTokenAddress,
                 validatorManagerAddress: validatorManagerAddress,
                 logoUrl: logoUrl,
             });
