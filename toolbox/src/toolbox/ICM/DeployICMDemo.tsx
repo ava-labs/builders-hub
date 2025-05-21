@@ -11,7 +11,7 @@ import TeleporterMessengerAddress from '../../../contracts/icm-contracts-release
 import { Container } from "../../components/Container";
 import { useSelectedL1 } from "../../stores/l1ListStore";
 
-export const SENDER_C_CHAIN_ADDRESS = "0xfD694e233f9D5196CF3747723ed00Bb8386a7FEe";
+export const SENDER_C_CHAIN_ADDRESS = "0x05c474824e7d2cc67cf22b456f7cf60c0e3a1289";
 
 export default function DeployICMDemo() {
     const { showBoundary } = useErrorBoundary();
