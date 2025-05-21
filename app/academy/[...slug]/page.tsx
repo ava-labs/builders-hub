@@ -53,6 +53,8 @@ import ICMRelayer from '@/toolbox/src/toolbox/ICM/ICMRelayer';
 
 export const dynamicParams = false;
 
+export const dynamic = 'force-dynamic';
+
 const toolboxComponents = {
   ToolboxMdxWrapper,
   CrossChainTransfer,
