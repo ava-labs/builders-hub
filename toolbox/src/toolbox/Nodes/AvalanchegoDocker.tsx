@@ -98,7 +98,7 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
 const nipify = (domain: string) => {
     const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
     if (ipv4Regex.test(domain)) {
-        domain = `${domain}.nip.io`;
+        domain = `${domain}.sslip.io`;
     }
     return domain;
 }
@@ -432,7 +432,7 @@ export default function AvalanchegoDocker() {
 
                 </Steps>
 
-                {chainAddedToWallet && <Success label="Chain added to Wallet" value={chainAddedToWallet}/>}
+                {chainAddedToWallet && <Success label="Chain added to Wallet" value={chainAddedToWallet} />}
 
             </Container >
         </>
