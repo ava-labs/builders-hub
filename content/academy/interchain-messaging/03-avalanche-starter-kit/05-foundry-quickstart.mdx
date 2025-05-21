@@ -6,67 +6,41 @@ authors: [martineckardt]
 icon: BookOpen
 ---
 
-Now that your environment is set up and funded, let's learn how to use Foundry for contract development and interaction.
+Now that your environment is set up and funded, let's understand the key Foundry commands we'll be using throughout this tutorial.
 
-## Contract Deployment
+## Understanding Foundry Commands
 
-Deploy your contracts to either network using `forge create`:
+### forge create
+The `forge create` command is used for deploying smart contracts. Key aspects:
+- Requires an RPC URL to specify which network to deploy to
+- Needs a private key for transaction signing
+- Can handle constructor arguments if your contract needs them
+- Returns the deployed contract's address
+- Supports contract verification on block explorers
 
-```bash
-# Deploy to Fuji C-Chain
-forge create --rpc-url fuji-c \
-  --private-key $PK \
-  src/contracts/YourContract.sol:YourContract \
-  --constructor-args $FUJI_C_CHAIN_BLOCKCHAIN_ID_HEX
+### cast send
+`cast send` is used for state-changing interactions with contracts. This includes:
+- Sending transactions that modify contract state
+- Calling functions that require gas
+- Approving token transfers
+- Executing contract functions with parameters
+- Requires private key for transaction signing
 
-# Deploy to Dispatch
-forge create --rpc-url fuji-dispatch \
-  --private-key $PK \
-  src/contracts/YourContract.sol:YourContract \
-  --constructor-args $FUJI_DISPATCH_BLOCKCHAIN_ID_HEX
-```
+### cast call
+`cast call` is for read-only operations that don't modify state:
+- Reading contract state variables
+- Calling view/pure functions
+- Doesn't require gas or transaction signing
+- Returns function results immediately
+- Useful for verifying contract state
 
-<Callout type="info">
-Save your contract addresses after deployment - you'll need them for future interactions.
-</Callout>
+## Development Best Practices
 
-## Sending Transactions
-
-Use `cast send` to make state-changing calls:
-
-```bash
-# Send message from Fuji C-Chain to Dispatch
-cast send --rpc-url fuji-c \
-  --private-key $PK \
-  $CONTRACT_ADDRESS "sendMessage(string)" "Hello Dispatch!"
-
-# Send message from Dispatch to Fuji C-Chain
-cast send --rpc-url fuji-dispatch \
-  --private-key $PK \
-  $CONTRACT_ADDRESS "sendMessage(string)" "Hello Fuji!"
-```
-
-## Reading Contract State
-
-Use `cast call` for read-only operations:
-
-```bash
-# Read from Fuji C-Chain
-cast call --rpc-url fuji-c \
-  $CONTRACT_ADDRESS "getLastMessage()(string)"
-
-# Read from Dispatch
-cast call --rpc-url fuji-dispatch \
-  $CONTRACT_ADDRESS "getLastMessage()(string)"
-```
-
-## Development Tips
-
-1. Always test cross-chain messaging with small transactions first
-2. Monitor the ICM relayer logs for message delivery status
-3. Use environment variables for blockchain IDs and addresses
-4. Keep track of deployed contract addresses
-5. The Teleporter Registry is pre-deployed at the same address on both networks
+1. Always test with small transactions first
+2. Save contract addresses in environment variables
+3. Double-check network configurations and addresses
+4. Monitor transactions in block explorers
+5. Keep private keys secure and never commit them
 
 ## Learn More
 

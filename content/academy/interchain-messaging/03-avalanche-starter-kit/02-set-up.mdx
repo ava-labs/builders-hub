@@ -93,7 +93,7 @@ FUNDED_ADDRESS=your_funded_address_here
 
 # Teleporter and chain configuration 
 TELEPORTER_REGISTRY_FUJI_DISPATCH=your_dispatch_registry_address
-TELEPORTER_REGISTRY_FUJI_C_CHAIN=your_c_chain_registry_address
+TELEPORTER_REGISTRY_FUJI_C_CHAIN=0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228
 
 # Blockchain IDs pre-filled
 FUJI_DISPATCH_BLOCKCHAIN_ID_HEX=0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7
@@ -111,9 +111,7 @@ source .env
 echo $FUNDED_ADDRESS
 ```
 
-<Callout type="warning">
-The private key is for testing only. Never use it in production or share it with anyone.
-</Callout>
+<Callout type="warn" title="The private key is for testing only. Never use it in production or share it with anyone. Do not use a private key holding real funds on testnet, separate mainnet and testnet keys!" />
 
 </Step>
 </Steps>
