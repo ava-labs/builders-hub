@@ -26,7 +26,6 @@ import { GetRegistrationJustification } from "./justification"
 import { packL1ValidatorWeightMessage } from "../../coreViem/utils/convertWarp"
 import { packWarpIntoAccessList } from "./packWarp"
 import { useStepProgress, StepsConfig } from "../hooks/useStepProgress"
-import { setL1ValidatorWeight } from "../../coreViem/methods/setL1ValidatorWeight"
 import { useValidatorManagerDetails } from "../hooks/useValidatorManagerDetails"
 import { validateStakePercentage } from "../../coreViem/hooks/getTotalStake"
 import { validateContractOwner } from "../../coreViem/hooks/validateContractOwner"
@@ -241,8 +240,12 @@ export default function ChangeWeight() {
 
           const receipt = await publicClient.waitForTransactionReceipt({ hash: changeWeightTx })
 
+          if (!receipt.logs || receipt.logs.length === 0 || !receipt.logs[0].data) {
+            console.error("Transaction receipt logs are missing or malformed:", receipt);
+            throw new Error("Failed to get warp message from transaction receipt. Logs are missing or malformed.");
+          }
           // Update local and state
-          const currentUnsignedWarpMessage = receipt.logs[0].data || ""
+          const currentUnsignedWarpMessage = receipt.logs[0].data
           setUnsignedWarpMessage(currentUnsignedWarpMessage)
           localUnsignedWarpMessage = currentUnsignedWarpMessage;
 
@@ -342,8 +345,11 @@ export default function ChangeWeight() {
             throw new Error("Core wallet not found")
           }
 
+          if (!pChainAddress) {
+            throw new Error("P-Chain address is missing")
+          }
           // Call the new coreViem method to set validator weight on P-Chain
-          const pChainTxId = await setL1ValidatorWeight(coreWalletClient, {
+          const pChainTxId = await coreWalletClient.setL1ValidatorWeight({
             pChainAddress: pChainAddress!,
             signedWarpMessage: signedMessageToSubmit,
           })
@@ -351,8 +357,26 @@ export default function ChangeWeight() {
           console.log("P-Chain transaction ID:", pChainTxId)
           updateStepStatus("submitPChainTx", "success")
         } catch (error: any) {
-          const message = error instanceof Error ? error.message : String(error)
-          updateStepStatus("submitPChainTx", "error", `Failed to submit P-Chain transaction: ${message}`)
+          console.error("Raw error in submitPChainTx:", error); // Log the raw error
+          let displayMessage = "An unexpected error occurred";
+          if (error instanceof Error) {
+            displayMessage = error.message;
+          } else if (error && typeof error.message === 'string') { // Check for objects with a message property
+            displayMessage = error.message;
+          } else if (typeof error === 'string') {
+            displayMessage = error;
+          } else {
+            // Attempt to stringify for more complex objects, otherwise use a generic message
+            try {
+              const errStr = JSON.stringify(error);
+              // Avoid using "{}" as a message if stringify results in an empty object string
+              displayMessage = errStr === '{}' ? "Received an empty error object." : errStr;
+            } catch (e) {
+              // If stringify fails, it's truly an odd object
+              displayMessage = "Could not stringify the error object.";
+            }
+          }
+          updateStepStatus("submitPChainTx", "error", `Failed to submit P-Chain transaction: ${displayMessage}`)
           return
         }
       }
