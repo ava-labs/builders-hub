@@ -48,7 +48,8 @@ import DeployTokenHome from '@/toolbox/src/toolbox/ICTT/DeployTokenHome';
 import DeployERC20TokenRemote from '@/toolbox/src/toolbox/ICTT/DeployERC20TokenRemote';
 import RegisterWithHome from '@/toolbox/src/toolbox/ICTT/RegisterWithHome';
 import TestSend from '@/toolbox/src/toolbox/ICTT/TestSend';
-
+import TeleporterRegistry from '@/toolbox/src/toolbox/ICM/TeleporterRegistry';
+import ICMRelayer from '@/toolbox/src/toolbox/ICM/ICMRelayer';
 
 export const dynamicParams = false;
 
@@ -64,7 +65,9 @@ const toolboxComponents = {
   DeployTokenHome,
   DeployERC20TokenRemote,
   RegisterWithHome,
-  TestSend
+  TestSend,
+  TeleporterRegistry,
+  ICMRelayer
 }
 
 export default async function Page(props: {

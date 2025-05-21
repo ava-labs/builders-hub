@@ -1,27 +1,48 @@
 ---
-title: Networks
-description: Environment Setup
+title: Getting Test Tokens
+description: Fund your wallet for development
 updated: 2024-05-31
 authors: [martineckardt]
 icon: BookOpen
 ---
 
-In this section, we'll explore the different networks available in Avalanche and understand how they can be used for development and testing of your cross-chain applications.
+Before you can deploy contracts or send transactions, you'll need test tokens on both the Fuji C-Chain and Dispatch networks.
 
-## Networks
+## Getting Test Tokens
 
-### Mainnet
-When our Avalanche L1 goes into production, we want to run it on mainnet. With the introduction of ACP-77, Avalanche L1 validators no longer must validate the primary network.
+1. Open Core wallet and switch to Fuji Testnet:
+   - Click the network selector (top of window)
+   - Select "Fuji (C-Chain)"
 
-### Testnet (Fuji)
-When we want to test our Avalanche L1, we can deploy it to the Fuji Testnet. The easiest way to do this is to run a Fuji Node. On Testnet, it only costs 1 AVAX to run a node. That AVAX can be obtained for free from the Testnet Faucet we used in the Avalanche Fundamentals course. All tokens on the Testnet are valueless.
+2. Get test tokens from the faucets:
+   - For Fuji C-Chain: Use the [Fuji C-Chain Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c) directly in Core
+   - For Dispatch: Visit the [Dispatch Testnet Faucet](https://core.app/tools/testnet-faucet/?subnet=dispatch&token=dispatch)
 
-When deploying the Avalanche L1 to Fuji, anyone can interact with it, so long as at least one validator is online. This is great for more intense testing with multiple parties. Further, the Avalanche L1 can interact with other Avalanche L1s deployed in Fuji to test more complex behavior.
+3. Verify your balances:
+```bash
+# Check balance on Fuji C-Chain
+cast balance $FUNDED_ADDRESS --rpc-url fuji-c
 
-### Test L1s (Echo and Dispatch)
-Echo and Dispatch are two pre-configured test L1s available on the Fuji testnet that you can interact with:
+# Check balance on Dispatch
+cast balance $FUNDED_ADDRESS --rpc-url fuji-dispatch
+```
 
-- **Echo L1**: A test chain available at `https://subnets.avax.network/echo/testnet/rpc` with chain ID 173750 and native token ECH
-- **Dispatch L1**: A test chain available at `https://subnets.avax.network/dispatch/testnet/rpc` with chain ID 779672 and native token DISP
+## Available Networks
 
-Both chains are configured with the Teleporter registry at address `0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228` and can be used for testing cross-chain interactions on the Fuji testnet.
+For this course, we'll be using two testnet networks:
+
+### Fuji C-Chain
+- RPC URL: https://api.avax-test.network/ext/bc/C/rpc
+- Chain ID: 43113
+- Native Token: AVAX
+- Teleporter Registry: 0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf
+
+### Dispatch Testnet
+- RPC URL: https://subnets.avax.network/dispatch/testnet/rpc
+- Chain ID: 779672
+- Native Token: DISP
+- Teleporter Registry: 0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf
+
+<Callout type="info">
+Both networks are configured with the same Teleporter registry address for seamless cross-chain communication.
+</Callout>

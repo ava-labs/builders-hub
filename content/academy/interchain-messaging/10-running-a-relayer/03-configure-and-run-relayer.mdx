@@ -1,0 +1,25 @@
+---
+title: Configure & Run Relayer
+description: Configure and run an ICM relayer using Toolbox
+updated: 2024-05-31
+authors: [martineckardt]
+icon: Terminal
+---
+
+The ICM Relayer is responsible for delivering messages between chains. Using the Toolbox interface, you can easily configure and manage your relayer instance.
+
+## Relayer Setup
+
+The Toolbox interface provides a simple way to configure and setup your relayer. Follow these steps to run your relayer:
+
+1. Select your source and destination networks (C-Chain and Dispatch)
+2. Fund the relayer address with enough native tokens on each chain
+3. Copy and run the configuration command
+4. Start the relayer using the provided Docker command on you **interchain-messaging codespaces terminal**
+
+<Callout type="warn" title="Make sure you are in testnet mode before proceeding & you have sufficient balance to fund the relayer" />
+
+<ToolboxMdxWrapper walletMode="l1">
+    <ICMRelayer />
+</ToolboxMdxWrapper>
+

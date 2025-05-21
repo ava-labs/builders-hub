@@ -1,132 +1,76 @@
 ---
-title: Foundry Quickstart
-description: Environment Setup
+title: Contract Development with Foundry
+description: Deploy and interact with smart contracts
 updated: 2024-05-31
 authors: [martineckardt]
 icon: BookOpen
 ---
 
-Foundry serves as our primary toolchain for smart contract development in this course. It handles dependency management, project compilation, testing, deployment, and facilitates interaction with the blockchain through both command-line interface and Solidity scripts.
+Now that your environment is set up and funded, let's learn how to use Foundry for contract development and interaction.
 
-## Wallet Management
+## Contract Deployment
 
-To interact with smart contracts on Avalanche's networks, you'll need:
-1. A wallet with a private key
-2. Test tokens to pay for transaction fees
-
-### Creating Your Wallet
-
-We'll use Foundry's built-in wallet management system:
-
-```bash
-# Create a new wallet
-cast wallet new
-```
-
-You'll receive output like:
-```
-Address:     0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-Private key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-```
-
-### Setting Up Environment Variables
-
-1. Copy the example environment file:
-```bash
-cp .env.example .env
-```
-
-2. Update your `.env` file with your wallet information:
-```bash
-# Your private key (starts with 0x...)
-PK=your_private_key_here
-# Your wallet address (starts with 0x...)
-FUNDED_ADDRESS=your_wallet_address_here
-```
-
-> ⚠️ **IMPORTANT**: 
-> - Never commit your `.env` file or share your private key
-> - Store your private key securely as backup
-> - The example values above are for demonstration only
-
-### Getting Test Tokens
-
-Before deploying contracts or sending transactions, you'll need test tokens from:
-
-1. [Fuji C-Chain Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c) - For test AVAX on the C-Chain
-2. [Dispatch Testnet Faucet](https://core.app/tools/testnet-faucet/?subnet=dispatch&token=dispatch) - For test AVAX on Dispatch
-
-Check your balances:
-```bash
-# Check C-Chain balance
-cast balance $FUNDED_ADDRESS --rpc-url fuji-c
-
-# Check Dispatch balance
-cast balance $FUNDED_ADDRESS --rpc-url fuji-dispatch
-```
-
-## Using Foundry Commands
-
-### Deploying Smart Contracts
-
-Deploy to either network using `forge create`:
+Deploy your contracts to either network using `forge create`:
 
 ```bash
 # Deploy to Fuji C-Chain
 forge create --rpc-url fuji-c \
   --private-key $PK \
-  src/contracts/YourContract.sol:YourContract
+  src/contracts/YourContract.sol:YourContract \
+  --constructor-args $FUJI_C_CHAIN_BLOCKCHAIN_ID_HEX
 
 # Deploy to Dispatch
 forge create --rpc-url fuji-dispatch \
   --private-key $PK \
-  src/contracts/YourContract.sol:YourContract
+  src/contracts/YourContract.sol:YourContract \
+  --constructor-args $FUJI_DISPATCH_BLOCKCHAIN_ID_HEX
 ```
 
-### Sending Transactions
+<Callout type="info">
+Save your contract addresses after deployment - you'll need them for future interactions.
+</Callout>
+
+## Sending Transactions
 
 Use `cast send` to make state-changing calls:
 
 ```bash
-# On Fuji C-Chain
+# Send message from Fuji C-Chain to Dispatch
 cast send --rpc-url fuji-c \
   --private-key $PK \
-  $CONTRACT_ADDRESS "functionName(uint256)" 123
+  $CONTRACT_ADDRESS "sendMessage(string)" "Hello Dispatch!"
 
-# On Dispatch
+# Send message from Dispatch to Fuji C-Chain
 cast send --rpc-url fuji-dispatch \
   --private-key $PK \
-  $CONTRACT_ADDRESS "functionName(uint256)" 123
+  $CONTRACT_ADDRESS "sendMessage(string)" "Hello Fuji!"
 ```
 
-### Reading Contract State
+## Reading Contract State
 
 Use `cast call` for read-only operations:
 
 ```bash
-# On Fuji C-Chain
+# Read from Fuji C-Chain
 cast call --rpc-url fuji-c \
-  $CONTRACT_ADDRESS "functionName()(uint256)"
+  $CONTRACT_ADDRESS "getLastMessage()(string)"
 
-# On Dispatch
+# Read from Dispatch
 cast call --rpc-url fuji-dispatch \
-  $CONTRACT_ADDRESS "functionName()(uint256)"
+  $CONTRACT_ADDRESS "getLastMessage()(string)"
 ```
 
-## Cross-Chain Development Notes
+## Development Tips
 
-When developing cross-chain applications:
-
-1. The Teleporter Registry is pre-deployed at `0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf` on both networks
-2. Always use the correct RPC URLs:
-   - Fuji C-Chain: `fuji-c`
-   - Dispatch: `fuji-dispatch`
-3. Store contract addresses after deployment for future interactions
-4. Test cross-chain messaging with small amounts first
+1. Always test cross-chain messaging with small transactions first
+2. Monitor the ICM relayer logs for message delivery status
+3. Use environment variables for blockchain IDs and addresses
+4. Keep track of deployed contract addresses
+5. The Teleporter Registry is pre-deployed at the same address on both networks
 
 ## Learn More
 
-For more detailed information about the tools and concepts used:
+For more detailed information:
 - [Foundry Book](https://book.getfoundry.sh/)
 - [Avalanche Documentation](https://docs.avax.network/)
 - [Teleporter Documentation](https://docs.avax.network/build/cross-chain/teleporter/overview)

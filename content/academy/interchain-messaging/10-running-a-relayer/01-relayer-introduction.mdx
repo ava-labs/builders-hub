@@ -1,12 +1,12 @@
 ---
-title: Running a Relayer
+title: Relayer Introduction
 description: Learn how to run and manage a AWM Relayer.
 updated: 2024-05-31
 authors: [martineckardt]
 icon: Book
 ---
 
-As you now know Interchain Messaging requires a running relayer to deliver the warp messages underlying it. So far we just assumed a relayer is running and in fact Avalanche CLI automatically configures and runs a relayer for you if you deploy your L1 on a local network. However, in a production environment, you will either need to run a relayer yourself or have someone else run it for you.
+As you now know Interchain Messaging requires a running relayer to deliver the warp messages underlying it, so far we just assumed a relayer is running. However, in a production environment, you will either need to run a relayer yourself or have someone else run it for you.
 
 ![AWM Relayer data flow](/course-images/teleporter/teleporter-source-destination-with-relayer.png)
 
@@ -20,7 +20,7 @@ In this section, you will go through the following topics:
 
 - **Run a Relayer:** You will understand the basic commands to run a local relayer.
 - **Relayer Config:** Here, you will understand how to configure the relayer by creating a relayer config file. This file serves as a blueprint for the relayer's functionality and behavior.
-- **Wallet:** Create a wallet for the relayer, fund it with testnet tokens and add the wallet parameter to the relayer config.
+- **Wallet:** A temporary wallet is created automatically for the relayer, fund it with sufficient testnet tokens.
 - **Run the Relayer:** Now you will execute the AWM Relayer with your configuration 
 - **Send Message:** Next you will issue a transaction triggering a cross-Avalanche L1 message, so we can observe how the message is delivered by the relayer.
 - **Verify Message Delivery:** You will learn how you can track the message delivery 

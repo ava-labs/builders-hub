@@ -1,6 +1,6 @@
 ---
-title: Set Up Avalanche Starter Kit
-description: Environment Setup
+title: Initial Setup
+description: Environment and Wallet Setup
 updated: 2024-05-31
 authors: [martineckardt]
 icon: Terminal
@@ -18,12 +18,15 @@ In this course we will run the Avalanche Starter Kit in a hosted environment on 
 <Steps>
 <Step>
 
-### Set Up Avalanche Starter Kit:
-
 ### Create a Codespace
+
+The quickest way to get started is using GitHub Codespaces, which provides a pre-configured development environment:
+
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=interchain-messaging&repo=769886086&machine=standardLinux32gb)
 
-The Codespace will open in a new tab. You must be logged into a GitHub account, otherwise codespaces will not be available. Wait a few minutes until it's fully built. Alternatively, you can also clone the repo:
+Wait a few minutes for the environment to build. You must be logged into GitHub to use Codespaces.
+
+Alternatively, you can clone the repository:
 
 <Link
     href="https://github.com/ava-labs/avalanche-starter-kit/tree/interchain-messaging"
@@ -36,36 +39,81 @@ The Codespace will open in a new tab. You must be logged into a GitHub account, 
 </Step>
 <Step>
 
-### Verify everything is working correctly
+### Install Dependencies
 
-Open the terminal with `` Ctrl + ` `` or by opening it through the menu:
-
-![](/common-images/avalanche-starter-kit/new-terminal.png)
-
-Now enter forge --version to verify everything is working:
+Once your Codespace is ready, install the project dependencies:
 
 ```bash
-forge --version
-```
+forge install
 
-As a result you should see the version of Forge installed:
-
+# Optional: Mute Foundry nightly warning
+export FOUNDRY_DISABLE_NIGHTLY_WARNING=1
 ```
-forge 0.2.0 (...)
-```
-
-If you see this output, Foundry is properly installed and you're ready to start developing smart contracts.
 
 </Step>
 <Step>
 
-### Optional: Open Codespace locally in Visual Studio Code
+### Set Up Core Wallet
 
-You can switch any time from the browser IDE to Visual Studio Code:
+1. Install Core wallet:
+   - Visit [Core wallet website](https://core.app/download)
+   - Download and install for your OS
+   - Create a new wallet or import existing one
 
-![](/course-images/codespaces/open-locally.png)
+2. Get your wallet credentials:
+   - Open Core wallet
+   - Click your account name (top right)
+   - Select "View Private Key"
+   - Enter your password
+   - Copy your:
+     - Account address (0x...)
+     - Private key (0x...)
 
-The first time you switch, you will be asked to install the [Codespaces extension](https://marketplace.visualstudio.com/items?itemName=GitHub.codespaces) and connect VS Code to you GitHub account, if it is not already connceted.
+<Callout type="warning">
+Never share your private key with anyone or commit it to version control. Keep it secure and backed up.
+</Callout>
+
+</Step>
+<Step>
+
+### Configure Environment
+
+1. Create your environment file:
+```bash
+cp .env.example .env
+```
+
+2. Add your Core wallet credentials to `.env`:
+```bash
+# Your private key for signing transactions (for testing only, never use in production)
+PK=your_private_key_here
+
+# Your funded address (the address derived from your private key)
+FUNDED_ADDRESS=your_funded_address_here
+
+# Teleporter and chain configuration 
+TELEPORTER_REGISTRY_FUJI_DISPATCH=your_dispatch_registry_address
+TELEPORTER_REGISTRY_FUJI_C_CHAIN=your_c_chain_registry_address
+
+# Blockchain IDs pre-filled
+FUJI_DISPATCH_BLOCKCHAIN_ID_HEX=0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7
+FUJI_C_CHAIN_BLOCKCHAIN_ID_HEX=0x31233cae135e3974afa396e90f465aa28027de5f97f729238c310d2ed2f71902
+```
+
+3. Load the environment:
+```bash
+source .env
+```
+
+4. Verify your configuration:
+```bash
+# Should show your wallet address
+echo $FUNDED_ADDRESS
+```
+
+<Callout type="warning">
+The private key is for testing only. Never use it in production or share it with anyone.
+</Callout>
 
 </Step>
 </Steps>
