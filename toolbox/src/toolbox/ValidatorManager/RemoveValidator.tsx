@@ -212,7 +212,7 @@ export default function RemoveValidator() {
             throw new Error("Core wallet not found")
           }
 
-          const pChainTxId = await setL1ValidatorWeight(coreWalletClient, {
+          const pChainTxId = await coreWalletClient.setL1ValidatorWeight({
             pChainAddress: pChainAddress!,
             signedWarpMessage: currentSignedWarpMessage,
           })
