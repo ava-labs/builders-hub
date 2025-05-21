@@ -6,21 +6,9 @@ authors: [martineckardt]
 icon: Terminal
 ---
 
-Let's start by deploying the registry contract. The registry will be used to keep track of the latest ICM messenger version and its address.
+The ICM Registry is already deployed on Fuji C-Chain, Dispatch, and Echo networks. You can use it to keep track of the latest ICM messenger version and its address.
 
-<ToolboxMdxWrapper walletMode="l1">
-    <TeleporterRegistry />
-</ToolboxMdxWrapper>
-
-Once the registry is deployed, copy both contract addresses and add them to your `.env` file, do this on the **avalanche-starter-kit/interchain-messaging**:
-
-```bash
-echo "TELEPORTER_REGISTRY_FUJI_DISPATCH=<your-dispatch-registry-address>" >> .env
-echo "TELEPORTER_REGISTRY_FUJI_C_CHAIN=<your-c-chain-registry-address>" >> .env
-source .env
-```
-
-### Retrieve Latest ICM Messenger Version:
+### Retrieve Latest ICM Messenger Version
 
 Let's interact with the Registry by getting the latest version of the Interchain Messaging Messenger deployed on Fuji C-Chain:
 

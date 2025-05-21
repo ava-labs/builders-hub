@@ -16,7 +16,7 @@ import "@teleporter/ITeleporterMessenger.sol";
 
 contract SenderOnCChain {
     // The Interchain Messaging registry contract manages different Interchain Messaging contract versions. // [!code highlight:3]
-    TeleporterRegistry public immutable teleporterRegistry = TeleporterRegistry(0x827364Da64e8f8466c23520d81731e94c8DDe510);
+    TeleporterRegistry public immutable teleporterRegistry = TeleporterRegistry(0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228);
 
     /**
      * @dev Sends a message to another chain.
@@ -38,8 +38,6 @@ contract SenderOnCChain {
     }
 }
 ```
-
-<Callout type="warn" title="Don't forget to replace the Teleporter Registry with the new deployed address!" />
 
 The key things to understand:
 

@@ -41,7 +41,7 @@ import "@teleporter/ITeleporterReceiver.sol";
 contract ReceiverOnDispatchWithRegistry is ITeleporterReceiver {
     // The Interchain Messaging registry contract manages different Interchain Messaging contract versions.
     TeleporterRegistry public immutable teleporterRegistry = // [!code highlight:2]
-        TeleporterRegistry(0x827364Da64e8f8466c23520d81731e94c8DDe510); 
+        TeleporterRegistry(0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228); 
 
     string public lastMessage;
 
@@ -54,6 +54,3 @@ contract ReceiverOnDispatchWithRegistry is ITeleporterReceiver {
         lastMessage = abi.decode(message, (string));
     }
 }
-```
-
-<Callout type="warn" title="Don't forget to replace the Teleporter Registry with the new deployed address!" />
