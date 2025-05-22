@@ -3,7 +3,7 @@
 import { Button } from "../components/Button";
 import { ErrorBoundary } from "react-error-boundary";
 import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
-import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { GithubLink } from "../components/GithubLink";
 import { ErrorFallback } from "../components/ErrorFallback";
 import { ErrorBoundaryWithWarning } from "../components/ErrorBoundaryWithWarning";
@@ -15,7 +15,7 @@ import { resetAllStores } from "../stores/reset";
 type ComponentType = {
   id: string;
   label: string;
-  component: React.LazyExoticComponent<(props?: any) => ReactElement | null>;
+  component: React.LazyExoticComponent<React.ComponentType<any>>;
   fileNames: string[];
   walletMode: WalletMode;
 }
@@ -390,6 +390,17 @@ const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./Conversion/UnitConverter')),
         fileNames: [],
         walletMode: "optional",
+      }
+    ]
+  },
+  'Expert Tools': {
+    components: [
+      {
+        id: 'changeWeightExpert',
+        label: "Change Weight (Expert)",
+        component: lazy(() => import('./ValidatorManager/ChangeWeightExpert')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeightExpert.tsx"],
+        walletMode: "l1"
       }
     ]
   },
