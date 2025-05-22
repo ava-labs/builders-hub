@@ -237,7 +237,6 @@ export default function RemoveValidator() {
           }
 
           const justification = await GetRegistrationJustification(
-            validationSelection.nodeId,
             currentValidationID,
             signingSubnetId || subnetId,
             publicClient

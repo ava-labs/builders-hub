@@ -394,7 +394,6 @@ export default function ChangeWeight() {
           if (!eventDataForPacking) throw new Error("Event data missing. Retry step 1.")
 
           const justification = await GetRegistrationJustification(
-            validation.nodeId,
             validation.validationId,
             subnetId,
             publicClient
