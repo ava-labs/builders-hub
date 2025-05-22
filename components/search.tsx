@@ -9,5 +9,19 @@ const trieveClient = new TrieveSDK({
 });
 
 export default function CustomSearchDialog(props: SharedProps) {
-    return <SearchDialog trieveClient={trieveClient} {...props} />;
+    return <SearchDialog trieveClient={trieveClient} {...props}   defaultTag="Docs"
+  tags={[
+    {
+      name: 'Docs',
+      value: 'docs',
+    },
+    {
+      name: 'Academy',
+      value: 'academy',
+    },
+    {
+      name: 'Integrations & Guides',
+      value: 'ig',
+    },
+  ]}/>;
 }
