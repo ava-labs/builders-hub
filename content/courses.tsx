@@ -43,7 +43,7 @@ const officialCourses: Course[] = [
         icon: <MailIcon />,
         status: "featured",
         duration: "3 hours",
-        tools: ["Avalanche CLI"],
+        tools: ["L1 Toolbox", "Docker"],
         languages: ["Solidity"],
         instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Nicolas Arnedo"] // + Usman
     },

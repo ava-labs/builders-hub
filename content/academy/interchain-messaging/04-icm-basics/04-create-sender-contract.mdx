@@ -72,7 +72,7 @@ forge create --rpc-url fuji-c --private-key $PK contracts/interchain-messaging/s
 [⠢] Solc 0.8.18 finished in 81.53ms
 Compiler run successful!
 Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC // [$FUNDED_ADDRESS]
-Deployed to: 0x5DB9A7629912EBF95876228C24A848de0bfB43A9 // [!code highlight]
+Deployed to: 0x5DB9A7629912EBF95876228C24A848de0bfB43A9 // [$SENDER_ADDRESS]
 Transaction hash: 0xcde7873e9e3c68fb00a2ad6644dceb64a01a41941da46de5a0f559d6d70a1638
 ```
 </Step>
@@ -83,7 +83,7 @@ Transaction hash: 0xcde7873e9e3c68fb00a2ad6644dceb64a01a41941da46de5a0f559d6d70a
 Then save the sender contract address in an environment variable:
 
 ```bash
-export SENDER_ADDRESS=0x5DB9A7629912EBF95876228C24A848de0bfB43A9
+export SENDER_ADDRESS={your-sender-address}
 ```
 
 </Step>

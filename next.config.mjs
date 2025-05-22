@@ -93,7 +93,7 @@ const config = {
         permanent: true,
       }, {
         source: '/academy/interchain-messaging/10-running-a-relayer/06-analyze-relayer-logs',
-        destination: '/academy/interchain-messaging/10-running-a-relayer/04-analyze-relayer-logs',
+        destination: '/academy/interchain-messaging/10-running-a-relayer/03-configure-and-run-the-relayer',
         permanent: true,
       }, {
         source: '/academy/interchain-messaging/03-avalanche-starter-kit/03-create-blockchain',

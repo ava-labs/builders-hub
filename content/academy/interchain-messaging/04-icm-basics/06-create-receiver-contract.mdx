@@ -64,8 +64,8 @@ forge create --rpc-url fuji-dispatch --private-key $PK contracts/interchain-mess
 [⠢] Compiling 2 files with Solc 0.8.18
 [⠆] Solc 0.8.18 finished in 158.51ms
 Compiler run successful!
-Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-Deployed to: 0x52C84043CD9c865236f11d9Fc9F56aa003c1f922 // [!code highlight]
+Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC // [$FUNDED_ADDRESS]
+Deployed to: 0x52C84043CD9c865236f11d9Fc9F56aa003c1f922 // [$RECEIVER_ADDRESS]
 Transaction hash: 0x48a1ffaa8aa8011f842147a908ff35a1ebfb75a5a07eb37ae96a4cc8d7feafd7
 ```
 
@@ -77,7 +77,7 @@ Transaction hash: 0x48a1ffaa8aa8011f842147a908ff35a1ebfb75a5a07eb37ae96a4cc8d7fe
 Then save the receiver contract address in an environment variable:
 
 ```bash
-export RECEIVER_ADDRESS=0x52C84043CD9c865236f11d9Fc9F56aa003c1f922
+export RECEIVER_ADDRESS={your-receiver-address}
 ```
 
 </Step>
