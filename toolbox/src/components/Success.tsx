@@ -17,7 +17,8 @@ export const Success = ({ label, value }: SuccessProps) => {
         setTimeout(() => setCopied(false), 1500);
     };
 
-    const showCopy = isAddress(value) || isHash(value);
+    const isPChainTxId = /^[1-9A-HJ-NP-Za-km-z]{40,60}$/.test(value);
+    const showCopy = isAddress(value) || isHash(value) || isPChainTxId;
 
     return (
         <div className="p-6 bg-green-50 dark:bg-green-900/30 rounded-xl shadow-md flex items-center space-x-4">
