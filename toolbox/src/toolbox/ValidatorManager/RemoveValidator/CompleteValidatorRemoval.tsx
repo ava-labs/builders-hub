@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
 import { useValidatorManagerDetails } from '../../hooks/useValidatorManagerDetails';
@@ -52,6 +52,13 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   } | null>(null);
 
   const networkName = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'fuji';
+
+  // Update pChainTxId when the prop changes
+  useEffect(() => {
+    if (initialPChainTxId && initialPChainTxId !== pChainTxId) {
+      setPChainTxId(initialPChainTxId);
+    }
+  }, [initialPChainTxId]);
 
   const handleCompleteRemoval = async () => {
     setErrorState(null);

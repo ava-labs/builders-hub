@@ -10,7 +10,7 @@ import { Success } from '../../../components/Success';
 
 import InitiateValidatorRegistration from './InitiateValidatorRegistration';
 import SubmitPChainTxRegisterL1Validator from './SubmitPChainTxRegisterL1Validator';
-import CompleteRegisterValidator from './CompleteRegisterValidator';
+import CompleteValidatorRegistration from './CompleteValidatorRegistration';
 import { ConvertToL1Validator } from '../../../components/ValidatorListInput';
 import { useCreateChainStore } from '../../../stores/createChainStore';
 
@@ -22,6 +22,7 @@ const AddValidatorExpert: React.FC = () => {
   const [pChainTxId, setPChainTxId] = useState<string>('');
   const [validatorBalance, setValidatorBalance] = useState<string>('');
   const [blsProofOfPossession, setBlsProofOfPossession] = useState<string>('');
+  const [evmTxHash, setEvmTxHash] = useState<string>('');
 
   // Form state
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
@@ -43,6 +44,7 @@ const AddValidatorExpert: React.FC = () => {
     setPChainTxId('');
     setValidatorBalance('');
     setBlsProofOfPossession('');
+    setEvmTxHash('');
     setSubnetIdL1('');
     setValidators([]);
     setResetInitiateForm(true);
@@ -98,6 +100,7 @@ const AddValidatorExpert: React.FC = () => {
               onSuccess={(data) => {
                 setValidatorBalance(data.validatorBalance);
                 setBlsProofOfPossession(data.blsProofOfPossession);
+                setEvmTxHash(data.txHash);
                 setGlobalError(null);
                 setResetInitiateForm(false);
               }}
@@ -115,6 +118,7 @@ const AddValidatorExpert: React.FC = () => {
               subnetIdL1={subnetIdL1}
               validatorBalance={validatorBalance}
               blsProofOfPossession={blsProofOfPossession}
+              evmTxHash={evmTxHash}
               onSuccess={(pChainTxId) => {
                 setPChainTxId(pChainTxId);
                 setGlobalError(null);
@@ -128,9 +132,10 @@ const AddValidatorExpert: React.FC = () => {
             <p className="text-sm text-gray-500 mb-4">
               Complete the validator registration by signing the P-Chain warp message.
             </p>
-            <CompleteRegisterValidator
+            <CompleteValidatorRegistration
               key={`complete-registration-${resetKey}`}
               subnetIdL1={subnetIdL1}
+              pChainTxId={pChainTxId}
               onSuccess={(message) => {
                 setGlobalSuccess(message);
                 setGlobalError(null);

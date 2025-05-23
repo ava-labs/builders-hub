@@ -18,6 +18,7 @@ const ChangeWeightStateless: React.FC = () => {
   const [globalSuccess, setGlobalSuccess] = useState<string | null>(null);
 
   // State for passing data between components
+  const [evmTxHash, setEvmTxHash] = useState<string>('');
   const [pChainTxId, setPChainTxId] = useState<string>('');
 
   // Form state
@@ -39,6 +40,7 @@ const ChangeWeightStateless: React.FC = () => {
   const handleReset = () => {
     setGlobalError(null);
     setGlobalSuccess(null);
+    setEvmTxHash('');
     setPChainTxId('');
     setSubnetIdL1('');
     setNodeId('');
@@ -100,6 +102,7 @@ const ChangeWeightStateless: React.FC = () => {
                 setNodeId(data.nodeId);
                 setValidationId(data.validationId);
                 setNewWeight(data.weight);
+                setEvmTxHash(data.txHash);
                 setGlobalError(null);
                 setResetInitiateForm(false);
               }}
@@ -115,6 +118,7 @@ const ChangeWeightStateless: React.FC = () => {
             <SubmitPChainTxChangeWeight
               key={`submit-pchain-${resetKey}`}
               subnetIdL1={subnetIdL1}
+              initialEvmTxHash={evmTxHash}
               onSuccess={(pChainTxId) => {
                 setPChainTxId(pChainTxId);
                 setGlobalError(null);
@@ -131,6 +135,7 @@ const ChangeWeightStateless: React.FC = () => {
             <CompleteChangeWeight
               key={`complete-change-${resetKey}`}
               subnetIdL1={subnetIdL1}
+              initialPChainTxId={pChainTxId}
               onSuccess={(message) => {
                 setGlobalSuccess(message);
                 setGlobalError(null);
@@ -147,7 +152,7 @@ const ChangeWeightStateless: React.FC = () => {
           />
         )}
 
-        {(pChainTxId || globalError || globalSuccess) && (
+        {(evmTxHash || pChainTxId || globalError || globalSuccess) && (
           <Button onClick={handleReset} className="mt-6">
             Reset All Steps
           </Button>

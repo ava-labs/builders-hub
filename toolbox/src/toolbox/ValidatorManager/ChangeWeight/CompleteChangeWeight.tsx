@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
 import { useValidatorManagerDetails } from '../../hooks/useValidatorManagerDetails';
@@ -17,18 +17,20 @@ import { Success } from '../../../components/Success';
 
 interface CompleteChangeWeightProps {
   subnetIdL1: string;
+  initialPChainTxId?: string;
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
 }
 
 const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
   subnetIdL1,
+  initialPChainTxId,
   onSuccess,
   onError,
 }) => {
   const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
   const viemChain = useViemChainStore();
-  const [pChainTxId, setPChainTxId] = useState('');
+  const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
   const { validatorManagerAddress, signingSubnetId } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -43,6 +45,13 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
   } | null>(null);
 
   const networkName = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'fuji';
+
+  // Update pChainTxId when initialPChainTxId prop changes
+  useEffect(() => {
+    if (initialPChainTxId && initialPChainTxId !== pChainTxId) {
+      setPChainTxId(initialPChainTxId);
+    }
+  }, [initialPChainTxId]);
 
   const handleCompleteChangeWeight = async () => {
     setErrorState(null);

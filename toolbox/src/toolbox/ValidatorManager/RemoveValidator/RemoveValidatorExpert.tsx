@@ -14,7 +14,7 @@ import { useValidatorManagerDetails } from "../../hooks/useValidatorManagerDetai
 
 import InitiateValidatorRemoval from "./InitiateValidatorRemoval"
 import CompleteValidatorRemoval from "./CompleteValidatorRemoval"
-import SubmitPChainTxChangeWeight from "../ChangeWeight/SubmitPChainTxChangeWeight"
+import SubmitPChainTxRemoval from "./SubmitPChainTxRemoval"
 import { Step, Steps } from "fumadocs-ui/components/steps"
 
 type RemovalStep = "initiate" | "pchain" | "complete"
@@ -30,6 +30,7 @@ const RemoveValidatorExpert: React.FC = () => {
   })
 
   const [pChainTxId, setPChainTxId] = useState<string>("")
+  const [initiateRemovalTxHash, setInitiateRemovalTxHash] = useState<string>("")
   
   const [currentStep, setCurrentStep] = useState<RemovalStep>("initiate")
   const [componentKey, setComponentKey] = useState<number>(0)
@@ -66,6 +67,8 @@ const RemoveValidatorExpert: React.FC = () => {
   const handleReset = () => {
     setCurrentStep("initiate")
     setValidationSelection({ validationId: "", nodeId: "" })
+    setInitiateRemovalTxHash("")
+    setPChainTxId("")
     setGlobalError(null)
     setGlobalSuccess(null)
     setComponentKey(prevKey => prevKey + 1)
@@ -121,6 +124,7 @@ const RemoveValidatorExpert: React.FC = () => {
               initialValidationId={validationSelection.validationId}
               onSuccess={(data) => {
                 setValidationSelection(data)
+                setInitiateRemovalTxHash(data.txHash)
                 setCurrentStep("pchain")
                 setGlobalError(null)
               }}
@@ -133,9 +137,10 @@ const RemoveValidatorExpert: React.FC = () => {
             <p className="text-sm text-gray-500 mb-4">
               Sign the warp message and submit the removal transaction to the P-Chain.
             </p>
-            <SubmitPChainTxChangeWeight
+            <SubmitPChainTxRemoval
               key={`submit-pchain-${componentKey}`}
               subnetIdL1={subnetIdL1}
+              initialEvmTxHash={initiateRemovalTxHash}
               onSuccess={(pChainTxId) => {
                 setPChainTxId(pChainTxId)
                 setCurrentStep("complete")

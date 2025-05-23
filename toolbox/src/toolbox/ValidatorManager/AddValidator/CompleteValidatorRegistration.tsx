@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
 import { useValidatorManagerDetails } from '../../hooks/useValidatorManagerDetails';
@@ -15,20 +15,22 @@ import { hexToBytes, bytesToHex } from 'viem';
 import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/ValidatorManager.json';
 import { packL1ValidatorRegistration } from '../../../coreViem/utils/convertWarp';
 
-interface CompleteRegisterValidatorProps {
+interface CompleteValidatorRegistrationProps {
   subnetIdL1: string;
+  pChainTxId?: string;
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
 }
 
-const CompleteRegisterValidator: React.FC<CompleteRegisterValidatorProps> = ({
+const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps> = ({
   subnetIdL1,
+  pChainTxId,
   onSuccess,
   onError,
 }) => {
   const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
   const viemChain = useViemChainStore();
-  const [pChainTxId, setPChainTxId] = useState('');
+  const [pChainTxIdState, setPChainTxId] = useState(pChainTxId || '');
   const { validatorManagerAddress, signingSubnetId } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -47,11 +49,18 @@ const CompleteRegisterValidator: React.FC<CompleteRegisterValidatorProps> = ({
 
   const networkName = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'fuji';
 
+  // Initialize state with prop value when it becomes available
+  useEffect(() => {
+    if (pChainTxId && !pChainTxIdState) {
+      setPChainTxId(pChainTxId);
+    }
+  }, [pChainTxId, pChainTxIdState]);
+
   const handleCompleteRegisterValidator = async () => {
     setErrorState(null);
     setSuccessMessage(null);
 
-    if (!pChainTxId.trim()) {
+    if (!pChainTxIdState.trim()) {
       setErrorState("P-Chain transaction ID is required.");
       onError("P-Chain transaction ID is required.");
       return;
@@ -76,7 +85,7 @@ const CompleteRegisterValidator: React.FC<CompleteRegisterValidatorProps> = ({
     try {
       // Step 1: Extract RegisterL1ValidatorMessage from P-Chain transaction
       const registrationMessageData = await extractRegisterL1ValidatorMessage(coreWalletClient, {
-        txId: pChainTxId
+        txId: pChainTxIdState
       });
 
       setExtractedData({
@@ -206,7 +215,7 @@ const CompleteRegisterValidator: React.FC<CompleteRegisterValidatorProps> = ({
 
       <Input
         label="P-Chain Transaction ID"
-        value={pChainTxId}
+        value={pChainTxIdState}
         onChange={setPChainTxId}
         placeholder="Enter the P-Chain transaction ID from step 2"
         disabled={isProcessing}
@@ -232,7 +241,7 @@ const CompleteRegisterValidator: React.FC<CompleteRegisterValidatorProps> = ({
       
       <Button 
         onClick={handleCompleteRegisterValidator} 
-        disabled={isProcessing || !pChainTxId.trim() || !!successMessage}
+        disabled={isProcessing || !pChainTxIdState.trim() || !!successMessage}
       >
         {isProcessing ? 'Processing...' : 'Sign & Complete Validator Registration'}
       </Button>
@@ -247,4 +256,4 @@ const CompleteRegisterValidator: React.FC<CompleteRegisterValidatorProps> = ({
   );
 };
 
-export default CompleteRegisterValidator;
+export default CompleteValidatorRegistration;

@@ -12,6 +12,7 @@ interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
   validatorBalance?: string;
   blsProofOfPossession?: string;
+  evmTxHash?: string;
   onSuccess: (pChainTxId: string) => void;
   onError: (message: string) => void;
 }
@@ -20,11 +21,12 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   subnetIdL1,
   validatorBalance,
   blsProofOfPossession,
+  evmTxHash,
   onSuccess,
   onError,
 }) => {
   const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore();
-  const [evmTxHash, setEvmTxHash] = useState('');
+  const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
   const [balance, setBalance] = useState('');
   const [blsProofOfPossessionState, setBlsProofOfPossessionState] = useState('');
   const { signingSubnetId } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
@@ -48,7 +50,10 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     if (blsProofOfPossession && !blsProofOfPossessionState) {
       setBlsProofOfPossessionState(blsProofOfPossession);
     }
-  }, [validatorBalance, blsProofOfPossession, balance, blsProofOfPossessionState]);
+    if (evmTxHash && !evmTxHashState) {
+      setEvmTxHashState(evmTxHash);
+    }
+  }, [validatorBalance, blsProofOfPossession, evmTxHash, balance, blsProofOfPossessionState, evmTxHashState]);
 
   const validateAndCleanTxHash = (hash: string): `0x${string}` | null => {
     if (!hash) return null;
@@ -79,7 +84,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   // Extract warp message when transaction hash changes
   useEffect(() => {
     const extractWarpMessage = async () => {
-      const validTxHash = validateAndCleanTxHash(evmTxHash);
+      const validTxHash = validateAndCleanTxHash(evmTxHashState);
       if (!publicClient || !validTxHash) {
         setUnsignedWarpMessage(null);
         setSignedWarpMessage(null);
@@ -104,7 +109,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     };
 
     extractWarpMessage();
-  }, [evmTxHash, publicClient]);
+  }, [evmTxHashState, publicClient]);
 
   const handleSubmitPChainTx = async () => {
     setErrorState(null);
@@ -113,7 +118,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     // Validate all inputs
     const balanceValidation = validateBalance(balance);
     const blsValidation = validateBlsProofOfPossession(blsProofOfPossessionState || '');
-    const evmTxValidation = !evmTxHash.trim() ? "EVM transaction hash is required" : null;
+    const evmTxValidation = !evmTxHashState.trim() ? "EVM transaction hash is required" : null;
     
     setBalanceError(balanceValidation);
     setBlsError(blsValidation);
@@ -193,7 +198,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   };
 
   const handleTxHashChange = (value: string) => {
-    setEvmTxHash(value);
+    setEvmTxHashState(value);
     setEvmTxHashError(null);
     setErrorState(null);
     setTxSuccess(null);
@@ -227,7 +232,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     <div className="space-y-4">
       <Input
         label="EVM Transaction Hash"
-        value={evmTxHash}
+        value={evmTxHashState}
         onChange={handleTxHashChange}
         placeholder="Enter the transaction hash from step 1 (0x...)"
         disabled={isProcessing || txSuccess !== null}
@@ -263,7 +268,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       
       <Button 
         onClick={handleSubmitPChainTx} 
-        disabled={isProcessing || !evmTxHash.trim() || !balance.trim() || !blsProofOfPossessionState || !unsignedWarpMessage || txSuccess !== null}
+        disabled={isProcessing || !evmTxHashState.trim() || !balance.trim() || !blsProofOfPossessionState || !unsignedWarpMessage || txSuccess !== null}
       >
         {isProcessing ? 'Processing...' : 'Sign & Submit to P-Chain'}
       </Button>

@@ -8,19 +8,19 @@ import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
 import { networkIDs } from '@avalabs/avalanchejs';
 
-interface SubmitPChainTxChangeWeightProps {
+interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
   initialEvmTxHash?: string;
   onSuccess: (pChainTxId: string, eventData: {
     validationID: `0x${string}`;
-    nonce: bigint;
+    validatorWeightMessageID: `0x${string}`;
     weight: bigint;
-    messageID: `0x${string}`;
+    endTime: bigint;
   }) => void;
   onError: (message: string) => void;
 }
 
-const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
+const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   subnetIdL1,
   initialEvmTxHash,
   onSuccess,
@@ -36,9 +36,9 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
   const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
   const [eventData, setEventData] = useState<{
     validationID: `0x${string}`;
-    nonce: bigint;
+    validatorWeightMessageID: `0x${string}`;
     weight: bigint;
-    messageID: `0x${string}`;
+    endTime: bigint;
   } | null>(null);
 
   const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
@@ -75,30 +75,122 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
           throw new Error("Failed to get warp message from transaction receipt.");
         }
 
+        console.log("🔍 [SubmitPChainTxRemoval] Transaction receipt:", receipt);
+        console.log("🔍 [SubmitPChainTxRemoval] Number of logs:", receipt.logs.length);
+        
+        // Log all event topics for debugging
+        receipt.logs.forEach((log, index) => {
+          console.log(`🔍 [SubmitPChainTxRemoval] Log ${index}:`, {
+            address: log.address,
+            topics: log.topics,
+            data: log.data?.substring(0, 100) + "...",
+          });
+        });
+
         const unsignedWarpMessage = receipt.logs[0].data;
         setUnsignedWarpMessage(unsignedWarpMessage);
 
-        // Extract event data
-        const eventTopic = "0x6e350dd49b060d87f297206fd309234ed43156d890ced0f139ecf704310481d3";
-        const eventLog = receipt.logs.find((log) => {
-          return log && log.topics && log.topics[0] && log.topics[0].toLowerCase() === eventTopic.toLowerCase();
+        // Extract event data for both InitiatedValidatorRemoval and InitiatedValidatorWeightUpdate
+        // InitiatedValidatorRemoval: when initiateValidatorRemoval is used
+        // InitiatedValidatorWeightUpdate: when resendValidatorRemovalMessage is used (fallback)
+        const removalEventTopic = "0x9e51aa28092b7ac0958967564371c129b31b238c0c0bdb0eb9cb4d1e40d724dc";
+        const weightUpdateEventTopic = "0x6e350dd49b060d87f297206fd309234ed43156d890ced0f139ecf704310481d3";
+        const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
+        const warpPrecompileAddress = "0x0200000000000000000000000000000000000005";
+        
+        console.log("🔍 [SubmitPChainTxRemoval] Looking for event topics:");
+        console.log("🔍 [SubmitPChainTxRemoval] - InitiatedValidatorRemoval:", removalEventTopic);
+        console.log("🔍 [SubmitPChainTxRemoval] - InitiatedValidatorWeightUpdate:", weightUpdateEventTopic);
+        console.log("🔍 [SubmitPChainTxRemoval] - Warp Message:", warpMessageTopic);
+        
+        // First try to find the Warp message event from the precompile
+        let eventLog = receipt.logs.find((log) => {
+          return log && log.address && log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
+                 log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
         });
 
-        if (!eventLog) {
-          throw new Error("Failed to find InitiatedValidatorWeightUpdate event log.");
+        let isWarpMessageEvent = false;
+        let isWeightUpdateEvent = false;
+        
+        if (eventLog) {
+          console.log("🔍 [SubmitPChainTxRemoval] Found Warp message event from precompile");
+          isWarpMessageEvent = true;
+        } else {
+          // Fallback to looking for validator manager events
+          eventLog = receipt.logs.find((log) => {
+            return log && log.topics && log.topics[0] && log.topics[0].toLowerCase() === removalEventTopic.toLowerCase();
+          });
+
+          if (!eventLog) {
+            console.log("🔍 [SubmitPChainTxRemoval] InitiatedValidatorRemoval event not found, trying InitiatedValidatorWeightUpdate...");
+            // Try to find InitiatedValidatorWeightUpdate event (for resend fallback)
+            eventLog = receipt.logs.find((log) => {
+              return log && log.topics && log.topics[0] && log.topics[0].toLowerCase() === weightUpdateEventTopic.toLowerCase();
+            });
+            isWeightUpdateEvent = true;
+          } else {
+            console.log("🔍 [SubmitPChainTxRemoval] Found InitiatedValidatorRemoval event");
+          }
+
+          if (!eventLog) {
+            console.error("🔍 [SubmitPChainTxRemoval] No matching event found. Available topics:");
+            receipt.logs.forEach((log, index) => {
+              if (log.topics && log.topics[0]) {
+                console.error(`🔍 [SubmitPChainTxRemoval] Log ${index} topic[0]:`, log.topics[0]);
+              }
+            });
+            throw new Error("Failed to find InitiatedValidatorRemoval, InitiatedValidatorWeightUpdate, or Warp message event log.");
+          }
         }
 
-        const dataWithoutPrefix = eventLog.data.slice(2);
-        const nonce = BigInt("0x" + dataWithoutPrefix.slice(0, 64));
-        const messageID = "0x" + dataWithoutPrefix.slice(64, 128);
-        const weight = BigInt("0x" + dataWithoutPrefix.slice(128, 192));
+        console.log("🔍 [SubmitPChainTxRemoval] Found event log:", {
+          isWarpMessageEvent,
+          address: eventLog.address,
+          topics: eventLog.topics,
+          data: eventLog.data?.substring(0, 100) + "...",
+        });
 
-        const parsedEventData = {
-          validationID: eventLog.topics[1] as `0x${string}`,
-          nonce,
-          messageID: messageID as `0x${string}`,
-          weight,
-        };
+        // For Warp message events, we don't need to parse event data - we just need the warp message
+        let parsedEventData;
+        if (isWarpMessageEvent) {
+          console.log("🔍 [SubmitPChainTxRemoval] Using Warp message event - creating minimal event data");
+          // For Warp message events, create minimal event data since we mainly need the warp message
+          parsedEventData = {
+            validationID: eventLog.topics[2] as `0x${string}`, // validation ID might be in topics[2]
+            validatorWeightMessageID: eventLog.topics[1] as `0x${string}`, // message ID in topics[1]
+            weight: BigInt(0), // Weight not available in warp message event
+            endTime: BigInt(0), // End time not available in warp message event
+          };
+        } else if (isWeightUpdateEvent) {
+          console.log("🔍 [SubmitPChainTxRemoval] Parsing as InitiatedValidatorWeightUpdate event");
+          // InitiatedValidatorWeightUpdate(bytes32 indexed validationID, uint64 nonce, bytes32 weightUpdateMessageID, uint64 weight)
+          const dataWithoutPrefix = eventLog.data.slice(2);
+          const messageID = "0x" + dataWithoutPrefix.slice(64, 128);
+          const weight = BigInt("0x" + dataWithoutPrefix.slice(128, 192));
+
+          parsedEventData = {
+            validationID: eventLog.topics[1] as `0x${string}`,
+            validatorWeightMessageID: messageID as `0x${string}`,
+            weight,
+            endTime: BigInt(0), // Not available in weight update event
+          };
+        } else {
+          console.log("🔍 [SubmitPChainTxRemoval] Parsing as InitiatedValidatorRemoval event");
+          // InitiatedValidatorRemoval(bytes32 indexed validationID, bytes32 validatorWeightMessageID, uint64 weight, uint64 endTime)
+          const dataWithoutPrefix = eventLog.data.slice(2);
+          const validatorWeightMessageID = "0x" + dataWithoutPrefix.slice(0, 64);
+          const weight = BigInt("0x" + dataWithoutPrefix.slice(64, 128));
+          const endTime = BigInt("0x" + dataWithoutPrefix.slice(128, 192));
+
+          parsedEventData = {
+            validationID: eventLog.topics[1] as `0x${string}`,
+            validatorWeightMessageID: validatorWeightMessageID as `0x${string}`,
+            weight,
+            endTime,
+          };
+        }
+        
+        console.log("🔍 [SubmitPChainTxRemoval] Parsed event data:", parsedEventData);
         setEventData(parsedEventData);
         setErrorState(null);
       } catch (err: any) {
@@ -251,4 +343,4 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
   );
 };
 
-export default SubmitPChainTxChangeWeight; 
+export default SubmitPChainTxRemoval; 

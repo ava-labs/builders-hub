@@ -110,6 +110,69 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
     setIsProcessing(true);
     try {
+      // First, simulate the transaction
+      let simulationFailed = false;
+      try {
+        await publicClient.simulateContract({
+          address: validatorManagerAddress as `0x${string}`,
+          abi: validatorManagerAbi.abi,
+          functionName: 'initiateValidatorRemoval',
+          args: [validation.validationId],
+          account: coreWalletClient.account,
+        });
+      } catch (simulationError: any) {
+        console.warn("Transaction simulation failed, attempting fallback:", simulationError);
+        simulationFailed = true;
+        setErrorState("Transaction simulation failed. Attempting fallback method...");
+      }
+
+      // If simulation failed, try the fallback method immediately
+      if (simulationFailed) {
+        try {
+          // Use resendValidatorRemovalMessage as fallback
+          const fallbackHash = await coreWalletClient.writeContract({
+            address: validatorManagerAddress as `0x${string}`,
+            abi: validatorManagerAbi.abi,
+            functionName: 'resendValidatorRemovalMessage',
+            args: [validation.validationId],
+            account: coreWalletClient.account,
+            chain: viemChain
+          });
+
+          const fallbackReceipt = await publicClient.waitForTransactionReceipt({ hash: fallbackHash });
+          
+          if (fallbackReceipt.status === 'reverted') {
+            setErrorState(`Fallback transaction reverted. Hash: ${fallbackHash}`);
+            onError(`Fallback transaction reverted. Hash: ${fallbackHash}`);
+            return;
+          }
+
+          setTxSuccess(`Fallback transaction successful! Hash: ${fallbackHash}`);
+          onSuccess({ 
+            txHash: fallbackHash,
+            nodeId: validation.nodeId,
+            validationId: validation.validationId,
+          });
+          return;
+        } catch (fallbackError: any) {
+          let fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          
+          // Handle specific fallback error types
+          if (fallbackMessage.includes('User rejected')) {
+            fallbackMessage = 'Fallback transaction was rejected by user';
+          } else if (fallbackMessage.includes('insufficient funds')) {
+            fallbackMessage = 'Insufficient funds for fallback transaction';
+          } else if (fallbackMessage.includes('execution reverted')) {
+            fallbackMessage = `Fallback transaction reverted: ${fallbackMessage}`;
+          }
+          
+          setErrorState(`Fallback method failed: ${fallbackMessage}`);
+          onError(`Fallback method failed: ${fallbackMessage}`);
+          return;
+        }
+      }
+
+      // If simulation succeeded, proceed with original transaction
       const removeValidatorTx = await coreWalletClient.writeContract({
         address: validatorManagerAddress as `0x${string}`,
         abi: validatorManagerAbi.abi,
@@ -180,14 +243,6 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
           Select the validator you want to remove by its Validation ID
         </p>
       </div>
-
-      {validation.validationId && validation.nodeId && (
-        <div className="text-sm text-zinc-600 dark:text-zinc-400">
-          <p><strong>Selected Validator:</strong></p>
-          <p><strong>Node ID:</strong> {validation.nodeId}</p>
-          <p><strong>Validation ID:</strong> {validation.validationId}</p>
-        </div>
-      )}
 
       {isContractOwner === false && (
         <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
