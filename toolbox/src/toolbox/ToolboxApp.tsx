@@ -144,6 +144,13 @@ const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./Nodes/BalanceTopup')),
         fileNames: ["toolbox/src/toolbox/Nodes/BalanceTopup.tsx"],
         walletMode: "c-chain"
+      },
+      {
+        id: "transferOwnership",
+        label: "Transfer Ownership",
+        component: lazy(() => import('./StakingManager/TransferOwnership')),
+        fileNames: ["toolbox/src/toolbox/StakingManager/TransferOwnership.tsx"],
+        walletMode: "l1"
       }
     ]
   },
@@ -174,13 +181,6 @@ const componentGroups: Record<string, ComponentGroupType> = {
         fileNames: ["toolbox/src/toolbox/StakingManager/Initialize.tsx"],
         walletMode: "l1"
       },
-      {
-        id: "transferOwnership",
-        label: "Transfer Validator Manager Ownership",
-        component: lazy(() => import('./StakingManager/TransferOwnership')),
-        fileNames: ["toolbox/src/toolbox/StakingManager/TransferOwnership.tsx"],
-        walletMode: "l1"
-      }
     ]
   },
   "Interchain Messaging (ICM)": {
