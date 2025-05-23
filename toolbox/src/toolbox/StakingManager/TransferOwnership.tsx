@@ -49,7 +49,7 @@ export default function TransferOwnership() {
 
         <Container
             title="Transfer Validator Manager Ownership"
-            description="This will transfer the ownership of the Validator Manager to the Staking Manager."
+            description="This will transfer the ownership of the Validator Manager to a new address, which could be a staking manager or another account."
         >
             <div className="space-y-4">
                 <EVMAddressInput
@@ -59,7 +59,7 @@ export default function TransferOwnership() {
                     disabled={isTransferring}
                 />
                 <EVMAddressInput
-                    label="Staking Manager Address"
+                    label="New Owner Address"
                     value={stakingManagerAddress}
                     onChange={setStakingManagerAddress}
                     disabled={isTransferring}
