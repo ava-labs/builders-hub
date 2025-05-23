@@ -396,14 +396,39 @@ const componentGroups: Record<string, ComponentGroupType> = {
   'Expert Tools': {
     components: [
       {
+        id: 'addValidatorExpert',
+        label: "Add Validator (Expert)",
+        component: lazy(() => import('./ValidatorManager/AddValidator/AddValidatorExpert')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/AddValidator/AddValidatorExpert.tsx"],
+        walletMode: "l1"
+      },
+      {
         id: 'changeWeightExpert',
         label: "Change Weight (Expert)",
-        component: lazy(() => import('./ValidatorManager/ChangeWeightExpert')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeightExpert.tsx"],
+        component: lazy(() => import('./ValidatorManager/ChangeWeight/ChangeWeightExpert')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeight/ChangeWeightExpert.tsx"],
+        walletMode: "l1"
+      },
+      {
+        id: 'removeValidatorExpert',
+        label: "Remove Validator (Expert)",
+        component: lazy(() => import('./ValidatorManager/RemoveValidator/RemoveValidatorExpert')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/RemoveValidator/RemoveValidatorExpert.tsx"],
         walletMode: "l1"
       }
     ]
   },
+  "Safe Multisig": {
+    components: [
+      {
+        id: 'safeValidatorManager',
+        label: "Safe Validator Manager",
+        component: lazy(() => import('./SafeMultisig/SafeValidatorManager')),
+        fileNames: ["toolbox/src/toolbox/SafeMultisig/SafeValidatorManager.tsx"],
+        walletMode: "l1"
+      }
+    ]
+  }
 };
 
 // Loading component for Suspense
