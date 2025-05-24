@@ -1,7 +1,6 @@
 import { ReactNode, Component, ErrorInfo } from "react";
 import { AlertCircle, Send } from "lucide-react";
 import { Button } from "./Button";
-import { set } from "zod";
 
 interface Props {
     children: ReactNode;
