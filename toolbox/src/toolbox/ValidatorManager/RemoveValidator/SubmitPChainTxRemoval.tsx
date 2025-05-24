@@ -71,7 +71,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
 
       try {
         const receipt = await publicClient.waitForTransactionReceipt({ hash: validTxHash });
-        if (!receipt.logs || receipt.logs.length === 0 || !receipt.logs[0].data) {
+        if (!receipt.logs || receipt.logs.length === 0) {
           throw new Error("Failed to get warp message from transaction receipt.");
         }
 
@@ -87,7 +87,41 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
           });
         });
 
-        const unsignedWarpMessage = receipt.logs[0].data;
+        // Look for warp message in multiple ways to handle both direct and multisig transactions
+        let unsignedWarpMessage: string | null = null;
+
+        // Method 1: Look for the warp message topic (most reliable)
+        // This works for both direct and multisig transactions when the warp precompile emits the event
+        const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
+        const warpPrecompileAddress = "0x0200000000000000000000000000000000000005";
+        
+        const warpEventLog = receipt.logs.find((log) => {
+          return log && log.address && log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
+                 log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
+        });
+
+        if (warpEventLog && warpEventLog.data) {
+          console.log("🔍 [SubmitPChainTxRemoval] Found warp message from precompile event");
+          unsignedWarpMessage = warpEventLog.data;
+        } else {
+          // Method 2: For multisig transactions, try using log[1].data
+          // Multisig transactions often have different log ordering due to Safe contract interactions
+          // The actual validator manager event may be in a different position
+          if (receipt.logs.length > 1 && receipt.logs[1].data) {
+            console.log("🔍 [SubmitPChainTxRemoval] Using receipt.logs[1].data for potential multisig transaction");
+            unsignedWarpMessage = receipt.logs[1].data;
+          } else if (receipt.logs[0].data) {
+            // Method 3: Fallback to first log data (original approach for direct transactions)
+            console.log("🔍 [SubmitPChainTxRemoval] Using receipt.logs[0].data as fallback");
+            unsignedWarpMessage = receipt.logs[0].data;
+          }
+        }
+
+        if (!unsignedWarpMessage) {
+          throw new Error("Could not extract warp message from any log in the transaction receipt.");
+        }
+
+        console.log("🔍 [SubmitPChainTxRemoval] Extracted warp message:", unsignedWarpMessage.substring(0, 60) + "...");
         setUnsignedWarpMessage(unsignedWarpMessage);
 
         // Extract event data for both InitiatedValidatorRemoval and InitiatedValidatorWeightUpdate
@@ -95,19 +129,14 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
         // InitiatedValidatorWeightUpdate: when resendValidatorRemovalMessage is used (fallback)
         const removalEventTopic = "0x9e51aa28092b7ac0958967564371c129b31b238c0c0bdb0eb9cb4d1e40d724dc";
         const weightUpdateEventTopic = "0x6e350dd49b060d87f297206fd309234ed43156d890ced0f139ecf704310481d3";
-        const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
-        const warpPrecompileAddress = "0x0200000000000000000000000000000000000005";
         
         console.log("🔍 [SubmitPChainTxRemoval] Looking for event topics:");
         console.log("🔍 [SubmitPChainTxRemoval] - InitiatedValidatorRemoval:", removalEventTopic);
         console.log("🔍 [SubmitPChainTxRemoval] - InitiatedValidatorWeightUpdate:", weightUpdateEventTopic);
         console.log("🔍 [SubmitPChainTxRemoval] - Warp Message:", warpMessageTopic);
         
-        // First try to find the Warp message event from the precompile
-        let eventLog = receipt.logs.find((log) => {
-          return log && log.address && log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
-                 log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
-        });
+        // First try to find the Warp message event from the precompile (already found above)
+        let eventLog = warpEventLog;
 
         let isWarpMessageEvent = false;
         let isWeightUpdateEvent = false;

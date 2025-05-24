@@ -7,6 +7,7 @@ import { validateContractOwner } from '../../../coreViem/hooks/validateContractO
 import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/ValidatorManager.json';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
+import { MultisigOption } from '../../../components/MultisigOption';
 
 interface InitiateValidatorRemovalProps {
   subnetId: string;
@@ -220,6 +221,20 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     }
   };
 
+  const handleMultisigSuccess = (txHash: string) => {
+    setTxSuccess(`Multisig transaction proposed! Hash: ${txHash}`);
+    onSuccess({ 
+      txHash: txHash as `0x${string}`,
+      nodeId: validation.nodeId,
+      validationId: validation.validationId,
+    });
+  };
+
+  const handleMultisigError = (errorMessage: string) => {
+    setErrorState(errorMessage);
+    onError(errorMessage);
+  };
+
   // Don't render if no subnet is selected
   if (!subnetId) {
     return (
@@ -244,21 +259,22 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         </p>
       </div>
 
-      {isContractOwner === false && (
-        <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
-          <div className="flex items-center">
-            <AlertCircle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
-            <span>You are not the owner of this contract. Only the contract owner can remove validators.</span>
-          </div>
-        </div>
-      )}
-
-      <Button 
-        onClick={handleInitiateRemoval} 
-        disabled={isProcessing || !validation.validationId || !validation.nodeId || !validatorManagerAddress || isContractOwner === false || txSuccess !== null}
+      <MultisigOption
+        isContractOwner={isContractOwner}
+        validatorManagerAddress={validatorManagerAddress}
+        functionName="initiateValidatorRemoval"
+        args={[validation.validationId]}
+        onSuccess={handleMultisigSuccess}
+        onError={handleMultisigError}
+        disabled={isProcessing || !validation.validationId || !validation.nodeId || !validatorManagerAddress || txSuccess !== null}
       >
-        {isProcessing ? 'Processing...' : 'Initiate Validator Removal'}
-      </Button>
+        <Button 
+          onClick={handleInitiateRemoval} 
+          disabled={isProcessing || !validation.validationId || !validation.nodeId || !validatorManagerAddress || isContractOwner === false || txSuccess !== null}
+        >
+          {isProcessing ? 'Processing...' : 'Initiate Validator Removal'}
+        </Button>
+      </MultisigOption>
 
       {error && (
         <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
@@ -272,7 +288,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
       {txSuccess && (
         <Success 
           label="Transaction Hash"
-          value={txSuccess.replace('Transaction successful! Hash: ', '')}
+          value={txSuccess.replace('Transaction successful! Hash: ', '').replace('Fallback transaction successful! Hash: ', '').replace('Multisig transaction proposed! Hash: ', '')}
         />
       )}
     </div>
