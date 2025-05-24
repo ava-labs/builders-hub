@@ -419,8 +419,8 @@ const componentGroups: Record<string, ComponentGroupType> = {
       {
         id: 'deployMultisigValidatorManager',
         label: "Deploy Multisig Validator Manager",
-        component: lazy(() => import('./SafeMultisig/DeployMultisigValidatorManager')),
-        fileNames: ["toolbox/src/toolbox/SafeMultisig/DeployMultisigValidatorManager.tsx"],
+        component: lazy(() => import('./ValidatorManager/DeployMultisigValidatorManager')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/DeployMultisigValidatorManager.tsx"],
         walletMode: "l1"
       }
     ]
