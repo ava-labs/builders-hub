@@ -93,11 +93,64 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
       try {
         const receipt = await publicClient.waitForTransactionReceipt({ hash: validTxHash });
-        if (!receipt.logs || receipt.logs.length === 0 || !receipt.logs[0].data) {
+        if (!receipt.logs || receipt.logs.length === 0) {
           throw new Error("Failed to get warp message from transaction receipt.");
         }
 
-        const unsignedWarpMessage = receipt.logs[0].data;
+        console.log("[WarpExtract] Transaction receipt:", receipt);
+        console.log("[WarpExtract] Number of logs:", receipt.logs.length);
+        
+        // Log all transaction logs for debugging
+        receipt.logs.forEach((log, index) => {
+          console.log(`[WarpExtract] Log #${index}:`, {
+            address: log.address,
+            topics: log.topics,
+            data: log.data?.substring(0, 100) + "...",
+            logIndex: log.logIndex,
+            transactionIndex: log.transactionIndex,
+          });
+        });
+
+        // Look for warp message in multiple ways to handle both direct and multisig transactions
+        let unsignedWarpMessage: string | null = null;
+
+        // Method 1: Look for the warp message topic (most reliable)
+        // This works for both direct and multisig transactions when the warp precompile emits the event
+        const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
+        const warpPrecompileAddress = "0x0200000000000000000000000000000000000005";
+        
+        const warpEventLog = receipt.logs.find((log) => {
+          return log && log.address && log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
+                 log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
+        });
+
+        if (warpEventLog && warpEventLog.data) {
+          console.log("[WarpExtract] Found warp message from precompile event");
+          unsignedWarpMessage = warpEventLog.data;
+        } else {
+          // Method 2: For multisig transactions, try using log[1].data
+          // Multisig transactions often have different log ordering due to Safe contract interactions
+          // The actual validator manager event may be in a different position
+          if (receipt.logs.length > 1 && receipt.logs[1].data) {
+            console.log("[WarpExtract] Using receipt.logs[1].data for potential multisig transaction");
+            unsignedWarpMessage = receipt.logs[1].data;
+          } else if (receipt.logs[0].data) {
+            // Method 3: Fallback to first log data (original approach for direct transactions)
+            console.log("[WarpExtract] Using receipt.logs[0].data as fallback");
+            unsignedWarpMessage = receipt.logs[0].data;
+          }
+        }
+
+        if (!unsignedWarpMessage) {
+          throw new Error("Could not extract warp message from any log in the transaction receipt.");
+        }
+
+        console.log("[WarpExtract] Extracted warp message:", unsignedWarpMessage.substring(0, 60) + "...");
+        console.log("[WarpExtract] Message length:", unsignedWarpMessage.length);
+        console.log("[WarpExtract] Message format validation:");
+        console.log("  - Is hex string:", /^0x[0-9a-fA-F]*$/.test(unsignedWarpMessage));
+        console.log("  - Byte length (excluding 0x):", (unsignedWarpMessage.length - 2) / 2);
+
         setUnsignedWarpMessage(unsignedWarpMessage);
         setErrorState(null);
       } catch (err: any) {

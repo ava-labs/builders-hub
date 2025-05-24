@@ -13,6 +13,7 @@ import { GetRegistrationJustification } from '../justification';
 import { packWarpIntoAccessList } from '../packWarp';
 import { hexToBytes, bytesToHex } from 'viem';
 import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/ValidatorManager.json';
+import multisigValidatorManagerAbi from '../../../../contracts/icm-contracts/compiled/MultisigValidatorManager.json';
 import { packL1ValidatorRegistration } from '../../../coreViem/utils/convertWarp';
 
 interface CompleteValidatorRegistrationProps {
@@ -31,6 +32,9 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
   const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
   const viemChain = useViemChainStore();
   const [pChainTxIdState, setPChainTxId] = useState(pChainTxId || '');
+  const [isMultisig, setIsMultisig] = useState(false);
+  const [multisigValidatorManagerAddress, setMultisigValidatorManagerAddress] = useState('');
+  const [isFetchingMultisigAddress, setIsFetchingMultisigAddress] = useState(false);
   const { validatorManagerAddress, signingSubnetId } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -56,6 +60,34 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
     }
   }, [pChainTxId, pChainTxIdState]);
 
+  // Fetch MultisigValidatorManager address when multisig mode is enabled
+  useEffect(() => {
+    const fetchMultisigAddress = async () => {
+      if (!isMultisig || !validatorManagerAddress || !publicClient) {
+        setMultisigValidatorManagerAddress('');
+        return;
+      }
+
+      setIsFetchingMultisigAddress(true);
+      try {
+        const ownerAddress = await publicClient.readContract({
+          address: validatorManagerAddress as `0x${string}`,
+          abi: validatorManagerAbi.abi,
+          functionName: "owner",
+        }) as `0x${string}`;
+
+        setMultisigValidatorManagerAddress(ownerAddress);
+      } catch (err) {
+        console.error('Failed to fetch MultisigValidatorManager address:', err);
+        setErrorState('Failed to fetch MultisigValidatorManager address. The ValidatorManager may not be owned by a MultisigValidatorManager.');
+      } finally {
+        setIsFetchingMultisigAddress(false);
+      }
+    };
+
+    fetchMultisigAddress();
+  }, [isMultisig, validatorManagerAddress, publicClient]);
+
   const handleCompleteRegisterValidator = async () => {
     setErrorState(null);
     setSuccessMessage(null);
@@ -73,6 +105,11 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
     if (!validatorManagerAddress) {
       setErrorState("Validator Manager address is not set. Check L1 Subnet selection.");
       onError("Validator Manager address is not set. Check L1 Subnet selection.");
+      return;
+    }
+    if (isMultisig && !multisigValidatorManagerAddress.trim()) {
+      setErrorState("MultisigValidatorManager address could not be fetched. Please ensure the ValidatorManager is owned by a MultisigValidatorManager.");
+      onError("MultisigValidatorManager address could not be fetched. Please ensure the ValidatorManager is owned by a MultisigValidatorManager.");
       return;
     }
     if (!coreWalletClient || !publicClient || !viemChain) {
@@ -152,9 +189,13 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
 
+      // Choose the target contract address and ABI based on multisig mode
+      const targetAddress = isMultisig ? multisigValidatorManagerAddress : validatorManagerAddress;
+      const targetAbi = isMultisig ? multisigValidatorManagerAbi.abi : validatorManagerAbi.abi;
+
       const hash = await coreWalletClient.writeContract({
-        address: validatorManagerAddress as `0x${string}`,
-        abi: validatorManagerAbi.abi,
+        address: targetAddress as `0x${string}`,
+        abi: targetAbi,
         functionName: "completeValidatorRegistration",
         args: [0], // messageIndex
         accessList,
@@ -220,8 +261,31 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
         placeholder="Enter the P-Chain transaction ID from step 2"
         disabled={isProcessing}
       />
+
+      <div className="space-y-2">
+        <label className="flex items-center space-x-2 text-sm">
+          <input
+            type="checkbox"
+            checked={isMultisig}
+            onChange={(e) => setIsMultisig(e.target.checked)}
+            disabled={isProcessing}
+            className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-gray-700"
+          />
+          <span className="text-zinc-700 dark:text-zinc-300">Use MultisigValidatorManager</span>
+        </label>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Check this if the ValidatorManager is owned by a MultisigValidatorManager contract
+        </p>
+        {isMultisig && isFetchingMultisigAddress && (
+          <p className="text-xs text-blue-600 dark:text-blue-400">
+            Fetching MultisigValidatorManager address...
+          </p>
+        )}
+      </div>
       
       <div className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p><strong>Target Contract:</strong> {isMultisig ? 'MultisigValidatorManager' : 'ValidatorManager'}</p>
+        <p><strong>Contract Address:</strong> {isMultisig ? (multisigValidatorManagerAddress || 'Fetching...') : (validatorManagerAddress || 'Not set')}</p>
         {extractedData && (
           <div className="mt-2 space-y-1">
             <p><strong>Subnet ID:</strong> {extractedData.subnetID}</p>
@@ -241,7 +305,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
       
       <Button 
         onClick={handleCompleteRegisterValidator} 
-        disabled={isProcessing || !pChainTxIdState.trim() || !!successMessage}
+        disabled={isProcessing || !pChainTxIdState.trim() || !!successMessage || (isMultisig && (!multisigValidatorManagerAddress.trim() || isFetchingMultisigAddress))}
       >
         {isProcessing ? 'Processing...' : 'Sign & Complete Validator Registration'}
       </Button>

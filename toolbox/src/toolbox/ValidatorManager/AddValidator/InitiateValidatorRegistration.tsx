@@ -14,6 +14,7 @@ import { fromBytes } from 'viem';
 import { utils } from '@avalabs/avalanchejs';
 import { formatAvaxBalance } from '../../../coreViem/utils/format';
 import { getPChainBalance } from '../../../coreViem/methods/getPChainbalance';
+import { MultisigOption } from '../../../components/MultisigOption';
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;
@@ -334,6 +335,26 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     }
   };
 
+  const handleMultisigSuccess = (txHash: string) => {
+    setTxSuccess(`Multisig transaction proposed! Hash: ${txHash}`);
+    // For multisig, we can't extract logs immediately, so we provide minimal data
+    const validator = validators[0];
+    onSuccess({ 
+      txHash: txHash as `0x${string}`,
+      nodeId: validator.nodeID,
+      validationId: "0x0000000000000000000000000000000000000000000000000000000000000000", // Will be available after execution
+      weight: validator.validatorWeight.toString(),
+      unsignedWarpMessage: "", // Will be available after execution
+      validatorBalance: (Number(validator.validatorBalance) / 1e9).toString(),
+      blsProofOfPossession: validator.nodePOP.proofOfPossession,
+    });
+  };
+
+  const handleMultisigError = (errorMessage: string) => {
+    setErrorState(errorMessage);
+    onError(errorMessage);
+  };
+
   // Don't render if no subnet is selected
   if (!subnetId) {
     return (
@@ -342,6 +363,29 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       </div>
     );
   }
+
+  // Prepare args for multisig
+  const getMultisigArgs = () => {
+    if (validators.length === 0 || !pChainAddress) return [];
+    
+    const validator = validators[0];
+    const pChainAddressBytes = utils.bech32ToBytes(pChainAddress);
+    const pChainAddressHex = fromBytes(pChainAddressBytes, "hex");
+    
+    return [
+      parseNodeID(validator.nodeID),
+      validator.nodePOP.publicKey,
+      {
+        threshold: 1,
+        addresses: [pChainAddressHex],
+      },
+      {
+        threshold: 1,
+        addresses: [pChainAddressHex],
+      },
+      validator.validatorWeight
+    ];
+  };
 
   return (
     <div className="space-y-4">
@@ -357,16 +401,26 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         maxValidators={1}
       />
       
-      <Button
-        onClick={handleInitiateValidatorRegistration}
-        disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || isContractOwner === false || (isContractOwner === null && !txSuccess) || txSuccess !== null}
-        error={(!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined) || 
-               (isContractOwner === false && !txSuccess ? "Not contract owner." : undefined) ||
-               (isContractOwner === null && validatorManagerAddress && !txSuccess ? "Verifying ownership..." : undefined)
-            }
+      <MultisigOption
+        isContractOwner={isContractOwner}
+        validatorManagerAddress={validatorManagerAddress}
+        functionName="initiateValidatorRegistration"
+        args={getMultisigArgs()}
+        onSuccess={handleMultisigSuccess}
+        onError={handleMultisigError}
+        disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
       >
-        {txSuccess ? 'Transaction Completed' : (isProcessing ? 'Processing...' : (isContractOwner === null && validatorManagerAddress && !txSuccess ? 'Verifying...' : 'Initiate Validator Registration'))}
-      </Button>
+        <Button
+          onClick={handleInitiateValidatorRegistration}
+          disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || isContractOwner === false || (isContractOwner === null && !txSuccess) || txSuccess !== null}
+          error={(!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined) || 
+                 (isContractOwner === false && !txSuccess ? "Not contract owner." : undefined) ||
+                 (isContractOwner === null && validatorManagerAddress && !txSuccess ? "Verifying ownership..." : undefined)
+              }
+        >
+          {txSuccess ? 'Transaction Completed' : (isProcessing ? 'Processing...' : (isContractOwner === null && validatorManagerAddress && !txSuccess ? 'Verifying...' : 'Initiate Validator Registration'))}
+        </Button>
+      </MultisigOption>
 
       {error && (
         <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
@@ -380,7 +434,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       {txSuccess && (
         <Success 
           label="Transaction Hash"
-          value={txSuccess.replace('Transaction successful! Hash: ', '')}
+          value={txSuccess.replace('Transaction successful! Hash: ', '').replace('Fallback transaction successful! Hash: ', '').replace('Multisig transaction proposed! Hash: ', '')}
         />
       )}
     </div>
