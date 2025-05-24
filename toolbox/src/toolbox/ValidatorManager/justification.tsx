@@ -328,7 +328,7 @@ export async function GetRegistrationJustification(
 
   // 2. If not a bootstrap validator, search Warp logs
   try {
-    const CHUNK_SIZE = 10_000; // Number of blocks to query in each chunk
+    const CHUNK_SIZE = 2000; // Number of blocks to query in each chunk (reduced to stay within RPC limits)
     const MAX_CHUNKS = 100; // Maximum number of chunks to try (to prevent infinite loops)
     let toBlock: bigint | number | 'latest' = 'latest';
     let foundMatch = false;
