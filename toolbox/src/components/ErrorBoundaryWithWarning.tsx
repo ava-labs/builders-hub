@@ -29,6 +29,7 @@ export class ErrorBoundaryWithWarning extends Component<Props, State> {
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error("Error caught by ErrorBoundaryWithWarning:", error, errorInfo);
+        
     }
 
     render() {
