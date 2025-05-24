@@ -31,9 +31,9 @@ export const L1DetailsModal = ({
                             </div>
                             
                         </AlertDialogTitle>
-                        <AlertDialogDescription>
-
-                        </AlertDialogDescription>
+                        {l1.description && <AlertDialogDescription>
+                            {l1.description}
+                        </AlertDialogDescription>}
 
                     </AlertDialogHeader>
 
