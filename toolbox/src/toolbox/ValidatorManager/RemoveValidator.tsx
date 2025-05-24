@@ -18,7 +18,6 @@ import { useCreateChainStore } from "../../stores/createChainStore"
 import { useWalletStore } from "../../stores/walletStore"
 import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
 import { useStepProgress, StepsConfig } from "../hooks/useStepProgress"
-import { setL1ValidatorWeight } from "../../coreViem/methods/setL1ValidatorWeight"
 import SelectSubnetId from "../../components/SelectSubnetId"
 import { useValidatorManagerDetails } from "../hooks/useValidatorManagerDetails"
 import { validateContractOwner } from "../../coreViem/hooks/validateContractOwner"
@@ -212,7 +211,7 @@ export default function RemoveValidator() {
             throw new Error("Core wallet not found")
           }
 
-          const pChainTxId = await setL1ValidatorWeight(coreWalletClient, {
+          const pChainTxId = await coreWalletClient.setL1ValidatorWeight({
             pChainAddress: pChainAddress!,
             signedWarpMessage: currentSignedWarpMessage,
           })
@@ -238,7 +237,6 @@ export default function RemoveValidator() {
           }
 
           const justification = await GetRegistrationJustification(
-            validationSelection.nodeId,
             currentValidationID,
             signingSubnetId || subnetId,
             publicClient

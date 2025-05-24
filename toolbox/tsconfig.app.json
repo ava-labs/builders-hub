@@ -29,7 +29,8 @@
   "include": [
     "src",
     "src/index.ts",
-    "contracts"
+    "contracts",
+    "src/types"
   ],
   "exclude": [
     "node_modules",

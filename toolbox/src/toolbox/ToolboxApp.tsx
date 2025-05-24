@@ -3,7 +3,7 @@
 import { Button } from "../components/Button";
 import { ErrorBoundary } from "react-error-boundary";
 import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
-import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { GithubLink } from "../components/GithubLink";
 import { ErrorFallback } from "../components/ErrorFallback";
 import { ErrorBoundaryWithWarning } from "../components/ErrorBoundaryWithWarning";
@@ -15,7 +15,7 @@ import { resetAllStores } from "../stores/reset";
 type ComponentType = {
   id: string;
   label: string;
-  component: React.LazyExoticComponent<(props?: any) => ReactElement | null>;
+  component: React.LazyExoticComponent<React.ComponentType<any>>;
   fileNames: string[];
   walletMode: WalletMode;
 }
@@ -144,6 +144,13 @@ const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./Nodes/BalanceTopup')),
         fileNames: ["toolbox/src/toolbox/Nodes/BalanceTopup.tsx"],
         walletMode: "c-chain"
+      },
+      {
+        id: "transferOwnership",
+        label: "Transfer Ownership",
+        component: lazy(() => import('./StakingManager/TransferOwnership')),
+        fileNames: ["toolbox/src/toolbox/StakingManager/TransferOwnership.tsx"],
+        walletMode: "l1"
       }
     ]
   },
@@ -174,13 +181,6 @@ const componentGroups: Record<string, ComponentGroupType> = {
         fileNames: ["toolbox/src/toolbox/StakingManager/Initialize.tsx"],
         walletMode: "l1"
       },
-      {
-        id: "transferOwnership",
-        label: "Transfer Validator Manager Ownership",
-        component: lazy(() => import('./StakingManager/TransferOwnership')),
-        fileNames: ["toolbox/src/toolbox/StakingManager/TransferOwnership.tsx"],
-        walletMode: "l1"
-      }
     ]
   },
   "Interchain Messaging (ICM)": {
@@ -393,6 +393,38 @@ const componentGroups: Record<string, ComponentGroupType> = {
       }
     ]
   },
+  'Expert Tools': {
+    components: [
+      {
+        id: 'addValidatorExpert',
+        label: "Add Validator (Expert)",
+        component: lazy(() => import('./ValidatorManager/AddValidator/AddValidatorExpert')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/AddValidator/AddValidatorExpert.tsx"],
+        walletMode: "l1"
+      },
+      {
+        id: 'changeWeightExpert',
+        label: "Change Weight (Expert)",
+        component: lazy(() => import('./ValidatorManager/ChangeWeight/ChangeWeightExpert')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeight/ChangeWeightExpert.tsx"],
+        walletMode: "l1"
+      },
+      {
+        id: 'removeValidatorExpert',
+        label: "Remove Validator (Expert)",
+        component: lazy(() => import('./ValidatorManager/RemoveValidator/RemoveValidatorExpert')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/RemoveValidator/RemoveValidatorExpert.tsx"],
+        walletMode: "l1"
+      },
+      {
+        id: 'deployMultisigValidatorManager',
+        label: "Deploy Multisig Validator Manager",
+        component: lazy(() => import('./ValidatorManager/DeployMultisigValidatorManager')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/DeployMultisigValidatorManager.tsx"],
+        walletMode: "l1"
+      }
+    ]
+  }
 };
 
 // Loading component for Suspense

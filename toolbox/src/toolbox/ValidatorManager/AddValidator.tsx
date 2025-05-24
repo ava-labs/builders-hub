@@ -20,7 +20,6 @@ import { StepIndicator } from "../../components/StepIndicator"
 import { parseNodeID } from "../../coreViem/utils/ids"
 import { getRPCEndpoint } from "../../coreViem/utils/rpc"
 import { useStepProgress, StepsConfig } from "../hooks/useStepProgress"
-import { registerL1Validator } from "../../coreViem/methods/registerL1Validator"
 import { ValidatorListInput, ConvertToL1Validator } from "../../components/ValidatorListInput"
 import { getValidationIdHex } from "../../coreViem/hooks/getValidationID"
 import { getPChainBalance } from "../../coreViem/methods/getPChainbalance"
@@ -490,7 +489,7 @@ export default function AddValidator() {
                         throw new Error("Received invalid signed message. Retry signing.");
                     }
 
-                    console.log("Signed message: ", localSignedMessage.substring(0, 20) + "...")
+                    console.log("Signed message: ", localSignedMessage)
                     setSavedSignedMessage(localSignedMessage)
                     updateStepStatus("signMessage", "success")
 
@@ -517,7 +516,7 @@ export default function AddValidator() {
                     }
 
                     // Call the new coreViem method to register the validator on P-Chain
-                    const pChainTxId = await registerL1Validator(coreWalletClient, {
+                    const pChainTxId = await coreWalletClient.registerL1Validator({
                         pChainAddress: pChainAddress!,
                         balance: Number(validator.validatorBalance) / 1000000000 + "",
                         blsProofOfPossession: validator.nodePOP.proofOfPossession,
