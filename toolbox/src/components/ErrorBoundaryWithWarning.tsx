@@ -1,6 +1,7 @@
 import { ReactNode, Component, ErrorInfo } from "react";
 import { AlertCircle, Send } from "lucide-react";
 import { Button } from "./Button";
+import { set } from "zod";
 
 interface Props {
     children: ReactNode;
@@ -29,6 +30,7 @@ export class ErrorBoundaryWithWarning extends Component<Props, State> {
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error("Error caught by ErrorBoundaryWithWarning:", error, errorInfo);
+        
     }
 
     render() {

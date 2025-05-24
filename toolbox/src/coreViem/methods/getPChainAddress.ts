@@ -12,16 +12,24 @@ import { isTestnet } from "./isTestnet";
 export async function getPChainAddress(client: WalletClient<any, any, any, CoreWalletRpcSchema>) {
     const networkID = (await isTestnet(client)) ? networkIDs.FujiID : networkIDs.MainnetID
 
-    const pubkeys = await client.request({
-        method: "avalanche_getAccountPubKey",
-        params: []
-    }) as {evm: string, xp: string}
+    // TODO: Push Core to expose P-Chain address
 
-    if (!pubkeys.xp.startsWith("0x")) {
-        pubkeys.xp = `0x${pubkeys.xp}`;
+    try {
+        const pubkeys = await client.request({
+            method: "avalanche_getAccountPubKey",
+            params: []
+        }) as { evm: string, xp: string }
+
+        console.log("pubkeys", pubkeys);
+
+        if (!pubkeys.xp.startsWith("0x")) {
+            pubkeys.xp = `0x${pubkeys.xp}`;
+        }
+        const compressed = SigningKey.computePublicKey(pubkeys.xp, true).slice(2);
+        const pubComp = BufferPolyfill.from(compressed, "hex");
+        const address = secp256k1.publicKeyBytesToAddress(pubComp);
+        return utils.format("P", networkIDs.getHRP(networkID), address)
+    } catch (error) {
+        console.log("Error getting P-Chain address:", error);
     }
-    const compressed = SigningKey.computePublicKey(pubkeys.xp, true).slice(2);
-    const pubComp = BufferPolyfill.from(compressed, "hex");
-    const address = secp256k1.publicKeyBytesToAddress(pubComp);
-    return utils.format("P", networkIDs.getHRP(networkID), address)
 }
