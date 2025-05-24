@@ -415,16 +415,12 @@ const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./ValidatorManager/RemoveValidator/RemoveValidatorExpert')),
         fileNames: ["toolbox/src/toolbox/ValidatorManager/RemoveValidator/RemoveValidatorExpert.tsx"],
         walletMode: "l1"
-      }
-    ]
-  },
-  "Safe Multisig": {
-    components: [
+      },
       {
-        id: 'safeValidatorManager',
-        label: "Safe Validator Manager",
-        component: lazy(() => import('./SafeMultisig/SafeValidatorManager')),
-        fileNames: ["toolbox/src/toolbox/SafeMultisig/SafeValidatorManager.tsx"],
+        id: 'deployMultisigValidatorManager',
+        label: "Deploy Multisig Validator Manager",
+        component: lazy(() => import('./SafeMultisig/DeployMultisigValidatorManager')),
+        fileNames: ["toolbox/src/toolbox/SafeMultisig/DeployMultisigValidatorManager.tsx"],
         walletMode: "l1"
       }
     ]
