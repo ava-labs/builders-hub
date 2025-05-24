@@ -169,8 +169,6 @@ type OS = keyof typeof dockerInstallInstructions;
 export default function AvalanchegoDocker() {
     const [chainId, setChainId] = useState("");
     const [subnetId, setSubnetId] = useState("");
-    const { avalancheNetworkID } = useWalletStore();
-
     const [isRPC, setIsRPC] = useState<boolean>(true);
     const [rpcCommand, setRpcCommand] = useState("");
     const [nodeRunningMode, setNodeRunningMode] = useState("server");
@@ -178,9 +176,10 @@ export default function AvalanchegoDocker() {
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
-    const { addL1 } = useL1ListStore()();
     const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
-
+    
+    const { avalancheNetworkID } = useWalletStore();
+    const { addL1 } = useL1ListStore()();
 
     useEffect(() => {
         try {
@@ -208,6 +207,20 @@ export default function AvalanchegoDocker() {
             setSubnetIdError((error as Error).message);
         });
     }, [chainId]);
+
+    const handleReset = () => {
+        setChainId("");
+        setSubnetId("");
+        setIsRPC(true);
+        setChainAddedToWallet(null);
+        setRpcCommand("");
+        setNodeRunningMode("server");
+        setDomain("");
+        setEnableDebugTrace(false);
+        setSubnetIdError(null);
+        setIsAddChainModalOpen(false);
+    };
+
 
     return (
         <>
@@ -341,7 +354,6 @@ export default function AvalanchegoDocker() {
                                 <Accordions type="single" className="mt-8">
                                     <Accordion title="Understanding the Logs">
                                         <p>The bootstrapping has three phases:</p>
-                                        <p><strong></strong></p>
 
                                         <ul className="list-disc pl-5 mt-1">
                                             <li>
@@ -432,7 +444,10 @@ export default function AvalanchegoDocker() {
 
                 </Steps>
 
-                {chainAddedToWallet && <Success label="Chain added to Wallet" value={chainAddedToWallet} />}
+                {chainAddedToWallet && (<>
+                    <Success label="Chain added to Wallet" value={chainAddedToWallet} />
+                    <Button onClick={handleReset} className="mt-4 w-full">Reset</Button>
+                </>)}
 
             </Container >
         </>
