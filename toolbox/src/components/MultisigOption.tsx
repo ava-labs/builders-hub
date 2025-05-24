@@ -88,7 +88,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       console.log('Initializing Safe SDK with Safe address:', safeAddr);
       console.log('MultisigValidatorManager address:', multisigValidatorManagerAddr);
       const protocolKitInstance = await Safe.init({ 
-        provider: window.ethereum,
+        provider: window.ethereum as any,
         signer: address,
         safeAddress: safeAddr
       });
