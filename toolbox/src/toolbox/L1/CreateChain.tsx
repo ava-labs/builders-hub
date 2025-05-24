@@ -1,6 +1,6 @@
 "use client";
 
-import { useCreateChainStore, EVM_VM_ID } from "../../stores/createChainStore";
+import { useCreateChainStore } from "../../stores/createChainStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Button } from "../../components/Button";
@@ -11,6 +11,9 @@ import GenesisBuilder from "./GenesisBuilder";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import generateName from 'boring-name-generator'
 import { Success } from "../../components/Success";
+import { RadioGroup } from "../../components/RadioGroup";
+
+export const EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
 
 const generateRandomName = () => {
     //makes sure the name doesn't contain a dash
@@ -28,8 +31,6 @@ export default function CreateChain() {
     const {
         subnetId,
         chainName,
-        vmId,
-        setVmId,
         setChainID,
         setSubnetID,
         genesisData,
@@ -45,6 +46,9 @@ export default function CreateChain() {
     
     const [localGenesisData, setLocalGenesisData] = useState<string>(genesisData);
     const [localChainName, setLocalChainName] = useState<string>(generateRandomName());
+
+    const [showVMIdInput, setShowVMIdInput] = useState<boolean>(false);
+    const [vmId, setVmId] = useState<string>(EVM_VM_ID);
 
 
     async function handleCreateSubnet() {
@@ -144,13 +148,29 @@ export default function CreateChain() {
                         placeholder="Enter chain name"
                     />
 
-                    <Input
-                        label="VM ID"
-                        value={vmId}
-                        onChange={setVmId}
-                        placeholder="Enter VM ID"
-                        helperText={`For an L1 with an uncustomized EVM use ${EVM_VM_ID}`}
+                    <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Virtual Machine</h3>
+                    <p className="text-sm text-gray-500">
+                        Select what Virtual Machine (VM) your chain will use.
+                    </p>
+                    <RadioGroup
+                        value={showVMIdInput ? 'true' : 'false'}
+                        onChange={(value) => setShowVMIdInput(value === "true")}
+                        idPrefix={`show-vm-id`}
+                        className="mb-4"
+                        items={[
+                            { value: "false", label: "Uncustomized EVM" },
+                            { value: "true", label: "Customized EVM or alternative VM (Experts only)" }
+                        ]}
                     />
+                    {showVMIdInput && (
+                        <Input
+                            label="VM ID"
+                            value={vmId}
+                            onChange={setVmId}
+                            placeholder="Enter VM ID"
+                            helperText={`For an L1 with an uncustomized EVM use ${EVM_VM_ID}`}
+                        />
+                    )}
 
                     <GenesisBuilder genesisData={localGenesisData} setGenesisData={setLocalGenesisData} />
 
