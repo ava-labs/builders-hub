@@ -35,7 +35,6 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   const [protocolKit, setProtocolKit] = useState<any>(null);
   const [apiKit, setApiKit] = useState<any>(null);
   const [walletAddress, setWalletAddress] = useState('');
-  const [chainId, setChainId] = useState<number | null>(null);
   const [multisigValidatorManagerAddress, setMultisigValidatorManagerAddress] = useState('');
   const [safeAddress, setSafeAddress] = useState('');
 
@@ -61,7 +60,6 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       const network = await provider.getNetwork();
       
       setWalletAddress(address);
-      setChainId(Number(network.chainId));
 
       // Get MultisigValidatorManager address by calling owner() on ValidatorManager
       const validatorManagerContract = new ethers.Contract(
