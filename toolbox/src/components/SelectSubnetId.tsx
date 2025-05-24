@@ -9,33 +9,42 @@ export default function InputSubnetId({ value, onChange, error, onlyNotConverted
 
     const subnetIdSuggestions: Suggestion[] = useMemo(() => {
         const result: Suggestion[] = [];
-
+        const seen = new Set<string>();
+        const PRIMARY_NETWORK_ID = "11111111111111111111111111111111LpoYY";
+    
         if (createChainStoreSubnetId) {
             result.push({
                 title: createChainStoreSubnetId,
                 value: createChainStoreSubnetId,
-                description: "From the \"Create Subnet\" tool"
+                description: 'The Subnet that you have just created in the "Create Chain" tool',
             });
+            seen.add(createChainStoreSubnetId);
         }
-
+    
         for (const l1 of l1List) {
-            if (l1.subnetId) {
-                // Skip Primary Network and Subnets that are already converted to L1
-                if ((onlyNotConverted && (l1.subnetId === "11111111111111111111111111111111LpoYY" || l1.validatorManagerAddress)) ||
-                    (hidePrimaryNetwork && l1.subnetId === "11111111111111111111111111111111LpoYY")) {
-                    continue;
-                }
-
-                result.push({
-                    title: `${l1.name} (${l1.subnetId})`,
-                    value: l1.subnetId,
-                    description: "From your chain list"
-                });
+            const { subnetId, name, validatorManagerAddress } = l1;
+    
+            if (!subnetId || seen.has(subnetId)) continue;
+    
+            const isPrimary = subnetId === PRIMARY_NETWORK_ID;
+            const isConverted = !!validatorManagerAddress;
+    
+            if ((onlyNotConverted && (isPrimary || isConverted)) || (hidePrimaryNetwork && isPrimary)) {
+                continue;
             }
+    
+            result.push({
+                title: `${name} (${subnetId})`,
+                value: subnetId,
+                description: l1.description || 'A chain that was added to your L1 list.',
+            });
+    
+            seen.add(subnetId);
         }
-
+    
         return result;
-    }, [createChainStoreSubnetId, l1List]);
+    }, [createChainStoreSubnetId, l1List, onlyNotConverted, hidePrimaryNetwork]);
+    
 
     return <Input
         label="Subnet ID"
