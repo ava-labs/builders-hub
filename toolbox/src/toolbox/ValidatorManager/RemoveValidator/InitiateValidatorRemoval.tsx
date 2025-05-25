@@ -3,7 +3,6 @@ import { useViemChainStore } from '../../../stores/toolboxStore';
 import { useWalletStore } from '../../../stores/walletStore';
 import { Button } from '../../../components/Button';
 import SelectValidationID, { ValidationSelection } from '../../../components/SelectValidationID';
-import { validateContractOwner } from '../../../coreViem/hooks/validateContractOwner';
 import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/ValidatorManager.json';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
@@ -21,6 +20,7 @@ interface InitiateValidatorRemovalProps {
   resetForm?: boolean;
   initialNodeId?: string;
   initialValidationId?: string;
+  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
 }
 
 const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
@@ -31,6 +31,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   resetForm,
   initialNodeId,
   initialValidationId,
+  ownershipState,
 }) => {
   const { coreWalletClient, publicClient } = useWalletStore();
   const viemChain = useViemChainStore();
@@ -39,7 +40,6 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     validationId: initialValidationId || '', 
     nodeId: initialNodeId || '' 
   });
-  const [isContractOwner, setIsContractOwner] = useState<boolean | null>(null);
   const [componentKey, setComponentKey] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -52,32 +52,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
       setIsProcessing(false);
       setErrorState(null);
       setTxSuccess(null);
-      setIsContractOwner(null);
     }
   }, [resetForm, initialValidationId, initialNodeId]);
-
-  useEffect(() => {
-    const checkOwnership = async () => {
-      // Don't check ownership if transaction was successful
-      if (txSuccess) return;
-      
-      if (validatorManagerAddress && publicClient && coreWalletClient) {
-        setIsContractOwner(null);
-        try {
-          const [account] = await coreWalletClient.requestAddresses();
-          const ownershipValidated = await validateContractOwner(
-            publicClient,
-            validatorManagerAddress as `0x${string}`,
-            account
-          );
-          setIsContractOwner(ownershipValidated);
-        } catch (err) {
-          setIsContractOwner(false);
-        }
-      }
-    };
-    checkOwnership();
-  }, [validatorManagerAddress, publicClient, coreWalletClient, txSuccess]);
 
   const handleInitiateRemoval = async () => {
     setErrorState(null);
@@ -98,12 +74,12 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
       onError("Validator Manager Address is required. Please select a valid L1 subnet.");
       return;
     }
-    if (isContractOwner === false) {
+    if (ownershipState === 'differentEOA') {
       setErrorState("You are not the owner of this contract. Only the contract owner can remove validators."); 
       onError("You are not the owner of this contract. Only the contract owner can remove validators.");
       return;
     }
-    if (isContractOwner === null) {
+    if (ownershipState === 'loading') {
       setErrorState("Verifying contract ownership... please wait."); 
       onError("Verifying contract ownership... please wait.");
       return;
@@ -259,22 +235,48 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         </p>
       </div>
 
-      <MultisigOption
-        isContractOwner={isContractOwner}
-        validatorManagerAddress={validatorManagerAddress}
-        functionName="initiateValidatorRemoval"
-        args={[validation.validationId]}
-        onSuccess={handleMultisigSuccess}
-        onError={handleMultisigError}
-        disabled={isProcessing || !validation.validationId || !validation.nodeId || !validatorManagerAddress || txSuccess !== null}
-      >
+      {ownershipState === 'contract' && (
+        <MultisigOption
+          validatorManagerAddress={validatorManagerAddress}
+          functionName="initiateValidatorRemoval"
+          args={[validation.validationId]}
+          onSuccess={handleMultisigSuccess}
+          onError={handleMultisigError}
+          disabled={isProcessing || !validation.validationId || !validation.nodeId || !validatorManagerAddress || txSuccess !== null}
+        >
+          <Button 
+            onClick={handleInitiateRemoval} 
+            disabled={isProcessing || !validation.validationId || !validation.nodeId || !validatorManagerAddress || txSuccess !== null}
+          >
+            Initiate Validator Removal
+          </Button>
+        </MultisigOption>
+      )}
+
+      {ownershipState === 'currentWallet' && (
         <Button 
           onClick={handleInitiateRemoval} 
-          disabled={isProcessing || !validation.validationId || !validation.nodeId || !validatorManagerAddress || isContractOwner === false || txSuccess !== null}
+          disabled={isProcessing || !validation.validationId || !validation.nodeId || !validatorManagerAddress || txSuccess !== null}
         >
           {isProcessing ? 'Processing...' : 'Initiate Validator Removal'}
         </Button>
-      </MultisigOption>
+      )}
+
+      {(ownershipState === 'differentEOA' || ownershipState === 'loading') && (
+        <Button 
+          onClick={handleInitiateRemoval} 
+          disabled={true}
+          error={
+            ownershipState === 'differentEOA' 
+              ? "You are not the owner of this contract. Only the contract owner can remove validators."
+              : ownershipState === 'loading' 
+                ? "Verifying ownership..."
+                : undefined
+          }
+        >
+          {ownershipState === 'loading' ? 'Verifying...' : 'Initiate Validator Removal'}
+        </Button>
+      )}
 
       {error && (
         <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">

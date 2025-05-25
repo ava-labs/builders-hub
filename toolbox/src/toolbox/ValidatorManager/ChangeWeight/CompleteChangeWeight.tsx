@@ -1,26 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
-import { useValidatorManagerDetails } from '../../hooks/useValidatorManagerDetails';
-import { GetRegistrationJustification } from '../justification';
-import { packL1ValidatorWeightMessage } from '../../../coreViem/utils/convertWarp';
-import { packWarpIntoAccessList } from '../packWarp';
-import { extractL1ValidatorWeightMessage } from '../../../coreViem/methods/extractL1ValidatorWeightMessage';
 import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
-import { hexToBytes, bytesToHex } from 'viem';
-import { networkIDs } from '@avalabs/avalanchejs';
-import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/ValidatorManager.json';
-import multisigValidatorManagerAbi from '../../../../contracts/icm-contracts/compiled/MultisigValidatorManager.json';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
+import { bytesToHex, hexToBytes } from 'viem';
+import { networkIDs } from '@avalabs/avalanchejs';
+import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/ValidatorManager.json';
+import multisigValidatorManagerAbi from '../../../../contracts/icm-contracts/compiled/MultisigValidatorManager.json';
+import { GetRegistrationJustification } from '../justification';
+import { packL1ValidatorWeightMessage } from '../../../coreViem/utils/convertWarp';
+import { packWarpIntoAccessList } from '../packWarp';
+import { extractL1ValidatorWeightMessage } from '../../../coreViem/methods/extractL1ValidatorWeightMessage';
 
 interface CompleteChangeWeightProps {
   subnetIdL1: string;
   initialPChainTxId?: string;
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
+  isContractOwner: boolean | null;
+  validatorManagerAddress: string;
+  signingSubnetId: string;
+  contractOwner: string | null;
+  isLoadingOwnership: boolean;
+  ownerType: 'MultisigValidatorManager' | 'StakingManager' | 'EOA' | null;
 }
 
 const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
@@ -28,14 +33,16 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
   initialPChainTxId,
   onSuccess,
   onError,
+  isContractOwner,
+  validatorManagerAddress,
+  signingSubnetId,
+  contractOwner,
+  isLoadingOwnership,
+  ownerType,
 }) => {
   const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
   const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
-  const [isMultisig, setIsMultisig] = useState(false);
-  const [multisigValidatorManagerAddress, setMultisigValidatorManagerAddress] = useState('');
-  const [isFetchingMultisigAddress, setIsFetchingMultisigAddress] = useState(false);
-  const { validatorManagerAddress, signingSubnetId } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -50,40 +57,17 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
 
   const networkName = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'fuji';
 
+  // Determine target contract and ABI based on ownerType
+  const useMultisig = ownerType === 'MultisigValidatorManager';
+  const targetContractAddress = useMultisig ? contractOwner : validatorManagerAddress;
+  const targetAbi = useMultisig ? multisigValidatorManagerAbi.abi : validatorManagerAbi.abi;
+
   // Update pChainTxId when initialPChainTxId prop changes
   useEffect(() => {
     if (initialPChainTxId && initialPChainTxId !== pChainTxId) {
       setPChainTxId(initialPChainTxId);
     }
   }, [initialPChainTxId]);
-
-  // Fetch MultisigValidatorManager address when multisig mode is enabled
-  useEffect(() => {
-    const fetchMultisigAddress = async () => {
-      if (!isMultisig || !validatorManagerAddress || !publicClient) {
-        setMultisigValidatorManagerAddress('');
-        return;
-      }
-
-      setIsFetchingMultisigAddress(true);
-      try {
-        const ownerAddress = await publicClient.readContract({
-          address: validatorManagerAddress as `0x${string}`,
-          abi: validatorManagerAbi.abi,
-          functionName: "owner",
-        }) as `0x${string}`;
-
-        setMultisigValidatorManagerAddress(ownerAddress);
-      } catch (err) {
-        console.error('Failed to fetch MultisigValidatorManager address:', err);
-        setErrorState('Failed to fetch MultisigValidatorManager address. The ValidatorManager may not be owned by a MultisigValidatorManager.');
-      } finally {
-        setIsFetchingMultisigAddress(false);
-      }
-    };
-
-    fetchMultisigAddress();
-  }, [isMultisig, validatorManagerAddress, publicClient]);
 
   const handleCompleteChangeWeight = async () => {
     setErrorState(null);
@@ -104,7 +88,12 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
       onError("Validator Manager address is not set. Check L1 Subnet selection.");
       return;
     }
-    if (isMultisig && !multisigValidatorManagerAddress.trim()) {
+    if (isContractOwner === false && !useMultisig) {
+      setErrorState("You are not the contract owner. Please contact the contract owner.");
+      onError("You are not the contract owner. Please contact the contract owner.");
+      return;
+    }
+    if (useMultisig && !contractOwner?.trim()) {
       setErrorState("MultisigValidatorManager address could not be fetched. Please ensure the ValidatorManager is owned by a MultisigValidatorManager.");
       onError("MultisigValidatorManager address could not be fetched. Please ensure the ValidatorManager is owned by a MultisigValidatorManager.");
       return;
@@ -170,12 +159,8 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
 
-      // Choose the target contract address and ABI based on multisig mode
-      const targetAddress = isMultisig ? multisigValidatorManagerAddress : validatorManagerAddress;
-      const targetAbi = isMultisig ? multisigValidatorManagerAbi.abi : validatorManagerAbi.abi;
-
       const hash = await coreWalletClient.writeContract({
-        address: targetAddress as `0x${string}`,
+        address: targetContractAddress as `0x${string}`,
         abi: targetAbi,
         functionName: "completeValidatorWeightUpdate",
         args: [0], // As per original, arg is 0
@@ -230,33 +215,23 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
         disabled={isProcessing}
       />
 
-      <div className="space-y-2">
-        <label className="flex items-center space-x-2 text-sm">
-          <input
-            type="checkbox"
-            checked={isMultisig}
-            onChange={(e) => setIsMultisig(e.target.checked)}
-            disabled={isProcessing}
-            className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-gray-700"
-          />
-          <span className="text-zinc-700 dark:text-zinc-300">Use MultisigValidatorManager</span>
-        </label>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Check this if the ValidatorManager is owned by a MultisigValidatorManager contract
-        </p>
-        {isMultisig && isFetchingMultisigAddress && (
-          <p className="text-xs text-blue-600 dark:text-blue-400">
-            Fetching MultisigValidatorManager address...
-          </p>
-        )}
-      </div>
-
+      {isLoadingOwnership && (
+        <div className="text-sm text-zinc-500 dark:text-zinc-400">
+          Checking contract ownership...
+        </div>
+      )}
+      
       <div className="text-sm text-zinc-600 dark:text-zinc-400">
-        <p><strong>Target Contract:</strong> {isMultisig ? 'MultisigValidatorManager' : 'ValidatorManager'}</p>
-        <p><strong>Contract Address:</strong> {isMultisig ? (multisigValidatorManagerAddress || 'Fetching...') : (validatorManagerAddress || 'Not set')}</p>
+        <p><strong>Target Contract:</strong> {useMultisig ? 'MultisigValidatorManager' : 'ValidatorManager'}</p>
+        <p><strong>Contract Address:</strong> {targetContractAddress || 'Not set'}</p>
+        <p><strong>Contract Owner:</strong> {
+          isContractOwner === true ? 'You are the owner' : 
+          isContractOwner === false ? `Owned by ${ownerType || 'contract'}` :
+          'Checking...'
+        }</p>
         {extractedData && (
           <div className="mt-2 space-y-1">
-            <p><strong>P-Chain Validation ID:</strong> {extractedData.validationID}</p>
+            <p><strong>Validation ID:</strong> {extractedData.validationID}</p>
             <p><strong>Nonce:</strong> {extractedData.nonce.toString()}</p>
             <p><strong>New Weight:</strong> {extractedData.weight.toString()}</p>
           </div>
@@ -265,11 +240,12 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
           <p className="mt-2"><strong>P-Chain Signature:</strong> {pChainSignature.substring(0,50)}...</p>
         )}
       </div>
+      
       <Button 
         onClick={handleCompleteChangeWeight} 
-        disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isMultisig && (!multisigValidatorManagerAddress.trim() || isFetchingMultisigAddress))}
+        disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig) || isLoadingOwnership}
       >
-        {isProcessing ? 'Processing...' : 'Sign & Complete Weight Change'}
+        {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : 'Sign & Complete Weight Change')}
       </Button>
 
       {transactionHash && (

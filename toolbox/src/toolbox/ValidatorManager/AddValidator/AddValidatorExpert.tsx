@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Container } from '../../../components/Container';
 import { Button } from '../../../components/Button';
 import { AlertCircle } from 'lucide-react';
@@ -13,6 +13,7 @@ import SubmitPChainTxRegisterL1Validator from './SubmitPChainTxRegisterL1Validat
 import CompleteValidatorRegistration from './CompleteValidatorRegistration';
 import { ConvertToL1Validator } from '../../../components/ValidatorListInput';
 import { useCreateChainStore } from '../../../stores/createChainStore';
+import { useWalletStore } from '../../../stores/walletStore';
 
 const AddValidatorExpert: React.FC = () => {
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -25,6 +26,7 @@ const AddValidatorExpert: React.FC = () => {
   const [evmTxHash, setEvmTxHash] = useState<string>('');
 
   // Form state
+  const { walletEVMAddress } = useWalletStore();
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
   const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
   const [validators, setValidators] = useState<ConvertToL1Validator[]>([]);
@@ -35,8 +37,42 @@ const AddValidatorExpert: React.FC = () => {
     validatorManagerAddress,
     error: validatorManagerError,
     isLoading: isLoadingVMCDetails,
-    blockchainId
+    blockchainId,
+    contractOwner,
+    isOwnerContract,
+    contractTotalWeight,
+    l1WeightError,
+    signingSubnetId,
+    isLoadingOwnership,
+    isLoadingL1Weight,
+    ownershipError,
+    ownerType,
+    isDetectingOwnerType
   } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
+
+  // Simple ownership check - direct computation
+  const isContractOwner = useMemo(() => {
+    return contractOwner && walletEVMAddress 
+      ? walletEVMAddress.toLowerCase() === contractOwner.toLowerCase()
+      : null;
+  }, [contractOwner, walletEVMAddress]);
+
+  // Determine UI state based on ownership:
+  // Case 1: Contract is owned by another contract → show MultisigOption
+  // Case 2: Contract is owned by current wallet → show regular button
+  // Case 3: Contract is owned by different EOA → show error
+  const ownershipState = useMemo(() => {
+    if (isOwnerContract) {
+      return 'contract'; // Case 1: Show MultisigOption
+    }
+    if (isContractOwner === true) {
+      return 'currentWallet'; // Case 2: Show regular button
+    }
+    if (isContractOwner === false) {
+      return 'differentEOA'; // Case 3: Show error
+    }
+    return 'loading'; // Still determining ownership
+  }, [isOwnerContract, isContractOwner]);
 
   const handleReset = () => {
     setGlobalError(null);
@@ -83,6 +119,16 @@ const AddValidatorExpert: React.FC = () => {
                 blockchainId={blockchainId}
                 subnetId={subnetIdL1}
                 isLoading={isLoadingVMCDetails}
+                signingSubnetId={signingSubnetId}
+                contractTotalWeight={contractTotalWeight}
+                l1WeightError={l1WeightError}
+                isLoadingL1Weight={isLoadingL1Weight}
+                contractOwner={contractOwner}
+                ownershipError={ownershipError}
+                isLoadingOwnership={isLoadingOwnership}
+                isOwnerContract={isOwnerContract}
+                ownerType={ownerType}
+                isDetectingOwnerType={isDetectingOwnerType}
               />
             </div>
           </Step>
@@ -92,11 +138,15 @@ const AddValidatorExpert: React.FC = () => {
             <p className="text-sm text-gray-500 mb-4">
               Start the validator registration process by providing the validator details.
             </p>
+            
             <InitiateValidatorRegistration
               subnetId={subnetIdL1}
               validatorManagerAddress={validatorManagerAddress}
               resetForm={resetInitiateForm}
               initialValidators={validators}
+              ownershipState={ownershipState}
+              contractTotalWeight={contractTotalWeight}
+              l1WeightError={l1WeightError}
               onSuccess={(data) => {
                 setValidatorBalance(data.validatorBalance);
                 setBlsProofOfPossession(data.blsProofOfPossession);
@@ -105,7 +155,7 @@ const AddValidatorExpert: React.FC = () => {
                 setResetInitiateForm(false);
               }}
               onError={(message) => setGlobalError(message)}
-            />
+            />           
           </Step>
 
           <Step>
@@ -119,6 +169,7 @@ const AddValidatorExpert: React.FC = () => {
               validatorBalance={validatorBalance}
               blsProofOfPossession={blsProofOfPossession}
               evmTxHash={evmTxHash}
+              signingSubnetId={signingSubnetId}
               onSuccess={(pChainTxId) => {
                 setPChainTxId(pChainTxId);
                 setGlobalError(null);
@@ -136,6 +187,12 @@ const AddValidatorExpert: React.FC = () => {
               key={`complete-registration-${resetKey}`}
               subnetIdL1={subnetIdL1}
               pChainTxId={pChainTxId}
+              ownershipState={ownershipState}
+              validatorManagerAddress={validatorManagerAddress}
+              signingSubnetId={signingSubnetId}
+              contractOwner={contractOwner}
+              isLoadingOwnership={isLoadingOwnership}
+              ownerType={ownerType}
               onSuccess={(message) => {
                 setGlobalSuccess(message);
                 setGlobalError(null);

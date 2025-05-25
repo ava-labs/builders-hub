@@ -1,15 +1,15 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { AlertCircle } from "lucide-react"
 import { Container } from "../../../components/Container"
 import { Button } from "../../../components/Button"
 import SelectSubnetId from "../../../components/SelectSubnetId"
 import { ValidatorManagerDetails } from "../../../components/ValidatorManagerDetails"
-import { ValidationSelection } from "../../../components/SelectValidationID"
 import { Success } from "../../../components/Success"
 
 import { useCreateChainStore } from "../../../stores/createChainStore"
+import { useWalletStore } from "../../../stores/walletStore"
 import { useValidatorManagerDetails } from "../../hooks/useValidatorManagerDetails"
 
 import InitiateValidatorRemoval from "./InitiateValidatorRemoval"
@@ -17,61 +17,76 @@ import CompleteValidatorRemoval from "./CompleteValidatorRemoval"
 import SubmitPChainTxRemoval from "./SubmitPChainTxRemoval"
 import { Step, Steps } from "fumadocs-ui/components/steps"
 
-type RemovalStep = "initiate" | "pchain" | "complete"
-
 const RemoveValidatorExpert: React.FC = () => {
-  
-  const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId)
-  const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "")
-  
-  const [validationSelection, setValidationSelection] = useState<ValidationSelection>({
-    validationId: "",
-    nodeId: ""
-  })
-
-  const [pChainTxId, setPChainTxId] = useState<string>("")
-  const [initiateRemovalTxHash, setInitiateRemovalTxHash] = useState<string>("")
-  
-  const [currentStep, setCurrentStep] = useState<RemovalStep>("initiate")
-  const [componentKey, setComponentKey] = useState<number>(0)
-  
-  // Data passed between steps
-  
   const [globalError, setGlobalError] = useState<string | null>(null)
   const [globalSuccess, setGlobalSuccess] = useState<string | null>(null)
+
+  // State for passing data between components
+  const [initiateRemovalTxHash, setInitiateRemovalTxHash] = useState<string>("")
+  const [pChainTxId, setPChainTxId] = useState<string>("")
+
+  // Form state
+  const { walletEVMAddress } = useWalletStore()
+  const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId)
+  const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "")
+  const [nodeId, setNodeId] = useState<string>("")
+  const [validationId, setValidationId] = useState<string>("")
+  const [resetInitiateForm, setResetInitiateForm] = useState<boolean>(false)
+  const [resetKey, setResetKey] = useState<number>(0)
 
   const {
     validatorManagerAddress,
     error: validatorManagerError,
     isLoading: isLoadingVMCDetails,
     blockchainId,
+    contractOwner,
+    isOwnerContract,
+    signingSubnetId,
+    isLoadingOwnership,
+    contractTotalWeight,
+    l1WeightError,
+    isLoadingL1Weight,
+    ownershipError,
+    ownerType,
+    isDetectingOwnerType
   } = useValidatorManagerDetails({ subnetId: subnetIdL1 })
 
-  const handleInitiateError = (message: string) => {
-    setGlobalError(message)
-  }
+  // Simple ownership check - direct computation
+  const isContractOwner = useMemo(() => {
+    return contractOwner && walletEVMAddress 
+      ? walletEVMAddress.toLowerCase() === contractOwner.toLowerCase()
+      : null;
+  }, [contractOwner, walletEVMAddress]);
 
-  const handlePChainError = (message: string) => {
-    setGlobalError(message)
-  }
-
-  const handleCompleteSuccess = (message: string) => {
-    setGlobalSuccess(message)
-    setGlobalError(null)
-  }
-
-  const handleCompleteError = (message: string) => {
-    setGlobalError(message)
-  }
+  // Determine UI state based on ownership:
+  // Case 1: Contract is owned by another contract → show MultisigOption
+  // Case 2: Contract is owned by current wallet → show regular button
+  // Case 3: Contract is owned by different EOA → show error
+  const ownershipState = useMemo(() => {
+    if (isOwnerContract) {
+      return 'contract'; // Case 1: Show MultisigOption
+    }
+    if (isContractOwner === true) {
+      return 'currentWallet'; // Case 2: Show regular button
+    }
+    if (isContractOwner === false) {
+      return 'differentEOA'; // Case 3: Show error
+    }
+    return 'loading'; // Still determining ownership
+  }, [isOwnerContract, isContractOwner]);
 
   const handleReset = () => {
-    setCurrentStep("initiate")
-    setValidationSelection({ validationId: "", nodeId: "" })
-    setInitiateRemovalTxHash("")
-    setPChainTxId("")
     setGlobalError(null)
     setGlobalSuccess(null)
-    setComponentKey(prevKey => prevKey + 1)
+    setInitiateRemovalTxHash("")
+    setPChainTxId("")
+    setSubnetIdL1("")
+    setNodeId("")
+    setValidationId("")
+    setResetInitiateForm(true)
+    setResetKey(prev => prev + 1) // Force re-render of all child components
+    // Reset the flag after a brief delay to allow the child component to process it
+    setTimeout(() => setResetInitiateForm(false), 100)
   }
 
   return (
@@ -107,6 +122,16 @@ const RemoveValidatorExpert: React.FC = () => {
                 blockchainId={blockchainId}
                 subnetId={subnetIdL1}
                 isLoading={isLoadingVMCDetails}
+                signingSubnetId={signingSubnetId}
+                contractTotalWeight={contractTotalWeight}
+                l1WeightError={l1WeightError}
+                isLoadingL1Weight={isLoadingL1Weight}
+                contractOwner={contractOwner}
+                ownershipError={ownershipError}
+                isLoadingOwnership={isLoadingOwnership}
+                isOwnerContract={isOwnerContract}
+                ownerType={ownerType}
+                isDetectingOwnerType={isDetectingOwnerType}
               />
             </div>
           </Step>
@@ -119,16 +144,18 @@ const RemoveValidatorExpert: React.FC = () => {
             <InitiateValidatorRemoval
               subnetId={subnetIdL1}
               validatorManagerAddress={validatorManagerAddress}
-              resetForm={currentStep === "initiate"}
-              initialNodeId={validationSelection.nodeId}
-              initialValidationId={validationSelection.validationId}
+              resetForm={resetInitiateForm}
+              initialNodeId={nodeId}
+              initialValidationId={validationId}
+              ownershipState={ownershipState}
               onSuccess={(data) => {
-                setValidationSelection(data)
+                setNodeId(data.nodeId)
+                setValidationId(data.validationId)
                 setInitiateRemovalTxHash(data.txHash)
-                setCurrentStep("pchain")
                 setGlobalError(null)
+                setResetInitiateForm(false)
               }}
-              onError={handleInitiateError}
+              onError={(message) => setGlobalError(message)}
             />
           </Step>
 
@@ -138,15 +165,15 @@ const RemoveValidatorExpert: React.FC = () => {
               Sign the warp message and submit the removal transaction to the P-Chain.
             </p>
             <SubmitPChainTxRemoval
-              key={`submit-pchain-${componentKey}`}
+              key={`submit-pchain-${resetKey}`}
               subnetIdL1={subnetIdL1}
               initialEvmTxHash={initiateRemovalTxHash}
+              signingSubnetId={signingSubnetId}
               onSuccess={(pChainTxId) => {
                 setPChainTxId(pChainTxId)
-                setCurrentStep("complete")
                 setGlobalError(null)
               }}
-              onError={handlePChainError}
+              onError={(message) => setGlobalError(message)}
             />
           </Step>
 
@@ -156,13 +183,22 @@ const RemoveValidatorExpert: React.FC = () => {
               Complete the validator removal by signing the P-Chain warp message.
             </p>
             <CompleteValidatorRemoval
-              key={`complete-removal-${componentKey}`}
+              key={`complete-removal-${resetKey}`}
               subnetIdL1={subnetIdL1}
-              validationId={validationSelection.validationId}
+              validationId={validationId}
               pChainTxId={pChainTxId}
               eventData={null}
-              onSuccess={handleCompleteSuccess}
-              onError={handleCompleteError}
+              isContractOwner={isContractOwner}
+              validatorManagerAddress={validatorManagerAddress}
+              signingSubnetId={signingSubnetId}
+              contractOwner={contractOwner}
+              isLoadingOwnership={isLoadingOwnership}
+              ownerType={ownerType}
+              onSuccess={(message) => {
+                setGlobalSuccess(message)
+                setGlobalError(null)
+              }}
+              onError={(message) => setGlobalError(message)}
             />
           </Step>
         </Steps>
@@ -174,7 +210,7 @@ const RemoveValidatorExpert: React.FC = () => {
           />
         )}
 
-        {(pChainTxId || globalError || globalSuccess) && (
+        {(initiateRemovalTxHash || pChainTxId || globalError || globalSuccess) && (
           <Button onClick={handleReset} className="mt-6">
             Reset All Steps
           </Button>

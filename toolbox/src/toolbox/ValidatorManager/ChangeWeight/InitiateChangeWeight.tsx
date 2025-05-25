@@ -4,10 +4,8 @@ import { useWalletStore } from '../../../stores/walletStore';
 import { Input } from '../../../components/Input';
 import { Button } from '../../../components/Button';
 import SelectValidationID, { ValidationSelection } from '../../../components/SelectValidationID';
-import { validateContractOwner } from '../../../coreViem/hooks/validateContractOwner';
 import { getValidatorWeight } from '../../../coreViem/hooks/getValidatorWeight';
 import { validateStakePercentage } from '../../../coreViem/hooks/getTotalStake';
-import { useValidatorManagerDetails } from '../../hooks/useValidatorManagerDetails';
 import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/ValidatorManager.json';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
@@ -27,6 +25,8 @@ interface InitiateChangeWeightProps {
   initialNodeId?: string;
   initialValidationId?: string;
   initialWeight?: string;
+  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
+  contractTotalWeight: bigint;
 }
 
 const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
@@ -38,6 +38,8 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
   initialNodeId,
   initialValidationId,
   initialWeight,
+  ownershipState,
+  contractTotalWeight,
 }) => {
   const { coreWalletClient, publicClient } = useWalletStore();
   const viemChain = useViemChainStore();
@@ -47,8 +49,6 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
     nodeId: initialNodeId || '' 
   });
   const [weight, setWeight] = useState(initialWeight || '');
-  const { contractTotalWeight } = useValidatorManagerDetails({ subnetId });
-  const [isContractOwner, setIsContractOwner] = useState<boolean | null>(null);
   const [componentKey, setComponentKey] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -62,32 +62,8 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       setIsProcessing(false);
       setErrorState(null);
       setTxSuccess(null);
-      setIsContractOwner(null);
     }
   }, [resetForm]);
-
-  useEffect(() => {
-    const checkOwnership = async () => {
-      // Don't check ownership if transaction was successful
-      if (txSuccess) return;
-      
-      if (validatorManagerAddress && publicClient && coreWalletClient) {
-        setIsContractOwner(null);
-        try {
-          const [account] = await coreWalletClient.requestAddresses();
-          const ownershipValidated = await validateContractOwner(
-            publicClient,
-            validatorManagerAddress as `0x${string}`,
-            account
-          );
-          setIsContractOwner(ownershipValidated);
-        } catch (err) {
-          setIsContractOwner(false);
-        }
-      }
-    };
-    checkOwnership();
-  }, [validatorManagerAddress, publicClient, coreWalletClient, txSuccess]);
 
   const handleInitiateChangeWeight = async () => {
     setErrorState(null);
@@ -108,10 +84,10 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
     if (!validatorManagerAddress) {
       setErrorState("Validator Manager Address is required. Please select a valid L1 subnet."); return;
     }
-    if (isContractOwner === false) {
+    if (ownershipState === 'differentEOA') {
       setErrorState("You are not the owner of this contract. Only the contract owner can change validator weights."); return;
     }
-    if (isContractOwner === null) {
+    if (ownershipState === 'loading') {
       setErrorState("Verifying contract ownership... please wait."); return;
     }
 
@@ -236,26 +212,49 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
         error={error && (error.includes("Weight") || error.includes("positive number")) ? error : undefined}
       />
       
-      <MultisigOption
-        isContractOwner={isContractOwner}
-        validatorManagerAddress={validatorManagerAddress}
-        functionName="initiateValidatorWeightUpdate"
-        args={[validation.validationId, BigInt(weight || 0)]}
-        onSuccess={handleMultisigSuccess}
-        onError={handleMultisigError}
-        disabled={isProcessing || !validation.validationId || !validation.nodeId || !weight || !validatorManagerAddress || txSuccess !== null}
-      >
+      {ownershipState === 'contract' && (
+        <MultisigOption
+          validatorManagerAddress={validatorManagerAddress}
+          functionName="initiateValidatorWeightUpdate"
+          args={[validation.validationId, BigInt(weight || 0)]}
+          onSuccess={handleMultisigSuccess}
+          onError={handleMultisigError}
+          disabled={isProcessing || !validation.validationId || !validation.nodeId || !weight || !validatorManagerAddress || txSuccess !== null}
+        >
+          <Button
+            onClick={handleInitiateChangeWeight}
+            disabled={isProcessing || !validation.validationId || !validation.nodeId || !weight || !validatorManagerAddress || txSuccess !== null}
+          >
+            Initiate Change Weight
+          </Button>
+        </MultisigOption>
+      )}
+
+      {ownershipState === 'currentWallet' && (
         <Button
           onClick={handleInitiateChangeWeight}
-          disabled={isProcessing || !validation.validationId || !validation.nodeId || !weight || !validatorManagerAddress || isContractOwner === false || (isContractOwner === null && !txSuccess) || txSuccess !== null}
-          error={(!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined) || 
-                 (isContractOwner === false && !txSuccess ? "Not contract owner." : undefined) ||
-                 (isContractOwner === null && validatorManagerAddress && !txSuccess ? "Verifying ownership..." : undefined)
-              }
+          disabled={isProcessing || !validation.validationId || !validation.nodeId || !weight || !validatorManagerAddress || txSuccess !== null}
+          error={!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined}
         >
-          {txSuccess ? 'Transaction Completed' : (isProcessing ? 'Processing...' : (isContractOwner === null && validatorManagerAddress && !txSuccess ? 'Verifying...' : 'Initiate Change Weight'))}
+          {txSuccess ? 'Transaction Completed' : (isProcessing ? 'Processing...' : 'Initiate Change Weight')}
         </Button>
-      </MultisigOption>
+      )}
+
+      {(ownershipState === 'differentEOA' || ownershipState === 'loading') && (
+        <Button
+          onClick={handleInitiateChangeWeight}
+          disabled={true}
+          error={
+            ownershipState === 'differentEOA' 
+              ? "You are not the owner of this contract. Only the contract owner can change validator weights."
+              : ownershipState === 'loading' 
+                ? "Verifying ownership..."
+                : (!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined)
+          }
+        >
+          {ownershipState === 'loading' ? 'Verifying...' : 'Initiate Change Weight'}
+        </Button>
+      )}
 
       {error && (
         <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">

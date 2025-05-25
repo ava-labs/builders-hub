@@ -3,9 +3,7 @@ import { useViemChainStore } from '../../../stores/toolboxStore';
 import { useWalletStore } from '../../../stores/walletStore';
 import { Button } from '../../../components/Button';
 import { ValidatorListInput, ConvertToL1Validator } from '../../../components/ValidatorListInput';
-import { validateContractOwner } from '../../../coreViem/hooks/validateContractOwner';
 import { validateStakePercentage } from '../../../coreViem/hooks/getTotalStake';
-import { useValidatorManagerDetails } from '../../hooks/useValidatorManagerDetails';
 import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/ValidatorManager.json';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
@@ -31,6 +29,9 @@ interface InitiateValidatorRegistrationProps {
   onError: (message: string) => void;
   resetForm?: boolean;
   initialValidators?: ConvertToL1Validator[];
+  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
+  contractTotalWeight: bigint;
+  l1WeightError: string | null;
 }
 
 const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps> = ({
@@ -40,13 +41,14 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   onError,
   resetForm,
   initialValidators,
+  ownershipState,
+  contractTotalWeight,
+  l1WeightError,
 }) => {
   const { coreWalletClient, publicClient, pChainAddress } = useWalletStore();
   const viemChain = useViemChainStore();
 
   const [validators, setValidators] = useState<ConvertToL1Validator[]>(initialValidators || []);
-  const { contractTotalWeight, l1WeightError } = useValidatorManagerDetails({ subnetId });
-  const [isContractOwner, setIsContractOwner] = useState<boolean | null>(null);
   const [componentKey, setComponentKey] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -61,7 +63,6 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       setIsProcessing(false);
       setErrorState(null);
       setTxSuccess(null);
-      setIsContractOwner(null);
     }
   }, [resetForm, initialValidators]);
 
@@ -83,37 +84,14 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     fetchBalance();
   }, [pChainAddress, coreWalletClient]);
 
-  useEffect(() => {
-    const checkOwnership = async () => {
-      // Don't check ownership if transaction was successful
-      if (txSuccess) return;
-      
-      if (validatorManagerAddress && publicClient && coreWalletClient) {
-        setIsContractOwner(null);
-        try {
-          const [account] = await coreWalletClient.requestAddresses();
-          const ownershipValidated = await validateContractOwner(
-            publicClient,
-            validatorManagerAddress as `0x${string}`,
-            account
-          );
-          setIsContractOwner(ownershipValidated);
-        } catch (err) {
-          setIsContractOwner(false);
-        }
-      }
-    };
-    checkOwnership();
-  }, [validatorManagerAddress, publicClient, coreWalletClient, txSuccess]);
-
   const validateInputs = (): boolean => {
     if (validators.length === 0) {
       setErrorState("Please add a validator to continue");
       return false;
     }
 
-    // Check if user is contract owner
-    if (isContractOwner === false) {
+    // Check ownership permissions
+    if (ownershipState === 'differentEOA') {
       setErrorState("You are not the owner of this contract. Only the contract owner can add validators.");
       return false;
     }
@@ -167,12 +145,12 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       return;
     }
 
-    if (isContractOwner === false) {
+    if (ownershipState === 'differentEOA') {
       setErrorState("You are not the owner of this contract. Only the contract owner can add validators.");
       return;
     }
 
-    if (isContractOwner === null) {
+    if (ownershipState === 'loading') {
       setErrorState("Verifying contract ownership... please wait.");
       return;
     }
@@ -401,26 +379,49 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         maxValidators={1}
       />
       
-      <MultisigOption
-        isContractOwner={isContractOwner}
-        validatorManagerAddress={validatorManagerAddress}
-        functionName="initiateValidatorRegistration"
-        args={getMultisigArgs()}
-        onSuccess={handleMultisigSuccess}
-        onError={handleMultisigError}
-        disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
-      >
+      {ownershipState === 'contract' && (
+        <MultisigOption
+          validatorManagerAddress={validatorManagerAddress}
+          functionName="initiateValidatorRegistration"
+          args={getMultisigArgs()}
+          onSuccess={handleMultisigSuccess}
+          onError={handleMultisigError}
+          disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
+        >
+          <Button
+            onClick={handleInitiateValidatorRegistration}
+            disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
+          >
+            Initiate Validator Registration
+          </Button>
+        </MultisigOption>
+      )}
+
+      {ownershipState === 'currentWallet' && (
         <Button
           onClick={handleInitiateValidatorRegistration}
-          disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || isContractOwner === false || (isContractOwner === null && !txSuccess) || txSuccess !== null}
-          error={(!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined) || 
-                 (isContractOwner === false && !txSuccess ? "Not contract owner." : undefined) ||
-                 (isContractOwner === null && validatorManagerAddress && !txSuccess ? "Verifying ownership..." : undefined)
-              }
+          disabled={isProcessing || validators.length === 0 || !validatorManagerAddress || txSuccess !== null}
+          error={!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined}
         >
-          {txSuccess ? 'Transaction Completed' : (isProcessing ? 'Processing...' : (isContractOwner === null && validatorManagerAddress && !txSuccess ? 'Verifying...' : 'Initiate Validator Registration'))}
+          {txSuccess ? 'Transaction Completed' : (isProcessing ? 'Processing...' : 'Initiate Validator Registration')}
         </Button>
-      </MultisigOption>
+      )}
+
+      {(ownershipState === 'differentEOA' || ownershipState === 'loading') && (
+        <Button
+          onClick={handleInitiateValidatorRegistration}
+          disabled={true}
+          error={
+            ownershipState === 'differentEOA' 
+              ? "You are not the owner of this contract. Only the contract owner can add validators."
+              : ownershipState === 'loading' 
+                ? "Verifying ownership..."
+                : (!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined)
+          }
+        >
+          {ownershipState === 'loading' ? 'Verifying...' : 'Initiate Validator Registration'}
+        </Button>
+      )}
 
       {error && (
         <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Container } from '../../../components/Container';
 import { Button } from '../../../components/Button';
 import { AlertCircle } from 'lucide-react';
@@ -7,6 +7,7 @@ import { ValidatorManagerDetails } from '../../../components/ValidatorManagerDet
 import { useValidatorManagerDetails } from '../../hooks/useValidatorManagerDetails';
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Success } from '../../../components/Success';
+import { useWalletStore } from '../../../stores/walletStore';
 
 import InitiateChangeWeight from './InitiateChangeWeight';
 import SubmitPChainTxChangeWeight from './SubmitPChainTxChangeWeight';
@@ -22,6 +23,7 @@ const ChangeWeightStateless: React.FC = () => {
   const [pChainTxId, setPChainTxId] = useState<string>('');
 
   // Form state
+  const { walletEVMAddress } = useWalletStore();
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
   const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
   const [nodeId, setNodeId] = useState<string>('');
@@ -34,8 +36,42 @@ const ChangeWeightStateless: React.FC = () => {
     validatorManagerAddress,
     error: validatorManagerError,
     isLoading: isLoadingVMCDetails,
-    blockchainId
+    blockchainId,
+    contractOwner,
+    isOwnerContract,
+    contractTotalWeight,
+    signingSubnetId,
+    isLoadingOwnership,
+    l1WeightError,
+    isLoadingL1Weight,
+    ownershipError,
+    ownerType,
+    isDetectingOwnerType
   } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
+
+  // Simple ownership check - direct computation
+  const isContractOwner = useMemo(() => {
+    return contractOwner && walletEVMAddress 
+      ? walletEVMAddress.toLowerCase() === contractOwner.toLowerCase()
+      : null;
+  }, [contractOwner, walletEVMAddress]);
+
+  // Determine UI state based on ownership:
+  // Case 1: Contract is owned by another contract → show MultisigOption
+  // Case 2: Contract is owned by current wallet → show regular button
+  // Case 3: Contract is owned by different EOA → show error
+  const ownershipState = useMemo(() => {
+    if (isOwnerContract) {
+      return 'contract'; // Case 1: Show MultisigOption
+    }
+    if (isContractOwner === true) {
+      return 'currentWallet'; // Case 2: Show regular button
+    }
+    if (isContractOwner === false) {
+      return 'differentEOA'; // Case 3: Show error
+    }
+    return 'loading'; // Still determining ownership
+  }, [isOwnerContract, isContractOwner]);
 
   const handleReset = () => {
     setGlobalError(null);
@@ -82,6 +118,16 @@ const ChangeWeightStateless: React.FC = () => {
                 blockchainId={blockchainId}
                 subnetId={subnetIdL1}
                 isLoading={isLoadingVMCDetails}
+                signingSubnetId={signingSubnetId}
+                contractTotalWeight={contractTotalWeight}
+                l1WeightError={l1WeightError}
+                isLoadingL1Weight={isLoadingL1Weight}
+                contractOwner={contractOwner}
+                ownershipError={ownershipError}
+                isLoadingOwnership={isLoadingOwnership}
+                isOwnerContract={isOwnerContract}
+                ownerType={ownerType}
+                isDetectingOwnerType={isDetectingOwnerType}
               />
             </div>
           </Step>
@@ -98,6 +144,8 @@ const ChangeWeightStateless: React.FC = () => {
               initialNodeId={nodeId}
               initialValidationId={validationId}
               initialWeight={newWeight}
+              ownershipState={ownershipState}
+              contractTotalWeight={contractTotalWeight}
               onSuccess={(data) => {
                 setNodeId(data.nodeId);
                 setValidationId(data.validationId);
@@ -119,6 +167,7 @@ const ChangeWeightStateless: React.FC = () => {
               key={`submit-pchain-${resetKey}`}
               subnetIdL1={subnetIdL1}
               initialEvmTxHash={evmTxHash}
+              signingSubnetId={signingSubnetId}
               onSuccess={(pChainTxId) => {
                 setPChainTxId(pChainTxId);
                 setGlobalError(null);
@@ -136,6 +185,12 @@ const ChangeWeightStateless: React.FC = () => {
               key={`complete-change-${resetKey}`}
               subnetIdL1={subnetIdL1}
               initialPChainTxId={pChainTxId}
+              isContractOwner={isContractOwner}
+              validatorManagerAddress={validatorManagerAddress}
+              signingSubnetId={signingSubnetId}
+              contractOwner={contractOwner}
+              isLoadingOwnership={isLoadingOwnership}
+              ownerType={ownerType}
               onSuccess={(message) => {
                 setGlobalSuccess(message);
                 setGlobalError(null);

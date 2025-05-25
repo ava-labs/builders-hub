@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
-import { useValidatorManagerDetails } from '../../hooks/useValidatorManagerDetails';
 import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
@@ -11,6 +10,7 @@ import { networkIDs } from '@avalabs/avalanchejs';
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
   initialEvmTxHash?: string;
+  signingSubnetId: string;
   onSuccess: (pChainTxId: string, eventData: {
     validationID: `0x${string}`;
     validatorWeightMessageID: `0x${string}`;
@@ -23,12 +23,12 @@ interface SubmitPChainTxRemovalProps {
 const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   subnetIdL1,
   initialEvmTxHash,
+  signingSubnetId,
   onSuccess,
   onError,
 }) => {
   const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore();
   const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
-  const { signingSubnetId } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);

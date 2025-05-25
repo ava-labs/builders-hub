@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
-import { useValidatorManagerDetails } from '../../hooks/useValidatorManagerDetails';
 import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
@@ -13,6 +12,7 @@ interface SubmitPChainTxRegisterL1ValidatorProps {
   validatorBalance?: string;
   blsProofOfPossession?: string;
   evmTxHash?: string;
+  signingSubnetId: string;
   onSuccess: (pChainTxId: string) => void;
   onError: (message: string) => void;
 }
@@ -22,6 +22,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   validatorBalance,
   blsProofOfPossession,
   evmTxHash,
+  signingSubnetId,
   onSuccess,
   onError,
 }) => {
@@ -29,7 +30,6 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
   const [balance, setBalance] = useState('');
   const [blsProofOfPossessionState, setBlsProofOfPossessionState] = useState('');
-  const { signingSubnetId } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
