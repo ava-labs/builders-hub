@@ -125,7 +125,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
     setIsInitializing(true);
     try {
       if (!window.ethereum) {
-        throw new Error('MetaMask not found');
+        throw new Error('window.ethereum not found');
       }
 
       // Connect wallet
@@ -184,8 +184,12 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       }
 
       // Initialize Safe SDK with the Safe address
+      if (!window.ethereum) {
+        throw new Error('window.ethereum not found');
+      }
+      
       const protocolKitInstance = await Safe.init({ 
-        provider: window.ethereum as any,
+        provider: window.ethereum! as any,
         signer: address,
         safeAddress: safeAddr
       });
@@ -211,7 +215,11 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
 
     setIsProposing(true);
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      if (!window.ethereum) {
+        throw new Error('window.ethereum not found');
+      }
+      
+      const provider = new ethers.BrowserProvider(window.ethereum!);
       const network = await provider.getNetwork();
       
       // Get the current nonce from the Safe contract
