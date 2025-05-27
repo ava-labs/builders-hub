@@ -10,17 +10,20 @@ export async function UpdateStatusMember(
   email: string,
   wasInOtherProject: boolean
 ) {
-  if (!user_id || !project_id || !status) {
+  if (!project_id || !status) {
     throw new ValidationError("user_id and project_id are required", []);
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      id: user_id,
-    },
+  const user = await prisma.user.findFirst({
+    where: user_id ? {
+      OR: [
+        { id: user_id },
+        { email: email }
+      ]
+    } : {
+      email: email
+    }
   });
-
-
 
   const member = await prisma.member.findFirst({
     where: {
@@ -57,8 +60,6 @@ export async function UpdateStatusMember(
   checkIfUserIsMemberOfOtherProject(wasInOtherProject, member, project_id);
 
   return updatedMember;
-
-
 }
 
 async function checkIfUserIsMemberOfOtherProject(wasInOtherProject: boolean, member: any, project_id: string) {
@@ -103,7 +104,6 @@ async function checkIfUserIsMemberOfOtherProject(wasInOtherProject: boolean, mem
     });
 
     for (const projectId of projectIds) {
-
       await deleteProjectIfNoMembers(projectId);
     }
   }
