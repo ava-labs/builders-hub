@@ -36,10 +36,10 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
     if (!newLink) return;
 
     try {
-      // Validar la URL antes de agregarla
+      
       const url = new URL(newLink);
       
-      // Validar que no sea una URL de YouTube o Loom si es demo_link
+      
       if (name === 'demo_link' && (
         url.hostname.includes('youtube.com') ||
         url.hostname.includes('youtu.be') ||
@@ -54,7 +54,7 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
 
       const currentLinks = (form.getValues(name) as string[]) || [];
       
-      // Validar que no sea un enlace duplicado
+      
       if (currentLinks.includes(newLink)) {
         form.setError(name, {
           type: 'manual',
