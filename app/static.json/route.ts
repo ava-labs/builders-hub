@@ -15,7 +15,7 @@ export async function GET() {
         structured: loadedData.structuredData
       }
     }),
-    ...academy.getPages().map(async (page) => {
+    ...academy.getPages().map((page) => {
       return {
         title: page.data.title,
         url: page.url,
@@ -32,7 +32,7 @@ export async function GET() {
         structured: loadedData.structuredData
       }
     }),
-    ...guide.getPages().map(async (page) => {
+    ...guide.getPages().map((page) => {
       return {
         title: page.data.title,
         url: page.url,
