@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
-
 export async function GET() {
   try {
     const response = await fetch('https://wallet-client.ash.center/v1/chains', {
@@ -10,7 +7,6 @@ export async function GET() {
       headers: {
         'Content-Type': 'application/json',
       },
-      signal: AbortSignal.timeout(10000), // 10 second timeout
     });
 
     if (!response.ok) {
