@@ -85,7 +85,6 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   const [protocolKit, setProtocolKit] = useState<any>(null);
   const [apiKit, setApiKit] = useState<any>(null);
   const [walletAddress, setWalletAddress] = useState('');
-  const [chainId, setChainId] = useState<number | null>(null);
   const [multisigValidatorManagerAddress, setMultisigValidatorManagerAddress] = useState('');
   const [safeAddress, setSafeAddress] = useState('');
   const [safeInfo, setSafeInfo] = useState<any>(null);
@@ -143,7 +142,6 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       const network = await provider.getNetwork();
       
       setWalletAddress(address);
-      setChainId(Number(network.chainId));
 
       // Check if chain is supported and get transaction service URL
       const txServiceUrl = await getSupportedChain(network.chainId.toString());
