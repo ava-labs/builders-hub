@@ -9,7 +9,7 @@ import { Success } from '../../../components/Success';
 import { bytesToHex, hexToBytes } from 'viem';
 import { networkIDs } from '@avalabs/avalanchejs';
 import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/ValidatorManager.json';
-import multisigValidatorManagerAbi from '../../../../contracts/icm-contracts/compiled/MultisigValidatorManager.json';
+import poaManagerAbi from '../../../../contracts/icm-contracts/compiled/PoAManager.json';
 import { GetRegistrationJustification } from '../justification';
 import { packL1ValidatorRegistration } from '../../../coreViem/utils/convertWarp';
 import { packWarpIntoAccessList } from '../packWarp';
@@ -32,7 +32,7 @@ interface CompleteValidatorRemovalProps {
   signingSubnetId: string;
   contractOwner: string | null;
   isLoadingOwnership: boolean;
-  ownerType: 'MultisigValidatorManager' | 'StakingManager' | 'EOA' | null;
+  ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | null;
 }
 
 const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
@@ -65,9 +65,9 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   const networkName = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'fuji';
 
   // Determine target contract and ABI based on ownerType
-  const useMultisig = ownerType === 'MultisigValidatorManager';
+  const useMultisig = ownerType === 'PoAManager';
   const targetContractAddress = useMultisig ? contractOwner : validatorManagerAddress;
-  const targetAbi = useMultisig ? multisigValidatorManagerAbi.abi : validatorManagerAbi.abi;
+  const targetAbi = useMultisig ? poaManagerAbi.abi : validatorManagerAbi.abi;
 
   // Update pChainTxId when the prop changes
   useEffect(() => {
@@ -101,8 +101,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       return;
     }
     if (useMultisig && !contractOwner?.trim()) {
-      setErrorState("MultisigValidatorManager address could not be fetched. Please ensure the ValidatorManager is owned by a MultisigValidatorManager.");
-      onError("MultisigValidatorManager address could not be fetched. Please ensure the ValidatorManager is owned by a MultisigValidatorManager.");
+      setErrorState("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
+      onError("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
       return;
     }
     if (!coreWalletClient || !publicClient || !viemChain) {
@@ -223,7 +223,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       )}
       
       <div className="text-sm text-zinc-600 dark:text-zinc-400">
-        <p><strong>Target Contract:</strong> {useMultisig ? 'MultisigValidatorManager' : 'ValidatorManager'}</p>
+        <p><strong>Target Contract:</strong> {useMultisig ? 'PoAManager' : 'ValidatorManager'}</p>
         <p><strong>Contract Address:</strong> {targetContractAddress || 'Not set'}</p>
         <p><strong>Contract Owner:</strong> {
           isContractOwner === true ? 'You are the owner' : 

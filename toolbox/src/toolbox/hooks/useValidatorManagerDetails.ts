@@ -5,6 +5,7 @@ import { getSubnetInfoForNetwork, getBlockchainInfoForNetwork } from "../../core
 import { useWalletStore } from "../../stores/walletStore";
 import { useViemChainStore } from "../../stores/toolboxStore";
 import validatorManagerAbi from '../../../contracts/icm-contracts/compiled/ValidatorManager.json';
+import poaManagerAbi from '../../../contracts/icm-contracts/compiled/PoAManager.json';
 
 interface ValidatorManagerDetails {
     validatorManagerAddress: string;
@@ -19,7 +20,7 @@ interface ValidatorManagerDetails {
     ownershipError: string | null;
     isLoadingOwnership: boolean;
     isOwnerContract: boolean;
-    ownerType: 'MultisigValidatorManager' | 'StakingManager' | 'EOA' | null;
+    ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | null;
     isDetectingOwnerType: boolean;
 }
 
@@ -49,7 +50,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
     const [isOwnerContract, setIsOwnerContract] = useState(false);
 
     // Owner contract type detection states
-    const [ownerType, setOwnerType] = useState<'MultisigValidatorManager' | 'StakingManager' | 'EOA' | null>(null);
+    const [ownerType, setOwnerType] = useState<'PoAManager' | 'StakingManager' | 'EOA' | null>(null);
     const [isDetectingOwnerType, setIsDetectingOwnerType] = useState(false);
 
     // Cache to store fetched details for each subnetId to avoid redundant API calls
@@ -299,28 +300,21 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
 
             setIsDetectingOwnerType(true);
             try {
-                // Try to call owner() on the owner contract
+                // Try to call owner() function using PoAManager ABI to detect if it's a PoAManager
                 const ownerAddress = await publicClient.readContract({
                     address: contractOwner as `0x${string}`,
-                    abi: [
-                        {
-                            inputs: [],
-                            name: "owner",
-                            outputs: [{ internalType: "address", name: "", type: "address" }],
-                            stateMutability: "view",
-                            type: "function"
-                        }
-                    ],
+                    abi: poaManagerAbi.abi,
                     functionName: "owner",
                 });
 
+                // If we can successfully call owner() with PoAManager ABI, it's a PoAManager
                 if (ownerAddress) {
-                    setOwnerType('MultisigValidatorManager');
+                    setOwnerType('PoAManager');
                 } else {
                     setOwnerType('StakingManager');
                 }
             } catch (error) {
-                console.log('Owner contract does not have owner() function, likely StakingManager');
+                console.log('Owner contract does not have PoAManager ABI structure, likely StakingManager');
                 setOwnerType('StakingManager');
             } finally {
                 setIsDetectingOwnerType(false);

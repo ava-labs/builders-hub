@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { MultisigInfo } from './MultisigInfo';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Toggle } from './Toggle';
 import Safe from '@safe-global/protocol-kit';
 import SafeApiKit from '@safe-global/api-kit';
 import { ethers } from 'ethers';
 import { MetaTransactionData } from '@safe-global/types-kit';
 import validatorManagerAbi from '../../contracts/icm-contracts/compiled/ValidatorManager.json';
-import multisigValidatorManagerAbi from '../../contracts/icm-contracts/compiled/MultisigValidatorManager.json';
+import poaManagerAbi from '../../contracts/icm-contracts/compiled/PoAManager.json';
 
 interface ChainConfig {
   chainId: string;
@@ -56,13 +56,13 @@ interface MultisigOptionProps {
  * - Children are disabled when multisig is not enabled
  * 
  * Requirements:
- * - ValidatorManager contract must have MultisigValidatorManager as owner
- * - MultisigValidatorManager must have Safe contract as owner
+ * - ValidatorManager contract must have PoAManager as owner
+ * - PoAManager must have Safe contract as owner
  * - Current wallet must be a signer of the Safe contract
  * - Chain must be supported by Safe Transaction Service
  * 
  * @param validatorManagerAddress - Address of the ValidatorManager contract
- * @param functionName - Function name to call on MultisigValidatorManager (e.g., "completeValidatorRegistration")
+ * @param functionName - Function name to call on PoAManager (e.g., "completeValidatorRegistration")
  * @param args - Arguments array to pass to the function
  * @param onSuccess - Callback when transaction/proposal succeeds, receives transaction hash
  * @param onError - Callback when error occurs, receives error message
@@ -85,7 +85,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   const [protocolKit, setProtocolKit] = useState<any>(null);
   const [apiKit, setApiKit] = useState<any>(null);
   const [walletAddress, setWalletAddress] = useState('');
-  const [multisigValidatorManagerAddress, setMultisigValidatorManagerAddress] = useState('');
+  const [poaManagerAddress, setPoaManagerAddress] = useState('');
   const [safeAddress, setSafeAddress] = useState('');
   const [safeInfo, setSafeInfo] = useState<any>(null);
 
@@ -146,22 +146,22 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       // Check if chain is supported and get transaction service URL
       const txServiceUrl = await getSupportedChain(network.chainId.toString());
 
-      // Get MultisigValidatorManager address by calling owner() on ValidatorManager
+      // Get PoAManager address by calling owner() on ValidatorManager
       const validatorManagerContract = new ethers.Contract(
         validatorManagerAddress,
         validatorManagerAbi.abi,
         provider
       );
-      const multisigValidatorManagerAddr = await validatorManagerContract.owner();
-      setMultisigValidatorManagerAddress(multisigValidatorManagerAddr);
+      const poaManagerAddr = await validatorManagerContract.owner();
+      setPoaManagerAddress(poaManagerAddr);
 
-      // Get Safe address by calling owner() on MultisigValidatorManager
-      const multisigValidatorManagerContract = new ethers.Contract(
-        multisigValidatorManagerAddr,
-        multisigValidatorManagerAbi.abi,
+      // Get Safe address by calling owner() on PoAManager
+      const poaManagerContract = new ethers.Contract(
+        poaManagerAddr,
+        poaManagerAbi.abi,
         provider
       );
-      const safeAddr = await multisigValidatorManagerContract.owner();
+      const safeAddr = await poaManagerContract.owner();
       setSafeAddress(safeAddr);
 
       // Initialize Safe API Kit with the transaction service URL
@@ -206,18 +206,18 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   };
 
   const proposeTransaction = async () => {
-    if (!protocolKit || !apiKit || !multisigValidatorManagerAddress || !safeAddress) {
+    if (!protocolKit || !apiKit || !poaManagerAddress || !safeAddress) {
       onError('Safe SDK not initialized or addresses not found');
       return;
     }
 
     setIsProposing(true);
     try {
-      const contractInterface = new ethers.Interface(multisigValidatorManagerAbi.abi);
+      const contractInterface = new ethers.Interface(poaManagerAbi.abi);
       const functionData = contractInterface.encodeFunctionData(functionName, args);
       
       const safeTransactionData: MetaTransactionData = {
-        to: ethers.getAddress(multisigValidatorManagerAddress),
+        to: ethers.getAddress(poaManagerAddress),
         data: functionData,
         value: "0",
         operation: 0
@@ -266,7 +266,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
             <AlertCircle className="h-5 w-5 text-yellow-500 flex-shrink-0" />
             <div className="flex-1 px-1">
               <p className="text-yellow-700 dark:text-yellow-300 font-medium text-sm leading-tight">
-                Enable Ash Wallet if this ValidatorManager is owned by a MultisigValidatorManager
+                Enable Ash Wallet if this ValidatorManager is owned by a PoAManager
               </p>
             </div>
           </div>
@@ -288,19 +288,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
 
       {useMultisig && (
         <div className="space-y-3">
-          {protocolKit ? (
-            <div className="p-3 rounded-md bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-base">
-              <div className="flex items-center justify-center">
-                <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                <img 
-                  src="/images/ash.png" 
-                  alt="Ash" 
-                  className="h-6 w-6 mr-3 flex-shrink-0"
-                />
-                <span>Ash Wallet initialized for multisig</span>
-              </div>
-            </div>
-          ) : (
+          {!protocolKit && (
             <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-base">
               <div className="flex items-center justify-center">
                 <img 
@@ -331,7 +319,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
               setUseMultisig(false);
               setProtocolKit(null);
               setApiKit(null);
-              setMultisigValidatorManagerAddress('');
+              setPoaManagerAddress('');
               setSafeAddress('');
               setSafeInfo(null);
             }}
