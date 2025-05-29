@@ -1,3 +1,4 @@
+"use client"
 import React, { useState, useMemo } from 'react';
 import { Container } from '../../../components/Container';
 import { Button } from '../../../components/Button';
