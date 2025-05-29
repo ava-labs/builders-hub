@@ -158,6 +158,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     setIsProcessing(true);
     try {
       const validator = validators[0];
+      const [account] = await coreWalletClient.requestAddresses();
       
       // Process P-Chain Address
       const pChainAddressBytes = utils.bech32ToBytes(pChainAddress!);
@@ -178,26 +179,46 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         validator.validatorWeight
       ];
 
-      // First, simulate the transaction
-      let simulationFailed = false;
+      let hash;
+      let receipt;
+
       try {
-        await publicClient.simulateContract({
+        // Try initiateValidatorRegistration directly (no simulation first)
+        hash = await coreWalletClient.writeContract({
           address: validatorManagerAddress as `0x${string}`,
           abi: validatorManagerAbi.abi,
           functionName: "initiateValidatorRegistration",
           args,
-          account: coreWalletClient.account,
+          account,
+          chain: viemChain
         });
-      } catch (simulationError: any) {
-        console.warn("Transaction simulation failed, attempting fallback:", simulationError);
-        simulationFailed = true;
-        setErrorState("Transaction simulation failed. Attempting fallback method...");
-      }
 
-      // If simulation failed, try the fallback method immediately
-      if (simulationFailed) {
+        // Get receipt to extract warp message and validation ID
+        receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+        if (receipt.status === 'reverted') {
+          setErrorState(`Transaction reverted. Hash: ${hash}`);
+          onError(`Transaction reverted. Hash: ${hash}`);
+          return;
+        }
+
+        const unsignedWarpMessage = receipt.logs[0].data ?? "";
+        const validationIdHex = receipt.logs[1].topics[1] ?? "";
+
+        setTxSuccess(`Transaction successful! Hash: ${hash}`);
+        onSuccess({ 
+          txHash: hash,
+          nodeId: validator.nodeID,
+          validationId: validationIdHex,
+          weight: validator.validatorWeight.toString(),
+          unsignedWarpMessage: unsignedWarpMessage,
+          validatorBalance: (Number(validator.validatorBalance) / 1e9).toString(), // Convert from nAVAX to AVAX
+          blsProofOfPossession: validator.nodePOP.proofOfPossession,
+        });
+
+      } catch (txError) {
+        // Attempt to get existing validation ID for fallback
         try {
-          // Get validation ID from registeredValidators using nodeID
           const nodeIdBytes = parseNodeID(validator.nodeID);
           const validationId = await publicClient.readContract({
             address: validatorManagerAddress as `0x${string}`,
@@ -208,8 +229,8 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
           // Check if validation ID exists (not zero)
           if (validationId === "0x0000000000000000000000000000000000000000000000000000000000000000") {
-            setErrorState("No existing validation ID found for this node. Cannot use fallback method.");
-            onError("No existing validation ID found for this node. Cannot use fallback method.");
+            setErrorState("Transaction failed and no existing validation ID found for this node.");
+            onError("Transaction failed and no existing validation ID found for this node.");
             return;
           }
 
@@ -219,7 +240,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             abi: validatorManagerAbi.abi,
             functionName: "resendRegisterValidatorMessage",
             args: [validationId],
-            account: coreWalletClient.account,
+            account,
             chain: viemChain
           });
 
@@ -243,55 +264,21 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             validatorBalance: (Number(validator.validatorBalance) / 1e9).toString(), // Convert from nAVAX to AVAX
             blsProofOfPossession: validator.nodePOP.proofOfPossession,
           });
-          return;
+
         } catch (fallbackError: any) {
           let fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
           
           // Handle specific fallback error types
           if (fallbackMessage.includes('User rejected')) {
-            fallbackMessage = 'Fallback transaction was rejected by user';
+            fallbackMessage = 'Transaction was rejected by user';
           } else if (fallbackMessage.includes('insufficient funds')) {
-            fallbackMessage = 'Insufficient funds for fallback transaction';
+            fallbackMessage = 'Insufficient funds for transaction';
           }
           
-          setErrorState(`Fallback method failed: ${fallbackMessage}`);
-          onError(`Fallback method failed: ${fallbackMessage}`);
-          return;
+          setErrorState(`Both primary transaction and fallback failed: ${fallbackMessage}`);
+          onError(`Both primary transaction and fallback failed: ${fallbackMessage}`);
         }
       }
-
-      // If simulation succeeded, proceed with original transaction
-      const hash = await coreWalletClient.writeContract({
-        address: validatorManagerAddress as `0x${string}`,
-        abi: validatorManagerAbi.abi,
-        functionName: "initiateValidatorRegistration",
-        args,
-        account: coreWalletClient.account,
-        chain: viemChain
-      });
-
-      // Get receipt to extract warp message and validation ID
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-      if (receipt.status === 'reverted') {
-        setErrorState(`Transaction reverted. Hash: ${hash}`);
-        onError(`Transaction reverted. Hash: ${hash}`);
-        return;
-      }
-
-      const unsignedWarpMessage = receipt.logs[0].data ?? "";
-      const validationIdHex = receipt.logs[1].topics[1] ?? "";
-
-      setTxSuccess(`Transaction successful! Hash: ${hash}`);
-      onSuccess({ 
-        txHash: hash,
-        nodeId: validator.nodeID,
-        validationId: validationIdHex,
-        weight: validator.validatorWeight.toString(),
-        unsignedWarpMessage: unsignedWarpMessage,
-        validatorBalance: (Number(validator.validatorBalance) / 1e9).toString(), // Convert from nAVAX to AVAX
-        blsProofOfPossession: validator.nodePOP.proofOfPossession,
-      });
     } catch (err: any) {
       let message = err instanceof Error ? err.message : String(err);
       

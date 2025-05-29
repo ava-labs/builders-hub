@@ -55,64 +55,86 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     }
   }, [resetForm, initialValidationId, initialNodeId]);
 
+  const validateInputs = (): boolean => {
+    if (!validation.validationId.trim()) {
+      setErrorState("Validation ID is required");
+      return false;
+    }
+    
+    if (!validation.nodeId.trim()) {
+      setErrorState("Node ID is required");
+      return false;
+    }
+    
+    if (!validatorManagerAddress) {
+      setErrorState("Validator Manager Address is required. Please select a valid L1 subnet.");
+      return false;
+    }
+    
+    if (ownershipState === 'differentEOA') {
+      setErrorState("You are not the owner of this contract. Only the contract owner can remove validators.");
+      return false;
+    }
+    
+    if (ownershipState === 'loading') {
+      setErrorState("Verifying contract ownership... please wait.");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleInitiateRemoval = async () => {
     setErrorState(null);
     setTxSuccess(null);
     
-    if (!validation.validationId.trim()) {
-      setErrorState("Validation ID is required"); 
-      onError("Validation ID is required");
-      return;
-    }
-    if (!validation.nodeId.trim()) {
-      setErrorState("Node ID is required"); 
-      onError("Node ID is required");
-      return;
-    }
-    if (!validatorManagerAddress) {
-      setErrorState("Validator Manager Address is required. Please select a valid L1 subnet."); 
-      onError("Validator Manager Address is required. Please select a valid L1 subnet.");
-      return;
-    }
-    if (ownershipState === 'differentEOA') {
-      setErrorState("You are not the owner of this contract. Only the contract owner can remove validators."); 
-      onError("You are not the owner of this contract. Only the contract owner can remove validators.");
-      return;
-    }
-    if (ownershipState === 'loading') {
-      setErrorState("Verifying contract ownership... please wait."); 
-      onError("Verifying contract ownership... please wait.");
+    if (!validateInputs()) {
       return;
     }
 
     setIsProcessing(true);
     try {
-      // First, simulate the transaction
-      let simulationFailed = false;
+      const [account] = await coreWalletClient.requestAddresses();
+
+      let hash;
+      let receipt;
+
       try {
-        await publicClient.simulateContract({
+        // Try initiateValidatorRemoval directly (no simulation first)
+        hash = await coreWalletClient.writeContract({
           address: validatorManagerAddress as `0x${string}`,
           abi: validatorManagerAbi.abi,
           functionName: 'initiateValidatorRemoval',
           args: [validation.validationId],
-          account: coreWalletClient.account,
+          account,
+          chain: viemChain
         });
-      } catch (simulationError: any) {
-        console.warn("Transaction simulation failed, attempting fallback:", simulationError);
-        simulationFailed = true;
-        setErrorState("Transaction simulation failed. Attempting fallback method...");
-      }
 
-      // If simulation failed, try the fallback method immediately
-      if (simulationFailed) {
+        // Wait for transaction receipt to check if it was successful
+        receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+        if (receipt.status === 'reverted') {
+          setErrorState(`Transaction reverted. Hash: ${hash}`);
+          onError(`Transaction reverted. Hash: ${hash}`);
+          return;
+        }
+
+        setTxSuccess(`Transaction successful! Hash: ${hash}`);
+        onSuccess({ 
+          txHash: hash,
+          nodeId: validation.nodeId,
+          validationId: validation.validationId,
+        });
+
+      } catch (txError) {
+        // Use resendValidatorRemovalMessage as fallback
         try {
-          // Use resendValidatorRemovalMessage as fallback
           const fallbackHash = await coreWalletClient.writeContract({
             address: validatorManagerAddress as `0x${string}`,
             abi: validatorManagerAbi.abi,
             functionName: 'resendValidatorRemovalMessage',
             args: [validation.validationId],
-            account: coreWalletClient.account,
+            account,
             chain: viemChain
           });
 
@@ -130,52 +152,21 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
             nodeId: validation.nodeId,
             validationId: validation.validationId,
           });
-          return;
+
         } catch (fallbackError: any) {
           let fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
           
           // Handle specific fallback error types
           if (fallbackMessage.includes('User rejected')) {
-            fallbackMessage = 'Fallback transaction was rejected by user';
+            fallbackMessage = 'Transaction was rejected by user';
           } else if (fallbackMessage.includes('insufficient funds')) {
-            fallbackMessage = 'Insufficient funds for fallback transaction';
-          } else if (fallbackMessage.includes('execution reverted')) {
-            fallbackMessage = `Fallback transaction reverted: ${fallbackMessage}`;
+            fallbackMessage = 'Insufficient funds for transaction';
           }
           
-          setErrorState(`Fallback method failed: ${fallbackMessage}`);
-          onError(`Fallback method failed: ${fallbackMessage}`);
-          return;
+          setErrorState(`Both primary transaction and fallback failed: ${fallbackMessage}`);
+          onError(`Both primary transaction and fallback failed: ${fallbackMessage}`);
         }
       }
-
-      // If simulation succeeded, proceed with original transaction
-      const removeValidatorTx = await coreWalletClient.writeContract({
-        address: validatorManagerAddress as `0x${string}`,
-        abi: validatorManagerAbi.abi,
-        functionName: 'initiateValidatorRemoval',
-        args: [validation.validationId],
-        chain: viemChain,
-        account: coreWalletClient.account,
-      });
-
-      // Wait for transaction receipt to check if it was successful
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash: removeValidatorTx,
-      });
-
-      if (receipt.status === 'reverted') {
-        setErrorState(`Transaction reverted. Hash: ${removeValidatorTx}`);
-        onError(`Transaction reverted. Hash: ${removeValidatorTx}`);
-        return;
-      }
-
-      setTxSuccess(`Transaction successful! Hash: ${removeValidatorTx}`);
-      onSuccess({ 
-        txHash: removeValidatorTx,
-        nodeId: validation.nodeId,
-        validationId: validation.validationId,
-      });
     } catch (err: any) {
       let message = err instanceof Error ? err.message : String(err);
       
@@ -220,6 +211,12 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     );
   }
 
+  // Prepare args for multisig
+  const getMultisigArgs = () => {
+    if (!validation.validationId) return [];
+    return [validation.validationId];
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -239,7 +236,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         <MultisigOption
           validatorManagerAddress={validatorManagerAddress}
           functionName="initiateValidatorRemoval"
-          args={[validation.validationId]}
+          args={getMultisigArgs()}
           onSuccess={handleMultisigSuccess}
           onError={handleMultisigError}
           disabled={isProcessing || !validation.validationId || !validation.nodeId || !validatorManagerAddress || txSuccess !== null}
@@ -257,8 +254,9 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         <Button 
           onClick={handleInitiateRemoval} 
           disabled={isProcessing || !validation.validationId || !validation.nodeId || !validatorManagerAddress || txSuccess !== null}
+          error={!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined}
         >
-          {isProcessing ? 'Processing...' : 'Initiate Validator Removal'}
+          {txSuccess ? 'Transaction Completed' : (isProcessing ? 'Processing...' : 'Initiate Validator Removal')}
         </Button>
       )}
 
@@ -271,7 +269,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
               ? "You are not the owner of this contract. Only the contract owner can remove validators."
               : ownershipState === 'loading' 
                 ? "Verifying ownership..."
-                : undefined
+                : (!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined)
           }
         >
           {ownershipState === 'loading' ? 'Verifying...' : 'Initiate Validator Removal'}

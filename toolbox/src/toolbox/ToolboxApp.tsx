@@ -113,22 +113,22 @@ const componentGroups: Record<string, ComponentGroupType> = {
       {
         id: "addValidator",
         label: "Add L1 Validator",
-        component: lazy(() => import('./ValidatorManager/AddValidator')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/AddValidator.tsx"],
+        component: lazy(() => import('./ValidatorManager/AddValidator/AddValidator')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/AddValidator/AddValidator.tsx"],
         walletMode: "l1"
       },
       {
         id: "removeValidator",
         label: "Remove L1 Validator",
-        component: lazy(() => import('./ValidatorManager/RemoveValidator')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/RemoveValidator.tsx"],
+        component: lazy(() => import('./ValidatorManager/RemoveValidator/RemoveValidator')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/RemoveValidator/RemoveValidator.tsx"],
         walletMode: "l1"
       },
       {
         id: "changeWeight",
         label: "Change L1 Validator Weight",
-        component: lazy(() => import('./ValidatorManager/ChangeWeight')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeight.tsx"],
+        component: lazy(() => import('./ValidatorManager/ChangeWeight/ChangeWeight')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeight/ChangeWeight.tsx"],
         walletMode: "l1"
       },
       {
@@ -395,27 +395,6 @@ const componentGroups: Record<string, ComponentGroupType> = {
   },
   'Expert Tools': {
     components: [
-      {
-        id: 'addValidatorExpert',
-        label: "Add Validator (Expert)",
-        component: lazy(() => import('./ValidatorManager/AddValidator/AddValidatorExpert')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/AddValidator/AddValidatorExpert.tsx"],
-        walletMode: "l1"
-      },
-      {
-        id: 'changeWeightExpert',
-        label: "Change Weight (Expert)",
-        component: lazy(() => import('./ValidatorManager/ChangeWeight/ChangeWeightExpert')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeight/ChangeWeightExpert.tsx"],
-        walletMode: "l1"
-      },
-      {
-        id: 'removeValidatorExpert',
-        label: "Remove Validator (Expert)",
-        component: lazy(() => import('./ValidatorManager/RemoveValidator/RemoveValidatorExpert')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/RemoveValidator/RemoveValidatorExpert.tsx"],
-        walletMode: "l1"
-      },
       {
         id: 'deployPoAManager',
         label: "Deploy PoA Manager",
