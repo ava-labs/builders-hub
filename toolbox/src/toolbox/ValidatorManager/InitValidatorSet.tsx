@@ -138,7 +138,7 @@ export default function InitValidatorSet() {
                 functionName: 'initializeValidatorSet',
                 args: txArgs,
                 accessList,
-                gas: BigInt(1_000_000),
+                gas: BigInt(2_000_000),
                 chain: viemChain || undefined,
             });
 
