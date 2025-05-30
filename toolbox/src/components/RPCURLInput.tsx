@@ -10,9 +10,10 @@ interface RPCURLInputProps {
   label?: string
   placeholder?: string
   disabled?: boolean
+  helperText?: string
 }
 
-export function RPCURLInput({ value, onChange, label = "RPC URL", placeholder, disabled }: RPCURLInputProps) {
+export function RPCURLInput({ value, onChange, label = "RPC URL", placeholder, disabled, helperText }: RPCURLInputProps) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -32,6 +33,9 @@ export function RPCURLInput({ value, onChange, label = "RPC URL", placeholder, d
   return (
     <div className="space-y-2">
       <Input label={label} value={value} onChange={onChange} placeholder={placeholder} disabled={disabled} />
+      {helperText && !error && (
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">{helperText}</p>
+      )}
       {error && (
         <div className="p-3 bg-red-50/80 border border-red-200 text-red-900 rounded">
           <div className="flex items-start gap-2">
