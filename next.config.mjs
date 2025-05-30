@@ -119,6 +119,10 @@ const config = {
         source: '/docs/api-reference/standards/guides/txn-fees',
         destination: '/docs/api-reference/guides/txn-fees',
         permanent: true,
+      }, {
+        source: '/docs/api-reference/standards/guides/txn-fees#c-chain-fees',
+        destination: '/docs/api-reference/guides/txn-fees#c-chain-fees',
+        permanent: true,
       },
     ];
   },
