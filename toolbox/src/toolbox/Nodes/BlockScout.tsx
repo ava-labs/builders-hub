@@ -52,7 +52,7 @@ ${domain} {
 }
 `
 
-const genDockerCompose = () => `
+const genDockerCompose = (domain: string) => `
 services:
   redis-db:
     image: 'redis:alpine'
@@ -97,18 +97,18 @@ services:
     command: sh -c "bin/blockscout eval \"Elixir.Explorer.ReleaseTasks.create_and_migrate()\" && bin/blockscout start"
     environment:
       ETHEREUM_JSONRPC_VARIANT: geth
-      ETHEREUM_JSONRPC_HTTP_URL: http://avago:9650/ext/bc/SUDoK9P89PCcguskyof41fZexw7U3zubDP2DZpGf3HbFWwJ4E/rpc
-      ETHEREUM_JSONRPC_TRACE_URL: http://avago:9650/ext/bc/SUDoK9P89PCcguskyof41fZexw7U3zubDP2DZpGf3HbFWwJ4E/rpc
-      DATABASE_URL: postgresql://postgres:ceWb1MeLBEeOIfk65gU8EjF8@db:5432/blockscout
-      SECRET_KEY_BASE: 56NtB48ear7+wMSf0IQuWDAAazhpb31qyc7GiyspBP2vh7t5zlCsF5QDv76chXeN
-      NETWORK: EVM
-      SUBNETWORK: MySubnet
-      PORT: 4000
+      ETHEREUM_JSONRPC_HTTP_URL: http://avago:9650/ext/bc/SUDoK9P89PCcguskyof41fZexw7U3zubDP2DZpGf3HbFWwJ4E/rpc # TODO: change to dynamic
+      ETHEREUM_JSONRPC_TRACE_URL: http://avago:9650/ext/bc/SUDoK9P89PCcguskyof41fZexw7U3zubDP2DZpGf3HbFWwJ4E/rpc # TODO: change to dynamic
+      DATABASE_URL: postgresql://postgres:ceWb1MeLBEeOIfk65gU8EjF8@db:5432/blockscout # TODO: what is this ?
+      SECRET_KEY_BASE: 56NtB48ear7+wMSf0IQuWDAAazhpb31qyc7GiyspBP2vh7t5zlCsF5QDv76chXeN # TODO: what is this ?
+      NETWORK: EVM 
+      SUBNETWORK: MySubnet # TODO: what is this ?
+      PORT: 4000 
       INDEXER_DISABLE_PENDING_TRANSACTIONS_FETCHER: false
       INDEXER_DISABLE_INTERNAL_TRANSACTIONS_FETCHER: false
-      # LOGO: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg
-      # FOOTER_LOGO: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg
-      # FAVICON_MASTER_URL: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg
+      # LOGO: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg # TODO: change to dynamic ?
+      # FOOTER_LOGO: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg # TODO: change to dynamic ?
+      # FAVICON_MASTER_URL: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg # TODO: change to dynamic ?
       ECTO_USE_SSL: false
       DISABLE_EXCHANGE_RATES: true
       SUPPORTED_CHAINS: "[]"
@@ -134,24 +134,24 @@ services:
     restart: always
     container_name: 'bc_frontend'
     environment:
-      NEXT_PUBLIC_API_HOST: 57.183.4.43.sslip.io
+      NEXT_PUBLIC_API_HOST: ${domain}
       NEXT_PUBLIC_API_PROTOCOL: https
       NEXT_PUBLIC_API_BASE_PATH: /
-      # FAVICON_MASTER_URL: https://ash.center/img/ash-logo.svg # Your favicon URL
-      NEXT_PUBLIC_NETWORK_NAME: Ash Subnet
-      NEXT_PUBLIC_NETWORK_SHORT_NAME: Ash
-      NEXT_PUBLIC_NETWORK_ID: 66666
-      NEXT_PUBLIC_NETWORK_RPC_URL: http://57.183.4.43:9650/ext/bc/SUDoK9P89PCcguskyof41fZexw7U3zubDP2DZpGf3HbFWwJ4E/rpc
-      NEXT_PUBLIC_NETWORK_CURRENCY_NAME: AshCoin
-      NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: ASH
-      NEXT_PUBLIC_NETWORK_CURRENCY_DECIMALS: 18
-      NEXT_PUBLIC_APP_HOST: 57.183.4.43.sslip.io
+      # FAVICON_MASTER_URL: https://ash.center/img/ash-logo.svg # TODO: change to dynamic ?
+      NEXT_PUBLIC_NETWORK_NAME: Ash Subnet # TODO: change to dynamic
+      NEXT_PUBLIC_NETWORK_SHORT_NAME: Ash # TODO: change to dynamic
+      NEXT_PUBLIC_NETWORK_ID: 66666 # TODO: change to dynamic
+      NEXT_PUBLIC_NETWORK_RPC_URL: https://${domain}/ext/bc/SUDoK9P89PCcguskyof41fZexw7U3zubDP2DZpGf3HbFWwJ4E/rpc # TODO: change to dynamic
+      NEXT_PUBLIC_NETWORK_CURRENCY_NAME: AshCoin # TODO: change to dynamic
+      NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: ASH # TODO: change to dynamic
+      NEXT_PUBLIC_NETWORK_CURRENCY_DECIMALS: 18 
+      NEXT_PUBLIC_APP_HOST: ${domain}
       NEXT_PUBLIC_APP_PROTOCOL: https
       NEXT_PUBLIC_HOMEPAGE_CHARTS: "['daily_txs']"
       NEXT_PUBLIC_IS_TESTNET: true
       NEXT_PUBLIC_API_WEBSOCKET_PROTOCOL: wss
       NEXT_PUBLIC_API_SPEC_URL: https://raw.githubusercontent.com/blockscout/blockscout-api-v2-swagger/main/swagger.yaml
-      NEXT_PUBLIC_VISUALIZE_API_HOST: https://57.183.4.43.sslip.io
+      NEXT_PUBLIC_VISUALIZE_API_HOST: https://${domain}
       NEXT_PUBLIC_VISUALIZE_API_BASE_PATH: /visualizer-service
       NEXT_PUBLIC_STATS_API_HOST: ""
       NEXT_PUBLIC_STATS_API_BASE_PATH: /stats-service
@@ -173,10 +173,10 @@ services:
       - target: 443
         published: 443
   avago:
-    image: containerman17/subnet-evm-plus:latest
+    image: containerman17/subnet-evm-plus:latest # TODO: use the official subnet-evm image
     container_name: avago
     restart: always
-    ports:
+    ports: # TODO: reconsider ports
       - "9650:9650"
       - "9651:9651"
     volumes:
@@ -185,8 +185,8 @@ services:
       AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true"
       AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns"
       AVAGO_HTTP_HOST: "0.0.0.0"
-      AVAGO_TRACK_SUBNETS: "oerPWBbtbe13eWbo3AegYUrHuSETeTwyNy7szoHJJ1QQBL9nu,h7egyVb6fKHMDpVaEsTEcy7YaEnXrayxZS4A1AEU4pyBzmwGp"
-      AVAGO_HTTP_ALLOWED_HOSTS: "*"
+      AVAGO_TRACK_SUBNETS: "oerPWBbtbe13eWbo3AegYUrHuSETeTwyNy7szoHJJ1QQBL9nu,h7egyVb6fKHMDpVaEsTEcy7YaEnXrayxZS4A1AEU4pyBzmwGp" # TODO:
+      AVAGO_HTTP_ALLOWED_HOSTS: "*"  # TODO: generate chain config
       AVAGO_CHAIN_CONFIG_CONTENT: "eyJTVURvSzlQODlQQ2NndXNreW9mNDFmWmV4dzdVM3p1YkRQMkRacEdmM0hiRld3SjRFIjp7IkNvbmZpZyI6ImV5SnNiMmN0YkdWMlpXd2lPaUprWldKMVp5SXNJbmRoY25BdFlYQnBMV1Z1WVdKc1pXUWlPblJ5ZFdVc0ltVjBhQzFoY0dseklqcGJJbVYwYUNJc0ltVjBhQzFtYVd4MFpYSWlMQ0p1WlhRaUxDSmhaRzFwYmlJc0luZGxZak1pTENKcGJuUmxjbTVoYkMxbGRHZ2lMQ0pwYm5SbGNtNWhiQzFpYkc5amEyTm9ZV2x1SWl3aWFXNTBaWEp1WVd3dGRISmhibk5oWTNScGIyNGlMQ0pwYm5SbGNtNWhiQzFrWldKMVp5SXNJbWx1ZEdWeWJtRnNMV0ZqWTI5MWJuUWlMQ0pwYm5SbGNtNWhiQzF3WlhKemIyNWhiQ0lzSW1SbFluVm5JaXdpWkdWaWRXY3RkSEpoWTJWeUlpd2laR1ZpZFdjdFptbHNaUzEwY21GalpYSWlMQ0prWldKMVp5MW9ZVzVrYkdWeUlsMTkiLCJVcGdyYWRlIjpudWxsfX0="
     logging:
       driver: json-file
