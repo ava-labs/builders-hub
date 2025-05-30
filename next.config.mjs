@@ -115,6 +115,10 @@ const config = {
         source: '/docs/api-reference/standards/guides/issuing-api-calls',
         destination: '/docs/api-reference/guides/issuing-api-calls',
         permanent: true,
+      }, {
+        source: '/docs/api-reference/standards/guides/txn-fees',
+        destination: '/docs/api-reference/guides/txn-fees',
+        permanent: true,
       },
     ];
   },
