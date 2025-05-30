@@ -251,7 +251,7 @@ export default function RequireWalletConnection({ children, chainConfig, require
                     {children ? children : `Succesful connected to ${chainConfig.chainName}!`}
                 </>;
             default:
-                return <p>An Unexpected error occured</p>
+                return <p>An Unexpected error occurred</p>
         }
     }
 
