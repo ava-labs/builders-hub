@@ -21,7 +21,7 @@ import { RadioGroup } from "../../components/RadioGroup";
 import { Success } from "../../components/Success";
 
 
-const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruningEnabled: boolean) => {
+export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruningEnabled: boolean) => {
     const vmConfig = debugEnabled ? {
         "pruning-enabled": pruningEnabled,
         "log-level": "debug",
@@ -136,7 +136,7 @@ ${domain}/ext/bc/${chainID}/rpc`
     }
 }
 
-const dockerInstallInstructions: Record<string, string> = {
+export const dockerInstallInstructions: Record<string, string> = {
     'Ubuntu/Debian': `sudo apt-get update && \\
     sudo apt-get install -y docker.io && \\
     sudo usermod -aG docker $USER && \\
@@ -165,7 +165,7 @@ docker run -it --rm hello-world
 `,
 } as const;
 
-type OS = keyof typeof dockerInstallInstructions;
+export type OS = keyof typeof dockerInstallInstructions;
 
 export default function AvalanchegoDocker() {
     const [chainId, setChainId] = useState("");

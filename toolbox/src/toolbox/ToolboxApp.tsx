@@ -357,7 +357,7 @@ const componentGroups: Record<string, ComponentGroupType> = {
       }
     ]
   },
-  "Nodes Utils": {
+  "Node Utils": {
     components: [
       {
         id: "rpcMethodsCheck",
@@ -372,6 +372,13 @@ const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./Nodes/PerformanceMonitor')),
         fileNames: ["toolbox/src/toolbox/Nodes/PerformanceMonitor.tsx"],
         walletMode: "optional",
+      },
+      {
+        id: "blockScout",
+        label: "BlockScout",
+        component: lazy(() => import('./Nodes/BlockScout')),
+        fileNames: ["toolbox/src/toolbox/Nodes/BlockScout.tsx"],
+        walletMode: "testnet-mainnet",
       }
     ]
   },
