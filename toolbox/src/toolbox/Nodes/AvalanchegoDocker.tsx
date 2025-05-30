@@ -21,8 +21,9 @@ import { RadioGroup } from "../../components/RadioGroup";
 import { Success } from "../../components/Success";
 
 
-const debugConfigBase64 = (chainId: string) => {
-    const debugConfig = {
+const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruningEnabled: boolean) => {
+    const vmConfig = debugEnabled ? {
+        "pruning-enabled": pruningEnabled,
         "log-level": "debug",
         "warp-api-enabled": true,
         "eth-apis": [
@@ -42,13 +43,15 @@ const debugConfigBase64 = (chainId: string) => {
             "debug-file-tracer",
             "debug-handler"
         ]
+    } : {
+        "pruning-enabled": pruningEnabled,
     }
 
     // First encode the inner config object
-    const debugConfigEncoded = btoa(JSON.stringify(debugConfig));
+    const vmConfigEncoded = btoa(JSON.stringify(vmConfig));
 
     const configMap: Record<string, { Config: string, Upgrade: any }> = {}
-    configMap[chainId] = { Config: debugConfigEncoded, Upgrade: null }
+    configMap[chainId] = { Config: vmConfigEncoded, Upgrade: null }
 
     console.log('configMap', configMap);
 
@@ -56,7 +59,7 @@ const debugConfigBase64 = (chainId: string) => {
 }
 
 
-const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, debugChainId?: string) => {
+const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, chainId: string, debugEnabled: boolean = false, pruningEnabled: boolean = false) => {
     const env: Record<string, string> = {
         AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true",
         AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
@@ -80,9 +83,7 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
         env.AVAGO_HTTP_ALLOWED_HOSTS = "\"*\"";
     }
 
-    if (debugChainId) {
-        env.AVAGO_CHAIN_CONFIG_CONTENT = debugConfigBase64(debugChainId);
-    }
+    env.AVAGO_CHAIN_CONFIG_CONTENT = nodeConfigBase64(chainId, debugEnabled, pruningEnabled);
 
     const chunks = [
         "docker run -it -d",
@@ -174,20 +175,21 @@ export default function AvalanchegoDocker() {
     const [nodeRunningMode, setNodeRunningMode] = useState("server");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
+    const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
     const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
-    
+
     const { avalancheNetworkID } = useWalletStore();
     const { addL1 } = useL1ListStore()();
 
     useEffect(() => {
         try {
-            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID, enableDebugTrace ? chainId : undefined));
+            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID, chainId, enableDebugTrace, pruningEnabled));
         } catch (error) {
             setRpcCommand((error as Error).message);
         }
-    }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId]);
+    }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId, pruningEnabled]);
 
     useEffect(() => {
         if (!isRPC) {
@@ -217,6 +219,7 @@ export default function AvalanchegoDocker() {
         setNodeRunningMode("server");
         setDomain("");
         setEnableDebugTrace(false);
+        setPruningEnabled(true);
         setSubnetIdError(null);
         setIsAddChainModalOpen(false);
     };
@@ -314,6 +317,12 @@ export default function AvalanchegoDocker() {
                                     label="Enable Debug & Trace"
                                     checked={enableDebugTrace}
                                     onChange={setEnableDebugTrace}
+                                />}
+
+                                {isRPC && <Checkbox
+                                    label="Enable Archive Mode (pruning will be disabled)"
+                                    checked={!pruningEnabled}
+                                    onChange={checked => setPruningEnabled(!checked)}
                                 />}
                             </Step>
                             {nodeRunningMode === "server" && (<Step>
