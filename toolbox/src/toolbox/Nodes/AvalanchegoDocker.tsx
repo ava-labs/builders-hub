@@ -53,8 +53,6 @@ export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruning
     const configMap: Record<string, { Config: string, Upgrade: any }> = {}
     configMap[chainId] = { Config: vmConfigEncoded, Upgrade: null }
 
-    console.log('configMap', configMap);
-
     return btoa(JSON.stringify(configMap))
 }
 

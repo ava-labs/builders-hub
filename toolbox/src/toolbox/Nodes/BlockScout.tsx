@@ -9,7 +9,7 @@ import versions from "../../versions.json";
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
-import { dockerInstallInstructions, type OS } from "./AvalanchegoDocker";
+import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "./AvalanchegoDocker";
 
 const genCaddyfile = (domain: string) => `
 ${domain} {
@@ -97,18 +97,15 @@ services:
     command: sh -c 'bin/blockscout eval \"Elixir.Explorer.ReleaseTasks.create_and_migrate()\" && bin/blockscout start'
     environment:
       ETHEREUM_JSONRPC_VARIANT: geth
-      ETHEREUM_JSONRPC_HTTP_URL: http://avago:9650/ext/bc/${blockchainId}/rpc # TODO: change to dynamic
-      ETHEREUM_JSONRPC_TRACE_URL: http://avago:9650/ext/bc/${blockchainId}/rpc # TODO: change to dynamic
-      DATABASE_URL: postgresql://postgres:ceWb1MeLBEeOIfk65gU8EjF8@db:5432/blockscout # TODO: what is this ?
-      SECRET_KEY_BASE: 56NtB48ear7+wMSf0IQuWDAAazhpb31qyc7GiyspBP2vh7t5zlCsF5QDv76chXeN # TODO: what is this ?
+      ETHEREUM_JSONRPC_HTTP_URL: http://avago:9650/ext/bc/${blockchainId}/rpc 
+      ETHEREUM_JSONRPC_TRACE_URL: http://avago:9650/ext/bc/${blockchainId}/rpc 
+      DATABASE_URL: postgresql://postgres:ceWb1MeLBEeOIfk65gU8EjF8@db:5432/blockscout # TODO: default, please change
+      SECRET_KEY_BASE: 56NtB48ear7+wMSf0IQuWDAAazhpb31qyc7GiyspBP2vh7t5zlCsF5QDv76chXeN # TODO: default, please change
       NETWORK: EVM 
       SUBNETWORK: MySubnet # TODO: what is this ?
       PORT: 4000 
       INDEXER_DISABLE_PENDING_TRANSACTIONS_FETCHER: false
       INDEXER_DISABLE_INTERNAL_TRANSACTIONS_FETCHER: false
-      # LOGO: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg # TODO: your value here
-      # FOOTER_LOGO: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg # TODO: your value here
-      # FAVICON_MASTER_URL: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg # TODO: your value here
       ECTO_USE_SSL: false
       DISABLE_EXCHANGE_RATES: true
       SUPPORTED_CHAINS: "[]"
@@ -137,7 +134,7 @@ services:
       NEXT_PUBLIC_API_HOST: ${domain}
       NEXT_PUBLIC_API_PROTOCOL: https
       NEXT_PUBLIC_API_BASE_PATH: /
-      # FAVICON_MASTER_URL: https://ash.center/img/ash-logo.svg # TODO: change to dynamic ?
+      FAVICON_MASTER_URL: https://ash.center/img/ash-logo.svg # TODO: change to dynamic ?
       NEXT_PUBLIC_NETWORK_NAME: Ash Subnet # TODO: change to dynamic
       NEXT_PUBLIC_NETWORK_SHORT_NAME: Ash # TODO: change to dynamic
       NEXT_PUBLIC_NETWORK_ID: 66666 # TODO: change to dynamic
@@ -168,10 +165,8 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     ports:
-      - target: 80
-        published: 80
-      - target: 443
-        published: 443
+      - "80:80"
+      - "443:443"
   avago:
     image: avaplatform/subnet-evm:${versions['avaplatform/subnet-evm']}
     container_name: avago
@@ -187,7 +182,7 @@ services:
       AVAGO_HTTP_HOST: "0.0.0.0"
       AVAGO_TRACK_SUBNETS: "${subnetId}" 
       AVAGO_HTTP_ALLOWED_HOSTS: "*"  # TODO: generate chain config
-      AVAGO_CHAIN_CONFIG_CONTENT: "eyJTVURvSzlQODlQQ2NndXNreW9mNDFmWmV4dzdVM3p1YkRQMkRacEdmM0hiRld3SjRFIjp7IkNvbmZpZyI6ImV5SnNiMmN0YkdWMlpXd2lPaUprWldKMVp5SXNJbmRoY25BdFlYQnBMV1Z1WVdKc1pXUWlPblJ5ZFdVc0ltVjBhQzFoY0dseklqcGJJbVYwYUNJc0ltVjBhQzFtYVd4MFpYSWlMQ0p1WlhRaUxDSmhaRzFwYmlJc0luZGxZak1pTENKcGJuUmxjbTVoYkMxbGRHZ2lMQ0pwYm5SbGNtNWhiQzFpYkc5amEyTm9ZV2x1SWl3aWFXNTBaWEp1WVd3dGRISmhibk5oWTNScGIyNGlMQ0pwYm5SbGNtNWhiQzFrWldKMVp5SXNJbWx1ZEdWeWJtRnNMV0ZqWTI5MWJuUWlMQ0pwYm5SbGNtNWhiQzF3WlhKemIyNWhiQ0lzSW1SbFluVm5JaXdpWkdWaWRXY3RkSEpoWTJWeUlpd2laR1ZpZFdjdFptbHNaUzEwY21GalpYSWlMQ0prWldKMVp5MW9ZVzVrYkdWeUlsMTkiLCJVcGdyYWRlIjpudWxsfX0="
+      AVAGO_CHAIN_CONFIG_CONTENT: "${nodeConfigBase64(blockchainId, true, false)}"
     logging:
       driver: json-file
       options:
