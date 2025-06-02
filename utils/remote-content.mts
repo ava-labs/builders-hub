@@ -110,6 +110,71 @@ description: ${description}${editUrl ? `\nedit_url: ${editUrl}` : ''}
   return frontmatter + content;
 }
 
+async function updateGitignore(fileConfigs: FileConfig[]): Promise<void> {
+  const gitignorePath = '.gitignore';
+  const remoteContentComment = '# Remote content output paths';
+
+  let gitignoreContent = '';
+  try {
+    gitignoreContent = fs.readFileSync(gitignorePath, 'utf-8');
+  } catch (error) {
+    console.log('No .gitignore file found, creating new one');
+  }
+
+  const outputPaths = fileConfigs.map(config => config.outputPath);
+  const existingLines = gitignoreContent.split('\n');
+
+  // Find where the remote content section starts and ends
+  const commentIndex = existingLines.findIndex(line => line.trim() === remoteContentComment);
+  let insertIndex = existingLines.length;
+  let remoteContentEndIndex = existingLines.length;
+
+  if (commentIndex !== -1) {
+    // Find the end of the remote content section (next comment or empty line)
+    remoteContentEndIndex = existingLines.findIndex((line, index) =>
+      index > commentIndex && (line.trim().startsWith('#') || line.trim() === '')
+    );
+    if (remoteContentEndIndex === -1) {
+      remoteContentEndIndex = existingLines.length;
+    }
+    insertIndex = commentIndex;
+  }
+
+  // Extract existing remote content paths
+  const existingRemotePaths = commentIndex !== -1
+    ? existingLines.slice(commentIndex + 1, remoteContentEndIndex).filter(line => line.trim() && !line.startsWith('#'))
+    : [];
+
+  // Find missing paths
+  const missingPaths = outputPaths.filter(path => !existingRemotePaths.includes(path));
+
+  if (missingPaths.length === 0) {
+    console.log('All output paths already exist in .gitignore');
+    return;
+  }
+
+  // Prepare the new remote content section
+  const newRemoteSection = [
+    '',
+    remoteContentComment,
+    ...outputPaths.sort()
+  ];
+
+  // Rebuild the .gitignore content
+  const beforeSection = commentIndex !== -1 ? existingLines.slice(0, insertIndex) : existingLines;
+  const afterSection = commentIndex !== -1 ? existingLines.slice(remoteContentEndIndex) : [];
+
+  const newGitignoreContent = [
+    ...beforeSection,
+    ...newRemoteSection,
+    ...afterSection
+  ].join('\n');
+
+  fs.writeFileSync(gitignorePath, newGitignoreContent);
+  console.log(`Updated .gitignore with ${missingPaths.length} new remote content paths`);
+  missingPaths.forEach(path => console.log(`  Added: ${path}`));
+}
+
 async function processFile(fileConfig: FileConfig): Promise<void> {
   const content = await fetchFileContent(fileConfig.sourceUrl);
   if (content) {
@@ -296,6 +361,8 @@ async function main(): Promise<void> {
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/config",
     }
   ];
+
+  await updateGitignore(fileConfigs);
 
   for (const fileConfig of fileConfigs) {
     await processFile(fileConfig);
