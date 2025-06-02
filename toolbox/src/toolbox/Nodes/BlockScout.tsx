@@ -10,6 +10,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "./AvalanchegoDocker";
+import { useL1ByChainId } from "../../stores/l1ListStore";
 
 const genCaddyfile = (domain: string) => `
 ${domain} {
@@ -52,7 +53,17 @@ ${domain} {
 }
 `
 
-const genDockerCompose = (domain: string, subnetId: string, blockchainId: string) => `
+interface DockerComposeConfig {
+  domain: string;
+  subnetId: string;
+  blockchainId: string;
+  networkName: string;
+  networkShortName: string;
+  currencyName: string;
+  currencySymbol: string;
+}
+
+const genDockerCompose = (config: DockerComposeConfig) => `
 services:
   redis-db:
     image: 'redis:alpine'
@@ -97,8 +108,8 @@ services:
     command: sh -c 'bin/blockscout eval \"Elixir.Explorer.ReleaseTasks.create_and_migrate()\" && bin/blockscout start'
     environment:
       ETHEREUM_JSONRPC_VARIANT: geth
-      ETHEREUM_JSONRPC_HTTP_URL: http://avago:9650/ext/bc/${blockchainId}/rpc 
-      ETHEREUM_JSONRPC_TRACE_URL: http://avago:9650/ext/bc/${blockchainId}/rpc 
+      ETHEREUM_JSONRPC_HTTP_URL: http://avago:9650/ext/bc/${config.blockchainId}/rpc 
+      ETHEREUM_JSONRPC_TRACE_URL: http://avago:9650/ext/bc/${config.blockchainId}/rpc 
       DATABASE_URL: postgresql://postgres:ceWb1MeLBEeOIfk65gU8EjF8@db:5432/blockscout # TODO: default, please change
       SECRET_KEY_BASE: 56NtB48ear7+wMSf0IQuWDAAazhpb31qyc7GiyspBP2vh7t5zlCsF5QDv76chXeN # TODO: default, please change
       NETWORK: EVM 
@@ -131,24 +142,24 @@ services:
     restart: always
     container_name: 'bc_frontend'
     environment:
-      NEXT_PUBLIC_API_HOST: ${domain}
+      NEXT_PUBLIC_API_HOST: ${config.domain}
       NEXT_PUBLIC_API_PROTOCOL: https
       NEXT_PUBLIC_API_BASE_PATH: /
       FAVICON_MASTER_URL: https://ash.center/img/ash-logo.svg # TODO: change to dynamic ?
-      NEXT_PUBLIC_NETWORK_NAME: Ash Subnet # TODO: change to dynamic
-      NEXT_PUBLIC_NETWORK_SHORT_NAME: Ash # TODO: change to dynamic
+      NEXT_PUBLIC_NETWORK_NAME: ${config.networkName}
+      NEXT_PUBLIC_NETWORK_SHORT_NAME: ${config.networkShortName}
       NEXT_PUBLIC_NETWORK_ID: 66666 # TODO: change to dynamic
-      NEXT_PUBLIC_NETWORK_RPC_URL: https://${domain}/ext/bc/${blockchainId}/rpc
-      NEXT_PUBLIC_NETWORK_CURRENCY_NAME: AshCoin # TODO: change to dynamic
-      NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: ASH # TODO: change to dynamic
+      NEXT_PUBLIC_NETWORK_RPC_URL: https://${config.domain}/ext/bc/${config.blockchainId}/rpc
+      NEXT_PUBLIC_NETWORK_CURRENCY_NAME: ${config.currencyName}
+      NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: ${config.currencySymbol}
       NEXT_PUBLIC_NETWORK_CURRENCY_DECIMALS: 18 
-      NEXT_PUBLIC_APP_HOST: ${domain}
+      NEXT_PUBLIC_APP_HOST: ${config.domain}
       NEXT_PUBLIC_APP_PROTOCOL: https
       NEXT_PUBLIC_HOMEPAGE_CHARTS: "['daily_txs']"
       NEXT_PUBLIC_IS_TESTNET: true
       NEXT_PUBLIC_API_WEBSOCKET_PROTOCOL: wss
       NEXT_PUBLIC_API_SPEC_URL: https://raw.githubusercontent.com/blockscout/blockscout-api-v2-swagger/main/swagger.yaml
-      NEXT_PUBLIC_VISUALIZE_API_HOST: https://${domain}
+      NEXT_PUBLIC_VISUALIZE_API_HOST: https://${config.domain}
       NEXT_PUBLIC_VISUALIZE_API_BASE_PATH: /visualizer-service
       NEXT_PUBLIC_STATS_API_HOST: ""
       NEXT_PUBLIC_STATS_API_BASE_PATH: /stats-service
@@ -180,9 +191,9 @@ services:
       AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true"
       AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns"
       AVAGO_HTTP_HOST: "0.0.0.0"
-      AVAGO_TRACK_SUBNETS: "${subnetId}" 
-      AVAGO_HTTP_ALLOWED_HOSTS: "*"  # TODO: generate chain config
-      AVAGO_CHAIN_CONFIG_CONTENT: "${nodeConfigBase64(blockchainId, true, false)}"
+      AVAGO_TRACK_SUBNETS: "${config.subnetId}" 
+      AVAGO_HTTP_ALLOWED_HOSTS: "*"
+      AVAGO_CHAIN_CONFIG_CONTENT: "${nodeConfigBase64(config.blockchainId, true, false)}"
     logging:
       driver: json-file
       options:
@@ -199,14 +210,29 @@ export default function BlockScout() {
   const [chainId, setChainId] = useState("");
   const [subnetId, setSubnetId] = useState("");
   const [domain, setDomain] = useState("");
+  const [networkName, setNetworkName] = useState("");
+  const [networkShortName, setNetworkShortName] = useState("");
+  const [currencyName, setCurrencyName] = useState("");
+  const [currencySymbol, setCurrencySymbol] = useState("");
   const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
   const [composeYaml, setComposeYaml] = useState("");
   const [caddyfile, setCaddyfile] = useState("");
+
+  const getL1Info = useL1ByChainId(chainId);
 
   useEffect(() => {
     setSubnetIdError(null);
     setSubnetId("");
     if (!chainId) return
+
+    // Set defaults from L1 store if available
+    const l1Info = getL1Info();
+    if (l1Info) {
+      setNetworkName(l1Info.name);
+      setNetworkShortName(l1Info.name.split(" ")[0]); // First word as short name
+      setCurrencyName(l1Info.coinName);
+      setCurrencySymbol(l1Info.coinName);
+    }
 
     getBlockchainInfo(chainId).then((chainInfo) => {
       setSubnetId(chainInfo.subnetId);
@@ -224,16 +250,24 @@ export default function BlockScout() {
   }, [domain]);
 
   useEffect(() => {
-    let ready = !!domain && !!subnetId && !domainError && !subnetIdError
+    let ready = !!domain && !!subnetId && !!networkName && !!networkShortName && !!currencyName && !!currencySymbol && !domainError && !subnetIdError
 
     if (ready) {
       setCaddyfile(genCaddyfile(domain));
-      setComposeYaml(genDockerCompose(domain, subnetId, chainId));
+      setComposeYaml(genDockerCompose({
+        domain,
+        subnetId,
+        blockchainId: chainId,
+        networkName,
+        networkShortName,
+        currencyName,
+        currencySymbol
+      }));
     } else {
       setCaddyfile("");
       setComposeYaml("");
     }
-  }, [domain, subnetId, domainError, subnetIdError]);
+  }, [domain, subnetId, chainId, networkName, networkShortName, currencyName, currencySymbol, domainError, subnetIdError]);
 
   return (
     <>
@@ -292,6 +326,41 @@ export default function BlockScout() {
                   error={domainError}
                   helperText="Enter your domain name or IP address with .sslip.io (e.g. 1.2.3.4.sslip.io)"
                 />
+              </Step>
+
+              <Step>
+                <h3 className="text-xl font-bold mb-4">Network Details</h3>
+                <p>Configure your network's public display information. These will be shown in the block explorer.</p>
+
+                <div className="space-y-4">
+                  <Input
+                    label="Network Name"
+                    value={networkName}
+                    onChange={setNetworkName}
+                    helperText="Full name of your network (e.g. My Custom Subnet)"
+                  />
+
+                  <Input
+                    label="Network Short Name"
+                    value={networkShortName}
+                    onChange={setNetworkShortName}
+                    helperText="Short name or abbreviation (e.g. MCS)"
+                  />
+
+                  <Input
+                    label="Currency Name"
+                    value={currencyName}
+                    onChange={setCurrencyName}
+                    helperText="Name of your native currency (e.g. MyToken)"
+                  />
+
+                  <Input
+                    label="Currency Symbol"
+                    value={currencySymbol}
+                    onChange={setCurrencySymbol}
+                    helperText="Symbol of your native currency (e.g. MTK)"
+                  />
+                </div>
               </Step>
             </>)}
 
