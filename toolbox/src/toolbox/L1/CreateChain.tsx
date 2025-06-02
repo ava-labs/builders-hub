@@ -73,7 +73,7 @@ export default function CreateChain() {
 
         try {
             const txID = await coreWalletClient.createChain({
-                chainName: chainName,
+                chainName: localChainName,
                 subnetId: subnetId,
                 vmId,
                 fxIds: [],
