@@ -99,7 +99,8 @@ function transformContent(content: string, customTitle: string, customDescriptio
 
   const frontmatter = `---
 title: ${title}
-description: ${description}${editUrl ? `\nedit_url: ${editUrl}` : ''}
+description: ${description}
+edit_url: ${editUrl}
 ---
 
 `;

@@ -44,7 +44,7 @@ export default async function Page(props: {
   const path = `content/docs/${page.file.path}`;
 
   // Use custom edit URL if provided in frontmatter, otherwise use default path
-  const editUrl = page.data.edit_url ? page.data.edit_url : undefined;
+  const editUrl = page.data.edit_url || `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
 
   return (
     <DocsPage

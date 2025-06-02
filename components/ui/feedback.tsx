@@ -46,7 +46,7 @@ export interface UnifiedFeedbackProps {
   path: string;
   title: string;
   pagePath: string;
-  editUrl?: string;
+  editUrl: string;
 }
 
 export function Feedback({
@@ -125,7 +125,7 @@ export function Feedback({
 
         <div className="flex flex-row items-center gap-1.5 w-full sm:w-auto">
           <a
-            href={editUrl || `https://github.com/ava-labs/builders-hub/edit/master/${path}`}
+            href={editUrl}
             target="_blank"
             rel="noreferrer noopener"
             className={cn(rateButtonVariants(), "gap-2 no-underline text-sm")}
