@@ -9,7 +9,7 @@ import { useErrorBoundary } from "react-error-boundary";
 import { Container } from "../../components/Container";
 import { ValidatorListInput } from "../../components/ValidatorListInput";
 import InputChainId from "../../components/InputChainId";
-import SelectSubnetId from "../../components/SelectSubnetId";
+import SelectSubnet, { SubnetSelection } from "../../components/SelectSubnet";
 import { Callout } from "fumadocs-ui/components/callout";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { getPChainBalance } from "../../coreViem/methods/getPChainbalance";
@@ -25,7 +25,10 @@ export default function ConvertToL1() {
         setConvertToL1TxId,
     } = useCreateChainStore()();
 
-    const [subnetId, setSubnetId] = useState(storeSubnetId);
+    const [selection, setSelection] = useState<SubnetSelection>({
+        subnetId: storeSubnetId,
+        subnet: null
+    });
     const [chainID, setChainID] = useState(storeChainID);
     const [isConverting, setIsConverting] = useState(false);
     const [validators, setValidators] = useState<ConvertToL1Validator[]>([]);
@@ -59,7 +62,7 @@ export default function ConvertToL1() {
         try {
             const txID = await coreWalletClient.convertToL1({
                 managerAddress,
-                subnetId: subnetId,
+                subnetId: selection.subnetId,
                 chainId: chainID,
                 subnetAuth: [0],
                 validators
@@ -79,12 +82,42 @@ export default function ConvertToL1() {
             description="This will convert your subnet to an L1 chain."
         >
             <div className="space-y-4">
-                <SelectSubnetId
-                    value={subnetId}
-                    onChange={setSubnetId}
+                <SelectSubnet
+                    value={selection.subnetId}
+                    onChange={setSelection}
                     error={null}
                     onlyNotConverted={true}
                 />
+
+                {/* Show subnet details if available */}
+                {selection.subnet && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                        <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Selected Subnet Details</h3>
+                        <div className="space-y-2 text-sm">
+                            <div className="flex items-center">
+                                <span className="text-blue-600 dark:text-blue-400 font-medium mr-2">Type:</span>
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${selection.subnet.isL1
+                                    ? "bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200"
+                                    : "bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200"
+                                    }`}>
+                                    {selection.subnet.isL1 ? "Already an L1" : "Subnet (Ready for conversion)"}
+                                </span>
+                            </div>
+                            <div className="flex items-center">
+                                <span className="text-blue-600 dark:text-blue-400 font-medium mr-2">Blockchains:</span>
+                                <span className="text-blue-800 dark:text-blue-200">
+                                    {selection.subnet.blockchains?.length || 0}
+                                </span>
+                            </div>
+                            <div className="flex items-center">
+                                <span className="text-blue-600 dark:text-blue-400 font-medium mr-2">Owner Threshold:</span>
+                                <span className="text-blue-800 dark:text-blue-200">
+                                    {selection.subnet.subnetOwnershipInfo.threshold} of {selection.subnet.subnetOwnershipInfo.addresses.length}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div>
                     <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Validator Manager</h2>
@@ -120,10 +153,10 @@ export default function ConvertToL1() {
                 <Button
                     variant="primary"
                     onClick={handleConvertToL1}
-                    disabled={!subnetId || !managerAddress || validators.length === 0}
+                    disabled={!selection.subnetId || !managerAddress || validators.length === 0 || (selection.subnet?.isL1)}
                     loading={isConverting}
                 >
-                    Convert to L1
+                    {selection.subnet?.isL1 ? "Subnet Already Converted to L1" : "Convert to L1"}
                 </Button>
             </div>
 
