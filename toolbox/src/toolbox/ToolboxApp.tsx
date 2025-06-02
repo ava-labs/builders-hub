@@ -374,10 +374,10 @@ const componentGroups: Record<string, ComponentGroupType> = {
         walletMode: "optional",
       },
       {
-        id: "blockScout",
-        label: "BlockScout",
-        component: lazy(() => import('./Nodes/BlockScout')),
-        fileNames: ["toolbox/src/toolbox/Nodes/BlockScout.tsx"],
+        id: "selfHostedExplorer",
+        label: "Self-Hosted Explorer",
+        component: lazy(() => import('./Nodes/SelfHostedExplorer')),
+        fileNames: ["toolbox/src/toolbox/Nodes/SelfHostedExplorer.tsx"],
         walletMode: "testnet-mainnet",
       }
     ]
