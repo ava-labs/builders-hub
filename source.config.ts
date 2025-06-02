@@ -17,6 +17,7 @@ export const { docs, meta } = defineDocs({
     async: true,
     schema: frontmatterSchema.extend({
       index: z.boolean().default(false),
+      edit_url: z.string().optional(),
     }),
   },
   meta: {
@@ -33,13 +34,13 @@ export const course = defineCollections({
     preview: z.string().optional(),
     index: z.boolean().default(false),
     updated: z.string().or(z.date()).transform((value, context) => {
-        try {
-          return new Date(value);
-        } catch {
-          context.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date" });
-          return z.NEVER;
-        }
-      }),
+      try {
+        return new Date(value);
+      } catch {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date" });
+        return z.NEVER;
+      }
+    }),
     authors: z.array(z.string()),
     comments: z.boolean().default(false),
   }),
