@@ -6,25 +6,20 @@ import {
   AlertCircle,
   Info,
   CheckCircle,
-  Loader2,
   Clock,
   Users,
   Database,
   ExternalLink,
 } from "lucide-react"
 import { networkIDs } from "@avalabs/avalanchejs"
-import { Button } from "../../components/Button"
 import { Container } from "../../components/Container"
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
-import { GlobalParamNetwork, Subnet } from "@avalabs/avacloud-sdk/models/components"
+import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components"
 import SelectSubnet, { SubnetSelection } from "../../components/SelectSubnet"
 
 export default function QueryL1Details() {
   const [selection, setSelection] = useState<SubnetSelection>({ subnetId: '', subnet: null })
   const { avalancheNetworkID } = useWalletStore()
-  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
 
   // Network names for display
   const networkNames: Record<number, GlobalParamNetwork> = {
@@ -32,60 +27,14 @@ export default function QueryL1Details() {
     [networkIDs.FujiID]: "fuji",
   }
 
-  // Update success state when subnet details are available
+  // Update error state when subnet details change
   useEffect(() => {
-    if (selection.subnet) {
-      setSuccess(true)
-      setError(null)
-    } else if (selection.subnetId && !selection.subnet) {
-      setSuccess(false)
-      setError(null)
+    if (selection.subnetId && !selection.subnet) {
+      setError("Failed to fetch subnet details")
     } else {
-      setSuccess(false)
+      setError(null)
     }
   }, [selection])
-
-  async function fetchSubnetDetails() {
-    if (!selection.subnetId) {
-      setError("Please enter a subnet ID")
-      return
-    }
-
-    // If we already have subnet details from the SelectSubnet component, no need to fetch again
-    if (selection.subnet) {
-      setSuccess(true)
-      setError(null)
-      return
-    }
-
-    setIsLoading(true)
-    setError(null)
-    setSuccess(false)
-
-    try {
-      const network = networkNames[Number(avalancheNetworkID)]
-      if (!network) {
-        throw new Error("Invalid network selected")
-      }
-
-      const subnet = await new AvaCloudSDK().data.primaryNetwork.getSubnetById({
-        network: network,
-        subnetId: selection.subnetId,
-      });
-
-      // Update the selection with the fetched subnet details
-      setSelection(prev => ({
-        ...prev,
-        subnet
-      }))
-      setSuccess(true)
-    } catch (error: any) {
-      setError(error.message || "Failed to fetch subnet details")
-      console.error("Error fetching subnet details:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   function formatTimestamp(timestamp: number): string {
     return new Date(timestamp * 1000).toLocaleString()
@@ -106,15 +55,6 @@ export default function QueryL1Details() {
             </div>
           )}
 
-          {success && selection.subnet && (
-            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md text-green-800 dark:text-green-200 text-sm">
-              <div className="flex items-center">
-                <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                <span>Subnet details retrieved successfully</span>
-              </div>
-            </div>
-          )}
-
           <div className="mb-4 relative z-10">
             <SelectSubnet
               value={selection.subnetId}
@@ -122,26 +62,6 @@ export default function QueryL1Details() {
               error={null}
             />
           </div>
-
-          <Button
-            onClick={fetchSubnetDetails}
-            disabled={!selection.subnetId || isLoading || !!selection.subnet}
-            className={`w-full py-2 px-4 rounded-md text-sm font-medium flex items-center justify-center ${!selection.subnetId || isLoading || !!selection.subnet
-              ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
-              : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm hover:shadow transition-all duration-200"
-              }`}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Fetching Details...
-              </>
-            ) : selection.subnet ? (
-              "Details Already Loaded"
-            ) : (
-              "Fetch Subnet Details"
-            )}
-          </Button>
         </div>
 
         {selection.subnet && (

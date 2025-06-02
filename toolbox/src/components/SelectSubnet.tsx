@@ -1,3 +1,5 @@
+"use client"
+
 import { Input, type Suggestion } from "./Input";
 import { useMemo, useState, useEffect } from "react";
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
@@ -6,6 +8,7 @@ import { networkIDs } from "@avalabs/avalanchejs";
 import { GlobalParamNetwork, Subnet } from "@avalabs/avacloud-sdk/models/components";
 import { useCreateChainStore } from "../stores/createChainStore";
 import { useL1ListStore } from "../stores/l1ListStore";
+import SubnetDetailsDisplay from "./SubnetDetailsDisplay";
 
 export type SubnetSelection = {
     subnetId: string;
@@ -51,6 +54,8 @@ export default function SelectSubnet({
                 network: network,
                 subnetId,
             });
+
+            console.log('Raw subnet data from SDK:', JSON.stringify(subnet, null, 2));
 
             setSubnetDetails(prev => ({
                 ...prev,
@@ -140,12 +145,24 @@ export default function SelectSubnet({
         });
     };
 
-    return <Input
-        label="Subnet"
-        value={value}
-        onChange={handleValueChange}
-        suggestions={subnetSuggestions}
-        error={error}
-        placeholder={isLoading ? "Loading subnet details..." : "Enter subnet ID"}
-    />
+    // Get current subnet details for display
+    const currentSubnet = value ? subnetDetails[value] || null : null;
+    const isLoadingCurrent = value && !fetchedSubnets.has(value) && isLoading;
+
+    return (
+        <div>
+            <Input
+                id="subnet-input"
+                label="Subnet"
+                value={value}
+                onChange={handleValueChange}
+                suggestions={subnetSuggestions}
+                error={error}
+                placeholder={isLoading ? "Loading subnet details..." : "Enter subnet ID"}
+            />
+
+            {/* Display subnet details when a subnet is selected */}
+            {value && <SubnetDetailsDisplay subnet={currentSubnet} isLoading={!!isLoadingCurrent} />}
+        </div>
+    );
 } 
