@@ -11,6 +11,7 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "./AvalanchegoDocker";
 import { useL1ByChainId } from "../../stores/l1ListStore";
+import { Note } from "../../components/Note";
 
 const genCaddyfile = (domain: string) => `
 ${domain} {
@@ -372,8 +373,47 @@ export default function BlockScout() {
             </Step>
             <Step>
               <h3 className="text-xl font-bold mb-4">Docker Compose</h3>
-              <p>Put this in a file called <code>compose.yml</code> and run <code>docker compose up -d</code> to start the node.</p>
+              <p>Put this in a file called <code>compose.yml</code> in the same directory as your <code>Caddyfile</code>.</p>
               <DynamicCodeBlock lang="yaml" code={composeYaml} />
+            </Step>
+
+            <Step>
+              <h3 className="text-xl font-bold mb-4">Start Your Node</h3>
+              <p>Navigate to the directory containing your <code>Caddyfile</code> and <code>compose.yml</code> files and run these commands:</p>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold mb-2">Start the services (detached mode):</h4>
+                  <DynamicCodeBlock lang="bash" code="docker compose up -d" />
+                  <p className="text-sm text-gray-600 mt-1">The <code>-d</code> flag runs containers in the background so you can close your terminal.</p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Check if everything is running:</h4>
+                  <DynamicCodeBlock lang="bash" code="docker compose ps" />
+                  <p className="text-sm text-gray-600 mt-1">Shows the status of all containers. They should all show "Up" or "running".</p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">View logs if something goes wrong:</h4>
+                  <DynamicCodeBlock lang="bash" code="docker logs -f backend" />
+                  <p className="text-sm text-gray-600 mt-1">Press <code>Ctrl+C</code> to stop watching logs. Replace "backend" with any service name to see its logs.</p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Stop everything and clean up:</h4>
+                  <DynamicCodeBlock lang="bash" code="docker compose down -v" />
+                  <p className="text-sm text-gray-600 mt-1">The <code>-v</code> flag removes volumes (databases). <strong>Warning:</strong> This forces reindexing.</p>
+                </div>
+
+                <p>
+                  Services take 2-5 minutes to fully start up. Your BlockScout explorer will be available at <a href={`https://${domain || "your-domain.com"}`} target="_blank" rel="noopener noreferrer"><code>https://{domain || "your-domain.com"}</code></a>. </p>
+
+                <p>If containers keep restarting, check logs with <code>docker logs [service-name]</code>. Use <code>docker compose restart [service-name]</code> to restart individual services.
+                </p>
+              </div>
+
+
             </Step>
           </>)}
 
