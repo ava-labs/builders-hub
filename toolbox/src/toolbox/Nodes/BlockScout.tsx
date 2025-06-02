@@ -5,7 +5,7 @@ import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
 import { getBlockchainInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../../components/InputChainId";
-
+import versions from "../../versions.json";
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
@@ -52,7 +52,7 @@ ${domain} {
 }
 `
 
-const genDockerCompose = (domain: string) => `
+const genDockerCompose = (domain: string, subnetId: string, blockchainId: string) => `
 services:
   redis-db:
     image: 'redis:alpine'
@@ -94,11 +94,11 @@ services:
     restart: always
     stop_grace_period: 5m
     container_name: 'backend'
-    command: sh -c "bin/blockscout eval \"Elixir.Explorer.ReleaseTasks.create_and_migrate()\" && bin/blockscout start"
+    command: sh -c 'bin/blockscout eval \"Elixir.Explorer.ReleaseTasks.create_and_migrate()\" && bin/blockscout start'
     environment:
       ETHEREUM_JSONRPC_VARIANT: geth
-      ETHEREUM_JSONRPC_HTTP_URL: http://avago:9650/ext/bc/SUDoK9P89PCcguskyof41fZexw7U3zubDP2DZpGf3HbFWwJ4E/rpc # TODO: change to dynamic
-      ETHEREUM_JSONRPC_TRACE_URL: http://avago:9650/ext/bc/SUDoK9P89PCcguskyof41fZexw7U3zubDP2DZpGf3HbFWwJ4E/rpc # TODO: change to dynamic
+      ETHEREUM_JSONRPC_HTTP_URL: http://avago:9650/ext/bc/${blockchainId}/rpc # TODO: change to dynamic
+      ETHEREUM_JSONRPC_TRACE_URL: http://avago:9650/ext/bc/${blockchainId}/rpc # TODO: change to dynamic
       DATABASE_URL: postgresql://postgres:ceWb1MeLBEeOIfk65gU8EjF8@db:5432/blockscout # TODO: what is this ?
       SECRET_KEY_BASE: 56NtB48ear7+wMSf0IQuWDAAazhpb31qyc7GiyspBP2vh7t5zlCsF5QDv76chXeN # TODO: what is this ?
       NETWORK: EVM 
@@ -106,9 +106,9 @@ services:
       PORT: 4000 
       INDEXER_DISABLE_PENDING_TRANSACTIONS_FETCHER: false
       INDEXER_DISABLE_INTERNAL_TRANSACTIONS_FETCHER: false
-      # LOGO: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg # TODO: change to dynamic ?
-      # FOOTER_LOGO: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg # TODO: change to dynamic ?
-      # FAVICON_MASTER_URL: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg # TODO: change to dynamic ?
+      # LOGO: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg # TODO: your value here
+      # FOOTER_LOGO: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg # TODO: your value here
+      # FAVICON_MASTER_URL: /app/apps/block_scout_web/assets/static/images/ash-logo-circle-30.svg # TODO: your value here
       ECTO_USE_SSL: false
       DISABLE_EXCHANGE_RATES: true
       SUPPORTED_CHAINS: "[]"
@@ -141,7 +141,7 @@ services:
       NEXT_PUBLIC_NETWORK_NAME: Ash Subnet # TODO: change to dynamic
       NEXT_PUBLIC_NETWORK_SHORT_NAME: Ash # TODO: change to dynamic
       NEXT_PUBLIC_NETWORK_ID: 66666 # TODO: change to dynamic
-      NEXT_PUBLIC_NETWORK_RPC_URL: https://${domain}/ext/bc/SUDoK9P89PCcguskyof41fZexw7U3zubDP2DZpGf3HbFWwJ4E/rpc # TODO: change to dynamic
+      NEXT_PUBLIC_NETWORK_RPC_URL: https://${domain}/ext/bc/${blockchainId}/rpc
       NEXT_PUBLIC_NETWORK_CURRENCY_NAME: AshCoin # TODO: change to dynamic
       NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: ASH # TODO: change to dynamic
       NEXT_PUBLIC_NETWORK_CURRENCY_DECIMALS: 18 
@@ -173,11 +173,11 @@ services:
       - target: 443
         published: 443
   avago:
-    image: containerman17/subnet-evm-plus:latest # TODO: use the official subnet-evm image
+    image: avaplatform/subnet-evm:${versions['avaplatform/subnet-evm']}
     container_name: avago
     restart: always
-    ports: # TODO: reconsider ports
-      - "9650:9650"
+    ports:
+      - "127.0.0.1:9650:9650"
       - "9651:9651"
     volumes:
       - ~/.avalanchego:/root/.avalanchego
@@ -185,7 +185,7 @@ services:
       AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true"
       AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns"
       AVAGO_HTTP_HOST: "0.0.0.0"
-      AVAGO_TRACK_SUBNETS: "oerPWBbtbe13eWbo3AegYUrHuSETeTwyNy7szoHJJ1QQBL9nu,h7egyVb6fKHMDpVaEsTEcy7YaEnXrayxZS4A1AEU4pyBzmwGp" # TODO:
+      AVAGO_TRACK_SUBNETS: "${subnetId}" 
       AVAGO_HTTP_ALLOWED_HOSTS: "*"  # TODO: generate chain config
       AVAGO_CHAIN_CONFIG_CONTENT: "eyJTVURvSzlQODlQQ2NndXNreW9mNDFmWmV4dzdVM3p1YkRQMkRacEdmM0hiRld3SjRFIjp7IkNvbmZpZyI6ImV5SnNiMmN0YkdWMlpXd2lPaUprWldKMVp5SXNJbmRoY25BdFlYQnBMV1Z1WVdKc1pXUWlPblJ5ZFdVc0ltVjBhQzFoY0dseklqcGJJbVYwYUNJc0ltVjBhQzFtYVd4MFpYSWlMQ0p1WlhRaUxDSmhaRzFwYmlJc0luZGxZak1pTENKcGJuUmxjbTVoYkMxbGRHZ2lMQ0pwYm5SbGNtNWhiQzFpYkc5amEyTm9ZV2x1SWl3aWFXNTBaWEp1WVd3dGRISmhibk5oWTNScGIyNGlMQ0pwYm5SbGNtNWhiQzFrWldKMVp5SXNJbWx1ZEdWeWJtRnNMV0ZqWTI5MWJuUWlMQ0pwYm5SbGNtNWhiQzF3WlhKemIyNWhiQ0lzSW1SbFluVm5JaXdpWkdWaWRXY3RkSEpoWTJWeUlpd2laR1ZpZFdjdFptbHNaUzEwY21GalpYSWlMQ0prWldKMVp5MW9ZVzVrYkdWeUlsMTkiLCJVcGdyYWRlIjpudWxsfX0="
     logging:
@@ -201,123 +201,123 @@ volumes:
 `
 
 export default function BlockScout() {
-    const [chainId, setChainId] = useState("");
-    const [subnetId, setSubnetId] = useState("");
-    const [domain, setDomain] = useState("");
-    const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
-    const [composeYaml, setComposeYaml] = useState("");
-    const [caddyfile, setCaddyfile] = useState("");
+  const [chainId, setChainId] = useState("");
+  const [subnetId, setSubnetId] = useState("");
+  const [domain, setDomain] = useState("");
+  const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
+  const [composeYaml, setComposeYaml] = useState("");
+  const [caddyfile, setCaddyfile] = useState("");
 
-    useEffect(() => {
-        setSubnetIdError(null);
-        setSubnetId("");
-        if (!chainId) return
+  useEffect(() => {
+    setSubnetIdError(null);
+    setSubnetId("");
+    if (!chainId) return
 
-        getBlockchainInfo(chainId).then((chainInfo) => {
-            setSubnetId(chainInfo.subnetId);
-        }).catch((error) => {
-            setSubnetIdError((error as Error).message);
-        });
-    }, [chainId]);
+    getBlockchainInfo(chainId).then((chainInfo) => {
+      setSubnetId(chainInfo.subnetId);
+    }).catch((error) => {
+      setSubnetIdError((error as Error).message);
+    });
+  }, [chainId]);
 
-    const domainError = useMemo(() => {
-        if (!domain) return null;
-        // Updated regex to handle both traditional domains and IP-based domains like 1.2.3.4.sslip.io
-        const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-\.]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
-        if (!domainRegex.test(domain)) return "Please enter a valid domain name (e.g. example.com or 1.2.3.4.sslip.io)";
-        return null;
-    }, [domain]);
+  const domainError = useMemo(() => {
+    if (!domain) return null;
+    // Updated regex to handle both traditional domains and IP-based domains like 1.2.3.4.sslip.io
+    const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-\.]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
+    if (!domainRegex.test(domain)) return "Please enter a valid domain name (e.g. example.com or 1.2.3.4.sslip.io)";
+    return null;
+  }, [domain]);
 
-    useEffect(() => {
-        let ready = !!domain && !!subnetId && !domainError && !subnetIdError
+  useEffect(() => {
+    let ready = !!domain && !!subnetId && !domainError && !subnetIdError
 
-        if (ready) {
-            setCaddyfile(genCaddyfile(domain));
-            setComposeYaml(genDockerCompose());
-        } else {
-            setCaddyfile("");
-            setComposeYaml("");
-        }
-    }, [domain, subnetId, domainError, subnetIdError]);
+    if (ready) {
+      setCaddyfile(genCaddyfile(domain));
+      setComposeYaml(genDockerCompose(domain, subnetId, chainId));
+    } else {
+      setCaddyfile("");
+      setComposeYaml("");
+    }
+  }, [domain, subnetId, domainError, subnetIdError]);
 
-    return (
-        <>
-            <Container
-                title="Node Setup with Docker"
-                description="This will start a Docker container running an RPC or validator node that tracks your L1."
-            >
-                <Steps>
-                    <Step>
-                        <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
-                        <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. 4 vCPUs, 8GB RAM, 40GB storage is enough to get you started.</p>
-                    </Step>
-                    <Step>
-                        <h3 className="text-xl font-bold mb-4">Docker Installation</h3>
-                        <p>Make sure you have Docker installed on your system. You can use the following commands to install it:</p>
+  return (
+    <>
+      <Container
+        title="Node Setup with Docker"
+        description="This will start a Docker container running an RPC or validator node that tracks your L1."
+      >
+        <Steps>
+          <Step>
+            <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
+            <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. 4 vCPUs, 8GB RAM, 40GB storage is enough to get you started.</p>
+          </Step>
+          <Step>
+            <h3 className="text-xl font-bold mb-4">Docker Installation</h3>
+            <p>Make sure you have Docker installed on your system. You can use the following commands to install it:</p>
 
-                        <Tabs items={Object.keys(dockerInstallInstructions)}>
-                            {Object.keys(dockerInstallInstructions).map((os) => (
-                                <Tab
-                                    key={os}
-                                    value={os as OS}
-                                >
-                                    <DynamicCodeBlock lang="bash" code={dockerInstallInstructions[os]} />
-                                </Tab>
-                            ))}
-                        </Tabs>
-                    </Step>
+            <Tabs items={Object.keys(dockerInstallInstructions)}>
+              {Object.keys(dockerInstallInstructions).map((os) => (
+                <Tab
+                  key={os}
+                  value={os as OS}
+                >
+                  <DynamicCodeBlock lang="bash" code={dockerInstallInstructions[os]} />
+                </Tab>
+              ))}
+            </Tabs>
+          </Step>
 
-                    <Step>
-                        <h3 className="text-xl font-bold mb-4">Select L1</h3>
-                        <p>Enter the Avalanche Blockchain ID (not EVM chain ID) of the L1 you want to run a node for.</p>
+          <Step>
+            <h3 className="text-xl font-bold mb-4">Select L1</h3>
+            <p>Enter the Avalanche Blockchain ID (not EVM chain ID) of the L1 you want to run a node for.</p>
 
-                        <InputChainId
-                            value={chainId}
-                            onChange={setChainId}
-                            hidePrimaryNetwork={true}
-                        />
+            <InputChainId
+              value={chainId}
+              onChange={setChainId}
+              hidePrimaryNetwork={true}
+            />
 
-                        <Input
-                            label="Subnet ID"
-                            value={subnetId}
-                            disabled={true}
-                            error={subnetIdError}
-                        />
-                    </Step>
+            <Input
+              label="Subnet ID"
+              value={subnetId}
+              disabled={true}
+              error={subnetIdError}
+            />
+          </Step>
 
-                    {subnetId && (
-                        <>
-                            <Step>
-                                <h3 className="text-xl font-bold mb-4">Domain</h3>
-                                <p>Enter your domain name or server's public IP address. For a free domain, use your server's public IP with .sslip.io (e.g. 1.2.3.4.sslip.io). Get your IP with 'curl checkip.amazonaws.com'.</p>
-                                <Input
-                                    label="Domain"
-                                    value={domain}
-                                    onChange={setDomain}
-                                    error={domainError}
-                                    helperText="Enter your domain name or IP address with .sslip.io (e.g. 1.2.3.4.sslip.io)"
-                                />
-                            </Step>
-                        </>)}
+          {subnetId && (
+            <>
+              <Step>
+                <h3 className="text-xl font-bold mb-4">Domain</h3>
+                <p>Enter your domain name or server's public IP address. For a free domain, use your server's public IP with .sslip.io (e.g. 1.2.3.4.sslip.io). Get your IP with 'curl checkip.amazonaws.com'.</p>
+                <Input
+                  label="Domain"
+                  value={domain}
+                  onChange={setDomain}
+                  error={domainError}
+                  helperText="Enter your domain name or IP address with .sslip.io (e.g. 1.2.3.4.sslip.io)"
+                />
+              </Step>
+            </>)}
 
-                    {composeYaml && (<>
-                        <Step>
-                            <h3 className="text-xl font-bold mb-4">Caddyfile</h3>
-                            <p>Put this in a file called <code>Caddyfile</code> in the working directory. <code>compose.yml</code> will be created in the same directory.</p>
-                            <DynamicCodeBlock lang="yaml" code={caddyfile} />
-                        </Step>
-                        <Step>
-                            <h3 className="text-xl font-bold mb-4">Docker Compose</h3>
-                            <p>Put this in a file called <code>compose.yml</code> and run <code>docker compose up -d</code> to start the node.</p>
-                            <DynamicCodeBlock lang="yaml" code={composeYaml} />
-                        </Step>
-                    </>)}
-
-
-                </Steps>
+          {composeYaml && (<>
+            <Step>
+              <h3 className="text-xl font-bold mb-4">Caddyfile</h3>
+              <p>Put this in a file called <code>Caddyfile</code> in the working directory. <code>compose.yml</code> will be created in the same directory.</p>
+              <DynamicCodeBlock lang="yaml" code={caddyfile} />
+            </Step>
+            <Step>
+              <h3 className="text-xl font-bold mb-4">Docker Compose</h3>
+              <p>Put this in a file called <code>compose.yml</code> and run <code>docker compose up -d</code> to start the node.</p>
+              <DynamicCodeBlock lang="yaml" code={composeYaml} />
+            </Step>
+          </>)}
 
 
-            </Container >
-        </>
-    );
+        </Steps>
+
+
+      </Container >
+    </>
+  );
 };
