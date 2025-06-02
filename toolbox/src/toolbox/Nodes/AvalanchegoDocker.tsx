@@ -7,6 +7,7 @@ import versions from "../../versions.json";
 import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
 import { getBlockchainInfo } from "../../coreViem/utils/glacier";
+import { getSubnetVMInfo, STANDARD_SUBNET_EVM_VM_ID, type SubnetVMAnalysis } from "../../coreViem/methods/getSubnetVMInfo";
 import InputChainId from "../../components/InputChainId";
 import { Checkbox } from "../../components/Checkbox";
 
@@ -55,8 +56,25 @@ const debugConfigBase64 = (chainId: string) => {
     return btoa(JSON.stringify(configMap))
 }
 
+const generateVMAliasesSetup = (vmAnalysis: SubnetVMAnalysis) => {
+    if (!vmAnalysis.hasNonStandardVMs || Object.keys(vmAnalysis.vmAliases).length === 0) {
+        return null;
+    }
 
-const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, debugChainId?: string) => {
+    // Create JSON format for VM aliases: { "vmId": ["alias"] }
+    const vmAliasesJson: Record<string, string[]> = {};
+    Object.entries(vmAnalysis.vmAliases).forEach(([vmId, alias]) => {
+        vmAliasesJson[vmId] = [alias];
+    });
+
+    return `mkdir -p ~/.avalanchego/configs/vms
+
+cat > ~/.avalanchego/configs/vms/aliases.json <<EOF
+${JSON.stringify(vmAliasesJson, null, 2)}
+EOF`;
+};
+
+const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, debugChainId?: string, vmAnalysis?: SubnetVMAnalysis, chainId?: string) => {
     const env: Record<string, string> = {
         AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true",
         AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
@@ -82,6 +100,15 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
 
     if (debugChainId) {
         env.AVAGO_CHAIN_CONFIG_CONTENT = debugConfigBase64(debugChainId);
+    }
+
+    // Add VM ID if there are non-standard VMs and we have chain analysis
+    if (vmAnalysis?.hasNonStandardVMs && chainId) {
+        // Find the VM ID for the specific chain we're targeting
+        const targetChain = vmAnalysis.chains.find(chain => chain.blockchainId === chainId);
+        if (targetChain && !targetChain.isStandardVM) {
+            env.VM_ID = targetChain.vmId;
+        }
     }
 
     const chunks = [
@@ -177,17 +204,20 @@ export default function AvalanchegoDocker() {
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
     const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
-    
-    const { avalancheNetworkID } = useWalletStore();
+    const [vmAnalysis, setVmAnalysis] = useState<SubnetVMAnalysis | null>(null);
+    const [isAnalyzingVMs, setIsAnalyzingVMs] = useState<boolean>(false);
+    const [vmAnalysisError, setVmAnalysisError] = useState<string | null>(null);
+
+    const { avalancheNetworkID, coreWalletClient } = useWalletStore();
     const { addL1 } = useL1ListStore()();
 
     useEffect(() => {
         try {
-            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID, enableDebugTrace ? chainId : undefined));
+            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID, enableDebugTrace ? chainId : undefined, vmAnalysis || undefined, chainId));
         } catch (error) {
             setRpcCommand((error as Error).message);
         }
-    }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId]);
+    }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId, vmAnalysis]);
 
     useEffect(() => {
         if (!isRPC) {
@@ -199,14 +229,35 @@ export default function AvalanchegoDocker() {
     useEffect(() => {
         setSubnetIdError(null);
         setSubnetId("");
+        setVmAnalysis(null);
+        setVmAnalysisError(null);
         if (!chainId) return
 
         getBlockchainInfo(chainId).then((chainInfo) => {
             setSubnetId(chainInfo.subnetId);
+
+            // Analyze VM compatibility for the subnet
+            if (coreWalletClient && chainInfo.subnetId) {
+                setIsAnalyzingVMs(true);
+                setVmAnalysisError(null);
+
+                getSubnetVMInfo(coreWalletClient, chainInfo.subnetId)
+                    .then((analysis) => {
+                        setVmAnalysis(analysis);
+                        console.log('VM Analysis:', analysis);
+                    })
+                    .catch((error) => {
+                        console.error('Failed to analyze VM compatibility:', error);
+                        setVmAnalysisError(error.message);
+                    })
+                    .finally(() => {
+                        setIsAnalyzingVMs(false);
+                    });
+            }
         }).catch((error) => {
             setSubnetIdError((error as Error).message);
         });
-    }, [chainId]);
+    }, [chainId, coreWalletClient]);
 
     const handleReset = () => {
         setChainId("");
@@ -219,6 +270,9 @@ export default function AvalanchegoDocker() {
         setEnableDebugTrace(false);
         setSubnetIdError(null);
         setIsAddChainModalOpen(false);
+        setVmAnalysis(null);
+        setVmAnalysisError(null);
+        setIsAnalyzingVMs(false);
     };
 
 
@@ -297,6 +351,69 @@ export default function AvalanchegoDocker() {
                             disabled={true}
                             error={subnetIdError}
                         />
+
+                        {/* VM Analysis Feedback */}
+                        {isAnalyzingVMs && (
+                            <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                <div className="flex items-center">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                                    <span className="text-sm text-blue-800 dark:text-blue-200">Analyzing VM compatibility...</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {vmAnalysisError && (
+                            <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                <p className="text-sm text-red-800 dark:text-red-200">
+                                    <strong>VM Analysis Error:</strong> {vmAnalysisError}
+                                </p>
+                            </div>
+                        )}
+
+                        {vmAnalysis && vmAnalysis.chains.length > 0 && (
+                            <div className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                <h4 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-2">VM Configuration Analysis</h4>
+
+                                {vmAnalysis.hasNonStandardVMs ? (
+                                    <div className="mb-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
+                                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                            ⚠️ <strong>Custom VM Detected:</strong> This subnet contains chains with non-standard Virtual Machines.
+                                            You'll need to set up VM aliases before starting your node.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="mb-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded">
+                                        <p className="text-sm text-green-800 dark:text-green-200">
+                                            ✅ <strong>Standard VM:</strong> All chains use the standard Subnet-EVM.
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="space-y-1">
+                                    {vmAnalysis.chains.map((chain) => (
+                                        <div key={chain.blockchainId} className="text-xs text-zinc-600 dark:text-zinc-400">
+                                            <span className="font-mono">{chain.blockchainName || 'Unknown'}</span>
+                                            {!chain.isStandardVM && (
+                                                <span className="ml-2 text-yellow-600 dark:text-yellow-400">
+                                                    (Custom VM: {chain.vmId.slice(0, 12)}...)
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {vmAnalysis.hasNonStandardVMs && Object.keys(vmAnalysis.vmAliases).length > 0 && (
+                                    <div className="mt-3 pt-2 border-t border-zinc-200 dark:border-zinc-600">
+                                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">VM Aliases:</p>
+                                        {Object.entries(vmAnalysis.vmAliases).map(([vmId, alias]) => (
+                                            <div key={vmId} className="text-xs font-mono text-zinc-500 dark:text-zinc-500">
+                                                {alias} → {vmId.slice(0, 12)}...
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </Step>
 
                     {subnetId && (
@@ -327,6 +444,21 @@ export default function AvalanchegoDocker() {
                                     <li><strong>9651</strong> (for the node-to-node communication)</li>
                                 </ul>
                             </Step>)}
+                            {vmAnalysis?.hasNonStandardVMs && Object.keys(vmAnalysis.vmAliases).length > 0 && (
+                                <Step>
+                                    <h3 className="text-xl font-bold mb-4">Set Up VM Alias Mapping</h3>
+                                    <p>This L1 uses custom Virtual Machines that require alias mapping. Run the following commands to set up the VM aliases before starting your node:</p>
+
+                                    <DynamicCodeBlock lang="bash" code={generateVMAliasesSetup(vmAnalysis) || ""} />
+
+                                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                                            <strong>Note:</strong> This creates an aliases.json file that maps custom VM IDs to shorter names,
+                                            allowing AvalancheGo to properly handle the custom Virtual Machines used by this L1.
+                                        </p>
+                                    </div>
+                                </Step>
+                            )}
                             <Step>
                                 <h3 className="text-xl font-bold">Start AvalancheGo Node</h3>
                                 <p>Run the following Docker command to start your node:</p>
