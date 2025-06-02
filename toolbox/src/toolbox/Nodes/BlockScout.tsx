@@ -11,7 +11,6 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "./AvalanchegoDocker";
 import { useL1ByChainId } from "../../stores/l1ListStore";
-import { Note } from "../../components/Note";
 
 const genCaddyfile = (domain: string) => `
 ${domain} {
