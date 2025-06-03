@@ -1,53 +1,27 @@
 "use client"
 
-import type { Subnet, GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components"
-import { Copy } from "lucide-react"
-import { useState, useEffect } from "react"
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
-import { useWalletStore } from "../stores/walletStore"
-import { networkIDs } from "@avalabs/avalanchejs"
-
-// Define the blockchain type based on the API response
-interface BlockchainInfo {
-    createBlockTimestamp: number;
-    createBlockNumber: string;
-    blockchainId: string;
-    vmId: string;
-    subnetId: string;
-    blockchainName: string;
-    evmChainId?: number;
-}
+import type { Subnet } from "@avalabs/avacloud-sdk/models/components"
+import { Calendar, Users, Database, Key, Copy, AlertTriangle, FileText } from "lucide-react"
+import { useState } from "react"
 
 interface SubnetDetailsDisplayProps {
     subnet: Subnet | null
     isLoading?: boolean
 }
 
-interface BlockchainDetails {
-    blockchainId: string;
-    name?: string;
-    vmId?: string;
-    evmChainId?: number;
-}
-
 export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetailsDisplayProps) {
     const [copiedText, setCopiedText] = useState<string | null>(null)
-    const [blockchainDetails, setBlockchainDetails] = useState<Record<string, BlockchainDetails>>({})
-    const { avalancheNetworkID } = useWalletStore()
 
-    // Network names for API calls
-    const networkNames: Record<number, GlobalParamNetwork> = {
-        [networkIDs.MainnetID]: "mainnet",
-        [networkIDs.FujiID]: "fuji",
-    };
+    // Standard EVM VM ID
+    const STANDARD_EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
 
     if (isLoading) {
         return (
-            <div className="w-full mt-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md">
+            <div className="w-full mt-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md shadow-sm">
                 <div className="p-3">
                     <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 dark:border-blue-400"></div>
-                        <span className="ml-2 text-xs text-zinc-500 dark:text-zinc-400">Loading...</span>
+                        <span className="ml-2 text-xs text-zinc-500 dark:text-zinc-400">Loading subnet details...</span>
                     </div>
                 </div>
             </div>
@@ -64,16 +38,16 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
 
         if (date > now && date.getFullYear() > now.getFullYear() + 1) {
             return new Date(timestamp).toLocaleDateString("en-US", {
+                year: "2-digit",
                 month: "short",
                 day: "numeric",
-                year: "2-digit",
             })
         }
 
         return date.toLocaleDateString("en-US", {
+            year: "2-digit",
             month: "short",
             day: "numeric",
-            year: "2-digit",
         })
     }
 
@@ -87,82 +61,19 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
         if (!text) return
         navigator.clipboard.writeText(text)
         setCopiedText(text)
-        setTimeout(() => setCopiedText(null), 1500)
+        setTimeout(() => setCopiedText(null), 2000)
     }
 
-    const CopyButton = ({ text, className = "" }: { text: string | undefined | null; className?: string }) => (
-        <button
-            className={`p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors ${className}`}
-            onClick={() => copyToClipboard(text)}
-        >
-            <Copy className="h-3 w-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
-        </button>
-    )
-
-    useEffect(() => {
-        const fetchBlockchainDetails = async () => {
-            if (!subnet?.blockchains?.length) return;
-
-            const network = networkNames[Number(avalancheNetworkID)];
-            if (!network) return;
-
-            const sdk = new AvaCloudSDK();
-            const details: Record<string, BlockchainDetails> = {};
-
-            for (const blockchain of subnet.blockchains) {
-                try {
-                    console.log('Fetching details for blockchain:', blockchain);
-                    const result = await sdk.data.primaryNetwork.listBlockchains({
-                        network,
-                    });
-
-                    // Log the raw response
-                    console.log('Raw blockchain API response:', result);
-
-                    // Find the matching blockchain in the response
-                    for await (const page of result) {
-                        const matchingBlockchain = page.result.blockchains.find(
-                            b => b.blockchainId === blockchain.blockchainId
-                        ) as any;
-
-                        if (matchingBlockchain) {
-                            // Log the matching blockchain to see its structure
-                            console.log('Found matching blockchain:', matchingBlockchain);
-
-                            details[blockchain.blockchainId] = {
-                                blockchainId: blockchain.blockchainId,
-                                // Only add properties if they exist
-                                ...(matchingBlockchain.blockchainName && { name: matchingBlockchain.blockchainName }),
-                                ...(matchingBlockchain.vmId && { vmId: matchingBlockchain.vmId }),
-                                ...(matchingBlockchain.evmChainId && { evmChainId: matchingBlockchain.evmChainId })
-                            };
-                            break;
-                        }
-                    }
-                } catch (error) {
-                    console.error(`Error fetching details for blockchain ${blockchain.blockchainId}:`, error);
-                    details[blockchain.blockchainId] = {
-                        blockchainId: blockchain.blockchainId
-                    };
-                }
-            }
-
-            setBlockchainDetails(details);
-        };
-
-        fetchBlockchainDetails();
-    }, [subnet, avalancheNetworkID]);
-
     return (
-        <div className="w-full mt-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md overflow-hidden">
-            {/* Header */}
-            <div className="px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-700">
+        <div className="w-full mt-3 border border-zinc-200 dark:border-zinc-800 rounded-md shadow-sm overflow-hidden">
+            {/* Lighter Gray Header */}
+            <div className="px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-700">
                 <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Subnet Details</span>
+                    <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-50 flex items-center">Subnet Details</h3>
                     <span
-                        className={`px-2 py-0.5 text-xs font-medium rounded ${subnet.isL1
-                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
-                            : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${subnet.isL1
+                            ? "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200"
+                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200"
                             }`}
                     >
                         {subnet.isL1 ? "L1 Chain" : "Subnet"}
@@ -170,127 +81,189 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="p-3 space-y-3">
-                {/* Basic Info Row */}
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                    <div>
-                        <span className="text-zinc-500 dark:text-zinc-400">Created:</span>
-                        <span className="ml-1 text-zinc-900 dark:text-zinc-50">{formatTimestamp(subnet.createBlockTimestamp)}</span>
-                    </div>
-                    <div>
-                        <span className="text-zinc-500 dark:text-zinc-400">Blockchains:</span>
-                        <span className="ml-1 text-zinc-900 dark:text-zinc-50">{subnet.blockchains?.length || 0}</span>
-                    </div>
-                </div>
+            {/* White Content Area */}
+            <div className="p-3 bg-white dark:bg-zinc-900 space-y-3">
+                {/* Basic Information */}
+                <div className="flex justify-between text-xs">
+                    {/* Left Column - Created & Chains */}
+                    <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                            <Calendar className="h-3 w-3 text-zinc-500 dark:text-zinc-400" />
+                            <span className="text-zinc-900 dark:text-zinc-50">Created:</span>
+                            <span className="text-zinc-500 dark:text-zinc-400">{formatTimestamp(subnet.createBlockTimestamp)}</span>
+                        </div>
 
-                {/* Ownership Row */}
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                    <div>
-                        <span className="text-zinc-500 dark:text-zinc-400">Threshold:</span>
-                        <span className="ml-1 text-zinc-900 dark:text-zinc-50">
-                            {subnet.threshold}/{subnet.ownerAddresses?.length || 0}
-                        </span>
-                    </div>
-                    <div>
-                        <span className="text-zinc-500 dark:text-zinc-400">Owner:</span>
-                        <div className="flex items-center mt-0.5">
-                            <span className="font-mono text-zinc-700 dark:text-zinc-300 text-xs">
-                                {formatAddress(subnet.ownerAddresses?.[0])}
-                            </span>
-                            <CopyButton text={subnet.ownerAddresses?.[0]} className="ml-1" />
-                            {(subnet.ownerAddresses?.length || 0) > 1 && (
-                                <span className="ml-1 text-zinc-500 text-xs">+{(subnet.ownerAddresses?.length || 0) - 1}</span>
-                            )}
+                        <div className="flex items-center space-x-2">
+                            <Database className="h-3 w-3 text-zinc-500 dark:text-zinc-400" />
+                            <span className="text-zinc-900 dark:text-zinc-50">Chains:</span>
+                            <span className="text-zinc-500 dark:text-zinc-400">{subnet.blockchains?.length || 0}</span>
                         </div>
                     </div>
-                </div>
 
-                {/* Blockchain Details */}
-                {subnet.blockchains && subnet.blockchains.length > 0 && (() => {
-                    // Log the complete raw data
-                    console.log('Raw subnet data:', JSON.stringify(subnet, null, 2));
-
-                    return (
-                        <div className="bg-zinc-50 dark:bg-zinc-800/30 rounded p-2">
-                            <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">Blockchain</div>
-                            {subnet.blockchains.map((blockchain: any, index) => {
-                                const details = blockchainDetails[blockchain.blockchainId] || {};
-                                console.log('Blockchain details:', details);
-
-                                return (
-                                    <div key={index} className="space-y-1">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-medium text-zinc-900 dark:text-zinc-50">
-                                                {details.name || "Blockchain"}
-                                            </span>
-                                            {details.evmChainId && (
-                                                <span className="text-xs text-zinc-500 dark:text-zinc-400">EVM: {details.evmChainId}</span>
-                                            )}
-                                        </div>
-
-                                        <div className="grid grid-cols-1 gap-1 text-xs">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-zinc-500 dark:text-zinc-400">ID:</span>
-                                                <div className="flex items-center">
-                                                    <span className="font-mono text-zinc-700 dark:text-zinc-300">
-                                                        {formatAddress(blockchain.blockchainId)}
-                                                    </span>
-                                                    <CopyButton text={blockchain.blockchainId} className="ml-1" />
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-zinc-500 dark:text-zinc-400">VM:</span>
-                                                <div className="flex items-center">
-                                                    <span className="font-mono text-zinc-700 dark:text-zinc-300">
-                                                        {formatAddress(details.vmId)}
-                                                    </span>
-                                                    <CopyButton text={details.vmId} className="ml-1" />
-                                                </div>
-                                            </div>
-                                        </div>
+                    {/* Right Column - Owner Address & Threshold */}
+                    <div className="text-right">
+                        {subnet.ownerAddresses && subnet.ownerAddresses.length > 0 && (
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-end space-x-2">
+                                    <Users className="h-3 w-3 text-zinc-500 dark:text-zinc-400" />
+                                    <span className="text-zinc-900 dark:text-zinc-50">Owner Address:</span>
+                                    <div className="flex items-center space-x-1">
+                                        <span className="font-mono text-zinc-500 dark:text-zinc-400">
+                                            {formatAddress(subnet.ownerAddresses[0])}
+                                        </span>
+                                        <button
+                                            className="p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
+                                            onClick={() => copyToClipboard(subnet.ownerAddresses[0])}
+                                        >
+                                            <Copy className="h-2.5 w-2.5 text-zinc-500 dark:text-zinc-400" />
+                                        </button>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    );
-                })()}
+                                </div>
 
-                {/* L1 Conversion Details */}
-                {subnet.isL1 && subnet.l1ValidatorManagerDetails && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-2">
-                        <div className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">L1 Conversion</div>
-
-                        {subnet.l1ConversionTransactionHash && (
-                            <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs text-zinc-500 dark:text-zinc-400">Tx:</span>
-                                <div className="flex items-center">
-                                    <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300">
-                                        {formatAddress(subnet.l1ConversionTransactionHash)}
-                                    </span>
-                                    <CopyButton text={subnet.l1ConversionTransactionHash} className="ml-1" />
+                                <div className="text-zinc-500 dark:text-zinc-400">
+                                    {subnet.threshold} of {subnet.ownerAddresses.length} signatures required
                                 </div>
                             </div>
                         )}
+                    </div>
+                </div>
 
-                        <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-zinc-500 dark:text-zinc-400">Manager:</span>
-                            <div className="flex items-center">
-                                <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300">
-                                    {formatAddress((subnet.l1ValidatorManagerDetails as any).contractAddress)}
+                {/* Additional Owner Addresses if more than one */}
+                {subnet.ownerAddresses && subnet.ownerAddresses.length > 1 && (
+                    <div>
+                        <span className="text-xs text-zinc-600 dark:text-zinc-300 block mb-1">Additional Owners:</span>
+                        <div className="flex flex-wrap gap-1">
+                            {subnet.ownerAddresses.slice(1, 3).map((address, index) => (
+                                <div key={index} className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded px-1.5 py-0.5">
+                                    <span className="font-mono text-zinc-800 dark:text-zinc-200 text-xs">{formatAddress(address)}</span>
+                                    <button
+                                        className="ml-1 p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
+                                        onClick={() => copyToClipboard(address)}
+                                    >
+                                        <Copy className="h-2.5 w-2.5 text-zinc-500 dark:text-zinc-400" />
+                                    </button>
+                                </div>
+                            ))}
+                            {subnet.ownerAddresses.length > 3 && (
+                                <span className="px-1.5 py-0.5 text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded">
+                                    +{subnet.ownerAddresses.length - 3} more
                                 </span>
-                                <CopyButton text={(subnet.l1ValidatorManagerDetails as any).contractAddress} className="ml-1" />
-                            </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Blockchain Information */}
+                {subnet.blockchains && subnet.blockchains.length > 0 && (
+                    <div>
+                        <div className="flex items-center space-x-2">
+                            <FileText className="h-3 w-3 text-zinc-500 dark:text-zinc-400" />
+                            <span className="text-xs font-medium text-zinc-900 dark:text-zinc-50">Blockchain Details:</span>
                         </div>
 
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs text-zinc-500 dark:text-zinc-400">Chain:</span>
-                            <div className="flex items-center">
-                                <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300">
-                                    {formatAddress((subnet.l1ValidatorManagerDetails as any).blockchainId)}
-                                </span>
-                                <CopyButton text={(subnet.l1ValidatorManagerDetails as any).blockchainId} className="ml-1" />
+                        <div className="space-y-2 mt-2">
+                            {subnet.blockchains.map((blockchain, index) => {
+                                const blockchainAny = blockchain as any
+                                const isNonStandardVM = blockchainAny.vmId && blockchainAny.vmId !== STANDARD_EVM_VM_ID
+
+                                return (
+                                    <div key={index} className="bg-zinc-50 dark:bg-zinc-800/50 p-2 rounded text-xs">
+                                        <div className="font-medium text-zinc-900 dark:text-zinc-50 mb-2">
+                                            {blockchainAny.blockchainName || "Blockchain"}
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            {blockchainAny.evmChainId && (
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-zinc-600 dark:text-zinc-300">EVM Chain ID:</span>
+                                                    <span className="font-mono text-zinc-800 dark:text-zinc-200">{blockchainAny.evmChainId}</span>
+                                                </div>
+                                            )}
+
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-zinc-600 dark:text-zinc-300">Blockchain ID:</span>
+                                                <div className="flex items-center space-x-1">
+                                                    <span className="font-mono text-zinc-800 dark:text-zinc-200">
+                                                        {formatAddress(blockchainAny.blockchainId)}
+                                                    </span>
+                                                    <button
+                                                        className="p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
+                                                        onClick={() => copyToClipboard(blockchainAny.blockchainId)}
+                                                    >
+                                                        <Copy className="h-2.5 w-2.5 text-zinc-500 dark:text-zinc-400" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-zinc-600 dark:text-zinc-300">VM ID:</span>
+                                                <div className="flex items-center space-x-1">
+                                                    <span className="font-mono text-zinc-800 dark:text-zinc-200">
+                                                        {formatAddress(blockchainAny.vmId)}
+                                                    </span>
+                                                    <button
+                                                        className="p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
+                                                        onClick={() => copyToClipboard(blockchainAny.vmId)}
+                                                    >
+                                                        <Copy className="h-2.5 w-2.5 text-zinc-500 dark:text-zinc-400" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Warning for non-standard VM */}
+                                        {isNonStandardVM && (
+                                            <div className="mt-2 flex items-center space-x-1 text-yellow-700 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 p-1.5 rounded">
+                                                <AlertTriangle className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
+                                                <span className="text-xs">Non-standard VM detected</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* L1 Conversion Information */}
+                {subnet.isL1 && subnet.l1ValidatorManagerDetails && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-2">
+                        <div className="flex items-center space-x-2">
+                            <Key className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                            <span className="text-xs font-medium text-blue-900 dark:text-blue-100">L1 Conversion:</span>
+                        </div>
+
+                        <div className="space-y-2 text-xs mt-2">
+                            {subnet.l1ConversionTransactionHash && (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-blue-700 dark:text-blue-300">Conversion Tx:</span>
+                                    <div className="flex items-center space-x-1">
+                                        <span className="font-mono text-blue-900 dark:text-blue-100">
+                                            {formatAddress(subnet.l1ConversionTransactionHash)}
+                                        </span>
+                                        <button
+                                            className="p-0.5 hover:bg-blue-200 dark:hover:bg-blue-800 rounded transition-colors"
+                                            onClick={() => copyToClipboard(subnet.l1ConversionTransactionHash)}
+                                        >
+                                            <Copy className="h-2.5 w-2.5 text-blue-600 dark:text-blue-400" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                                <span className="text-blue-700 dark:text-blue-300">Validator Manager:</span>
+                                <div className="flex items-center space-x-1">
+                                    <span className="font-mono text-blue-900 dark:text-blue-100">
+                                        {formatAddress((subnet.l1ValidatorManagerDetails as any).contractAddress)}
+                                    </span>
+                                    <button
+                                        className="p-0.5 hover:bg-blue-200 dark:hover:bg-blue-800 rounded transition-colors"
+                                        onClick={() => copyToClipboard((subnet.l1ValidatorManagerDetails as any).contractAddress)}
+                                    >
+                                        <Copy className="h-2.5 w-2.5 text-blue-600 dark:text-blue-400" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -298,11 +271,11 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
 
                 {/* Copy feedback */}
                 {copiedText && (
-                    <div className="fixed bottom-4 right-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 px-3 py-1.5 rounded text-xs shadow-lg">
-                        Copied!
+                    <div className="fixed bottom-4 right-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 px-3 py-1.5 rounded-md shadow-md text-xs">
+                        Copied to clipboard!
                     </div>
                 )}
             </div>
         </div>
     )
-} 
+}

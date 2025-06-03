@@ -89,36 +89,6 @@ export default function ConvertToL1() {
                     onlyNotConverted={true}
                 />
 
-                {/* Show subnet details if available */}
-                {selection.subnet && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                        <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Selected Subnet Details</h3>
-                        <div className="space-y-2 text-sm">
-                            <div className="flex items-center">
-                                <span className="text-blue-600 dark:text-blue-400 font-medium mr-2">Type:</span>
-                                <span className={`px-2 py-1 rounded text-xs font-medium ${selection.subnet.isL1
-                                    ? "bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200"
-                                    : "bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200"
-                                    }`}>
-                                    {selection.subnet.isL1 ? "Already an L1" : "Subnet (Ready for conversion)"}
-                                </span>
-                            </div>
-                            <div className="flex items-center">
-                                <span className="text-blue-600 dark:text-blue-400 font-medium mr-2">Blockchains:</span>
-                                <span className="text-blue-800 dark:text-blue-200">
-                                    {selection.subnet.blockchains?.length || 0}
-                                </span>
-                            </div>
-                            <div className="flex items-center">
-                                <span className="text-blue-600 dark:text-blue-400 font-medium mr-2">Owner Threshold:</span>
-                                <span className="text-blue-800 dark:text-blue-200">
-                                    {selection.subnet.subnetOwnershipInfo.threshold} of {selection.subnet.subnetOwnershipInfo.addresses.length}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
                 <div>
                     <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Validator Manager</h2>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">With the conversion of the Subnet to an L1, the validator set of the L1 will be managed by a validator manager contract. This contract can implement Proof-of-Authority, Proof-of-Stake or any custom logic to determine the validator set. The contract can be deployed on a blockchain of the L1, the C-Chain or any other blockchain in the Avalanche network.</p>

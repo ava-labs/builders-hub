@@ -30,10 +30,10 @@
   resolved "https://registry.yarnpkg.com/@assemblyscript/loader/-/loader-0.19.23.tgz#7fccae28d0a2692869f1d1219d36093bc24d5e72"
   integrity sha512-ulkCYfFbYj01ie1MDOyxv2F6SpRN1TOj7fQxbP07D6HmeR+gr2JLSmINKjga2emB+b1L2KGrFKBTc+e00p54nw==
 
-"@avalabs/avacloud-sdk@0.8.7":
-  version "0.8.7"
-  resolved "https://registry.yarnpkg.com/@avalabs/avacloud-sdk/-/avacloud-sdk-0.8.7.tgz#1644743fed892ef3e63379a54d89b0209cffce7c"
-  integrity sha512-ZvvfAIzg+DAqIOA7u5BlX5ncBdNCVUJvu7VNHtE0k+IOB3o9420jWaBTH+rK5QZaSDxj7oVf08KsCEbRVaaWOw==
+"@avalabs/avacloud-sdk@0.12.1":
+  version "0.12.1"
+  resolved "https://registry.yarnpkg.com/@avalabs/avacloud-sdk/-/avacloud-sdk-0.12.1.tgz#5edfc63bcdf9c8204abdbf8828fad2134700b036"
+  integrity sha512-dWkij4DoDGefspDTyu2+agDreA39Z8f6TYWBzxATBwxcV8serdMK4IZ6cBdEUYPcgczHDy9eIEGlDhLz1uBHpQ==
   dependencies:
     json-canonicalize "^1.0.6"
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { Input, type Suggestion } from "./Input";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
 import { useWalletStore } from "../stores/walletStore";
 import { networkIDs } from "@avalabs/avalanchejs";
@@ -33,7 +33,6 @@ export default function SelectSubnet({
     const l1List = useL1ListStore()(state => state.l1List);
     const [subnetDetails, setSubnetDetails] = useState<Record<string, Subnet>>({});
     const [isLoading, setIsLoading] = useState(false);
-    const [fetchedSubnets, setFetchedSubnets] = useState<Set<string>>(new Set());
 
     // Network names for API calls
     const networkNames: Record<number, GlobalParamNetwork> = {
@@ -42,32 +41,34 @@ export default function SelectSubnet({
     };
 
     // Fetch subnet details when needed
-    const fetchSubnetDetails = async (subnetId: string) => {
-        if (!subnetId || fetchedSubnets.has(subnetId)) return;
+    const fetchSubnetDetails = useCallback(async (subnetId: string) => {
+        if (!subnetId || subnetDetails[subnetId]) return;
 
         try {
             const network = networkNames[Number(avalancheNetworkID)];
             if (!network) return;
 
             setIsLoading(true);
-            const subnet = await new AvaCloudSDK().data.primaryNetwork.getSubnetById({
+            const sdk = new AvaCloudSDK({
+                serverURL: "https://api.avax.network",
+                network: network,
+            });
+
+            const subnet = await sdk.data.primaryNetwork.getSubnetById({
                 network: network,
                 subnetId,
             });
-
-            console.log('Raw subnet data from SDK:', JSON.stringify(subnet, null, 2));
 
             setSubnetDetails(prev => ({
                 ...prev,
                 [subnetId]: subnet
             }));
-            setFetchedSubnets(prev => new Set([...prev, subnetId]));
         } catch (error) {
             console.error(`Error fetching subnet details for ${subnetId}:`, error);
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [avalancheNetworkID, networkNames, subnetDetails]);
 
     // Generate suggestions from available subnets
     const subnetSuggestions: Suggestion[] = useMemo(() => {
@@ -121,33 +122,21 @@ export default function SelectSubnet({
         return result;
     }, [createChainStoreSubnetId, l1List, subnetDetails, onlyNotConverted, hidePrimaryNetwork]);
 
-    // Fetch details for suggested subnets when they become available
-    useEffect(() => {
-        const subnetIds = subnetSuggestions.map(s => s.value);
-        subnetIds.forEach(id => {
-            if (!fetchedSubnets.has(id)) {
-                fetchSubnetDetails(id);
-            }
-        });
-    }, [subnetSuggestions, fetchedSubnets, avalancheNetworkID]);
-
     // Handle value change and fetch details if needed
-    const handleValueChange = (newValue: string) => {
-        // Fetch details for the new value if we don't have them
-        if (newValue && !fetchedSubnets.has(newValue)) {
+    const handleValueChange = useCallback((newValue: string) => {
+        if (newValue && !subnetDetails[newValue]) {
             fetchSubnetDetails(newValue);
         }
 
-        // Return both the subnet ID and the subnet details (if available)
         onChange({
             subnetId: newValue,
             subnet: subnetDetails[newValue] || null
         });
-    };
+    }, [fetchSubnetDetails, subnetDetails, onChange]);
 
     // Get current subnet details for display
     const currentSubnet = value ? subnetDetails[value] || null : null;
-    const isLoadingCurrent = value && !fetchedSubnets.has(value) && isLoading;
+    const isLoadingCurrent = value && !subnetDetails[value] && isLoading;
 
     return (
         <div>
