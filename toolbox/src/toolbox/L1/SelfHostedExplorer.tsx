@@ -9,7 +9,7 @@ import versions from "../../versions.json";
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
-import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "./AvalanchegoDocker";
+import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "../Nodes/AvalanchegoDocker";
 import { useL1ByChainId } from "../../stores/l1ListStore";
 
 const genCaddyfile = (domain: string) => `

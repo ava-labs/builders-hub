@@ -59,7 +59,7 @@ const componentGroups: Record<string, ComponentGroupType> = {
       {
         id: "selfHostedExplorer",
         label: "Self-Hosted Explorer",
-        component: lazy(() => import('./Nodes/SelfHostedExplorer')),
+        component: lazy(() => import('./L1/SelfHostedExplorer')),
         fileNames: ["toolbox/src/toolbox/Nodes/SelfHostedExplorer.tsx"],
         walletMode: "testnet-mainnet",
       }
