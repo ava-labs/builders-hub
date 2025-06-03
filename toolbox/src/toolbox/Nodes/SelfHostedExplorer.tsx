@@ -59,8 +59,8 @@ interface DockerComposeConfig {
   blockchainId: string;
   networkName: string;
   networkShortName: string;
-  currencyName: string;
-  currencySymbol: string;
+  tokenName: string;
+  tokenSymbol: string;
 }
 
 const genDockerCompose = (config: DockerComposeConfig) => `
@@ -150,8 +150,8 @@ services:
       NEXT_PUBLIC_NETWORK_SHORT_NAME: ${config.networkShortName}
       NEXT_PUBLIC_NETWORK_ID: 66666 # TODO: change to dynamic
       NEXT_PUBLIC_NETWORK_RPC_URL: https://${config.domain}/ext/bc/${config.blockchainId}/rpc
-      NEXT_PUBLIC_NETWORK_CURRENCY_NAME: ${config.currencyName}
-      NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: ${config.currencySymbol}
+      NEXT_PUBLIC_NETWORK_CURRENCY_NAME: ${config.tokenName}
+      NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: ${config.tokenSymbol}
       NEXT_PUBLIC_NETWORK_CURRENCY_DECIMALS: 18 
       NEXT_PUBLIC_APP_HOST: ${config.domain}
       NEXT_PUBLIC_APP_PROTOCOL: https
@@ -212,8 +212,8 @@ export default function BlockScout() {
   const [domain, setDomain] = useState("");
   const [networkName, setNetworkName] = useState("");
   const [networkShortName, setNetworkShortName] = useState("");
-  const [currencyName, setCurrencyName] = useState("");
-  const [currencySymbol, setCurrencySymbol] = useState("");
+  const [tokenName, setTokenName] = useState("");
+  const [tokenSymbol, setTokenSymbol] = useState("");
   const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
   const [composeYaml, setComposeYaml] = useState("");
   const [caddyfile, setCaddyfile] = useState("");
@@ -230,8 +230,8 @@ export default function BlockScout() {
     if (l1Info) {
       setNetworkName(l1Info.name);
       setNetworkShortName(l1Info.name.split(" ")[0]); // First word as short name
-      setCurrencyName(l1Info.coinName);
-      setCurrencySymbol(l1Info.coinName);
+      setTokenName(l1Info.coinName);
+      setTokenSymbol(l1Info.coinName);
     }
 
     getBlockchainInfo(chainId).then((chainInfo) => {
@@ -250,7 +250,7 @@ export default function BlockScout() {
   }, [domain]);
 
   useEffect(() => {
-    let ready = !!domain && !!subnetId && !!networkName && !!networkShortName && !!currencyName && !!currencySymbol && !domainError && !subnetIdError
+    let ready = !!domain && !!subnetId && !!networkName && !!networkShortName && !!tokenName && !!tokenSymbol && !domainError && !subnetIdError
 
     if (ready) {
       setCaddyfile(genCaddyfile(domain));
@@ -260,25 +260,25 @@ export default function BlockScout() {
         blockchainId: chainId,
         networkName,
         networkShortName,
-        currencyName,
-        currencySymbol
+        tokenName,
+        tokenSymbol
       }));
     } else {
       setCaddyfile("");
       setComposeYaml("");
     }
-  }, [domain, subnetId, chainId, networkName, networkShortName, currencyName, currencySymbol, domainError, subnetIdError]);
+  }, [domain, subnetId, chainId, networkName, networkShortName, tokenName, tokenSymbol, domainError, subnetIdError]);
 
   return (
     <>
       <Container
-        title="Node Setup with Docker"
-        description="This will start a Docker container running an RPC or validator node that tracks your L1."
+        title="Self-hosted Explorer Setup"
+        description="This will set up a self-hosted explorer with its own RPC Node leveraging Docker Compose."
       >
         <Steps>
           <Step>
             <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
-            <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. 4 vCPUs, 8GB RAM, 40GB storage is enough to get you started.</p>
+            <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. 4 vCPUs, 8GB RAM, 40GB storage is enough to get you started. Choose more storage if the the Explorer is for a long-running testnet or mainnet L1.</p>
           </Step>
           <Step>
             <h3 className="text-xl font-bold mb-4">Docker Installation</h3>
@@ -348,17 +348,17 @@ export default function BlockScout() {
                   />
 
                   <Input
-                    label="Currency Name"
-                    value={currencyName}
-                    onChange={setCurrencyName}
-                    helperText="Name of your native currency (e.g. MyToken)"
+                    label="Token Name"
+                    value={tokenName}
+                    onChange={setTokenName}
+                    helperText="Name of your native token (e.g. MyToken)"
                   />
 
                   <Input
-                    label="Currency Symbol"
-                    value={currencySymbol}
-                    onChange={setCurrencySymbol}
-                    helperText="Symbol of your native currency (e.g. MTK)"
+                    label="Token Symbol"
+                    value={tokenSymbol}
+                    onChange={setTokenSymbol}
+                    helperText="Symbol of your native token (e.g. MTK)"
                   />
                 </div>
               </Step>
@@ -367,17 +367,17 @@ export default function BlockScout() {
           {composeYaml && (<>
             <Step>
               <h3 className="text-xl font-bold mb-4">Caddyfile</h3>
-              <p>Put this in a file called <code>Caddyfile</code> in the working directory. <code>compose.yml</code> will be created in the same directory.</p>
+              <p>Create a file named <code>Caddyfile</code> and paste the following code:</p>
               <DynamicCodeBlock lang="yaml" code={caddyfile} />
             </Step>
             <Step>
               <h3 className="text-xl font-bold mb-4">Docker Compose</h3>
-              <p>Put this in a file called <code>compose.yml</code> in the same directory as your <code>Caddyfile</code>.</p>
+              <p>Create a file named <code>compose.yml</code> in the same directory as your <code>Caddyfile</code> and paste the following code:</p>
               <DynamicCodeBlock lang="yaml" code={composeYaml} />
             </Step>
 
             <Step>
-              <h3 className="text-xl font-bold mb-4">Start Your Node</h3>
+              <h3 className="text-xl font-bold mb-4">Start Your Explorer</h3>
               <p>Navigate to the directory containing your <code>Caddyfile</code> and <code>compose.yml</code> files and run these commands:</p>
 
               <div className="space-y-4">
