@@ -40,10 +40,10 @@ export default function CreateChain() {
 
     const [isCreatingSubnet, setIsCreatingSubnet] = useState(false);
     const [createdSubnetId, setCreatedSubnetId] = useState("");
-    
+
     const [isCreatingChain, setIsCreatingChain] = useState(false);
     const [createdChainId, setCreatedChainId] = useState("");
-    
+
     const [localGenesisData, setLocalGenesisData] = useState<string>(genesisData);
     const [localChainName, setLocalChainName] = useState<string>(generateRandomName());
 
@@ -121,10 +121,12 @@ export default function CreateChain() {
                         </Button>
                     </div>
                     {createdSubnetId && (
-                        <Success
-                            label="Subnet Created Successfully"
-                            value={createdSubnetId}
-                        />
+                        <div className="mt-4">
+                            <Success
+                                label="Subnet Created Successfully"
+                                value={createdSubnetId}
+                            />
+                        </div>
                     )}
                 </Step>
                 <Step>
@@ -174,17 +176,17 @@ export default function CreateChain() {
 
                     <GenesisBuilder genesisData={localGenesisData} setGenesisData={setLocalGenesisData} />
 
-                    <Button 
+                    <Button
                         onClick={handleCreateChain}
-                        loading={isCreatingChain} 
+                        loading={isCreatingChain}
                         loadingText="Creating Chain..."
-                        >
+                    >
                         Create Chain
                     </Button>
                 </Step>
             </Steps>
-            {createdChainId && <Success 
-                label="Chain Created Successfully" 
+            {createdChainId && <Success
+                label="Chain Created Successfully"
                 value={createdChainId}
             />}
         </Container>

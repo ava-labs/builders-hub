@@ -6,9 +6,10 @@ import { networkIDs } from "@avalabs/avalanchejs";
 import versions from "../../versions.json";
 import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
-import { getBlockchainInfo } from "../../coreViem/utils/glacier";
+import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../../components/InputChainId";
 import { Checkbox } from "../../components/Checkbox";
+import SubnetDetailsDisplay from "../../components/SubnetDetailsDisplay";
 
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Steps, Step } from "fumadocs-ui/components/steps";
@@ -169,6 +170,8 @@ type OS = keyof typeof dockerInstallInstructions;
 export default function AvalanchegoDocker() {
     const [chainId, setChainId] = useState("");
     const [subnetId, setSubnetId] = useState("");
+    const [subnet, setSubnet] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
     const [isRPC, setIsRPC] = useState<boolean>(true);
     const [rpcCommand, setRpcCommand] = useState("");
     const [nodeRunningMode, setNodeRunningMode] = useState("server");
@@ -177,9 +180,34 @@ export default function AvalanchegoDocker() {
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
     const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
-    
+
     const { avalancheNetworkID } = useWalletStore();
     const { addL1 } = useL1ListStore()();
+
+    useEffect(() => {
+        setSubnetIdError(null);
+        setSubnetId("");
+        setSubnet(null);
+        if (!chainId) return;
+
+        setIsLoading(true);
+        getBlockchainInfo(chainId)
+            .then(async (chainInfo) => {
+                setSubnetId(chainInfo.subnetId);
+                try {
+                    const subnetInfo = await getSubnetInfo(chainInfo.subnetId);
+                    setSubnet(subnetInfo);
+                } catch (error) {
+                    console.error("Error fetching subnet details:", error);
+                }
+            })
+            .catch((error) => {
+                setSubnetIdError((error as Error).message);
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
+    }, [chainId]);
 
     useEffect(() => {
         try {
@@ -195,22 +223,10 @@ export default function AvalanchegoDocker() {
         }
     }, [isRPC]);
 
-
-    useEffect(() => {
-        setSubnetIdError(null);
-        setSubnetId("");
-        if (!chainId) return
-
-        getBlockchainInfo(chainId).then((chainInfo) => {
-            setSubnetId(chainInfo.subnetId);
-        }).catch((error) => {
-            setSubnetIdError((error as Error).message);
-        });
-    }, [chainId]);
-
     const handleReset = () => {
         setChainId("");
         setSubnetId("");
+        setSubnet(null);
         setIsRPC(true);
         setChainAddedToWallet(null);
         setRpcCommand("");
@@ -296,6 +312,12 @@ export default function AvalanchegoDocker() {
                             value={subnetId}
                             disabled={true}
                             error={subnetIdError}
+                        />
+
+                        {/* Show subnet details if available */}
+                        <SubnetDetailsDisplay
+                            subnet={subnet}
+                            isLoading={isLoading}
                         />
                     </Step>
 
