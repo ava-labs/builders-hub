@@ -51,12 +51,6 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
         })
     }
 
-    const formatAddress = (address: string | undefined | null) => {
-        if (!address) return ""
-        if (address.length <= 16) return address
-        return `${address.slice(0, 8)}...${address.slice(-8)}`
-    }
-
     const copyToClipboard = (text: string | undefined | null) => {
         if (!text) return
         navigator.clipboard.writeText(text)
@@ -102,18 +96,18 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
 
                     {/* Right Column - Owner Address & Threshold */}
                     <div className="text-right">
-                        {subnet.ownerAddresses && subnet.ownerAddresses.length > 0 && (
+                        {subnet.subnetOwnershipInfo.addresses && subnet.subnetOwnershipInfo.addresses.length > 0 && (
                             <div className="space-y-1">
                                 <div className="flex items-center justify-end space-x-2">
                                     <Users className="h-3 w-3 text-zinc-500 dark:text-zinc-400" />
                                     <span className="text-zinc-900 dark:text-zinc-50">Owner Address:</span>
                                     <div className="flex items-center space-x-1">
                                         <span className="font-mono text-zinc-500 dark:text-zinc-400">
-                                            {formatAddress(subnet.ownerAddresses[0])}
+                                            {subnet.subnetOwnershipInfo.addresses[0]}
                                         </span>
                                         <button
                                             className="p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
-                                            onClick={() => copyToClipboard(subnet.ownerAddresses[0])}
+                                            onClick={() => copyToClipboard(subnet.subnetOwnershipInfo.addresses[0])}
                                         >
                                             <Copy className="h-2.5 w-2.5 text-zinc-500 dark:text-zinc-400" />
                                         </button>
@@ -121,7 +115,7 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
                                 </div>
 
                                 <div className="text-zinc-500 dark:text-zinc-400">
-                                    {subnet.threshold} of {subnet.ownerAddresses.length} signatures required
+                                    {subnet.subnetOwnershipInfo.threshold} of {subnet.subnetOwnershipInfo.addresses.length} signatures required
                                 </div>
                             </div>
                         )}
@@ -129,13 +123,15 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
                 </div>
 
                 {/* Additional Owner Addresses if more than one */}
-                {subnet.ownerAddresses && subnet.ownerAddresses.length > 1 && (
+                {subnet.subnetOwnershipInfo.addresses && subnet.subnetOwnershipInfo.addresses.length > 1 && (
                     <div>
                         <span className="text-xs text-zinc-600 dark:text-zinc-300 block mb-1">Additional Owners:</span>
                         <div className="flex flex-wrap gap-1">
-                            {subnet.ownerAddresses.slice(1, 3).map((address, index) => (
+                            {subnet.subnetOwnershipInfo.addresses.slice(1, 3).map((address, index) => (
                                 <div key={index} className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded px-1.5 py-0.5">
-                                    <span className="font-mono text-zinc-800 dark:text-zinc-200 text-xs">{formatAddress(address)}</span>
+                                    <span className="font-mono text-zinc-800 dark:text-zinc-200 text-xs">
+                                        {address}
+                                    </span>
                                     <button
                                         className="ml-1 p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
                                         onClick={() => copyToClipboard(address)}
@@ -144,9 +140,9 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
                                     </button>
                                 </div>
                             ))}
-                            {subnet.ownerAddresses.length > 3 && (
+                            {subnet.subnetOwnershipInfo.addresses.length > 3 && (
                                 <span className="px-1.5 py-0.5 text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded">
-                                    +{subnet.ownerAddresses.length - 3} more
+                                    +{subnet.subnetOwnershipInfo.addresses.length - 3} more
                                 </span>
                             )}
                         </div>
@@ -176,7 +172,17 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
                                             {blockchainAny.evmChainId && (
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-zinc-600 dark:text-zinc-300">EVM Chain ID:</span>
-                                                    <span className="font-mono text-zinc-800 dark:text-zinc-200">{blockchainAny.evmChainId}</span>
+                                                    <div className="flex items-center space-x-1">
+                                                        <span className="font-mono text-zinc-800 dark:text-zinc-200">
+                                                            {blockchainAny.evmChainId}
+                                                        </span>
+                                                        <button
+                                                            className="p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
+                                                            onClick={() => copyToClipboard(blockchainAny.evmChainId.toString())}
+                                                        >
+                                                            <Copy className="h-2.5 w-2.5 text-zinc-500 dark:text-zinc-400" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             )}
 
@@ -184,7 +190,7 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
                                                 <span className="text-zinc-600 dark:text-zinc-300">Blockchain ID:</span>
                                                 <div className="flex items-center space-x-1">
                                                     <span className="font-mono text-zinc-800 dark:text-zinc-200">
-                                                        {formatAddress(blockchainAny.blockchainId)}
+                                                        {blockchainAny.blockchainId}
                                                     </span>
                                                     <button
                                                         className="p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
@@ -199,7 +205,7 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
                                                 <span className="text-zinc-600 dark:text-zinc-300">VM ID:</span>
                                                 <div className="flex items-center space-x-1">
                                                     <span className="font-mono text-zinc-800 dark:text-zinc-200">
-                                                        {formatAddress(blockchainAny.vmId)}
+                                                        {blockchainAny.vmId}
                                                     </span>
                                                     <button
                                                         className="p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
@@ -239,7 +245,7 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
                                     <span className="text-blue-700 dark:text-blue-300">Conversion Tx:</span>
                                     <div className="flex items-center space-x-1">
                                         <span className="font-mono text-blue-900 dark:text-blue-100">
-                                            {formatAddress(subnet.l1ConversionTransactionHash)}
+                                            {subnet.l1ConversionTransactionHash}
                                         </span>
                                         <button
                                             className="p-0.5 hover:bg-blue-200 dark:hover:bg-blue-800 rounded transition-colors"
@@ -255,7 +261,7 @@ export default function SubnetDetailsDisplay({ subnet, isLoading }: SubnetDetail
                                 <span className="text-blue-700 dark:text-blue-300">Validator Manager:</span>
                                 <div className="flex items-center space-x-1">
                                     <span className="font-mono text-blue-900 dark:text-blue-100">
-                                        {formatAddress((subnet.l1ValidatorManagerDetails as any).contractAddress)}
+                                        {(subnet.l1ValidatorManagerDetails as any).contractAddress}
                                     </span>
                                     <button
                                         className="p-0.5 hover:bg-blue-200 dark:hover:bg-blue-800 rounded transition-colors"

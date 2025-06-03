@@ -8,6 +8,7 @@ import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../../components/InputChainId";
+import InputSubnetId from "../../components/InputSubnetId";
 import { Checkbox } from "../../components/Checkbox";
 import SubnetDetailsDisplay from "../../components/SubnetDetailsDisplay";
 
@@ -198,7 +199,7 @@ export default function AvalanchegoDocker() {
                     const subnetInfo = await getSubnetInfo(chainInfo.subnetId);
                     setSubnet(subnetInfo);
                 } catch (error) {
-                    console.error("Error fetching subnet details:", error);
+                    setSubnetIdError((error as Error).message);
                 }
             })
             .catch((error) => {
@@ -304,14 +305,11 @@ export default function AvalanchegoDocker() {
                         <InputChainId
                             value={chainId}
                             onChange={setChainId}
-                            hidePrimaryNetwork={true}
-                        />
-
-                        <Input
-                            label="Subnet ID"
-                            value={subnetId}
-                            disabled={true}
                             error={subnetIdError}
+                        />
+                        <InputSubnetId
+                            value={subnetId}
+                            onChange={setSubnetId}
                         />
 
                         {/* Show subnet details if available */}

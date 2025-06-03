@@ -9,6 +9,7 @@ import { CodeHighlighter } from "../../components/CodeHighlighter";
 import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
 import InputChainId from "../../components/InputChainId";
+import InputSubnetId from "../../components/InputSubnetId";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import { ResultField } from "../../components/ResultField";
 import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components";
@@ -86,10 +87,9 @@ export default function CollectConversionSignatures() {
                     onChange={setChainID}
                     error={chainIdError}
                 />
-                <Input
-                    label="Subnet ID"
+                <InputSubnetId
                     value={subnetId}
-                    disabled={true}
+                    onChange={setSubnetId}
                 />
                 <Input
                     label="Conversion ID"
