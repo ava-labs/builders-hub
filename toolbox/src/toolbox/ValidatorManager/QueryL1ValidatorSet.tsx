@@ -30,33 +30,32 @@ export default function QueryL1ValidatorSet() {
     [networkIDs.FujiID]: "fuji",
   }
 
-  async function fetchValidators() {
+  const fetchValidators = async () => {
+    if (!subnetId) return
     setIsLoading(true)
     setError(null)
-    setSelectedValidator(null)
-
     try {
-      const network = networkNames[Number(avalancheNetworkID)]
-      if (!network) {
-        throw new Error("Invalid network selected")
-      }
+      const result = await new AvaCloudSDK({
+        serverURL: "https://api.avax.network",
+        network: networkNames[Number(avalancheNetworkID)],
+      }).data.primaryNetwork.listL1Validators({
+        network: networkNames[Number(avalancheNetworkID)],
+        subnetId,
+      })
 
-      const result = await new AvaCloudSDK().data.primaryNetwork.listL1Validators({
-        network: network,
-        subnetId: subnetId || "",
-      });
-
-      // Handle pagination
-      let validators: L1ValidatorDetailsFull[] = []
-
+      // Get all pages of results
+      const allValidators: L1ValidatorDetailsFull[] = [];
       for await (const page of result) {
-        validators.push(...page.result.validators)
-        setValidators(validators)
+        if ('validators' in page) {
+          allValidators.push(...(page.validators as L1ValidatorDetailsFull[]));
+        }
       }
-    } catch (error: any) {
-      setError(error.message || "Failed to fetch validators")
-      setValidators([])
-      console.error("Error fetching validators:", error)
+
+      setValidators(allValidators)
+      setFilteredValidators(allValidators)
+    } catch (err) {
+      console.error("Error fetching validators:", err)
+      setError("Failed to fetch validators")
     } finally {
       setIsLoading(false)
     }
@@ -336,7 +335,7 @@ export default function QueryL1ValidatorSet() {
                       )}
                     </button>
                   </div>
-                  
+
                   {/* Display Hex Format */}
                   <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-700">
                     <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Validation ID (Hex)</p>

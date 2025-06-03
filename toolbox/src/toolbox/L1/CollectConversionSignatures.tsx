@@ -11,6 +11,13 @@ import { Input } from "../../components/Input";
 import InputChainId from "../../components/InputChainId";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import { ResultField } from "../../components/ResultField";
+import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components";
+
+// Network names for API calls
+const networkNames: Record<number, GlobalParamNetwork> = {
+    [networkIDs.MainnetID]: "mainnet",
+    [networkIDs.FujiID]: "fuji",
+};
 
 export default function CollectConversionSignatures() {
     const { coreWalletClient } = useWalletStore();
@@ -47,18 +54,16 @@ export default function CollectConversionSignatures() {
         try {
             const { message, justification, signingSubnetId, networkId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionID });
 
-            const { signedMessage } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
-                network: networkId === networkIDs.FujiID ? "fuji" : "mainnet",
+            const { signedMessage } = await new AvaCloudSDK({
+                serverURL: "https://api.avax.network",
+                network: networkNames[Number(networkId)],
+            }).data.signatureAggregator.aggregate({
+                network: networkNames[Number(networkId)],
                 signatureAggregatorRequest: {
                     message: message,
                     justification: justification,
                     signingSubnetId: signingSubnetId,
-                    quorumPercentage: 67, // Default threshold for subnet validation
-                },
-            }, {
-                retries: {
-                    strategy: "backoff",
-                    backoff: { initialInterval: 1000, maxInterval: 10000, exponent: 1.5, maxElapsedTime: 30 * 1000 },
+                    quorumPercentage: 67,
                 }
             });
 

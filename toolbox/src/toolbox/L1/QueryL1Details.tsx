@@ -1,6 +1,3 @@
-"use client"
-
-import { useWalletStore } from "../../stores/walletStore"
 import { useState, useEffect } from "react"
 import {
   AlertCircle,
@@ -11,21 +8,13 @@ import {
   Database,
   ExternalLink,
 } from "lucide-react"
-import { networkIDs } from "@avalabs/avalanchejs"
 import { Container } from "../../components/Container"
-import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components"
 import SelectSubnet, { SubnetSelection } from "../../components/SelectSubnet"
 
 export default function QueryL1Details() {
   const [selection, setSelection] = useState<SubnetSelection>({ subnetId: '', subnet: null })
-  const { avalancheNetworkID } = useWalletStore()
   const [error, setError] = useState<string | null>(null)
 
-  // Network names for display
-  const networkNames: Record<number, GlobalParamNetwork> = {
-    [networkIDs.MainnetID]: "mainnet",
-    [networkIDs.FujiID]: "fuji",
-  }
 
   // Update error state when subnet details change
   useEffect(() => {

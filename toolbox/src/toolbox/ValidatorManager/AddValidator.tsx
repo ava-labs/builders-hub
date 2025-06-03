@@ -7,11 +7,10 @@ import { useSelectedL1 } from "../../stores/l1ListStore"
 
 import { useWalletStore } from "../../stores/walletStore"
 import { useErrorBoundary } from "react-error-boundary"
-import { fromBytes, bytesToHex, hexToBytes, Chain } from "viem"
+import { fromBytes, hexToBytes, Chain } from "viem"
 import { pvm, utils, networkIDs } from "@avalabs/avalanchejs"
 import validatorManagerAbi from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
 import { packWarpIntoAccessList } from "./packWarp"
-import { packL1ValidatorRegistration } from "../L1/convertWarp"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
 import { AlertCircle, CheckCircle } from "lucide-react"
 import { Container } from "../../components/Container"
@@ -475,14 +474,17 @@ export default function AddValidator() {
                     console.log("Network name: ", networkName)
                     console.log("Signing Subnet ID: ", signingSubnetId || subnetId)
                     // Sign the unsigned warp message with signature aggregator
-                    const response = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
+                    const response = await new AvaCloudSDK({
+                        serverURL: "https://api.avax.network",
+                        network: networkName,
+                    }).data.signatureAggregator.aggregate({
                         network: networkName,
                         signatureAggregatorRequest: {
                             message: messageToSign,
                             signingSubnetId: signingSubnetId || subnetId,
                             quorumPercentage: 67,
-                        },
-                    })
+                        }
+                    });
 
                     // Update local var and state
                     localSignedMessage = response.signedMessage;
@@ -557,15 +559,6 @@ export default function AddValidator() {
                     }
 
                     console.log("Using validationID:", validationIDToUse);
-                    const validationIDBytes = hexToBytes(validationIDToUse as `0x${string}`)
-
-                    const unsignedPChainWarpMsg = packL1ValidatorRegistration(
-                        validationIDBytes,
-                        true,
-                        avalancheNetworkID,
-                        "11111111111111111111111111111111LpoYY" //always from P-Chain (same on fuji and mainnet)
-                    )
-                    const unsignedPChainWarpMsgHex = bytesToHex(unsignedPChainWarpMsg)
 
                     // Use local var for current run, state is fallback for retry
                     const justification = localUnsignedWarpMsg || registerL1ValidatorUnsignedWarpMsg;
@@ -579,14 +572,16 @@ export default function AddValidator() {
                     const formattedJustification = justification.startsWith("0x") ? justification : `0x${justification}`;
 
                     // Aggregate signatures
-                    const response = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
+                    const response = await new AvaCloudSDK({
+                        serverURL: "https://api.avax.network",
+                        network: networkName,
+                    }).data.signatureAggregator.aggregate({
                         network: networkName,
                         signatureAggregatorRequest: {
-                            message: unsignedPChainWarpMsgHex,
-                            justification: formattedJustification,
+                            message: formattedJustification,
                             signingSubnetId: signingSubnetId || subnetId,
                             quorumPercentage: 67,
-                        },
+                        }
                     });
 
                     // Update local var and state

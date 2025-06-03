@@ -307,14 +307,17 @@ export default function ChangeWeight() {
             throw new Error("Warp message is empty. Retry step 1.")
           }
 
-          const { signedMessage: signedMessageResult } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
+          const { signedMessage: signedMessageResult } = await new AvaCloudSDK({
+            serverURL: "https://api.avax.network",
+            network: networkName,
+          }).data.signatureAggregator.aggregate({
             network: networkName,
             signatureAggregatorRequest: {
               message: warpMessageToSign,
               signingSubnetId: signingSubnetId || subnetId,
               quorumPercentage: 67,
-            },
-          })
+            }
+          });
 
           // Update local and state
           setSignedWarpMessage(signedMessageResult)
@@ -396,15 +399,17 @@ export default function ChangeWeight() {
           console.log("Change Weight Message Hex:", bytesToHex(changeWeightMessage))
           console.log("Justification:", justification)
 
-          const signature = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
+          const signature = await new AvaCloudSDK({
+            serverURL: "https://api.avax.network",
+            network: networkName,
+          }).data.signatureAggregator.aggregate({
             network: networkName,
             signatureAggregatorRequest: {
               message: bytesToHex(changeWeightMessage),
-              justification: bytesToHex(justification),
               signingSubnetId: signingSubnetId || subnetId,
               quorumPercentage: 67,
-            },
-          })
+            }
+          });
 
           // Update local and state
           setPChainSignature(signature.signedMessage)
@@ -462,7 +467,7 @@ export default function ChangeWeight() {
 
           updateStepStatus("completeChangeWeight", "success")
           completeProcessing(`Validator ${validation.nodeId} weight changed to ${weight}.`)
-          
+
         } catch (error: any) {
           const message = error instanceof Error ? error.message : String(error)
           updateStepStatus("completeChangeWeight", "error", message)
