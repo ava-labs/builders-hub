@@ -13,7 +13,7 @@ import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "../Nodes/A
 import { useL1ByChainId } from "../../stores/l1ListStore";
 
 const genCaddyfile = (domain: string) => `
-${domain} {
+${domain.includes('.') ? domain : `${domain}.sslip.io`} {
     # Backend API routes
     handle /api* {
         reverse_proxy backend:4000
@@ -63,7 +63,9 @@ interface DockerComposeConfig {
   tokenSymbol: string;
 }
 
-const genDockerCompose = (config: DockerComposeConfig) => `
+const genDockerCompose = (config: DockerComposeConfig) => {
+  const domain = config.domain.includes('.') ? config.domain : `${config.domain}.sslip.io`;
+  return `
 services:
   redis-db:
     image: 'redis:alpine'
@@ -142,24 +144,24 @@ services:
     restart: always
     container_name: 'bc_frontend'
     environment:
-      NEXT_PUBLIC_API_HOST: ${config.domain}
+      NEXT_PUBLIC_API_HOST: ${domain}
       NEXT_PUBLIC_API_PROTOCOL: https
       NEXT_PUBLIC_API_BASE_PATH: /
       FAVICON_MASTER_URL: https://ash.center/img/ash-logo.svg # TODO: change to dynamic ?
       NEXT_PUBLIC_NETWORK_NAME: ${config.networkName}
       NEXT_PUBLIC_NETWORK_SHORT_NAME: ${config.networkShortName}
       NEXT_PUBLIC_NETWORK_ID: 66666 # TODO: change to dynamic
-      NEXT_PUBLIC_NETWORK_RPC_URL: https://${config.domain}/ext/bc/${config.blockchainId}/rpc
+      NEXT_PUBLIC_NETWORK_RPC_URL: https://${domain}/ext/bc/${config.blockchainId}/rpc
       NEXT_PUBLIC_NETWORK_CURRENCY_NAME: ${config.tokenName}
       NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: ${config.tokenSymbol}
       NEXT_PUBLIC_NETWORK_CURRENCY_DECIMALS: 18 
-      NEXT_PUBLIC_APP_HOST: ${config.domain}
+      NEXT_PUBLIC_APP_HOST: ${domain}
       NEXT_PUBLIC_APP_PROTOCOL: https
       NEXT_PUBLIC_HOMEPAGE_CHARTS: "['daily_txs']"
       NEXT_PUBLIC_IS_TESTNET: true
       NEXT_PUBLIC_API_WEBSOCKET_PROTOCOL: wss
       NEXT_PUBLIC_API_SPEC_URL: https://raw.githubusercontent.com/blockscout/blockscout-api-v2-swagger/main/swagger.yaml
-      NEXT_PUBLIC_VISUALIZE_API_HOST: https://${config.domain}
+      NEXT_PUBLIC_VISUALIZE_API_HOST: https://${domain}
       NEXT_PUBLIC_VISUALIZE_API_BASE_PATH: /visualizer-service
       NEXT_PUBLIC_STATS_API_HOST: ""
       NEXT_PUBLIC_STATS_API_BASE_PATH: /stats-service
@@ -205,6 +207,7 @@ volumes:
   caddy_data:
   caddy_config:
 `
+}
 
 export default function BlockScout() {
   const [chainId, setChainId] = useState("");
@@ -243,9 +246,14 @@ export default function BlockScout() {
 
   const domainError = useMemo(() => {
     if (!domain) return null;
-    // Updated regex to handle both traditional domains and IP-based domains like 1.2.3.4.sslip.io
+
+    // Check if it's a valid IP address
+    const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    if (ipv4Regex.test(domain)) return null;
+
+    // Check if it's a valid domain name
     const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-\.]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
-    if (!domainRegex.test(domain)) return "Please enter a valid domain name (e.g. example.com or 1.2.3.4.sslip.io)";
+    if (!domainRegex.test(domain)) return "Please enter a valid domain name (e.g. example.com) or IP address (e.g. 1.2.3.4)";
     return null;
   }, [domain]);
 
@@ -318,13 +326,19 @@ export default function BlockScout() {
             <>
               <Step>
                 <h3 className="text-xl font-bold mb-4">Domain</h3>
-                <p>Enter your domain name or server's public IP address. For a free domain, use your server's public IP with .sslip.io (e.g. 1.2.3.4.sslip.io). Get your IP with 'curl checkip.amazonaws.com'.</p>
+                <p>Enter your domain name or server's public IP address. For a free domain, use your server's public IP, we will automatically add .sslip.io for the generated files.</p>
+
+                <p>You can use the following command to check your IP:</p>
+                <DynamicCodeBlock lang="bash" code="curl checkip.amazonaws.com" />
+
+                <p className="mt-4">Paste the IP of your node below:</p>
+
                 <Input
-                  label="Domain"
+                  label="Domain or IPv4 address for reverse proxy (optional)"
                   value={domain}
-                  onChange={setDomain}
+                  onChange={(newValue) => setDomain(newValue.trim())}
                   error={domainError}
-                  helperText="Enter your domain name or IP address with .sslip.io (e.g. 1.2.3.4.sslip.io)"
+                  helperText="Enter your domain name or IP address (e.g. example.com or 1.2.3.4)"
                 />
               </Step>
 
