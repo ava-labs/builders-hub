@@ -1,6 +1,6 @@
 ---
-title: Configuration
-description: Learn how to configure a Relayer 
+title: Configuration Breakdown
+description: Understand the Relayer Configuration  
 updated: 2024-05-31
 authors: [martineckardt]
 icon: BookOpen
@@ -11,14 +11,7 @@ A relayer is configured to relayer messages between certain source and destinati
 - **Source Blockchain Configs:** All parameters necessary for the relayer to pick up the messages 
 - **Destination Blockchain Configs:** All parameters necessary to deliver the messages
 
-The configuration is supplied to the relayer as a JSON file. Let's open the one automatically created for the Avalanche-CLI relayer:
-
-```bash
-code ~/.avalanche-cli/runs/network_xxxx_xxxx/awm-relayer-config.json 
-```
-Where the xxxx_xxxx will be a name automatically assigned to your local deployment.
-
-Let's go through the different values:
+Let's go through an example JSON understanding the different values you will configure with the Toolbox in the next section:
 
 ## General Config
 
@@ -144,3 +137,16 @@ For each destination L1, the relayer has the following config parameter:
 If you have been following all the course up to this point with the Avalanche-starter-kit and Avalanche-CLI will provide you with a relayer already funded to perform transactions between the local C-chain and your own chain
 
 Some configuration fields have been omitted for the purpose of this exercise. If you are interested to read the extensive list of relayer configurations, you can visit the awm-relayer GitHub repository [here](https://github.com/ava-labs/awm-relayer/tree/main?tab=readme-ov-file#configuration).
+
+## Two-Way Messaging
+
+The relayer can be configured to support two-way messaging between multiple Layer 1 blockchains. This means you can use a single relayer instance to handle communication in both directions between your chains. The key points to remember are:
+
+<Callout type="warn" title="The relayer needs sufficient funds on both chains to deliver messages in both directions" />
+
+To enable two-way communication:
+- Add both chains to the `source-blockchains` array to listen for messages on both sides
+- Add both chains to the `destination-blockchains` array to deliver messages to both sides
+- Ensure the relayer account has enough funds on both chains for transaction fees
+
+The ICM Relayer component in the Toolbox automatically handles this configuration for you, making it easy to set up two-way messaging between your chains.

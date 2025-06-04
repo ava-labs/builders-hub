@@ -48,7 +48,8 @@ import DeployTokenHome from '@/toolbox/src/toolbox/ICTT/DeployTokenHome';
 import DeployERC20TokenRemote from '@/toolbox/src/toolbox/ICTT/DeployERC20TokenRemote';
 import RegisterWithHome from '@/toolbox/src/toolbox/ICTT/RegisterWithHome';
 import TestSend from '@/toolbox/src/toolbox/ICTT/TestSend';
-
+import TeleporterRegistry from '@/toolbox/src/toolbox/ICM/TeleporterRegistry';
+import ICMRelayer from '@/toolbox/src/toolbox/ICM/ICMRelayer';
 
 export const dynamicParams = false;
 
@@ -64,7 +65,9 @@ const toolboxComponents = {
   DeployTokenHome,
   DeployERC20TokenRemote,
   RegisterWithHome,
-  TestSend
+  TestSend,
+  TeleporterRegistry,
+  ICMRelayer
 }
 
 export default async function Page(props: {
@@ -75,6 +78,7 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const path = `content/academy/${page.file.path}`;
+  const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
   const MDX = page.data.body;
   const course = COURSES.official.find(c => c.slug === page.slugs[0]);
 
@@ -123,6 +127,7 @@ export default async function Page(props: {
         path={path}
         title={page.data.title}
         pagePath={`/academy/${page.slugs.join('/')}`}
+        editUrl={editUrl}
         onRateAction={async (url, feedback) => {
           'use server';
           await posthog.capture('on_rate_document', feedback);

@@ -1,15 +1,50 @@
 ---
-title: Foundry Quickstart
-description: Environment Setup
+title: Contract Development with Foundry
+description: Deploy and interact with smart contracts
 updated: 2024-05-31
 authors: [martineckardt]
 icon: BookOpen
 ---
 
-import FoundryQuickstart from "@/content/common/avalanche-starter-kit/foundry-quickstart.mdx";
+Now that your environment is set up and funded, let's understand the key Foundry commands we'll be using throughout this tutorial.
 
-In this chapter, we will look into the Foundry that will be used to deploy and interact with smart contracts on the Avalanche network in our Avalanche Starter kit.
+## Understanding Foundry Commands
 
-import defaultMdxComponents from "fumadocs-ui/mdx";
+### forge create
+The `forge create` command is used for deploying smart contracts. Key aspects:
+- Requires an RPC URL to specify which network to deploy to
+- Needs a private key for transaction signing
+- Can handle constructor arguments if your contract needs them
+- Returns the deployed contract's address
+- Supports contract verification on block explorers
 
-<FoundryQuickstart components={defaultMdxComponents}/>
+### cast send
+`cast send` is used for state-changing interactions with contracts. This includes:
+- Sending transactions that modify contract state
+- Calling functions that require gas
+- Approving token transfers
+- Executing contract functions with parameters
+- Requires private key for transaction signing
+
+### cast call
+`cast call` is for read-only operations that don't modify state:
+- Reading contract state variables
+- Calling view/pure functions
+- Doesn't require gas or transaction signing
+- Returns function results immediately
+- Useful for verifying contract state
+
+## Development Best Practices
+
+1. Always test with small transactions first
+2. Save contract addresses in environment variables
+3. Double-check network configurations and addresses
+4. Monitor transactions in block explorers
+5. Keep private keys secure and never commit them
+
+## Learn More
+
+For more detailed information:
+- [Foundry Book](https://book.getfoundry.sh/)
+- [Avalanche Documentation](https://docs.avax.network/)
+- [Teleporter Documentation](https://docs.avax.network/build/cross-chain/teleporter/overview)

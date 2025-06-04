@@ -125,11 +125,16 @@ export const FormSchema = z
       .refine(
         (val) => {
           if (!val) return true;
-          return (
-            val.includes('youtube.com') ||
-            val.includes('youtu.be') ||
-            val.includes('loom.com')
-          );
+          try {
+            const url = new URL(val);
+            return (
+              url.hostname.includes('youtube.com') ||
+              url.hostname.includes('youtu.be') ||
+              url.hostname.includes('loom.com')
+            );
+          } catch {
+            return false;
+          }
         },
         { message: 'Please enter a valid YouTube or Loom URL' }
       ),

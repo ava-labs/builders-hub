@@ -1,22 +1,35 @@
 ---
-title: Relayer Logs
-description: Get the logs and activity of the relayer
+title: Configure & Run Relayer
+description: Configure and run an ICM relayer using Toolbox
 updated: 2024-05-31
 authors: [martineckardt]
-icon: BookOpen
+icon: Terminal
 ---
 
-To analyze the relayer activity you can check the relayer logs. If you're using the Avalanche CLI, you can access them with the following command:
+The ICM Relayer is responsible for delivering messages between chains. Using the Toolbox interface, you can easily configure and manage your relayer instance.
+
+## Relayer Setup
+
+The Toolbox interface provides a simple way to configure and setup your relayer. Follow these steps to run your relayer:
+
+1. Select both **Dispatch and C-Chain** as source and destination networks
+2. Fund the relayer address with enough native tokens on each chain
+3. Copy and run the configuration command
+4. Start the relayer using the provided Docker command on you **interchain-messaging codespaces terminal**
+
+<Callout type="warn" title="Make sure you are in testnet mode before proceeding & you have sufficient balance to fund the relayer" />
+
+<ToolboxMdxWrapper walletMode="l1">
+    <ICMRelayer />
+</ToolboxMdxWrapper>
+
+In order to check if the relayer is running you can run this command:
 
 ```bash
-avalanche interchain relayer logs
+docker logs -f relayer
 ```
 
-Alternatively the JSON logs can be located under "~/.avalanche-cli/runs/awm-relayer.log". Let's take a look at them:
-
-```bash
-code ~/.avalanche-cli/runs/awm-relayer.log 
-```
+And the output should look like this:
 
 ```bash
 {"level":"info","timestamp":"2024-07-11T01:38:40.093Z","logger":"awm-relayer","caller":"main/main.go:94","msg":"Initializing awm-relayer"}

@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWalletStore } from '../../stores/walletStore';
 import { Button } from '../Button';
 import { Input } from '../Input';
-import { evmImportTx } from "../../coreViem/methods/evmImport"
 import { evmExport } from "../../coreViem/methods/evmExport"
 import { pvmImport } from "../../coreViem/methods/pvmImport"
 import { pvmExport } from "../../coreViem/methods/pvmExport"
@@ -11,6 +10,8 @@ import { useErrorBoundary } from "react-error-boundary"
 import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs';
 import { getRPCEndpoint } from '../../coreViem/utils/rpc';
 import { Loader2, X } from 'lucide-react';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Success } from '../Success';
 
 
 export function PChainBridgeButton() {
@@ -23,6 +24,7 @@ export function PChainBridgeButton() {
     const [cToP_UTXOs, setC_To_P_UTXOs] = useState<Utxo<TransferOutput>[]>([]);
     const [pToC_UTXOs, setP_To_C_UTXOs] = useState<Utxo<TransferOutput>[]>([]);
     const isFetchingRef = useRef(false);
+    const [importTxId, setImportTxId] = useState<string | null>(null);
 
     const { showBoundary } = useErrorBoundary();
     const { cChainBalance, pChainAddress, walletEVMAddress, coreWalletClient, isTestnet, coreEthAddress, updateCChainBalance, pChainBalance, updatePChainBalance } = useWalletStore();
@@ -161,6 +163,7 @@ export function PChainBridgeButton() {
             setError(`Export failed: ${e.message || 'Unknown error'}`);
         } finally {
             setExportLoading(false);
+            setAmount("");
         }
     };
 
@@ -181,15 +184,12 @@ export function PChainBridgeButton() {
         setImportError(null);
 
         try {
-            if (destinationChain === "p-chain") {
-                await pvmImport(coreWalletClient, { pChainAddress });
-            } else {
-                await evmImportTx(coreWalletClient, { walletEVMAddress });
-            }
+            const txId = await pvmImport(coreWalletClient, { pChainAddress });
 
             await pollForUTXOChanges();
             onBalanceChanged();
 
+            setImportTxId(txId);
         } catch (e: any) {
             showBoundary(e);
             setImportError(`Import failed: ${e.message || 'Unknown error'}`);
@@ -209,10 +209,9 @@ export function PChainBridgeButton() {
                 <Dialog.Trigger asChild>
                     <button
                         onClick={() => setOpen(true)}
-                        className={`px-2 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors ${
-                            pChainBalance < LOW_BALANCE_THRESHOLD && cChainBalance > LOW_BALANCE_THRESHOLD ? "bg-blue-500 hover:bg-blue-600 shimmer" : "bg-zinc-600 hover:bg-zinc-700"
-                        } ${open ? "opacity-50 cursor-not-allowed" : ""}`}
-                        aria-label="Transfer C-Chain to P-Chain"
+                        className={`px-2 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors ${pChainBalance < LOW_BALANCE_THRESHOLD && cChainBalance > LOW_BALANCE_THRESHOLD ? "bg-blue-500 hover:bg-blue-600 shimmer" : "bg-zinc-600 hover:bg-zinc-700"
+                            } ${open ? "opacity-50 cursor-not-allowed" : ""}`}
+                        aria-label="Transfer AVAX C-Chain to P-Chain"
                     >
                         Bridge
                     </button>
@@ -221,55 +220,34 @@ export function PChainBridgeButton() {
 
             <Dialog.Portal>
                 <Dialog.Overlay className="fixed inset-0 bg-black/50 data-[state=open]:animate-overlayShow" />
-                <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-xl bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 focus:outline-none data-[state=open]:animate-contentShow border border-zinc-200 dark:border-zinc-800">
-                    <Dialog.Title className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                        Transfer {sourceChain === 'c-chain' ? 'C → P Chain' : 'P → C Chain'}
+                <Dialog.Content className="flex flex-col gap-6 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] max-w-2xl bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 focus:outline-none data-[state=open]:animate-contentShow border border-zinc-200 dark:border-zinc-800">
+                    <Dialog.Title className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+                        Bridge AVAX from the C-Chain to the P-Chain
                     </Dialog.Title>
                     <Dialog.Description className="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
-                        Available: {currentBalance.toFixed(4)} AVAX
+                        To bridge AVAX from the C-Chain to the P-Chain you need to export it with a ExportTx from the C-Chain and then import it to the P-Chain with an ImportTx.
                     </Dialog.Description>
-
-                    <div className="space-y-6">
-                        <Input
-                            label="Amount"
-                            type="text"
-                            inputMode="decimal"
-                            value={amount}
-                            onChange={handleAmountChange}
-                            error={error ?? undefined}
-                            placeholder="0.0"
-                            button={<Button
-                                variant="secondary"
-                                onClick={handleMaxAmount}
-                                disabled={exportLoading || currentBalance <= 0}
-                                stickLeft
-                            >
-                                Max
-                            </Button>}
-                        />
-
-                        <div className="space-y-2">
-                            <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                                Exported UTXOs:
-                            </h3>
-                            <div className="text-sm text-zinc-600 dark:text-zinc-400 py-3 px-4 bg-zinc-50 dark:bg-zinc-800 rounded-md min-h-[80px]">
-                                {importableUTXOs.length > 0 ? (
-                                    <>
-                                        {importableUTXOs.map((utxo, index) => (
-                                            <div key={index}>
-                                                {(Number(utxo.output.amt.value()) / 1_000_000_000).toFixed(6)} AVAX
-                                            </div>
-                                        ))}
-                                        <div className="mt-2 font-medium">
-                                            Total: {totalUtxoAmount.toFixed(6)} AVAX
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="py-4 text-center text-zinc-500">
-                                        No exported UTXOs to import
-                                    </div>
-                                )}
-                            </div>
+                    <Steps>
+                        <Step>
+                            <h3 className="text-xl font-bold mb-4">Export AVAX from the C-Chain</h3>
+                            <p className="mb-4">Available: {currentBalance.toFixed(4)} AVAX</p>
+                            <Input
+                                label="Amount"
+                                type="text"
+                                inputMode="decimal"
+                                value={amount}
+                                onChange={handleAmountChange}
+                                error={error ?? undefined}
+                                placeholder="0.0"
+                                button={<Button
+                                    variant="secondary"
+                                    onClick={handleMaxAmount}
+                                    disabled={exportLoading || currentBalance <= 0}
+                                    stickLeft
+                                >
+                                    Max
+                                </Button>}
+                            />
 
                             {error && (
                                 <div className="text-xs text-red-500 mt-1">
@@ -277,14 +255,6 @@ export function PChainBridgeButton() {
                                 </div>
                             )}
 
-                            {importError && (
-                                <div className="text-xs text-red-500 mt-1">
-                                    {importError}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex space-x-4">
                             <Button
                                 variant="primary"
                                 onClick={handleExport}
@@ -301,6 +271,32 @@ export function PChainBridgeButton() {
                                 )}
                             </Button>
 
+                        </Step>
+                        <Step>
+                            <h3 className="text-xl font-bold my-4">Import AVAX to the P-Chain</h3>
+
+                            <h2 className="text-md font-medium text-zinc-700 dark:text-zinc-300">
+                                Exported UTXOs:
+                            </h2>
+                            <p>Below you can see a list of your UTXOs exported from the C-Chain. You can import them all at once to the P-Chain.</p>
+                            <div className="text-sm text-zinc-600 dark:text-zinc-400 py-3 px-4 bg-zinc-50 dark:bg-zinc-800 rounded-md min-h-[80px] my-4">
+                                {importableUTXOs.length > 0 ? (
+                                    <>
+                                        {importableUTXOs.map((utxo, index) => (
+                                            <div key={index}>
+                                                {(Number(utxo.output.amt.value()) / 1_000_000_000).toFixed(6)} AVAX
+                                            </div>
+                                        ))}
+                                        <div className="mt-2 font-medium text-bold">
+                                            Total: {totalUtxoAmount.toFixed(6)} AVAX
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="py-4 text-center text-zinc-500">
+                                        No exported UTXOs to import
+                                    </div>
+                                )}
+                            </div>
                             <Button
                                 variant="primary"
                                 onClick={handleImport}
@@ -316,14 +312,26 @@ export function PChainBridgeButton() {
                                     `Import to ${destinationChain === 'p-chain' ? 'P-Chain' : 'C-Chain'}`
                                 )}
                             </Button>
-                        </div>
-                    </div>
+
+                            {importError && (
+                                <div className="text-xs text-red-500 mt-1">
+                                    {importError}
+                                </div>
+                            )}
+                        </Step>
+                    </Steps>
+
+                    {importTxId && <Success
+                        label="Successfully Bridged from C-Chain to P-Chain"
+                        value={importTxId}
+                    />}
 
                     <Dialog.Close asChild>
                         <button
                             className="absolute top-3 right-3 p-1 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
                             aria-label="Close"
                             disabled={exportLoading || importLoading}
+                            onClick={() => setImportTxId(null)}
                         >
                             <X className="h-4 w-4" />
                         </button>

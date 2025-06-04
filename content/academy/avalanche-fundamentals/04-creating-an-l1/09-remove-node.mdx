@@ -1,0 +1,37 @@
+---
+title: Remove Node
+description: Learn how to stop and remove a node running on Docker.
+updated: 2025-03-19
+authors: [martineckardt]
+icon: Terminal
+---
+
+Now that you have tested your L1, you can stop and remove the node. This is useful if you want to free up resources or if you want to start a new node with different parameters.
+
+<Steps>
+<Step>
+
+### Stop Node
+
+To stop the node, you can use the following command:
+
+```bash
+docker stop avago
+```
+
+The node credentials and the blockchain state is persisted in the `~/.avalanchego` directory. When
+you restart the node with `docker start avago` it will pick up where it left off.
+
+</Step>
+<Step>
+
+### Remove Node
+
+```bash
+docker rm avago
+```
+
+This will not remove the state and credentials of the node. To remove these you need to delete the `~/.avalanchego` directory.
+
+</Step>
+</Steps>

@@ -36,16 +36,22 @@ export default function ICMRelayer() {
     const [isSending, setIsSending] = useState(false);
 
     // Use sessionStorage for private key to persist across refreshes
-    const [privateKey] = useState(() => {
-        const storedKey = sessionStorage.getItem('icm-relayer-private-key');
-        if (storedKey) return storedKey as `0x${string}`;
+    const [privateKey, setPrivateKey] = useState<`0x${string}` | null>(null);
 
-        const newKey = generatePrivateKey();
-        sessionStorage.setItem('icm-relayer-private-key', newKey);
-        return newKey;
-    });
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const storedKey = sessionStorage.getItem('icm-relayer-private-key');
+            if (storedKey) {
+                setPrivateKey(storedKey as `0x${string}`);
+            } else {
+                const newKey = generatePrivateKey();
+                sessionStorage.setItem('icm-relayer-private-key', newKey);
+                setPrivateKey(newKey);
+            }
+        }
+    }, []);
 
-    const relayerAddress = privateKeyToAccount(privateKey).address;
+    const relayerAddress = privateKey ? privateKeyToAccount(privateKey).address : null;
 
     // Validate selections whenever they change
     useEffect(() => {
@@ -91,7 +97,7 @@ export default function ICMRelayer() {
     };
 
     const getConfigDestinations = () => {
-        if (error) return [];
+        if (error || !privateKey) return [];
         return l1List
             .filter(l1 => selectedDestinations.includes(l1.id))
             .map(l1 => ({
@@ -111,6 +117,10 @@ export default function ICMRelayer() {
         setIsLoadingBalances(true);
         try {
             const newBalances: Record<string, string> = {};
+            if (!relayerAddress) {
+                setBalances(newBalances);
+                return;
+            }
             for (const chain of selectedChains) {
                 const client = createPublicClient({
                     transport: http(chain.rpcUrl),
@@ -176,7 +186,7 @@ export default function ICMRelayer() {
         >
             <Input
                 label="Relayer EVM Address"
-                value={relayerAddress}
+                value={relayerAddress || ''}
                 disabled
             />
             <Note variant="warning">

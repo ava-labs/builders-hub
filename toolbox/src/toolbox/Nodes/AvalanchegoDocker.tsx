@@ -21,8 +21,9 @@ import { RadioGroup } from "../../components/RadioGroup";
 import { Success } from "../../components/Success";
 
 
-const debugConfigBase64 = (chainId: string) => {
-    const debugConfig = {
+export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruningEnabled: boolean) => {
+    const vmConfig = debugEnabled ? {
+        "pruning-enabled": pruningEnabled,
         "log-level": "debug",
         "warp-api-enabled": true,
         "eth-apis": [
@@ -42,21 +43,21 @@ const debugConfigBase64 = (chainId: string) => {
             "debug-file-tracer",
             "debug-handler"
         ]
+    } : {
+        "pruning-enabled": pruningEnabled,
     }
 
     // First encode the inner config object
-    const debugConfigEncoded = btoa(JSON.stringify(debugConfig));
+    const vmConfigEncoded = btoa(JSON.stringify(vmConfig));
 
     const configMap: Record<string, { Config: string, Upgrade: any }> = {}
-    configMap[chainId] = { Config: debugConfigEncoded, Upgrade: null }
-
-    console.log('configMap', configMap);
+    configMap[chainId] = { Config: vmConfigEncoded, Upgrade: null }
 
     return btoa(JSON.stringify(configMap))
 }
 
 
-const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, debugChainId?: string) => {
+const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, chainId: string, debugEnabled: boolean = false, pruningEnabled: boolean = false) => {
     const env: Record<string, string> = {
         AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true",
         AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
@@ -80,9 +81,7 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
         env.AVAGO_HTTP_ALLOWED_HOSTS = "\"*\"";
     }
 
-    if (debugChainId) {
-        env.AVAGO_CHAIN_CONFIG_CONTENT = debugConfigBase64(debugChainId);
-    }
+    env.AVAGO_CHAIN_CONFIG_CONTENT = nodeConfigBase64(chainId, debugEnabled, pruningEnabled);
 
     const chunks = [
         "docker run -it -d",
@@ -135,7 +134,7 @@ ${domain}/ext/bc/${chainID}/rpc`
     }
 }
 
-const dockerInstallInstructions: Record<string, string> = {
+export const dockerInstallInstructions: Record<string, string> = {
     'Ubuntu/Debian': `sudo apt-get update && \\
     sudo apt-get install -y docker.io && \\
     sudo usermod -aG docker $USER && \\
@@ -164,31 +163,31 @@ docker run -it --rm hello-world
 `,
 } as const;
 
-type OS = keyof typeof dockerInstallInstructions;
+export type OS = keyof typeof dockerInstallInstructions;
 
 export default function AvalanchegoDocker() {
     const [chainId, setChainId] = useState("");
     const [subnetId, setSubnetId] = useState("");
-    const { avalancheNetworkID } = useWalletStore();
-
     const [isRPC, setIsRPC] = useState<boolean>(true);
     const [rpcCommand, setRpcCommand] = useState("");
     const [nodeRunningMode, setNodeRunningMode] = useState("server");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
+    const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
-    const { addL1 } = useL1ListStore()();
     const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
 
+    const { avalancheNetworkID } = useWalletStore();
+    const { addL1 } = useL1ListStore()();
 
     useEffect(() => {
         try {
-            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID, enableDebugTrace ? chainId : undefined));
+            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID, chainId, enableDebugTrace, pruningEnabled));
         } catch (error) {
             setRpcCommand((error as Error).message);
         }
-    }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId]);
+    }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId, pruningEnabled]);
 
     useEffect(() => {
         if (!isRPC) {
@@ -208,6 +207,21 @@ export default function AvalanchegoDocker() {
             setSubnetIdError((error as Error).message);
         });
     }, [chainId]);
+
+    const handleReset = () => {
+        setChainId("");
+        setSubnetId("");
+        setIsRPC(true);
+        setChainAddedToWallet(null);
+        setRpcCommand("");
+        setNodeRunningMode("server");
+        setDomain("");
+        setEnableDebugTrace(false);
+        setPruningEnabled(true);
+        setSubnetIdError(null);
+        setIsAddChainModalOpen(false);
+    };
+
 
     return (
         <>
@@ -302,6 +316,12 @@ export default function AvalanchegoDocker() {
                                     checked={enableDebugTrace}
                                     onChange={setEnableDebugTrace}
                                 />}
+
+                                {isRPC && <Checkbox
+                                    label="Enable Archive Mode (pruning will be disabled)"
+                                    checked={!pruningEnabled}
+                                    onChange={checked => setPruningEnabled(!checked)}
+                                />}
                             </Step>
                             {nodeRunningMode === "server" && (<Step>
                                 <h3 className="text-xl font-bold mb-4">Port Configuration</h3>
@@ -341,7 +361,6 @@ export default function AvalanchegoDocker() {
                                 <Accordions type="single" className="mt-8">
                                     <Accordion title="Understanding the Logs">
                                         <p>The bootstrapping has three phases:</p>
-                                        <p><strong></strong></p>
 
                                         <ul className="list-disc pl-5 mt-1">
                                             <li>
@@ -432,7 +451,10 @@ export default function AvalanchegoDocker() {
 
                 </Steps>
 
-                {chainAddedToWallet && <Success label="Chain added to Wallet" value={chainAddedToWallet} />}
+                {chainAddedToWallet && (<>
+                    <Success label="Chain added to Wallet" value={chainAddedToWallet} />
+                    <Button onClick={handleReset} className="mt-4 w-full">Reset</Button>
+                </>)}
 
             </Container >
         </>

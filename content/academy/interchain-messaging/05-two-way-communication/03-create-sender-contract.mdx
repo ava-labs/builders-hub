@@ -13,27 +13,18 @@ Go ahead and deploy the sender contract on the C-Chain.
 <Steps>
 <Step>
 
-### Adapt the Sender Contract
-
-Perform the changes on `senderOnCChain.sol` described in the [previous section.](/academy/interchain-messaging/04-icm-basics/04-create-sender-contract)
-
-<Callout type="warn" title="Don't forget to replace the destinationBlockchainID with the Blockchain ID (HEX) from your Avalanche L1!" />
-
-</Step>
-<Step>
-
 ### Deploy the Sender Contract
 
 ```bash
-forge create --rpc-url local-c --private-key $PK contracts/interchain-messaging/send-roundtrip/senderOnCChain.sol:SenderOnCChain --broadcast
+forge create --rpc-url fuji-c --private-key $PK contracts/interchain-messaging/send-roundtrip/senderOnCChain.sol:SenderOnCChain --broadcast
 ```
 ```
 [⠊] Compiling...
 [⠢] Compiling 1 files with Solc 0.8.18
 [⠆] Solc 0.8.18 finished in 165.79ms
 Compiler run successful!
-Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-Deployed to: 0xA4cD3b0Eb6E5Ab5d8CE4065BcCD70040ADAB1F00 // [!code highlight]
+Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC // [$FUNDED_ADDRESS]
+Deployed to: 0xA4cD3b0Eb6E5Ab5d8CE4065BcCD70040ADAB1F00 // [$SENDER_ADDRESS]
 Transaction hash: 0x4f41cf829fbc525b64d9773c41dc9fabb3b93dfd03bf6c1568dcc4a4c6bdeb1a
 ```
 </Step>
@@ -44,7 +35,7 @@ Transaction hash: 0x4f41cf829fbc525b64d9773c41dc9fabb3b93dfd03bf6c1568dcc4a4c6bd
 Overwrite the `SENDER_ADDRESS` environment variable with the new address:
 
 ```bash
-export SENDER_ADDRESS=0xA4cD3b0Eb6E5Ab5d8CE4065BcCD70040ADAB1F00
+export SENDER_ADDRESS={your-sender-address}
 ```
 </Step>
 </Steps>

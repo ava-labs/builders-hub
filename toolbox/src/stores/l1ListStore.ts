@@ -6,6 +6,7 @@ import { useMemo } from "react";
 type L1ListItem = {
     id: string;
     name: string;
+    description?: string;
     rpcUrl: string;
     evmChainId: number;
     coinName: string;
@@ -26,6 +27,7 @@ const l1ListInitialStateFuji = {
         {
             id: "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp",
             name: "C-Chain",
+            description: "The C-Chain of the Avalanche Fuji Testnet is the EVM chain of the Primary Network. All funds are worthless and only for testing purposes.",
             rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
             evmChainId: 43113,
             coinName: "AVAX",
@@ -41,6 +43,7 @@ const l1ListInitialStateFuji = {
         {
             id: "98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp",
             name: "Echo",
+            description: "Echo is a testnet L1 for testing dApps utilizing Interchain Messaging. All funds are worthless and only for testing purposes.",
             rpcUrl: "https://subnets.avax.network/echo/testnet/rpc",
             evmChainId: 173750,
             coinName: "ECH",
@@ -56,6 +59,7 @@ const l1ListInitialStateFuji = {
         {
             id: "2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY",
             name: "Dispatch",
+            description: "Dispatch is a testnet Subnet for testing dApps utilizing Interchain Messaging. All funds are worthless and only for testing purposes.",
             rpcUrl: "https://subnets.avax.network/dispatch/testnet/rpc",
             evmChainId: 779672,
             coinName: "DISP",
@@ -76,6 +80,7 @@ const l1ListInitialStateMainnet = {
         {
             id: "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5",
             name: "C-Chain",
+            description: "The C-Chain of the Mainnet is the EVM chain of the Primary Network.",
             rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
             evmChainId: 43114,
             coinName: "AVAX",

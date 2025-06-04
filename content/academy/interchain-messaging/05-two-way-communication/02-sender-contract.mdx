@@ -35,8 +35,8 @@ contract SenderOnCChain is ITeleporterReceiver { // [!code highlight]
     function sendMessage(address destinationAddress) external {
         messenger.sendCrossChainMessage(
             TeleporterMessageInput({
-                // Replace with blockchainID of your Avalanche L1 (see instructions in Readme)
-                destinationBlockchainID: 0xb72b346fcc8c1ebb30087e2d2841eac9302dde8fc5969dcc84fad6db5ebd261d,
+                // BlockchainID of Dispatch L1
+                destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7,
                 destinationAddress: destinationAddress,
                 feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
                 requiredGasLimit: 100000,

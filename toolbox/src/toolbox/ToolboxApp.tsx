@@ -55,6 +55,13 @@ const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./L1/ConvertToL1')),
         fileNames: ["toolbox/src/toolbox/L1/ConvertToL1.tsx"],
         walletMode: "c-chain"
+      },
+      {
+        id: "selfHostedExplorer",
+        label: "Self-Hosted Explorer",
+        component: lazy(() => import('./L1/SelfHostedExplorer')),
+        fileNames: ["toolbox/src/toolbox/Nodes/SelfHostedExplorer.tsx"],
+        walletMode: "testnet-mainnet",
       }
     ]
   },
@@ -357,7 +364,7 @@ const componentGroups: Record<string, ComponentGroupType> = {
       }
     ]
   },
-  "Nodes Utils": {
+  "Node Utils": {
     components: [
       {
         id: "rpcMethodsCheck",

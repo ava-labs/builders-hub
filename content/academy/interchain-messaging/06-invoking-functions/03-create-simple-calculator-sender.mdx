@@ -15,7 +15,7 @@ Now, our goal is to create a dApp that works as a cross-Avalanche L1 Calculator,
 
 ### Create Sender Contract
 
-On the local C-Chain, we need to create the sender part of our cross-chain calculator. This will send two numbers (uint) to the receiver contract on your Avalanche L1. 
+On the Fuji C-Chain, we need to create the sender part of our cross-chain calculator. This will send two numbers (uint) to the receiver contract on the Dispatch test L1. 
 
 ```solidity title="contracts/interchain-messaging/invoking-functions/SimpleCalculatorSenderOnCChain.sol"
 pragma solidity ^0.8.18;
@@ -29,8 +29,8 @@ contract SimpleCalculatorSenderOnCChain {
     function sendAddMessage(address destinationAddress, uint256 num1, uint256 num2) external {
         teleporterMessenger.sendCrossChainMessage(
             TeleporterMessageInput({
-                // Replace with chain id of your Avalanche L1 (see instructions in Readme) // [!code highlight]
-                destinationBlockchainID: 0xd7ed7b978d4d6c478123bf9b326d47e69f959206d34e42ea4de2d1d2acbc93ea, // [!code highlight]
+                // BlockchainID of Dispatch L1
+                destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7,
                 destinationAddress: destinationAddress,
                 feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
                 requiredGasLimit: 100000,
@@ -54,26 +54,20 @@ To increase the readability of the code, we have created a helper function `enco
 </Step>
 <Step>
 
-### Replace `destinationBlockchainID`
-<Callout type="warn" title="Don't forget to replace the destinationBlockchainID with the Blockchain ID (HEX) from your Avalanche L1!" />
-
-</Step>
-<Step>
-
 ### Deploy the Sender Contract
 
-Deploy the sender contract on the Local C-Chain:
+Deploy the sender contract on the Fuji C-Chain:
 
 ```bash
-forge create --rpc-url local-c --private-key $PK contracts/interchain-messaging/invoking-functions/SimpleCalculatorSenderOnCChain.sol:SimpleCalculatorSenderOnCChain --broadcast
+forge create --rpc-url fuji-c --private-key $PK contracts/interchain-messaging/invoking-functions/SimpleCalculatorSenderOnCChain.sol:SimpleCalculatorSenderOnCChain --broadcast
 ```
 ```
 [⠊] Compiling...
 [⠒] Compiling 1 files with Solc 0.8.18
 [⠢] Solc 0.8.18 finished in 84.20ms
 Compiler run successful!
-Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-Deployed to: 0x789a5FDac2b37FCD290fb2924382297A6AE65860 // [!code highlight]
+Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC // [$FUNDED_ADDRESS]
+Deployed to: 0x789a5FDac2b37FCD290fb2924382297A6AE65860 // [$SENDER_ADDRESS]
 Transaction hash: 0xd6cb47dd4ff38e4447711ebbec8b646b93f492f48e80b51719f860984cc25413
 ```
 </Step>
@@ -84,7 +78,7 @@ Transaction hash: 0xd6cb47dd4ff38e4447711ebbec8b646b93f492f48e80b51719f860984cc2
 Overwrite the `SENDER_ADDRESS` environment variable with the new address:
 
 ```bash
-export SENDER_ADDRESS=0x789a5FDac2b37FCD290fb2924382297A6AE65860
+export SENDER_ADDRESS={your-sender-address}
 ```
 
 </Step>

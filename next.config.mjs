@@ -73,7 +73,57 @@ const config = {
         source: '/docs/virtual-machines/default-precompiles/warpmessenger',
         destination: '/docs/avalanche-l1s/evm-configuration/warpmessenger',
         permanent: true,
-      }
+      },
+      {
+        source: '/academy/interchain-messaging/10-running-a-relayer/01-running-a-relayer',
+        destination: '/academy/interchain-messaging/10-running-a-relayer/01-relayer-introduction',
+        permanent: true,
+      },
+      {
+        source: '/academy/interchain-messaging/10-running-a-relayer/02-control-the-avalanche-cli-relayer',
+        destination: '/academy/interchain-messaging/10-running-a-relayer/03-configure-and-run-the-relayer',
+        permanent: true,
+      }, {
+        source: '/academy/interchain-messaging/10-running-a-relayer/03-install-relayer',
+        destination: '/academy/interchain-messaging/10-running-a-relayer/03-configure-and-run-the-relayer',
+        permanent: true,
+      }, {
+        source: '/academy/interchain-messaging/10-running-a-relayer/05-multichain-relayer-config',
+        destination: '/academy/interchain-messaging/10-running-a-relayer/02-relayer-configuration#multichain-relayer-configuration',
+        permanent: true,
+      }, {
+        source: '/academy/interchain-messaging/10-running-a-relayer/06-analyze-relayer-logs',
+        destination: '/academy/interchain-messaging/10-running-a-relayer/03-configure-and-run-the-relayer',
+        permanent: true,
+      }, {
+        source: '/academy/interchain-messaging/03-avalanche-starter-kit/03-create-blockchain',
+        destination: '/academy/interchain-messaging/03-avalanche-starter-kit/04-networks',
+        permanent: true,
+      }, {
+        source: '/academy/interchain-messaging/03-avalanche-starter-kit/06-pause-and-resume',
+        destination: '/academy/interchain-messaging/03-avalanche-starter-kit/04-networks',
+        permanent: true,
+      }, {
+        source: '/docs/subnets/customize-a-subnet',
+        destination: '/docs/avalanche-l1s/upgrade/customize-avalanche-l1',
+        permanent: true,
+      }, {
+        source: '/docs/build/tutorials/platform/create-a-local-test-network',
+        destination: '/academy/avalanche-fundamentals',
+        permanent: true,
+      }, {
+        source: '/docs/api-reference/standards/guides/issuing-api-calls',
+        destination: '/docs/api-reference/guides/issuing-api-calls',
+        permanent: true,
+      }, {
+        source: '/docs/api-reference/standards/guides/txn-fees',
+        destination: '/docs/api-reference/guides/txn-fees',
+        permanent: true,
+      }, {
+        source: '/docs/api-reference/standards/guides/txn-fees#c-chain-fees',
+        destination: '/docs/api-reference/guides/txn-fees#c-chain-fees',
+        permanent: true,
+      },
     ];
   },
 };

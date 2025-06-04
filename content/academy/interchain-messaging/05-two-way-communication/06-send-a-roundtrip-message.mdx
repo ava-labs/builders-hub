@@ -14,7 +14,7 @@ Alright, now let's send the message:
 ### Send the Message:
 
 ```bash 
-cast send --rpc-url local-c --private-key $PK $SENDER_ADDRESS "sendMessage(address)" $RECEIVER_ADDRESS
+cast send --rpc-url fuji-c --private-key $PK $SENDER_ADDRESS "sendMessage(address)" $RECEIVER_ADDRESS
 ```
 
 </Step>
@@ -25,7 +25,7 @@ cast send --rpc-url local-c --private-key $PK $SENDER_ADDRESS "sendMessage(addre
 To check whether the message has been received, we can call the `roundtripMessage()` function on the sender contract. 
 
 ```bash
-cast call --rpc-url local-c $SENDER_ADDRESS "roundtripMessage()(string)"
+cast call --rpc-url fuji-c $SENDER_ADDRESS "roundtripMessage()(string)"
 ```
 If successful, you should see the following output:
 ```bash
@@ -33,6 +33,7 @@ If successful, you should see the following output:
 ```
 
 </Step>
+{/* TODO: Add instructions for setting up and running the relayer in Docker before this section
 <Step>
 
 ### Check the Relayer Logs
@@ -43,6 +44,6 @@ To understand in more detail what happened, check out the relayer logs:
 avalanche interchain relayer logs
 ```
 
-
 </Step>
+*/}
 </Steps>

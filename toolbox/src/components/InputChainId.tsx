@@ -14,13 +14,15 @@ export default function InputChainId({
     onChange, 
     error, 
     label = "Avalanche Blockchain ID",
-    hidePrimaryNetwork = false
+    hidePrimaryNetwork = false,
+    helperText
 }: { 
     value: string, 
     onChange: (value: string) => void, 
     error?: string | null, 
     label?: string,
     hidePrimaryNetwork?: boolean
+    helperText?: string | null
 }) {
     const createChainStorechainID = useCreateChainStore()(state => state.chainID);
     const createChainStoredChainName = useCreateChainStore()(state => state.chainName);
@@ -33,7 +35,7 @@ export default function InputChainId({
             result.push({
                 title: `${createChainStoredChainName} (${createChainStorechainID})`,
                 value: createChainStorechainID,
-                description: "From the \"Create Chain\" tool"
+                description:  "The ID of the blockchain you have created in the \"Create Chain\" tool"
             });
         }
 
@@ -46,7 +48,7 @@ export default function InputChainId({
             result.push({
                 title: `${l1.name} (${l1.id})`,
                 value: l1.id,
-                description: "From your chain list"
+                description: l1.description || "A chain that was added to your L1 list.",
             });
         }
 
@@ -59,5 +61,6 @@ export default function InputChainId({
         onChange={onChange}
         suggestions={chainIDSuggestions}
         error={error}
+        helperText={helperText}
     />
 }
