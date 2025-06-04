@@ -30,8 +30,6 @@ export default function CreateChain() {
     const { showBoundary } = useErrorBoundary();
     const {
         subnetId,
-        vmId,
-        setVmId,
         setChainID,
         setSubnetID,
         genesisData,
