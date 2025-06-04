@@ -493,13 +493,27 @@ export default function BlockScout() {
                 <div>
                   <h4 className="font-semibold mb-2">Check if everything is running:</h4>
                   <DynamicCodeBlock lang="bash" code="docker compose ps" />
-                  <p className="text-sm text-gray-600 mt-1">Shows the status of all containers. They should all show "Up" or "running".</p>
+                  <p className="text-sm text-gray-600 mt-1">You should see output similar to this:</p>
+                  <DynamicCodeBlock lang="bash" code={`NAME          IMAGE                                 COMMAND                  SERVICE       CREATED       STATUS       PORTS
+avago         avaplatform/subnet-evm:v0.7.3         "./avalanchego"          avago         4 hours ago   Up 4 hours   127.0.0.1:9650->9650/tcp, 0.0.0.0:9651->9651/tcp, :::9651->9651/tcp
+backend       blockscout/blockscout:6.10.1          "sh -c 'bin/blocksco…"   backend       4 hours ago   Up 4 hours   
+bc_frontend   ghcr.io/blockscout/frontend:v1.37.4   "./entrypoint.sh nod…"   bc_frontend   4 hours ago   Up 4 hours   3000/tcp
+caddy         caddy:latest                          "caddy run --config …"   caddy         4 hours ago   Up 4 hours   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp, 443/udp, 2019/tcp
+db            postgres:15                           "docker-entrypoint.s…"   db            4 hours ago   Up 4 hours   0.0.0.0:7432->5432/tcp, :::7432->5432/tcp
+redis-db      redis:alpine                          "docker-entrypoint.s…"   redis-db      4 hours ago   Up 4 hours   6379/tcp`} />
+                  <p className="text-sm text-gray-600 mt-1">All services should show "Up" in the STATUS column. If any service shows "Exit" or keeps restarting, check its logs.</p>
                 </div>
 
                 <div>
-                  <h4 className="font-semibold mb-2">View logs if something goes wrong:</h4>
-                  <DynamicCodeBlock lang="bash" code="docker logs -f backend" />
-                  <p className="text-sm text-gray-600 mt-1">Press <code>Ctrl+C</code> to stop watching logs. Replace "backend" with any service name to see its logs.</p>
+                  <h4 className="font-semibold mb-2">Monitor the AvalancheGo node sync progress:</h4>
+                  <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
+                  <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                    <h5 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">⚠️ Important Note About Sync Time</h5>
+                    <p className="text-amber-700 dark:text-amber-300">
+                      The AvalancheGo node needs to sync with the network before the explorer can function properly. For testnet, this process typically takes more than an hour. You'll see progress updates in the logs showing the bootstrapping process.
+                    </p>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">Press <code>Ctrl+C</code> to stop watching logs.</p>
                 </div>
 
                 <div>
@@ -514,8 +528,6 @@ export default function BlockScout() {
                 <p>If containers keep restarting, check logs with <code>docker logs [service-name]</code>. Use <code>docker compose restart [service-name]</code> to restart individual services.
                 </p>
               </div>
-
-
             </Step>
           </>)}
 
