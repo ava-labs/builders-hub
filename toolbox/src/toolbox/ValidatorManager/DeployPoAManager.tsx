@@ -213,7 +213,7 @@ export default function DeployPoAManager() {
                                 />
 
                                 <Input
-                                    label="Owner Address"
+                                    label="Multisig / Owner Address"
                                     value={poaOwnerAddress}
                                     onChange={setPoaOwnerAddress}
                                     disabled={isInitializing}
