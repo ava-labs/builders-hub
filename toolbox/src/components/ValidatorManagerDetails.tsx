@@ -17,6 +17,8 @@ interface ValidatorManagerDetailsProps {
   isOwnerContract?: boolean;
   ownerType?: 'PoAManager' | 'StakingManager' | 'EOA' | null;
   isDetectingOwnerType?: boolean;
+  isExpanded?: boolean;
+  onToggleExpanded?: () => void;
 }
 
 export function ValidatorManagerDetails({
@@ -32,11 +34,12 @@ export function ValidatorManagerDetails({
   ownershipError,
   isLoadingOwnership,
   ownerType,
-  isDetectingOwnerType
+  isDetectingOwnerType,
+  isExpanded = true,
+  onToggleExpanded
 }: ValidatorManagerDetailsProps) {
   const [blockchainName, setBlockchainName] = useState<string | null>(null);
   const [isLoadingBlockchainName, setIsLoadingBlockchainName] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
 
   // Fetch blockchain name when blockchainId changes
   useEffect(() => {
@@ -123,7 +126,7 @@ export function ValidatorManagerDetails({
     <div className="mt-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
       {/* Header with toggle */}
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={() => onToggleExpanded?.()}
         className="w-full p-3 flex items-center justify-between text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors rounded-t-lg"
       >
         <div className="flex items-center">
@@ -147,7 +150,7 @@ export function ValidatorManagerDetails({
             <div className="flex items-center justify-between mb-1">
               <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center">
                 <Shield className="h-4 w-4 mr-1" />
-                Validator Manager Address
+                Address
               </div>
               <button 
                 onClick={() => copyToClipboard(validatorManagerAddress)}
@@ -165,7 +168,7 @@ export function ValidatorManagerDetails({
             <div className="flex items-center justify-between mb-1">
               <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center">
                 <Users className="h-4 w-4 mr-1" />
-                Validator Manager Owner
+                Owner
                 {getOwnerContractBadge()}
               </div>
               {isLoadingOwnership && (
@@ -199,7 +202,7 @@ export function ValidatorManagerDetails({
               <div className="flex items-center justify-between mb-1">
                 <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center">
                   <Home className="h-4 w-4 mr-1" />
-                  Validator Manager Home
+                  Home Chain
                 </div>
                 {isLoadingBlockchainName && (
                   <span className="text-xs text-blue-600 dark:text-blue-400 animate-pulse">Loading name...</span>
