@@ -11,6 +11,8 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "../Nodes/AvalanchegoDocker";
 import { useL1ByChainId } from "../../stores/l1ListStore";
+import { Success } from "../../components/Success";
+import { Button } from "../../components/Button";
 
 const dockerComposeInstallInstructions: Record<string, string> = {
   'Ubuntu/Debian': `# Install Docker Compose v2 plugin
@@ -38,6 +40,14 @@ chmod +x ~/.docker/cli-plugins/docker-compose && \\
 docker compose version
 `,
 } as const;
+
+const dockerComposePsOutput = `NAME          IMAGE                                 COMMAND                  SERVICE       CREATED        STATUS        PORTS
+avago         avaplatform/subnet-evm:v0.7.3         "./avalanchego"          avago         1 minute ago   Up 1 minute   127.0.0.1:9650->9650/tcp, 0.0.0.0:9651->9651/tcp, :::9651->9651/tcp
+backend       blockscout/blockscout:6.10.1          "sh -c 'bin/blocksco…"   backend       1 minute ago   Up 1 minute   
+bc_frontend   ghcr.io/blockscout/frontend:v1.37.4   "./entrypoint.sh nod…"   bc_frontend   1 minute ago   Up 1 minute   3000/tcp
+caddy         caddy:latest                          "caddy run --config …"   caddy         1 minute ago   Up 1 minute   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp, 443/udp, 2019/tcp
+db            postgres:15                           "docker-entrypoint.s…"   db            1 minute ago   Up 1 minute   0.0.0.0:7432->5432/tcp, :::7432->5432/tcp
+redis-db      redis:alpine                          "docker-entrypoint.s…"   redis-db      1 minute ago   Up 1 minute   6379/tcp`;
 
 const genCaddyfile = (domain: string) => `
 ${domain.includes('.') ? domain : `${domain}.sslip.io`} {
@@ -247,6 +257,9 @@ export default function BlockScout() {
   const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
   const [composeYaml, setComposeYaml] = useState("");
   const [caddyfile, setCaddyfile] = useState("");
+  const [explorerReady, setExplorerReady] = useState(false);
+  const [servicesUpChecked, setServicesUpChecked] = useState(false);
+  const [bootstrappedChecked, setBootstrappedChecked] = useState(false);
 
   const getL1Info = useL1ByChainId(chainId);
 
@@ -313,7 +326,7 @@ export default function BlockScout() {
         <Steps>
           <Step>
             <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
-            <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. 4 vCPUs, 8GB RAM, 40GB storage is enough to get you started. Choose more storage if the the Explorer is for a long-running testnet or mainnet L1.</p>
+            <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. 4 vCPUs, 8GB RAM, 40GB storage is enough to get you started. Choose more storage if the Explorer is for a long-running testnet or mainnet L1.</p>
           </Step>
           <Step>
             <h3 className="text-xl font-bold mb-4">Docker Installation</h3>
@@ -494,13 +507,7 @@ export default function BlockScout() {
                   <h4 className="font-semibold mb-2">Check if everything is running:</h4>
                   <DynamicCodeBlock lang="bash" code="docker compose ps" />
                   <p className="text-sm text-gray-600 mt-1">You should see output similar to this:</p>
-                  <DynamicCodeBlock lang="bash" code={`NAME          IMAGE                                 COMMAND                  SERVICE       CREATED       STATUS       PORTS
-avago         avaplatform/subnet-evm:v0.7.3         "./avalanchego"          avago         4 hours ago   Up 4 hours   127.0.0.1:9650->9650/tcp, 0.0.0.0:9651->9651/tcp, :::9651->9651/tcp
-backend       blockscout/blockscout:6.10.1          "sh -c 'bin/blocksco…"   backend       4 hours ago   Up 4 hours   
-bc_frontend   ghcr.io/blockscout/frontend:v1.37.4   "./entrypoint.sh nod…"   bc_frontend   4 hours ago   Up 4 hours   3000/tcp
-caddy         caddy:latest                          "caddy run --config …"   caddy         4 hours ago   Up 4 hours   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp, 443/udp, 2019/tcp
-db            postgres:15                           "docker-entrypoint.s…"   db            4 hours ago   Up 4 hours   0.0.0.0:7432->5432/tcp, :::7432->5432/tcp
-redis-db      redis:alpine                          "docker-entrypoint.s…"   redis-db      4 hours ago   Up 4 hours   6379/tcp`} />
+                  <DynamicCodeBlock lang="bash" code={dockerComposePsOutput} />
                   <p className="text-sm text-gray-600 mt-1">All services should show "Up" in the STATUS column. If any service shows "Exit" or keeps restarting, check its logs.</p>
                 </div>
 
@@ -513,29 +520,116 @@ redis-db      redis:alpine                          "docker-entrypoint.s…"   r
                       The AvalancheGo node needs to sync with the network before the explorer can function properly. For testnet, this process typically takes more than an hour. You'll see progress updates in the logs showing the bootstrapping process.
                     </p>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">Press <code>Ctrl+C</code> to stop watching logs.</p>
+
+                  <p className="text-sm text-gray-600 mt-4">
+                    Press <code>Ctrl+C</code> to stop watching logs.
+                  </p>
                 </div>
 
                 <div>
                   <h4 className="font-semibold mb-2">Stop everything and clean up:</h4>
                   <DynamicCodeBlock lang="bash" code="docker compose down -v" />
-                  <p className="text-sm text-gray-600 mt-1">The <code>-v</code> flag removes volumes (databases). <strong>Warning:</strong> This forces reindexing.</p>
+                  <p className="text-sm text-gray-600 mt-4">The <code>-v</code> flag removes volumes (databases). <strong>Warning:</strong> This forces reindexing.</p>
                 </div>
-
-                <p>
-                  Services take 2-5 minutes to fully start up. Your BlockScout explorer will be available at <a href={`https://${domain || "your-domain.com"}`} target="_blank" rel="noopener noreferrer"><code>https://{domain || "your-domain.com"}</code></a>. </p>
 
                 <p>If containers keep restarting, check logs with <code>docker logs [service-name]</code>. Use <code>docker compose restart [service-name]</code> to restart individual services.
                 </p>
               </div>
             </Step>
+
+            <Step>
+              <div className="space-y-6">
+                <h3 className="text-xl font-bold mb-4">Access Your Explorer</h3>
+                <p>Before launching your BlockScout explorer, please confirm the following:</p>
+                <div className="space-y-4">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={servicesUpChecked}
+                      onChange={e => setServicesUpChecked(e.target.checked)}
+                      className="accent-blue-600 w-5 h-5"
+                    />
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      All services are <span className="font-bold">UP</span> when running <code>docker compose ps</code>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={bootstrappedChecked}
+                      onChange={e => setBootstrappedChecked(e.target.checked)}
+                      className="accent-blue-600 w-5 h-5 mt-1"
+                    />
+                    <span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        AvalancheGo node is fully bootstrapped
+                      </span>
+                      <div className="space-y-4 text-gray-700 dark:text-gray-300 mt-4">
+                        <p>
+                          During the bootstrapping process, the following command will return a <b>404 page not found</b> error:
+                        </p>
+
+                        <DynamicCodeBlock lang="bash" code={`curl -X POST --data '{ \n  \"jsonrpc\":\"2.0\", \"method\":\"eth_chainId\", \"params\":[], \"id\":1 \n}' -H 'content-type:application/json;' \\\nhttp://127.0.0.1:9650/ext/bc/${chainId}/rpc`} />
+
+                        <p>
+                          Once bootstrapping is complete, it will return a response like <code>{'{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"...\"}'}</code>.
+                        </p>
+                      </div>
+                    </span>
+                  </label>
+                  <div className="flex justify-center">
+                    <a
+                      href={`https://${domain || "your-domain.com"}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`
+                        group relative inline-flex items-center justify-center
+                        px-12 py-8 w-1/3
+                        bg-gradient-to-r from-orange-400 to-red-500 
+                        hover:from-orange-500 hover:to-red-600 
+                        text-white font-bold text-3xl rounded-xl 
+                        shadow-lg hover:shadow-xl 
+                        transform hover:scale-105 
+                        transition-all duration-200 ease-out 
+                        no-underline
+                        ${!(servicesUpChecked && bootstrappedChecked) ? 'opacity-50 pointer-events-none' : ''}
+                      `}
+                      style={{ textDecoration: 'none' }}
+                      onClick={(e) => {
+                        if (!servicesUpChecked || !bootstrappedChecked) {
+                          e.preventDefault();
+                          return;
+                        }
+                        setExplorerReady(true);
+                      }}
+                    >
+                      <span className="relative z-10">Launch Explorer</span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-orange-300 to-red-400 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-200" />
+                    </a>
+                  </div>
+                  <div className="mt-6">
+                    <img
+                      src="/images/blockscout-sample.png"
+                      alt="Blockscout Sample Image"
+                      className="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full"
+                    />
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
+                      Preview of your BlockScout Explorer interface
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Step>
+
+            {explorerReady && (
+              <Success
+                label="BlockScout Explorer Setup Completed"
+                value="Your self-hosted BlockScout explorer is now running and accessible. You can use it to explore transactions, blocks, and accounts on your L1."
+              />
+            )}
           </>)}
-
-
         </Steps>
-
-
-      </Container >
+      </Container>
     </>
   );
 };
