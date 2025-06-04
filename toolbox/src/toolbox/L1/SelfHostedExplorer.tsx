@@ -12,6 +12,33 @@ import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "../Nodes/AvalanchegoDocker";
 import { useL1ByChainId } from "../../stores/l1ListStore";
 
+const dockerComposeInstallInstructions: Record<string, string> = {
+  'Ubuntu/Debian': `# Install Docker Compose v2 plugin
+mkdir -p ~/.docker/cli-plugins && \\
+curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose && \\
+chmod +x ~/.docker/cli-plugins/docker-compose && \\
+
+# Test Docker Compose installation
+docker compose version
+`,
+  'Amazon Linux 2023+': `# Install Docker Compose v2 plugin
+mkdir -p ~/.docker/cli-plugins && \\
+curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose && \\
+chmod +x ~/.docker/cli-plugins/docker-compose && \\
+
+# Test Docker Compose installation
+docker compose version
+`,
+  'Fedora': `# Install Docker Compose v2 plugin
+mkdir -p ~/.docker/cli-plugins && \\
+curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose && \\
+chmod +x ~/.docker/cli-plugins/docker-compose && \\
+
+# Test Docker Compose installation
+docker compose version
+`,
+} as const;
+
 const genCaddyfile = (domain: string) => `
 ${domain.includes('.') ? domain : `${domain}.sslip.io`} {
     # Backend API routes
@@ -305,6 +332,22 @@ export default function BlockScout() {
           </Step>
 
           <Step>
+            <h3 className="text-xl font-bold mb-4">Docker Compose Installation</h3>
+            <p>Now that Docker is installed, let's install Docker Compose. Select your operating system:</p>
+
+            <Tabs items={Object.keys(dockerComposeInstallInstructions)}>
+              {Object.keys(dockerComposeInstallInstructions).map((os) => (
+                <Tab
+                  key={os}
+                  value={os as OS}
+                >
+                  <DynamicCodeBlock lang="bash" code={dockerComposeInstallInstructions[os]} />
+                </Tab>
+              ))}
+            </Tabs>
+          </Step>
+
+          <Step>
             <h3 className="text-xl font-bold mb-4">Select L1</h3>
             <p>Enter the Avalanche Blockchain ID (not EVM chain ID) of the L1 you want to run a node for.</p>
 
@@ -381,13 +424,59 @@ export default function BlockScout() {
           {composeYaml && (<>
             <Step>
               <h3 className="text-xl font-bold mb-4">Caddyfile</h3>
-              <p>Create a file named <code>Caddyfile</code> and paste the following code:</p>
-              <DynamicCodeBlock lang="yaml" code={caddyfile} />
+              <p>Create and edit the Caddyfile using the following steps:</p>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold mb-2">1. Create the file:</h4>
+                  <DynamicCodeBlock lang="bash" code="touch ~/Caddyfile" />
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">2. Open the file in a text editor:</h4>
+                  <DynamicCodeBlock lang="bash" code="nano ~/Caddyfile" />
+                  <p className="text-sm text-gray-600 mt-1">This will open the nano text editor. You can also use other editors like vim or your preferred text editor.</p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">3. Paste the following content into the file:</h4>
+                  <DynamicCodeBlock lang="yaml" code={caddyfile} />
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">4. Save and exit (if using nano):</h4>
+                  <p className="text-sm text-gray-600">Press <code>Ctrl + O</code>, then <code>Enter</code> to save</p>
+                  <p className="text-sm text-gray-600">Press <code>Ctrl + X</code> to exit</p>
+                </div>
+              </div>
             </Step>
             <Step>
               <h3 className="text-xl font-bold mb-4">Docker Compose</h3>
-              <p>Create a file named <code>compose.yml</code> in the same directory as your <code>Caddyfile</code> and paste the following code:</p>
-              <DynamicCodeBlock lang="yaml" code={composeYaml} />
+              <p>Create and edit the compose.yml file using the following steps:</p>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold mb-2">1. Create the file:</h4>
+                  <DynamicCodeBlock lang="bash" code="touch ~/compose.yml" />
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">2. Open the file in a text editor:</h4>
+                  <DynamicCodeBlock lang="bash" code="nano ~/compose.yml" />
+                  <p className="text-sm text-gray-600 mt-1">This will open the nano text editor. You can also use other editors like vim or your preferred text editor.</p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">3. Paste the following content into the file:</h4>
+                  <DynamicCodeBlock lang="yaml" code={composeYaml} />
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">4. Save and exit (if using nano):</h4>
+                  <p className="text-sm text-gray-600">Press <code>Ctrl + O</code>, then <code>Enter</code> to save</p>
+                  <p className="text-sm text-gray-600">Press <code>Ctrl + X</code> to exit</p>
+                </div>
+              </div>
             </Step>
 
             <Step>
