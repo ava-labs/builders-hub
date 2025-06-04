@@ -12,7 +12,7 @@ import { Input, Suggestion } from "../../components/Input";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { utils } from "@avalabs/avalanchejs";
 import { Note } from "../../components/Note";
-import SelectChainID from "../../components/SelectChainID";
+import selectBlockchainId from "../../components/SelectChainID";
 import { Container } from "../../components/Container";
 import ERC20TokenRemoteABI from "../../../contracts/icm-contracts/compiled/ERC20TokenRemote.json";
 import { getToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
@@ -324,7 +324,7 @@ export default function AddCollateral() {
             description="Approve and add collateral (ERC20 tokens) to the Token Home contract on the source chain for a remote bridge contract on the current chain."
         >
 
-            <SelectChainID
+            <selectBlockchainId
                 label="Source Chain (where token home is deployed)"
                 value={sourceChainId}
                 onChange={(value) => setSourceChainId(value)}

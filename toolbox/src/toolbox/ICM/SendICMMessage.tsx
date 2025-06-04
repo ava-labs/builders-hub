@@ -11,7 +11,7 @@ import ICMDemoABI from "../../../contracts/example-contracts/compiled/ICMDemo.js
 import { utils } from "@avalabs/avalanchejs";
 import { Input } from "../../components/Input";
 import { Container } from "../../components/Container";
-import SelectChainID from "../../components/SelectChainID";
+import selectBlockchainId from "../../components/selectBlockchainId";
 import { useL1ByChainId, useSelectedL1 } from "../../stores/l1ListStore";
 import { useEffect } from "react";
 const predeployedDemos: Record<string, string> = {
@@ -174,7 +174,7 @@ export default function SendICMMessage() {
                     required
                     type="number"
                 />
-                <SelectChainID
+                <selectBlockchainId
                     label="Destination Chain"
                     value={destinationChainId}
                     onChange={(value) => setDestinationChainId(value)}
