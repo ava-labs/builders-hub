@@ -517,7 +517,7 @@ export default function BlockScout() {
                   <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
                     <h5 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">⚠️ Important Note About Sync Time</h5>
                     <p className="text-amber-700 dark:text-amber-300">
-                      The AvalancheGo node needs to sync with the network before the explorer can function properly. For testnet, this process typically takes more than an hour. You'll see progress updates in the logs showing the bootstrapping process.
+                      The AvalancheGo node needs to sync with the network before the explorer can function properly. For testnet, this process typically takes 5-10 minutes, for mainnet, it takes 1-2 hours. You'll see progress updates in the logs showing the syncing progress with the p-chain (fetching blocks & executing blocks).
                     </p>
                   </div>
 
