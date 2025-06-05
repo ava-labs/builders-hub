@@ -1,29 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { MultisigInfo } from './MultisigInfo';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
 import { Toggle } from './Toggle';
 import Safe from '@safe-global/protocol-kit';
-import SafeApiKit from '@safe-global/api-kit';
-import { ethers } from 'ethers';
+import { encodeFunctionData, getAddress } from 'viem';
 import { MetaTransactionData } from '@safe-global/types-kit';
 import validatorManagerAbi from '../../contracts/icm-contracts/compiled/ValidatorManager.json';
 import poaManagerAbi from '../../contracts/icm-contracts/compiled/PoAManager.json';
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
+import { useSafeAPI, SafeInfo, NonceResponse, AshWalletUrlResponse } from '../toolbox/hooks';
 
-interface ChainConfig {
-  chainId: string;
-  chainName: string;
-  transactionService: string;
-  [key: string]: any;
-}
+
 
 interface MultisigOptionProps {
   validatorManagerAddress: string;
   functionName: string;
   args: any[];
-  onSuccess: (txHash: string) => void;
+  onSuccess: (message: string) => void;
   onError: (error: string) => void;
   disabled?: boolean;
   children: React.ReactNode;
@@ -66,7 +61,7 @@ interface MultisigOptionProps {
  * @param validatorManagerAddress - Address of the ValidatorManager contract
  * @param functionName - Function name to call on PoAManager (e.g., "completeValidatorRegistration")
  * @param args - Arguments array to pass to the function
- * @param onSuccess - Callback when transaction/proposal succeeds, receives transaction hash
+ * @param onSuccess - Callback when transaction/proposal succeeds, receives success message with Ash Wallet link
  * @param onError - Callback when error occurs, receives error message
  * @param disabled - Whether the action should be disabled
  * @param children - Content to render for direct transaction (when user is not using multisig)
@@ -86,16 +81,19 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   const [isProposing, setIsProposing] = useState(false);
   const [isExecutingDirect, setIsExecutingDirect] = useState(false);
   const [protocolKit, setProtocolKit] = useState<any>(null);
-  const [apiKit, setApiKit] = useState<any>(null);
   const [walletAddress, setWalletAddress] = useState('');
   const [poaManagerAddress, setPoaManagerAddress] = useState('');
   const [safeAddress, setSafeAddress] = useState('');
-  const [safeInfo, setSafeInfo] = useState<any>(null);
+  const [safeInfo, setSafeInfo] = useState<SafeInfo | null>(null);
   const [isPoaOwner, setIsPoaOwner] = useState<boolean | null>(null);
   const [isCheckingOwnership, setIsCheckingOwnership] = useState(false);
+  const [chainId, setChainId] = useState<string>('');
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [ashWalletUrl, setAshWalletUrl] = useState('');
 
   const { coreWalletClient, publicClient } = useWalletStore();
   const viemChain = useViemChainStore();
+  const { callSafeAPI } = useSafeAPI();
 
   // Check wallet connection and ownership on mount
   useEffect(() => {
@@ -112,41 +110,37 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   const checkWalletAndOwnership = async () => {
     setIsCheckingOwnership(true);
     try {
-      if (!window.ethereum) {
+      if (!coreWalletClient?.account) {
         setIsPoaOwner(false);
         return;
       }
 
       // Get current wallet address
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const address = await signer.getAddress();
+      const address = coreWalletClient.account.address;
       setWalletAddress(address);
 
       // Get PoAManager address by calling owner() on ValidatorManager
-      const validatorManagerContract = new ethers.Contract(
-        validatorManagerAddress,
-        validatorManagerAbi.abi,
-        provider
-      );
-      const poaManagerAddr = await validatorManagerContract.owner();
-      setPoaManagerAddress(poaManagerAddr);
+      const poaManagerAddr = await publicClient.readContract({
+        address: validatorManagerAddress as `0x${string}`,
+        abi: validatorManagerAbi.abi,
+        functionName: 'owner',
+      });
+      setPoaManagerAddress(poaManagerAddr as string);
 
       // Get owner of PoAManager
-      const poaManagerContract = new ethers.Contract(
-        poaManagerAddr,
-        poaManagerAbi.abi,
-        provider
-      );
-      const poaOwner = await poaManagerContract.owner();
+      const poaOwner = await publicClient.readContract({
+        address: poaManagerAddr as `0x${string}`,
+        abi: poaManagerAbi.abi,
+        functionName: 'owner',
+      });
 
       // Check if current wallet is the owner of PoAManager
-      const isOwner = poaOwner.toLowerCase() === address.toLowerCase();
+      const isOwner = (poaOwner as string).toLowerCase() === address.toLowerCase();
       setIsPoaOwner(isOwner);
 
       // If not the owner, get the Safe address for potential multisig
       if (!isOwner) {
-        setSafeAddress(poaOwner);
+        setSafeAddress(poaOwner as string);
       }
 
     } catch (err) {
@@ -157,68 +151,34 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
     }
   };
 
-  const getSupportedChain = async (chainId: string): Promise<string> => {
-    try {
-      const response = await fetch('/api/safe_chains');
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      
-      const supportedChain = data.results.find((chain: ChainConfig) => chain.chainId === chainId);
-      if (!supportedChain) {
-        throw new Error(`Chain ${chainId} is not supported for Ash L1 Multisig operations`);
-      }
-      
-      // Append /api to the transaction service URL if it doesn't already have it
-      let txServiceUrl = supportedChain.transactionService;
-      if (!txServiceUrl.endsWith('/api') && !txServiceUrl.includes('/api/')) {
-        txServiceUrl = txServiceUrl.endsWith('/') ? txServiceUrl + 'api' : txServiceUrl + '/api';
-      }
-      
-      return txServiceUrl;
-    } catch (error) {
-      throw new Error(`Failed to fetch supported chains: ${(error as Error).message}`);
-    }
+  // Get chain ID helper
+  const getChainId = (): string => {
+    return viemChain?.id.toString() || '1';
   };
 
   const initializeMultisig = async () => {
     setIsInitializing(true);
     try {
-      if (!window.ethereum) {
-        throw new Error('MetaMask not found');
+      if (!coreWalletClient?.account) {
+        throw new Error('Wallet not connected');
       }
 
       if (!poaManagerAddress || !safeAddress) {
         throw new Error('PoAManager or Safe address not determined');
       }
 
-      // Connect wallet
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const address = await signer.getAddress();
-      const network = await provider.getNetwork();
+      const address = coreWalletClient.account.address;
+      const currentChainId = getChainId();
+      setChainId(currentChainId);
 
-      // Check if chain is supported and get transaction service URL
-      const txServiceUrl = await getSupportedChain(network.chainId.toString());
-
-      // Initialize Safe API Kit with the transaction service URL
-      const apiKitInstance = new SafeApiKit({ 
-        chainId: BigInt(network.chainId),
-        txServiceUrl: txServiceUrl
-      });
-      setApiKit(apiKitInstance);
-
-      // Get Safe info to validate and check ownership
+      // Get Safe info from backend API
       try {
-        const safeInfo = await apiKitInstance.getSafeInfo(safeAddress);
+        console.log('Fetching Safe info via backend API...');
+        const safeInfo = await callSafeAPI<SafeInfo>('getSafeInfo', {
+          chainId: currentChainId,
+          safeAddress: safeAddress
+        });
+        
         setSafeInfo(safeInfo);
         
         // Check if the current wallet address is one of the Safe owners
@@ -235,6 +195,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       }
 
       // Initialize Safe Protocol Kit with the Safe address
+      // Note: Safe Protocol Kit still requires window.ethereum for now
       const protocolKitInstance = await Safe.init({ 
         provider: window.ethereum! as any,
         signer: address,
@@ -251,25 +212,32 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   };
 
   const proposeTransaction = async () => {
-    if (!protocolKit || !apiKit || !poaManagerAddress || !safeAddress) {
+    if (!protocolKit || !poaManagerAddress || !safeAddress || !chainId) {
       onError('Safe SDK not initialized or addresses not found');
       return;
     }
 
     setIsProposing(true);
     try {
-      const contractInterface = new ethers.Interface(poaManagerAbi.abi);
-      const functionData = contractInterface.encodeFunctionData(functionName, args);
+      const functionData = encodeFunctionData({
+        abi: poaManagerAbi.abi,
+        functionName: functionName,
+        args: args,
+      });
       
       const safeTransactionData: MetaTransactionData = {
-        to: ethers.getAddress(poaManagerAddress),
+        to: getAddress(poaManagerAddress),
         data: functionData,
         value: "0",
         operation: 0
       };
       
-      const nonceString = await apiKit.getNextNonce(safeAddress);
-      const nonceNumber = Number(nonceString);
+      // Get next nonce from backend API
+      const nonceData = await callSafeAPI<NonceResponse>('getNextNonce', {
+        chainId: chainId,
+        safeAddress: safeAddress
+      });
+      const nonceNumber = nonceData.nonce;
       
       const safeTransaction = await protocolKit.createTransaction({
         transactions: [safeTransactionData],
@@ -277,23 +245,46 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       });
       
       const safeTxHash = await protocolKit.getTransactionHash(safeTransaction);
-      const signature = await protocolKit.signHash(safeTxHash);
+      const signature = await coreWalletClient.signMessage({
+        message: safeTxHash,
+        chain: viemChain,
+        account: coreWalletClient.account!,
+      });
       
       const proposalData = {
-        safeAddress: ethers.getAddress(safeAddress),
+        safeAddress: getAddress(safeAddress),
         safeTransactionData: {
           ...safeTransaction.data,
-          to: ethers.getAddress(safeTransaction.data.to),
+          to: getAddress(safeTransaction.data.to),
           nonce: Number(safeTransaction.data.nonce),
         },
         safeTxHash,
-        senderAddress: ethers.getAddress(walletAddress),
+        senderAddress: getAddress(walletAddress),
         senderSignature: signature.data,
         origin: 'Avalanche Toolbox'
       };
       
-      await apiKit.proposeTransaction(proposalData);
+      // Propose transaction via backend API
+      await callSafeAPI('proposeTransaction', {
+        chainId: chainId,
+        safeAddress: safeAddress,
+        proposalData: proposalData
+      });
       
+      console.log('Transaction proposed successfully via backend API');
+      
+      // Get Ash Wallet URL from backend API
+      const ashWalletResponse = await callSafeAPI<AshWalletUrlResponse>('getAshWalletUrl', {
+        chainId: chainId,
+        safeAddress: safeAddress
+      });
+      
+      // Show success UI directly in the component instead of passing a string
+      setIsProposing(false);
+      setShowSuccessMessage(true);
+      setAshWalletUrl(ashWalletResponse.url);
+      
+      // Return the safe transaction hash for the parent component
       onSuccess(safeTxHash);
     } catch (err) {
       onError(`Failed to propose transaction: ${(err as Error).message}`);
@@ -430,29 +421,76 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
                 <MultisigInfo safeInfo={safeInfo} walletAddress={walletAddress} />
               )}
               
-              <Button
-                onClick={proposeTransaction}
-                disabled={disabled || !protocolKit || isProposing}
-                loading={isProposing}
-                loadingText="Proposing to Ash Wallet..."
-              >
-                Propose to Ash Wallet
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setUseMultisig(false);
-                  setProtocolKit(null);
-                  setApiKit(null);
-                  setPoaManagerAddress('');
-                  setSafeAddress('');
-                  setSafeInfo(null);
-                }}
-                variant="outline"
-                size="sm"
-              >
-                Cancel Multisig
-              </Button>
+              {showSuccessMessage ? (
+                <div className="p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
+                      <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    </div>
+                    
+                    <div className="flex-1 space-y-4">
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                          Transaction Proposed Successfully
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          Your transaction has been submitted to the multisig. Review and approve it in Ash Wallet to complete the process.
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Next steps:</p>
+                        <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-4 list-disc">
+                          <li>Review and approve the transaction</li>
+                          <li>Wait for additional approvals if required</li>
+                          <li>Copy the transaction hash once executed</li>
+                        </ul>
+                      </div>
+                      
+                      <Button
+                        onClick={() => window.open(ashWalletUrl, '_blank')}
+                        className="inline-flex items-center space-x-2"
+                      >
+                        <img 
+                          src="/images/ash.png" 
+                          alt="Ash" 
+                          className="h-4 w-4 flex-shrink-0"
+                        />
+                        <span>Open Ash Wallet</span>
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Button
+                    onClick={proposeTransaction}
+                    disabled={disabled || !protocolKit || isProposing}
+                    loading={isProposing}
+                    loadingText="Proposing to Ash Wallet..."
+                  >
+                    Propose Transaction to Ash Wallet
+                  </Button>
+                  
+                  <Button
+                    onClick={() => {
+                      setUseMultisig(false);
+                      setProtocolKit(null);
+                      setPoaManagerAddress('');
+                      setSafeAddress('');
+                      setSafeInfo(null);
+                      setChainId('');
+                      setShowSuccessMessage(false);
+                      setAshWalletUrl('');
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Cancel Multisig
+                  </Button>
+                </>
+              )}
             </div>
           )}
 

@@ -2,19 +2,12 @@ import { Input, type Suggestion } from "./Input";
 import { useMemo, useState, useEffect } from "react";
 import { useWalletStore } from "../stores/walletStore";
 import { useViemChainStore } from "../stores/toolboxStore";
-import SafeApiKit from '@safe-global/api-kit';
+import { useSafeAPI, SafesByOwnerResponse, AllSafesInfoResponse } from "../toolbox/hooks";
 
 export type SafeSelection = {
   safeAddress: string;
   threshold: number;
   owners: string[];
-}
-
-interface ChainConfig {
-  chainId: string;
-  chainName: string;
-  transactionService: string;
-  [key: string]: any;
 }
 
 /**
@@ -60,76 +53,49 @@ export default function SelectSafeWallet({
 }) {
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
-  const [safes, setSafes] = useState<any[]>([]);
+  const { callSafeAPI } = useSafeAPI();
+  const [safes, setSafes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [safeDetails, setSafeDetails] = useState<Record<string, SafeSelection>>({});
 
-  const getSupportedChain = async (chainId: string): Promise<string> => {
-    try {
-      const response = await fetch('/api/safe_chains');
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      
-      const supportedChain = data.results.find((chain: ChainConfig) => chain.chainId === chainId);
-      if (!supportedChain) {
-        throw new Error(`Chain ${chainId} is not supported for Ash Wallet operations`);
-      }
-      
-      // Append /api to the transaction service URL if it doesn't already have it
-      let txServiceUrl = supportedChain.transactionService;
-      if (!txServiceUrl.endsWith('/api') && !txServiceUrl.includes('/api/')) {
-        txServiceUrl = txServiceUrl.endsWith('/') ? txServiceUrl + 'api' : txServiceUrl + '/api';
-      }
-      
-      return txServiceUrl;
-    } catch (error) {
-      throw new Error(`Failed to fetch supported chains: ${(error as Error).message}`);
-    }
-  };
-
-  // Fetch Ash Wallet accounts from the API
+  // Fetch Ash Wallet accounts from the backend API
   useEffect(() => {
     const fetchSafes = async () => {
       if (!walletEVMAddress || !viemChain) return;
       
       setIsLoading(true);
       try {
-        // Check if chain is supported and get transaction service URL
-        const txServiceUrl = await getSupportedChain(viemChain.id.toString());
-
-        // Initialize Safe API Kit with the transaction service URL
-        const apiKitInstance = new SafeApiKit({ 
-          chainId: BigInt(viemChain.id),
-          txServiceUrl: txServiceUrl
-        });
-
         // Get Ash Wallet accounts owned by the current address
-        const safesByOwner = await apiKitInstance.getSafesByOwner(walletEVMAddress);
-        setSafes(safesByOwner.safes || []);
+        const safesByOwner = await callSafeAPI<SafesByOwnerResponse>('getSafesByOwner', {
+          chainId: viemChain.id.toString(),
+          ownerAddress: walletEVMAddress
+        });
+        
+        const safeAddresses = safesByOwner.safes || [];
+        setSafes(safeAddresses);
 
-        // Fetch details for each Ash Wallet
-        const details: Record<string, SafeSelection> = {};
-        for (const safeAddress of safesByOwner.safes || []) {
-          try {
-            const safeInfo = await apiKitInstance.getSafeInfo(safeAddress);
-            details[safeAddress] = {
-              safeAddress,
-              threshold: safeInfo.threshold,
-              owners: safeInfo.owners
-            };
-          } catch (error) {
-            console.warn(`Failed to fetch details for Ash Wallet ${safeAddress}:`, error);
+        // Fetch details for all Ash Wallets in a single call
+        if (safeAddresses.length > 0) {
+          const allSafesInfo = await callSafeAPI<AllSafesInfoResponse>('getAllSafesInfo', {
+            chainId: viemChain.id.toString(),
+            safeAddresses: safeAddresses
+          });
+
+          const details: Record<string, SafeSelection> = {};
+          for (const safeAddress of safeAddresses) {
+            const safeInfo = allSafesInfo.safeInfos[safeAddress];
+            if (safeInfo) {
+              details[safeAddress] = {
+                safeAddress,
+                threshold: safeInfo.threshold,
+                owners: safeInfo.owners
+              };
+            } else if (allSafesInfo.errors?.[safeAddress]) {
+              console.warn(`Failed to fetch details for Ash Wallet ${safeAddress}:`, allSafesInfo.errors[safeAddress]);
+            }
           }
+          setSafeDetails(details);
         }
-        setSafeDetails(details);
 
       } catch (error) {
         console.error("Error fetching Ash Wallet accounts:", error);
