@@ -211,7 +211,7 @@ const AddValidatorExpert: React.FC = () => {
         )}
 
         {(pChainTxId || globalError || globalSuccess) && (
-          <Button onClick={handleReset} className="mt-6">
+          <Button onClick={handleReset} variant="secondary" className="mt-6">
             Reset All Steps
           </Button>
         )}
