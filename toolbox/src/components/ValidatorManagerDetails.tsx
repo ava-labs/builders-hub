@@ -40,6 +40,11 @@ export function ValidatorManagerDetails({
 }: ValidatorManagerDetailsProps) {
   const [blockchainName, setBlockchainName] = useState<string | null>(null);
   const [isLoadingBlockchainName, setIsLoadingBlockchainName] = useState(false);
+  const [internalIsExpanded, setInternalIsExpanded] = useState(true);
+
+  // Use external state if provided, otherwise use internal state
+  const currentIsExpanded = onToggleExpanded ? isExpanded : internalIsExpanded;
+  const handleToggleExpanded = onToggleExpanded || (() => setInternalIsExpanded(!internalIsExpanded));
 
   // Fetch blockchain name when blockchainId changes
   useEffect(() => {
@@ -85,7 +90,7 @@ export function ValidatorManagerDetails({
     
     if (isDetectingOwnerType) {
       return (
-        <span className="ml-1 text-xs bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300 px-1 py-0.5 rounded animate-pulse">
+        <span className="ml-2 text-xs bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-md animate-pulse font-medium">
           Detecting...
         </span>
       );
@@ -93,7 +98,7 @@ export function ValidatorManagerDetails({
 
     if (ownerType === 'PoAManager') {
       return (
-        <span className="ml-1 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-1 py-0.5 rounded">
+        <span className="ml-2 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-md font-medium">
           PoAManager
         </span>
       );
@@ -101,7 +106,7 @@ export function ValidatorManagerDetails({
 
     if (ownerType === 'StakingManager') {
       return (
-        <span className="ml-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 py-0.5 rounded">
+        <span className="ml-2 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded-md font-medium">
           StakingManager
         </span>
       );
@@ -109,145 +114,154 @@ export function ValidatorManagerDetails({
 
     if (ownerType === 'EOA') {
       return (
-        <span className="ml-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 py-0.5 rounded">
+        <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-md font-medium">
           EOA
         </span>
       );
     }
 
     return (
-      <span className="ml-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 py-0.5 rounded">
+      <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-md font-medium">
         Contract
       </span>
     );
   };
 
   return (
-    <div className="mt-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+    <div className="mt-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
       {/* Header with toggle */}
       <button
-        onClick={() => onToggleExpanded?.()}
-        className="w-full p-3 flex items-center justify-between text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors rounded-t-lg"
+        onClick={handleToggleExpanded}
+        className="w-full p-4 flex items-center justify-between text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all duration-200 rounded-t-xl group"
       >
         <div className="flex items-center">
-          <Shield className="h-4 w-4 mr-2" />
-          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 mr-3 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
+            <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          </div>
+          <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
             Validator Manager Details
           </span>
         </div>
-        {isExpanded ? (
-          <ChevronDown className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+        {currentIsExpanded ? (
+          <ChevronDown className="h-4 w-4 text-zinc-500 dark:text-zinc-400 transition-transform duration-200" />
         ) : (
-          <ChevronRight className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+          <ChevronRight className="h-4 w-4 text-zinc-500 dark:text-zinc-400 transition-transform duration-200" />
         )}
       </button>
 
       {/* Collapsible content */}
-      {isExpanded && (
-        <div className="p-3 pt-0 space-y-3 border-t border-zinc-200 dark:border-zinc-800">
+      {currentIsExpanded && (
+        <div className="px-4 pb-4 space-y-4 border-t border-zinc-100 dark:border-zinc-800">
           {/* Validator Manager Address */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
+          <div className="bg-zinc-50/50 dark:bg-zinc-800/30 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center">
-                <Shield className="h-4 w-4 mr-1" />
-                Address
+                <Shield className="h-4 w-4 mr-2 text-zinc-500 dark:text-zinc-400" />
+                Contract Address
               </div>
               <button 
                 onClick={() => copyToClipboard(validatorManagerAddress)}
-                className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+                className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
                 <Copy className="h-3 w-3 mr-1" />
                 Copy
               </button>
             </div>
-            <div className="font-mono text-xs bg-zinc-50 dark:bg-zinc-800 p-2 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 overflow-auto">{validatorManagerAddress}</div>
+            <div className="font-mono text-xs bg-white dark:bg-zinc-900 p-3 rounded-md border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 overflow-auto break-all">{validatorManagerAddress}</div>
           </div>
 
           {/* Contract Owner */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
+          <div className="bg-zinc-50/50 dark:bg-zinc-800/30 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center">
-                <Users className="h-4 w-4 mr-1" />
-                Owner
+                <Users className="h-4 w-4 mr-2 text-zinc-500 dark:text-zinc-400" />
+                Contract Owner
                 {getOwnerContractBadge()}
               </div>
-              {isLoadingOwnership && (
-                <span className="text-xs text-blue-600 dark:text-blue-400 animate-pulse">Loading...</span>
-              )}
-              {contractOwner && (
-                <button 
-                  onClick={() => copyToClipboard(contractOwner)}
-                  className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
-                >
-                  <Copy className="h-3 w-3 mr-1" />
-                  Copy
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {isLoadingOwnership && (
+                  <span className="text-xs text-blue-600 dark:text-blue-400 animate-pulse">Loading...</span>
+                )}
+                {contractOwner && (
+                  <button 
+                    onClick={() => copyToClipboard(contractOwner)}
+                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy
+                  </button>
+                )}
+              </div>
             </div>
             {ownershipError ? (
-              <div className="p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-xs flex items-start">
-                <AlertCircle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-xs flex items-start">
+                <AlertCircle className="h-3 w-3 mr-2 mt-0.5 flex-shrink-0" />
                 <span>{ownershipError}</span>
               </div>
             ) : contractOwner ? (
-              <div className="font-mono text-xs bg-zinc-50 dark:bg-zinc-800 p-2 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 overflow-auto">{contractOwner}</div>
+              <div className="font-mono text-xs bg-white dark:bg-zinc-900 p-3 rounded-md border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 overflow-auto break-all">{contractOwner}</div>
             ) : (
-              <div className="text-xs text-zinc-500 dark:text-zinc-400 italic">No owner information available</div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 italic p-2 bg-zinc-100/50 dark:bg-zinc-700/30 rounded-md">No owner information available</div>
             )}
           </div>
 
           {/* Validator Manager Home (beam) */}
           {blockchainId && (
-            <div>
-              <div className="flex items-center justify-between mb-1">
+            <div className="bg-zinc-50/50 dark:bg-zinc-800/30 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center">
-                  <Home className="h-4 w-4 mr-1" />
+                  <Home className="h-4 w-4 mr-2 text-zinc-500 dark:text-zinc-400" />
                   Home Chain
                 </div>
-                {isLoadingBlockchainName && (
-                  <span className="text-xs text-blue-600 dark:text-blue-400 animate-pulse">Loading name...</span>
-                )}
-                <button 
-                  onClick={() => copyToClipboard(blockchainId)}
-                  className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
-                >
-                  <Copy className="h-3 w-3 mr-1" />
-                  Copy ID
-                </button>
+                <div className="flex items-center gap-2">
+                  {isLoadingBlockchainName && (
+                    <span className="text-xs text-blue-600 dark:text-blue-400 animate-pulse">Loading name...</span>
+                  )}
+                  <button 
+                    onClick={() => copyToClipboard(blockchainId)}
+                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy ID
+                  </button>
+                </div>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {blockchainName && (
-                  <div className="text-sm bg-zinc-50 dark:bg-zinc-800 p-2 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200">
+                  <div className="text-sm bg-white dark:bg-zinc-900 p-3 rounded-md border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-medium">
                     {blockchainName}
                   </div>
                 )}
-                <div className="font-mono text-xs bg-zinc-50 dark:bg-zinc-800 p-2 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 overflow-auto">{blockchainId}</div>
+                <div className="font-mono text-xs bg-white dark:bg-zinc-900 p-3 rounded-md border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 overflow-auto break-all">{blockchainId}</div>
               </div>
             </div>
           )}
 
           {/* Signing Subnet ID */}
           {signingSubnetId && signingSubnetId !== subnetId && (
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Signing Subnet ID</div>
+            <div className="bg-zinc-50/50 dark:bg-zinc-800/30 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center">
+                  <Shield className="h-4 w-4 mr-2 text-zinc-500 dark:text-zinc-400" />
+                  Signing Subnet ID
+                </div>
                 <button 
                   onClick={() => copyToClipboard(signingSubnetId)}
-                  className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   <Copy className="h-3 w-3 mr-1" />
                   Copy
                 </button>
               </div>
-              <div className="font-mono text-xs bg-zinc-50 dark:bg-zinc-800 p-2 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 overflow-auto">{signingSubnetId}</div>
+              <div className="font-mono text-xs bg-white dark:bg-zinc-900 p-3 rounded-md border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 overflow-auto break-all">{signingSubnetId}</div>
             </div>
           )}
 
           {/* Contract Total Weight */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
+          <div className="bg-zinc-50/50 dark:bg-zinc-800/30 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center">
-                <Weight className="h-4 w-4 mr-1" />
+                <Weight className="h-4 w-4 mr-2 text-zinc-500 dark:text-zinc-400" />
                 Total Validator Weight
               </div>
               {isLoadingL1Weight && (
@@ -255,12 +269,12 @@ export function ValidatorManagerDetails({
               )}
             </div>
             {l1WeightError ? (
-              <div className="p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-xs flex items-start">
-                <AlertCircle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-xs flex items-start">
+                <AlertCircle className="h-3 w-3 mr-2 mt-0.5 flex-shrink-0" />
                 <span>{l1WeightError}</span>
               </div>
             ) : (
-              <div className="font-mono text-xs bg-zinc-50 dark:bg-zinc-800 p-2 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200">
+              <div className="font-mono text-sm bg-white dark:bg-zinc-900 p-3 rounded-md border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-medium">
                 {contractTotalWeight !== undefined ? formatWeight(contractTotalWeight) : '0'}
               </div>
             )}
