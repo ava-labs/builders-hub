@@ -13,20 +13,52 @@ import { Success } from "../../components/Success";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { ResultField } from "../../components/ResultField";
 import { AbiEvent } from 'viem';
+import SelectSubnetId from "../../components/SelectSubnetId";
+import { useValidatorManagerDetails } from "../hooks/useValidatorManagerDetails";
+import { ValidatorManagerDetails } from "../../components/ValidatorManagerDetails";
+import { useCreateChainStore } from "../../stores/createChainStore";
+import SelectSafeWallet, { SafeSelection } from "../../components/SelectSafeWallet";
 
 export default function DeployPoAManager() {
     const { showBoundary } = useErrorBoundary();
-    const { validatorManagerAddress } = useToolboxStore();
+    const { 
+        poaManagerAddress,
+        setPoaManagerAddress
+    } = useToolboxStore();
     const { walletEVMAddress, coreWalletClient, publicClient } = useWalletStore();
+    const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
+    const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
     const [isDeploying, setIsDeploying] = useState(false);
     const [isInitializing, setIsInitializing] = useState(false);
     const [isChecking, setIsChecking] = useState(false);
-    const [poaManagerAddress, setPoaManagerAddress] = useState("");
     const [poaOwnerAddress, setPoaOwnerAddress] = useState("");
     const [validatorManagerAddr, setValidatorManagerAddr] = useState("");
     const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
     const [initEvent, setInitEvent] = useState<any>(null);
+    const [safeSelection, setSafeSelection] = useState<SafeSelection>({ 
+        safeAddress: '', 
+        threshold: 0, 
+        owners: [] 
+    });
+    const [useSafeWallet, setUseSafeWallet] = useState(true);
     const viemChain = useViemChainStore();
+
+    const {
+        validatorManagerAddress,
+        error: validatorManagerError,
+        isLoading: isLoadingVMCDetails,
+        blockchainId,
+        contractOwner,
+        isOwnerContract,
+        contractTotalWeight,
+        l1WeightError,
+        signingSubnetId,
+        isLoadingOwnership,
+        isLoadingL1Weight,
+        ownershipError,
+        ownerType,
+        isDetectingOwnerType
+    } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
 
     useEffect(() => {
         if (walletEVMAddress && !poaOwnerAddress) {
@@ -39,6 +71,16 @@ export default function DeployPoAManager() {
             setValidatorManagerAddr(validatorManagerAddress);
         }
     }, [validatorManagerAddress, validatorManagerAddr]);
+
+    useEffect(() => {
+        if (useSafeWallet && safeSelection.safeAddress) {
+            setPoaOwnerAddress(safeSelection.safeAddress);
+        } else if (!useSafeWallet && walletEVMAddress && !poaOwnerAddress) {
+            setPoaOwnerAddress(walletEVMAddress);
+        }
+    }, [useSafeWallet, safeSelection.safeAddress, walletEVMAddress, poaOwnerAddress]);
+
+
 
     useEffect(() => {
         if (poaManagerAddress) {
@@ -171,6 +213,41 @@ export default function DeployPoAManager() {
             description="Deploy and initialize the PoAManager contract to manage Proof of Authority validators."
         >
             <div className="space-y-4">
+                {/* Subnet Selection */}
+                <div className="space-y-2">
+                    <SelectSubnetId
+                        value={subnetIdL1}
+                        onChange={setSubnetIdL1}
+                        hidePrimaryNetwork={true}
+                    />
+                    
+                    {/* Validator Manager Details */}
+                    {subnetIdL1 && (
+                        <ValidatorManagerDetails
+                            validatorManagerAddress={validatorManagerAddress}
+                            blockchainId={blockchainId}
+                            subnetId={subnetIdL1}
+                            isLoading={isLoadingVMCDetails}
+                            signingSubnetId={signingSubnetId}
+                            contractTotalWeight={contractTotalWeight}
+                            l1WeightError={l1WeightError}
+                            isLoadingL1Weight={isLoadingL1Weight}
+                            contractOwner={contractOwner}
+                            ownershipError={ownershipError}
+                            isLoadingOwnership={isLoadingOwnership}
+                            isOwnerContract={isOwnerContract}
+                            ownerType={ownerType}
+                            isDetectingOwnerType={isDetectingOwnerType}
+                        />
+                    )}
+
+                    {validatorManagerError && (
+                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-sm">
+                            {validatorManagerError}
+                        </div>
+                    )}
+                </div>
+
                 <Steps>
                     <Step>
                         <div className="flex flex-col gap-2">
@@ -212,33 +289,59 @@ export default function DeployPoAManager() {
                                     disabled={isInitializing}
                                 />
 
-                                <Input
-                                    label="Multisig / Owner Address"
-                                    value={poaOwnerAddress}
-                                    onChange={setPoaOwnerAddress}
-                                    disabled={isInitializing}
-                                    placeholder="Enter owner address"
-                                    button={<Button
-                                        onClick={() => setPoaOwnerAddress(walletEVMAddress)}
-                                        stickLeft
-                                    >
-                                        Fill from Wallet
-                                    </Button>}
-                                />
+                                <div className="space-y-3">
+                                    <div className="flex items-center space-x-3">
+                                        <label className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={useSafeWallet}
+                                                onChange={(e) => setUseSafeWallet(e.target.checked)}
+                                                disabled={isInitializing}
+                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Use Ash Wallet
+                                            </span>
+                                        </label>
+                                    </div>
+
+                                    {useSafeWallet ? (
+                                        <SelectSafeWallet
+                                            value={safeSelection.safeAddress}
+                                            onChange={setSafeSelection}
+                                            error={null}
+                                        />
+                                    ) : (
+                                        <Input
+                                            label="Owner Address"
+                                            value={poaOwnerAddress}
+                                            onChange={setPoaOwnerAddress}
+                                            disabled={isInitializing}
+                                            placeholder="Enter owner address"
+                                            button={<Button
+                                                onClick={() => setPoaOwnerAddress(walletEVMAddress)}
+                                                stickLeft
+                                            >
+                                                Fill from Wallet
+                                            </Button>}
+                                        />
+                                    )}
+
+                                    {useSafeWallet && safeSelection.safeAddress && (
+                                        <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                                            <strong>Safe Details:</strong> {safeSelection.threshold}/{safeSelection.owners.length} multisig
+                                            <br />
+                                            <strong>Owners:</strong> {safeSelection.owners.length > 0 ? safeSelection.owners.join(', ') : 'Loading...'}
+                                        </div>
+                                    )}
+                                </div>
 
                                 <Input
                                     label="Validator Manager Address"
                                     value={validatorManagerAddr}
-                                    onChange={setValidatorManagerAddr}
-                                    disabled={isInitializing}
-                                    placeholder="Enter validator manager address"
-                                    button={<Button
-                                        onClick={() => setValidatorManagerAddr(validatorManagerAddress)}
-                                        stickLeft
-                                        disabled={!validatorManagerAddress}
-                                    >
-                                        Fill from Store
-                                    </Button>}
+                                    onChange={() => {}} // No-op since it's read-only
+                                    disabled={true}
+                                    placeholder="Auto-filled from selected subnet"
                                 />
 
                                 <div className="flex gap-2">
