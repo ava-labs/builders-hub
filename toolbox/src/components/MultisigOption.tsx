@@ -173,7 +173,6 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
 
       // Get Safe info from backend API
       try {
-        console.log('Fetching Safe info via backend API...');
         const safeInfo = await callSafeAPI<SafeInfo>('getSafeInfo', {
           chainId: currentChainId,
           safeAddress: safeAddress
@@ -245,11 +244,12 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
       });
       
       const safeTxHash = await protocolKit.getTransactionHash(safeTransaction);
-      const signature = await coreWalletClient.signMessage({
-        message: safeTxHash,
-        chain: viemChain,
-        account: coreWalletClient.account!,
-      });
+      
+      // Sign the transaction using Safe Protocol Kit's method
+      const signedSafeTransaction = await protocolKit.signTransaction(safeTransaction);
+      
+      // Extract the signature from the signed transaction
+      const signature = signedSafeTransaction.signatures.get(walletAddress.toLowerCase())?.data || '';
       
       const proposalData = {
         safeAddress: getAddress(safeAddress),
@@ -260,18 +260,16 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
         },
         safeTxHash,
         senderAddress: getAddress(walletAddress),
-        senderSignature: signature.data,
+        senderSignature: signature,
         origin: 'Avalanche Toolbox'
       };
       
-      // Propose transaction via backend API
+      // Propose transaction via backend API using Safe API Kit directly
       await callSafeAPI('proposeTransaction', {
         chainId: chainId,
         safeAddress: safeAddress,
         proposalData: proposalData
       });
-      
-      console.log('Transaction proposed successfully via backend API');
       
       // Get Ash Wallet URL from backend API
       const ashWalletResponse = await callSafeAPI<AshWalletUrlResponse>('getAshWalletUrl', {

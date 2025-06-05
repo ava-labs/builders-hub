@@ -33,7 +33,6 @@ const getSupportedChain = async (chainId: string): Promise<{ txServiceUrl: strin
       throw new Error(`Chain ${chainId} is not supported for Ash L1 Multisig operations`);
     }
     
-    // Append /api to the transaction service URL if it doesn't already have it
     let txServiceUrl = supportedChain.transactionService;
     if (!txServiceUrl.endsWith('/api') && !txServiceUrl.includes('/api/')) {
       txServiceUrl = txServiceUrl.endsWith('/') ? txServiceUrl + 'api' : txServiceUrl + '/api';
