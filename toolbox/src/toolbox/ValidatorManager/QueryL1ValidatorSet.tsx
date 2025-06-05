@@ -36,6 +36,11 @@ export default function QueryL1ValidatorSet() {
     setSelectedValidator(null)
 
     try {
+      // Validate that subnet ID is provided
+      if (!subnetId.trim()) {
+        throw new Error("Subnet ID is required to query L1 validators")
+      }
+
       const network = networkNames[Number(avalancheNetworkID)]
       if (!network) {
         throw new Error("Invalid network selected")
@@ -43,7 +48,7 @@ export default function QueryL1ValidatorSet() {
 
       const result = await new AvaCloudSDK().data.primaryNetwork.listL1Validators({
         network: network,
-        subnetId: subnetId || "",
+        subnetId: subnetId.trim(),
         includeInactiveL1Validators: true,
       });
 
@@ -124,14 +129,14 @@ export default function QueryL1ValidatorSet() {
           <div className="mb-3">
             <SelectSubnetId value={subnetId} onChange={setSubnetId} hidePrimaryNetwork={true} />
             <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              Leave empty to query the Primary Network validators
+              Subnet ID is required to query L1 validators
             </p>
           </div>
 
           <Button
             onClick={() => fetchValidators()}
-            disabled={isLoading}
-            className={`w-full py-2 px-4 rounded-md text-sm font-medium flex items-center justify-center ${isLoading
+            disabled={isLoading || !subnetId.trim()}
+            className={`w-full py-2 px-4 rounded-md text-sm font-medium flex items-center justify-center ${isLoading || !subnetId.trim()
               ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
               : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm hover:shadow transition-all duration-200"
               }`}
