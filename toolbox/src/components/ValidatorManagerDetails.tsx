@@ -1,4 +1,4 @@
-import { AlertCircle, Copy, Home, Shield, Users, Weight, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertCircle, Copy, Home, Shield, Users, Weight, ChevronDown, ChevronRight, Pen, BookUser } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getBlockchainInfo } from '../coreViem/utils/glacier';
 
@@ -156,7 +156,7 @@ export function ValidatorManagerDetails({
           <div className="bg-zinc-50/50 dark:bg-zinc-800/30 rounded-lg p-3">
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center">
-                <Shield className="h-4 w-4 mr-2 text-zinc-500 dark:text-zinc-400" />
+                <BookUser className="h-4 w-4 mr-2 text-zinc-500 dark:text-zinc-400" />
                 Contract Address
               </div>
               <button 
@@ -242,7 +242,7 @@ export function ValidatorManagerDetails({
             <div className="bg-zinc-50/50 dark:bg-zinc-800/30 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center">
-                  <Shield className="h-4 w-4 mr-2 text-zinc-500 dark:text-zinc-400" />
+                  <Pen className="h-4 w-4 mr-2 text-zinc-500 dark:text-zinc-400" />
                   Signing Subnet ID
                 </div>
                 <button 
