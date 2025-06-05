@@ -156,7 +156,6 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                 setError(null);
 
             } catch (e: any) {
-                console.error("Error fetching Validator Manager details:", e);
                 setValidatorManagerAddress("");
                 setBlockchainId("");
                 setSigningSubnetId("");
@@ -204,7 +203,6 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                     setL1WeightError(null); // Clear error if weight is successfully fetched and non-zero
                 }
             } catch (e: any) {
-                console.error("Error fetching total L1 weight from contract:", e);
                 setContractTotalWeight(0n); // Reset on error
                 // Check for specific error messages indicating VMC issues
                 if (e.message?.includes('returned no data ("0x")') ||
@@ -272,7 +270,6 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                 }
 
             } catch (e: any) {
-                console.error("Error fetching contract owner:", e);
                 setContractOwner(null);
                 setOwnershipError(e.message || "Failed to fetch contract owner information.");
                 setIsOwnerContract(false);
@@ -288,12 +285,6 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
     useEffect(() => {
         const detectOwnerType = async () => {
             if (!isOwnerContract || !contractOwner || !publicClient) {
-                // If owner is not a contract but we have an owner, it's an EOA
-                if (!isOwnerContract && contractOwner) {
-                    setOwnerType('EOA');
-                } else {
-                    setOwnerType(null);
-                }
                 setIsDetectingOwnerType(false);
                 return;
             }
