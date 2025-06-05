@@ -13,6 +13,7 @@ import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "../Nodes/A
 import { useL1ByChainId } from "../../stores/l1ListStore";
 import { Success } from "../../components/Success";
 import { Button } from "../../components/Button";
+import { validateDomainOrIP, nipify } from "../../components/IPValidation";
 
 
 
@@ -25,7 +26,7 @@ db            postgres:15                           "docker-entrypoint.s…"   d
 redis-db      redis:alpine                          "docker-entrypoint.s…"   redis-db      1 minute ago   Up 1 minute   6379/tcp`;
 
 const genCaddyfile = (domain: string) => `
-${domain.includes('.') ? domain : `${domain}.sslip.io`} {
+${nipify(domain)} {
     # Backend API routes
     handle /api* {
         reverse_proxy backend:4000
@@ -76,7 +77,7 @@ interface DockerComposeConfig {
 }
 
 const genDockerCompose = (config: DockerComposeConfig) => {
-  const domain = config.domain.includes('.') ? config.domain : `${config.domain}.sslip.io`;
+  const domain = nipify(config.domain);
   return `
 services:
   redis-db:
@@ -260,16 +261,7 @@ export default function BlockScout() {
   }, [chainId]);
 
   const domainError = useMemo(() => {
-    if (!domain) return null;
-
-    // Check if it's a valid IP address
-    const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    if (ipv4Regex.test(domain)) return null;
-
-    // Check if it's a valid domain name
-    const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-\.]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
-    if (!domainRegex.test(domain)) return "Please enter a valid domain name (e.g. example.com) or IP address (e.g. 1.2.3.4)";
-    return null;
+    return validateDomainOrIP(domain);
   }, [domain]);
 
   useEffect(() => {

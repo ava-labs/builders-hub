@@ -19,6 +19,7 @@ import { useL1ListStore } from "../../stores/l1ListStore";
 import { Button } from "../../components/Button";
 import { RadioGroup } from "../../components/RadioGroup";
 import { Success } from "../../components/Success";
+import { nipify } from "../../components/IPValidation";
 
 
 export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruningEnabled: boolean) => {
@@ -94,13 +95,7 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
     return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
 }
 
-const nipify = (domain: string) => {
-    const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    if (ipv4Regex.test(domain)) {
-        domain = `${domain}.sslip.io`;
-    }
-    return domain;
-}
+
 
 const reverseProxyCommand = (domain: string) => {
     domain = nipify(domain);
