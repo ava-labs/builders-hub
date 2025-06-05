@@ -3,7 +3,7 @@
 import { useViemChainStore } from "../../stores/toolboxStore";
 import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../../components/Button";
 import { ResultField } from "../../components/ResultField";
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
@@ -13,7 +13,7 @@ import SelectSubnetId from "../../components/SelectSubnetId";
 import { useValidatorManagerDetails } from "../hooks/useValidatorManagerDetails";
 import { ValidatorManagerDetails } from "../../components/ValidatorManagerDetails";
 import { TransactionReceipt } from "viem";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Info } from "lucide-react";
 
 export default function TransferOwnership() {
     const { showBoundary } = useErrorBoundary();
@@ -23,6 +23,8 @@ export default function TransferOwnership() {
     const [newOwnerAddress, setNewOwnerAddress] = useState<string>('');
     const [receipt, setReceipt] = useState<TransactionReceipt | null>(null);
     const [isDetailsExpanded, setIsDetailsExpanded] = useState(true);
+    const [isNewOwnerContract, setIsNewOwnerContract] = useState(false);
+    const [isCheckingNewOwner, setIsCheckingNewOwner] = useState(false);
     const viemChain = useViemChainStore();
 
     const validatorManagerData = useValidatorManagerDetails({ subnetId: selectedSubnetId });
@@ -45,6 +47,41 @@ export default function TransferOwnership() {
                               walletEVMAddress && 
                               !isCurrentUserOwner && 
                               !isOwnerContract;
+
+    // Check if new owner address is a contract
+    useEffect(() => {
+        const checkNewOwnerType = async () => {
+            if (!newOwnerAddress.trim() || !publicClient) {
+                setIsNewOwnerContract(false);
+                setIsCheckingNewOwner(false);
+                return;
+            }
+
+            // Basic address validation
+            if (!newOwnerAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+                setIsNewOwnerContract(false);
+                setIsCheckingNewOwner(false);
+                return;
+            }
+
+            setIsCheckingNewOwner(true);
+            try {
+                const bytecode = await publicClient.getBytecode({ 
+                    address: newOwnerAddress as `0x${string}` 
+                });
+                const isContract = !!bytecode && bytecode !== '0x';
+                setIsNewOwnerContract(isContract);
+            } catch (e) {
+                console.warn("Could not check if new owner is a contract:", e);
+                setIsNewOwnerContract(false);
+            } finally {
+                setIsCheckingNewOwner(false);
+            }
+        };
+
+        const timeoutId = setTimeout(checkNewOwnerType, 500); // Debounce
+        return () => clearTimeout(timeoutId);
+    }, [newOwnerAddress, publicClient]);
 
     async function handleTransferOwnership() {
         setIsTransferring(true);
@@ -127,6 +164,26 @@ export default function TransferOwnership() {
                     onChange={setNewOwnerAddress}
                     disabled={isTransferring}
                 />
+
+                {/* Contract owner warning */}
+                {isNewOwnerContract && !isCheckingNewOwner && (
+                    <div className="p-3 rounded-lg border-l-4 border-l-amber-400 bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 dark:border-l-amber-400">
+                        <div className="flex items-start gap-3">
+                            <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                            <div className="flex-1">
+                                <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">
+                                    Contract Address Detected
+                                </h4>
+                                <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">
+                                    The new owner address is a contract. Please ensure this contract is either a <strong>PoAManager</strong> or <strong>StakingManager</strong> that follows the ACP-99 standard.
+                                </p>
+                                <p className="text-xs text-amber-600 dark:text-amber-400">
+                                    This action is irreversible unless ValidatorManager is deployed behind proxy
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 
                 <Button
                     variant="primary"
