@@ -135,31 +135,43 @@ ${domain}/ext/bc/${chainID}/rpc`
 }
 
 export const dockerInstallInstructions: Record<string, string> = {
-    'Ubuntu/Debian': `sudo apt-get update && \\
-    sudo apt-get install -y docker.io && \\
-    sudo usermod -aG docker $USER && \\
-    newgrp docker
+    'Ubuntu/Debian': `# Install Docker using convenience script
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+newgrp docker
 
-# Test docker installation
+# Test installation
 docker run -it --rm hello-world
+docker compose version
 `,
-    'Amazon Linux 2023+': `sudo yum update -y && \\
-    sudo yum install -y docker && \\
-    sudo service docker start && \\
-    sudo usermod -a -G docker $USER && \\
-    newgrp docker
+    'Amazon Linux 2023+': `# Install Docker
+sudo yum update -y
+sudo yum install -y docker
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker $USER
 
-# Test docker installation
+# Install Docker Compose v2 plugin (Amazon Linux specific)
+sudo mkdir -p /usr/local/lib/docker/cli-plugins
+sudo curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+newgrp docker
+
+# Test installation
 docker run -it --rm hello-world
+docker compose version
 `,
-    'Fedora': `sudo dnf update -y && \\
-    sudo dnf -y install docker && \\
-    sudo systemctl start docker && \\
-    sudo usermod -a -G docker $USER && \\
-    newgrp docker
+    'Fedora': `# Install Docker using convenience script
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+newgrp docker
 
-# Test docker installation
+# Test installation
 docker run -it --rm hello-world
+docker compose version
 `,
 } as const;
 

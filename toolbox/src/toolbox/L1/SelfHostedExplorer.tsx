@@ -13,32 +13,7 @@ import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "../Nodes/A
 import { useL1ByChainId } from "../../stores/l1ListStore";
 import { Success } from "../../components/Success";
 
-const dockerComposeInstallInstructions: Record<string, string> = {
-  'Ubuntu/Debian': `# Install Docker Compose v2 plugin
-mkdir -p ~/.docker/cli-plugins && \\
-curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose && \\
-chmod +x ~/.docker/cli-plugins/docker-compose && \\
 
-# Test Docker Compose installation
-docker compose version
-`,
-  'Amazon Linux 2023+': `# Install Docker Compose v2 plugin
-mkdir -p ~/.docker/cli-plugins && \\
-curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose && \\
-chmod +x ~/.docker/cli-plugins/docker-compose && \\
-
-# Test Docker Compose installation
-docker compose version
-`,
-  'Fedora': `# Install Docker Compose v2 plugin
-mkdir -p ~/.docker/cli-plugins && \\
-curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose && \\
-chmod +x ~/.docker/cli-plugins/docker-compose && \\
-
-# Test Docker Compose installation
-docker compose version
-`,
-} as const;
 
 const dockerComposePsOutput = `NAME          IMAGE                                 COMMAND                  SERVICE       CREATED        STATUS        PORTS
 avago         avaplatform/subnet-evm:v0.7.3         "./avalanchego"          avago         1 minute ago   Up 1 minute   127.0.0.1:9650->9650/tcp, 0.0.0.0:9651->9651/tcp, :::9651->9651/tcp
@@ -328,8 +303,8 @@ export default function BlockScout() {
             <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. 4 vCPUs, 8GB RAM, 40GB storage is enough to get you started. Choose more storage if the Explorer is for a long-running testnet or mainnet L1.</p>
           </Step>
           <Step>
-            <h3 className="text-xl font-bold mb-4">Docker Installation</h3>
-            <p>Make sure you have Docker installed on your system. You can use the following commands to install it:</p>
+            <h3 className="text-xl font-bold mb-4">Docker & Docker Compose Installation</h3>
+            <p>Make sure you have Docker and Docker Compose installed on your system. You can use the following commands to install both:</p>
 
             <Tabs items={Object.keys(dockerInstallInstructions)}>
               {Object.keys(dockerInstallInstructions).map((os) => (
@@ -343,21 +318,7 @@ export default function BlockScout() {
             </Tabs>
           </Step>
 
-          <Step>
-            <h3 className="text-xl font-bold mb-4">Docker Compose Installation</h3>
-            <p>Now that Docker is installed, let's install Docker Compose. Select your operating system:</p>
 
-            <Tabs items={Object.keys(dockerComposeInstallInstructions)}>
-              {Object.keys(dockerComposeInstallInstructions).map((os) => (
-                <Tab
-                  key={os}
-                  value={os as OS}
-                >
-                  <DynamicCodeBlock lang="bash" code={dockerComposeInstallInstructions[os]} />
-                </Tab>
-              ))}
-            </Tabs>
-          </Step>
 
           <Step>
             <h3 className="text-xl font-bold mb-4">Select L1</h3>
@@ -440,23 +401,18 @@ export default function BlockScout() {
 
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-semibold mb-2">1. Create the file:</h4>
-                  <DynamicCodeBlock lang="bash" code="touch ~/Caddyfile" />
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">2. Open the file in a text editor:</h4>
+                  <h4 className="font-semibold mb-2">1. Open the file in a text editor:</h4>
                   <DynamicCodeBlock lang="bash" code="nano ~/Caddyfile" />
-                  <p className="text-sm text-gray-600 mt-1">This will open the nano text editor. You can also use other editors like vim or your preferred text editor.</p>
+                  <p className="text-sm text-gray-600 mt-1">This will create and open the file in the nano text editor. You can also use other editors like vim or your preferred text editor.</p>
                 </div>
 
                 <div>
-                  <h4 className="font-semibold mb-2">3. Paste the following content into the file:</h4>
+                  <h4 className="font-semibold mb-2">2. Paste the following content into the file:</h4>
                   <DynamicCodeBlock lang="yaml" code={caddyfile} />
                 </div>
 
                 <div>
-                  <h4 className="font-semibold mb-2">4. Save and exit (if using nano):</h4>
+                  <h4 className="font-semibold mb-2">3. Save and exit (if using nano):</h4>
                   <p className="text-sm text-gray-600">Press <code>Ctrl + O</code>, then <code>Enter</code> to save</p>
                   <p className="text-sm text-gray-600">Press <code>Ctrl + X</code> to exit</p>
                 </div>
@@ -583,10 +539,10 @@ export default function BlockScout() {
                       rel="noopener noreferrer"
                       className={`
                         group relative inline-flex items-center justify-center
-                        px-12 py-8 w-1/3
+                        px-8 py-5 w-1/3
                         bg-gradient-to-r from-orange-400 to-red-500 
                         hover:from-orange-500 hover:to-red-600 
-                        text-white font-bold text-3xl rounded-xl 
+                        text-white font-bold text-xl rounded-xl 
                         shadow-lg hover:shadow-xl 
                         transform hover:scale-105 
                         transition-all duration-200 ease-out 
