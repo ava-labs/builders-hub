@@ -28,32 +28,21 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 }) => {
   const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore();
   const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
-  const [balance, setBalance] = useState('');
-  const [blsProofOfPossessionState, setBlsProofOfPossessionState] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState<string | null>(null);
   const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
-  const [balanceError, setBalanceError] = useState<string | null>(null);
-  const [blsError, setBlsError] = useState<string | null>(null);
   const [evmTxHashError, setEvmTxHashError] = useState<string | null>(null);
 
   const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
 
-  // Initialize state with prop values when they become available
+  // Initialize EVM transaction hash when it becomes available
   useEffect(() => {
-    if (validatorBalance && !balance) {
-      // Balance is already in AVAX format from the parent component
-      setBalance(validatorBalance);
-    }
-    if (blsProofOfPossession && !blsProofOfPossessionState) {
-      setBlsProofOfPossessionState(blsProofOfPossession);
-    }
     if (evmTxHash && !evmTxHashState) {
       setEvmTxHashState(evmTxHash);
     }
-  }, [validatorBalance, blsProofOfPossession, evmTxHash, balance, blsProofOfPossessionState, evmTxHashState]);
+  }, [evmTxHash, evmTxHashState]);
 
   const validateAndCleanTxHash = (hash: string): `0x${string}` | null => {
     if (!hash) return null;
@@ -61,24 +50,6 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     if (!cleanHash.startsWith('0x')) return null;
     if (cleanHash.length !== 66) return null;
     return cleanHash as `0x${string}`;
-  };
-
-  const validateBalance = (value: string): string | null => {
-    if (!value.trim()) return "Balance is required";
-    const num = parseFloat(value);
-    if (isNaN(num)) return "Balance must be a valid number";
-    if (num <= 0) return "Balance must be greater than 0";
-    if (num > 1000000) return "Balance seems too large";
-    return null;
-  };
-
-  const validateBlsProofOfPossession = (value: string): string | null => {
-    if (!value.trim()) return "BLS Proof of Possession is required";
-    const cleanValue = value.trim();
-    const hexValue = cleanValue.startsWith('0x') ? cleanValue.slice(2) : cleanValue;
-    if (!/^[0-9a-fA-F]+$/.test(hexValue)) return "BLS Proof of Possession must be a valid hex string";
-    if (hexValue.length !== 192) return "BLS Proof of Possession must be 96 bytes (192 hex characters)";
-    return null;
   };
 
   // Extract warp message when transaction hash changes
@@ -168,19 +139,14 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     setErrorState(null);
     setTxSuccess(null);
     
-    // Validate all inputs
-    const balanceValidation = validateBalance(balance);
-    const blsValidation = validateBlsProofOfPossession(blsProofOfPossessionState || '');
+    // Validate required inputs
     const evmTxValidation = !evmTxHashState.trim() ? "EVM transaction hash is required" : null;
     
-    setBalanceError(balanceValidation);
-    setBlsError(blsValidation);
     setEvmTxHashError(evmTxValidation);
     
-    if (balanceValidation || blsValidation || evmTxValidation) {
-      const firstError = evmTxValidation || balanceValidation || blsValidation || "Validation error";
-      setErrorState(firstError);
-      onError(firstError);
+    if (evmTxValidation) {
+      setErrorState(evmTxValidation);
+      onError(evmTxValidation);
       return;
     }
     
@@ -189,6 +155,19 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       onError("L1 Subnet ID is required. Please select a subnet first.");
       return;
     }
+    
+    if (!validatorBalance) {
+      setErrorState("Validator balance is required. Please complete the previous step.");
+      onError("Validator balance is required. Please complete the previous step.");
+      return;
+    }
+    
+    if (!blsProofOfPossession) {
+      setErrorState("BLS Proof of Possession is required. Please complete the previous step.");
+      onError("BLS Proof of Possession is required. Please complete the previous step.");
+      return;
+    }
+    
     if (!unsignedWarpMessage) {
       setErrorState("Unsigned warp message not found. Check the transaction hash.");
       onError("Unsigned warp message not found. Check the transaction hash.");
@@ -222,18 +201,38 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       // Submit to P-Chain using registerL1Validator with all required parameters
       const pChainTxId = await coreWalletClient.registerL1Validator({
         pChainAddress: pChainAddress!,
-        balance: balance.trim(),
-        blsProofOfPossession: blsProofOfPossessionState?.trim() || '',
+        balance: validatorBalance.trim(),
+        blsProofOfPossession: blsProofOfPossession.trim(),
         signedWarpMessage: signedMessage,
       });
 
       setTxSuccess(`P-Chain transaction successful! ID: ${pChainTxId}`);
       onSuccess(pChainTxId);
     } catch (err: any) {
-      let message = err instanceof Error ? err.message : String(err);
+      let message = '';
+      
+      // Better error extraction
+      if (err instanceof Error) {
+        message = err.message;
+      } else if (typeof err === 'string') {
+        message = err;
+      } else if (err?.message) {
+        message = err.message;
+      } else if (err?.error?.message) {
+        message = err.error.message;
+      } else if (err?.reason) {
+        message = err.reason;
+      } else {
+        // Last resort - try to get some useful info
+        try {
+          message = JSON.stringify(err);
+        } catch {
+          message = 'Unknown error occurred';
+        }
+      }
       
       // Handle specific error types
-      if (message.includes('User rejected')) {
+      if (message.includes('User rejected') || message.includes('user rejected')) {
         message = 'Transaction was rejected by user';
       } else if (message.includes('insufficient funds')) {
         message = 'Insufficient funds for transaction';
@@ -243,6 +242,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         message = 'Transaction nonce error. Please try again.';
       }
       
+      console.error('P-Chain transaction error:', err);
       setErrorState(`P-Chain transaction failed: ${message}`);
       onError(`P-Chain transaction failed: ${message}`);
     } finally {
@@ -256,20 +256,6 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     setErrorState(null);
     setTxSuccess(null);
     setSignedWarpMessage(null);
-  };
-
-  const handleBalanceChange = (value: string) => {
-    setBalance(value);
-    setBalanceError(null);
-    setErrorState(null);
-    setTxSuccess(null);
-  };
-
-  const handleBlsChange = (value: string) => {
-    setBlsProofOfPossessionState(value);
-    setBlsError(null);
-    setErrorState(null);
-    setTxSuccess(null);
   };
 
   // Don't render if no subnet is selected
@@ -287,28 +273,27 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         label="EVM Transaction Hash"
         value={evmTxHashState}
         onChange={handleTxHashChange}
-        placeholder="Enter the transaction hash from step 1 (0x...)"
+        placeholder="Enter the transaction hash from step 2 (0x...)"
         disabled={isProcessing || txSuccess !== null}
         error={evmTxHashError}
       />
 
-      <Input
-        label="Initial AVAX Balance"
-        value={balance}
-        onChange={handleBalanceChange}
-        placeholder="Enter initial balance in AVAX (e.g., 0.1)"
-        disabled={isProcessing || txSuccess !== null}
-        error={balanceError}
-      />
-
-      <Input
-        label="BLS Proof of Possession"
-        value={blsProofOfPossessionState}
-        onChange={handleBlsChange}
-        placeholder="Enter BLS Proof of Possession (0x... or hex string)"
-        disabled={isProcessing || txSuccess !== null}
-        error={blsError}
-      />
+      {/* Display validator details from previous steps */}
+      {(validatorBalance || blsProofOfPossession) && (
+        <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
+          <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
+            Validator Details (from previous steps)
+          </h3>
+          <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+            {validatorBalance && (
+              <p><span className="font-medium">Initial AVAX Balance:</span> {validatorBalance} AVAX</p>
+            )}
+            {blsProofOfPossession && (
+              <p><span className="font-medium">BLS Proof of Possession:</span> {blsProofOfPossession.substring(0, 50)}...</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {unsignedWarpMessage && (
         <div className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -321,7 +306,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       
       <Button 
         onClick={handleSubmitPChainTx} 
-        disabled={isProcessing || !evmTxHashState.trim() || !balance.trim() || !blsProofOfPossessionState || !unsignedWarpMessage || txSuccess !== null}
+        disabled={isProcessing || !evmTxHashState.trim() || !validatorBalance || !blsProofOfPossession || !unsignedWarpMessage || txSuccess !== null}
       >
         {isProcessing ? 'Processing...' : 'Sign & Submit to P-Chain'}
       </Button>

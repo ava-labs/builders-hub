@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Container } from '../../../components/Container';
 import { Button } from '../../../components/Button';
 import { AlertCircle } from 'lucide-react';
@@ -12,13 +12,34 @@ import { Success } from '../../../components/Success';
 import InitiateValidatorRegistration from './InitiateValidatorRegistration';
 import SubmitPChainTxRegisterL1Validator from './SubmitPChainTxRegisterL1Validator';
 import CompleteValidatorRegistration from './CompleteValidatorRegistration';
-import { ConvertToL1Validator } from '../../../components/ValidatorListInput';
+import { ValidatorListInput, ConvertToL1Validator } from '../../../components/ValidatorListInput';
 import { useCreateChainStore } from '../../../stores/createChainStore';
 import { useWalletStore } from '../../../stores/walletStore';
+import { getPChainBalance } from '../../../coreViem/methods/getPChainbalance';
+
+// Helper functions for BigInt serialization
+const serializeValidators = (validators: ConvertToL1Validator[]) => {
+  return validators.map(validator => ({
+    ...validator,
+    validatorWeight: validator.validatorWeight.toString(),
+    validatorBalance: validator.validatorBalance.toString(),
+  }));
+};
+
+const deserializeValidators = (serializedValidators: any[]): ConvertToL1Validator[] => {
+  return serializedValidators.map(validator => ({
+    ...validator,
+    validatorWeight: BigInt(validator.validatorWeight),
+    validatorBalance: BigInt(validator.validatorBalance),
+  }));
+};
+
+const STORAGE_KEY = 'addValidator_validators';
 
 const AddValidatorExpert: React.FC = () => {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [globalSuccess, setGlobalSuccess] = useState<string | null>(null);
+  const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(false);
 
   // State for passing data between components
   const [pChainTxId, setPChainTxId] = useState<string>('');
@@ -26,13 +47,40 @@ const AddValidatorExpert: React.FC = () => {
   const [blsProofOfPossession, setBlsProofOfPossession] = useState<string>('');
   const [evmTxHash, setEvmTxHash] = useState<string>('');
 
-  // Form state
-  const { walletEVMAddress } = useWalletStore();
+  // Form state with local persistence
+  const { walletEVMAddress, pChainAddress, coreWalletClient } = useWalletStore();
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
   const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
-  const [validators, setValidators] = useState<ConvertToL1Validator[]>([]);
-  const [resetInitiateForm, setResetInitiateForm] = useState<boolean>(false);
   const [resetKey, setResetKey] = useState<number>(0);
+  const [userPChainBalanceNavax, setUserPChainBalanceNavax] = useState<bigint | null>(null);
+
+  // Local validators state with localStorage persistence
+  const [validators, setValidatorsState] = useState<ConvertToL1Validator[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const serialized = JSON.parse(saved);
+          return deserializeValidators(serialized);
+        }
+      } catch (error) {
+        console.error('Error loading validators from localStorage:', error);
+      }
+    }
+    return [];
+  });
+
+  // Wrapper function to save to localStorage
+  const setValidators = (newValidators: ConvertToL1Validator[]) => {
+    setValidatorsState(newValidators);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeValidators(newValidators)));
+      } catch (error) {
+        console.error('Error saving validators to localStorage:', error);
+      }
+    }
+  };
 
   const {
     validatorManagerAddress,
@@ -50,6 +98,31 @@ const AddValidatorExpert: React.FC = () => {
     ownerType,
     isDetectingOwnerType
   } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
+
+  // Fetch P-Chain balance when component mounts
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!pChainAddress || !coreWalletClient) return;
+
+      try {
+        const balanceValue = await getPChainBalance(coreWalletClient);
+        setUserPChainBalanceNavax(balanceValue);
+      } catch (balanceError) {
+        console.error("Error fetching P-Chain balance:", balanceError);
+      }
+    };
+
+    fetchBalance();
+  }, [pChainAddress, coreWalletClient]);
+
+  // Restore intermediate state from persisted validators data when available
+  useEffect(() => {
+    if (validators.length > 0 && !validatorBalance && !blsProofOfPossession) {
+      const validator = validators[0];
+      setValidatorBalance((Number(validator.validatorBalance) / 1e9).toString());
+      setBlsProofOfPossession(validator.nodePOP.proofOfPossession);
+    }
+  }, [validators, validatorBalance, blsProofOfPossession]);
 
   // Simple ownership check - direct computation
   const isContractOwner = useMemo(() => {
@@ -84,10 +157,11 @@ const AddValidatorExpert: React.FC = () => {
     setEvmTxHash('');
     setSubnetIdL1('');
     setValidators([]);
-    setResetInitiateForm(true);
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY);
+    }
     setResetKey(prev => prev + 1); // Force re-render of all child components
-    // Reset the flag after a brief delay to allow the child component to process it
-    setTimeout(() => setResetInitiateForm(false), 100);
   };
 
   return (
@@ -130,21 +204,41 @@ const AddValidatorExpert: React.FC = () => {
                 isOwnerContract={isOwnerContract}
                 ownerType={ownerType}
                 isDetectingOwnerType={isDetectingOwnerType}
+                isExpanded={isValidatorManagerDetailsExpanded}
+                onToggleExpanded={() => setIsValidatorManagerDetailsExpanded(!isValidatorManagerDetailsExpanded)}
               />
             </div>
           </Step>
 
           <Step>
+            <h2 className="text-lg font-semibold">Add Validator Details</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Add the validator details including node credentials and configuration.
+            </p>
+            
+            <ValidatorListInput
+              key={`validator-input-${resetKey}`}
+              validators={validators}
+              onChange={setValidators}
+              defaultAddress={pChainAddress ? pChainAddress : ""}
+              label=""
+              l1TotalInitializedWeight={!l1WeightError && contractTotalWeight > 0n ? contractTotalWeight : null}
+              userPChainBalanceNavax={userPChainBalanceNavax}
+              maxValidators={1}
+            />
+          </Step>
+
+          <Step>
             <h2 className="text-lg font-semibold">Initiate Validator Registration</h2>
             <p className="text-sm text-gray-500 mb-4">
-              Start the validator registration process by providing the validator details.
+              Submit the validator registration transaction to the blockchain.
             </p>
             
             <InitiateValidatorRegistration
+              key={`initiate-${resetKey}`}
               subnetId={subnetIdL1}
               validatorManagerAddress={validatorManagerAddress}
-              resetForm={resetInitiateForm}
-              initialValidators={validators}
+              validators={validators}
               ownershipState={ownershipState}
               contractTotalWeight={contractTotalWeight}
               l1WeightError={l1WeightError}
@@ -153,7 +247,6 @@ const AddValidatorExpert: React.FC = () => {
                 setBlsProofOfPossession(data.blsProofOfPossession);
                 setEvmTxHash(data.txHash);
                 setGlobalError(null);
-                setResetInitiateForm(false);
               }}
               onError={(message) => setGlobalError(message)}
             />           

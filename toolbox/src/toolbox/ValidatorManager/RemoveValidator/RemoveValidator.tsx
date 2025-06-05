@@ -19,6 +19,7 @@ import { Step, Steps } from "fumadocs-ui/components/steps"
 const RemoveValidatorExpert: React.FC = () => {
   const [globalError, setGlobalError] = useState<string | null>(null)
   const [globalSuccess, setGlobalSuccess] = useState<string | null>(null)
+  const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(false)
 
   // State for passing data between components
   const [initiateRemovalTxHash, setInitiateRemovalTxHash] = useState<string>("")
@@ -131,6 +132,8 @@ const RemoveValidatorExpert: React.FC = () => {
                 isOwnerContract={isOwnerContract}
                 ownerType={ownerType}
                 isDetectingOwnerType={isDetectingOwnerType}
+                isExpanded={isValidatorManagerDetailsExpanded}
+                onToggleExpanded={() => setIsValidatorManagerDetailsExpanded(!isValidatorManagerDetailsExpanded)}
               />
             </div>
           </Step>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useViemChainStore } from '../../../stores/toolboxStore';
 import { useWalletStore } from '../../../stores/walletStore';
 import { Button } from '../../../components/Button';
-import { ValidatorListInput, ConvertToL1Validator } from '../../../components/ValidatorListInput';
+import { ConvertToL1Validator } from '../../../components/ValidatorListInput';
 import { validateStakePercentage } from '../../../coreViem/hooks/getTotalStake';
 import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/ValidatorManager.json';
 import { AlertCircle } from 'lucide-react';
@@ -17,6 +17,7 @@ import { MultisigOption } from '../../../components/MultisigOption';
 interface InitiateValidatorRegistrationProps {
   subnetId: string;
   validatorManagerAddress: string;
+  validators: ConvertToL1Validator[];
   onSuccess: (data: {
     txHash: `0x${string}`;
     nodeId: string;
@@ -27,8 +28,6 @@ interface InitiateValidatorRegistrationProps {
     blsProofOfPossession: string;
   }) => void;
   onError: (message: string) => void;
-  resetForm?: boolean;
-  initialValidators?: ConvertToL1Validator[];
   ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
   contractTotalWeight: bigint;
   l1WeightError: string | null;
@@ -37,34 +36,19 @@ interface InitiateValidatorRegistrationProps {
 const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps> = ({
   subnetId,
   validatorManagerAddress,
+  validators,
   onSuccess,
   onError,
-  resetForm,
-  initialValidators,
   ownershipState,
   contractTotalWeight,
-  l1WeightError,
 }) => {
   const { coreWalletClient, publicClient, pChainAddress } = useWalletStore();
   const viemChain = useViemChainStore();
 
-  const [validators, setValidators] = useState<ConvertToL1Validator[]>(initialValidators || []);
-  const [componentKey, setComponentKey] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
-  const [rawPChainBalanceNavax, setRawPChainBalanceNavax] = useState<bigint | null>(null);
   const [balance, setBalance] = useState("0");
-
-  useEffect(() => {
-    if (resetForm) {
-      setValidators(initialValidators || []);
-      setComponentKey(prevKey => prevKey + 1);
-      setIsProcessing(false);
-      setErrorState(null);
-      setTxSuccess(null);
-    }
-  }, [resetForm, initialValidators]);
 
   // Fetch P-Chain balance when component mounts
   useEffect(() => {
@@ -75,7 +59,6 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         const balanceValue = await getPChainBalance(coreWalletClient);
         const formattedBalance = formatAvaxBalance(balanceValue);
         setBalance(formattedBalance);
-        setRawPChainBalanceNavax(balanceValue);
       } catch (balanceError) {
         console.error("Error fetching balance:", balanceError);
       }
@@ -329,6 +312,15 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     );
   }
 
+  // Don't render if no validators are added
+  if (validators.length === 0) {
+    return (
+      <div className="text-sm text-zinc-500 dark:text-zinc-400">
+        Please add a validator in the previous step.
+      </div>
+    );
+  }
+
   // Prepare args for multisig
   const getMultisigArgs = () => {
     if (validators.length === 0 || !pChainAddress) return [];
@@ -354,18 +346,6 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
   return (
     <div className="space-y-4">
-      <ValidatorListInput
-        key={`validator-input-${componentKey}`}
-        validators={validators}
-        onChange={setValidators}
-        defaultAddress={pChainAddress ? pChainAddress : ""}
-        label="Add New Validator"
-        description="Add a validator to your L1 by pasting the JSON response from your node"
-        l1TotalInitializedWeight={!l1WeightError && contractTotalWeight > 0n ? contractTotalWeight : null}
-        userPChainBalanceNavax={rawPChainBalanceNavax}
-        maxValidators={1}
-      />
-      
       {ownershipState === 'contract' && (
         <MultisigOption
           validatorManagerAddress={validatorManagerAddress}
