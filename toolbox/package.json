@@ -69,9 +69,11 @@
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.14.0",
     "postcss": "^8.5.2",
+    "process": "^0.11.10",
     "tailwindcss": "^4",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.18.2",
+    "util": "^0.12.5",
     "vite": "^6.1.6",
     "vite-plugin-dts": "^4.5.0"
   }
