@@ -12,7 +12,6 @@ import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "../Nodes/AvalanchegoDocker";
 import { useL1ByChainId } from "../../stores/l1ListStore";
 import { Success } from "../../components/Success";
-import { Button } from "../../components/Button";
 
 const dockerComposeInstallInstructions: Record<string, string> = {
   'Ubuntu/Debian': `# Install Docker Compose v2 plugin
