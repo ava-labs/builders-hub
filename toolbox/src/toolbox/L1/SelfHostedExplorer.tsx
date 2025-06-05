@@ -12,6 +12,7 @@ import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "../Nodes/AvalanchegoDocker";
 import { useL1ByChainId } from "../../stores/l1ListStore";
 import { Success } from "../../components/Success";
+import { Button } from "../../components/Button";
 
 
 
@@ -424,23 +425,18 @@ export default function BlockScout() {
 
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-semibold mb-2">1. Create the file:</h4>
-                  <DynamicCodeBlock lang="bash" code="touch ~/compose.yml" />
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">2. Open the file in a text editor:</h4>
+                  <h4 className="font-semibold mb-2">1. Open the file in a text editor:</h4>
                   <DynamicCodeBlock lang="bash" code="nano ~/compose.yml" />
-                  <p className="text-sm text-gray-600 mt-1">This will open the nano text editor. You can also use other editors like vim or your preferred text editor.</p>
+                  <p className="text-sm text-gray-600 mt-1">This will create and open the file in the nano text editor. You can also use other editors like vim or your preferred text editor.</p>
                 </div>
 
                 <div>
-                  <h4 className="font-semibold mb-2">3. Paste the following content into the file:</h4>
+                  <h4 className="font-semibold mb-2">2. Paste the following content into the file:</h4>
                   <DynamicCodeBlock lang="yaml" code={composeYaml} />
                 </div>
 
                 <div>
-                  <h4 className="font-semibold mb-2">4. Save and exit (if using nano):</h4>
+                  <h4 className="font-semibold mb-2">3. Save and exit (if using nano):</h4>
                   <p className="text-sm text-gray-600">Press <code>Ctrl + O</code>, then <code>Enter</code> to save</p>
                   <p className="text-sm text-gray-600">Press <code>Ctrl + X</code> to exit</p>
                 </div>
@@ -533,34 +529,19 @@ export default function BlockScout() {
                     </span>
                   </label>
                   <div className="flex justify-center">
-                    <a
-                      href={`https://${domain || "your-domain.com"}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`
-                        group relative inline-flex items-center justify-center
-                        px-8 py-5 w-1/3
-                        bg-gradient-to-r from-orange-400 to-red-500 
-                        hover:from-orange-500 hover:to-red-600 
-                        text-white font-bold text-xl rounded-xl 
-                        shadow-lg hover:shadow-xl 
-                        transform hover:scale-105 
-                        transition-all duration-200 ease-out 
-                        no-underline
-                        ${!(servicesUpChecked && bootstrappedChecked) ? 'opacity-50 pointer-events-none' : ''}
-                      `}
-                      style={{ textDecoration: 'none' }}
-                      onClick={(e) => {
+                    <Button
+                      onClick={() => {
                         if (!servicesUpChecked || !bootstrappedChecked) {
-                          e.preventDefault();
                           return;
                         }
                         setExplorerReady(true);
+                        window.open(`https://${domain || "your-domain.com"}`, '_blank', 'noopener,noreferrer');
                       }}
+                      disabled={!(servicesUpChecked && bootstrappedChecked)}
+                      className="w-1/3"
                     >
-                      <span className="relative z-10">Launch Explorer</span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-orange-300 to-red-400 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-200" />
-                    </a>
+                      Launch Explorer
+                    </Button>
                   </div>
                   <div className="mt-6">
                     <img
