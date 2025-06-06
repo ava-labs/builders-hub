@@ -305,7 +305,7 @@ export default function BlockScout() {
         tokenSymbol,
         rpcUrl,
         includeAvago: rpcOption === 'local',
-        isTestnet
+        isTestnet: isTestnet ?? false
       }));
     } else {
       setCaddyfile("");
