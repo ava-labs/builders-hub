@@ -76,7 +76,7 @@ export default function ConvertToL1() {
     return (
         <Container
             title="Convert Subnet to L1"
-            description="This will convert your subnet to an L1 chain."
+            description="This will convert your Subnet to an L1."
         >
             <div className="space-y-4">
                 <SelectSubnetId

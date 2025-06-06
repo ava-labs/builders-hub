@@ -39,10 +39,10 @@ export default function CreateChain() {
 
     const [isCreatingSubnet, setIsCreatingSubnet] = useState(false);
     const [createdSubnetId, setCreatedSubnetId] = useState("");
-    
+
     const [isCreatingChain, setIsCreatingChain] = useState(false);
     const [createdChainId, setCreatedChainId] = useState("");
-    
+
     const [localGenesisData, setLocalGenesisData] = useState<string>(genesisData);
     const [localChainName, setLocalChainName] = useState<string>(generateRandomName());
 
@@ -96,7 +96,7 @@ export default function CreateChain() {
     return (
         <Container
             title="Create Chain"
-            description="Create a new blockchain with custom parameters and genesis data."
+            description="Create a subnet and add a new blockchain with custom parameters and genesis data."
         >
             <Steps>
                 <Step>
@@ -111,6 +111,7 @@ export default function CreateChain() {
                             disabled={true}
                             type="text"
                         />
+                        
                         <Button
                             onClick={handleCreateSubnet}
                             loading={isCreatingSubnet}
@@ -118,13 +119,14 @@ export default function CreateChain() {
                         >
                             Create Subnet
                         </Button>
+
+                        {createdSubnetId && (
+                            <Success
+                                label="Subnet Created Successfully"
+                                value={createdSubnetId}
+                            />
+                        )}
                     </div>
-                    {createdSubnetId && (
-                        <Success
-                            label="Subnet Created Successfully"
-                            value={createdSubnetId}
-                        />
-                    )}
                 </Step>
                 <Step>
                     <h2 className="text-lg font-semibold">Step 2: Create a Chain</h2>
@@ -173,17 +175,17 @@ export default function CreateChain() {
 
                     <GenesisBuilder genesisData={localGenesisData} setGenesisData={setLocalGenesisData} />
 
-                    <Button 
+                    <Button
                         onClick={handleCreateChain}
-                        loading={isCreatingChain} 
+                        loading={isCreatingChain}
                         loadingText="Creating Chain..."
-                        >
+                    >
                         Create Chain
                     </Button>
                 </Step>
             </Steps>
-            {createdChainId && <Success 
-                label="Chain Created Successfully" 
+            {createdChainId && <Success
+                label="Chain Created Successfully"
                 value={createdChainId}
             />}
         </Container>

@@ -38,6 +38,11 @@ const config = {
         destination: '/hackathons/26bfce9b-4d44-4d40-8fbe-7903e76d48fa',
         permanent: true,
       },
+      {
+        source: '/tools/l1-launcher',
+        destination: '/academy/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1',
+        permanent: true,
+      },
       // Redirects from old VM paths
       {
         source: '/docs/virtual-machines/default-precompiles/index',
