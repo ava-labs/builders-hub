@@ -121,6 +121,10 @@ const AddValidatorExpert: React.FC = () => {
       const validator = validators[0];
       setValidatorBalance((Number(validator.validatorBalance) / 1e9).toString());
       setBlsProofOfPossession(validator.nodePOP.proofOfPossession);
+    } else if (validators.length === 0) {
+      // Clear values when all validators are removed
+      setValidatorBalance('');
+      setBlsProofOfPossession('');
     }
   }, [validators, validatorBalance, blsProofOfPossession]);
 
