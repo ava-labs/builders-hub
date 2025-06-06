@@ -12,6 +12,7 @@ import { Step, Steps } from "fumadocs-ui/components/steps";
 import generateName from 'boring-name-generator'
 import { Success } from "../../components/Success";
 import { RadioGroup } from "../../components/RadioGroup";
+import InputSubnetId from "../../components/InputSubnetId";
 
 export const EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
 
@@ -39,16 +40,20 @@ export default function CreateChain() {
 
     const [isCreatingSubnet, setIsCreatingSubnet] = useState(false);
     const [createdSubnetId, setCreatedSubnetId] = useState("");
-    
+
     const [isCreatingChain, setIsCreatingChain] = useState(false);
     const [createdChainId, setCreatedChainId] = useState("");
-    
+
     const [localGenesisData, setLocalGenesisData] = useState<string>(genesisData);
     const [localChainName, setLocalChainName] = useState<string>(generateRandomName());
 
     const [showVMIdInput, setShowVMIdInput] = useState<boolean>(false);
     const [vmId, setVmId] = useState<string>(EVM_VM_ID);
 
+    // Wrapper function to handle subnet ID changes properly
+    const handleSubnetIdChange = (newSubnetId: string) => {
+        setSubnetID(newSubnetId);
+    };
 
     async function handleCreateSubnet() {
         setIsCreatingSubnet(true);
@@ -120,10 +125,12 @@ export default function CreateChain() {
                         </Button>
                     </div>
                     {createdSubnetId && (
-                        <Success
-                            label="Subnet Created Successfully"
-                            value={createdSubnetId}
-                        />
+                        <div className="mt-4">
+                            <Success
+                                label="Subnet Created Successfully"
+                                value={createdSubnetId}
+                            />
+                        </div>
                     )}
                 </Step>
                 <Step>
@@ -132,12 +139,11 @@ export default function CreateChain() {
                         Enter the parameters for your new chain.
                     </p>
 
-                    <Input
+                    <InputSubnetId
+                        id="create-chain-subnet-id"
                         label="Subnet ID"
                         value={subnetId}
-                        type="text"
-                        onChange={setSubnetID}
-                        placeholder="Create a Subnet in Step 1 or enter a SubnetID."
+                        onChange={handleSubnetIdChange}
                     />
 
                     <Input
@@ -173,17 +179,17 @@ export default function CreateChain() {
 
                     <GenesisBuilder genesisData={localGenesisData} setGenesisData={setLocalGenesisData} />
 
-                    <Button 
+                    <Button
                         onClick={handleCreateChain}
-                        loading={isCreatingChain} 
+                        loading={isCreatingChain}
                         loadingText="Creating Chain..."
-                        >
+                    >
                         Create Chain
                     </Button>
                 </Step>
             </Steps>
-            {createdChainId && <Success 
-                label="Chain Created Successfully" 
+            {createdChainId && <Success
+                label="Chain Created Successfully"
                 value={createdChainId}
             />}
         </Container>

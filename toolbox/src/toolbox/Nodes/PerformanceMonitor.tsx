@@ -9,6 +9,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { BlockWatcher, BlockInfo } from "./BlockWatcher";
 import { ChainInfo } from "./chainInfo";
 import { RPCURLInput } from "../../components/RPCURLInput";
+import InputSubnetId from "../../components/InputSubnetId";
 
 interface BucketedData {
     transactions: number;
@@ -19,7 +20,7 @@ interface BucketedData {
 export default function PerformanceMonitor() {
     const [nodeRpcUrl, setNodeRpcUrl] = useState('');
     const [chainID, setChainID] = useState('');
-    const [subnetId, setSubnetID] = useState('');
+    const [subnetId, setSubnetId] = useState('');
 
 
     const [evmChainRpcUrl, setEvmChainRpcUrl] = useState('');
@@ -260,7 +261,6 @@ export default function PerformanceMonitor() {
                         label="RPC URL excluding /ext/bc/..."
                         value={nodeRpcUrl}
                         onChange={setNodeRpcUrl}
-                        disabled={isMonitoring}
                     />
                     <Input
                         type="text"
@@ -275,12 +275,9 @@ export default function PerformanceMonitor() {
                         value={evmChainRpcUrl}
                         disabled={true}
                     />
-                    <Input
-                        type="text"
-                        label="Subnet ID"
+                    <InputSubnetId
                         value={subnetId}
-                        onChange={setSubnetID}
-                        disabled={isMonitoring}
+                        onChange={setSubnetId}
                     />
 
                     <Select

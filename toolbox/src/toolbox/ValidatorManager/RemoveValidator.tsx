@@ -180,16 +180,27 @@ export default function RemoveValidator() {
             throw new Error("Warp message is empty. Retrying might be needed.")
           }
 
-          const { signedMessage: signedMessageResult } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
-            network: networkName,
-            signatureAggregatorRequest: {
-              message: currentUnsignedWarpMessage,
-              signingSubnetId: signingSubnetId || subnetId,
-              quorumPercentage: 67,
-            },
-          })
+          const handleAggregateSignatures = async () => {
+            try {
+              const { signedMessage: signedMessageResult } = await new AvaCloudSDK({
+                serverURL: "https://api.avax.network",
+                network: networkName,
+              }).data.signatureAggregator.aggregate({
+                network: networkName,
+                signatureAggregatorRequest: {
+                  message: currentUnsignedWarpMessage,
+                  signingSubnetId: signingSubnetId || subnetId,
+                  quorumPercentage: 67,
+                }
+              });
+              return signedMessageResult;
+            } catch (error) {
+              console.error("Error aggregating signatures:", error);
+              throw error;
+            }
+          };
 
-          console.log("Signed message:", signedMessageResult)
+          const signedMessageResult = await handleAggregateSignatures()
           setSignedWarpMessage(signedMessageResult)
           currentSignedWarpMessage = signedMessageResult;
           updateStepStatus("signMessage", "success")
@@ -259,14 +270,17 @@ export default function RemoveValidator() {
           console.log("Remove Validator Message Hex:", bytesToHex(removeValidatorMessage))
           console.log("Justification:", justification)
 
-          const signature = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
+          const signature = await new AvaCloudSDK({
+            serverURL: "https://api.avax.network",
+            network: networkName,
+          }).data.signatureAggregator.aggregate({
             network: networkName,
             signatureAggregatorRequest: {
               message: bytesToHex(removeValidatorMessage),
               justification: bytesToHex(justification),
               signingSubnetId: signingSubnetId || subnetId,
               quorumPercentage: 67,
-            },
+            }
           })
           console.log("Signature:", signature)
           setPChainSignature(signature.signedMessage)
@@ -427,7 +441,7 @@ export default function RemoveValidator() {
                 </button>
               )}
             </div>
-            
+
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2 italic">Click on any step to retry from that point</p>
 
             {stepKeys.map((stepKey) => (

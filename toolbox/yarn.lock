@@ -25,10 +25,10 @@
     "@jridgewell/gen-mapping" "^0.3.5"
     "@jridgewell/trace-mapping" "^0.3.24"
 
-"@avalabs/avacloud-sdk@^0.9.0":
-  version "0.9.0"
-  resolved "https://registry.yarnpkg.com/@avalabs/avacloud-sdk/-/avacloud-sdk-0.9.0.tgz#eeb896c44ba429476286182eecf5c07a4c036ef5"
-  integrity sha512-APMOY929S5EyGQ43ws2HuqOqM97tWYKeNGiPS/08uAXR36zz6rMaocQrrcxL7o8QJKWPncuVnXW8E09Ob7H2AA==
+"@avalabs/avacloud-sdk@^0.12.1":
+  version "0.12.1"
+  resolved "https://registry.yarnpkg.com/@avalabs/avacloud-sdk/-/avacloud-sdk-0.12.1.tgz#5edfc63bcdf9c8204abdbf8828fad2134700b036"
+  integrity sha512-dWkij4DoDGefspDTyu2+agDreA39Z8f6TYWBzxATBwxcV8serdMK4IZ6cBdEUYPcgczHDy9eIEGlDhLz1uBHpQ==
   dependencies:
     json-canonicalize "^1.0.6"
 
