@@ -14,6 +14,9 @@ import { useL1ByChainId } from "../../stores/l1ListStore";
 import { Success } from "../../components/Success";
 import { Button } from "../../components/Button";
 import { validateDomainOrIP, nipify } from "../../components/IPValidation";
+import { RadioGroup } from "../../components/RadioGroup";
+import { RPCURLInput } from "../../components/RPCURLInput";
+import { useWalletStore } from "../../stores/walletStore";
 
 
 
@@ -25,7 +28,14 @@ caddy         caddy:latest                          "caddy run --config …"   c
 db            postgres:15                           "docker-entrypoint.s…"   db            1 minute ago   Up 1 minute   0.0.0.0:7432->5432/tcp, :::7432->5432/tcp
 redis-db      redis:alpine                          "docker-entrypoint.s…"   redis-db      1 minute ago   Up 1 minute   6379/tcp`;
 
-const genCaddyfile = (domain: string) => `
+const dockerComposePsOutputNoAvago = `NAME          IMAGE                                 COMMAND                  SERVICE       CREATED        STATUS        PORTS
+backend       blockscout/blockscout:6.10.1          "sh -c 'bin/blocksco…"   backend       1 minute ago   Up 1 minute   
+bc_frontend   ghcr.io/blockscout/frontend:v1.37.4   "./entrypoint.sh nod…"   bc_frontend   1 minute ago   Up 1 minute   3000/tcp
+caddy         caddy:latest                          "caddy run --config …"   caddy         1 minute ago   Up 1 minute   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp, 443/udp, 2019/tcp
+db            postgres:15                           "docker-entrypoint.s…"   db            1 minute ago   Up 1 minute   0.0.0.0:7432->5432/tcp, :::7432->5432/tcp
+redis-db      redis:alpine                          "docker-entrypoint.s…"   redis-db      1 minute ago   Up 1 minute   6379/tcp`;
+
+const genCaddyfile = (domain: string,) => `
 ${nipify(domain)} {
     # Backend API routes
     handle /api* {
@@ -46,11 +56,6 @@ ${nipify(domain)} {
     
     handle /metrics {
         reverse_proxy backend:4000
-    }
-    
-    # Avago blockchain proxy
-    handle /ext/bc/* {
-        reverse_proxy avago:9650
     }
     
     # Shared files with directory browsing
@@ -74,11 +79,14 @@ interface DockerComposeConfig {
   networkShortName: string;
   tokenName: string;
   tokenSymbol: string;
+  rpcUrl: string;
+  includeAvago: boolean;
+  isTestnet: boolean;
 }
 
 const genDockerCompose = (config: DockerComposeConfig) => {
   const domain = nipify(config.domain);
-  return `
+  const composeConfig = `
 services:
   redis-db:
     image: 'redis:alpine'
@@ -123,8 +131,8 @@ services:
     command: sh -c 'bin/blockscout eval \"Elixir.Explorer.ReleaseTasks.create_and_migrate()\" && bin/blockscout start'
     environment:
       ETHEREUM_JSONRPC_VARIANT: geth
-      ETHEREUM_JSONRPC_HTTP_URL: http://avago:9650/ext/bc/${config.blockchainId}/rpc 
-      ETHEREUM_JSONRPC_TRACE_URL: http://avago:9650/ext/bc/${config.blockchainId}/rpc 
+      ETHEREUM_JSONRPC_HTTP_URL: ${config.rpcUrl} 
+      ETHEREUM_JSONRPC_TRACE_URL: ${config.rpcUrl} 
       DATABASE_URL: postgresql://postgres:ceWb1MeLBEeOIfk65gU8EjF8@db:5432/blockscout # TODO: default, please change
       SECRET_KEY_BASE: 56NtB48ear7+wMSf0IQuWDAAazhpb31qyc7GiyspBP2vh7t5zlCsF5QDv76chXeN # TODO: default, please change
       NETWORK: EVM 
@@ -164,7 +172,7 @@ services:
       NEXT_PUBLIC_NETWORK_NAME: ${config.networkName}
       NEXT_PUBLIC_NETWORK_SHORT_NAME: ${config.networkShortName}
       NEXT_PUBLIC_NETWORK_ID: 66666 # TODO: change to dynamic
-      NEXT_PUBLIC_NETWORK_RPC_URL: https://${domain}/ext/bc/${config.blockchainId}/rpc
+      NEXT_PUBLIC_NETWORK_RPC_URL: ${config.includeAvago ? `https://${domain}/ext/bc/${config.blockchainId}/rpc` : config.rpcUrl}
       NEXT_PUBLIC_NETWORK_CURRENCY_NAME: ${config.tokenName}
       NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: ${config.tokenSymbol}
       NEXT_PUBLIC_NETWORK_CURRENCY_DECIMALS: 18 
@@ -192,7 +200,9 @@ services:
       - caddy_config:/config
     ports:
       - "80:80"
-      - "443:443"
+      - "443:443"`;
+
+  const avalancheGoService = config.includeAvago ? `
   avago:
     image: avaplatform/subnet-evm:${versions['avaplatform/subnet-evm']}
     container_name: avago
@@ -205,6 +215,7 @@ services:
     environment:
       AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true"
       AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns"
+      AVAGO_NETWORK_ID: ${config.isTestnet ? "fuji" : "mainnet"}
       AVAGO_HTTP_HOST: "0.0.0.0"
       AVAGO_TRACK_SUBNETS: "${config.subnetId}" 
       AVAGO_HTTP_ALLOWED_HOSTS: "*"
@@ -213,7 +224,9 @@ services:
       driver: json-file
       options:
         max-size: "50m"
-        max-file: "3"
+        max-file: "3"` : '';
+
+  return `${composeConfig}${avalancheGoService}
 
 volumes:
   postgres_data:
@@ -236,6 +249,10 @@ export default function BlockScout() {
   const [explorerReady, setExplorerReady] = useState(false);
   const [servicesUpChecked, setServicesUpChecked] = useState(false);
   const [bootstrappedChecked, setBootstrappedChecked] = useState(false);
+  const [rpcOption, setRpcOption] = useState<'local' | 'existing'>('local');
+  const [existingRpcUrl, setExistingRpcUrl] = useState('');
+  const { isTestnet } = useWalletStore()
+
 
   const getL1Info = useL1ByChainId(chainId);
 
@@ -267,8 +284,17 @@ export default function BlockScout() {
   useEffect(() => {
     let ready = !!domain && !!subnetId && !!networkName && !!networkShortName && !!tokenName && !!tokenSymbol && !domainError && !subnetIdError
 
+    // Additional validation for existing RPC option
+    if (rpcOption === 'existing') {
+      ready = ready && !!existingRpcUrl;
+    }
+
     if (ready) {
       setCaddyfile(genCaddyfile(domain));
+      const rpcUrl = rpcOption === 'existing'
+        ? existingRpcUrl
+        : `http://avago:9650/ext/bc/${chainId}/rpc`;
+
       setComposeYaml(genDockerCompose({
         domain,
         subnetId,
@@ -276,13 +302,16 @@ export default function BlockScout() {
         networkName,
         networkShortName,
         tokenName,
-        tokenSymbol
+        tokenSymbol,
+        rpcUrl,
+        includeAvago: rpcOption === 'local',
+        isTestnet: isTestnet ?? false
       }));
     } else {
       setCaddyfile("");
       setComposeYaml("");
     }
-  }, [domain, subnetId, chainId, networkName, networkShortName, tokenName, tokenSymbol, domainError, subnetIdError]);
+  }, [domain, subnetId, chainId, networkName, networkShortName, tokenName, tokenSymbol, domainError, subnetIdError, rpcOption, existingRpcUrl]);
 
   return (
     <>
@@ -333,6 +362,40 @@ export default function BlockScout() {
 
           {subnetId && (
             <>
+              <Step>
+                <h3 className="text-xl font-bold mb-4">RPC Node Setup</h3>
+                <p>Choose how you want to set up the RPC node for your explorer:</p>
+
+                <div className="space-y-4 mt-4">
+                  <RadioGroup
+                    items={[
+                      {
+                        value: 'local',
+                        label: 'Spin up a new AvalancheGo node'
+                      },
+                      {
+                        value: 'existing',
+                        label: 'Use Existing RPC URL'
+                      }
+                    ]}
+                    value={rpcOption}
+                    onChange={(value) => setRpcOption(value as 'local' | 'existing')}
+                    className="space-y-4"
+                  />
+
+                  {rpcOption === 'existing' && (
+                    <div className="ml-6 mt-4">
+                      <RPCURLInput
+                        value={existingRpcUrl}
+                        onChange={setExistingRpcUrl}
+                        helperText="Enter the full RPC URL (e.g. https://your-node.com/ext/bc/blockchain-id/rpc)"
+                        placeholder="https://your-node.com/ext/bc/blockchain-id/rpc"
+                      />
+                    </div>
+                  )}
+                </div>
+              </Step>
+
               <Step>
                 <h3 className="text-xl font-bold mb-4">Domain</h3>
                 <p>Enter your domain name or server's public IP address. For a free domain, use your server's public IP, we will automatically add .sslip.io for the generated files.</p>
@@ -450,24 +513,26 @@ export default function BlockScout() {
                   <h4 className="font-semibold mb-2">Check if everything is running:</h4>
                   <DynamicCodeBlock lang="bash" code="docker compose ps" />
                   <p className="text-sm text-gray-600 mt-1">You should see output similar to this:</p>
-                  <DynamicCodeBlock lang="bash" code={dockerComposePsOutput} />
+                  <DynamicCodeBlock lang="bash" code={rpcOption === 'local' ? dockerComposePsOutput : dockerComposePsOutputNoAvago} />
                   <p className="text-sm text-gray-600 mt-1">All services should show "Up" in the STATUS column. If any service shows "Exit" or keeps restarting, check its logs.</p>
                 </div>
 
-                <div>
-                  <h4 className="font-semibold mb-2">Monitor the AvalancheGo node sync progress:</h4>
-                  <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
-                  <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                    <h5 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">⚠️ Important Note About Sync Time</h5>
-                    <p className="text-amber-700 dark:text-amber-300">
-                      The AvalancheGo node needs to sync with the network before the explorer can function properly. For testnet, this process typically takes 5-10 minutes, for mainnet, it takes 1-2 hours. You'll see progress updates in the logs showing the syncing progress with the p-chain (fetching blocks & executing blocks).
+                {rpcOption === 'local' && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Monitor the AvalancheGo node sync progress:</h4>
+                    <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
+                    <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                      <h5 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">⚠️ Important Note About Sync Time</h5>
+                      <p className="text-amber-700 dark:text-amber-300">
+                        The AvalancheGo node needs to sync with the network before the explorer can function properly. For testnet, this process typically takes 5-10 minutes, for mainnet, it takes 1-2 hours. You'll see progress updates in the logs showing the syncing progress with the p-chain (fetching blocks & executing blocks).
+                      </p>
+                    </div>
+
+                    <p className="text-sm text-gray-600 mt-4">
+                      Press <code>Ctrl+C</code> to stop watching logs.
                     </p>
                   </div>
-
-                  <p className="text-sm text-gray-600 mt-4">
-                    Press <code>Ctrl+C</code> to stop watching logs.
-                  </p>
-                </div>
+                )}
 
                 <div>
                   <h4 className="font-semibold mb-2">Stop everything and clean up:</h4>
@@ -496,40 +561,49 @@ export default function BlockScout() {
                       All services are <span className="font-bold">UP</span> when running <code>docker compose ps</code>
                     </span>
                   </label>
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={bootstrappedChecked}
-                      onChange={e => setBootstrappedChecked(e.target.checked)}
-                      className="accent-blue-600 w-5 h-5 mt-1"
-                    />
-                    <span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
-                        AvalancheGo node is fully bootstrapped
+                  {rpcOption === 'local' && (
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={bootstrappedChecked}
+                        onChange={e => setBootstrappedChecked(e.target.checked)}
+                        className="accent-blue-600 w-5 h-5 mt-1"
+                      />
+                      <span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                          AvalancheGo node is fully bootstrapped
+                        </span>
+                        <div className="space-y-4 text-gray-700 dark:text-gray-300 mt-4">
+                          <p>
+                            During the bootstrapping process, the following command will return a <b>404 page not found</b> error:
+                          </p>
+
+                          <DynamicCodeBlock lang="bash" code={`curl -X POST --data '{ \n  \"jsonrpc\":\"2.0\", \"method\":\"eth_chainId\", \"params\":[], \"id\":1 \n}' -H 'content-type:application/json;' \\\nhttp://127.0.0.1:9650/ext/bc/${chainId}/rpc`} />
+
+                          <p>
+                            Once bootstrapping is complete, it will return a response like <code>{'{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"...\"}'}</code>.
+                          </p>
+                        </div>
                       </span>
-                      <div className="space-y-4 text-gray-700 dark:text-gray-300 mt-4">
-                        <p>
-                          During the bootstrapping process, the following command will return a <b>404 page not found</b> error:
-                        </p>
-
-                        <DynamicCodeBlock lang="bash" code={`curl -X POST --data '{ \n  \"jsonrpc\":\"2.0\", \"method\":\"eth_chainId\", \"params\":[], \"id\":1 \n}' -H 'content-type:application/json;' \\\nhttp://127.0.0.1:9650/ext/bc/${chainId}/rpc`} />
-
-                        <p>
-                          Once bootstrapping is complete, it will return a response like <code>{'{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"...\"}'}</code>.
-                        </p>
-                      </div>
-                    </span>
-                  </label>
+                    </label>
+                  )}
                   <div className="flex justify-center">
                     <Button
                       onClick={() => {
-                        if (!servicesUpChecked || !bootstrappedChecked) {
+                        // For self-hosted, require both checks. For existing RPC, only require services check.
+                        const allChecksComplete = rpcOption === 'local'
+                          ? (servicesUpChecked && bootstrappedChecked)
+                          : servicesUpChecked;
+
+                        if (!allChecksComplete) {
                           return;
                         }
                         setExplorerReady(true);
-                        window.open(`https://${domain || "your-domain.com"}`, '_blank', 'noopener,noreferrer');
+                        window.open(`https://${domain}`, '_blank', 'noopener,noreferrer');
                       }}
-                      disabled={!(servicesUpChecked && bootstrappedChecked)}
+                      disabled={rpcOption === 'local'
+                        ? !(servicesUpChecked && bootstrappedChecked)
+                        : !servicesUpChecked}
                       className="w-1/3"
                     >
                       Launch Explorer
