@@ -16,6 +16,7 @@ import { Button } from "../../components/Button";
 import { validateDomainOrIP, nipify } from "../../components/IPValidation";
 import { RadioGroup } from "../../components/RadioGroup";
 import { RPCURLInput } from "../../components/RPCURLInput";
+import { useWalletStore } from "../../stores/walletStore";
 
 
 
@@ -80,6 +81,7 @@ interface DockerComposeConfig {
   tokenSymbol: string;
   rpcUrl: string;
   includeAvago: boolean;
+  isTestnet: boolean;
 }
 
 const genDockerCompose = (config: DockerComposeConfig) => {
@@ -213,6 +215,7 @@ services:
     environment:
       AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true"
       AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns"
+      AVAGO_NETWORK_ID: ${config.isTestnet ? "fuji" : "mainnet"}
       AVAGO_HTTP_HOST: "0.0.0.0"
       AVAGO_TRACK_SUBNETS: "${config.subnetId}" 
       AVAGO_HTTP_ALLOWED_HOSTS: "*"
@@ -248,6 +251,8 @@ export default function BlockScout() {
   const [bootstrappedChecked, setBootstrappedChecked] = useState(false);
   const [rpcOption, setRpcOption] = useState<'local' | 'existing'>('local');
   const [existingRpcUrl, setExistingRpcUrl] = useState('');
+  const { isTestnet } = useWalletStore()
+
 
   const getL1Info = useL1ByChainId(chainId);
 
@@ -299,7 +304,8 @@ export default function BlockScout() {
         tokenName,
         tokenSymbol,
         rpcUrl,
-        includeAvago: rpcOption === 'local'
+        includeAvago: rpcOption === 'local',
+        isTestnet
       }));
     } else {
       setCaddyfile("");
