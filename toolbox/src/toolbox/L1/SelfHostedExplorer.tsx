@@ -246,7 +246,7 @@ export default function BlockScout() {
   const [explorerReady, setExplorerReady] = useState(false);
   const [servicesUpChecked, setServicesUpChecked] = useState(false);
   const [bootstrappedChecked, setBootstrappedChecked] = useState(false);
-  const [rpcOption, setRpcOption] = useState<'self-hosted' | 'existing'>('self-hosted');
+  const [rpcOption, setRpcOption] = useState<'local' | 'existing'>('local');
   const [existingRpcUrl, setExistingRpcUrl] = useState('');
 
   const getL1Info = useL1ByChainId(chainId);
@@ -299,7 +299,7 @@ export default function BlockScout() {
         tokenName,
         tokenSymbol,
         rpcUrl,
-        includeAvago: rpcOption === 'self-hosted'
+        includeAvago: rpcOption === 'local'
       }));
     } else {
       setCaddyfile("");
@@ -364,7 +364,7 @@ export default function BlockScout() {
                   <RadioGroup
                     items={[
                       {
-                        value: 'self-hosted',
+                        value: 'local',
                         label: 'Spin up a new AvalancheGo node'
                       },
                       {
@@ -373,7 +373,7 @@ export default function BlockScout() {
                       }
                     ]}
                     value={rpcOption}
-                    onChange={(value) => setRpcOption(value as 'self-hosted' | 'existing')}
+                    onChange={(value) => setRpcOption(value as 'local' | 'existing')}
                     className="space-y-4"
                   />
 
@@ -507,11 +507,11 @@ export default function BlockScout() {
                   <h4 className="font-semibold mb-2">Check if everything is running:</h4>
                   <DynamicCodeBlock lang="bash" code="docker compose ps" />
                   <p className="text-sm text-gray-600 mt-1">You should see output similar to this:</p>
-                  <DynamicCodeBlock lang="bash" code={rpcOption === 'self-hosted' ? dockerComposePsOutput : dockerComposePsOutputNoAvago} />
+                  <DynamicCodeBlock lang="bash" code={rpcOption === 'local' ? dockerComposePsOutput : dockerComposePsOutputNoAvago} />
                   <p className="text-sm text-gray-600 mt-1">All services should show "Up" in the STATUS column. If any service shows "Exit" or keeps restarting, check its logs.</p>
                 </div>
 
-                {rpcOption === 'self-hosted' && (
+                {rpcOption === 'local' && (
                   <div>
                     <h4 className="font-semibold mb-2">Monitor the AvalancheGo node sync progress:</h4>
                     <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
@@ -555,7 +555,7 @@ export default function BlockScout() {
                       All services are <span className="font-bold">UP</span> when running <code>docker compose ps</code>
                     </span>
                   </label>
-                  {rpcOption === 'self-hosted' && (
+                  {rpcOption === 'local' && (
                     <label className="flex items-start gap-3 cursor-pointer">
                       <input
                         type="checkbox"
@@ -585,7 +585,7 @@ export default function BlockScout() {
                     <Button
                       onClick={() => {
                         // For self-hosted, require both checks. For existing RPC, only require services check.
-                        const allChecksComplete = rpcOption === 'self-hosted'
+                        const allChecksComplete = rpcOption === 'local'
                           ? (servicesUpChecked && bootstrappedChecked)
                           : servicesUpChecked;
 
@@ -593,9 +593,9 @@ export default function BlockScout() {
                           return;
                         }
                         setExplorerReady(true);
-                        window.open(`https://${domain || "your-domain.com"}`, '_blank', 'noopener,noreferrer');
+                        window.open(`https://${domain}`, '_blank', 'noopener,noreferrer');
                       }}
-                      disabled={rpcOption === 'self-hosted'
+                      disabled={rpcOption === 'local'
                         ? !(servicesUpChecked && bootstrappedChecked)
                         : !servicesUpChecked}
                       className="w-1/3"
