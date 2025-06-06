@@ -211,7 +211,7 @@ export default function ValidatorBalanceIncrease() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Transaction</span>
                   <a
-                    href={`https://subnets-test.avax.network/p-chain/tx/${validatorTxId}`}
+                    href={`https://${isTestnet ? "subnets-test" : "subnets"}.avax.network/p-chain/tx/${validatorTxId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm font-semibold text-red-500 hover:text-red-400 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1"
