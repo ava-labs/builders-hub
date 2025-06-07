@@ -12,7 +12,7 @@ interface ChainOption {
     logoUrl?: string;
 }
 
-export default function SelectChainID({
+export default function selectBlockchainId({
     value,
     onChange,
     error,

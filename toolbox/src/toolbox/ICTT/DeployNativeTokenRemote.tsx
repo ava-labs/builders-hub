@@ -207,7 +207,7 @@ export default function DeployNativeTokenRemote() {
                     </p>
                 </Note>}
 
-                <SelectChainID
+                <selectBlockchainId
                     label="Source Chain (where token home is deployed)"
                     value={sourceChainId}
                     onChange={(value) => setSourceChainId(value)}
