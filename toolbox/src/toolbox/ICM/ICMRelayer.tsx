@@ -20,7 +20,7 @@ import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 export default function ICMRelayer() {
     const selectedL1 = useSelectedL1()();
     const { showBoundary } = useErrorBoundary();
-    const { coreWalletClient } = useWalletStore();
+    const { coreWalletClient, isTestnet } = useWalletStore();
     const { l1List } = useL1ListStore()();
 
     // Initialize state with one-time calculation
@@ -286,7 +286,7 @@ export default function ICMRelayer() {
 
             <div className="text-lg font-bold">Relayer Configuration</div>
             <DynamicCodeBlock
-                code={genConfigCommand(getConfigSources(), getConfigDestinations())}
+                code={genConfigCommand(getConfigSources(), getConfigDestinations(), isTestnet ?? false)}
                 lang="bash"
             />
 
@@ -310,15 +310,16 @@ const genConfigCommand = (
         blockchainId: string;
         rpcUrl: string;
         privateKey: string;
-    }[]
+    }[],
+    isTestnet: boolean
 ) => {
     const config = {
         "api-port": 63123,
         "info-api": {
-            "base-url": "https://api.avax-test.network"
+            "base-url": isTestnet ? "https://api.avax-test.network" : "https://api.avax.network"
         },
         "p-chain-api": {
-            "base-url": "https://api.avax-test.network"
+            "base-url": isTestnet ? "https://api.avax-test.network" : "https://api.avax.network"
         },
         "source-blockchains": sources.map(source => ({
             "subnet-id": source.subnetId,

@@ -21,7 +21,7 @@ const DEFAULT_WARP_MESSENGER_ADDRESS =
 type MessageDirection = "CtoL1" | "L1toC";
 
 export default function WarpMessenger() {
-  const { coreWalletClient, walletEVMAddress } = useWalletStore();
+  const { coreWalletClient, walletEVMAddress, isTestnet } = useWalletStore();
   const viemChain = useViemChainStore();
   const [messagePayload, setMessagePayload] = useState<string>("");
   const [blockIndex, setBlockIndex] = useState<string>("");
@@ -300,9 +300,9 @@ export default function WarpMessenger() {
                 label="Transaction Successful"
                 value={txHash}
               />
-              {txHash && (
+              {txHash && messageDirection === "CtoL1" && (
                 <a
-                  href={`https://subnets-test.avax.network/${messageDirection === "CtoL1" ? "c-chain" : viemChain?.name?.toLowerCase()}/tx/${txHash}`}
+                  href={`https://${isTestnet ? "subnets-test" : "subnets"}.avax.network/c-chain/tx/${txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-blue-500 hover:underline"
