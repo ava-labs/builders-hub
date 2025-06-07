@@ -9,8 +9,6 @@ import { Input } from "../../components/Input";
 import { getBlockchainInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../../components/InputChainId";
 import { Checkbox } from "../../components/Checkbox";
-
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
@@ -20,6 +18,7 @@ import { Button } from "../../components/Button";
 import { RadioGroup } from "../../components/RadioGroup";
 import { Success } from "../../components/Success";
 import { nipify } from "../../components/IPValidation";
+import { DockerInstallation } from "../../components/DockerInstallation";
 
 
 export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruningEnabled: boolean) => {
@@ -129,48 +128,7 @@ ${domain}/ext/bc/${chainID}/rpc`
     }
 }
 
-export const dockerInstallInstructions: Record<string, string> = {
-    'Ubuntu/Debian': `# Install Docker using convenience script
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo usermod -aG docker $USER
-newgrp docker
 
-# Test installation
-docker run -it --rm hello-world
-docker compose version
-`,
-    'Amazon Linux 2023+': `# Install Docker
-sudo yum update -y
-sudo yum install -y docker
-sudo systemctl start docker
-sudo systemctl enable docker
-sudo usermod -aG docker $USER
-
-# Install Docker Compose v2 plugin (Amazon Linux specific)
-sudo mkdir -p /usr/local/lib/docker/cli-plugins
-sudo curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
-sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-
-newgrp docker
-
-# Test installation
-docker run -it --rm hello-world
-docker compose version
-`,
-    'Fedora': `# Install Docker using convenience script
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo usermod -aG docker $USER
-newgrp docker
-
-# Test installation
-docker run -it --rm hello-world
-docker compose version
-`,
-} as const;
-
-export type OS = keyof typeof dockerInstallInstructions;
 
 export default function AvalanchegoDocker() {
     const [chainId, setChainId] = useState("");
@@ -260,20 +218,10 @@ export default function AvalanchegoDocker() {
                         />
                     </Step>
                     <Step>
-                        <h3 className="text-xl font-bold mb-4">Docker Installation</h3>
-                        <p>Make sure you have Docker installed on your system. You can use the following commands to install it:</p>
-
-                        <Tabs items={Object.keys(dockerInstallInstructions)}>
-                            {Object.keys(dockerInstallInstructions).map((os) => (
-                                <Tab
-                                    key={os}
-                                    value={os as OS}
-                                >
-                                    <DynamicCodeBlock lang="bash" code={dockerInstallInstructions[os]} />
-                                </Tab>
-                            ))}
-                        </Tabs>
-
+                        <DockerInstallation
+                            title="Docker Installation"
+                            description="Make sure you have Docker installed on your system. You can use the following commands to install it:"
+                        />
 
                         <p className="mt-4">
                             If you do not want to use Docker, you can follow the instructions{" "}

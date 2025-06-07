@@ -6,10 +6,9 @@ import { Input } from "../../components/Input";
 import { getBlockchainInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../../components/InputChainId";
 import versions from "../../versions.json";
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
-import { dockerInstallInstructions, type OS, nodeConfigBase64 } from "../Nodes/AvalanchegoDocker";
+import { nodeConfigBase64 } from "../Nodes/AvalanchegoDocker";
 import { useL1ByChainId } from "../../stores/l1ListStore";
 import { Success } from "../../components/Success";
 import { Button } from "../../components/Button";
@@ -17,6 +16,7 @@ import { validateDomainOrIP, nipify } from "../../components/IPValidation";
 import { RadioGroup } from "../../components/RadioGroup";
 import { RPCURLInput } from "../../components/RPCURLInput";
 import { useWalletStore } from "../../stores/walletStore";
+import { DockerInstallation } from "../../components/DockerInstallation";
 
 
 
@@ -325,19 +325,7 @@ export default function BlockScout() {
             <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. 4 vCPUs, 8GB RAM, 40GB storage is enough to get you started. Choose more storage if the Explorer is for a long-running testnet or mainnet L1.</p>
           </Step>
           <Step>
-            <h3 className="text-xl font-bold mb-4">Docker & Docker Compose Installation</h3>
-            <p>Make sure you have Docker and Docker Compose installed on your system. You can use the following commands to install both:</p>
-
-            <Tabs items={Object.keys(dockerInstallInstructions)}>
-              {Object.keys(dockerInstallInstructions).map((os) => (
-                <Tab
-                  key={os}
-                  value={os as OS}
-                >
-                  <DynamicCodeBlock lang="bash" code={dockerInstallInstructions[os]} />
-                </Tab>
-              ))}
-            </Tabs>
+            <DockerInstallation />
           </Step>
 
 
@@ -459,7 +447,7 @@ export default function BlockScout() {
                 <div>
                   <h4 className="font-semibold mb-2">1. Open the file in a text editor:</h4>
                   <DynamicCodeBlock lang="bash" code="nano ~/Caddyfile" />
-                  <p className="text-sm text-gray-600 mt-1">This will create and open the file in the nano text editor. You can also use other editors like vim or your preferred text editor.</p>
+                  <p className="text-sm mt-1">This will create and open the file in the nano text editor. You can also use other editors like vim or your preferred text editor.</p>
                 </div>
 
                 <div>
@@ -469,8 +457,7 @@ export default function BlockScout() {
 
                 <div>
                   <h4 className="font-semibold mb-2">3. Save and exit (if using nano):</h4>
-                  <p className="text-sm text-gray-600">Press <code>Ctrl + O</code>, then <code>Enter</code> to save</p>
-                  <p className="text-sm text-gray-600">Press <code>Ctrl + X</code> to exit</p>
+                  <p className="text-sm">Press <code>Ctrl + X</code>, then <code>Y</code>, then <code>Enter</code> to save and exit</p>
                 </div>
               </div>
             </Step>
@@ -482,7 +469,7 @@ export default function BlockScout() {
                 <div>
                   <h4 className="font-semibold mb-2">1. Open the file in a text editor:</h4>
                   <DynamicCodeBlock lang="bash" code="nano ~/compose.yml" />
-                  <p className="text-sm text-gray-600 mt-1">This will create and open the file in the nano text editor. You can also use other editors like vim or your preferred text editor.</p>
+                  <p className="text-sm mt-1">This will create and open the file in the nano text editor. You can also use other editors like vim or your preferred text editor.</p>
                 </div>
 
                 <div>
@@ -492,8 +479,7 @@ export default function BlockScout() {
 
                 <div>
                   <h4 className="font-semibold mb-2">3. Save and exit (if using nano):</h4>
-                  <p className="text-sm text-gray-600">Press <code>Ctrl + O</code>, then <code>Enter</code> to save</p>
-                  <p className="text-sm text-gray-600">Press <code>Ctrl + X</code> to exit</p>
+                  <p className="text-sm">Press <code>Ctrl + X</code>, then <code>Y</code>, then <code>Enter</code> to save and exit</p>
                 </div>
               </div>
             </Step>
@@ -506,15 +492,15 @@ export default function BlockScout() {
                 <div>
                   <h4 className="font-semibold mb-2">Start the services (detached mode):</h4>
                   <DynamicCodeBlock lang="bash" code="docker compose up -d" />
-                  <p className="text-sm text-gray-600 mt-1">The <code>-d</code> flag runs containers in the background so you can close your terminal.</p>
+                  <p className="text-sm mt-1">The <code>-d</code> flag runs containers in the background so you can close your terminal.</p>
                 </div>
 
                 <div>
                   <h4 className="font-semibold mb-2">Check if everything is running:</h4>
                   <DynamicCodeBlock lang="bash" code="docker compose ps" />
-                  <p className="text-sm text-gray-600 mt-1">You should see output similar to this:</p>
+                  <p className="text-sm mt-1">You should see output similar to this:</p>
                   <DynamicCodeBlock lang="bash" code={rpcOption === 'local' ? dockerComposePsOutput : dockerComposePsOutputNoAvago} />
-                  <p className="text-sm text-gray-600 mt-1">All services should show "Up" in the STATUS column. If any service shows "Exit" or keeps restarting, check its logs.</p>
+                  <p className="text-sm mt-1">All services should show "Up" in the STATUS column. If any service shows "Exit" or keeps restarting, check its logs.</p>
                 </div>
 
                 {rpcOption === 'local' && (
@@ -522,13 +508,13 @@ export default function BlockScout() {
                     <h4 className="font-semibold mb-2">Monitor the AvalancheGo node sync progress:</h4>
                     <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
                     <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                      <h5 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">⚠️ Important Note About Sync Time</h5>
-                      <p className="text-amber-700 dark:text-amber-300">
+                      <h5 className="font-semibold mb-2">⚠️ Important Note About Sync Time</h5>
+                      <p>
                         The AvalancheGo node needs to sync with the network before the explorer can function properly. For testnet, this process typically takes 5-10 minutes, for mainnet, it takes 1-2 hours. You'll see progress updates in the logs showing the syncing progress with the p-chain (fetching blocks & executing blocks).
                       </p>
                     </div>
 
-                    <p className="text-sm text-gray-600 mt-4">
+                    <p className="text-sm mt-4">
                       Press <code>Ctrl+C</code> to stop watching logs.
                     </p>
                   </div>
@@ -537,7 +523,7 @@ export default function BlockScout() {
                 <div>
                   <h4 className="font-semibold mb-2">Stop everything and clean up:</h4>
                   <DynamicCodeBlock lang="bash" code="docker compose down -v" />
-                  <p className="text-sm text-gray-600 mt-4">The <code>-v</code> flag removes volumes (databases). <strong>Warning:</strong> This forces reindexing.</p>
+                  <p className="text-sm mt-4">The <code>-v</code> flag removes volumes (databases). <strong>Warning:</strong> This forces reindexing.</p>
                 </div>
 
                 <p>If containers keep restarting, check logs with <code>docker logs [service-name]</code>. Use <code>docker compose restart [service-name]</code> to restart individual services.
@@ -557,7 +543,7 @@ export default function BlockScout() {
                       onChange={e => setServicesUpChecked(e.target.checked)}
                       className="accent-blue-600 w-5 h-5"
                     />
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                    <span className="font-medium">
                       All services are <span className="font-bold">UP</span> when running <code>docker compose ps</code>
                     </span>
                   </label>
@@ -570,10 +556,10 @@ export default function BlockScout() {
                         className="accent-blue-600 w-5 h-5 mt-1"
                       />
                       <span>
-                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                        <span className="font-medium">
                           AvalancheGo node is fully bootstrapped
                         </span>
-                        <div className="space-y-4 text-gray-700 dark:text-gray-300 mt-4">
+                        <div className="space-y-4 mt-4">
                           <p>
                             During the bootstrapping process, the following command will return a <b>404 page not found</b> error:
                           </p>
@@ -599,7 +585,7 @@ export default function BlockScout() {
                           return;
                         }
                         setExplorerReady(true);
-                        window.open(`https://${domain}`, '_blank', 'noopener,noreferrer');
+                        window.open(`https://${nipify(domain)}`, '_blank', 'noopener,noreferrer');
                       }}
                       disabled={rpcOption === 'local'
                         ? !(servicesUpChecked && bootstrappedChecked)
@@ -615,7 +601,7 @@ export default function BlockScout() {
                       alt="Blockscout Sample Image"
                       className="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full"
                     />
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
+                    <p className="text-sm mt-2 text-center">
                       Preview of your BlockScout Explorer interface
                     </p>
                   </div>
