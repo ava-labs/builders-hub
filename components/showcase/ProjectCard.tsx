@@ -38,7 +38,7 @@ export function ProjectCard({ project }: Props) {
         src={
           project.cover_url && project.cover_url.trim().length > 0
             ? project.cover_url
-            : "/hackathon-images/project-banner.png"
+            : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-banner-2whUMzkW6ABHW5GjIAH3NbBHLQIJzw.png"
         }
         alt={`${project.project_name} banner`}
         width={306}

@@ -178,7 +178,7 @@ export default function Hackathons({
                 src={
                   topMostHackathon.banner?.trim().trim().length > 0
                     ? topMostHackathon.banner
-                    : "/hackathon-images/main_banner_img.png"
+                    : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png"
                 }
                 alt="Hackathon background"
                 width={1270}

@@ -7,7 +7,6 @@ import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import SummitLondonBanner from '@/public/nav-banner/avalanche_summit_london.png';
 import HackathonLondonBanner from '@/public/nav-banner/hackathon_luma.png';
-import HackathonBBABanner from '@/public/nav-banner/hackathon_bba.png';
 import Team1Banner from '@/public/nav-banner/local_events_team1.jpg';
 
 interface EventCardProps {
