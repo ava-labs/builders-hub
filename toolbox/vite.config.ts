@@ -18,6 +18,14 @@ export default ({ mode }: ConfigEnv) => {
     plugins: [react()],
     define: {
       'process.env': process.env,
+      global: 'globalThis',
+    },
+    resolve: {
+      alias: {
+        buffer: 'buffer',
+        process: 'process/browser',
+        util: 'util',
+      },
     },
     build: {
       rollupOptions: {
@@ -26,6 +34,9 @@ export default ({ mode }: ConfigEnv) => {
           },
         },
       },
+    },
+    optimizeDeps: {
+      include: ['buffer', 'process'],
     },
   })
 }

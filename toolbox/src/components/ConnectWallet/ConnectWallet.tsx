@@ -62,7 +62,6 @@ export const ConnectWallet = ({
         pChainAddress, 
         isTestnet, setIsTestnet, 
         setEvmChainName, 
-        updateAllBalances, 
         pChainBalance, updatePChainBalance, 
         l1Balance, updateL1Balance, 
         cChainBalance, updateCChainBalance 
@@ -84,17 +83,47 @@ export const ConnectWallet = ({
         setIsClient(true)
     }, [])
 
-    useEffect(() => {
-        if (!walletEVMAddress || !walletChainId || !pChainAddress) return;
+    // Helper function to safely call Core wallet methods - only catch specific WalletConnect errors
+    const safelyCallCoreMethod = async (fn: () => Promise<any>) => {
+        try {
+            return await fn();
+        } catch (error: any) {
+            // Only skip if it's specifically the WalletConnect error we're trying to avoid
+            if (error?.message?.includes('Invalid parameters were provided to the RPC method') ||
+                error?.message?.includes('This account does not have its public key imported')) {
+                console.debug("Skipping Core wallet method for WalletConnect:", error.message);
+                return;
+            }
+            // Re-throw other errors so they're handled normally
+            throw error;
+        }
+    };
 
-        updateAllBalances();
+    useEffect(() => {
+        if (!walletEVMAddress || !walletChainId) return;
+
+        // Always update EVM balances
+        updateL1Balance();
+        updateCChainBalance();
+        
+        // Only update P-Chain balance if we have a P-Chain address (Core wallet)
+        if (pChainAddress) {
+            updatePChainBalance();
+        }
 
         const intervalId = setInterval(() => {
-            updateAllBalances();
+            // Always update EVM balances
+            updateL1Balance();
+            updateCChainBalance();
+            
+            // Only update P-Chain balance if we have a P-Chain address (Core wallet)
+            if (pChainAddress) {
+                updatePChainBalance();
+            }
         }, 30_000);
 
         return () => clearInterval(intervalId);
-    }, [updateAllBalances, walletEVMAddress, walletChainId, pChainAddress]);
+    }, [walletEVMAddress, walletChainId, pChainAddress]);
 
     useEffect(() => {
         if (!isClient) return;
@@ -155,18 +184,21 @@ export const ConnectWallet = ({
         }
 
         setWalletChainId(chainId)
-        coreWalletClient.getPChainAddress().then(setPChainAddress).catch(showBoundary)
-        coreWalletClient.getCorethAddress().then(setCoreEthAddress).catch(showBoundary)
+        
+        // Safely call Core wallet methods only if it's a Core wallet
+        safelyCallCoreMethod(() => coreWalletClient.getPChainAddress().then(setPChainAddress));
+        safelyCallCoreMethod(() => coreWalletClient.getCorethAddress().then(setCoreEthAddress));
 
-        coreWalletClient
-            .getEthereumChain()
-            .then((data: { isTestnet: boolean, chainName: string, rpcUrls: string[] }) => {
-                const { isTestnet, chainName } = data;
-                setAvalancheNetworkID(isTestnet ? networkIDs.FujiID : networkIDs.MainnetID)
-                setIsTestnet(isTestnet)
-                setEvmChainName(chainName)
-            })
-            .catch(showBoundary)
+        safelyCallCoreMethod(() => 
+            coreWalletClient
+                .getEthereumChain()
+                .then((data: { isTestnet: boolean, chainName: string, rpcUrls: string[] }) => {
+                    const { isTestnet, chainName } = data;
+                    setAvalancheNetworkID(isTestnet ? networkIDs.FujiID : networkIDs.MainnetID)
+                    setIsTestnet(isTestnet)
+                    setEvmChainName(chainName)
+                })
+        );
     }
 
     const handleAccountsChanged = (accounts: string[]) => {
@@ -179,20 +211,21 @@ export const ConnectWallet = ({
         }
 
         //re-create wallet with new account
-        const newWalletClient = createCoreWalletClient(accounts[0] as `0x${string}`)
-        if (!newWalletClient) {
+        const newCoreWalletClient = createCoreWalletClient(accounts[0] as `0x${string}`)
+        if (!newCoreWalletClient) {
             setHasWallet(false)
             return
         }
 
-        setCoreWalletClient(newWalletClient)
+        setCoreWalletClient(newCoreWalletClient)
         setWalletEVMAddress(accounts[0] as `0x${string}`)
 
-        coreWalletClient.getPChainAddress().then(setPChainAddress).catch(showBoundary)
-        coreWalletClient.getCorethAddress().then(setCoreEthAddress).catch(showBoundary)
+        // Safely call Core wallet methods only if it's a Core wallet
+        safelyCallCoreMethod(() => coreWalletClient.getPChainAddress().then(setPChainAddress));
+        safelyCallCoreMethod(() => coreWalletClient.getCorethAddress().then(setCoreEthAddress));
 
         if (walletChainId === 0) {
-            coreWalletClient.getChainId().then(onChainChanged).catch(showBoundary)
+            safelyCallCoreMethod(() => coreWalletClient.getChainId().then(onChainChanged));
         }
     }
 
@@ -222,20 +255,21 @@ export const ConnectWallet = ({
             }
 
             //re-create wallet with new account
-            const newWalletClient = createCoreWalletClient(accounts[0] as `0x${string}`)
-            if (!newWalletClient) {
+            const newCoreWalletClient = createCoreWalletClient(accounts[0] as `0x${string}`)
+            if (!newCoreWalletClient) {
                 setHasWallet(false)
                 return
             }
 
-            setCoreWalletClient(newWalletClient)
+            setCoreWalletClient(newCoreWalletClient)
             setWalletEVMAddress(accounts[0] as `0x${string}`)
 
-            coreWalletClient.getPChainAddress().then(setPChainAddress).catch(showBoundary)
-            coreWalletClient.getCorethAddress().then(setCoreEthAddress).catch(showBoundary)
+            // Safely call Core wallet methods only if it's a Core wallet
+            safelyCallCoreMethod(() => coreWalletClient.getPChainAddress().then(setPChainAddress));
+            safelyCallCoreMethod(() => coreWalletClient.getCorethAddress().then(setCoreEthAddress));
 
             if (walletChainId === 0) {
-                coreWalletClient.getChainId().then(onChainChanged).catch(showBoundary)
+                safelyCallCoreMethod(() => coreWalletClient.getChainId().then(onChainChanged));
             }
         } catch (error) {
             console.error("Error connecting wallet:", error)
@@ -303,14 +337,15 @@ export const ConnectWallet = ({
                                     />
                                 }
 
+                                {/* P-Chain card - show for all wallets but handle address gracefully */}
                                 <ChainCard
                                     name="P-Chain"
                                     logoUrl="https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg"
-                                    badgeText="Always Connected"
-                                    tokenBalance={pChainBalance}
+                                    badgeText={pChainAddress ? "Always Connected" : "Requires Core Wallet"}
+                                    tokenBalance={pChainAddress ? pChainBalance : 0}
                                     tokenSymbol={"AVAX"}
-                                    onTokenRefreshClick={updatePChainBalance}
-                                    address={pChainAddress}
+                                    onTokenRefreshClick={pChainAddress ? updatePChainBalance : () => undefined}
+                                    address={pChainAddress || "Not available for this wallet"}
                                     buttons={[
                                         <PChainFaucetButton/>,
                                         <PChainBridgeButton />,

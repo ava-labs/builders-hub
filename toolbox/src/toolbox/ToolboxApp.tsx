@@ -3,7 +3,7 @@
 import { Button } from "../components/Button";
 import { ErrorBoundary } from "react-error-boundary";
 import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
-import { useState, useEffect, ReactElement, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { GithubLink } from "../components/GithubLink";
 import { ErrorFallback } from "../components/ErrorFallback";
 import { ErrorBoundaryWithWarning } from "../components/ErrorBoundaryWithWarning";
@@ -15,7 +15,7 @@ import { resetAllStores } from "../stores/reset";
 type ComponentType = {
   id: string;
   label: string;
-  component: React.LazyExoticComponent<(props?: any) => ReactElement | null>;
+  component: React.LazyExoticComponent<React.ComponentType<any>>;
   fileNames: string[];
   walletMode: WalletMode;
 }
@@ -120,22 +120,22 @@ const componentGroups: Record<string, ComponentGroupType> = {
       {
         id: "addValidator",
         label: "Add L1 Validator",
-        component: lazy(() => import('./ValidatorManager/AddValidator')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/AddValidator.tsx"],
+        component: lazy(() => import('./ValidatorManager/AddValidator/AddValidator')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/AddValidator/AddValidator.tsx"],
         walletMode: "l1"
       },
       {
         id: "removeValidator",
         label: "Remove L1 Validator",
-        component: lazy(() => import('./ValidatorManager/RemoveValidator')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/RemoveValidator.tsx"],
+        component: lazy(() => import('./ValidatorManager/RemoveValidator/RemoveValidator')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/RemoveValidator/RemoveValidator.tsx"],
         walletMode: "l1"
       },
       {
         id: "changeWeight",
         label: "Change L1 Validator Weight",
-        component: lazy(() => import('./ValidatorManager/ChangeWeight')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeight.tsx"],
+        component: lazy(() => import('./ValidatorManager/ChangeWeight/ChangeWeight')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeight/ChangeWeight.tsx"],
         walletMode: "l1"
       },
       {
@@ -151,6 +151,13 @@ const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./Nodes/BalanceTopup')),
         fileNames: ["toolbox/src/toolbox/Nodes/BalanceTopup.tsx"],
         walletMode: "c-chain"
+      },
+      {
+        id: "transferOwnership",
+        label: "Transfer Ownership",
+        component: lazy(() => import('./StakingManager/TransferOwnership')),
+        fileNames: ["toolbox/src/toolbox/StakingManager/TransferOwnership.tsx"],
+        walletMode: "l1"
       }
     ]
   },
@@ -181,13 +188,6 @@ const componentGroups: Record<string, ComponentGroupType> = {
         fileNames: ["toolbox/src/toolbox/StakingManager/Initialize.tsx"],
         walletMode: "l1"
       },
-      {
-        id: "transferOwnership",
-        label: "Transfer Validator Manager Ownership",
-        component: lazy(() => import('./StakingManager/TransferOwnership')),
-        fileNames: ["toolbox/src/toolbox/StakingManager/TransferOwnership.tsx"],
-        walletMode: "l1"
-      }
     ]
   },
   "Interchain Messaging (ICM)": {
@@ -400,6 +400,17 @@ const componentGroups: Record<string, ComponentGroupType> = {
       }
     ]
   },
+  'Expert Tools': {
+    components: [
+      {
+        id: 'deployPoAManager',
+        label: "Deploy PoA Manager",
+        component: lazy(() => import('./ValidatorManager/DeployPoAManager')),
+        fileNames: ["toolbox/src/toolbox/ValidatorManager/DeployPoAManager.tsx"],
+        walletMode: "l1"
+      }
+    ]
+  }
 };
 
 // Loading component for Suspense

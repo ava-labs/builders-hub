@@ -15,6 +15,6 @@ export async function validateContractOwner(client: PublicClient<any, any, any, 
         address: contractAddress as `0x${string}`,
         abi: validatorManagerAbi.abi,
         functionName: "owner",
-    })
-    return owner === expectedOwner
+    }) as `0x${string}`;
+    return expectedOwner.toLowerCase() === owner.toLowerCase();
 }

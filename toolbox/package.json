@@ -33,6 +33,9 @@
     "@radix-ui/react-dialog": "^1.1.11",
     "@radix-ui/react-label": "^2.1.2",
     "@radix-ui/react-radio-group": "^1.2.3",
+    "@safe-global/api-kit": "^2.5.3",
+    "@safe-global/protocol-kit": "^4.1.0",
+    "@safe-global/types-kit": "^2.0.1",
     "@tailwindcss/postcss": "^4.1.5",
     "@types/react-syntax-highlighter": "^15.5.13",
     "boring-name-generator": "^1.0.3",
@@ -66,9 +69,11 @@
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.14.0",
     "postcss": "^8.5.2",
+    "process": "^0.11.10",
     "tailwindcss": "^4",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.18.2",
+    "util": "^0.12.5",
     "vite": "^6.1.6",
     "vite-plugin-dts": "^4.5.0"
   }

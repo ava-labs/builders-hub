@@ -1,13 +1,14 @@
-import { Check, Copy as CopyIcon } from "lucide-react";
+import { Check, Copy as CopyIcon, ExternalLink } from "lucide-react";
 import { useState } from "react";
-import { isAddress, isHash } from "viem";
+import { isAddress } from "viem";
 
 interface SuccessProps {
     label: string;
     value: string;
+    isTestnet?: boolean;
 }
 
-export const Success = ({ label, value }: SuccessProps) => {
+export const Success = ({ label, value, isTestnet = true }: SuccessProps) => {
     const [copied, setCopied] = useState(false);
     if (!value) return null;
 
@@ -17,7 +18,19 @@ export const Success = ({ label, value }: SuccessProps) => {
         setTimeout(() => setCopied(false), 1500);
     };
 
-    const showCopy = isAddress(value) || isHash(value);
+    const isPChainTxId = /^[1-9A-HJ-NP-Za-km-z]{40,60}$/.test(value);
+    const baseUrl = isTestnet ? "https://subnets-test.avax.network" : "https://subnets.avax.network";
+    
+    const showCopy = isAddress(value) || isPChainTxId;
+    
+    const getExplorerUrl = () => {
+        if (isPChainTxId) {
+            return `${baseUrl}/p-chain/tx/${value}`;
+        }
+        return null;
+    };
+
+    const explorerUrl = getExplorerUrl();
 
     return (
         <div className="p-6 bg-green-50 dark:bg-green-900/30 rounded-xl shadow-md flex items-center space-x-4">
@@ -27,7 +40,19 @@ export const Success = ({ label, value }: SuccessProps) => {
             <div className="flex flex-col flex-1 space-y-1">
                 <span className="text-lg font-bold text-green-800 dark:text-green-200">{label}</span>
                 <div className="flex items-center">
-                    <span className="font-mono text-sm break-all dark:text-neutral-200 text-green-900 flex-1">{value}</span>
+                    {explorerUrl ? (
+                        <a
+                            href={explorerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-mono text-sm break-all dark:text-neutral-200 text-green-900 flex-1 hover:underline hover:text-green-700 dark:hover:text-green-300 transition flex items-center gap-1"
+                        >
+                            {value}
+                            <ExternalLink className="h-4 w-4 flex-shrink-0" />
+                        </a>
+                    ) : (
+                        <span className="font-mono text-sm break-all dark:text-neutral-200 text-green-900 flex-1">{value}</span>
+                    )}
                     {showCopy && (
                         <button
                             onClick={handleCopy}

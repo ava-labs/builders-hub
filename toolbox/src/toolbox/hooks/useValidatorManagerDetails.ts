@@ -4,6 +4,8 @@ import { getTotalStake } from "../../coreViem/hooks/getTotalStake";
 import { getSubnetInfoForNetwork, getBlockchainInfoForNetwork } from "../../coreViem/utils/glacier";
 import { useWalletStore } from "../../stores/walletStore";
 import { useViemChainStore } from "../../stores/toolboxStore";
+import validatorManagerAbi from '../../../contracts/icm-contracts/compiled/ValidatorManager.json';
+import poaManagerAbi from '../../../contracts/icm-contracts/compiled/PoAManager.json';
 
 interface ValidatorManagerDetails {
     validatorManagerAddress: string;
@@ -14,6 +16,12 @@ interface ValidatorManagerDetails {
     contractTotalWeight: bigint;
     l1WeightError: string | null;
     isLoadingL1Weight: boolean;
+    contractOwner: string | null;
+    ownershipError: string | null;
+    isLoadingOwnership: boolean;
+    isOwnerContract: boolean;
+    ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | null;
+    isDetectingOwnerType: boolean;
 }
 
 interface UseValidatorManagerDetailsProps {
@@ -35,6 +43,16 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
     const [l1WeightError, setL1WeightError] = useState<string | null>(null);
     const [isLoadingL1Weight, setIsLoadingL1Weight] = useState(false);
 
+    // Contract owner states (no ownership verification, just the address)
+    const [contractOwner, setContractOwner] = useState<string | null>(null);
+    const [ownershipError, setOwnershipError] = useState<string | null>(null);
+    const [isLoadingOwnership, setIsLoadingOwnership] = useState(false);
+    const [isOwnerContract, setIsOwnerContract] = useState(false);
+
+    // Owner contract type detection states
+    const [ownerType, setOwnerType] = useState<'PoAManager' | 'StakingManager' | 'EOA' | null>(null);
+    const [isDetectingOwnerType, setIsDetectingOwnerType] = useState(false);
+
     // Cache to store fetched details for each subnetId to avoid redundant API calls
     const subnetCache = useRef<Record<string, {
         validatorManagerAddress: string;
@@ -52,6 +70,11 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                 setIsLoading(false);
                 setContractTotalWeight(0n);
                 setL1WeightError(null);
+                setContractOwner(null);
+                setOwnershipError(null);
+                setIsOwnerContract(false);
+                setOwnerType(null);
+                setIsDetectingOwnerType(false);
                 return;
             }
 
@@ -59,6 +82,11 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
             setError(null);
             setContractTotalWeight(0n);
             setL1WeightError(null);
+            setContractOwner(null);
+            setOwnershipError(null);
+            setIsOwnerContract(false);
+            setOwnerType(null);
+            setIsDetectingOwnerType(false);
 
             const cacheKey = `${avalancheNetworkID}-${subnetId}`;
             if (subnetCache.current[cacheKey]) {
@@ -128,7 +156,6 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                 setError(null);
 
             } catch (e: any) {
-                console.error("Error fetching Validator Manager details:", e);
                 setValidatorManagerAddress("");
                 setBlockchainId("");
                 setSigningSubnetId("");
@@ -141,7 +168,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
         fetchDetails();
     }, [subnetId, getChainIdFn, viemChain?.id, avalancheNetworkID]);
 
-    // New useEffect for fetching L1 total weight
+    // Fetch L1 total weight
     useEffect(() => {
         const fetchL1TotalWeight = async () => {
             if (!publicClient) {
@@ -176,7 +203,6 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                     setL1WeightError(null); // Clear error if weight is successfully fetched and non-zero
                 }
             } catch (e: any) {
-                console.error("Error fetching total L1 weight from contract:", e);
                 setContractTotalWeight(0n); // Reset on error
                 // Check for specific error messages indicating VMC issues
                 if (e.message?.includes('returned no data ("0x")') ||
@@ -196,6 +222,99 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
         fetchL1TotalWeight();
     }, [validatorManagerAddress, publicClient]); // Re-run if VMC address or publicClient changes
 
+    // Fetch contract owner (no ownership verification, just fetch the owner address)
+    useEffect(() => {
+        const fetchContractOwner = async () => {
+            if (!publicClient || !validatorManagerAddress) {
+                setContractOwner(null);
+                setOwnershipError(null);
+                setIsLoadingOwnership(false);
+                setIsOwnerContract(false);
+                return;
+            }
+
+            setIsLoadingOwnership(true);
+            setOwnershipError(null);
+            setIsOwnerContract(false);
+
+            try {
+                const formattedAddress = validatorManagerAddress.startsWith('0x')
+                    ? validatorManagerAddress as `0x${string}`
+                    : `0x${validatorManagerAddress}` as `0x${string}`;
+
+                // Fetch contract owner address only
+                const owner = await publicClient.readContract({
+                    address: formattedAddress,
+                    abi: validatorManagerAbi.abi,
+                    functionName: "owner",
+                }) as `0x${string}`;
+
+                setContractOwner(owner);
+
+                // Check if the owner is a contract by checking if it has bytecode
+                if (owner) {
+                    try {
+                        const bytecode = await publicClient.getBytecode({ address: owner });
+                        const isContract = !!bytecode && bytecode !== '0x';
+                        setIsOwnerContract(isContract);
+                        
+                        // If it's not a contract, set it as EOA immediately
+                        if (!isContract) {
+                            setOwnerType('EOA');
+                        }
+                    } catch (e) {
+                        console.warn("Could not check if owner is a contract:", e);
+                        setIsOwnerContract(false);
+                        setOwnerType('EOA'); // Default to EOA if we can't determine
+                    }
+                }
+
+            } catch (e: any) {
+                setContractOwner(null);
+                setOwnershipError(e.message || "Failed to fetch contract owner information.");
+                setIsOwnerContract(false);
+            } finally {
+                setIsLoadingOwnership(false);
+            }
+        };
+
+        fetchContractOwner();
+    }, [validatorManagerAddress, publicClient]);
+
+    // Detect owner contract type when owner is a contract
+    useEffect(() => {
+        const detectOwnerType = async () => {
+            if (!isOwnerContract || !contractOwner || !publicClient) {
+                setIsDetectingOwnerType(false);
+                return;
+            }
+
+            setIsDetectingOwnerType(true);
+            try {
+                // Try to call owner() function using PoAManager ABI to detect if it's a PoAManager
+                const ownerAddress = await publicClient.readContract({
+                    address: contractOwner as `0x${string}`,
+                    abi: poaManagerAbi.abi,
+                    functionName: "owner",
+                });
+
+                // If we can successfully call owner() with PoAManager ABI, it's a PoAManager
+                if (ownerAddress) {
+                    setOwnerType('PoAManager');
+                } else {
+                    setOwnerType('StakingManager');
+                }
+            } catch (error) {
+                console.log('Owner contract does not have PoAManager ABI structure, likely StakingManager');
+                setOwnerType('StakingManager');
+            } finally {
+                setIsDetectingOwnerType(false);
+            }
+        };
+
+        detectOwnerType();
+    }, [isOwnerContract, contractOwner, publicClient]);
+
     return {
         validatorManagerAddress,
         blockchainId,
@@ -204,6 +323,12 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
         isLoading,
         contractTotalWeight,
         l1WeightError,
-        isLoadingL1Weight
+        isLoadingL1Weight,
+        contractOwner,
+        ownershipError,
+        isLoadingOwnership,
+        isOwnerContract,
+        ownerType,
+        isDetectingOwnerType
     };
 } 
