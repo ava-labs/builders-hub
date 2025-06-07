@@ -9,8 +9,6 @@ import { Input } from "../../components/Input";
 import { getBlockchainInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../../components/InputChainId";
 import { Checkbox } from "../../components/Checkbox";
-
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
@@ -19,6 +17,8 @@ import { useL1ListStore } from "../../stores/l1ListStore";
 import { Button } from "../../components/Button";
 import { RadioGroup } from "../../components/RadioGroup";
 import { Success } from "../../components/Success";
+import { nipify } from "../../components/IPValidation";
+import { DockerInstallation } from "../../components/DockerInstallation";
 
 
 export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruningEnabled: boolean) => {
@@ -94,13 +94,7 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
     return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
 }
 
-const nipify = (domain: string) => {
-    const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    if (ipv4Regex.test(domain)) {
-        domain = `${domain}.sslip.io`;
-    }
-    return domain;
-}
+
 
 const reverseProxyCommand = (domain: string) => {
     domain = nipify(domain);
@@ -134,36 +128,7 @@ ${domain}/ext/bc/${chainID}/rpc`
     }
 }
 
-export const dockerInstallInstructions: Record<string, string> = {
-    'Ubuntu/Debian': `sudo apt-get update && \\
-    sudo apt-get install -y docker.io && \\
-    sudo usermod -aG docker $USER && \\
-    newgrp docker
 
-# Test docker installation
-docker run -it --rm hello-world
-`,
-    'Amazon Linux 2023+': `sudo yum update -y && \\
-    sudo yum install -y docker && \\
-    sudo service docker start && \\
-    sudo usermod -a -G docker $USER && \\
-    newgrp docker
-
-# Test docker installation
-docker run -it --rm hello-world
-`,
-    'Fedora': `sudo dnf update -y && \\
-    sudo dnf -y install docker && \\
-    sudo systemctl start docker && \\
-    sudo usermod -a -G docker $USER && \\
-    newgrp docker
-
-# Test docker installation
-docker run -it --rm hello-world
-`,
-} as const;
-
-export type OS = keyof typeof dockerInstallInstructions;
 
 export default function AvalanchegoDocker() {
     const [chainId, setChainId] = useState("");
@@ -253,20 +218,10 @@ export default function AvalanchegoDocker() {
                         />
                     </Step>
                     <Step>
-                        <h3 className="text-xl font-bold mb-4">Docker Installation</h3>
-                        <p>Make sure you have Docker installed on your system. You can use the following commands to install it:</p>
-
-                        <Tabs items={Object.keys(dockerInstallInstructions)}>
-                            {Object.keys(dockerInstallInstructions).map((os) => (
-                                <Tab
-                                    key={os}
-                                    value={os as OS}
-                                >
-                                    <DynamicCodeBlock lang="bash" code={dockerInstallInstructions[os]} />
-                                </Tab>
-                            ))}
-                        </Tabs>
-
+                        <DockerInstallation
+                            title="Docker Installation"
+                            description="Make sure you have Docker installed on your system. You can use the following commands to install it:"
+                        />
 
                         <p className="mt-4">
                             If you do not want to use Docker, you can follow the instructions{" "}
