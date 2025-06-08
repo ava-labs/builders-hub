@@ -25,6 +25,24 @@ export const metadata: Metadata = createMetadata({
   },
 });
 
+const pathImages = {
+  "avacloudapis": "avacloudapis-ThOanH9UQJiAizv9gKtgFufXxRywkQ.jpg",
+  "avalanche-fundamentals": "avalanche-fundamentals-skz9GZ84gSJ7MPvkSrbiNlnK5F7suB.jpg",
+  "customizing-evm": "customizing-evm-DkMcINMgCwhkuHuumtAZtrPzROU74M.jpg",
+  "gogopool-minipool": "gogopool-minipool-Zzrnw390H9o7by9aytCrk1dyatEbn7.jpg",
+  "hypersdk": "hypersdk-R9aLjIlYYKmtWwdcbGoS744c2YkGHc.jpg",
+  "icm-chainlink": "icm-chainlink-1W7GtDwLj25WkXIsFeJpWy8K3ovrVM.jpg",
+  "interchain-messaging": "interchain-messaging-gbDR0Kv4SId7FTMGoAR3Rhn0d59FMY.jpg",
+  "interchain-token-transfer": "interchain-token-transfer-kXAwFbQKGwIxoCbhQ9PcjIfc1O9Hze.jpg",
+  "l1-tokenomics": "l1-tokenomics-bJdsEFhaaPWKmm2R3oWyce1TBEZyNc.jpg",
+  "multichain-architecture": "multi-chain-architecture-lFotxOCNkXx0jUw9EGIaxnfdyuTb9G.jpg",
+  "node-course": "node-course-ACBahXfMGQEzwyh17g3vM3I2Wo3PUO.jpg",
+  "safe-on-an-avalanche-chain": "safe-on-an-avalanche-chain-0hKDjVlAQcefnjaJQHnaDcT6BM7xyR.jpg",
+  "solidity-foundry": "solidity-foundry-eBSonwmeJqFy2VELXTqeUHqf7YclgL.jpg",
+  "teleporter-chainlink-vrf": "teleporter-chainlink-vrf-y99jE9hXaWDnOLKuTPQ4r8ALZk5HkF.jpg",
+  "teleporter-token-bridge": "teleporter-token-bridge-wMmPJftYyAOSKbvay0yZy5bScQMsZH.jpg",
+}
+
 export default function HomePage(): React.ReactElement {
   return (
     <>
@@ -82,7 +100,7 @@ function Courses(props: { title: string; description: string; courses: any[] }):
               className="flex max-w-xl flex-col items-start space-y-2"
             >
               <img
-                src={`/course-banner/${course.slug}.jpg`}
+                src={`https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/${pathImages[course.slug as keyof typeof pathImages]}` || `/course-banner/${course.slug}.jpg`}
                 alt=""
                 className="w-full aspect-3/2 object-cover rounded-lg mb-5"
               />
