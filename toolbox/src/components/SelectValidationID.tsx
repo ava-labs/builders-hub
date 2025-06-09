@@ -5,6 +5,7 @@ import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
 import { useWalletStore } from "../stores/walletStore";
 import { networkIDs } from "@avalabs/avalanchejs";
 import { L1ValidatorDetailsFull, GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components";
+import { formatAvaxBalance } from "../coreViem/utils/format";
 
 export type ValidationSelection = {
   validationId: string;
@@ -80,6 +81,7 @@ export default function SelectValidationID({
         const result = await new AvaCloudSDK().data.primaryNetwork.listL1Validators({
           network: network,
           subnetId: subnetId,
+          includeInactiveL1Validators: true,
         });
 
         // Handle pagination
@@ -90,10 +92,10 @@ export default function SelectValidationID({
         
         setValidators(validatorsList);
 
-        // Create a mapping of validation IDs to node IDs
+        // Create a mapping of validation IDs to node IDs, filtering out validators with weight 0
         const mapping: Record<string, string> = {};
         validatorsList.forEach(v => {
-          if (v.validationId && v.nodeId) {
+          if (v.validationId && v.nodeId && v.weight > 0) {
             mapping[v.validationId] = v.nodeId;
             // Also add hex format for easy lookup
             try {
@@ -126,12 +128,15 @@ export default function SelectValidationID({
   const validationIDSuggestions: Suggestion[] = useMemo(() => {
     const result: Suggestion[] = [];
 
-    // Only add suggestions from validators with node IDs
-    for (const validator of validators) {
+    // Filter out validators with weight 0 and only add suggestions from validators with node IDs
+    const validatorsWithWeight = validators.filter(validator => validator.weight > 0);
+    
+    for (const validator of validatorsWithWeight) {
       if (validator.validationId) {
         // Use full node ID
         const nodeId = validator.nodeId;
         const weightDisplay = validator.weight.toLocaleString();
+        const balanceDisplay = formatAvaxBalance(validator.remainingBalance);
         const isSelected = nodeId === selectedNodeId;
         
         // Add just one version based on the format prop
@@ -141,7 +146,7 @@ export default function SelectValidationID({
             result.push({
               title: `${nodeId}${isSelected ? " ✓" : ""}`,
               value: hexId,
-              description: `Weight: ${weightDisplay}${isSelected ? " (Selected)" : ""}`
+              description: `Weight: ${weightDisplay} | Balance: ${balanceDisplay}${isSelected ? " (Selected)" : ""}`
             });
           } catch (error) {
             // Skip if conversion fails
@@ -151,7 +156,7 @@ export default function SelectValidationID({
           result.push({
             title: `${nodeId}${isSelected ? " ✓" : ""}`,
             value: validator.validationId,
-            description: `Weight: ${weightDisplay}${isSelected ? " (Selected)" : ""}`
+            description: `Weight: ${weightDisplay} | ${balanceDisplay}${isSelected ? " (Selected)" : ""}`
           });
         }
       }
