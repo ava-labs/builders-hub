@@ -17,7 +17,7 @@ import { useL1ListStore } from "../../stores/l1ListStore";
 import { Button } from "../../components/Button";
 import { RadioGroup } from "../../components/RadioGroup";
 import { Success } from "../../components/Success";
-import { nipify, validateDomainOrIP } from "../../components/IPValidation";
+import { nipify, HostInput } from "../../components/HostInput";
 import { DockerInstallation } from "../../components/DockerInstallation";
 import { NodeReadinessValidator } from "../../components/NodeReadinessValidator";
 
@@ -122,7 +122,6 @@ export default function AvalanchegoDocker() {
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
     const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
-    const [domainError, setDomainError] = useState<string | null>(null);
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
     const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
     const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
@@ -141,17 +140,8 @@ export default function AvalanchegoDocker() {
     useEffect(() => {
         if (!isRPC) {
             setDomain("");
-            setDomainError(null);
         }
     }, [isRPC]);
-
-    useEffect(() => {
-        if (domain) {
-            setDomainError(validateDomainOrIP(domain));
-        } else {
-            setDomainError(null);
-        }
-    }, [domain]);
 
 
     useEffect(() => {
@@ -177,7 +167,6 @@ export default function AvalanchegoDocker() {
         setEnableDebugTrace(false);
         setPruningEnabled(true);
         setSubnetIdError(null);
-        setDomainError(null);
         setIsAddChainModalOpen(false);
         setNodeIsReady(false);
     };
@@ -214,8 +203,7 @@ export default function AvalanchegoDocker() {
                     </Step>
                     <Step>
                         <DockerInstallation
-                            title="Docker Installation"
-                            description="Make sure you have Docker installed on your system. You can use the following commands to install it:"
+                            includeCompose={false}
                         />
 
                         <p className="mt-4">
@@ -349,13 +337,11 @@ export default function AvalanchegoDocker() {
 
                                                 <p>Paste the IP of your node below:</p>
 
-                                                <Input
+                                                <HostInput
                                                     label="Domain or IPv4 address for reverse proxy (optional)"
                                                     value={domain}
-                                                    onChange={(newValue) => setDomain(newValue.trim())}
-                                                    placeholder="example.com  or 1.2.3.4"
-                                                    error={domainError}
-                                                    helperText="Enter your domain name or IP address (e.g. example.com or 1.2.3.4)"
+                                                    onChange={setDomain}
+                                                    placeholder="example.com or 1.2.3.4"
                                                 />
 
                                                 {domain && (<>

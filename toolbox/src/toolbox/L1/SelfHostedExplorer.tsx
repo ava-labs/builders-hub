@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
 import { getBlockchainInfo } from "../../coreViem/utils/glacier";
@@ -11,7 +11,7 @@ import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { nodeConfigBase64 } from "../Nodes/AvalanchegoDocker";
 import { useL1ByChainId } from "../../stores/l1ListStore";
 import { Success } from "../../components/Success";
-import { validateDomainOrIP, nipify } from "../../components/IPValidation";
+import { nipify, HostInput } from "../../components/HostInput";
 import { RadioGroup } from "../../components/RadioGroup";
 import { RPCURLInput } from "../../components/RPCURLInput";
 import { useWalletStore } from "../../stores/walletStore";
@@ -278,12 +278,8 @@ export default function BlockScout() {
     });
   }, [chainId]);
 
-  const domainError = useMemo(() => {
-    return validateDomainOrIP(domain);
-  }, [domain]);
-
   useEffect(() => {
-    let ready = !!domain && !!subnetId && !!networkName && !!networkShortName && !!tokenName && !!tokenSymbol && !domainError && !subnetIdError
+    let ready = !!domain && !!subnetId && !!networkName && !!networkShortName && !!tokenName && !!tokenSymbol && !subnetIdError
 
     // Additional validation for existing RPC option
     if (rpcOption === 'existing') {
@@ -312,7 +308,7 @@ export default function BlockScout() {
       setCaddyfile("");
       setComposeYaml("");
     }
-  }, [domain, subnetId, chainId, networkName, networkShortName, tokenName, tokenSymbol, domainError, subnetIdError, rpcOption, existingRpcUrl]);
+  }, [domain, subnetId, chainId, networkName, networkShortName, tokenName, tokenSymbol, subnetIdError, rpcOption, existingRpcUrl]);
 
   return (
     <>
@@ -394,12 +390,10 @@ export default function BlockScout() {
 
                 <p className="mt-4">Paste the IP of your node below:</p>
 
-                <Input
+                <HostInput
                   label="Domain or IPv4 address for reverse proxy (optional)"
                   value={domain}
-                  onChange={(newValue) => setDomain(newValue.trim())}
-                  error={domainError}
-                  helperText="Enter your domain name or IP address (e.g. example.com or 1.2.3.4)"
+                  onChange={setDomain}
                 />
               </Step>
 
