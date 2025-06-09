@@ -11,12 +11,14 @@ import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { nodeConfigBase64 } from "../Nodes/AvalanchegoDocker";
 import { useL1ByChainId } from "../../stores/l1ListStore";
 import { Success } from "../../components/Success";
-import { Button } from "../../components/Button";
 import { validateDomainOrIP, nipify } from "../../components/IPValidation";
 import { RadioGroup } from "../../components/RadioGroup";
 import { RPCURLInput } from "../../components/RPCURLInput";
 import { useWalletStore } from "../../stores/walletStore";
 import { DockerInstallation } from "../../components/DockerInstallation";
+import { NodeReadinessValidator } from "../../components/NodeReadinessValidator";
+import { Checkbox } from "../../components/Checkbox";
+import { Button } from "../../components/Button";
 
 
 
@@ -247,10 +249,9 @@ export default function BlockScout() {
   const [composeYaml, setComposeYaml] = useState("");
   const [caddyfile, setCaddyfile] = useState("");
   const [explorerReady, setExplorerReady] = useState(false);
-  const [servicesUpChecked, setServicesUpChecked] = useState(false);
-  const [bootstrappedChecked, setBootstrappedChecked] = useState(false);
   const [rpcOption, setRpcOption] = useState<'local' | 'existing'>('local');
   const [existingRpcUrl, setExistingRpcUrl] = useState('');
+  const [servicesChecked, setServicesChecked] = useState(false);
   const { isTestnet } = useWalletStore()
 
 
@@ -532,80 +533,48 @@ export default function BlockScout() {
             </Step>
 
             <Step>
-              <div className="space-y-6">
-                <h3 className="text-xl font-bold mb-4">Access Your Explorer</h3>
-                <p>Before launching your BlockScout explorer, please confirm the following:</p>
-                <div className="space-y-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={servicesUpChecked}
-                      onChange={e => setServicesUpChecked(e.target.checked)}
-                      className="accent-blue-600 w-5 h-5"
-                    />
-                    <span className="font-medium">
-                      All services are <span className="font-bold">UP</span> when running <code>docker compose ps</code>
-                    </span>
-                  </label>
-                  {rpcOption === 'local' && (
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={bootstrappedChecked}
-                        onChange={e => setBootstrappedChecked(e.target.checked)}
-                        className="accent-blue-600 w-5 h-5 mt-1"
-                      />
-                      <span>
-                        <span className="font-medium">
-                          AvalancheGo node is fully bootstrapped
-                        </span>
-                        <div className="space-y-4 mt-4">
-                          <p>
-                            During the bootstrapping process, the following command will return a <b>404 page not found</b> error:
-                          </p>
+              <h3 className="text-xl font-bold mb-4">Access Your Explorer</h3>
+              <p>Before launching your BlockScout explorer, please confirm the following:</p>
 
-                          <DynamicCodeBlock lang="bash" code={`curl -X POST --data '{ \n  \"jsonrpc\":\"2.0\", \"method\":\"eth_chainId\", \"params\":[], \"id\":1 \n}' -H 'content-type:application/json;' \\\nhttp://127.0.0.1:9650/ext/bc/${chainId}/rpc`} />
+              {rpcOption === 'local' && (
+                <NodeReadinessValidator
+                  chainId={chainId}
+                  domain={domain || "127.0.0.1:9650"}
+                />
+              )}
 
-                          <p>
-                            Once bootstrapping is complete, it will return a response like <code>{'{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"...\"}'}</code>.
-                          </p>
-                        </div>
-                      </span>
-                    </label>
-                  )}
-                  <div className="flex justify-center">
-                    <Button
-                      onClick={() => {
-                        // For self-hosted, require both checks. For existing RPC, only require services check.
-                        const allChecksComplete = rpcOption === 'local'
-                          ? (servicesUpChecked && bootstrappedChecked)
-                          : servicesUpChecked;
+              <div className="mt-6 space-y-4">
+                <Checkbox
+                  label="All services are UP when running docker compose ps"
+                  checked={servicesChecked}
+                  onChange={setServicesChecked}
+                />
 
-                        if (!allChecksComplete) {
-                          return;
-                        }
+                <div className="flex justify-center">
+                  <Button
+                    onClick={() => {
+                      if (servicesChecked && (rpcOption === 'existing' || rpcOption === 'local')) {
                         setExplorerReady(true);
                         window.open(`https://${nipify(domain)}`, '_blank', 'noopener,noreferrer');
-                      }}
-                      disabled={rpcOption === 'local'
-                        ? !(servicesUpChecked && bootstrappedChecked)
-                        : !servicesUpChecked}
-                      className="w-1/3"
-                    >
-                      Launch Explorer
-                    </Button>
-                  </div>
-                  <div className="mt-6">
-                    <img
-                      src="/images/blockscout-sample.png"
-                      alt="Blockscout Sample Image"
-                      className="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full"
-                    />
-                    <p className="text-sm mt-2 text-center">
-                      Preview of your BlockScout Explorer interface
-                    </p>
-                  </div>
+                      }
+                    }}
+                    disabled={!servicesChecked}
+                    className="px-8 py-3 text-xl"
+                  >
+                    Launch Explorer
+                  </Button>
                 </div>
+              </div>
+
+              <div className="mt-6">
+                <img
+                  src="/images/blockscout-sample.png"
+                  alt="Blockscout Sample Image"
+                  className="rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-full"
+                />
+                <p className="text-sm mt-2 text-center">
+                  Preview of your BlockScout Explorer interface
+                </p>
               </div>
             </Step>
 

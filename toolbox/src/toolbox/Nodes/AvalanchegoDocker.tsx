@@ -17,8 +17,9 @@ import { useL1ListStore } from "../../stores/l1ListStore";
 import { Button } from "../../components/Button";
 import { RadioGroup } from "../../components/RadioGroup";
 import { Success } from "../../components/Success";
-import { nipify } from "../../components/IPValidation";
+import { nipify, validateDomainOrIP } from "../../components/IPValidation";
 import { DockerInstallation } from "../../components/DockerInstallation";
+import { NodeReadinessValidator } from "../../components/NodeReadinessValidator";
 
 
 export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruningEnabled: boolean) => {
@@ -107,26 +108,7 @@ const reverseProxyCommand = (domain: string) => {
   caddy reverse-proxy --from ${domain} --to localhost:9650`
 }
 
-const checkNodeCommand = (chainID: string, domain: string, isDebugTrace: boolean) => {
-    domain = nipify(domain);
-    if (domain.startsWith("127.0.0.1")) {
-        domain = "http://" + domain;
-    } else {
-        domain = "https://" + domain;
-    }
 
-    if (!isDebugTrace) {
-        return `curl -X POST --data '{ 
-  "jsonrpc":"2.0", "method":"eth_chainId", "params":[], "id":1 
-}' -H 'content-type:application/json;' \\
-${domain}/ext/bc/${chainID}/rpc`
-    } else {
-        return `curl -X POST --data '{ 
-  "jsonrpc":"2.0", "method":"debug_traceBlockByNumber", "params":["latest", {}], "id":1 
-}' -H 'content-type:application/json;' \\
-${domain}/ext/bc/${chainID}/rpc`
-    }
-}
 
 
 
@@ -140,8 +122,10 @@ export default function AvalanchegoDocker() {
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
     const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
+    const [domainError, setDomainError] = useState<string | null>(null);
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
     const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
+    const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
 
     const { avalancheNetworkID } = useWalletStore();
     const { addL1 } = useL1ListStore()();
@@ -157,8 +141,17 @@ export default function AvalanchegoDocker() {
     useEffect(() => {
         if (!isRPC) {
             setDomain("");
+            setDomainError(null);
         }
     }, [isRPC]);
+
+    useEffect(() => {
+        if (domain) {
+            setDomainError(validateDomainOrIP(domain));
+        } else {
+            setDomainError(null);
+        }
+    }, [domain]);
 
 
     useEffect(() => {
@@ -184,7 +177,9 @@ export default function AvalanchegoDocker() {
         setEnableDebugTrace(false);
         setPruningEnabled(true);
         setSubnetIdError(null);
+        setDomainError(null);
         setIsAddChainModalOpen(false);
+        setNodeIsReady(false);
     };
 
 
@@ -333,22 +328,14 @@ export default function AvalanchegoDocker() {
                                     </Accordion>
                                 </Accordions>
 
-                                <p> During the bootstrapping process the following command will return a <code>404 page not found</code> error.</p>
-
-                                <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, "127.0.0.1:9650", false)} />
-
-                                <p> Once it the bootstrapping is complete it will return a response like <code>{'{"jsonrpc":"2.0","id":1,"result":"..."}'}</code>.</p>
+                                <NodeReadinessValidator
+                                    chainId={chainId}
+                                    domain={nodeRunningMode === "server" ? domain || "127.0.0.1:9650" : "127.0.0.1:9650"}
+                                    isDebugTrace={enableDebugTrace}
+                                    onBootstrapCheckChange={(checked) => setNodeIsReady(checked)}
+                                />
                             </Step>
-                            {chainId && enableDebugTrace && (
-                                <Step>
-                                    <h3 className="text-xl font-bold mb-4">Test Debug & Trace</h3>
-                                    <div className="space-y-4">
-                                        <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, "127.0.0.1:9650", true)} />
-                                        <div className="mt-4">Make sure you make at least one transaction on your chain, or it will error "genesis is untracable".</div>
-                                    </div>
-                                </Step>
-                            )}
-                            {isRPC && (
+                            {nodeIsReady && isRPC && (
                                 <>
                                     {nodeRunningMode === "server" && (
                                         <>
@@ -367,6 +354,8 @@ export default function AvalanchegoDocker() {
                                                     value={domain}
                                                     onChange={(newValue) => setDomain(newValue.trim())}
                                                     placeholder="example.com  or 1.2.3.4"
+                                                    error={domainError}
+                                                    helperText="Enter your domain name or IP address (e.g. example.com or 1.2.3.4)"
                                                 />
 
                                                 {domain && (<>
@@ -379,16 +368,25 @@ export default function AvalanchegoDocker() {
                                                     <h3 className="text-xl font-bold mb-4">Check connection via Proxy</h3>
                                                     <p>Do a final check from a machine different then the one that your node is running on.</p>
 
-                                                    <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, false)} />
+                                                    <NodeReadinessValidator
+                                                        chainId={chainId}
+                                                        domain={domain}
+                                                    />
                                                 </Step>
                                             </>
                                             )}
                                         </>)}
                                     {(nodeRunningMode === "localhost" || domain) && (<Step>
                                         <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
-                                        <p>Add your L1 to your Wallet if all checks above passed</p>
+                                        <p>Click the button below to add your L1 to your wallet:</p>
 
-                                        <Button onClick={() => setIsAddChainModalOpen(true)} className="mt-4 w-48">Add to Wallet</Button>
+                                        <Button
+                                            onClick={() => setIsAddChainModalOpen(true)}
+                                            className="mt-4 w-48"
+                                        >
+                                            Add to Wallet
+                                        </Button>
+
                                         {isAddChainModalOpen && <AddChainModal
                                             onClose={() => setIsAddChainModalOpen(false)}
                                             onAddChain={(chain) => {
