@@ -12,6 +12,9 @@ interface NodeReadinessValidatorProps {
     // Optional: use debug trace instead of basic eth_chainId
     isDebugTrace?: boolean;
 
+    // Optional: show health check button
+    showHealthCheck?: boolean;
+
     // Action button configuration (optional)
     buttonText?: string;
     buttonClassName?: string;
@@ -108,6 +111,7 @@ export const NodeReadinessValidator = ({
     chainId,
     domain,
     isDebugTrace = false,
+    showHealthCheck = false,
     buttonText,
     buttonClassName = "w-1/3",
     onAction,
@@ -151,15 +155,7 @@ export const NodeReadinessValidator = ({
         setIsChecking(false);
     };
 
-    const performDebugHealthCheck = async () => {
-        setIsCheckingDebug(true);
-        setDebugHealthResult(null);
 
-        const result = await checkNodeHealth(chainId, domain, true);
-        setDebugHealthResult(result);
-
-        setIsCheckingDebug(false);
-    };
 
     const basicCurlCommand = generateCheckNodeCommand(chainId, domain, false);
     const debugCurlCommand = generateCheckNodeCommand(chainId, domain, true);
@@ -168,29 +164,42 @@ export const NodeReadinessValidator = ({
         <div className="space-y-4">
             <div className="space-y-4">
                 <div className="space-y-4">
-                    <p>You can verify that your node is ready by testing the RPC endpoint. During bootstrapping, this will return a 404 error, but once complete it will return a valid response.</p>
+                    <p>
+                        {showHealthCheck
+                            ? "You can verify that your node is ready by testing the RPC endpoint. During bootstrapping, this will return a 404 error, but once complete it will return a valid response."
+                            : "During the bootstrapping process, the following command will return a 404 page not found error:"
+                        }
+                    </p>
 
                     <DynamicCodeBlock lang="bash" code={basicCurlCommand} />
 
-                    <div className="flex gap-4 items-center">
-                        <Button
-                            onClick={performHealthCheck}
-                            disabled={isChecking}
-                            className="w-auto"
-                        >
-                            {isChecking ? 'Checking...' : 'Check Node Health'}
-                        </Button>
+                    {showHealthCheck ? (
+                        <div className="mt-6">
+                            <div className="flex gap-4 items-center">
+                                <Button
+                                    onClick={performHealthCheck}
+                                    disabled={isChecking}
+                                    className="w-auto"
+                                >
+                                    {isChecking ? 'Checking...' : 'Check Node Health'}
+                                </Button>
 
-                        {healthCheckResult && (
-                            <div className={`text-sm ${healthCheckResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                {healthCheckResult.success ? (
-                                    <span>✅ Node is healthy! Response: {JSON.stringify(healthCheckResult.response)}</span>
-                                ) : (
-                                    <span>❌ {healthCheckResult.error}</span>
+                                {healthCheckResult && (
+                                    <div className={`text-sm ${healthCheckResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                        {healthCheckResult.success ? (
+                                            <span>✅ Node is healthy! Response: {JSON.stringify(healthCheckResult.response)}</span>
+                                        ) : (
+                                            <span>❌ {healthCheckResult.error}</span>
+                                        )}
+                                    </div>
                                 )}
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    ) : (
+                        <p>
+                            Once bootstrapping is complete, it will return a response like <code>{'{"jsonrpc":"2.0","id":1,"result":"..."}'}</code>.
+                        </p>
+                    )}
                 </div>
 
                 <Checkbox
@@ -206,26 +215,6 @@ export const NodeReadinessValidator = ({
                     <p>Now that your node is synced, you can test the debug and trace functionality:</p>
 
                     <DynamicCodeBlock lang="bash" code={debugCurlCommand} />
-
-                    <div className="flex gap-4 items-center">
-                        <Button
-                            onClick={performDebugHealthCheck}
-                            disabled={isCheckingDebug}
-                            className="w-auto"
-                        >
-                            {isCheckingDebug ? 'Checking Debug...' : 'Check Debug & Trace'}
-                        </Button>
-
-                        {debugHealthResult && (
-                            <div className={`text-sm ${debugHealthResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                {debugHealthResult.success ? (
-                                    <span>✅ Debug trace working!</span>
-                                ) : (
-                                    <span>❌ {debugHealthResult.error}</span>
-                                )}
-                            </div>
-                        )}
-                    </div>
 
                     <p>Make sure you make at least one transaction on your chain, or it will error "genesis is untracable".</p>
                 </div>

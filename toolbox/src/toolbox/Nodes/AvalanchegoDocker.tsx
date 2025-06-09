@@ -354,10 +354,13 @@ export default function AvalanchegoDocker() {
                                                     <h3 className="text-xl font-bold mb-4">Check connection via Proxy</h3>
                                                     <p>Do a final check from a machine different then the one that your node is running on.</p>
 
-                                                    <NodeReadinessValidator
-                                                        chainId={chainId}
-                                                        domain={domain}
-                                                    />
+                                                    <div className="space-y-6">
+                                                        <NodeReadinessValidator
+                                                            chainId={chainId}
+                                                            domain={domain}
+                                                            showHealthCheck={true}
+                                                        />
+                                                    </div>
                                                 </Step>
                                             </>
                                             )}
