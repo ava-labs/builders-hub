@@ -404,10 +404,12 @@ export default function AvalanchegoDocker() {
 
                 </Steps>
 
-                {chainAddedToWallet && (<>
-                    <Success label="Chain added to Wallet" value={chainAddedToWallet} />
-                    <Button onClick={handleReset} className="mt-4 w-full">Reset</Button>
-                </>)}
+                {chainAddedToWallet && (
+                    <>
+                        <Success label="Node Setup Complete" value={chainAddedToWallet} />
+                        <Button onClick={handleReset} className="mt-4 w-full">Reset</Button>
+                    </>
+                )}
 
             </Container >
         </>
