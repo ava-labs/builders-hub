@@ -20,6 +20,7 @@ import { Success } from "../../components/Success";
 import { nipify, HostInput } from "../../components/HostInput";
 import { DockerInstallation } from "../../components/DockerInstallation";
 import { NodeReadinessValidator } from "../../components/NodeReadinessValidator";
+import { HealthCheckButton } from "../../components/HealthCheckButton";
 
 
 export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruningEnabled: boolean) => {
@@ -106,6 +107,15 @@ const reverseProxyCommand = (domain: string) => {
   -v caddy_data:/data \\
   caddy:2.8-alpine \\
   caddy reverse-proxy --from ${domain} --to localhost:9650`
+}
+
+const rpcHealthCheckCommand = (domain: string, chainId: string) => {
+    const processedDomain = nipify(domain);
+
+    return `curl -X POST --data '{ 
+  "jsonrpc":"2.0", "method":"eth_chainId", "params":[], "id":1 
+}' -H 'content-type:application/json;' \\
+https://${processedDomain}/ext/bc/${chainId}/rpc`
 }
 
 
@@ -355,10 +365,11 @@ export default function AvalanchegoDocker() {
                                                     <p>Do a final check from a machine different then the one that your node is running on.</p>
 
                                                     <div className="space-y-6">
-                                                        <NodeReadinessValidator
+                                                        <DynamicCodeBlock lang="bash" code={rpcHealthCheckCommand(domain, chainId)} />
+
+                                                        <HealthCheckButton
                                                             chainId={chainId}
                                                             domain={domain}
-                                                            showHealthCheck={true}
                                                         />
                                                     </div>
                                                 </Step>
