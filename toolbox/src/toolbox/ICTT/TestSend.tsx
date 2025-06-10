@@ -18,7 +18,7 @@ import { Suggestion } from "../../components/TokenInput";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { Token, TokenInput } from "../../components/TokenInputToolbox";
 import { utils } from "@avalabs/avalanchejs";
-import SelectChainID from "../../components/SelectChainID";
+import SelectBlockchainId from "../../components/SelectBlockchainId";
 import { Container } from "../../components/Container";
 import { Toggle } from "../../components/Toggle";
 import { Ellipsis } from "lucide-react";
@@ -478,7 +478,7 @@ export default function TokenBridge() {
             description={`Send tokens from the current chain (${selectedL1?.name}) to another chain.`}
         >
 
-            <SelectChainID
+            <SelectBlockchainId
                 label="Destination Chain"
                 value={destinationChainId}
                 onChange={(value) => setDestinationChainId(value)}

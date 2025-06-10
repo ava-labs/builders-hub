@@ -15,7 +15,7 @@ import { Note } from "../../components/Note";
 import { utils } from "@avalabs/avalanchejs";
 import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import ExampleERC20 from "../../../contracts/icm-contracts/compiled/ExampleERC20.json";
-import SelectChainID from "../../components/SelectChainID";
+import SelectBlockchainId from "../../components/SelectBlockchainId";
 import { Container } from "../../components/Container";
 import TeleporterRegistryAddressInput from "../../components/TeleporterRegistryAddressInput";
 
@@ -220,7 +220,7 @@ export default function DeployERC20TokenRemote() {
                 </p>
             </Note>}
 
-            <SelectChainID
+            <SelectBlockchainId
                 label="Source Chain (where token home is deployed)"
                 value={sourceChainId}
                 onChange={(value) => setSourceChainId(value)}
