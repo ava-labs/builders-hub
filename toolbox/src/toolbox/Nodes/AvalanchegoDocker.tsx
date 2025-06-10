@@ -123,18 +123,70 @@ https://${processedDomain}/ext/bc/${chainId}/rpc`
 
 
 export default function AvalanchegoDocker() {
-    const [chainId, setChainId] = useState("");
-    const [subnetId, setSubnetId] = useState("");
-    const [isRPC, setIsRPC] = useState<boolean>(true);
+    const [chainId, setChainId] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('avalanchego-chainId') || "";
+        }
+        return "";
+    });
+    const [subnetId, setSubnetId] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('avalanchego-subnetId') || "";
+        }
+        return "";
+    });
+    const [isRPC, setIsRPC] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = sessionStorage.getItem('avalanchego-isRPC');
+            return saved ? JSON.parse(saved) : true;
+        }
+        return true;
+    });
     const [rpcCommand, setRpcCommand] = useState("");
-    const [nodeRunningMode, setNodeRunningMode] = useState("server");
-    const [domain, setDomain] = useState("");
-    const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
-    const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
+    const [nodeRunningMode, setNodeRunningMode] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('avalanchego-nodeRunningMode') || "server";
+        }
+        return "server";
+    });
+    const [domain, setDomain] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('avalanchego-domain') || "";
+        }
+        return "";
+    });
+    const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = sessionStorage.getItem('avalanchego-enableDebugTrace');
+            return saved ? JSON.parse(saved) : false;
+        }
+        return false;
+    });
+    const [pruningEnabled, setPruningEnabled] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = sessionStorage.getItem('avalanchego-pruningEnabled');
+            return saved ? JSON.parse(saved) : true;
+        }
+        return true;
+    });
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
-    const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
-    const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
+    const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(() => {
+        // Check for persisted success state
+        if (typeof window !== 'undefined') {
+            const chainIdForKey = sessionStorage.getItem('avalanchego-chainId') || "";
+            const saved = sessionStorage.getItem(`avalanchego-success-${chainIdForKey}`);
+            return saved || null;
+        }
+        return null;
+    });
+    const [nodeIsReady, setNodeIsReady] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = sessionStorage.getItem('avalanchego-nodeIsReady');
+            return saved ? JSON.parse(saved) : false;
+        }
+        return false;
+    });
 
     const { avalancheNetworkID } = useWalletStore();
     const { addL1 } = useL1ListStore()();
@@ -152,6 +204,67 @@ export default function AvalanchegoDocker() {
             setDomain("");
         }
     }, [isRPC]);
+
+    // Persist key states to sessionStorage
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('avalanchego-chainId', chainId);
+        }
+    }, [chainId]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('avalanchego-subnetId', subnetId);
+        }
+    }, [subnetId]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('avalanchego-isRPC', JSON.stringify(isRPC));
+        }
+    }, [isRPC]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('avalanchego-nodeRunningMode', nodeRunningMode);
+        }
+    }, [nodeRunningMode]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('avalanchego-domain', domain);
+        }
+    }, [domain]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('avalanchego-enableDebugTrace', JSON.stringify(enableDebugTrace));
+        }
+    }, [enableDebugTrace]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('avalanchego-pruningEnabled', JSON.stringify(pruningEnabled));
+        }
+    }, [pruningEnabled]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('avalanchego-nodeIsReady', JSON.stringify(nodeIsReady));
+        }
+    }, [nodeIsReady]);
+
+    // Load persisted success state when chainId changes
+    useEffect(() => {
+        if (chainId && typeof window !== 'undefined') {
+            const saved = sessionStorage.getItem(`avalanchego-success-${chainId}`);
+            if (saved) {
+                setChainAddedToWallet(saved);
+            } else {
+                setChainAddedToWallet(null);
+            }
+        }
+    }, [chainId]);
 
 
     useEffect(() => {
@@ -179,6 +292,18 @@ export default function AvalanchegoDocker() {
         setSubnetIdError(null);
         setIsAddChainModalOpen(false);
         setNodeIsReady(false);
+        // Clear all persisted state
+        if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('avalanchego-chainId');
+            sessionStorage.removeItem('avalanchego-subnetId');
+            sessionStorage.removeItem('avalanchego-isRPC');
+            sessionStorage.removeItem('avalanchego-nodeRunningMode');
+            sessionStorage.removeItem('avalanchego-domain');
+            sessionStorage.removeItem('avalanchego-enableDebugTrace');
+            sessionStorage.removeItem('avalanchego-pruningEnabled');
+            sessionStorage.removeItem('avalanchego-nodeIsReady');
+            sessionStorage.removeItem(`avalanchego-success-${chainId}`);
+        }
     };
 
 
@@ -392,6 +517,10 @@ export default function AvalanchegoDocker() {
                                             onAddChain={(chain) => {
                                                 addL1(chain);
                                                 setChainAddedToWallet(chain.name);
+                                                // Persist success state to survive page refreshes
+                                                if (typeof window !== 'undefined') {
+                                                    sessionStorage.setItem(`avalanchego-success-${chainId}`, chain.name);
+                                                }
                                             }}
                                             allowLookup={false}
                                             fixedRPCUrl={nodeRunningMode === "server" ? `https://${nipify(domain)}/ext/bc/${chainId}/rpc` : `http://localhost:9650/ext/bc/${chainId}/rpc`}
