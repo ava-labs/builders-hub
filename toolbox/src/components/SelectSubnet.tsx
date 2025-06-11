@@ -6,7 +6,7 @@ import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
 import { useWalletStore } from "../stores/walletStore";
 import { networkIDs } from "@avalabs/avalanchejs";
 import { GlobalParamNetwork, Subnet } from "@avalabs/avacloud-sdk/models/components";
-import SubnetDetailsDisplay from "./SubnetDetailsDisplay";
+import DetailsDisplay from "./DetailsDisplay";
 
 export type SubnetSelection = {
     subnetId: string;
@@ -96,7 +96,7 @@ export default function SelectSubnet({
             />
 
             {/* Display subnet details when a subnet is selected */}
-            {value && <SubnetDetailsDisplay subnet={currentSubnet} isLoading={!!isLoadingCurrent} />}
+            {value && <DetailsDisplay type="subnet" data={currentSubnet} isLoading={!!isLoadingCurrent} />}
         </div>
     );
 } 

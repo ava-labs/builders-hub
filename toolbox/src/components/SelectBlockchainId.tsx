@@ -5,14 +5,14 @@ import { useMemo } from "react";
 import { cn } from "../lib/utils";
 import { Globe } from 'lucide-react';
 
-interface ChainOption {
+interface BlockchainOption {
     id: string;
     name: string;
     description: string;
     logoUrl?: string;
 }
 
-export default function SelectChainID({
+export default function SelectBlockchainId({
     value,
     onChange,
     error,
@@ -28,8 +28,8 @@ export default function SelectChainID({
     const { l1List } = useL1ListStore()();
     const selectId = useId();
 
-    const options: ChainOption[] = useMemo(() => {
-        const result: ChainOption[] = [];
+    const options: BlockchainOption[] = useMemo(() => {
+        const result: BlockchainOption[] = [];
 
         if (createChainStorechainID) {
             result.push({
@@ -90,7 +90,7 @@ export default function SelectChainID({
                             </div>
                         </div>
                     ) : (
-                        <div className="text-zinc-400 dark:text-zinc-500">Select a chain ID</div>
+                        <div className="text-zinc-400 dark:text-zinc-500">Select a blockchain ID</div>
                     )}
                 </button>
 
@@ -129,4 +129,4 @@ export default function SelectChainID({
             {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>
     );
-}
+} 
