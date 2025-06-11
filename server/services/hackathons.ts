@@ -45,6 +45,7 @@ export interface GetHackathonsOptions {
     date?: string | null;
     status?: HackathonStatus | null;
     search?: string;
+    created_by?: string | null;
 }
 
 export async function getHackathon(id: string) {
@@ -94,6 +95,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
             }
         }
     }
+    if (options.created_by) filters.created_by = options.created_by;
     if (options.date) filters.date = options.date;
     if (options.search) {
         const searchWords = options.search.split(/\s+/)
@@ -140,7 +142,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
 
     const hackathons = hackathonList.map(getHackathonLite);
     let hackathonsLite = hackathons
-
+    
     if (options.status) {
         switch (options.status) {
             case "ENDED":
@@ -178,6 +180,7 @@ export async function createHackathon(hackathonData: Partial<HackathonHeader>): 
     const content = { ...hackathonData.content } as Prisma.JsonObject
     const newHackathon = await prisma.hackathon.create({
         data: {
+            created_by: hackathonData.created_by,
             id: hackathonData.id,
             title: hackathonData.title!,
             description: hackathonData.description!,
@@ -191,6 +194,7 @@ export async function createHackathon(hackathonData: Partial<HackathonHeader>): 
             icon: hackathonData.icon!,
             banner: hackathonData.banner!,
             small_banner: hackathonData.small_banner!,
+            top_most: hackathonData.top_most ?? false,
             content: content
         },
     });

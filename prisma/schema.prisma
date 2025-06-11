@@ -25,6 +25,8 @@ model Hackathon {
   top_most      Boolean?       @default(false)
   organizers    String?
   custom_link   String?
+  created_by    String?
+  created_by_user User?         @relation(fields: [created_by], references: [id])
   projects      Project[]
   registrations RegisterForm[]
 }
@@ -47,6 +49,7 @@ model User {
   telegram_user       String?
   memberships         Member[]
   registrations       RegisterForm?
+  hackathons          Hackathon[]
 }
 
 model VerificationToken {
