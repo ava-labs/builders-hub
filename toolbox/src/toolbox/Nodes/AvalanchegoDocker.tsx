@@ -10,7 +10,7 @@ import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../../components/InputChainId";
 import InputSubnetId from "../../components/InputSubnetId";
 import { Checkbox } from "../../components/Checkbox";
-import SubnetDetailsDisplay from "../../components/SubnetDetailsDisplay";
+import DetailsDisplay from "../../components/DetailsDisplay";
 
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Steps, Step } from "fumadocs-ui/components/steps";
@@ -313,8 +313,9 @@ export default function AvalanchegoDocker() {
                         />
 
                         {/* Show subnet details if available */}
-                        <SubnetDetailsDisplay
-                            subnet={subnet}
+                        <DetailsDisplay
+                            type="subnet"
+                            data={subnet}
                             isLoading={isLoading}
                         />
                     </Step>
