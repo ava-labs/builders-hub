@@ -43,6 +43,9 @@ export default async function Page(props: {
   const { body: MDX, toc } = await page.data.load();
   const path = `content/docs/${page.file.path}`;
 
+  // Use custom edit URL if provided in frontmatter, otherwise use default path
+  const editUrl = page.data.edit_url || `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
+
   return (
     <DocsPage
       toc={toc}
@@ -92,6 +95,7 @@ export default async function Page(props: {
         path={path}
         title={page.data.title}
         pagePath={`/docs/${page.slugs.join('/')}`}
+        editUrl={editUrl}
         onRateAction={async (url, feedback) => {
           'use server';
           await posthog.capture('on_rate_document', feedback);

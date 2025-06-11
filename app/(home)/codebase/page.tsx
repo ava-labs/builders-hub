@@ -54,10 +54,10 @@ export default function Page() {
             </div>
             
             <h2 className="text-2xl md:text-5xl font-semibold text-transparent" style={{backgroundImage: "linear-gradient(90deg, #FF00D9 0%, #004A99 100%)", backgroundClip: "text", WebkitBackgroundClip: "text"}}>
-              Season 4 Applications Are Open!
+              Season 4 Applications Are Closed!
             </h2>  
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Applications closes June 6, 2025 @ 5PM Eastern Time
+              Applications closed on June 6, 2025. Stay tuned for updates on the next season!
             </p>
             <div className="flex flex-col justify-center sm:flex-row gap-4 w-full">
               <Link href="https://codebase.avax.network">
@@ -65,11 +65,11 @@ export default function Page() {
                   Learn More
                 </Button>
               </Link>  
-              <Link href="https://share.hsforms.com/2a0QdJS_ERtKijK1Xh13vpA4h8ew">
-                <Button className="w-full rounded-full text-sm px-4 py-1.5 text-white shadow-lg hover:shadow-xl transition-all duration-300" style={{background: "linear-gradient(90deg, rgb(255 110 243) 0%, rgb(128 174 201) 100%)"}}>
-                  Apply Now
-                </Button>
-              </Link>
+              
+              <Button disabled className="rounded-full text-sm px-4 py-1.5 text-white shadow-lg hover:shadow-xl transition-all duration-300" style={{background: "linear-gradient(90deg, rgb(255 110 243) 0%, rgb(128 174 201) 100%)"}}>
+                Applications Closed
+              </Button>
+            
             </div>
           </div>
         </section>

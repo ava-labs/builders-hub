@@ -31,7 +31,6 @@ export default function CreateChain() {
     const { showBoundary } = useErrorBoundary();
     const {
         subnetId,
-        chainName,
         setChainID,
         setSubnetID,
         genesisData,
@@ -78,7 +77,7 @@ export default function CreateChain() {
 
         try {
             const txID = await coreWalletClient.createChain({
-                chainName: chainName,
+                chainName: localChainName,
                 subnetId: subnetId,
                 vmId,
                 fxIds: [],
@@ -102,7 +101,7 @@ export default function CreateChain() {
     return (
         <Container
             title="Create Chain"
-            description="Create a new blockchain with custom parameters and genesis data."
+            description="Create a subnet and add a new blockchain with custom parameters and genesis data."
         >
             <Steps>
                 <Step>
@@ -117,6 +116,7 @@ export default function CreateChain() {
                             disabled={true}
                             type="text"
                         />
+
                         <Button
                             onClick={handleCreateSubnet}
                             loading={isCreatingSubnet}

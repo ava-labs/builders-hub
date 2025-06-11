@@ -457,6 +457,13 @@ export const eventsMenu: LinkItemType = {
     },
   ],
 };
+
+const bridgeLink: LinkItemType = {
+  type: 'main',
+  text: 'Bridge',
+  url: 'https://core.app/bridge',
+};
+
 const userMenu: LinkItemType = {
   type: 'custom',
   children: <UserButton />,
@@ -489,16 +496,14 @@ export const baseOptions: BaseLayoutProps = {
     ),
   },
   links: [
-    docsMenu,
     academyMenu,
+    docsMenu,
+    integrationsMenu,
+    bridgeLink,
     toolsMenu,
     grantsMenu,
-    github,
     eventsMenu,
-    integrationsMenu,
-    // hackathons,
+    github,
     userMenu,
-    // hackathons,
-    //userMenu,
   ],
 };

@@ -15,12 +15,6 @@ For this tutorial, we will be working in a new branch in Subnet-EVM/Precompile-E
 cd $GOPATH/src/github.com/ava-labs/subnet-evm
 ```
 
-Then checkout to a new branch:
-
-```bash
-git checkout -b hello-world-stateful-precompile
-```
-
 We will start off in this directory `./contracts/`:
 
 ```bash
@@ -61,7 +55,7 @@ In the same directory, let's run:
 solc --abi ./contracts/interfaces/IHelloWorld.sol -o ./abis
 ```
 
-This generates the ABI code under `./abis/IHelloWorld.abi`.
+This generates the ABI code under `./abis/contracts_interfaces_IHelloWorld_sol_IHelloWorld.abi`.
 
 ```
 [
@@ -249,12 +243,6 @@ Now let's generate the precompile template files!
 cd $GOPATH/src/github.com/ava-labs/precompile-evm
 ```
 
-Then checkout to a new branch:
-
-```bash
-git checkout -b hello-world-stateful-precompile
-```
-
 We will start off in this directory `./contracts/`:
 
 ```bash
@@ -303,7 +291,7 @@ In Precompile-EVM we import contracts from `@avalabs/subnet-evm-contracts` packa
 solc --abi ./contracts/interfaces/IHelloWorld.sol -o ./abis --base-path . --include-path ./node_modules
 ```
 
-This generates the ABI code under `./abis/IHelloWorld.abi`.
+This generates the ABI code under `./abis/contracts_interfaces_IHelloWorld_sol_IHelloWorld.abi`.
 
 ```
 [
@@ -491,7 +479,7 @@ Now let's generate the precompile template files!
 In Subnet-EVM precompile implementations reside under the `./precompile/contracts` directory. Let's generate our precompile template in the `./precompile/contracts/helloworld` directory, where `helloworld` is the name of the Go package we want to generate the precompile into.
 
 ```bash
-./scripts/generate_precompile.sh --abi ./contracts/abis/IHelloWorld.abi --type HelloWorld --pkg helloworld
+./scripts/generate_precompile.sh --abi ./contracts/abis/contracts_interfaces_IHelloWorld_sol_IHelloWorld.abi --type HelloWorld --pkg helloworld
 ```
 
 This generates a precompile template files `contract.go`, `contract.abi`, `config.go`, `module.go`, `event.go` and `README.md` files. `README.md` explains general guidelines for precompile development. You should carefully read this file before modifying the precompile template.
@@ -528,7 +516,7 @@ Let's follow these steps and create our HelloWorld precompile.
 For Precompile-EVM we don't need to put files under a deep directory structure. We can just generate the precompile template under its own directory via `--out ./helloworld` flag.
 
 ```bash
-./scripts/generate_precompile.sh --abi ./contracts/abis/IHelloWorld.abi --type HelloWorld --pkg helloworld --out ./helloworld
+./scripts/generate_precompile.sh --abi ./contracts/abis/contracts_interfaces_IHelloWorld_sol_IHelloWorld.abi --type HelloWorld --pkg helloworld --out ./helloworld
 ```
 
 This generates a precompile template files `contract.go`, `contract.abi`, `config.go`, `module.go`, `event.go` and `README.md` files. `README.md` explains general guidelines for precompile development. You should carefully read this file before modifying the precompile template.

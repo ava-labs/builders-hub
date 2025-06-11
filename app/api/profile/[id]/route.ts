@@ -27,13 +27,20 @@ export const GET = withAuth(async (
   }
 });
 
-export const PUT = withAuth(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+export const PUT = withAuth(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, session: any) => {
   try {
     const id = (await params).id;
     if (!id) {
       return NextResponse.json(
         { error: 'Id parameter is required.' },
         { status: 400 }
+      );
+    }
+
+    if (session.id != id) {
+      return NextResponse.json(
+        { error: 'Forbidden.' },
+        { status: 403 }
       );
     }
 
