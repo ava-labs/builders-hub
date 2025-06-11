@@ -34,7 +34,7 @@ Start by opening the repository on Github.
 ### Open the Dev Container and Navigate to the Chain Definitions
 
 - Open the repository in a Github Codespace or Visual Studio Code.
-- Navigate to the `web-apps/builderkit/chains/definitions` folder.
+- Navigate to the `web-apps/src/app/chains/definitions` folder.
 
 In this folder, you’ll find separate files for each chain configuration. For example, `echo.ts` contains the definition for the **Echo L1** chain:
 
@@ -74,9 +74,9 @@ To configure your custom blockchain (e.g., `myblockchain`):
 <Step> 
 ### Import Your Chains
 
-- Navigate to the `web-apps/builderkit/flows/ictt` folder.
+- Navigate to the `web-apps/src/app` folder.
 
-Once you're inside the **ICTT** folder, open the `page.tsx` file to begin configuring the tokens and chains.
+Once you're inside the **APP** folder, open the `constants.tsx` file to begin configuring the tokens and chains.
 
 ```tsx
 import { myblockchain } from './chains/definitions';
@@ -87,7 +87,7 @@ import { myblockchain } from './chains/definitions';
 After importing the chains, add them into the chains array:
 
 ```tsx
-const chains = [avalanche, avalancheFuji, echo, dispatch, myblockchain];
+export const CHAINS = [avalanche, avalancheFuji, echo, dispatch, myblockchain];
 ```
 
 This array will hold the configuration of all the chains that will interact with your ICTT frontend.
@@ -98,7 +98,7 @@ This array will hold the configuration of all the chains that will interact with
 Next, configure your tokens. Here’s an example token configuration:
 
 ```tsx
-const tokens = [
+export const TOKENS = [
   {
     address: "0x8D6f0E153B1D4Efb46c510278Db3678Bb1Cc823d",
     name: "TOK",
@@ -151,7 +151,9 @@ These flags ensure proper handling of tokens when they are moved across chains. 
 <Step> 
 ### Implement the ICTT Component
 
-After configuring the tokens and chains, implement the **ICTT component** in the page. Here’s how to pass the token and chain details to the component:
+- Navigate to the `web-apps/src/app/ictt` folder.
+
+Once you're inside the **ICTT** folder, open the `page.tsx` file to implement the **ICTT component** in the page. Here’s how to pass the token and chain details to the component:
 
 ```tsx
 <ICTT tokens={tokens} token_in="0x8D6f0E153B1D4Efb46c510278Db3678Bb1Cc823d" source_chain_id={43113} destination_chain_id={173750}></ICTT>

@@ -27,13 +27,6 @@ import {
   ArrowLeftRight,
 } from 'lucide-react';
 import Image from 'next/image';
-import Preview9000 from '@/public/nav-banner/9000-logo.png';
-import CoursePreview from '@/public/nav-banner/course-preview.png';
-import CodebaseBanner from '@/public/nav-banner/codebase-banner.png';
-import SummitLondonBanner from '@/public/nav-banner/avalanche_summit_london.png';
-import HackathonsBanner from '@/public/nav-banner/hackathons-banner.png';
-import Team1Banner from '@/public/nav-banner/local_events_team1.jpg';
-import L1ToolboxPreview from '@/public/nav-banner/l1-toolbox-preview.png';
 import { SiGithub } from '@icons-pack/react-simple-icons';
 import { UserButton } from '@/components/login/user-button/UserButton';
 
@@ -116,9 +109,11 @@ export const docsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={Preview9000}
-              alt='Preview'
-              className='rounded-t-lg object-cover'
+               src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/9000-logo-FYhqyinnspUefGJcGgj9AcT116yq98.png"
+               alt='Preview'
+               width={900}
+               height={400}
+              className='rounded-t-lg object-cover  w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -185,9 +180,11 @@ export const academyMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={CoursePreview}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/course-preview-wXbIGdEfz2BMNZOht6qEL79OWrUJ2v.png"}
               alt='Preview'
-              className='rounded-t-lg object-cover'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -255,9 +252,11 @@ export const toolsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={L1ToolboxPreview}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/l1-toolbox-preview-can8L21MSIMXmXIfnr78t0qDcpRa52.png"}
               alt='L1 Launcher Preview'
-              className='rounded-t-lg object-cover'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -324,9 +323,11 @@ export const grantsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={CodebaseBanner}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/codebase-banner-VKmQyN5sPojnIOU09p0lCkUgR6YTpQ.png"}
               alt='Preview'
-              className='rounded-t-lg object-cover'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -394,9 +395,11 @@ export const eventsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={SummitLondonBanner}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/avalanche_summit_london-Nyk29ywbU9RZbKaXzVtZxXd1nqBJBx.png"}
               alt='Preview'
-              className='rounded-t-lg object-cover'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -416,9 +419,11 @@ export const eventsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={HackathonsBanner}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/hackathons-banner-nyqtkzooc3tJ4qcLjfLJijXz6uJ6oH.png"}
               alt='Preview'
-              className='rounded-t-lg object-cover'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -438,9 +443,11 @@ export const eventsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={Team1Banner}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"}
               alt='Preview'
-              className='rounded-t-lg object-cover'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}

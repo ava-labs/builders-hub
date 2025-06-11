@@ -21,7 +21,7 @@ export default function ProjectOverview({ project }: Props) {
             src={
               project.cover_url && project.cover_url.trim().length > 0
                 ? project.cover_url
-                : "/hackathon-images/project-overview-banner.svg"}
+                : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-overview-banner-ooDsB4WqP31ppIqhuzzgCBb5eooIPE.svg"}
             alt="project-banner"
             width={100}
             height={635}
@@ -31,7 +31,7 @@ export default function ProjectOverview({ project }: Props) {
             src={
               project.logo_url && project.logo_url.trim().length > 0
                 ? project.logo_url
-                : "/hackathon-images/project-logo.png"
+                : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-logo-ILfO9EujWnQj1xMZpIIWTZ8mc87I7f.png"
             }
             alt="project-banner"
             width={100}

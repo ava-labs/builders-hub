@@ -14,13 +14,13 @@ Let's visualize this with an example. You are a validator in a set of validators
 
 You start by sampling the current preference of five other nodes and they reply: 2 prefer yellow (Charlie) and 3 prefer blue (Bob). 
 
-![](/course-images/avalanche-fundamentals/5.png)
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/avalanche-fundamentals/5-f6WnJHv0VAKRNOSd8gFHbO2Mar4mWl.png)
 
 Avalanche consensus dictates that a validator changes its preference if an α-majority of the sampled validators agree on another option, and it goes along with this popular choice. 
 
 Let's set the alpha value to 3 in our example, meaning that we change our preference when 3 out of 5 sampled nodes have another preference. Since 3 out of 5 have replied with blue (Bob) we are changing our own preference to Bob. 
 
-![](/course-images/avalanche-fundamentals/6.png)
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/avalanche-fundamentals/6-TscORkJchAtrT2rG8rG5CPFPilUR1b.png)
 
 From now on you will respond with blue, when another validators queries you for your current preference. 
 
@@ -32,7 +32,7 @@ Avalanche Consensus does not run for a fixed number of rounds, but until a decis
 
 Now you query another five validators for their preference. Again, three of the five reply with the preference blue (Bob). Since your current preference is confirmed, you increment a counter for consecutive successes by one. You repeat this sampling process until their preference is confirmed for 8 consecutive rounds. 
 
-![](/course-images/avalanche-fundamentals/7.png)
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/avalanche-fundamentals/7-KYmL0QWax9tmW7uT8bdqu9R5sNwgSs.png)
 
 ## Parameters of Avalanche Consensus
 
@@ -47,7 +47,7 @@ In our example we used fixed values for how many nodes are sampled, how many are
 
 With these parameters we can illustrate the consensus algorithm as pseudo code:
 
-![](/course-images/avalanche-fundamentals/8.png)
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/avalanche-fundamentals/8-XzHBlGu1fdnPniQecAkpFfC5JTegVD.png)
 
 
 ## Finalization

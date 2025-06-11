@@ -252,7 +252,7 @@ export default function HackathonPage() {
       <div className="py-12 sm:py-12">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto w-full lg:mx-0">
-          <img src="/hackathon-images/AvalancheSummit_London_HackathonLogo_Blue.png" alt="Summit London Logo" className="mx-auto h-32 w-auto" />
+          <img src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/AvalancheSummit_London_HackathonLogo_Blue-LGHoUkeODPaagguBk0Fe1MM2ZbOBc9.png" alt="Summit London Logo" className="mx-auto h-32 w-auto" />
          <p className="mt-12 text-center text-lg leading-8 text-muted-foreground">
             At Avalanche, we believe in the power of technology to transform industries and solve real-world problems.
             This hackathon aims to harness the potential of Avalanche's robust technology stack to address pressing issues and create scalable, practical solutions. 
