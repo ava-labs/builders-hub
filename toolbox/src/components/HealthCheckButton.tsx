@@ -17,6 +17,10 @@ const checkNodeHealth = async (chainId: string, domain: string): Promise<HealthC
     const processedDomain = nipify(domain);
     const baseUrl = "https://" + processedDomain;
 
+    // Create AbortController for 1-second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1000);
+
     try {
         const response = await fetch(`${baseUrl}/ext/bc/${chainId}/rpc`, {
             method: 'POST',
@@ -29,7 +33,11 @@ const checkNodeHealth = async (chainId: string, domain: string): Promise<HealthC
                 params: [],
                 id: 1
             }),
+            signal: controller.signal,
         });
+
+        // Clear timeout if request completes successfully
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             return {
@@ -52,6 +60,16 @@ const checkNodeHealth = async (chainId: string, domain: string): Promise<HealthC
             response: data.result
         };
     } catch (error) {
+        // Clear timeout in case of error
+        clearTimeout(timeoutId);
+
+        if (error instanceof Error && error.name === 'AbortError') {
+            return {
+                success: false,
+                error: 'Request timeout (1 second) - node may still be bootstrapping'
+            };
+        }
+
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error occurred'
