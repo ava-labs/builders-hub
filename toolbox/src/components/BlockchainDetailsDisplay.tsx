@@ -2,17 +2,7 @@
 
 import { Calendar, Database, Copy, AlertTriangle, FileText } from "lucide-react"
 import { useState } from "react"
-
-export type BlockchainInfo = {
-    createBlockTimestamp: number;
-    createBlockNumber: string;
-    blockchainId: string;
-    vmId: string;
-    subnetId: string;
-    blockchainName: string;
-    evmChainId: number;
-    isTestnet: boolean;
-}
+import type { BlockchainInfo } from "./SelectBlockchain"
 
 interface BlockchainDetailsDisplayProps {
     blockchain: BlockchainInfo | null

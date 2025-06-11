@@ -2,9 +2,11 @@
 
 import SelectBlockchainId from "./SelectBlockchainId";
 import { useState, useCallback } from "react";
-import { getBlockchainInfo } from "../coreViem/utils/glacier";
+import { useWalletStore } from "../stores/walletStore";
+import { networkIDs } from "@avalabs/avalanchejs";
 
-export type BlockchainInfo = {
+// API Response type from AvaCloud - matches the official API response
+export type BlockchainApiResponse = {
     createBlockTimestamp: number;
     createBlockNumber: string;
     blockchainId: string;
@@ -12,6 +14,10 @@ export type BlockchainInfo = {
     subnetId: string;
     blockchainName: string;
     evmChainId: number;
+}
+
+// Extended type with additional metadata
+export type BlockchainInfo = BlockchainApiResponse & {
     isTestnet: boolean;
 }
 
@@ -20,11 +26,8 @@ export type BlockchainSelection = {
     blockchain: BlockchainInfo | null;
 }
 
-// Lazy import to avoid circular dependency
-const BlockchainDetailsDisplay = ({ blockchain, isLoading }: { blockchain: BlockchainInfo | null, isLoading: boolean }) => {
-    const Component = require("./BlockchainDetailsDisplay").default;
-    return <Component blockchain={blockchain} isLoading={isLoading} />;
-};
+// Import the unified details display component
+import DetailsDisplay from "./DetailsDisplay";
 
 export default function SelectBlockchain({
     value,
@@ -37,27 +40,54 @@ export default function SelectBlockchain({
     error?: string | null,
     label?: string
 }) {
+    const { avalancheNetworkID } = useWalletStore();
     const [blockchainDetails, setBlockchainDetails] = useState<Record<string, BlockchainInfo>>({});
     const [isLoading, setIsLoading] = useState(false);
+
+    // Network names for API calls  
+    const networkNames: Record<number, string> = {
+        [networkIDs.MainnetID]: "mainnet",
+        [networkIDs.FujiID]: "fuji",
+    };
 
     // Fetch blockchain details when needed
     const fetchBlockchainDetails = useCallback(async (blockchainId: string) => {
         if (!blockchainId || blockchainDetails[blockchainId]) return;
 
         try {
+            const network = networkNames[Number(avalancheNetworkID)];
+            if (!network) return;
+
             setIsLoading(true);
-            const blockchain = await getBlockchainInfo(blockchainId);
+
+            // Use direct API call as shown in AvaCloud documentation
+            // https://developers.avacloud.io/data-api/primary-network/get-blockchain-details-by-id
+            const response = await fetch(`https://glacier-api.avax.network/v1/networks/${network}/blockchains/${blockchainId}`, {
+                method: 'GET',
+                headers: {
+                    'accept': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch blockchain details: ${response.statusText}`);
+            }
+
+            const blockchain: BlockchainApiResponse = await response.json();
 
             setBlockchainDetails(prev => ({
                 ...prev,
-                [blockchainId]: blockchain
+                [blockchainId]: {
+                    ...blockchain,
+                    isTestnet: network === "fuji"
+                }
             }));
         } catch (error) {
             console.error(`Error fetching blockchain details for ${blockchainId}:`, error);
         } finally {
             setIsLoading(false);
         }
-    }, [blockchainDetails]);
+    }, [avalancheNetworkID, networkNames, blockchainDetails]);
 
     // Handle value change and fetch details if needed
     const handleValueChange = useCallback((newValue: string) => {
@@ -85,7 +115,7 @@ export default function SelectBlockchain({
             />
 
             {/* Display blockchain details when a blockchain is selected */}
-            {value && <BlockchainDetailsDisplay blockchain={currentBlockchain} isLoading={!!isLoadingCurrent} />}
+            {value && <DetailsDisplay type="blockchain" data={currentBlockchain} isLoading={!!isLoadingCurrent} />}
         </div>
     );
 } 
