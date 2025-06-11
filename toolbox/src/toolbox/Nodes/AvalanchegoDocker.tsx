@@ -5,14 +5,11 @@ import { useState, useEffect } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
 import versions from "../../versions.json";
 import { Container } from "../../components/Container";
-import { Input } from "../../components/Input";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../../components/InputChainId";
 import InputSubnetId from "../../components/InputSubnetId";
 import { Checkbox } from "../../components/Checkbox";
 import DetailsDisplay from "../../components/DetailsDisplay";
-
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
@@ -140,6 +137,7 @@ export default function AvalanchegoDocker() {
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
     const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
+    const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
 
     const { avalancheNetworkID } = useWalletStore();
     const { addL1 } = useL1ListStore()();
