@@ -14,6 +14,7 @@ import { hexToBytes, bytesToHex } from 'viem';
 import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/ValidatorManager.json';
 import poaManagerAbi from '../../../../contracts/icm-contracts/compiled/PoAManager.json';
 import { packL1ValidatorRegistration } from '../../../coreViem/utils/convertWarp';
+import { getValidationIdHex } from '../../../coreViem/hooks/getValidationID';
 
 interface CompleteValidatorRegistrationProps {
   subnetIdL1: string;
@@ -123,12 +124,11 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
       });
 
       // Step 2: Get validation ID from contract using nodeID
-      const validationId = await publicClient.readContract({
-        address: validatorManagerAddress as `0x${string}`,
-        abi: validatorManagerAbi.abi,
-        functionName: "getNodeValidationID",
-        args: [registrationMessageData.nodeID],
-      }) as `0x${string}`;
+      const validationId = await getValidationIdHex(
+        publicClient,
+        validatorManagerAddress as `0x${string}`,
+        registrationMessageData.nodeID
+      );
 
       // Check if validation ID exists (not zero)
       if (validationId === "0x0000000000000000000000000000000000000000000000000000000000000000") {

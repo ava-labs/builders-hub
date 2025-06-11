@@ -13,6 +13,7 @@ import { utils } from '@avalabs/avalanchejs';
 import { formatAvaxBalance } from '../../../coreViem/utils/format';
 import { getPChainBalance } from '../../../coreViem/methods/getPChainbalance';
 import { MultisigOption } from '../../../components/MultisigOption';
+import { getValidationIdHex } from '../../../coreViem/hooks/getValidationID';
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;
@@ -203,12 +204,11 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         // Attempt to get existing validation ID for fallback
         try {
           const nodeIdBytes = parseNodeID(validator.nodeID);
-          const validationId = await publicClient.readContract({
-            address: validatorManagerAddress as `0x${string}`,
-            abi: validatorManagerAbi.abi,
-            functionName: "getNodeValidationID",
-            args: [nodeIdBytes],
-          }) as `0x${string}`;
+          const validationId = await getValidationIdHex(
+            publicClient,
+            validatorManagerAddress as `0x${string}`,
+            nodeIdBytes
+          );
 
           // Check if validation ID exists (not zero)
           if (validationId === "0x0000000000000000000000000000000000000000000000000000000000000000") {
