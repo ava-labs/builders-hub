@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, Database, Copy, AlertTriangle, FileText, Globe } from "lucide-react"
+import { Calendar, Database, Copy, AlertTriangle, FileText } from "lucide-react"
 import { useState } from "react"
 
 export type BlockchainInfo = {
