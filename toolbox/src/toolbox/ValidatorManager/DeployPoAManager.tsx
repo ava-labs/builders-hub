@@ -11,8 +11,7 @@ import { Container } from "../../components/Container";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Success } from "../../components/Success";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
-import { ResultField } from "../../components/ResultField";
-import { AbiEvent } from 'viem';
+
 import SelectSubnetId from "../../components/SelectSubnetId";
 import { useValidatorManagerDetails } from "../hooks/useValidatorManagerDetails";
 import { ValidatorManagerDetails } from "../../components/ValidatorManagerDetails";
@@ -29,12 +28,10 @@ export default function DeployPoAManager() {
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
     const [isDeploying, setIsDeploying] = useState(false);
-    const [isInitializing, setIsInitializing] = useState(false);
     const [isChecking, setIsChecking] = useState(false);
     const [poaOwnerAddress, setPoaOwnerAddress] = useState("");
     const [validatorManagerAddr, setValidatorManagerAddr] = useState("");
     const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
-    const [initEvent, setInitEvent] = useState<any>(null);
     const [safeSelection, setSafeSelection] = useState<SafeSelection>({ 
         safeAddress: '', 
         threshold: 0, 
@@ -80,8 +77,6 @@ export default function DeployPoAManager() {
         }
     }, [useSafeWallet, safeSelection.safeAddress, walletEVMAddress, poaOwnerAddress]);
 
-
-
     useEffect(() => {
         if (poaManagerAddress) {
             checkIfInitialized();
@@ -89,6 +84,10 @@ export default function DeployPoAManager() {
     }, [poaManagerAddress]);
 
     async function deployPoAManager() {
+        if (!poaOwnerAddress || !validatorManagerAddr) {
+            throw new Error("Owner address and validator manager address are required");
+        }
+
         setIsDeploying(true);
         setPoaManagerAddress("");
         try {
@@ -99,6 +98,7 @@ export default function DeployPoAManager() {
             const hash = await coreWalletClient.deployContract({
                 abi: PoAManagerABI.abi,
                 bytecode: PoAManagerABI.bytecode.object as `0x${string}`,
+                args: [poaOwnerAddress as `0x${string}`, validatorManagerAddr as `0x${string}`],
                 chain: viemChain,
             });
 
@@ -109,6 +109,7 @@ export default function DeployPoAManager() {
             }
 
             setPoaManagerAddress(receipt.contractAddress);
+            setIsInitialized(true); // Contract is initialized upon deployment
         } catch (error) {
             showBoundary(error);
         } finally {
@@ -121,90 +122,22 @@ export default function DeployPoAManager() {
 
         setIsChecking(true);
         try {
-            const initializedEvent = PoAManagerABI.abi.find(
-                item => item.type === 'event' && item.name === 'Initialized'
-            );
-
-            if (!initializedEvent) {
-                throw new Error('Initialized event not found in ABI');
-            }
-
-            // Try to call a read-only method that would fail if not initialized
-            try {
-                const owner = await publicClient.readContract({
-                    address: poaManagerAddress as `0x${string}`,
-                    abi: PoAManagerABI.abi,
-                    functionName: 'owner'
-                }) as string;
-
-                // Check if owner is set to a non-zero address (initialized contracts should have an owner)
-                const isOwnerSet = owner && owner !== '0x0000000000000000000000000000000000000000';
-                setIsInitialized(Boolean(isOwnerSet));
-                console.log('Contract owner check:', owner, 'isInitialized:', Boolean(isOwnerSet));
-                return;
-            } catch (readError) {
-                // If this fails with a specific revert message about not being initialized, we know it's not initialized
-                if ((readError as any)?.message?.includes('not initialized')) {
-                    setIsInitialized(false);
-                    return;
-                }
-                // Otherwise, fallback to log checking with a smaller block range
-            }
-
-            // Fallback: Check logs but with a more limited range
-            const latestBlock = await publicClient.getBlockNumber();
-            const fromBlock = latestBlock > 2000n ? latestBlock - 2000n : 0n;
-
-            const logs = await publicClient.getLogs({
+            const owner = await publicClient.readContract({
                 address: poaManagerAddress as `0x${string}`,
-                event: initializedEvent as AbiEvent,
-                fromBlock: fromBlock,
-                toBlock: 'latest'
-            });
+                abi: PoAManagerABI.abi,
+                functionName: 'owner'
+            }) as string;
 
-            console.log('Initialization logs:', logs);
-            setIsInitialized(logs.length > 0);
-            if (logs.length > 0) {
-                setInitEvent(logs[0]);
-            }
+            // Check if owner is set to a non-zero address
+            const isOwnerSet = owner && owner !== '0x0000000000000000000000000000000000000000';
+            setIsInitialized(Boolean(isOwnerSet));
+            console.log('Contract owner:', owner, 'isInitialized:', Boolean(isOwnerSet));
         } catch (error) {
             console.error('Error checking initialization:', error);
             showBoundary(error);
         } finally {
             setIsChecking(false);
         }
-    }
-
-    async function handleInitialize() {
-        if (!poaManagerAddress || !poaOwnerAddress || !validatorManagerAddr) return;
-
-        setIsInitializing(true);
-        try {
-            const hash = await coreWalletClient.writeContract({
-                address: poaManagerAddress as `0x${string}`,
-                abi: PoAManagerABI.abi,
-                functionName: 'initialize',
-                args: [
-                    poaOwnerAddress as `0x${string}`,
-                    validatorManagerAddr as `0x${string}`
-                ],
-                chain: viemChain,
-            });
-
-            await publicClient.waitForTransactionReceipt({ hash });
-            await checkIfInitialized();
-        } catch (error) {
-            console.error('Error initializing:', error);
-            showBoundary(error);
-        } finally {
-            setIsInitializing(false);
-        }
-    }
-
-    function jsonStringifyWithBigint(value: unknown) {
-        return JSON.stringify(value, (_, v) =>
-            typeof v === 'bigint' ? v.toString() : v
-            , 2);
     }
 
     return (
@@ -251,44 +184,13 @@ export default function DeployPoAManager() {
                 <Steps>
                     <Step>
                         <div className="flex flex-col gap-2">
-                            <h3 className="text-lg font-bold">Deploy PoA Manager Contract</h3>
+                            <h3 className="text-lg font-bold">Configure and Deploy PoA Manager</h3>
                             <div className="text-sm">
-                                This will deploy the <code>PoAManager</code> contract to the EVM network <code>{viemChain?.id}</code>. 
-                                The PoA Manager allows the owner to manage validator registration, removal, and weight updates.
-                            </div>
-                            <Button
-                                variant="primary"
-                                onClick={deployPoAManager}
-                                loading={isDeploying}
-                                disabled={isDeploying || !!poaManagerAddress}
-                            >
-                                Deploy PoA Manager
-                            </Button>
-
-                            {poaManagerAddress && (
-                                <Success
-                                    label="PoA Manager Deployed"
-                                    value={poaManagerAddress}
-                                />
-                            )}
-                        </div>
-                    </Step>
-
-                    <Step>
-                        <div className="flex flex-col gap-2">
-                            <h3 className="text-lg font-bold">Initialize PoA Manager</h3>
-                            <div className="text-sm">
-                                Initialize the PoA Manager with the owner address and validator manager address.
+                                Deploy the <code>PoAManager</code> contract with the specified owner and validator manager addresses. 
+                                The contract will be initialized automatically during deployment.
                             </div>
 
                             <div className="space-y-4">
-                                <EVMAddressInput
-                                    label="PoA Manager Address"
-                                    value={poaManagerAddress}
-                                    onChange={setPoaManagerAddress}
-                                    disabled={isInitializing}
-                                />
-
                                 <div className="space-y-3">
                                     <div className="flex items-center space-x-3">
                                         <label className="flex items-center space-x-2">
@@ -296,7 +198,7 @@ export default function DeployPoAManager() {
                                                 type="checkbox"
                                                 checked={useSafeWallet}
                                                 onChange={(e) => setUseSafeWallet(e.target.checked)}
-                                                disabled={isInitializing}
+                                                disabled={isDeploying}
                                                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                             />
                                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -316,7 +218,7 @@ export default function DeployPoAManager() {
                                             label="Owner Address"
                                             value={poaOwnerAddress}
                                             onChange={setPoaOwnerAddress}
-                                            disabled={isInitializing}
+                                            disabled={isDeploying}
                                             placeholder="Enter owner address"
                                             button={<Button
                                                 onClick={() => setPoaOwnerAddress(walletEVMAddress)}
@@ -344,42 +246,63 @@ export default function DeployPoAManager() {
                                     placeholder="Auto-filled from selected subnet"
                                 />
 
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="secondary"
-                                        onClick={checkIfInitialized}
-                                        loading={isChecking}
-                                        disabled={!poaManagerAddress}
-                                        size="sm"
-                                    >
-                                        Check Status
-                                    </Button>
-
-                                    <Button
-                                        variant="primary"
-                                        onClick={handleInitialize}
-                                        loading={isInitializing}
-                                        disabled={isInitializing || !poaManagerAddress || !poaOwnerAddress || !validatorManagerAddr || isInitialized === true}
-                                    >
-                                        Initialize Contract
-                                    </Button>
-                                </div>
+                                <Button
+                                    variant="primary"
+                                    onClick={deployPoAManager}
+                                    loading={isDeploying}
+                                    disabled={isDeploying || !poaOwnerAddress || !validatorManagerAddr}
+                                >
+                                    Deploy PoA Manager
+                                </Button>
                             </div>
 
-                            {isInitialized === true && (
+                            {poaManagerAddress && (
                                 <Success
-                                    label="PoA Manager Initialized"
-                                    value="Contract successfully initialized"
+                                    label="PoA Manager Deployed & Initialized"
+                                    value={poaManagerAddress}
                                 />
                             )}
+                        </div>
+                    </Step>
 
-                            {isInitialized === true && initEvent && (
-                                <ResultField
-                                    label="Initialization Event"
-                                    value={jsonStringifyWithBigint(initEvent) || ""}
-                                    showCheck={isInitialized === true}
+                    <Step>
+                        <div className="flex flex-col gap-2">
+                            <h3 className="text-lg font-bold">Verify Deployment</h3>
+                            <div className="text-sm">
+                                Verify that the PoA Manager was deployed and initialized correctly.
+                            </div>
+
+                            <div className="space-y-4">
+                                <EVMAddressInput
+                                    label="PoA Manager Address"
+                                    value={poaManagerAddress}
+                                    onChange={setPoaManagerAddress}
                                 />
-                            )}
+
+                                <Button
+                                    variant="secondary"
+                                    onClick={checkIfInitialized}
+                                    loading={isChecking}
+                                    size="sm"
+                                >
+                                    Verify Contract
+                                </Button>
+
+                                {isInitialized === true && (
+                                    <div className="space-y-2">
+                                        <Success
+                                            label="Contract Verified"
+                                            value={`Owner: ${poaOwnerAddress}`}
+                                        />
+                                    </div>
+                                )}
+
+                                {isInitialized === false && (
+                                    <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-sm">
+                                        Contract not properly initialized or deployed
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </Step>
                 </Steps>

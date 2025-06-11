@@ -206,7 +206,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           const validationId = await publicClient.readContract({
             address: validatorManagerAddress as `0x${string}`,
             abi: validatorManagerAbi.abi,
-            functionName: "registeredValidators",
+            functionName: "getNodeValidationID",
             args: [nodeIdBytes],
           }) as `0x${string}`;
 
