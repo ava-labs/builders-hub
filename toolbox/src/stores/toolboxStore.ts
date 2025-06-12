@@ -19,6 +19,7 @@ const toolboxInitialState = {
     erc20TokenRemoteAddress: "",
     nativeTokenHomeAddress: "",
     nativeTokenRemoteAddress: "",
+    poaManagerAddress: "",
 }
 
 
@@ -36,6 +37,7 @@ export const getToolboxStore = (chainId: string) => create(
             setNativeTokenHomeAddress: (address: string) => set({ nativeTokenHomeAddress: address }),
             setErc20TokenRemoteAddress: (address: string) => set({ erc20TokenRemoteAddress: address }),
             setNativeTokenRemoteAddress: (address: string) => set({ nativeTokenRemoteAddress: address }),
+            setPoaManagerAddress: (address: string) => set({ poaManagerAddress: address }),
 
             reset: () => {
                 if (typeof window !== 'undefined') {

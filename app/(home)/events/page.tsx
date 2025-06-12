@@ -5,10 +5,6 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, CalendarDays, Award, Users } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
-import SummitLondonBanner from '@/public/nav-banner/avalanche_summit_london.png';
-import HackathonLondonBanner from '@/public/nav-banner/hackathon_luma.png';
-import HackathonBBABanner from '@/public/nav-banner/hackathon_bba.png';
-import Team1Banner from '@/public/nav-banner/local_events_team1.jpg';
 
 interface EventCardProps {
   title: string;
@@ -132,7 +128,7 @@ export default function Page() {
                 title="Avalanche Summit London"
                 description="Join us for Avalanche Summit, London, as we explore the world's original global financial hub through the lens of Web3."
                 icon={<CalendarDays className="w-8 h-8" color='white'/>}
-                image={SummitLondonBanner}
+                image={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/avalanche_summit_london-Nyk29ywbU9RZbKaXzVtZxXd1nqBJBx.png"}
                 url="https://www.avalanchesummitlondon.com/"
                 color="red"
                 arrowColor={arrowColor}
@@ -143,7 +139,7 @@ export default function Page() {
                 title="Summit Hackathon London"
                 description="This hackathon aims to harness the potential of Avalanche's robust technology stack to address pressing issues and create scalable, practical solutions."
                 icon={<Award className="w-8 h-8" color='white'/>}
-                image={HackathonLondonBanner}
+                image={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/hackathon_luma-NaEATEzSOmU29OK2JUTtShMWrPvWl3.png"}
                 url="/hackathon"
                 color="blue"
                 arrowColor={arrowColor}
@@ -154,7 +150,7 @@ export default function Page() {
                 title="Team1 Events"
                 description="Check out and join the global meetups, workshops and events organized by Avalanche Team1"
                 icon={<Users className="w-8 h-8" color='white'/>}
-                image={Team1Banner}
+                image={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"}
                 url="https://lu.ma/Team1?utm_source=builder_hub"
                 color="green"
                 arrowColor={arrowColor}

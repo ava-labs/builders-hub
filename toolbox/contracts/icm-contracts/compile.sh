@@ -5,7 +5,7 @@ SCRIPT_DIR=$(dirname "$0")
 # Convert to absolute path
 SCRIPT_DIR=$(cd "$SCRIPT_DIR" && pwd)
 
-ICM_COMMIT="eb0afb7"
+ICM_COMMIT="b24f373149745632b96f0c0a4edff140c811396e"
 SUBNET_EVM_VERSION="v0.7.3"
 
 # Get current user and group IDs

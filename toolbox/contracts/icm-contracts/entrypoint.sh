@@ -11,6 +11,7 @@ fi
 
 cd /teleporter_src
 git config --global --add safe.directory /teleporter_src
+git fetch origin
 git checkout $ICM_COMMIT
 
 # Add foundry to PATH
@@ -32,13 +33,19 @@ for file in \
     /teleporter_src/out/ValidatorManager.sol/ValidatorManager.json \
     /teleporter_src/out/ValidatorMessages.sol/ValidatorMessages.json \
     /teleporter_src/out/TeleporterRegistry.sol/TeleporterRegistry.json \
+    /teleporter_src/out/TeleporterMessenger.sol/TeleporterMessenger.json \
     /teleporter_src/out/NativeTokenStakingManager.sol/NativeTokenStakingManager.json \
     /teleporter_src/out/ExampleERC20.sol/ExampleERC20.json \
     /teleporter_src/out/ERC20TokenHome.sol/ERC20TokenHome.json \
     /teleporter_src/out/ERC20TokenRemote.sol/ERC20TokenRemote.json \
     /teleporter_src/out/ExampleRewardCalculator.sol/ExampleRewardCalculator.json \
     /teleporter_src/out/NativeTokenRemote.sol/NativeTokenRemote.json \
+    /teleporter_src/out/NativeTokenHome.sol/NativeTokenHome.json \
     /teleporter_src/out/INativeMinter.sol/INativeMinter.json \
+    /teleporter_src/out/WrappedNativeToken.sol/WrappedNativeToken.json \
+    /teleporter_src/out/NativeTokenHomeUpgradeable.sol/NativeTokenHomeUpgradeable.json \
+    /teleporter_src/out/NativeTokenRemoteUpgradeable.sol/NativeTokenRemoteUpgradeable.json \
+    /teleporter_src/out/PoAManager.sol/PoAManager.json \
 ; do
     filename=$(basename "$file")
     jq '.' "$file" > "/compiled/$filename"

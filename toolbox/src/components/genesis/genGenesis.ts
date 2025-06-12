@@ -7,7 +7,7 @@ export const PROXY_ADDRESS = "0xfacade0000000000000000000000000000000000"
 export const PROXY_ADMIN_ADDRESS = "0xdad0000000000000000000000000000000000000"
 import { addressEntryArrayToAddressArray } from './types';
 
-
+export const SAFE_SINGLETON_FACTORY_ADDRESS = "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7"
 export const UNITIALIZED_PROXY_ADDRESS = "0x1212121212121212121212121212121212121212"
 
 
@@ -75,6 +75,11 @@ export function generateGenesis({ evmChainId, tokenAllocations, txAllowlistConfi
         }
     };
 
+    allocations[SAFE_SINGLETON_FACTORY_ADDRESS.slice(2).toLowerCase()] = {
+        balance: "0x0",
+        code: "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3",
+        nonce: "0x1",
+    };
 
     return {
         "airdropAmount": null,
