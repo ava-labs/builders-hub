@@ -1,72 +1,233 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
+import Image from "next/image";
 import { Sponsors } from '@/components/landing/globe';
+
+// Premium animation styles
+const premiumStyles = `
+  @keyframes gentle-float {
+    0%, 100% { 
+      transform: translateY(0px); 
+    }
+    50% { 
+      transform: translateY(-8px); 
+    }
+  }
+  
+  @keyframes subtle-glow {
+    0%, 100% { 
+      opacity: 0.4;
+    }
+    50% { 
+      opacity: 0.8;
+    }
+  }
+  
+  @keyframes gradient-shift {
+    0%, 100% { 
+      background-position: 0% 50%;
+    }
+    50% { 
+      background-position: 100% 50%;
+    }
+  }
+  
+  @keyframes constellation-twinkle {
+    0%, 100% { 
+      opacity: 0.3;
+    }
+    50% { 
+      opacity: 1;
+    }
+  }
+  
+  .animate-gentle-float {
+    animation: gentle-float 6s ease-in-out infinite;
+  }
+  
+  .animate-subtle-glow {
+    animation: subtle-glow 3s ease-in-out infinite;
+  }
+  
+  .animate-gradient-shift {
+    animation: gradient-shift 8s ease-in-out infinite;
+    background-size: 200% 200%;
+  }
+  
+  .animate-constellation-twinkle {
+    animation: constellation-twinkle 4s ease-in-out infinite;
+  }
+  
+  /* Premium glassmorphism */
+  .glass-effect {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  
+  /* Premium button hover effects */
+  .premium-button {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .premium-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+  }
+  
+  .premium-button:hover::before {
+    left: 100%;
+  }
+  
+  /* Rotating text animations */
+  @keyframes rotate-up {
+    0%, 16% { 
+      transform: translateY(0px); 
+    }
+    18%, 32% { 
+      transform: translateY(-16.666%); 
+    }
+    34%, 48% { 
+      transform: translateY(-33.333%); 
+    }
+    50%, 64% { 
+      transform: translateY(-50%); 
+    }
+    66%, 80% { 
+      transform: translateY(-66.666%); 
+    }
+    82%, 96% { 
+      transform: translateY(-83.333%); 
+    }
+    98%, 100% { 
+      transform: translateY(-100%); 
+    }
+  }
+  
+  .text-rotator {
+    overflow: hidden;
+    position: relative;
+    display: inline-block;
+  }
+  
+  .text-rotator-inner {
+    animation: rotate-up 18s ease-in-out infinite;
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement("style");
+  styleSheet.type = "text/css";
+  styleSheet.innerText = premiumStyles;
+  document.head.appendChild(styleSheet);
+}
+
+// Rotating Text Component
+function RotatingText() {
+  const words = ['courses', 'events', 'hackathons', 'bounties', 'tools', 'grants'];
+
+  return (
+    <span className="text-rotator min-w-[140px] h-[1.2em] text-left">
+      <div className="text-rotator-inner">
+        {words.map((word, index) => (
+          <div 
+            key={index}
+            className="h-[1.2em] flex items-center bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-bold"
+          >
+            {word}
+          </div>
+        ))}
+      </div>
+    </span>
+  );
+}
+
+// Extract Background Component
+export function HeroBackground() {
+  return (
+    <div className="fixed inset-0 -z-10">
+      {/* Premium Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        {/* Subtle grid overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)]"></div>
+        
+        {/* Constellation dots */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/5 left-1/5 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60"></div>
+          <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60" style={{animationDelay: '1s'}}></div>
+          <div className="absolute bottom-1/3 left-1/3 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60" style={{animationDelay: '2s'}}></div>
+          <div className="absolute bottom-1/5 right-1/3 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60" style={{animationDelay: '3s'}}></div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Hero() {
   return (
-    <section className="h-screen md:h-[40rem] w-full flex items-center justify-center antialiased bg-grid-white/[0.02] relative overflow-hidden px-4 md:px-8">
-      <div className="absolute inset-0 h-screen md:h-[40rem] overflow-hidden pointer-events-none">
-        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-              <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(80, 80, 80, 0.3)" strokeWidth="0.5"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
-      </div>
-
-      <div className="w-full max-w-fd-container bg-transparent md:px-10 dark:-mb-32 dark:mt-[-4.75rem] dark:pb-32 dark:pt-[4.75rem]">
-        <div className="lg:max-w-8xl mx-auto grid max-w-full grid-cols-1 items-center gap-y-8 md:gap-y-16 px-0 py-8 lg:grid-cols-2 lg:gap-x-8 lg:px-8 xl:gap-x-16 xl:px-12">
-          <div className="relative z-10 text-center lg:text-left">
-            <div className="relative">
-              <div className="flex flex-col items-center lg:items-start gap-2">
-                <div className="flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="1.25em" height="1.25em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide-infinity"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z"/></svg>
-                  <span className="text-sm text-opacity-75">Build your Fast & Interoperable Layer 1 Blockchain</span>
-                </div>
-              </div>
-
-              <p className="text-zinc-800 dark:text-zinc-300 mt-3 tracking-tight text-xl md:text-2xl lg:text-3xl px-4 md:px-0">
-                Learn, Build & Grow with Avalanche
+    <section className="min-h-screen w-full flex items-center justify-center relative">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          
+          {/* Content Section */}
+          <div className="space-y-8 text-center lg:text-left">
+            
+            {/* Main Heading */}
+            <div className="space-y-6">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight">
+                <span className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent dark:from-white dark:via-slate-100 dark:to-white animate-gradient-shift">
+                  Learn, Build & Grow
+                </span>
+                <br />
+                <span className="flex items-center justify-center lg:justify-start gap-4 mt-4">
+                  <span className="text-black dark:text-white">with</span>
+                  <RotatingText />
+                </span>
+              </h1>
+              
+              <p className="text-lg sm:text-xl lg:text-2xl text-slate-600 dark:text-slate-300 font-light leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                Explore everything you need to go from idea to impact — education, documentation, tools and grants.
               </p>
-
-              <p className="text-zinc-800 dark:text-zinc-300 mt-3 tracking-tight text-md md:text-xl lg:text-2xl px-4 md:px-0">
-                Explore everything you need to go from idea to impact - education, references, integrations, tools and grants.
-              </p>
-
-              <div className="mt-8 flex flex-col gap-4 items-center lg:items-start lg:flex-row">
-                <Link
-                  href="/academy"
-                  className="w-full md:w-auto relative flex space-x-2 hover:shadow-sm dark:border-stone-100 dark:hover:shadow-sm border-2 border-black bg-white px-4 py-1.5 text-sm uppercase text-black shadow-[1px_1px_rgba(0,0,0),2px_2px_rgba(0,0,0),3px_3px_rgba(0,0,0),4px_4px_rgba(0,0,0),5px_5px_0px_0px_rgba(0,0,0)] transition duration-200 md:px-8 dark:shadow-[1px_1px_rgba(255,255,255),2px_2px_rgba(255,255,255),3px_3px_rgba(255,255,255),4px_4px_rgba(255,255,255),5px_5px_0px_0px_rgba(255,255,255)]"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-graduation-cap"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg>
-                    <span>Start Learning</span>
-                </Link>
-                <Link 
-                  href="/docs" 
-                  className="w-full md:w-auto bg-stone-950 no-underline group cursor-pointer relative p-px text-xs font-semibold leading-6 text-white inline-block"
-                  type="button"
-                >
-                  <span className="absolute inset-0 overflow-hidden rounded-sm">
-                    <span className="absolute inset-0 rounded-sm bg-[image:radial-gradient(75%_100%_at_50%_0%,rgba(56,189,248,0.6)_0%,rgba(56,189,248,0)_75%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100"></span>
-                  </span>
-                  <div className="relative flex space-x-2 items-center justify-center z-10 rounded-none bg-zinc-950 py-2 px-4 ring-1 ring-white/10">
-                    <span>Explore our Docs</span>
-                  </div>
-                  <span className="absolute -bottom-0 left-[1.125rem] h-px w-[calc(100%-2.25rem)] bg-gradient-to-r from-emerald-400/0 via-stone-800/90 to-emerald-400/0 transition-opacity duration-500 group-hover:opacity-40"></span>
-                </Link>
-              </div>
             </div>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              <Link
+                href="/academy"
+                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-base font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-105 transition-all duration-300 dark:shadow-blue-500/40 dark:hover:shadow-blue-500/60"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                Start Learning
+              </Link>
+              
+              <Link
+                href="/docs"
+                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-base font-semibold rounded-xl bg-white/10 glass-effect border border-slate-200/20 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-105 transition-all duration-300 backdrop-blur-sm dark:border-slate-700/30"
+              >
+                Explore Docs
+                <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </Link>
+            </div>         
           </div>
 
-          <div className="hidden xl:block lg:static xl:pl-10">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-none bg-gradient-to-tr opacity-5 blur-lg" />
-              <div className="absolute inset-0 rounded-none bg-gradient-to-tr opacity-5" />
+          {/* Ecosystem Visualization */}
+          <div className="relative lg:block hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-3xl blur-2xl dark:via-slate-800/10"></div>
+            <div className="relative glass-effect bg-white/5 dark:bg-slate-900/10 rounded-3xl border border-white/10 dark:border-slate-700/20 p-8 backdrop-blur-2xl">
               <Sponsors />
             </div>
           </div>

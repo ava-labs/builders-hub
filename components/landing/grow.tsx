@@ -1,57 +1,84 @@
 "use client";
 
 import React from "react";
-import { Book, Wrench, Droplets } from "lucide-react";
+import { Users, Calendar, Compass, MessageCircle, Twitter, HelpCircle, Sprout } from "lucide-react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
 
-const development = [
+const grow = [
+  {
+    id: 1,
+    label: "Community",
+    title: "Join <strong>Team1 DAO</strong>.",
+    description:
+      "Contribute to the Avalanche community initiatives, and get rewarded with exclusive paid bounties.",
+    icon: Users,
+    href: "https://www.avax.network/ambassador"
+  },
   {
     id: 2,
-    label: "Documentation",
-    title: "Explore our <strong>Docs</strong>.",
+    label: "Events",
+    title: "Check our <strong>Events</strong>.",
     description:
-      "Find references for all Avalanche SDKs, APIs, and tools.",
-    icon: Book,
-    href: "/docs",
+      "Connect with our team at Summit, participate in sponsored hackathons, and organize workshops and meetups.",
+    icon: Calendar,
+    href: "https://www.avalanchesummitemea.com/"
+  },
+  {
+    id: 3,
+    label: "Discover",
+    title: "Try <strong>Avalanche</strong>.",
+    description:
+      "Discover and try out different applications and L1s in the Avalanche ecosystem.",
+    icon: Compass,
+    href: "https://core.app/discover/"
+  },
+  {
+    id: 4,
+    label: "Support",
+    title: "Academy <strong>Telegram</strong>.",
+    description:
+      "Get direct technical support from our Developer Relations team while building on Avalanche.",
+    icon: MessageCircle,
+    href: "https://t.me/avalancheacademy"
   },
   {
     id: 5,
-    label: "Tools",
-    title: "<strong>Builder</strong> Tooling",
+    label: "Social",
+    title: "<strong>Twitter</strong>.",
     description:
-      "Leverage our Builder Tooling to launch your L1 blockchain.",
-    icon: Wrench,
-    href: "/tools/l1-toolbox"
+      "Follow the official Avalanche Developers handle on Twitter for latest news and development updates.",
+    icon: Twitter,
+    href: "https://x.com/AvaxDevelopers"
   },
   {
     id: 6,
-    label: "Faucet",
-    title: "Testnet <strong>Faucet</strong>.",
+    label: "Help",
+    title: "Avalanche <strong>Support</strong>.",
     description:
-      "Instant access to testnet tokens for seamless development and testing across multiple Avalanche L1s.",
-    icon: Droplets,
-    href: "https://core.app/tools/testnet-faucet/"
-  },
+      "Get direct answers and support for everything related to Avalanche: Network Basics, Wallets, Explorers, Staking, etc.",
+    icon: HelpCircle,
+    href: "https://support.avax.network/"
+  }
 ];
 
-export default function Development() {
+export default function Grow() {
   return (
-    <div className="flex flex-col justify-center items-center px-4 mb-16" id="development">
+    <div className="flex flex-col justify-center items-center px-4 mb-16" id="grow">
       <div className="flex items-center justify-center gap-3 mb-2">
         <h2 className="font-display text-3xl tracking-tight sm:text-5xl text-center font-bold
           /* Light mode - clean */
           text-gray-900
           /* Dark mode - subtle premium */
           dark:text-white dark:drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-          🛠️ Build
+          🌱 Grow
         </h2>
       </div>
       
       <div className="mt-10 mx-auto font-geist relative">
         <div className="w-full md:mx-0">
-          <div className="grid grid-cols-1 relative md:grid-rows-1 md:grid-cols-3 gap-4 md:gap-0">
-            {development.map((item, index) => (
+          <div className="grid grid-cols-1 relative md:grid-rows-2 md:grid-cols-3 gap-4 md:gap-0">
+            {grow.map((item, index) => (
               <Link
                 key={item.id}
                 href={item.href}
@@ -66,8 +93,8 @@ export default function Development() {
                   "dark:hover:border-slate-600 dark:hover:bg-slate-800/60",
                   "dark:shadow-[0_0_20px_rgba(59,130,246,0.05)]",
                   "dark:hover:shadow-[0_0_30px_rgba(59,130,246,0.1)]",
-                  // Remove complex grid borders, use simple approach
-                  index === 1 && "md:border-x-0 md:border-l-2 md:border-r-2 dark:md:border-l-slate-700 dark:md:border-r-slate-700"
+                  // Handle middle column borders for both rows
+                  (index === 1 || index === 4) && "md:border-x-0 md:border-l-2 md:border-r-2 dark:md:border-l-slate-700 dark:md:border-r-slate-700"
                 )}
               >
                 <div className="flex flex-col p-10 h-full md:min-h-[240px] relative">
@@ -99,7 +126,7 @@ export default function Development() {
                   </div>
                   
                   <div className="text-gray-700 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-white mt-4 inline-flex items-center transition-colors">
-                    Get started
+                    Explore
                     <svg
                       className="w-4 h-4 ml-1 transform transition-transform group-hover:translate-x-1"
                       fill="none"
@@ -118,4 +145,4 @@ export default function Development() {
       </div>
     </div>
   );
-}
+} 
