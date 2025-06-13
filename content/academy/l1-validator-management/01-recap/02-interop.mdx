@@ -31,7 +31,7 @@ Interoperability is achieved by enabling blockchains to pass messages to one ano
 </div>
 
 At a high level, the flow looks like this:
-<img src="/course-images/l1-validator-management/overview.png" alt="Warp Overview" />
+<img src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/l1-validator-management/overview-b6mVC2PzaKSt6wvLkfBZgWWiirPgMW.png" alt="Warp Overview" />
 - The developer is responsible for building on top of the ICM contract library to send messages to other chains.
 - A relayer is responsible for submitting messages to the destination chain.
 - The destination chain is responsible for verifying the message and processing it.
@@ -41,12 +41,12 @@ At a high level, the flow looks like this:
 Once the contract has emitted a Warp message, the relayer will pick up the message and request signatures from the source chain's validators. Each validator will sign the message with their BLS public key and send it to the relayer. 
 
 The result is an aggregated BLS signature from the source chain's validators which can be verified by the destination chain.
-<img src="/course-images/l1-validator-management/signature.png" alt="Signature from Source Chain" />
+<img src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/l1-validator-management/signature-yrwRpPl0XdcCFf3cFaQkDCXKbsO9jt.png" alt="Signature from Source Chain" />
 
 ### Receiving a Message
 
 Once the destination chain has received the aggregated signature, it will verify the signature against the P-Chain's record of the source chain's validators then process the message.
-<img src="/course-images/l1-validator-management/verification.png" alt="Verification of Warp Message" />
+<img src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/l1-validator-management/verification-PrsIawjtM5j85mfZQfWAkBQtqJwfxY.png" alt="Verification of Warp Message" />
 
 
 
