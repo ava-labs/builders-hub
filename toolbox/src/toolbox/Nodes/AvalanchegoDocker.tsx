@@ -136,6 +136,7 @@ export default function AvalanchegoDocker() {
     const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
     const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
 
+    // TODO: This is a hack to get the network ID from the wallet store. We should use the network ID from the wallet store instead.
     const { avalancheNetworkID } = useWalletStore();
     const { addL1 } = useL1ListStore()();
 
