@@ -12,6 +12,7 @@ import { Step, Steps } from "fumadocs-ui/components/steps";
 import generateName from 'boring-name-generator'
 import { Success } from "../../components/Success";
 import { RadioGroup } from "../../components/RadioGroup";
+import InputSubnetId from "../../components/InputSubnetId";
 
 export const EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
 
@@ -49,6 +50,10 @@ export default function CreateChain() {
     const [showVMIdInput, setShowVMIdInput] = useState<boolean>(false);
     const [vmId, setVmId] = useState<string>(EVM_VM_ID);
 
+    // Wrapper function to handle subnet ID changes properly
+    const handleSubnetIdChange = (newSubnetId: string) => {
+        setSubnetID(newSubnetId);
+    };
 
     async function handleCreateSubnet() {
         setIsCreatingSubnet(true);
@@ -111,7 +116,7 @@ export default function CreateChain() {
                             disabled={true}
                             type="text"
                         />
-                        
+
                         <Button
                             onClick={handleCreateSubnet}
                             loading={isCreatingSubnet}
@@ -119,14 +124,15 @@ export default function CreateChain() {
                         >
                             Create Subnet
                         </Button>
-
-                        {createdSubnetId && (
+                    </div>
+                    {createdSubnetId && (
+                        <div className="mt-4">
                             <Success
                                 label="Subnet Created Successfully"
                                 value={createdSubnetId}
                             />
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </Step>
                 <Step>
                     <h2 className="text-lg font-semibold">Step 2: Create a Chain</h2>
@@ -134,12 +140,11 @@ export default function CreateChain() {
                         Enter the parameters for your new chain.
                     </p>
 
-                    <Input
+                    <InputSubnetId
+                        id="create-chain-subnet-id"
                         label="Subnet ID"
                         value={subnetId}
-                        type="text"
-                        onChange={setSubnetID}
-                        placeholder="Create a Subnet in Step 1 or enter a SubnetID."
+                        onChange={handleSubnetIdChange}
                     />
 
                     <Input

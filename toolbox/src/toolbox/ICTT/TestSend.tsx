@@ -18,7 +18,7 @@ import { Suggestion } from "../../components/TokenInput";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { Token, TokenInput } from "../../components/TokenInputToolbox";
 import { utils } from "@avalabs/avalanchejs";
-import SelectChainID from "../../components/SelectChainID";
+import SelectBlockchain, { type BlockchainSelection } from "../../components/SelectBlockchain";
 import { Container } from "../../components/Container";
 import { Toggle } from "../../components/Toggle";
 import { Ellipsis } from "lucide-react";
@@ -32,7 +32,7 @@ export default function TokenBridge() {
     const selectedL1 = useSelectedL1()();
 
     // Only need to select destination chain (source is current chain)
-    const [destinationChainId, setDestinationChainId] = useState<string>("");
+    const [destinationSelection, setDestinationSelection] = useState<BlockchainSelection>({ blockchainId: "", blockchain: null });
 
     // Contract addresses
     const [sourceContractAddress, setSourceContractAddress] = useState<Address | "">("");
@@ -72,17 +72,17 @@ export default function TokenBridge() {
     const [tokenAllowance, setTokenAllowance] = useState<bigint | null>(null);
 
     // Get chain info - source is current chain, destination is selected
-    const destL1 = useL1ByChainId(destinationChainId)();
-    const destToolboxStore = getToolboxStore(destinationChainId)();
+    const destL1 = useL1ByChainId(destinationSelection.blockchainId)();
+    const destToolboxStore = getToolboxStore(destinationSelection.blockchainId)();
 
     const { erc20TokenHomeAddress, nativeTokenHomeAddress } = useToolboxStore();
 
     // Destination chain validation
     let destChainError: string | undefined = undefined;
-    if (!destinationChainId) {
-        destChainError = "Please select a destination chain";
-    } else if (destinationChainId === selectedL1?.id) {
-        destChainError = "Source and destination chains must be different";
+    if (!destinationSelection.blockchainId) {
+        destChainError = "Please select a destination blockchain";
+    } else if (destinationSelection.blockchainId === selectedL1?.id) {
+        destChainError = "Source and destination blockchains must be different";
     }
 
     // Generate hex blockchain ID for the destination chain
@@ -91,7 +91,7 @@ export default function TokenBridge() {
         try {
             return utils.bufferToHex(utils.base58check.decode(destL1.id));
         } catch (e) {
-            console.error("Error decoding destination chain ID:", e);
+            console.error("Error decoding destination blockchain ID:", e);
             return null;
         }
     }, [destL1?.id]);
@@ -478,10 +478,10 @@ export default function TokenBridge() {
             description={`Send tokens from the current chain (${selectedL1?.name}) to another chain.`}
         >
 
-            <SelectChainID
-                label="Destination Chain"
-                value={destinationChainId}
-                onChange={(value) => setDestinationChainId(value)}
+            <SelectBlockchain
+                label="Destination Blockchain"
+                value={destinationSelection.blockchainId}
+                onChange={setDestinationSelection}
                 error={destChainError}
             />
 
@@ -497,14 +497,14 @@ export default function TokenBridge() {
             />
 
             <TokenInput
-                label={`Destination Bridge Contract on ${destL1?.name || 'destination chain'}`}
+                label={`Destination Bridge Contract on ${destL1?.name || 'destination blockchain'}`}
                 value={destinationContractAddress}
                 tokenValue={destinationToken}
                 onChange={(value) => setDestinationContractAddress(value as Address)}
                 verify={(value) => fetchTokenInfoFromBridgeContract(value as Address, "destination")}
-                disabled={!destinationChainId || isProcessingSend || isProcessingApproval}
+                disabled={!destinationSelection.blockchainId || isProcessingSend || isProcessingApproval}
                 suggestions={destinationContractSuggestions}
-                placeholder="0x... Bridge contract on destination chain"
+                placeholder="0x... Bridge contract on destination blockchain"
             />
 
             <AmountInput

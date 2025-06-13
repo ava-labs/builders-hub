@@ -2,6 +2,7 @@ import { Validator, SubnetInfo, L1ValidatorManagerDetails } from './types';
 import { pChainEndpoint } from './consts';
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
 export const avaCloudSDK = new AvaCloudSDK({
+    serverURL: "https://api.avax.network",
     chainId: "43114",
     network: "fuji",
 });

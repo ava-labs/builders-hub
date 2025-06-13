@@ -5,10 +5,11 @@ import { useState, useEffect } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
 import versions from "../../versions.json";
 import { Container } from "../../components/Container";
-import { Input } from "../../components/Input";
-import { getBlockchainInfo } from "../../coreViem/utils/glacier";
+import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../../components/InputChainId";
+import InputSubnetId from "../../components/InputSubnetId";
 import { Checkbox } from "../../components/Checkbox";
+import DetailsDisplay from "../../components/DetailsDisplay";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
@@ -125,6 +126,8 @@ https://${processedDomain}/ext/bc/${chainId}/rpc`
 export default function AvalanchegoDocker() {
     const [chainId, setChainId] = useState("");
     const [subnetId, setSubnetId] = useState("");
+    const [subnet, setSubnet] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
     const [isRPC, setIsRPC] = useState<boolean>(true);
     const [rpcCommand, setRpcCommand] = useState("");
     const [nodeRunningMode, setNodeRunningMode] = useState("server");
@@ -140,6 +143,31 @@ export default function AvalanchegoDocker() {
     const { addL1 } = useL1ListStore()();
 
     useEffect(() => {
+        setSubnetIdError(null);
+        setSubnetId("");
+        setSubnet(null);
+        if (!chainId) return;
+
+        setIsLoading(true);
+        getBlockchainInfo(chainId)
+            .then(async (chainInfo) => {
+                setSubnetId(chainInfo.subnetId);
+                try {
+                    const subnetInfo = await getSubnetInfo(chainInfo.subnetId);
+                    setSubnet(subnetInfo);
+                } catch (error) {
+                    setSubnetIdError((error as Error).message);
+                }
+            })
+            .catch((error) => {
+                setSubnetIdError((error as Error).message);
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
+    }, [chainId]);
+
+    useEffect(() => {
         try {
             setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID, chainId, enableDebugTrace, pruningEnabled));
         } catch (error) {
@@ -152,8 +180,6 @@ export default function AvalanchegoDocker() {
             setDomain("");
         }
     }, [isRPC]);
-
-
 
 
     useEffect(() => {
@@ -171,6 +197,7 @@ export default function AvalanchegoDocker() {
     const handleReset = () => {
         setChainId("");
         setSubnetId("");
+        setSubnet(null);
         setIsRPC(true);
         setChainAddedToWallet(null);
         setRpcCommand("");
@@ -239,14 +266,18 @@ export default function AvalanchegoDocker() {
                         <InputChainId
                             value={chainId}
                             onChange={setChainId}
-                            hidePrimaryNetwork={true}
+                            error={subnetIdError}
+                        />
+                        <InputSubnetId
+                            value={subnetId}
+                            onChange={setSubnetId}
                         />
 
-                        <Input
-                            label="Subnet ID"
-                            value={subnetId}
-                            disabled={true}
-                            error={subnetIdError}
+                        {/* Show subnet details if available */}
+                        <DetailsDisplay
+                            type="subnet"
+                            data={subnet}
+                            isLoading={isLoading}
                         />
                     </Step>
 

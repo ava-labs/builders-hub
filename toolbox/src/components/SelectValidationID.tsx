@@ -44,16 +44,16 @@ export type ValidationSelection = {
  * @param props.subnetId - Optional subnet ID to filter validators
  * @param props.format - Format for validation ID: "cb58" (default) or "hex"
  */
-export default function SelectValidationID({ 
-  value, 
-  onChange, 
+export default function SelectValidationID({
+  value,
+  onChange,
   error,
   subnetId = "",
-  format = "cb58" 
-}: { 
-  value: string, 
-  onChange: (selection: ValidationSelection) => void, 
-  error?: string | null, 
+  format = "cb58"
+}: {
+  value: string,
+  onChange: (selection: ValidationSelection) => void,
+  error?: string | null,
   subnetId?: string,
   format?: "cb58" | "hex"
 }) {
@@ -72,13 +72,18 @@ export default function SelectValidationID({
   useEffect(() => {
     const fetchValidators = async () => {
       if (!subnetId) return;
-      
+
       setIsLoading(true);
       try {
         const network = networkNames[Number(avalancheNetworkID)];
         if (!network) return;
 
-        const result = await new AvaCloudSDK().data.primaryNetwork.listL1Validators({
+        const sdk = new AvaCloudSDK({
+          serverURL: "https://api.avax.network",
+          network: network,
+        });
+
+        const result = await sdk.data.primaryNetwork.listL1Validators({
           network: network,
           subnetId: subnetId,
           includeInactiveL1Validators: true,
@@ -89,7 +94,7 @@ export default function SelectValidationID({
         for await (const page of result) {
           validatorsList.push(...page.result.validators);
         }
-        
+
         setValidators(validatorsList);
 
         // Create a mapping of validation IDs to node IDs, filtering out validators with weight 0
@@ -119,10 +124,10 @@ export default function SelectValidationID({
 
   // Get the currently selected node ID
   const selectedNodeId = useMemo(() => {
-    return validationIdToNodeId[value] || 
-           (value && value.startsWith("0x") && validationIdToNodeId[value]) || 
-           (value && !value.startsWith("0x") && validationIdToNodeId["0x" + cb58ToHex(value)]) || 
-           "";
+    return validationIdToNodeId[value] ||
+      (value && value.startsWith("0x") && validationIdToNodeId[value]) ||
+      (value && !value.startsWith("0x") && validationIdToNodeId["0x" + cb58ToHex(value)]) ||
+      "";
   }, [value, validationIdToNodeId]);
 
   const validationIDSuggestions: Suggestion[] = useMemo(() => {
@@ -138,7 +143,7 @@ export default function SelectValidationID({
         const weightDisplay = validator.weight.toLocaleString();
         const balanceDisplay = formatAvaxBalance(validator.remainingBalance);
         const isSelected = nodeId === selectedNodeId;
-        
+
         // Add just one version based on the format prop
         if (format === "hex") {
           try {
@@ -185,11 +190,11 @@ export default function SelectValidationID({
 
     // Look up the nodeId for this validation ID
     let nodeId = validationIdToNodeId[formattedValue] || "";
-    
+
     // If not found directly, try the alternate format
     if (!nodeId) {
-      const alternateFormat = format === "hex" 
-        ? hexToCB58(formattedValue.slice(2)) 
+      const alternateFormat = format === "hex"
+        ? hexToCB58(formattedValue.slice(2))
         : "0x" + cb58ToHex(formattedValue);
       nodeId = validationIdToNodeId[alternateFormat] || "";
     }

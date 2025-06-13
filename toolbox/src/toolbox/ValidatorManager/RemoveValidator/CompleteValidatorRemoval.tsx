@@ -144,7 +144,10 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         "11111111111111111111111111111111LpoYY" // always use P-Chain ID
       );
 
-      const signature = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
+      const signature = await new AvaCloudSDK({
+        serverURL: "https://api.avax.network",
+        network: networkName,
+      }).data.signatureAggregator.aggregate({
         network: networkName,
         signatureAggregatorRequest: {
           message: bytesToHex(removeValidatorMessage),
@@ -174,7 +177,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       if (finalReceipt.status !== 'success') {
         throw new Error(`Transaction failed with status: ${finalReceipt.status}`);
       }
-      
+
       setTransactionHash(hash);
       const successMsg = `Validator removal completed successfully.`;
       setSuccessMessage(successMsg);
@@ -221,14 +224,14 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
           Checking contract ownership...
         </div>
       )}
-      
+
       <div className="text-sm text-zinc-600 dark:text-zinc-400">
         <p><strong>Target Contract:</strong> {useMultisig ? 'PoAManager' : 'ValidatorManager'}</p>
         <p><strong>Contract Address:</strong> {targetContractAddress || 'Not set'}</p>
         <p><strong>Contract Owner:</strong> {
-          isContractOwner === true ? 'You are the owner' : 
-          isContractOwner === false ? `Owned by ${ownerType || 'contract'}` :
-          'Checking...'
+          isContractOwner === true ? 'You are the owner' :
+            isContractOwner === false ? `Owned by ${ownerType || 'contract'}` :
+              'Checking...'
         }</p>
         {extractedData && (
           <div className="mt-2 space-y-1">
@@ -238,19 +241,19 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
           </div>
         )}
         {pChainSignature && (
-          <p className="mt-2"><strong>P-Chain Signature:</strong> {pChainSignature.substring(0,50)}...</p>
+          <p className="mt-2"><strong>P-Chain Signature:</strong> {pChainSignature.substring(0, 50)}...</p>
         )}
       </div>
-      
-      <Button 
-        onClick={handleCompleteRemoval} 
+
+      <Button
+        onClick={handleCompleteRemoval}
         disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig) || isLoadingOwnership}
       >
         {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : 'Sign & Complete Validator Removal')}
       </Button>
 
       {transactionHash && (
-        <Success 
+        <Success
           label="Transaction Hash"
           value={transactionHash}
         />
