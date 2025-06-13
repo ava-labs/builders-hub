@@ -89,11 +89,11 @@ export default function Page() {
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
             Join the Avalanche community at our global events, hackathons, and meetups to connect, learn, and build the future of blockchain technology.
           </p>
-          <Link href="#events">
+          {/* <Link href="#events">
             <Button className="mt-6 rounded-full text-lg px-8 py-6 bg-red-500 hover:bg-red-600 transition-all duration-300 shadow-lg hover:shadow-xl text-white dark:text-white">
               Find Events <ArrowRight color="white" className="ml-2 h-5 w-5" />
             </Button>
-          </Link>
+          </Link> */}
         </section>
 
         {/* Featured Event Section */}
