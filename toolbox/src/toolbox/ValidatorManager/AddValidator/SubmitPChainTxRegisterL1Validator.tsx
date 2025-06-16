@@ -26,7 +26,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   onSuccess,
   onError,
 }) => {
-  const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore();
+  const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient, isTestnet } = useWalletStore();
   const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -188,7 +188,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     try {
       // Sign the warp message
       const { signedMessage } = await new AvaCloudSDK({
-        serverURL: "https://api.avax.network",
+        serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
         network: networkName,
       }).data.signatureAggregator.aggregate({
         network: networkName,

@@ -14,7 +14,7 @@ import { formatAvaxBalance } from "../../coreViem/utils/format"
 import { cb58ToHex } from "../Conversion/FormatConverter"
 
 export default function QueryL1ValidatorSet() {
-  const { avalancheNetworkID } = useWalletStore()
+  const { avalancheNetworkID, isTestnet } = useWalletStore()
   const [validators, setValidators] = useState<L1ValidatorDetailsFull[]>([])
   const [filteredValidators, setFilteredValidators] = useState<L1ValidatorDetailsFull[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -47,7 +47,7 @@ export default function QueryL1ValidatorSet() {
       }
 
       const result = await new AvaCloudSDK({
-        serverURL: "https://api.avax.network",
+        serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
         network: networkNames[Number(avalancheNetworkID)],
       }).data.primaryNetwork.listL1Validators({
         network: networkNames[Number(avalancheNetworkID)],

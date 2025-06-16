@@ -47,7 +47,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   isLoadingOwnership,
   ownerType,
 }) => {
-  const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
+  const { coreWalletClient, publicClient, avalancheNetworkID, isTestnet } = useWalletStore();
   const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
 
@@ -145,7 +145,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       );
 
       const signature = await new AvaCloudSDK({
-        serverURL: "https://api.avax.network",
+        serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
         network: networkName,
       }).data.signatureAggregator.aggregate({
         network: networkName,

@@ -26,7 +26,7 @@ export default function SelectSubnet({
     onlyNotConverted?: boolean,
     hidePrimaryNetwork?: boolean
 }) {
-    const { avalancheNetworkID } = useWalletStore();
+    const { avalancheNetworkID, isTestnet } = useWalletStore();
     const [subnetDetails, setSubnetDetails] = useState<Record<string, Subnet>>({});
     const [isLoading, setIsLoading] = useState(false);
 
@@ -46,7 +46,7 @@ export default function SelectSubnet({
 
             setIsLoading(true);
             const sdk = new AvaCloudSDK({
-                serverURL: "https://api.avax.network",
+                serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
                 network: network,
             });
 
@@ -64,7 +64,7 @@ export default function SelectSubnet({
         } finally {
             setIsLoading(false);
         }
-    }, [avalancheNetworkID, networkNames, subnetDetails]);
+    }, [avalancheNetworkID, networkNames, subnetDetails, isTestnet]);
 
     // Handle value change and fetch details if needed
     const handleValueChange = useCallback((newValue: string) => {

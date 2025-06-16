@@ -41,7 +41,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
   isLoadingOwnership,
   ownerType,
 }) => {
-  const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
+  const { coreWalletClient, publicClient, avalancheNetworkID, isTestnet } = useWalletStore();
   const viemChain = useViemChainStore();
   const [pChainTxIdState, setPChainTxId] = useState(pChainTxId || '');
 
@@ -163,7 +163,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
 
       // Step 5: Create P-Chain warp signature using the L1ValidatorRegistrationMessage
       const signature = await new AvaCloudSDK({
-        serverURL: "https://api.avax.network",
+        serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
         network: networkName,
       }).data.signatureAggregator.aggregate({
         network: networkName,

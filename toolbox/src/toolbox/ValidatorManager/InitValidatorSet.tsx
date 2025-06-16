@@ -26,7 +26,7 @@ export default function InitValidatorSet() {
     const [conversionTxID, setConversionTxID] = useState<string>("");
     const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
     const viemChain = useViemChainStore();
-    const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
+    const { coreWalletClient, publicClient, avalancheNetworkID, isTestnet } = useWalletStore();
     const [isInitializing, setIsInitializing] = useState(false);
     const [txHash, setTxHash] = useState<string | null>(null);
     const [simulationWentThrough, _] = useState(false);
@@ -53,7 +53,7 @@ export default function InitValidatorSet() {
             const { message, justification, signingSubnetId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
 
             const { signedMessage } = await new AvaCloudSDK({
-                serverURL: "https://api.avax.network",
+                serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
                 network: networkName,
             }).data.signatureAggregator.aggregate({
                 network: networkName,

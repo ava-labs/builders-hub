@@ -29,7 +29,7 @@ export default function InputSubnetId({
     helperText?: string | null
     id?: string
 }) {
-    const { avalancheNetworkID } = useWalletStore();
+    const { avalancheNetworkID, isTestnet } = useWalletStore();
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const { l1List } = useL1ListStore()();
 
@@ -58,7 +58,7 @@ export default function InputSubnetId({
             }
 
             const sdk = new AvaCloudSDK({
-                serverURL: "https://api.avax.network",
+                serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
                 network: network,
             });
 
@@ -73,7 +73,7 @@ export default function InputSubnetId({
             // Show validation error for invalid subnet IDs
             setValidationError("Subnet ID not found or invalid");
         }
-    }, [avalancheNetworkID, networkNames]);
+    }, [avalancheNetworkID, isTestnet, networkNames]);
 
     // Validate when value changes
     useEffect(() => {

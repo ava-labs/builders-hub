@@ -40,7 +40,7 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
   isLoadingOwnership,
   ownerType,
 }) => {
-  const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
+  const { coreWalletClient, publicClient, avalancheNetworkID, isTestnet } = useWalletStore();
   const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
 
@@ -144,7 +144,7 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
       );
 
       const signature = await new AvaCloudSDK({
-        serverURL: "https://api.avax.network",
+        serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
         network: networkName,
       }).data.signatureAggregator.aggregate({
         network: networkName,

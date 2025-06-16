@@ -264,7 +264,7 @@ export default function DetailsDisplay({ type, data, isLoading }: DetailsDisplay
                             {blockchain.vmId && blockchain.vmId !== STANDARD_EVM_VM_ID && (
                                 <div className="mt-2 flex items-center space-x-1 text-yellow-700 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 p-1.5 rounded">
                                     <AlertTriangle className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
-                                    <span className="text-xs">Non-standard VM detected</span>
+                                    <span className="text-xs">Non-standard VM ID detected</span>
                                 </div>
                             )}
                         </div>

@@ -21,7 +21,7 @@ const networkNames: Record<number, GlobalParamNetwork> = {
 };
 
 export default function CollectConversionSignatures() {
-    const { coreWalletClient } = useWalletStore();
+    const { coreWalletClient, isTestnet } = useWalletStore();
     const [isConverting, setIsConverting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [chainID, setChainID] = useState("");
@@ -56,7 +56,7 @@ export default function CollectConversionSignatures() {
             const { message, justification, signingSubnetId, networkId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionID });
 
             const { signedMessage } = await new AvaCloudSDK({
-                serverURL: "https://api.avax.network",
+                serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
                 network: networkNames[Number(networkId)],
             }).data.signatureAggregator.aggregate({
                 network: networkNames[Number(networkId)],

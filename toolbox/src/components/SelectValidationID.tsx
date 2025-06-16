@@ -57,7 +57,7 @@ export default function SelectValidationID({
   subnetId?: string,
   format?: "cb58" | "hex"
 }) {
-  const { avalancheNetworkID } = useWalletStore();
+  const { avalancheNetworkID, isTestnet } = useWalletStore();
   const [validators, setValidators] = useState<L1ValidatorDetailsFull[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [validationIdToNodeId, setValidationIdToNodeId] = useState<Record<string, string>>({});
@@ -79,7 +79,7 @@ export default function SelectValidationID({
         if (!network) return;
 
         const sdk = new AvaCloudSDK({
-          serverURL: "https://api.avax.network",
+          serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
           network: network,
         });
 
@@ -120,7 +120,7 @@ export default function SelectValidationID({
     };
 
     fetchValidators();
-  }, [subnetId, avalancheNetworkID]);
+  }, [subnetId, avalancheNetworkID, isTestnet]);
 
   // Get the currently selected node ID
   const selectedNodeId = useMemo(() => {
@@ -135,7 +135,7 @@ export default function SelectValidationID({
 
     // Filter out validators with weight 0 and only add suggestions from validators with node IDs
     const validatorsWithWeight = validators.filter(validator => validator.weight > 0);
-    
+
     for (const validator of validatorsWithWeight) {
       if (validator.validationId) {
         // Use full node ID
