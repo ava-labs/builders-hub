@@ -61,8 +61,19 @@ export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruning
     return btoa(JSON.stringify(configMap))
 }
 
+const generateVMAliasesCommand = (vmId: string) => {
+    return `mkdir -p ~/.avalanchego/configs/vms
 
-const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, chainId: string, debugEnabled: boolean = false, pruningEnabled: boolean = false) => {
+cat > ~/.avalanchego/configs/vms/aliases.json <<EOF
+{
+  "${vmId}": [
+    "${SUBNET_EVM_VM_ID}"
+  ]
+}
+EOF`;
+}
+
+const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, chainId: string, vmId: string, debugEnabled: boolean = false, pruningEnabled: boolean = false) => {
     const env: Record<string, string> = {
         AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true",
         AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
@@ -88,6 +99,13 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
 
     env.AVAGO_CHAIN_CONFIG_CONTENT = nodeConfigBase64(chainId, debugEnabled, pruningEnabled);
 
+    // Check if this is a custom VM (not the standard subnet-evm)
+    const isCustomVM = vmId !== SUBNET_EVM_VM_ID;
+
+    if (isCustomVM) {
+        env.VM_ID = vmId;
+    }
+
     const chunks = [
         "docker run -it -d",
         `--name avago`,
@@ -96,10 +114,15 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
         ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
         `avaplatform/subnet-evm:${versions['avaplatform/subnet-evm']}`
     ];
+
+    // Add vm-aliases-file parameter for custom VMs
+    if (isCustomVM) {
+        chunks.push("/avalanchego/build/avalanchego");
+        chunks.push("--vm-aliases-file=/root/.avalanchego/configs/vms/aliases.json");
+    }
+
     return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
 }
-
-
 
 const reverseProxyCommand = (domain: string) => {
     domain = nipify(domain);
@@ -121,14 +144,11 @@ const rpcHealthCheckCommand = (domain: string, chainId: string) => {
 https://${processedDomain}/ext/bc/${chainId}/rpc`
 }
 
-
-
-
-
 export default function AvalanchegoDocker() {
     const [chainId, setChainId] = useState("");
     const [subnetId, setSubnetId] = useState("");
     const [subnet, setSubnet] = useState<any>(null);
+    const [blockchainInfo, setBlockchainInfo] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isRPC, setIsRPC] = useState<boolean>(true);
     const [rpcCommand, setRpcCommand] = useState("");
@@ -148,11 +168,13 @@ export default function AvalanchegoDocker() {
         setSubnetIdError(null);
         setSubnetId("");
         setSubnet(null);
+        setBlockchainInfo(null);
         if (!chainId) return;
 
         setIsLoading(true);
         getBlockchainInfo(chainId)
             .then(async (chainInfo) => {
+                setBlockchainInfo(chainInfo);
                 setSubnetId(chainInfo.subnetId);
                 try {
                     const subnetInfo = await getSubnetInfo(chainInfo.subnetId);
@@ -170,12 +192,14 @@ export default function AvalanchegoDocker() {
     }, [chainId]);
 
     useEffect(() => {
+        if (!blockchainInfo) return;
+
         try {
-            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID, chainId, enableDebugTrace, pruningEnabled));
+            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID, chainId, blockchainInfo.vmId, enableDebugTrace, pruningEnabled));
         } catch (error) {
             setRpcCommand((error as Error).message);
         }
-    }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId, pruningEnabled]);
+    }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId, pruningEnabled, blockchainInfo]);
 
     useEffect(() => {
         if (!isRPC) {
@@ -187,6 +211,7 @@ export default function AvalanchegoDocker() {
         setChainId("");
         setSubnetId("");
         setSubnet(null);
+        setBlockchainInfo(null);
         setIsRPC(true);
         setChainAddedToWallet(null);
         setRpcCommand("");
@@ -199,6 +224,8 @@ export default function AvalanchegoDocker() {
         setNodeIsReady(false);
     };
 
+    // Check if this blockchain uses a custom VM
+    const isCustomVM = blockchainInfo && blockchainInfo.vmId !== SUBNET_EVM_VM_ID;
 
     return (
         <>
@@ -257,10 +284,6 @@ export default function AvalanchegoDocker() {
                             onChange={setChainId}
                             error={subnetIdError}
                         />
-                        <InputSubnetId
-                            value={subnetId}
-                            onChange={setSubnetId}
-                        />
 
                         {/* Show subnet details if available */}
                         <BlockchainDetailsDisplay
@@ -270,7 +293,7 @@ export default function AvalanchegoDocker() {
                         />
                     </Step>
 
-                    {subnetId && (
+                    {subnetId && blockchainInfo && (
                         <>
                             <Step>
                                 <h3 className="text-xl font-bold mb-4">Configure the Node</h3>
@@ -304,11 +327,42 @@ export default function AvalanchegoDocker() {
                                     <li><strong>9651</strong> (for the node-to-node communication)</li>
                                 </ul>
                             </Step>)}
+
+                            {/* Custom VM Setup Step */}
+                            {isCustomVM && (
+                                <Step>
+                                    <h3 className="text-xl font-bold mb-4">Custom VM Setup</h3>
+                                    <p>This blockchain uses a non-standart Virtual Machine ID. You need to create a VM aliases file before starting the node.</p>
+
+                                    <p className="mb-2">Run the following command to create the VM aliases configuration:</p>
+                                    <DynamicCodeBlock lang="bash" code={generateVMAliasesCommand(blockchainInfo.vmId)} />
+
+                                    <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                            <strong>Note:</strong> This creates an alias mapping that allows the custom VM ({blockchainInfo.vmId}) to use the subnet-evm runtime.
+                                            This is necessary for custom VMs that are compatible with the EVM but have different VM IDs.
+                                        </p>
+                                    </div>
+                                </Step>
+                            )}
+
                             <Step>
                                 <h3 className="text-xl font-bold">Start AvalancheGo Node</h3>
                                 <p>Run the following Docker command to start your node:</p>
 
                                 <DynamicCodeBlock lang="bash" code={rpcCommand} />
+
+                                {isCustomVM && (
+                                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                                            <strong>Custom VM Notice:</strong> This command includes additional parameters for custom VM support:
+                                        </p>
+                                        <ul className="text-xs text-blue-700 dark:text-blue-300 mt-2 list-disc list-inside">
+                                            <li><code>VM_ID={blockchainInfo.vmId}</code> - Specifies the custom VM ID</li>
+                                            <li><code>--vm-aliases-file</code> - Points to the VM aliases configuration file</li>
+                                        </ul>
+                                    </div>
+                                )}
 
                                 <Accordions type="single" className="mt-8">
                                     <Accordion title="Running Multiple Nodes on the same machine">
