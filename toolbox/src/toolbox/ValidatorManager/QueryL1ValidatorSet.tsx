@@ -14,7 +14,7 @@ import { formatAvaxBalance } from "../../coreViem/utils/format"
 import { cb58ToHex } from "../Conversion/FormatConverter"
 
 export default function QueryL1ValidatorSet() {
-  const { avalancheNetworkID } = useWalletStore()
+  const { avalancheNetworkID, getNetworkName } = useWalletStore()
   const [validators, setValidators] = useState<L1ValidatorDetailsFull[]>([])
   const [filteredValidators, setFilteredValidators] = useState<L1ValidatorDetailsFull[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -24,13 +24,13 @@ export default function QueryL1ValidatorSet() {
   const [subnetId, setSubnetId] = useState<string>("")
   const [searchTerm, setSearchTerm] = useState<string>("")
 
-  // Network names for display
-  const networkNames: Record<number, GlobalParamNetwork> = {
-    [networkIDs.MainnetID]: "mainnet",
-    [networkIDs.FujiID]: "fuji",
-  }
+  useEffect(() => {
+    if (subnetId) {
+      fetchValidators()
+    }
+  }, [subnetId, avalancheNetworkID])
 
-  async function fetchValidators() {
+  const fetchValidators = async () => {
     setIsLoading(true)
     setError(null)
     setSelectedValidator(null)
@@ -41,16 +41,16 @@ export default function QueryL1ValidatorSet() {
         throw new Error("Subnet ID is required to query L1 validators")
       }
 
-      const network = networkNames[Number(avalancheNetworkID)]
-      if (!network) {
-        throw new Error("Invalid network selected")
-      }
+      const sdk = new AvaCloudSDK({
+        serverURL: avalancheNetworkID === networkIDs.MainnetID ? "https://api.avax.network" : "https://api.avax-test.network",
+        network: getNetworkName(),
+      })
 
-      const result = await new AvaCloudSDK().data.primaryNetwork.listL1Validators({
-        network: network,
+      const result = await sdk.data.primaryNetwork.listL1Validators({
+        network: getNetworkName(),
         subnetId: subnetId.trim(),
         includeInactiveL1Validators: true,
-      });
+      })
 
       // Handle pagination
       let validators: L1ValidatorDetailsFull[] = []
@@ -347,7 +347,7 @@ export default function QueryL1ValidatorSet() {
                       )}
                     </button>
                   </div>
-                  
+
                   {/* Display Hex Format */}
                   <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-700">
                     <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Validation ID (Hex)</p>

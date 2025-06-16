@@ -21,7 +21,7 @@ import SelectSubnetId from "../../components/SelectSubnetId"
 
 export default function QueryL1Details() {
   const [subnetId, setSubnetID] = useState("")
-  const { avalancheNetworkID } = useWalletStore()
+  const { avalancheNetworkID, getNetworkName } = useWalletStore()
   const [subnetDetails, setSubnetDetails] = useState<Subnet | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,28 +39,23 @@ export default function QueryL1Details() {
     }
   }, [subnetId, avalancheNetworkID])
 
-  async function fetchSubnetDetails() {
-    if (!subnetId) {
-      setError("Please enter a subnet ID")
-      return
-    }
-
+  const fetchSubnetDetails = async () => {
     setIsLoading(true)
     setError(null)
     setSuccess(false)
 
     try {
-      const network = networkNames[Number(avalancheNetworkID)]
-      if (!network) {
-        throw new Error("Invalid network selected")
-      }
+      const sdk = new AvaCloudSDK({
+        serverURL: avalancheNetworkID === networkIDs.MainnetID ? "https://api.avax.network" : "https://api.avax-test.network",
+        network: getNetworkName(),
+      })
 
-      const subnet = await new AvaCloudSDK().data.primaryNetwork.getSubnetById({
-        network: network,
-        subnetId,
-      });
+      const result = await sdk.data.subnet.getSubnet({
+        network: getNetworkName(),
+        subnetId: subnetId.trim(),
+      })
 
-      setSubnetDetails(subnet)
+      setSubnetDetails(result)
       setSuccess(true)
     } catch (error: any) {
       setError(error.message || "Failed to fetch subnet details")

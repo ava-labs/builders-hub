@@ -257,7 +257,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                         const bytecode = await publicClient.getBytecode({ address: owner });
                         const isContract = !!bytecode && bytecode !== '0x';
                         setIsOwnerContract(isContract);
-                        
+
                         // If it's not a contract, set it as EOA immediately
                         if (!isContract) {
                             setOwnerType('EOA');
