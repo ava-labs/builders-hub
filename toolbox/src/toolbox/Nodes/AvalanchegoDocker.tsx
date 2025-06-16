@@ -7,7 +7,6 @@ import versions from "../../versions.json";
 import { Container } from "../../components/Container";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../../components/InputChainId";
-import InputSubnetId from "../../components/InputSubnetId";
 import { Checkbox } from "../../components/Checkbox";
 import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
 import { Steps, Step } from "fumadocs-ui/components/steps";
