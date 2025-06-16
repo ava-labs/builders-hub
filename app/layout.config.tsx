@@ -395,30 +395,6 @@ export const eventsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/avalanche_summit_london-Nyk29ywbU9RZbKaXzVtZxXd1nqBJBx.png"}
-              alt='Preview'
-              width={900}
-              height={400}
-              className='rounded-t-lg object-cover w-full h-auto'
-              style={{
-                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
-              }}
-            />
-          </div>
-        ),
-        className: 'md:row-span-2',
-      },
-      icon: <Ticket />,
-      text: 'Avalanche Summit London',
-      description:
-        'Join us for Avalanche Summit, London, as we explore the world’s original global financial hub through the lens of Web3.',
-      url: 'https://www.avalanchesummitlondon.com/',
-    },
-    {
-      menu: {
-        banner: (
-          <div className='-mx-3 -mt-3'>
-            <Image
               src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/hackathons-banner-nyqtkzooc3tJ4qcLjfLJijXz6uJ6oH.png"}
               alt='Preview'
               width={900}
@@ -433,10 +409,34 @@ export const eventsMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Ticket />,
-      text: 'Join our Hackathons',
+      text: 'Hackathons',
       description:
-        'The hackathons aims to harness the potential of Avalanche’s robust technology stack to address pressing issues and create scalable, practical solutions.',
+        'The hackathons aims to harness the potential of Avalanche´s robust technology stack to address pressing issues and create scalable, practical solutions.',
       url: '/hackathons',
+    },
+    {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Avalanche-Event-8wjhXhApK9YGd5Le4Pkcl9tufb5QDA.jpg"}
+              alt='Preview'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2',
+      },
+      icon: <Ticket />,
+      text: 'Avalanche Calendar',
+      description:
+        'Explore upcoming Avalanche events, meetups, and community gatherings. Stay connected with the latest happenings in the ecosystem.',
+      url: 'https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4',
     },
     {
       menu: {
@@ -457,7 +457,7 @@ export const eventsMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Earth />,
-      text: 'Team1 Events',
+      text: 'Community driven events',
       description:
         'Check out and join the global meetups, workshops and events organized by Avalanche Team1',
       url: 'https://lu.ma/Team1?utm_source=builder_hub',
