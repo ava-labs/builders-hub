@@ -27,12 +27,6 @@ export default function QueryL1Details() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  // Network names for display
-  const networkNames: Record<number, GlobalParamNetwork> = {
-    [networkIDs.MainnetID]: "mainnet",
-    [networkIDs.FujiID]: "fuji",
-  }
-
   useEffect(() => {
     if (subnetId) {
       fetchSubnetDetails()
@@ -50,7 +44,7 @@ export default function QueryL1Details() {
         network: getNetworkName(),
       })
 
-      const result = await sdk.data.subnet.getSubnet({
+      const result = await sdk.data.primaryNetwork.getSubnetById({
         network: getNetworkName(),
         subnetId: subnetId.trim(),
       })
@@ -59,8 +53,6 @@ export default function QueryL1Details() {
       setSuccess(true)
     } catch (error: any) {
       setError(error.message || "Failed to fetch subnet details")
-      setSubnetDetails(null)
-      console.error("Error fetching subnet details:", error)
     } finally {
       setIsLoading(false)
     }

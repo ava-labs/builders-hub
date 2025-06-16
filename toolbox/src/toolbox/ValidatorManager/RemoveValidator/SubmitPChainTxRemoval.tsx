@@ -20,14 +20,14 @@ interface SubmitPChainTxRemovalProps {
   onError: (message: string) => void;
 }
 
-const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
+export default function SubmitPChainTxRemoval({
   subnetIdL1,
   initialEvmTxHash,
   signingSubnetId,
   onSuccess,
   onError,
-}) => {
-  const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient, isTestnet, getNetworkName } = useWalletStore();
+}: SubmitPChainTxRemovalProps) {
+  const { coreWalletClient, pChainAddress, publicClient, isTestnet, getNetworkName } = useWalletStore();
   const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -41,11 +41,9 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     endTime: bigint;
   } | null>(null);
 
-  const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
-
   // Update evmTxHash when initialEvmTxHash prop changes
   useEffect(() => {
-    if (initialEvmTxHash && initialEvmTxHash !== evmTxHash) {
+    if (initialEvmTxHash) {
       setEvmTxHash(initialEvmTxHash);
     }
   }, [initialEvmTxHash]);
@@ -275,12 +273,12 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       const { signedMessage } = await new AvaCloudSDK({
         serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
         network: getNetworkName(),
-      }).data.signatureAggregator.aggregate({
+      }).data.signatureAggregator.aggregateSignatures({
         network: getNetworkName(),
         signatureAggregatorRequest: {
-          subnetId: subnetIdL1,
-          signingSubnetId: signingSubnetId,
           message: unsignedWarpMessage!,
+          signingSubnetId: signingSubnetId,
+          quorumPercentage: 67,
         },
       });
 
@@ -373,6 +371,4 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       )}
     </div>
   );
-};
-
-export default SubmitPChainTxRemoval; 
+} 

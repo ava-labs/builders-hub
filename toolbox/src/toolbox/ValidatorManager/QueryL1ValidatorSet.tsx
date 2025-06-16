@@ -6,7 +6,7 @@ import { Calendar, Clock, Users, Coins, Info, Copy, Check, Search, ChevronDown }
 import { Container } from "../../components/Container"
 import { Button } from "../../components/Button"
 import { networkIDs } from "@avalabs/avalanchejs"
-import { GlobalParamNetwork, L1ValidatorDetailsFull } from "@avalabs/avacloud-sdk/models/components"
+import { L1ValidatorDetailsFull } from "@avalabs/avacloud-sdk/models/components"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
 import SelectSubnetId from "../../components/SelectSubnetId"
 import { Tooltip } from "../../components/Tooltip"
