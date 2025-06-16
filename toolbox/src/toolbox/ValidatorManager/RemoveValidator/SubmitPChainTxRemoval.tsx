@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
 import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
-import { networkIDs } from '@avalabs/avalanchejs';
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;

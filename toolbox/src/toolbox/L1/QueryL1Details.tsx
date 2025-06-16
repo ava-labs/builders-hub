@@ -16,7 +16,7 @@ import { networkIDs } from "@avalabs/avalanchejs"
 import { Button } from "../../components/Button"
 import { Container } from "../../components/Container"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
-import { GlobalParamNetwork, Subnet } from "@avalabs/avacloud-sdk/models/components"
+import { Subnet } from "@avalabs/avacloud-sdk/models/components"
 import SelectSubnetId from "../../components/SelectSubnetId"
 
 export default function QueryL1Details() {
