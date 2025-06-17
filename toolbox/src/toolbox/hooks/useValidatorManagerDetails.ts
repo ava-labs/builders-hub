@@ -6,6 +6,7 @@ import { useWalletStore } from "../../stores/walletStore";
 import { useViemChainStore } from "../../stores/toolboxStore";
 import validatorManagerAbi from '../../../contracts/icm-contracts/compiled/ValidatorManager.json';
 import poaManagerAbi from '../../../contracts/icm-contracts/compiled/PoAManager.json';
+import nativeTokenStakingManagerAbi from '../../../contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 
 interface ValidatorManagerDetails {
     validatorManagerAddress: string;
@@ -20,7 +21,7 @@ interface ValidatorManagerDetails {
     ownershipError: string | null;
     isLoadingOwnership: boolean;
     isOwnerContract: boolean;
-    ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | null;
+    ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | 'Other' | null;
     isDetectingOwnerType: boolean;
 }
 
@@ -50,7 +51,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
     const [isOwnerContract, setIsOwnerContract] = useState(false);
 
     // Owner contract type detection states
-    const [ownerType, setOwnerType] = useState<'PoAManager' | 'StakingManager' | 'EOA' | null>(null);
+    const [ownerType, setOwnerType] = useState<'PoAManager' | 'StakingManager' | 'EOA' | 'Other' | null>(null);
     const [isDetectingOwnerType, setIsDetectingOwnerType] = useState(false);
 
     // Cache to store fetched details for each subnetId to avoid redundant API calls
@@ -291,22 +292,44 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
 
             setIsDetectingOwnerType(true);
             try {
-                // Try to call owner() function using PoAManager ABI to detect if it's a PoAManager
-                const ownerAddress = await publicClient.readContract({
-                    address: contractOwner as `0x${string}`,
-                    abi: poaManagerAbi.abi,
-                    functionName: "owner",
-                });
+                // First, try to detect if it's a PoAManager by calling owner() function
+                try {
+                    const ownerAddress = await publicClient.readContract({
+                        address: contractOwner as `0x${string}`,
+                        abi: poaManagerAbi.abi,
+                        functionName: "owner",
+                    });
 
-                // If we can successfully call owner() with PoAManager ABI, it's a PoAManager
-                if (ownerAddress) {
-                    setOwnerType('PoAManager');
-                } else {
-                    setOwnerType('StakingManager');
+                    // If we can successfully call owner() with PoAManager ABI, it's a PoAManager
+                    if (ownerAddress) {
+                        setOwnerType('PoAManager');
+                        return;
+                    }
+                } catch (poaError) {
+                    console.log('Owner contract is not a PoAManager, checking for StakingManager...');
                 }
+
+                // Try to detect if it's a NativeTokenStakingManager by calling a unique function
+                try {
+                    await publicClient.readContract({
+                        address: contractOwner as `0x${string}`,
+                        abi: nativeTokenStakingManagerAbi.abi,
+                        functionName: "STAKING_MANAGER_STORAGE_LOCATION",
+                    });
+
+                    // If we can successfully call the unique function, it's a StakingManager
+                    setOwnerType('StakingManager');
+                    return;
+                } catch (stakingError) {
+                    console.log('Owner contract is not a NativeTokenStakingManager, marking as Other');
+                }
+
+                // If neither PoAManager nor StakingManager, mark as Other
+                setOwnerType('Other');
+
             } catch (error) {
-                console.log('Owner contract does not have PoAManager ABI structure, likely StakingManager');
-                setOwnerType('StakingManager');
+                console.log('Failed to detect owner contract type:', error);
+                setOwnerType('Other');
             } finally {
                 setIsDetectingOwnerType(false);
             }

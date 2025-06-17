@@ -26,7 +26,7 @@ interface CompleteValidatorRegistrationProps {
   signingSubnetId: string;
   contractOwner: string | null;
   isLoadingOwnership: boolean;
-  ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | null;
+  ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | 'Other' | null;
 }
 
 const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps> = ({
@@ -92,7 +92,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
       onError("Validator Manager address is not set. Check L1 Subnet selection.");
       return;
     }
-    if (ownershipState === 'differentEOA' && !useMultisig) {
+    if (ownershipState === 'differentEOA' && !useMultisig && ownerType !== 'Other') {
       setErrorState("You are not the contract owner. Please contact the contract owner.");
       onError("You are not the contract owner. Please contact the contract owner.");
       return;
@@ -282,7 +282,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
       
       <Button 
         onClick={handleCompleteRegisterValidator} 
-        disabled={isProcessing || !pChainTxIdState.trim() || !!successMessage || (ownershipState === 'differentEOA' && !useMultisig) || isLoadingOwnership}
+        disabled={isProcessing || !pChainTxIdState.trim() || !!successMessage || (ownershipState === 'differentEOA' && !useMultisig && ownerType !== 'Other') || isLoadingOwnership}
       >
         {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : 'Sign & Complete Validator Registration')}
       </Button>
