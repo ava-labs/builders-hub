@@ -11,13 +11,12 @@ import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/Valid
 
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
-import { networkIDs, utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalabs/avalanchejs';
 import { CodeHighlighter } from '../../components/CodeHighlighter';
 import { Container } from '../../components/Container';
 import { ResultField } from '../../components/ResultField';
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
 import { getSubnetInfo } from '../../coreViem/utils/glacier';
-import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components";
+import { useAvaCloudSDK } from "../../stores/useAvaCloudSDK";
 
 const cb58ToHex = (cb58: string) => utils.bufferToHex(utils.base58check.decode(cb58));
 const add0x = (hex: string): `0x${string}` => hex.startsWith('0x') ? hex as `0x${string}` : `0x${hex}`;
@@ -26,7 +25,8 @@ export default function InitValidatorSet() {
     const [conversionTxID, setConversionTxID] = useState<string>("");
     const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
     const viemChain = useViemChainStore();
-    const { coreWalletClient, publicClient, avalancheNetworkID, isTestnet } = useWalletStore();
+    const { coreWalletClient, publicClient } = useWalletStore();
+    const { sdk } = useAvaCloudSDK();
     const [isInitializing, setIsInitializing] = useState(false);
     const [txHash, setTxHash] = useState<string | null>(null);
     const [simulationWentThrough, _] = useState(false);
@@ -38,24 +38,17 @@ export default function InitValidatorSet() {
     const [L1ConversionSignatureError, setL1ConversionSignatureError] = useState<string>("");
     const [isAggregating, setIsAggregating] = useState(false);
 
-    // Network names for display
-    const networkNames: Record<number, GlobalParamNetwork> = {
-        [networkIDs.MainnetID]: "mainnet",
-        [networkIDs.FujiID]: "fuji",
-    };
-
-    const networkName = networkNames[Number(avalancheNetworkID)];
-
     async function aggSigs() {
         setL1ConversionSignatureError("");
         setIsAggregating(true);
         try {
             const { message, justification, signingSubnetId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
 
-            const { signedMessage } = await new AvaCloudSDK({
-                serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
-                network: networkName,
-            }).data.signatureAggregator.aggregate({
+            // Use getNetworkName from wallet store to determine network from networkId
+            const { getNetworkName } = useWalletStore();
+            const networkName = getNetworkName();
+
+            const { signedMessage } = await sdk.data.signatureAggregator.aggregate({
                 network: networkName,
                 signatureAggregatorRequest: {
                     message: message,

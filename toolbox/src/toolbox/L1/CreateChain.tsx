@@ -13,8 +13,7 @@ import generateName from 'boring-name-generator'
 import { Success } from "../../components/Success";
 import { RadioGroup } from "../../components/RadioGroup";
 import InputSubnetId from "../../components/InputSubnetId";
-
-export const EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
+import { SUBNET_EVM_VM_ID } from "../Nodes/AvalanchegoDocker";
 
 const generateRandomName = () => {
     //makes sure the name doesn't contain a dash
@@ -48,7 +47,7 @@ export default function CreateChain() {
     const [localChainName, setLocalChainName] = useState<string>(generateRandomName());
 
     const [showVMIdInput, setShowVMIdInput] = useState<boolean>(false);
-    const [vmId, setVmId] = useState<string>(EVM_VM_ID);
+    const [vmId, setVmId] = useState<string>(SUBNET_EVM_VM_ID);
 
     // Wrapper function to handle subnet ID changes properly
     const handleSubnetIdChange = (newSubnetId: string) => {
@@ -181,7 +180,7 @@ export default function CreateChain() {
                             value={vmId}
                             onChange={setVmId}
                             placeholder="Enter VM ID"
-                            helperText={`For an L1 with an uncustomized EVM use ${EVM_VM_ID}`}
+                            helperText={`For an L1 with an uncustomized EVM use ${SUBNET_EVM_VM_ID}`}
                         />
                     )}
 

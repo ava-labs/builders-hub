@@ -2,11 +2,9 @@
 
 import SelectSubnetId from "./SelectSubnetId";
 import { useState, useCallback } from "react";
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
-import { useWalletStore } from "../stores/walletStore";
-import { networkIDs } from "@avalabs/avalanchejs";
-import { GlobalParamNetwork, Subnet } from "@avalabs/avacloud-sdk/models/components";
-import DetailsDisplay from "./DetailsDisplay";
+import { Subnet } from "@avalabs/avacloud-sdk/models/components";
+import BlockchainDetailsDisplay from "./BlockchainDetailsDisplay";
+import { useAvaCloudSDK } from "../stores/useAvaCloudSDK";
 
 export type SubnetSelection = {
     subnetId: string;
@@ -26,34 +24,17 @@ export default function SelectSubnet({
     onlyNotConverted?: boolean,
     hidePrimaryNetwork?: boolean
 }) {
-    const { avalancheNetworkID, isTestnet } = useWalletStore();
+    const { getSubnetById } = useAvaCloudSDK();
     const [subnetDetails, setSubnetDetails] = useState<Record<string, Subnet>>({});
     const [isLoading, setIsLoading] = useState(false);
-
-    // Network names for API calls
-    const networkNames: Record<number, GlobalParamNetwork> = {
-        [networkIDs.MainnetID]: "mainnet",
-        [networkIDs.FujiID]: "fuji",
-    };
 
     // Fetch subnet details when needed
     const fetchSubnetDetails = useCallback(async (subnetId: string) => {
         if (!subnetId || subnetDetails[subnetId]) return;
 
         try {
-            const network = networkNames[Number(avalancheNetworkID)];
-            if (!network) return;
-
             setIsLoading(true);
-            const sdk = new AvaCloudSDK({
-                serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
-                network: network,
-            });
-
-            const subnet = await sdk.data.primaryNetwork.getSubnetById({
-                network: network,
-                subnetId,
-            });
+            const subnet = await getSubnetById({ subnetId });
 
             setSubnetDetails(prev => ({
                 ...prev,
@@ -64,7 +45,7 @@ export default function SelectSubnet({
         } finally {
             setIsLoading(false);
         }
-    }, [avalancheNetworkID, networkNames, subnetDetails, isTestnet]);
+    }, [getSubnetById, subnetDetails]);
 
     // Handle value change and fetch details if needed
     const handleValueChange = useCallback((newValue: string) => {
@@ -96,7 +77,7 @@ export default function SelectSubnet({
             />
 
             {/* Display subnet details when a subnet is selected */}
-            {value && <DetailsDisplay type="subnet" data={currentSubnet} isLoading={!!isLoadingCurrent} />}
+            {value && <BlockchainDetailsDisplay type="subnet" data={currentSubnet} isLoading={!!isLoadingCurrent} />}
         </div>
     );
 } 

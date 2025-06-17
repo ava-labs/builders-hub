@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
-import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { useAvaCloudSDK } from '../../../stores/useAvaCloudSDK';
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
@@ -26,7 +25,8 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   onSuccess,
   onError,
 }) => {
-  const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient, isTestnet } = useWalletStore();
+  const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
+  const { aggregateSignature } = useAvaCloudSDK();
   const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -34,8 +34,6 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState<string | null>(null);
   const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
   const [evmTxHashError, setEvmTxHashError] = useState<string | null>(null);
-
-  const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
 
   // Initialize EVM transaction hash when it becomes available
   useEffect(() => {
@@ -187,16 +185,10 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     setIsProcessing(true);
     try {
       // Sign the warp message
-      const { signedMessage } = await new AvaCloudSDK({
-        serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
-        network: networkName,
-      }).data.signatureAggregator.aggregate({
-        network: networkName,
-        signatureAggregatorRequest: {
-          message: unsignedWarpMessage,
-          signingSubnetId: signingSubnetId || subnetIdL1,
-          quorumPercentage: 67,
-        },
+      const { signedMessage } = await aggregateSignature({
+        message: unsignedWarpMessage,
+        signingSubnetId: signingSubnetId || subnetIdL1,
+        quorumPercentage: 67,
       });
 
       setSignedWarpMessage(signedMessage);

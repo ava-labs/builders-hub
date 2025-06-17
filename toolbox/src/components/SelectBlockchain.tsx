@@ -27,7 +27,7 @@ export type BlockchainSelection = {
 }
 
 // Import the unified details display component
-import DetailsDisplay from "./DetailsDisplay";
+import BlockchainDetailsDisplay from "./BlockchainDetailsDisplay";
 
 export default function SelectBlockchain({
     value,
@@ -115,7 +115,7 @@ export default function SelectBlockchain({
             />
 
             {/* Display blockchain details when a blockchain is selected */}
-            {value && <DetailsDisplay type="blockchain" data={currentBlockchain} isLoading={!!isLoadingCurrent} />}
+            {value && <BlockchainDetailsDisplay type="blockchain" data={currentBlockchain} isLoading={!!isLoadingCurrent} />}
         </div>
     );
 } 

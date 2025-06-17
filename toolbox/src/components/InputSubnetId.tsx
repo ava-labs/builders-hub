@@ -3,11 +3,9 @@
 import { Input, type Suggestion } from "./Input";
 import { useL1ListStore } from "../stores/l1ListStore";
 import { useCreateChainStore } from "../stores/createChainStore";
-import { useWalletStore } from "../stores/walletStore";
 import { useMemo, useState, useCallback, useEffect } from "react";
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
-import { networkIDs } from "@avalabs/avalanchejs";
-import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components";
+import { utils } from "@avalabs/avalanchejs";
+import { useAvaCloudSDK } from "../stores/useAvaCloudSDK";
 
 // Primary network subnet ID
 const PRIMARY_NETWORK_SUBNET_ID = "11111111111111111111111111111111LpoYY";
@@ -29,16 +27,21 @@ export default function InputSubnetId({
     helperText?: string | null
     id?: string
 }) {
-    const { avalancheNetworkID, isTestnet } = useWalletStore();
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const { l1List } = useL1ListStore()();
+    const { getSubnetById } = useAvaCloudSDK();
 
     const [validationError, setValidationError] = useState<string | null>(null);
 
-    // Network names for API calls
-    const networkNames: Record<number, GlobalParamNetwork> = {
-        [networkIDs.MainnetID]: "mainnet",
-        [networkIDs.FujiID]: "fuji",
+    // Validate subnet ID format and checksum using Base58Check
+    const validateBase58Format = (subnetId: string): boolean => {
+        try {
+            // Validate Base58Check format and checksum (last 4 bytes)
+            utils.base58check.decode(subnetId);
+            return true;
+        } catch (error) {
+            return false;
+        }
     };
 
     // Validate subnet ID using AvaCloud SDK
@@ -48,24 +51,16 @@ export default function InputSubnetId({
             return;
         }
 
+        // First validate Base58Check format and checksum
+        if (!validateBase58Format(subnetId)) {
+            setValidationError("Invalid subnet ID format or checksum");
+            return;
+        }
+
         try {
             setValidationError(null);
 
-            const network = networkNames[Number(avalancheNetworkID)];
-            if (!network) {
-                setValidationError(null);
-                return;
-            }
-
-            const sdk = new AvaCloudSDK({
-                serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
-                network: network,
-            });
-
-            await sdk.data.primaryNetwork.getSubnetById({
-                network: network,
-                subnetId,
-            });
+            await getSubnetById({ subnetId });
 
             // If we get here, the subnet exists
             setValidationError(null);
@@ -73,7 +68,7 @@ export default function InputSubnetId({
             // Show validation error for invalid subnet IDs
             setValidationError("Subnet ID not found or invalid");
         }
-    }, [avalancheNetworkID, isTestnet, networkNames]);
+    }, [getSubnetById]);
 
     // Validate when value changes
     useEffect(() => {

@@ -4,18 +4,16 @@ import { Calendar, Users, Database, Key, Copy, AlertTriangle, FileText, Globe } 
 import { useState } from "react"
 import { Subnet } from "@avalabs/avacloud-sdk/models/components";
 import type { BlockchainInfo } from "./SelectBlockchain";
+import { SUBNET_EVM_VM_ID } from "../toolbox/Nodes/AvalanchegoDocker";
 
-interface DetailsDisplayProps {
+interface BlockchainDetailsDisplayProps {
     type: 'blockchain' | 'subnet'
     data: BlockchainInfo | Subnet | null
     isLoading?: boolean
 }
 
-export default function DetailsDisplay({ type, data, isLoading }: DetailsDisplayProps) {
+export default function BlockchainDetailsDisplay({ type, data, isLoading }: BlockchainDetailsDisplayProps) {
     const [copiedText, setCopiedText] = useState<string | null>(null)
-
-    // Standard EVM VM ID
-    const STANDARD_EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
 
     if (isLoading) {
         return (
@@ -261,7 +259,7 @@ export default function DetailsDisplay({ type, data, isLoading }: DetailsDisplay
                             </div>
 
                             {/* Warning for non-standard VM */}
-                            {blockchain.vmId && blockchain.vmId !== STANDARD_EVM_VM_ID && (
+                            {blockchain.vmId && blockchain.vmId !== SUBNET_EVM_VM_ID && (
                                 <div className="mt-2 flex items-center space-x-1 text-yellow-700 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 p-1.5 rounded">
                                     <AlertTriangle className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
                                     <span className="text-xs">Non-standard VM ID detected</span>

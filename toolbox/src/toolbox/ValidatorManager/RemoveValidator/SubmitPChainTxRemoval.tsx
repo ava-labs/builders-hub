@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
-import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { useAvaCloudSDK } from '../../../stores/useAvaCloudSDK';
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
@@ -27,7 +26,8 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient, isTestnet } = useWalletStore();
+  const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
+  const { aggregateSignature } = useAvaCloudSDK();
   const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -40,8 +40,6 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     weight: bigint;
     endTime: bigint;
   } | null>(null);
-
-  const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
 
   // Update evmTxHash when initialEvmTxHash prop changes
   useEffect(() => {
@@ -272,16 +270,10 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     setIsProcessing(true);
     try {
       // Step 1: Sign the warp message
-      const { signedMessage } = await new AvaCloudSDK({
-        serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
-        network: networkName,
-      }).data.signatureAggregator.aggregate({
-        network: networkName,
-        signatureAggregatorRequest: {
-          message: unsignedWarpMessage,
-          signingSubnetId: signingSubnetId || subnetIdL1,
-          quorumPercentage: 67,
-        },
+      const { signedMessage } = await aggregateSignature({
+        message: unsignedWarpMessage,
+        signingSubnetId: signingSubnetId || subnetIdL1,
+        quorumPercentage: 67,
       });
 
       setSignedWarpMessage(signedMessage);

@@ -2,9 +2,7 @@
 
 import { useWalletStore } from "../../stores/walletStore";
 import { useEffect, useState } from "react";
-import { networkIDs } from "@avalabs/avalanchejs";
 import { Button } from "../../components/Button";
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
 import { CodeHighlighter } from "../../components/CodeHighlighter";
 import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
@@ -12,16 +10,11 @@ import InputChainId from "../../components/InputChainId";
 import InputSubnetId from "../../components/InputSubnetId";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import { ResultField } from "../../components/ResultField";
-import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components";
-
-// Network names for API calls
-const networkNames: Record<number, GlobalParamNetwork> = {
-    [networkIDs.MainnetID]: "mainnet",
-    [networkIDs.FujiID]: "fuji",
-};
+import { useAvaCloudSDK } from "../../stores/useAvaCloudSDK";
 
 export default function CollectConversionSignatures() {
-    const { coreWalletClient, isTestnet } = useWalletStore();
+    const { coreWalletClient, getNetworkName } = useWalletStore();
+    const { sdk } = useAvaCloudSDK();
     const [isConverting, setIsConverting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [chainID, setChainID] = useState("");
@@ -53,13 +46,12 @@ export default function CollectConversionSignatures() {
         setIsConverting(true);
 
         try {
-            const { message, justification, signingSubnetId, networkId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionID });
+            const { message, justification, signingSubnetId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionID });
 
-            const { signedMessage } = await new AvaCloudSDK({
-                serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
-                network: networkNames[Number(networkId)],
-            }).data.signatureAggregator.aggregate({
-                network: networkNames[Number(networkId)],
+            const networkName = getNetworkName();
+
+            const { signedMessage } = await sdk.data.signatureAggregator.aggregate({
+                network: networkName,
                 signatureAggregatorRequest: {
                     message: message,
                     justification: justification,

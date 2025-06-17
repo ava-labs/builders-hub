@@ -1,11 +1,9 @@
 import { Input, type Suggestion } from "./Input";
 import { useMemo, useState, useEffect } from "react";
 import { cb58ToHex, hexToCB58 } from "../toolbox/Conversion/FormatConverter";
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
-import { useWalletStore } from "../stores/walletStore";
-import { networkIDs } from "@avalabs/avalanchejs";
-import { L1ValidatorDetailsFull, GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components";
+import { L1ValidatorDetailsFull } from "@avalabs/avacloud-sdk/models/components";
 import { formatAvaxBalance } from "../coreViem/utils/format";
+import { useAvaCloudSDK } from "../stores/useAvaCloudSDK";
 
 export type ValidationSelection = {
   validationId: string;
@@ -57,16 +55,10 @@ export default function SelectValidationID({
   subnetId?: string,
   format?: "cb58" | "hex"
 }) {
-  const { avalancheNetworkID, isTestnet } = useWalletStore();
+  const { listL1Validators } = useAvaCloudSDK();
   const [validators, setValidators] = useState<L1ValidatorDetailsFull[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [validationIdToNodeId, setValidationIdToNodeId] = useState<Record<string, string>>({});
-
-  // Network names for display
-  const networkNames: Record<number, GlobalParamNetwork> = {
-    [networkIDs.MainnetID]: "mainnet",
-    [networkIDs.FujiID]: "fuji",
-  };
 
   // Fetch validators from the API
   useEffect(() => {
@@ -75,18 +67,9 @@ export default function SelectValidationID({
 
       setIsLoading(true);
       try {
-        const network = networkNames[Number(avalancheNetworkID)];
-        if (!network) return;
-
-        const sdk = new AvaCloudSDK({
-          serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
-          network: network,
-        });
-
-        const result = await sdk.data.primaryNetwork.listL1Validators({
-          network: network,
+        const result = await listL1Validators({
           subnetId: subnetId,
-          includeInactiveL1Validators: true,
+          pageSize: 100, // Add reasonable page size
         });
 
         // Handle pagination
@@ -120,7 +103,7 @@ export default function SelectValidationID({
     };
 
     fetchValidators();
-  }, [subnetId, avalancheNetworkID, isTestnet]);
+  }, [subnetId, listL1Validators]);
 
   // Get the currently selected node ID
   const selectedNodeId = useMemo(() => {

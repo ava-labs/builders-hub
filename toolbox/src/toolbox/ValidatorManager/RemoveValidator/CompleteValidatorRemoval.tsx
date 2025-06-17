@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
-import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
 import { bytesToHex, hexToBytes } from 'viem';
-import { networkIDs } from '@avalabs/avalanchejs';
 import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/ValidatorManager.json';
 import poaManagerAbi from '../../../../contracts/icm-contracts/compiled/PoAManager.json';
 import { GetRegistrationJustification } from '../justification';
 import { packL1ValidatorRegistration } from '../../../coreViem/utils/convertWarp';
 import { packWarpIntoAccessList } from '../packWarp';
 import { extractL1ValidatorWeightMessage } from '../../../coreViem/methods/extractL1ValidatorWeightMessage';
+import { useAvaCloudSDK } from '../../../stores/useAvaCloudSDK';
 
 interface CompleteValidatorRemovalProps {
   subnetIdL1: string;
@@ -47,7 +46,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   isLoadingOwnership,
   ownerType,
 }) => {
-  const { coreWalletClient, publicClient, avalancheNetworkID, isTestnet } = useWalletStore();
+  const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
+  const { aggregateSignature } = useAvaCloudSDK();
   const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
 
@@ -61,8 +61,6 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     nonce: bigint;
     weight: bigint;
   } | null>(null);
-
-  const networkName = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'fuji';
 
   // Determine target contract and ABI based on ownerType
   const useMultisig = ownerType === 'PoAManager';
@@ -144,17 +142,10 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         "11111111111111111111111111111111LpoYY" // always use P-Chain ID
       );
 
-      const signature = await new AvaCloudSDK({
-        serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
-        network: networkName,
-      }).data.signatureAggregator.aggregate({
-        network: networkName,
-        signatureAggregatorRequest: {
-          message: bytesToHex(removeValidatorMessage),
-          justification: bytesToHex(justification),
-          signingSubnetId: signingSubnetId || subnetIdL1,
-          quorumPercentage: 67,
-        },
+      const signature = await aggregateSignature({
+        message: bytesToHex(removeValidatorMessage),
+        signingSubnetId: signingSubnetId || subnetIdL1,
+        quorumPercentage: 67,
       });
 
       setPChainSignature(signature.signedMessage);

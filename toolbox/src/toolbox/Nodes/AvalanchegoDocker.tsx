@@ -9,7 +9,7 @@ import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../../components/InputChainId";
 import InputSubnetId from "../../components/InputSubnetId";
 import { Checkbox } from "../../components/Checkbox";
-import DetailsDisplay from "../../components/DetailsDisplay";
+import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
@@ -23,6 +23,8 @@ import { DockerInstallation } from "../../components/DockerInstallation";
 import { NodeReadinessValidator } from "../../components/NodeReadinessValidator";
 import { HealthCheckButton } from "../../components/HealthCheckButton";
 
+// Standard subnet-evm VM ID
+export const SUBNET_EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy";
 
 export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruningEnabled: boolean) => {
     const vmConfig = debugEnabled ? {
@@ -295,7 +297,7 @@ export default function AvalanchegoDocker() {
                         />
 
                         {/* Show subnet details if available */}
-                        <DetailsDisplay
+                        <BlockchainDetailsDisplay
                             type="subnet"
                             data={subnet}
                             isLoading={isLoading}

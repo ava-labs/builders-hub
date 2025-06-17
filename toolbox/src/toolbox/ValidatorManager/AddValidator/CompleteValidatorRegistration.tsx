@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
-import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
-import { networkIDs } from '@avalabs/avalanchejs';
 import { extractRegisterL1ValidatorMessage } from '../../../coreViem/methods/extractRegisterL1ValidatorMessage';
 import { GetRegistrationJustification } from '../justification';
 import { packWarpIntoAccessList } from '../packWarp';
@@ -15,6 +13,7 @@ import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/Va
 import poaManagerAbi from '../../../../contracts/icm-contracts/compiled/PoAManager.json';
 import { packL1ValidatorRegistration } from '../../../coreViem/utils/convertWarp';
 import { getValidationIdHex } from '../../../coreViem/hooks/getValidationID';
+import { useAvaCloudSDK } from '../../../stores/useAvaCloudSDK';
 
 interface CompleteValidatorRegistrationProps {
   subnetIdL1: string;
@@ -41,7 +40,8 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
   isLoadingOwnership,
   ownerType,
 }) => {
-  const { coreWalletClient, publicClient, avalancheNetworkID, isTestnet } = useWalletStore();
+  const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
+  const { aggregateSignature } = useAvaCloudSDK();
   const viemChain = useViemChainStore();
   const [pChainTxIdState, setPChainTxId] = useState(pChainTxId || '');
 
@@ -58,8 +58,6 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
     weight: bigint;
     validationId?: string;
   } | null>(null);
-
-  const networkName = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'fuji';
 
   // Determine target contract and ABI based on ownerType
   const useMultisig = ownerType === 'PoAManager';
@@ -162,17 +160,10 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
       }
 
       // Step 5: Create P-Chain warp signature using the L1ValidatorRegistrationMessage
-      const signature = await new AvaCloudSDK({
-        serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
-        network: networkName,
-      }).data.signatureAggregator.aggregate({
-        network: networkName,
-        signatureAggregatorRequest: {
-          message: bytesToHex(l1ValidatorRegistrationMessage),
-          justification: bytesToHex(justification),
-          signingSubnetId: signingSubnetId || subnetIdL1,
-          quorumPercentage: 67,
-        },
+      const signature = await aggregateSignature({
+        message: bytesToHex(l1ValidatorRegistrationMessage),
+        signingSubnetId: signingSubnetId || subnetIdL1,
+        quorumPercentage: 67,
       });
 
       setPChainSignature(signature.signedMessage);
