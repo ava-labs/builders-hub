@@ -17,7 +17,9 @@ export default function InputSubnetId({
     label = "Subnet ID",
     hidePrimaryNetwork = false,
     helperText,
-    id
+    id,
+    validationDelayMs = 500,
+    readOnly = false
 }: {
     value: string,
     onChange: (value: string) => void,
@@ -26,6 +28,8 @@ export default function InputSubnetId({
     hidePrimaryNetwork?: boolean
     helperText?: string | null
     id?: string
+    validationDelayMs?: number
+    readOnly?: boolean
 }) {
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const { l1List } = useL1ListStore()();
@@ -78,10 +82,10 @@ export default function InputSubnetId({
             } else {
                 setValidationError(null);
             }
-        }, 500); // Debounce validation
+        }, validationDelayMs); // Wait for subnet to be available before validation
 
         return () => clearTimeout(timeoutId);
-    }, [value, validateSubnetId]);
+    }, [value, validateSubnetId, validationDelayMs]);
 
     const subnetIdSuggestions: Suggestion[] = useMemo(() => {
         const result: Suggestion[] = [];
@@ -128,10 +132,11 @@ export default function InputSubnetId({
             label={label}
             value={value}
             onChange={onChange}
-            suggestions={subnetIdSuggestions}
+            suggestions={readOnly ? [] : subnetIdSuggestions}
             error={combinedError}
             helperText={helperText}
-            placeholder="Enter subnet ID"
+            placeholder={readOnly ? "Automatically filled from Blockchain ID" : "Enter subnet ID"}
+            disabled={readOnly}
         />
     );
 } 

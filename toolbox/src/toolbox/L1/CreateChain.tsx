@@ -144,6 +144,7 @@ export default function CreateChain() {
                         label="Subnet ID"
                         value={subnetId}
                         onChange={handleSubnetIdChange}
+                        validationDelayMs={3000}
                     />
 
                     <Input

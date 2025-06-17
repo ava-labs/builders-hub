@@ -16,6 +16,7 @@ import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { useViemChainStore } from "../../stores/toolboxStore";
 import { useSelectedL1 } from "../../stores/l1ListStore";
 import { useCreateChainStore } from "../../stores/createChainStore";
+import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
 
 export default function Initialize() {
     const { showBoundary } = useErrorBoundary();
@@ -31,6 +32,8 @@ export default function Initialize() {
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
     const [subnetId, setSubnetId] = useState("");
+    const [subnet, setSubnet] = useState<any>(null);
+    const [isLoadingSubnet, setIsLoadingSubnet] = useState(false);
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
 
     useEffect(() => {
@@ -62,10 +65,15 @@ export default function Initialize() {
 
     useEffect(() => {
         if (!subnetId) return;
+        setIsLoadingSubnet(true);
         getSubnetInfo(subnetId).then((subnetInfo) => {
             setProxyAddress(subnetInfo.l1ValidatorManagerDetails?.contractAddress || "");
+            setSubnet(subnetInfo);
         }).catch((error) => {
             console.error('Error getting subnet info:', error);
+            setSubnet(null);
+        }).finally(() => {
+            setIsLoadingSubnet(false);
         });
     }, [subnetId]);
 
@@ -199,6 +207,14 @@ export default function Initialize() {
                     onChange={setSubnetId}
                     hidePrimaryNetwork={true}
                 />
+
+                {/* Show subnet details if available */}
+                <BlockchainDetailsDisplay
+                    type="subnet"
+                    data={subnet}
+                    isLoading={isLoadingSubnet}
+                />
+
                 <Input
                     label={`Subnet ID (Hex), ${utils.hexToBuffer(subnetIDHex).length} bytes`}
                     value={subnetIDHex}

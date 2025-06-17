@@ -1,7 +1,7 @@
 "use client"
 
 import SelectSubnetId from "./SelectSubnetId";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Subnet } from "@avalabs/avacloud-sdk/models/components";
 import BlockchainDetailsDisplay from "./BlockchainDetailsDisplay";
 import { useAvaCloudSDK } from "../stores/useAvaCloudSDK";
@@ -40,12 +40,18 @@ export default function SelectSubnet({
                 ...prev,
                 [subnetId]: subnet
             }));
+
+            // Automatically update the selection with the fetched subnet details
+            onChange({
+                subnetId,
+                subnet
+            });
         } catch (error) {
             console.error(`Error fetching subnet details for ${subnetId}:`, error);
         } finally {
             setIsLoading(false);
         }
-    }, [getSubnetById, subnetDetails]);
+    }, [getSubnetById, subnetDetails, onChange]);
 
     // Handle value change and fetch details if needed
     const handleValueChange = useCallback((newValue: string) => {
@@ -58,6 +64,13 @@ export default function SelectSubnet({
             subnet: subnetDetails[newValue] || null
         });
     }, [fetchSubnetDetails, subnetDetails, onChange]);
+
+    // Auto-fetch subnet details when component receives a pre-filled value
+    useEffect(() => {
+        if (value && !subnetDetails[value]) {
+            fetchSubnetDetails(value);
+        }
+    }, [value, subnetDetails, fetchSubnetDetails]);
 
     // Get current subnet details for display
     const currentSubnet = value ? subnetDetails[value] || null : null;

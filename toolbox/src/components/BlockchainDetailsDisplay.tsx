@@ -5,6 +5,7 @@ import { useState } from "react"
 import { Subnet } from "@avalabs/avacloud-sdk/models/components";
 import type { BlockchainInfo } from "./SelectBlockchain";
 import { SUBNET_EVM_VM_ID } from "../toolbox/Nodes/AvalanchegoDocker";
+import { useWalletStore } from "../stores/walletStore";
 
 interface BlockchainDetailsDisplayProps {
     type: 'blockchain' | 'subnet'
@@ -14,6 +15,7 @@ interface BlockchainDetailsDisplayProps {
 
 export default function BlockchainDetailsDisplay({ type, data, isLoading }: BlockchainDetailsDisplayProps) {
     const [copiedText, setCopiedText] = useState<string | null>(null)
+    const { isTestnet } = useWalletStore();
 
     if (isLoading) {
         return (
@@ -56,7 +58,7 @@ export default function BlockchainDetailsDisplay({ type, data, isLoading }: Bloc
 
     // Get blockchain data - either directly or from subnet's first blockchain
     const blockchain = isSubnet
-        ? (subnet?.blockchains?.[0] ? { ...(subnet.blockchains[0] as any), isTestnet: false } : null)
+        ? (subnet?.blockchains?.[0] ? { ...(subnet.blockchains[0] as any), isTestnet } : null)
         : (data as BlockchainInfo)
 
     return (

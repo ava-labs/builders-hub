@@ -260,6 +260,7 @@ export default function AvalanchegoDocker() {
                         <InputSubnetId
                             value={subnetId}
                             onChange={setSubnetId}
+                            readOnly={true}
                         />
 
                         {/* Show subnet details if available */}
