@@ -2,7 +2,7 @@
 
 import { useCreateChainStore } from "../../stores/createChainStore";
 import { useErrorBoundary } from "react-error-boundary";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Container } from "../../components/Container";
@@ -164,7 +164,7 @@ export default function CreateChain() {
                             setShowVMIdInput(shouldShow);
                             // Reset to standard EVM when switching to uncustomized
                             if (!shouldShow) {
-                                setVmId(EVM_VM_ID);
+                                setVmId(SUBNET_EVM_VM_ID);
                             }
                         }}
                         idPrefix={`show-vm-id`}

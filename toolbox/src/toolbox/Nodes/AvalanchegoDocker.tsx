@@ -183,40 +183,6 @@ export default function AvalanchegoDocker() {
         }
     }, [isRPC]);
 
-
-    useEffect(() => {
-        setSubnetIdError(null);
-        setSubnetId("");
-        setVmAnalysis(null);
-        setVmAnalysisError(null);
-        if (!chainId) return
-
-        getBlockchainInfo(chainId).then((chainInfo) => {
-            setSubnetId(chainInfo.subnetId);
-
-            // Analyze VM compatibility for the subnet
-            if (coreWalletClient && chainInfo.subnetId) {
-                setIsAnalyzingVMs(true);
-                setVmAnalysisError(null);
-
-                getSubnetVMInfo(coreWalletClient, chainInfo.subnetId)
-                    .then((analysis) => {
-                        setVmAnalysis(analysis);
-                        console.log('VM Analysis:', analysis);
-                    })
-                    .catch((error) => {
-                        console.error('Failed to analyze VM compatibility:', error);
-                        setVmAnalysisError(error.message);
-                    })
-                    .finally(() => {
-                        setIsAnalyzingVMs(false);
-                    });
-            }
-        }).catch((error) => {
-            setSubnetIdError((error as Error).message);
-        });
-    }, [chainId, coreWalletClient]);
-
     const handleReset = () => {
         setChainId("");
         setSubnetId("");
@@ -338,21 +304,6 @@ export default function AvalanchegoDocker() {
                                     <li><strong>9651</strong> (for the node-to-node communication)</li>
                                 </ul>
                             </Step>)}
-                            {vmAnalysis?.hasNonStandardVMs && Object.keys(vmAnalysis.vmAliases).length > 0 && (
-                                <Step>
-                                    <h3 className="text-xl font-bold mb-4">Set Up VM Alias Mapping</h3>
-                                    <p>This L1 uses custom Virtual Machines that require alias mapping. Run the following commands to set up the VM aliases before starting your node:</p>
-
-                                    <DynamicCodeBlock lang="bash" code={generateVMAliasesSetup(vmAnalysis) || ""} />
-
-                                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                        <p className="text-sm text-blue-800 dark:text-blue-200">
-                                            <strong>Note:</strong> This creates an aliases.json file that maps custom VM IDs to shorter names,
-                                            allowing AvalancheGo to properly handle the custom Virtual Machines used by this L1.
-                                        </p>
-                                    </div>
-                                </Step>
-                            )}
                             <Step>
                                 <h3 className="text-xl font-bold">Start AvalancheGo Node</h3>
                                 <p>Run the following Docker command to start your node:</p>
