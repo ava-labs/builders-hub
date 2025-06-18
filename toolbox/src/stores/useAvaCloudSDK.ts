@@ -6,6 +6,7 @@ import { useWalletStore } from "./walletStore";
 // Types for signature aggregation
 interface SignatureAggregationParams {
     message: string;
+    justification?: string;
     signingSubnetId: string;
     quorumPercentage?: number;
 }
@@ -46,18 +47,32 @@ export const useAvaCloudSDK = (customNetwork?: GlobalParamNetwork) => {
     // Signature aggregation method
     const aggregateSignature = useCallback(async ({
         message,
+        justification,
         signingSubnetId,
         quorumPercentage = 67,
     }: SignatureAggregationParams): Promise<SignatureAggregationResult> => {
-        const result = await sdk.data.signatureAggregator.aggregate({
-            network: networkName,
-            signatureAggregatorRequest: {
+        try {
+            // Use the SDK method that works with the current version
+            const requestData: any = {
                 message,
                 signingSubnetId,
                 quorumPercentage,
-            },
-        });
-        return result;
+            };
+
+            // Add justification if provided
+            if (justification) {
+                requestData.justification = justification;
+            }
+
+            const result = await sdk.data.signatureAggregator.aggregateSignatures({
+                network: networkName,
+                signatureAggregatorRequest: requestData,
+            });
+            return result;
+        } catch (error) {
+            console.error('Signature aggregation error:', error);
+            throw error;
+        }
     }, [sdk, networkName]);
 
     // Primary Network - Subnet operations

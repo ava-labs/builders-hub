@@ -14,7 +14,7 @@ import { useAvaCloudSDK } from "../../stores/useAvaCloudSDK";
 
 export default function CollectConversionSignatures() {
     const { coreWalletClient, getNetworkName } = useWalletStore();
-    const { sdk } = useAvaCloudSDK();
+    const { aggregateSignature } = useAvaCloudSDK();
     const [isConverting, setIsConverting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [chainID, setChainID] = useState("");
@@ -46,18 +46,12 @@ export default function CollectConversionSignatures() {
         setIsConverting(true);
 
         try {
-            const { message, justification, signingSubnetId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionID });
+            const { message, signingSubnetId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionID });
 
-            const networkName = getNetworkName();
-
-            const { signedMessage } = await sdk.data.signatureAggregator.aggregate({
-                network: networkName,
-                signatureAggregatorRequest: {
-                    message: message,
-                    justification: justification,
-                    signingSubnetId: signingSubnetId,
-                    quorumPercentage: 67,
-                }
+            const { signedMessage } = await aggregateSignature({
+                message: message,
+                signingSubnetId: signingSubnetId,
+                quorumPercentage: 67,
             });
 
             setL1ConversionSignature(signedMessage);

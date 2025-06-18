@@ -42,10 +42,11 @@ export default function InitValidatorSet() {
         setL1ConversionSignatureError("");
         setIsAggregating(true);
         try {
-            const { message, signingSubnetId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
+            const { message, justification, signingSubnetId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
 
             const { signedMessage } = await aggregateSignature({
                 message: message,
+                justification: justification,
                 signingSubnetId: signingSubnetId,
                 quorumPercentage: 67,
             });
