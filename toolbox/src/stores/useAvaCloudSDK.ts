@@ -52,8 +52,8 @@ export const useAvaCloudSDK = (customNetwork?: GlobalParamNetwork) => {
         quorumPercentage = 67,
     }: SignatureAggregationParams): Promise<SignatureAggregationResult> => {
         try {
-            // Use the SDK method that works with the current version
-            const requestData: any = {
+            // Use the SDK's built-in signature aggregation method
+            const signatureAggregatorRequest: any = {
                 message,
                 signingSubnetId,
                 quorumPercentage,
@@ -61,19 +61,18 @@ export const useAvaCloudSDK = (customNetwork?: GlobalParamNetwork) => {
 
             // Add justification if provided
             if (justification) {
-                requestData.justification = justification;
+                signatureAggregatorRequest.justification = justification;
             }
 
             const result = await sdk.data.signatureAggregator.aggregateSignatures({
-                network: networkName,
-                signatureAggregatorRequest: requestData,
+                signatureAggregatorRequest
             });
-            return result;
+            return { signedMessage: result.signedMessage };
         } catch (error) {
             console.error('Signature aggregation error:', error);
             throw error;
         }
-    }, [sdk, networkName]);
+    }, [sdk]);
 
     // Primary Network - Subnet operations
     const getSubnetById = useCallback(async ({ subnetId }: GetSubnetByIdParams) => {
