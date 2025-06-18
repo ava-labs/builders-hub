@@ -210,8 +210,7 @@ export default function Initialize() {
 
                 {/* Show subnet details if available */}
                 <BlockchainDetailsDisplay
-                    type="subnet"
-                    data={subnet}
+                    subnet={subnet}
                     isLoading={isLoadingSubnet}
                 />
 

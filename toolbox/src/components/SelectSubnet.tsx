@@ -90,7 +90,7 @@ export default function SelectSubnet({
             />
 
             {/* Display subnet details when a subnet is selected */}
-            {value && <BlockchainDetailsDisplay type="subnet" data={currentSubnet} isLoading={!!isLoadingCurrent} />}
+            {value && <BlockchainDetailsDisplay subnet={currentSubnet} isLoading={!!isLoadingCurrent} />}
         </div>
     );
 } 

@@ -265,8 +265,7 @@ export default function AvalanchegoDocker() {
 
                         {/* Show subnet details if available */}
                         <BlockchainDetailsDisplay
-                            type="subnet"
-                            data={subnet}
+                            subnet={subnet}
                             isLoading={isLoading}
                         />
                     </Step>
