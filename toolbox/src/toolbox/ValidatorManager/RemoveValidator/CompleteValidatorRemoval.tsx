@@ -144,6 +144,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
       const signature = await aggregateSignature({
         message: bytesToHex(removeValidatorMessage),
+        justification: bytesToHex(justification),
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });
