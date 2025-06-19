@@ -27,7 +27,7 @@ import {
 import OverviewBanner from "./hackathon/sections/OverviewBanner";
 import Link from "next/link";
 import Image from "next/image";
-import { SessionProvider } from "next-auth/react";
+
 
 function buildQueryString(
   filters: HackathonsFilters,
@@ -183,7 +183,6 @@ export default function Hackathons({
   };
 
   return (
-    <SessionProvider>
     <section className="px-8 py-6">
       {topMostHackathon && (
         <div className="w-full flex flex-col gap-8 justify-center">
@@ -206,21 +205,8 @@ export default function Hackathons({
                 className="w-full h-full"
                 priority
               />
-              <Link href={`/hackathons/${topMostHackathon.id}`}>
-                <Image
-                  src={
-                    topMostHackathon.banner?.trim().trim().length > 0
-                      ? topMostHackathon.banner
-                      : "/hackathon-images/main_banner_img.png"
-                  }
-                  alt="Hackathon background"
-                  width={1270}
-                  height={760}
-                  className="w-full h-full"
-                  priority
-                />
-              </Link>
-            </div>
+            </Link>
+          </div>
           </div>
         )}
         {isHackathonCreator && <><button
@@ -379,6 +365,5 @@ export default function Hackathons({
           </PaginationContent>
         </Pagination>
       </section>
-    </SessionProvider>
-  );
+    );
 }
