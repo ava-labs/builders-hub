@@ -64,7 +64,7 @@ export const useAvaCloudSDK = (customNetwork?: GlobalParamNetwork) => {
                 signatureAggregatorRequest.justification = justification;
             }
 
-            const result = await sdk.data.signatureAggregator.aggregateSignatures({
+            const result = await sdk.data.signatureAggregator.aggregate({
                 signatureAggregatorRequest
             });
             return { signedMessage: result.signedMessage };
