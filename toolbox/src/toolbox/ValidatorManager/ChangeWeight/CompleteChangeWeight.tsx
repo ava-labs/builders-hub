@@ -25,7 +25,7 @@ interface CompleteChangeWeightProps {
   signingSubnetId: string;
   contractOwner: string | null;
   isLoadingOwnership: boolean;
-  ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | null;
+  ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | 'Other' | null;
 }
 
 const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
@@ -88,7 +88,7 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
       onError("Validator Manager address is not set. Check L1 Subnet selection.");
       return;
     }
-    if (isContractOwner === false && !useMultisig) {
+    if (isContractOwner === false && !useMultisig && ownerType !== 'Other') {
       setErrorState("You are not the contract owner. Please contact the contract owner.");
       onError("You are not the contract owner. Please contact the contract owner.");
       return;
@@ -243,7 +243,7 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
       
       <Button 
         onClick={handleCompleteChangeWeight} 
-        disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig) || isLoadingOwnership}
+        disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig && ownerType !== 'Other') || isLoadingOwnership}
       >
         {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : 'Sign & Complete Weight Change')}
       </Button>
