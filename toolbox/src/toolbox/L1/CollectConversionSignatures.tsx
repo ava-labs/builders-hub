@@ -13,7 +13,7 @@ import { ResultField } from "../../components/ResultField";
 import { useAvaCloudSDK } from "../../stores/useAvaCloudSDK";
 
 export default function CollectConversionSignatures() {
-    const { coreWalletClient, getNetworkName } = useWalletStore();
+    const { coreWalletClient } = useWalletStore();
     const { aggregateSignature } = useAvaCloudSDK();
     const [isConverting, setIsConverting] = useState(false);
     const [error, setError] = useState<string | null>(null);
