@@ -12,7 +12,8 @@ export async function GET() {
         title: page.data.title,
         url: page.url,
         _id: page.url,
-        structured: loadedData.structuredData
+        structured: loadedData.structuredData,
+        tag: 'docs'
       }
     }),
     ...academy.getPages().map((page) => {
@@ -20,7 +21,8 @@ export async function GET() {
         title: page.data.title,
         url: page.url,
         _id: page.url,
-        structured: page.data.structuredData
+        structured: page.data.structuredData,
+        tag: 'academy'
       }
     }),
     ...integration.getPages().map(async (page) => {
@@ -29,7 +31,8 @@ export async function GET() {
         title: page.data.title,
         url: page.url,
         _id: page.url,
-        structured: loadedData.structuredData
+        structured: loadedData.structuredData,
+        tag: 'ig'
       }
     }),
     ...guide.getPages().map((page) => {
@@ -37,7 +40,8 @@ export async function GET() {
         title: page.data.title,
         url: page.url,
         _id: page.url,
-        structured: page.data.structuredData
+        structured: page.data.structuredData,
+        tag: 'ig'
       }
     })
   ]);

@@ -9,8 +9,8 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 Now we have all the Smart Contract 📜 set we can start sending incentivized cross-chain messages. Now let complete the flow 
 
-- Deploy sender contract on C-Chain
-- Deploy receiver contract on `myblockchain`
+- Deploy sender contract on **C-Chain**
+- Deploy receiver contract on **Dispatch**
 - Approve the sender contract to spend ERC20 funds from the message sender address
 - Send the message
 
@@ -22,15 +22,16 @@ Now we have all the Smart Contract 📜 set we can start sending incentivized cr
 To deploy the sender contract run:
 
 ```bash
-forge create --rpc-url local-c --private-key $PK contracts/interchain-messaging/incentivize-relayer/senderWithFees.sol:SenderWithFeesOnCChain --broadcast
+forge create --rpc-url fuji-c --private-key $PK contracts/interchain-messaging/incentivize-relayer/senderWithFees.sol:SenderWithFeesOnCChain --broadcast
 ```
-```
+
+```bash {6}
 [⠊] Compiling...
 [⠒] Compiling 2 files with Solc 0.8.18
 [⠢] Solc 0.8.18 finished in 92.98ms
 Compiler run successful!
 Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-Deployed to: 0xa4DfF80B4a1D748BF28BC4A271eD834689Ea3407 // [!code highlight]
+Deployed to: 0xa4DfF80B4a1D748BF28BC4A271eD834689Ea3407
 Transaction hash: 0xb0ff20527818fcc0836944a13ddb3b336b95047d434bb52f6c064ab407950166
 ```
 
@@ -50,15 +51,16 @@ export SENDER_ADDRESS=0xa4DfF80B4a1D748BF28BC4A271eD834689Ea3407
 Now, deploy the receiver contract.
 
 ```bash
-forge create --rpc-url myblockchain --private-key $PK contracts/interchain-messaging/incentivize-relayer/receiverWithFees.sol:ReceiverOnSubnet --broadcast
+forge create --rpc-url fuji-dispatch --private-key $PK contracts/interchain-messaging/incentivize-relayer/receiverWithFees.sol:ReceiverOnDispatch --broadcast
 ```
-```
+
+```bash {6}
 [⠊] Compiling...
 [⠢] Compiling 1 files with Solc 0.8.18
 [⠆] Solc 0.8.18 finished in 105.36ms
 Compiler run successful!
 Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-Deployed to: 0xe336d36FacA76840407e6836d26119E1EcE0A2b4 // [!code highlight]
+Deployed to: 0xe336d36FacA76840407e6836d26119E1EcE0A2b4
 Transaction hash: 0x379f0a4b875effc9b80a33f039d9a49404514e7aabaef4490f57b56fb4818f65
 ```
 
@@ -76,10 +78,10 @@ export RECEIVER_ADDRESS=0xe336d36FacA76840407e6836d26119E1EcE0A2b4
 
 ### Approve ERC20 Token Expense
 
-👩 The Message Sender (User) requires to approve the Cross-Avalanche L1 dApp as a spender on the ERC20 contract to be used as fee. To do that lets use the function "approve" on our deployed FEE contract.
+👩 The Message Sender (User) requires to approve the Cross-Avalanche L1 dApp as a spender on the ERC20 contract to be used as fee. We'll approve 0.0005 tokens (500000000000000 wei) from your total supply of 1,000,000 tokens which matches the fee amount set in the sender contract.
 
 ```bash
-cast send --rpc-url local-c --private-key $PK $ERC20_fee_address "approve(address,uint256)" $SENDER_ADDRESS 500000000000000
+cast send --rpc-url fuji-c --private-key $PK $FEE_TOKEN_ADDRESS "approve(address,uint256)" $SENDER_ADDRESS 500000000000000
 ```
 
 </Step>
@@ -88,7 +90,7 @@ cast send --rpc-url local-c --private-key $PK $ERC20_fee_address "approve(addres
 ### Send an incentivized message
 
 ```bash
-cast send --rpc-url local-c --private-key $PK $SENDER_ADDRESS "sendMessage(address, string, address)" $RECEIVER_ADDRESS "Hello" $ERC20_fee_address
+cast send --rpc-url fuji-c --private-key $PK $SENDER_ADDRESS "sendMessage(address, string, address)" $RECEIVER_ADDRESS "Hello" $FEE_TOKEN_ADDRESS
 ```
 
 </Step>
@@ -97,7 +99,7 @@ cast send --rpc-url local-c --private-key $PK $SENDER_ADDRESS "sendMessage(addre
 ### Verify message was received on Avalanche L1 
 
 ```bash
-cast call --rpc-url myblockchain $RECEIVER_ADDRESS "lastMessage()(string)"
+cast call --rpc-url fuji-dispatch $RECEIVER_ADDRESS "lastMessage()(string)"
 ```
 ```bash
 "Hello"

@@ -21,18 +21,18 @@ function SocialLogin({ callbackUrl = "/" }: SocialLoginProps) {
       <div className="flex items-center justify-center gap-4">
         <SocialLoginButton
           name="Google"
-          image="/hackaton-platform-images/googleLogo.svg"
+          image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackaton-platform-images/googleLogo-OxWoKkbOlT1idr0dqcZcrsPhx2yDj5.svg"
           onClick={() => SignInSocialMedia("google")}
         />
         <SocialLoginButton
           name="Github"
-          image="/hackaton-platform-images/githubLogo.svg"
+          image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackaton-platform-images/githubLogo-0HXD6L0XWqDxRru8DDR7jHm619qtjH.svg"
           onClick={() => SignInSocialMedia("github")}
         />
 
         <SocialLoginButton
           name="X"
-          image="/hackaton-platform-images/twitter_X_logo.svg"
+          image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackaton-platform-images/twitter_X_logo-xyp7skXcigJFOHpmC3ps7MRg0d14m2.svg"
           onClick={() => SignInSocialMedia("twitter")}
         />
       </div>

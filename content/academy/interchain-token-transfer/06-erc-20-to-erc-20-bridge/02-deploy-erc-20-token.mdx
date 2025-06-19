@@ -13,41 +13,48 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 ### Deploy an ERC-20 Token
 
-To transfer an ERC20 token from C-chain to your own blockchain, the first thing we will need is the ERC20 token to bridge. You will find a contract in the Starter-Kit under `contracts/interchain-token-transfer/MyToken.sol:TOK` 
+We've already deployed an ERC-20 token in the [Transfer an ERC-20 Token](/academy/interchain-token-transfer/03-tokens/08-transfer-an-erc-20-token) section. If you've completed that step, you can use the same token for this bridge.
 
-```bash 
-forge create --rpc-url local-c --private-key $PK contracts/interchain-token-transfer/MyToken.sol:TOK --broadcast
-```
+If you haven't deployed a token yet, make sure you're connected to the Fuji testnet since we're covering this guide from Fuji to Echo. You can deploy the original ERC-20 token below:
 
-```bash 
-[⠊] Compiling...
-[⠰] Compiling 4 files with Solc 0.8.18
-[⠔] Solc 0.8.18 finished in 316.86ms
-Compiler run successful!
-Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-Deployed to: 0x5DB9A7629912EBF95876228C24A848de0bfB43A9
-Transaction hash: 0xc6e90bccc21e68edc5707159e636f91245576379329da3f513822fb32bd2bc89
-```
-</Step>
+<ToolboxMdxWrapper>
+    <DeployExampleERC20 enforceChainId={43113} />
+</ToolboxMdxWrapper>
 
-<Step>
-### Save the ERC-20 Address 
-<Callout title="Note" type="info">
-The address `0x5DB9A7629912EBF95876228C24A848de0bfB43A9` is your receiver contract address.
+<Callout>
+Make sure to save the deployed token address as you'll need it for the next steps. You can find it in the deployment confirmation or by checking your Core Wallet's token list.
 </Callout>
 
-```bash
-export ERC20_C_CHAIN=0x...
-```
 </Step>
 
 <Step>
-### Check the Balance
+### Add Token to Core Wallet
 
-If you deployed the above example contract, you should see a balance of 100,000 tokens when you run the below command:
+If you haven't already added the token to your Core Wallet:
 
-```bash
-cast call --rpc-url local-c $ERC20_C_CHAIN "balanceOf(address)(uint256)" $FUNDED_ADDRESS
-```
+1. Go to the Tokens tab
+2. Click "Manage"
+3. Click "+ Add Custom Token"
+4. Enter the token contract address
+5. The token symbol and decimals should be automatically detected
+6. Click "Add Token"
+
+<Callout>
+Remember that you need to be connected to the Fuji testnet to see and interact with your token.
+</Callout>
+</Step>
+
+<Step>
+### Verify Token Balance
+
+To verify your token balance:
+
+1. In Core Wallet, select your token from the token list
+2. The balance should be displayed
+3. You can also check the token balance on the [Fuji Explorer](https://testnet.snowtrace.io) by entering your address
+
+<Callout>
+If you deployed the example token, you should see a balance of 10,000,000,000 tokens in your wallet.
+</Callout>
 </Step>
 </Steps>

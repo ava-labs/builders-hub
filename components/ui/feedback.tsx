@@ -10,7 +10,7 @@ import {
 import { cva } from 'class-variance-authority';
 import { usePathname } from 'next/navigation';
 import newGithubIssueUrl from 'new-github-issue-url';
- 
+
 const rateButtonVariants = cva(
   'inline-flex items-center gap-2 px-3 py-2 rounded-full font-medium border text-sm [&_svg]:size-4 disabled:cursor-not-allowed transition-colors hover:bg-fd-accent/80 hover:text-fd-accent-foreground',
   {
@@ -22,30 +22,31 @@ const rateButtonVariants = cva(
     },
   },
 );
- 
+
 export interface Feedback {
   opinion: 'yes' | 'no';
   message: string;
 }
- 
+
 function get(url: string): Feedback | null {
   const item = localStorage.getItem(`document-feedback-${url}`);
- 
+
   if (item === null) return null;
   return JSON.parse(item) as Feedback;
 }
- 
+
 function set(url: string, feedback: Feedback | null) {
   const key = `document-feedback-${url}`;
   if (feedback) localStorage.setItem(key, JSON.stringify(feedback));
   else localStorage.removeItem(key);
 }
- 
+
 export interface UnifiedFeedbackProps {
   onRateAction: (url: string, feedback: Feedback) => Promise<void>;
   path: string;
   title: string;
   pagePath: string;
+  editUrl: string;
 }
 
 export function Feedback({
@@ -53,33 +54,34 @@ export function Feedback({
   path,
   title,
   pagePath,
+  editUrl,
 }: UnifiedFeedbackProps) {
   const pathname = usePathname();
   const [previous, setPrevious] = useState<Feedback | null>(null);
   const [opinion, setOpinion] = useState<'yes' | 'no' | null>(null);
   const [message, setMessage] = useState('');
- 
+
   useEffect(() => {
     setPrevious(get(pathname));
   }, [pathname]);
- 
+
   function submit(e?: SyntheticEvent) {
     e?.preventDefault();
     if (opinion == null) return;
- 
+
     const feedback: Feedback = {
       opinion,
       message,
     };
- 
+
     void onRateAction(pathname, feedback);
- 
+
     set(pathname, feedback);
     setPrevious(feedback);
     setMessage('');
     setOpinion(null);
   }
- 
+
   return (
     <Collapsible
       open={opinion !== null || previous !== null}
@@ -120,17 +122,17 @@ export function Feedback({
             No
           </button>
         </div>
-        
+
         <div className="flex flex-row items-center gap-1.5 w-full sm:w-auto">
           <a
-            href={`https://github.com/ava-labs/builders-hub/edit/master/${path}`}
+            href={editUrl}
             target="_blank"
             rel="noreferrer noopener"
             className={cn(rateButtonVariants(), "gap-2 no-underline text-sm")}
           >
             <PencilIcon className="size-4" /> Edit on GitHub
           </a>
-          
+
           <a
             href={newGithubIssueUrl({
               user: 'ava-labs',
@@ -151,7 +153,7 @@ Page: [${pagePath}](https://build.avax.network${pagePath})
           </a>
         </div>
       </div>
-      
+
       <CollapsibleContent className="mt-3">
         {previous ? (
           <div className="px-3 py-6 flex flex-col items-center gap-3 bg-fd-card text-fd-card-foreground text-sm text-center rounded-xl text-fd-muted-foreground">

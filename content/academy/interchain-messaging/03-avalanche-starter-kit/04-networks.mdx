@@ -1,13 +1,52 @@
 ---
-title: Networks
-description: Environment Setup
+title: Getting Test Tokens
+description: Fund your wallet for development
 updated: 2024-05-31
 authors: [martineckardt]
 icon: BookOpen
 ---
 
-import Networks from "@/content/common/avalanche-starter-kit/networks.mdx";
+Before you can deploy contracts or send transactions, you'll need test tokens on both the Fuji C-Chain and Dispatch networks.
 
-You just deployed and interacted with your first local network. But what does that mean? You can interact with your Avalanche L1, but you will notice that no one else can. Therefore, we have to understand what different Networks are in Avalanche.
+## Getting Test Tokens
 
-<Networks/>
+1. Open Core wallet and switch to Fuji Testnet:
+   - Click the network selector (top of window)
+   - Select "Fuji (C-Chain)"
+
+2. Get test tokens from the faucets:
+   - For Fuji C-Chain: Use the [Fuji C-Chain Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c) with dicsount code **avalanche-academy**
+   - For Dispatch: Visit the [Dispatch Testnet Faucet](https://core.app/tools/testnet-faucet/?subnet=dispatch&token=dispatch)
+
+3. Verify your balances inside of the codespace, you should have **2 AVAX** and **2 DIS**:
+```bash
+# Check balance on Fuji C-Chain
+cast balance $FUNDED_ADDRESS --rpc-url fuji-c
+
+# Check balance on Dispatch
+cast balance $FUNDED_ADDRESS --rpc-url fuji-dispatch
+```
+
+You can also check your balance from the core extension, don't forget to toggle **testnet mode** inside the advanced settings.
+
+## Available Networks
+
+For this course, we'll be using two testnet networks:
+
+### Fuji C-Chain
+- RPC URL: https://api.avax-test.network/ext/bc/C/rpc
+- Chain ID: 43113
+- Native Token: AVAX
+- Teleporter Messenger: 0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf
+- Teleporter Registry: 0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228
+
+### Dispatch Testnet
+- RPC URL: https://subnets.avax.network/dispatch/testnet/rpc
+- Chain ID: 779672
+- Native Token: DISP
+- Teleporter Messenger: 0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf
+- Teleporter Registry: 0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228
+
+<Callout type="info">
+Both networks are configured with the same Teleporter Messenger and Registry address for seamless cross-chain communication.
+</Callout>

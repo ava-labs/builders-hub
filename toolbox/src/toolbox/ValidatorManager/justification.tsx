@@ -110,25 +110,7 @@ function computeDerivedID(baseIDBytes: Uint8Array, index: number): Uint8Array {
     return combined;
 }
 
-/**
- * Decodes a Base58Check encoded NodeID string (e.g., "NodeID-...") into its raw bytes.
- * Returns null if decoding fails.
- * @param nodeIDString - The NodeID string.
- * @returns The decoded bytes as Uint8Array or null.
- */
-function decodeNodeID(nodeIDString: string): Uint8Array | null {
-    if (!nodeIDString || !nodeIDString.startsWith("NodeID-")) {
-        console.error("Invalid NodeID format:", nodeIDString);
-        return null;
-    }
-    try {
-        // Remove "NodeID-" prefix before decoding
-        return utils.base58check.decode(nodeIDString.substring(7));
-    } catch (e) {
-        console.error("Error decoding NodeID:", nodeIDString, e);
-        return null;
-    }
-}
+
 
 /**
  * Decodes a Base58Check encoded ID string (like SubnetID or ChainID) into its raw bytes.
@@ -295,14 +277,12 @@ const sendWarpMessageEventAbi = parseAbiItem(
  * Warp logs for a RegisterL1ValidatorMessage payload whose hash matches the validation ID
  * and constructs the justification using that message payload.
  *
- * @param nodeID - The node ID of the validator (e.g., "NodeID-..."), used for logging and secondary confirmation.
  * @param validationIDHex - The target validation ID as a '0x' prefixed hex string (bytes32).
  * @param subnetIDStr - The subnet ID as a Base58Check string.
  * @param publicClient - A client that can perform getLogs operations.
  * @returns The marshalled L1ValidatorRegistrationJustification bytes as a Uint8Array, or null if not found/error.
  */
 export async function GetRegistrationJustification(
-  nodeID: string, // Keep for logging/confirmation
   validationIDHex: string,
   subnetIDStr: string,
   publicClient: { getBlockNumber: () => Promise<bigint>, getLogs: (args: any) => Promise<any[]> }
@@ -322,16 +302,11 @@ export async function GetRegistrationJustification(
   }
 
   const subnetIDBytes = decodeID(subnetIDStr);
-  const targetNodeIDBytes = decodeNodeID(nodeID); // Decode for log confirmation
 
   if (!subnetIDBytes) {
       console.error(`Failed to decode provided SubnetID: ${subnetIDStr}`);
       return null;
   }
-   if (!targetNodeIDBytes) {
-       console.warn(`Failed to decode provided NodeID for confirmation: ${nodeID}`);
-       // Allow continuing without targetNodeIDBytes for confirmation
-   }
 
   // 1. Check for bootstrap validators (comparing hash of derived ID against targetValidationIDBytes)
   for (let index = 0; index < NUM_BOOTSTRAP_VALIDATORS_TO_SEARCH; index++) {
@@ -353,7 +328,7 @@ export async function GetRegistrationJustification(
 
   // 2. If not a bootstrap validator, search Warp logs
   try {
-    const CHUNK_SIZE = 10_000; // Number of blocks to query in each chunk
+    const CHUNK_SIZE = 2000; // Number of blocks to query in each chunk (reduced to stay within RPC limits)
     const MAX_CHUNKS = 100; // Maximum number of chunks to try (to prevent infinite loops)
     let toBlock: bigint | number | 'latest' = 'latest';
     let foundMatch = false;
@@ -412,13 +387,6 @@ export async function GetRegistrationJustification(
 
               // Compare the calculated hash with the target validation ID
               if (compareBytes(logValidationIDBytes, targetValidationIDBytes)) {
-
-                // Optional: Confirm the nodeID in the message matches the input nodeID
-                if (targetNodeIDBytes && !compareBytes(parsedPayload.nodeID, targetNodeIDBytes)) {
-                    console.warn(`ValidationID match found (${validationIDHex}) in log ${log.transactionHash}, but NodeID in message (${utils.base58check.encode(Buffer.from(parsedPayload.nodeID))}) does not match expected NodeID ${nodeID}. Skipping.`);
-                    continue;
-                }
-
                 // Construct justification using the original payloadBytes
                 const tag = new Uint8Array([0x12]); // Field 2, wire type 2
                 const lengthVarint = encodeVarint(payloadBytes.length);
@@ -427,7 +395,7 @@ export async function GetRegistrationJustification(
                 marshalledJustification.set(lengthVarint, tag.length);
                 marshalledJustification.set(payloadBytes, tag.length + lengthVarint.length);
 
-                console.log(`Found matching ValidationID ${validationIDHex} (NodeID ${nodeID}) in Warp log (Tx: ${log.transactionHash}). Marshalled justification.`);
+                console.log(`Found matching ValidationID ${validationIDHex} in Warp log (Tx: ${log.transactionHash}). Marshalled justification.`);
                 foundMatch = true;
                 break;
               }

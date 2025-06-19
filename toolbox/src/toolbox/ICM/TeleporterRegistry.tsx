@@ -1,7 +1,8 @@
 "use client";
 
-import { useSelectedL1, useToolboxStore, useViemChainStore } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useSelectedL1 } from "../../stores/l1ListStore";
+import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState } from "react";
 import { Button } from "../../components/Button";
@@ -9,7 +10,7 @@ import { Success } from "../../components/Success";
 import TeleporterRegistryBytecode from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterRegistry_Bytecode_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import TeleporterRegistryManualyCompiled from '../../../contracts/icm-contracts/compiled/TeleporterRegistry.json';
-import { Container } from "../components/Container";
+import { Container } from "../../components/Container";
 
 
 export default function TeleporterRegistry() {

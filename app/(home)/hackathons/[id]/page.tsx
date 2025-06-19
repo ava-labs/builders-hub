@@ -52,7 +52,7 @@ export default async function HackathonPage({
           src={
             hackathon.icon.trim().length > 0
               ? hackathon.icon
-              : "/hackathon-images/project-logo.png"
+              : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-logo-ILfO9EujWnQj1xMZpIIWTZ8mc87I7f.png"
           }
           alt="Hackathon background"
           width={40}
@@ -95,7 +95,7 @@ export default async function HackathonPage({
                 src={
                   hackathon.banner?.trim().length > 0
                     ? hackathon.banner
-                    : "/hackathon-images/main_banner_img.png"
+                    : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png"
                 }
                 alt="Hackathon background"
                 width={1270}

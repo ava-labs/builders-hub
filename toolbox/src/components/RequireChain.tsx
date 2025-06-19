@@ -1,4 +1,4 @@
-import { useWalletStore } from "../lib/walletStore";
+import { useWalletStore } from "../stores/walletStore";
 import { Chain } from "viem/chains";
 import { Button } from "./Button";
 import { useState } from "react";

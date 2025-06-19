@@ -5,55 +5,43 @@ updated: 2024-06-09
 authors: [andyvargtz]
 icon: Terminal
 ---
-import { Steps, Step } from 'fumadocs-ui/components/steps';
 
+To add incentives for relayers, we need an ERC20 token on the source chain (Fuji C-Chain). We'll deploy a simple ERC20 token that will be used to pay relayers for delivering our cross-chain messages.
 
-To add incentives for a relayer we need to specify the ERC20 contract we will be incentivizing with. Since we are working with an almost clean network deployed locally, we will need to first deploy this contract to later use it as the incentive token. 
-
-Incentives are set with ERC20 tokens deployed on the Source chain, in this case our local C-Chain. While this token can be a wrapped version of the native token, for this example we will be using just a simple ERC20 included as demo in the Avalanche-CLI. Let's deploy and mint some of these FEE tokens to later be used to incentivize the relayer.
-
+<ToolboxMdxWrapper chain="fuji-c">
+  <DeployExampleERC20 />
+</ToolboxMdxWrapper>
 
 <Steps>
 <Step>
 
-### Deploy your Fee Token Contract
+### Save the Token Address
+
+After deploying the token through the interface above, save the token address to use it in the next steps:
 
 ```bash
-avalanche contract deploy erc20
+export FEE_TOKEN_ADDRESS=<your-deployed-token-address>
 ```
-This command will deploy a demo ERC20. Add the following configuration
 
-```bash
-✔ Local Network
-✔ C-Chain
-
-A private key is needed to pay for the contract deploy fees.
-It will also be considered the owner address of the contract, beign able to call
-the contract methods only available to owners.
-
-✔ Use the private key of the Genesis Allocated address 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-
-Which is the token symbol?
-Token symbol: FEE
-Which is the total token supply?
-Token supply: 100000
-Which address should receive the supply?
-
-✔ Use the Genesis Allocated address 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-
-Token Address: 0x768AF58E63775354938e9F3FEdB764F601c038b4
-
-ERC20 Contract Successfully Deployed!
-```
+Replace `<your-deployed-token-address>` with the address shown in the interface after deployment.
 
 </Step>
 <Step>
 
-### Save the ERC20 Address
+### Verify Your Token Balance
+
+You can check that you received the initial supply:
 
 ```bash
-export ERC20_fee_address=0x768AF58E63775354938e9F3FEdB764F601c038b4
+cast call --rpc-url fuji-c \
+  $FEE_TOKEN_ADDRESS \
+  "balanceOf(address)(uint256)" \
+  $FUNDED_ADDRESS
 ```
+
+The balance should show 1,000,000 * 10^18 tokens (1,000,000 tokens with 18 decimals).
 
 </Step>
 </Steps>
+
+These tokens will be used in the next sections to incentivize relayers to deliver your cross-chain messages.

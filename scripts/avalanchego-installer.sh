@@ -68,7 +68,7 @@ create_config_file () {
     echo "  \"state-sync-enabled\": true$commaAdd">>config.json
   fi
   if [ "$stateOpt" = "off" ]; then
-    echo "  \"state-sync-enabled\": false$commaAdd">>config.json
+    echo "  \"state-sync-enabled\": false">>config.json
   fi
   if [ "$archivalOpt" = "true" ]; then
     echo "  \"pruning-enabled\": false">>config.json

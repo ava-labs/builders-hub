@@ -16,7 +16,7 @@ Now it's time to deploy our receiver contract to our L1. It will implement the c
 
 The following contract is located inside `contracts/interchain-messaging/send-receive` directory. Read through the contract below and and understand what is happening:
 
-```solidity title="contracts/interchain-messaging/send-receive/receiverOnSubnet.sol"
+```solidity title="contracts/interchain-messaging/send-receive/receiverOnDispatch.sol"
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
@@ -27,14 +27,14 @@ pragma solidity ^0.8.18;
 import "@teleporter/ITeleporterMessenger.sol";
 import "@teleporter/ITeleporterReceiver.sol";
 
-contract ReceiverOnSubnet is ITeleporterReceiver {
+contract ReceiverOnDispatch is ITeleporterReceiver {
     ITeleporterMessenger public immutable messenger = ITeleporterMessenger(0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf);
 
     string public lastMessage;
 
     function receiveTeleporterMessage(bytes32, address, bytes calldata message) external {
         // Only the Interchain Messaging receiver can deliver a message.
-        require(msg.sender == address(messenger), "ReceiverOnSubnet: unauthorized TeleporterMessenger");
+        require(msg.sender == address(messenger), "ReceiverOnDispatch: unauthorized TeleporterMessenger");
 
         // Store the message.
         lastMessage = abi.decode(message, (string));
@@ -57,15 +57,15 @@ contract ReceiverOnSubnet is ITeleporterReceiver {
 To deploy a contract using Foundry use the following command:
 
 ```bash
-forge create --rpc-url myblockchain --private-key $PK contracts/interchain-messaging/send-receive/receiverOnSubnet.sol:ReceiverOnSubnet --broadcast
+forge create --rpc-url fuji-dispatch --private-key $PK contracts/interchain-messaging/send-receive/receiverOnDispatch.sol:ReceiverOnDispatch --broadcast
 ```
 ```
 [⠊] Compiling...
 [⠢] Compiling 2 files with Solc 0.8.18
 [⠆] Solc 0.8.18 finished in 158.51ms
 Compiler run successful!
-Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-Deployed to: 0x52C84043CD9c865236f11d9Fc9F56aa003c1f922 // [!code highlight]
+Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC // [$FUNDED_ADDRESS]
+Deployed to: 0x52C84043CD9c865236f11d9Fc9F56aa003c1f922 // [$RECEIVER_ADDRESS]
 Transaction hash: 0x48a1ffaa8aa8011f842147a908ff35a1ebfb75a5a07eb37ae96a4cc8d7feafd7
 ```
 
@@ -77,7 +77,7 @@ Transaction hash: 0x48a1ffaa8aa8011f842147a908ff35a1ebfb75a5a07eb37ae96a4cc8d7fe
 Then save the receiver contract address in an environment variable:
 
 ```bash
-export RECEIVER_ADDRESS=0x52C84043CD9c865236f11d9Fc9F56aa003c1f922
+export RECEIVER_ADDRESS={your-receiver-address}
 ```
 
 </Step>

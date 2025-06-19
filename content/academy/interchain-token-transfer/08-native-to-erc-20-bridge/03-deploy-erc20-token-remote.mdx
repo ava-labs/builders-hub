@@ -1,0 +1,39 @@
+---
+title: Deploy ERC20 Token Remote
+description: Deploy the ERC20TokenRemote contract to the Echo chain.
+updated: 2024-05-31
+authors: [owenwahlgren]
+icon: Book
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+<Steps>
+<Step>
+### Deploy ERC20TokenRemote
+
+Use our toolbox to deploy the ERC20TokenRemote contract:
+
+<Callout>
+Make sure you have:
+1. Connected your Core Wallet to the Fuji testnet
+2. Have enough test ECH for gas fees
+3. Select the NativeTokenHome contract you deployed in the previous step from the suggestions
+4. If you don't see your NativeTokenHome contract in the suggestions, you'll need to manually enter its address
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={173750}>
+    <DeployERC20TokenRemote />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Save the ERC20 Token Remote Address
+
+After deployment, you'll need to save the contract address for future steps. You can find it in the deployment confirmation in the toolbox.
+
+<Callout title="Note" type="info">
+Keep this address handy as you'll need it for the next steps in the bridging process.
+</Callout>
+</Step>
+</Steps>

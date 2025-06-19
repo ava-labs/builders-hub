@@ -23,6 +23,7 @@ export default async function Page(props: {
 
     const { body: MDX } = await page.data.load();
     const path = `content/integrations/${page.file.path}`;
+    const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
 
     return (
         <>
@@ -67,6 +68,7 @@ export default async function Page(props: {
                         path={path}
                         title={page.data.title}
                         pagePath={`/integrations/${page.slugs.join('/')}`}
+                        editUrl={editUrl}
                         onRateAction={async (url, feedback) => {
                         'use server';
                         await posthog.capture('on_rate_document', feedback);

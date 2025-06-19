@@ -13,7 +13,7 @@ Note that currently only [Subnet-EVM](https://github.com/ava-labs/subnet-evm) an
 
 ## Prerequisites
 
-- [Avalanche-CLI installed](/docs/tooling/guides/get-avalanche-cli)
+- [Avalanche-CLI installed](/docs/tooling/get-avalanche-cli)
 
 ## Create Avalanche L1 Configurations
 
@@ -161,19 +161,26 @@ Currency Symbol:  TOKEN2
 Verify Teleporter Is Successfully Set Up[​](#verify-teleporter-is-successfully-set-up "Direct link to heading")
 ---------------------------------------------------------------------------------------------------------------
 
-To verify that Teleporter is successfully, let's send a couple of cross messages:
+To verify that Teleporter is successfully, let's send a couple of cross messages (from C-Chain to chain1): 
 
 ```bash
-avalanche teleporter msg C-Chain chain1 "Hello World" --local
+avalanche teleporter sendMsg C-Chain chain1 "Hello World" --local
+```
 
+Results:
+```bash
 Delivering message "this is a message" to source subnet "C-Chain"
 Waiting for message to be received at destination subnet subnet "chain1"
 Message successfully Teleported!
 ```
 
+To verify that Teleporter is successfully deployed, let's send a couple of cross-chain messages (from chain2 to chain1): 
 ```bash
-avalanche teleporter msg chain2 chain1 "Hello World" --local
+avalanche teleporter sendMsg chain2 chain1 "Hello World" --local
+```
 
+Results:
+```bash
 Delivering message "this is a message" to source subnet "chain2"
 Waiting for message to be received at destination subnet subnet "chain1"
 Message successfully Teleported!

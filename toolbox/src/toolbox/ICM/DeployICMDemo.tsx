@@ -1,16 +1,17 @@
 "use client";
 
-import { useToolboxStore, useViemChainStore, useSelectedL1 } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useEffect } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import ICMDemoABI from "../../../contracts/example-contracts/compiled/ICMDemo.json";
 import TeleporterMessengerAddress from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
-import { Container } from "../components/Container";
+import { Container } from "../../components/Container";
+import { useSelectedL1 } from "../../stores/l1ListStore";
 
-export const SENDER_C_CHAIN_ADDRESS = "0xfD694e233f9D5196CF3747723ed00Bb8386a7FEe";
+export const SENDER_C_CHAIN_ADDRESS = "0x05c474824e7d2cc67cf22b456f7cf60c0e3a1289";
 
 export default function DeployICMDemo() {
     const { showBoundary } = useErrorBoundary();

@@ -5,6 +5,12 @@ import { Project } from "@/types/showcase";
 import { MapPin, Trophy } from "lucide-react";
 import Image from "next/image";
 import { Card } from "../ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Props = {
   project: Project;
@@ -32,7 +38,7 @@ export function ProjectCard({ project }: Props) {
         src={
           project.cover_url && project.cover_url.trim().length > 0
             ? project.cover_url
-            : "/hackathon-images/project-banner.png"
+            : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-banner-2whUMzkW6ABHW5GjIAH3NbBHLQIJzw.png"
         }
         alt={`${project.project_name} banner`}
         width={306}
@@ -60,13 +66,21 @@ export function ProjectCard({ project }: Props) {
   
         <div className="flex flex-col items-center gap-2">
           {project.tracks.slice(0, 2).map((track) => (
-            <Badge
-              key={track}
-              variant="outline"
-              className="border-2 border-zinc-900 dark:border-zinc-50 flex justify-center rounded-xl"
-            >
-              {track}
-            </Badge>
+            <TooltipProvider key={track}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge
+                    variant="outline"
+                    className="border-2 border-zinc-900 dark:border-zinc-50 flex justify-center rounded-xl max-w-[120px]"
+                  >
+                    <span className="truncate">{track}</span>
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{track}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           ))}
         </div>
       </div>

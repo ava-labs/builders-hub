@@ -1,26 +1,65 @@
 "use client";
 
-import { useWalletStore } from "../../lib/walletStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useState, useEffect } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
 import versions from "../../versions.json";
-import { Container } from "../components/Container";
+import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
 import { getBlockchainInfo } from "../../coreViem/utils/glacier";
-import InputChainId from "../components/InputChainId";
+import InputChainId from "../../components/InputChainId";
 import { Checkbox } from "../../components/Checkbox";
-
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import { AddChainModal } from "../components/ConnectWalletToolbox/AddChainModal";
-import { useL1ListStore } from "../toolboxStore";
+import { AddChainModal } from "../../components/ConnectWallet/AddChainModal";
+import { useL1ListStore } from "../../stores/l1ListStore";
 import { Button } from "../../components/Button";
-import { ResultField } from "../components/ResultField";
 import { RadioGroup } from "../../components/RadioGroup";
+import { Success } from "../../components/Success";
+import { nipify, HostInput } from "../../components/HostInput";
+import { DockerInstallation } from "../../components/DockerInstallation";
+import { NodeReadinessValidator } from "../../components/NodeReadinessValidator";
+import { HealthCheckButton } from "../../components/HealthCheckButton";
 
-const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number) => {
+
+export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruningEnabled: boolean) => {
+    const vmConfig = debugEnabled ? {
+        "pruning-enabled": pruningEnabled,
+        "log-level": "debug",
+        "warp-api-enabled": true,
+        "eth-apis": [
+            "eth",
+            "eth-filter",
+            "net",
+            "admin",
+            "web3",
+            "internal-eth",
+            "internal-blockchain",
+            "internal-transaction",
+            "internal-debug",
+            "internal-account",
+            "internal-personal",
+            "debug",
+            "debug-tracer",
+            "debug-file-tracer",
+            "debug-handler"
+        ]
+    } : {
+        "pruning-enabled": pruningEnabled,
+    }
+
+    // First encode the inner config object
+    const vmConfigEncoded = btoa(JSON.stringify(vmConfig));
+
+    const configMap: Record<string, { Config: string, Upgrade: any }> = {}
+    configMap[chainId] = { Config: vmConfigEncoded, Upgrade: null }
+
+    return btoa(JSON.stringify(configMap))
+}
+
+
+const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, chainId: string, debugEnabled: boolean = false, pruningEnabled: boolean = false) => {
     const env: Record<string, string> = {
         AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true",
         AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
@@ -44,10 +83,12 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
         env.AVAGO_HTTP_ALLOWED_HOSTS = "\"*\"";
     }
 
+    env.AVAGO_CHAIN_CONFIG_CONTENT = nodeConfigBase64(chainId, debugEnabled, pruningEnabled);
+
     const chunks = [
         "docker run -it -d",
         `--name avago`,
-        `-p ${isRPC ? "" : "127.0.0.1: "}9650:9650 -p 9651:9651`,
+        `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
         `-v ~/.avalanchego:/root/.avalanchego`,
         ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
         `avaplatform/subnet-evm:${versions['avaplatform/subnet-evm']}`
@@ -55,13 +96,7 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
     return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
 }
 
-const nipify = (domain: string) => {
-    const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    if (ipv4Regex.test(domain)) {
-        domain = `${domain}.nip.io`;
-    }
-    return domain;
-}
+
 
 const reverseProxyCommand = (domain: string) => {
     domain = nipify(domain);
@@ -74,112 +109,51 @@ const reverseProxyCommand = (domain: string) => {
   caddy reverse-proxy --from ${domain} --to localhost:9650`
 }
 
-const enableDebugNTraceCommand = (chainId: string) => `sudo mkdir -p $HOME/.avalanchego/configs/chains/${chainId}; 
-sudo chown -R $USER:$USER $HOME/.avalanchego/configs/chains/;
+const rpcHealthCheckCommand = (domain: string, chainId: string) => {
+    const processedDomain = nipify(domain);
 
-sudo echo '{
-  "log-level": "debug",
-  "warp-api-enabled": true,
-  "eth-apis": [
-    "eth",
-    "eth-filter",
-    "net",
-    "admin",
-    "web3",
-    "internal-eth",
-    "internal-blockchain",
-    "internal-transaction",
-    "internal-debug",
-    "internal-account",
-    "internal-personal",
-    "debug",
-    "debug-tracer",
-    "debug-file-tracer",
-    "debug-handler"
-  ]
-}' > $HOME/.avalanchego/configs/chains/${chainId}/config.json`
-
-const checkNodeCommand = (chainID: string, domain: string, isDebugTrace: boolean) => {
-    domain = nipify(domain);
-    if (domain.startsWith("127.0.0.1")) {
-        domain = "http://" + domain;
-    } else {
-        domain = "https://" + domain;
-    }
-
-    if (!isDebugTrace) {
-        return `curl -X POST --data '{ 
+    return `curl -X POST --data '{ 
   "jsonrpc":"2.0", "method":"eth_chainId", "params":[], "id":1 
 }' -H 'content-type:application/json;' \\
-${domain}/ext/bc/${chainID}/rpc`
-    } else {
-        return `curl -X POST --data '{ 
-  "jsonrpc":"2.0", "method":"debug_traceBlockByNumber", "params":["latest", {}], "id":1 
-}' -H 'content-type:application/json;' \\
-${domain}/ext/bc/${chainID}/rpc`
-    }
+https://${processedDomain}/ext/bc/${chainId}/rpc`
 }
 
-const dockerInstallInstructions: Record<string, string> = {
-    'Ubuntu/Debian': `sudo apt-get update && \\
-    sudo apt-get install -y docker.io && \\
-    sudo usermod -aG docker $USER && \\
-    newgrp docker
 
-# Test docker installation
-docker run -it --rm hello-world
-`,
-    'Amazon Linux 2023+': `sudo yum update -y && \\
-    sudo yum install -y docker && \\
-    sudo service docker start && \\
-    sudo usermod -a -G docker $USER && \\
-    newgrp docker
 
-# Test docker installation
-docker run -it --rm hello-world
-`,
-    'Fedora': `sudo dnf update -y && \\
-    sudo dnf -y install docker && \\
-    sudo systemctl start docker && \\
-    sudo usermod -a -G docker $USER && \\
-    newgrp docker
 
-# Test docker installation
-docker run -it --rm hello-world
-`,
-} as const;
-
-type OS = keyof typeof dockerInstallInstructions;
 
 export default function AvalanchegoDocker() {
     const [chainId, setChainId] = useState("");
     const [subnetId, setSubnetId] = useState("");
-    const { avalancheNetworkID } = useWalletStore();
-
     const [isRPC, setIsRPC] = useState<boolean>(true);
     const [rpcCommand, setRpcCommand] = useState("");
     const [nodeRunningMode, setNodeRunningMode] = useState("server");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
+    const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
-    const { addL1 } = useL1ListStore()();
     const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
+    const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
 
+    const { avalancheNetworkID } = useWalletStore();
+    const { addL1 } = useL1ListStore()();
 
     useEffect(() => {
         try {
-            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID));
+            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID, chainId, enableDebugTrace, pruningEnabled));
         } catch (error) {
             setRpcCommand((error as Error).message);
         }
-    }, [subnetId, isRPC, avalancheNetworkID]);
+    }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId, pruningEnabled]);
 
     useEffect(() => {
         if (!isRPC) {
             setDomain("");
         }
     }, [isRPC]);
+
+
 
 
     useEffect(() => {
@@ -193,6 +167,22 @@ export default function AvalanchegoDocker() {
             setSubnetIdError((error as Error).message);
         });
     }, [chainId]);
+
+    const handleReset = () => {
+        setChainId("");
+        setSubnetId("");
+        setIsRPC(true);
+        setChainAddedToWallet(null);
+        setRpcCommand("");
+        setNodeRunningMode("server");
+        setDomain("");
+        setEnableDebugTrace(false);
+        setPruningEnabled(true);
+        setSubnetIdError(null);
+        setIsAddChainModalOpen(false);
+        setNodeIsReady(false);
+    };
+
 
     return (
         <>
@@ -224,20 +214,9 @@ export default function AvalanchegoDocker() {
                         />
                     </Step>
                     <Step>
-                        <h3 className="text-xl font-bold mb-4">Docker Installation</h3>
-                        <p>Make sure you have Docker installed on your system. You can use the following commands to install it:</p>
-
-                        <Tabs items={Object.keys(dockerInstallInstructions)}>
-                            {Object.keys(dockerInstallInstructions).map((os) => (
-                                <Tab
-                                    key={os}
-                                    value={os as OS}
-                                >
-                                    <DynamicCodeBlock lang="bash" code={dockerInstallInstructions[os]} />
-                                </Tab>
-                            ))}
-                        </Tabs>
-
+                        <DockerInstallation
+                            includeCompose={false}
+                        />
 
                         <p className="mt-4">
                             If you do not want to use Docker, you can follow the instructions{" "}
@@ -260,6 +239,7 @@ export default function AvalanchegoDocker() {
                         <InputChainId
                             value={chainId}
                             onChange={setChainId}
+                            hidePrimaryNetwork={true}
                         />
 
                         <Input
@@ -286,30 +266,24 @@ export default function AvalanchegoDocker() {
                                     checked={enableDebugTrace}
                                     onChange={setEnableDebugTrace}
                                 />}
+
+                                {isRPC && <Checkbox
+                                    label="Enable Archive Mode (pruning will be disabled)"
+                                    checked={!pruningEnabled}
+                                    onChange={checked => setPruningEnabled(!checked)}
+                                />}
                             </Step>
                             {nodeRunningMode === "server" && (<Step>
                                 <h3 className="text-xl font-bold mb-4">Port Configuration</h3>
-                                <p>Make sure the following port{isRPC && 's'} are open:
-                                    <ul>
-                                        {isRPC && <>
-                                            <li><strong>443</strong> (for the Reverse Proxy)</li>
-                                            <li><strong>9650</strong> (for the RPC endpoint)</li>
-                                        </>}
-                                        <li><strong>9651</strong> (for the node-to-node communication)</li>
-                                    </ul>
-                                </p>
+                                <p>Make sure the following port{isRPC && 's'} are open:</p>
+                                <ul>
+                                    {isRPC && <>
+                                        <li><strong>443</strong> (for the Reverse Proxy)</li>
+                                        <li><strong>9650</strong> (for the RPC endpoint)</li>
+                                    </>}
+                                    <li><strong>9651</strong> (for the node-to-node communication)</li>
+                                </ul>
                             </Step>)}
-                            {chainId && enableDebugTrace && isRPC && (
-                                <Step>
-                                    <h3 className="text-xl font-bold mb-4">Create Chain Config File</h3>
-                                    <p>Create the file for the Chain Config:</p>
-
-                                    <p>TBD: Change to environmant variable: https://build.avax.network/docs/nodes/configure/configs-flags#--chain-config-content-string</p>
-
-
-                                    <DynamicCodeBlock lang="bash" code={enableDebugNTraceCommand(chainId)} />
-                                </Step>
-                            )}
                             <Step>
                                 <h3 className="text-xl font-bold">Start AvalancheGo Node</h3>
                                 <p>Run the following Docker command to start your node:</p>
@@ -337,7 +311,6 @@ export default function AvalanchegoDocker() {
                                 <Accordions type="single" className="mt-8">
                                     <Accordion title="Understanding the Logs">
                                         <p>The bootstrapping has three phases:</p>
-                                        <p><strong></strong></p>
 
                                         <ul className="list-disc pl-5 mt-1">
                                             <li>
@@ -355,13 +328,14 @@ export default function AvalanchegoDocker() {
                                     </Accordion>
                                 </Accordions>
 
-                                <p> During the bootstrapping process the following command will return a <code>404 page not found</code> error.</p>
-
-                                <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, "127.0.0.1:9650", false)} />
-
-                                <p> Once it the bootstrapping is complete it will return a repsonse like <code>{'{"jsonrpc":"2.0","id":1,"result":"..."}'}</code>.</p>
+                                <NodeReadinessValidator
+                                    chainId={chainId}
+                                    domain={nodeRunningMode === "server" ? domain || "127.0.0.1:9650" : "127.0.0.1:9650"}
+                                    isDebugTrace={enableDebugTrace}
+                                    onBootstrapCheckChange={(checked) => setNodeIsReady(checked)}
+                                />
                             </Step>
-                            {isRPC && (
+                            {nodeIsReady && isRPC && (
                                 <>
                                     {nodeRunningMode === "server" && (
                                         <>
@@ -375,15 +349,15 @@ export default function AvalanchegoDocker() {
 
                                                 <p>Paste the IP of your node below:</p>
 
-                                                <Input
+                                                <HostInput
                                                     label="Domain or IPv4 address for reverse proxy (optional)"
                                                     value={domain}
-                                                    onChange={(newValue) => setDomain(newValue.trim())}
-                                                    placeholder="example.com  or 1.2.3.4"
+                                                    onChange={setDomain}
+                                                    placeholder="example.com or 1.2.3.4"
                                                 />
 
                                                 {domain && (<>
-                                                    <p>Run the following comand on the machine of your node:</p>
+                                                    <p>Run the following command on the machine of your node:</p>
                                                     <DynamicCodeBlock lang="bash" code={reverseProxyCommand(domain)} />
                                                 </>)}
                                             </Step>
@@ -392,30 +366,39 @@ export default function AvalanchegoDocker() {
                                                     <h3 className="text-xl font-bold mb-4">Check connection via Proxy</h3>
                                                     <p>Do a final check from a machine different then the one that your node is running on.</p>
 
-                                                    <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, false)} />
+                                                    <div className="space-y-6">
+                                                        <DynamicCodeBlock lang="bash" code={rpcHealthCheckCommand(domain, chainId)} />
 
-                                                    {enableDebugTrace && (
-                                                        <div className="mt-4">
-                                                            <h3 className="text-md font-medium mb-2">Check that debug & trace is working:</h3>
-                                                            <DynamicCodeBlock lang="bash" code={checkNodeCommand(chainId, domain, true)} />
-                                                        </div>
-                                                    )}
-
-                                                    TBD: Replace with RPC check component used for monitoring?
+                                                        <HealthCheckButton
+                                                            chainId={chainId}
+                                                            domain={domain}
+                                                        />
+                                                    </div>
                                                 </Step>
                                             </>
                                             )}
                                         </>)}
                                     {(nodeRunningMode === "localhost" || domain) && (<Step>
                                         <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
-                                        <p>Add your L1 to your Wallet if all checks above passed</p>
+                                        <p>Click the button below to add your L1 to your wallet:</p>
 
-                                        <Button onClick={() => setIsAddChainModalOpen(true)} className="mt-4 w-48">Add to Wallet</Button>
+                                        <Button
+                                            onClick={() => setIsAddChainModalOpen(true)}
+                                            className="mt-4 w-48"
+                                        >
+                                            Add to Wallet
+                                        </Button>
+
                                         {isAddChainModalOpen && <AddChainModal
                                             onClose={() => setIsAddChainModalOpen(false)}
                                             onAddChain={(chain) => {
-                                                addL1(chain);
                                                 setChainAddedToWallet(chain.name);
+                                                // Try addL1 but catch any errors that might cause resets
+                                                try {
+                                                    addL1(chain);
+                                                } catch (error) {
+                                                    console.log("addL1 error (non-blocking):", error);
+                                                }
                                             }}
                                             allowLookup={false}
                                             fixedRPCUrl={nodeRunningMode === "server" ? `https://${nipify(domain)}/ext/bc/${chainId}/rpc` : `http://localhost:9650/ext/bc/${chainId}/rpc`}
@@ -428,7 +411,12 @@ export default function AvalanchegoDocker() {
 
                 </Steps>
 
-                {chainAddedToWallet && <ResultField label="Chain added to Wallet" value={chainAddedToWallet} showCheck />}
+                {chainAddedToWallet && (
+                    <>
+                        <Success label="Node Setup Complete" value={chainAddedToWallet} />
+                        <Button onClick={handleReset} className="mt-4 w-full">Reset</Button>
+                    </>
+                )}
 
             </Container >
         </>

@@ -36,14 +36,20 @@ import Mermaid from "@/components/content-design/mermaid";
 import { Feedback } from '@/components/ui/feedback';
 import posthog from 'posthog-js';
 
-import ToolboxMdxWrapper from "@/toolbox/src/toolbox/components/ToolboxMdxWrapper"
-import CrossChainTransfer from "@/toolbox/src/l1-launcher/components/CrossChainTransfer"
+import ToolboxMdxWrapper from "@/toolbox/src/components/ToolboxMdxWrapper"
+import CrossChainTransfer from "@/toolbox/src/components/CrossChainTransfer"
 import AvalancheGoDocker from '@/toolbox/src/toolbox/Nodes/AvalanchegoDocker';
 import CreateSubnet from "@/toolbox/src/toolbox/L1/CreateSubnet"
 import CreateChain from "@/toolbox/src/toolbox/L1/CreateChain"
 import ConvertToL1 from "@/toolbox/src/toolbox/L1/ConvertToL1"
 import GenesisBuilder from '@/toolbox/src/toolbox/L1/GenesisBuilder';
 import DeployExampleERC20 from '@/toolbox/src/toolbox/ICTT/DeployExampleERC20';
+import DeployTokenHome from '@/toolbox/src/toolbox/ICTT/DeployTokenHome';
+import DeployERC20TokenRemote from '@/toolbox/src/toolbox/ICTT/DeployERC20TokenRemote';
+import RegisterWithHome from '@/toolbox/src/toolbox/ICTT/RegisterWithHome';
+import TestSend from '@/toolbox/src/toolbox/ICTT/TestSend';
+import TeleporterRegistry from '@/toolbox/src/toolbox/ICM/TeleporterRegistry';
+import ICMRelayer from '@/toolbox/src/toolbox/ICM/ICMRelayer';
 
 export const dynamicParams = false;
 
@@ -55,7 +61,13 @@ const toolboxComponents = {
   CreateChain,
   AvalancheGoDocker,
   ConvertToL1,
-  DeployExampleERC20
+  DeployExampleERC20,
+  DeployTokenHome,
+  DeployERC20TokenRemote,
+  RegisterWithHome,
+  TestSend,
+  TeleporterRegistry,
+  ICMRelayer
 }
 
 export default async function Page(props: {
@@ -66,6 +78,7 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const path = `content/academy/${page.file.path}`;
+  const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
   const MDX = page.data.body;
   const course = COURSES.official.find(c => c.slug === page.slugs[0]);
 
@@ -114,6 +127,7 @@ export default async function Page(props: {
         path={path}
         title={page.data.title}
         pagePath={`/academy/${page.slugs.join('/')}`}
+        editUrl={editUrl}
         onRateAction={async (url, feedback) => {
           'use server';
           await posthog.capture('on_rate_document', feedback);

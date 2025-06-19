@@ -1,0 +1,123 @@
+---
+title: Permissions
+description: Control access to contract deployment and transaction submission on your Avalanche L1 blockchain.
+---
+
+## Overview
+
+The Subnet-EVM provides two powerful precompiles for managing permissions on your Avalanche L1 blockchain:
+
+- **Contract Deployer Allowlist**: Control which addresses can deploy smart contracts
+- **Transaction Allowlist**: Control which addresses can submit transactions
+
+Both precompiles use the [AllowList interface](/docs/avalanche-l1s/allowlist) to manage permissions with a consistent role-based system.
+
+## Contract Deployer Allowlist
+
+### Purpose
+The Contract Deployer Allowlist allows you to maintain a controlled environment where only authorized addresses can deploy new smart contracts. This is particularly useful for:
+
+- Maintaining a curated ecosystem of verified contracts
+- Preventing malicious contract deployments
+- Implementing KYC/AML requirements for contract deployers
+
+### Configuration
+Located at address `0x0200000000000000000000000000000000000000`, you can activate this precompile in your genesis file:
+
+```json
+{
+  "config": {
+    "contractDeployerAllowListConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+    }
+  }
+}
+```
+
+By enabling this feature, you can define which addresses are allowed to deploy smart contracts and manage these permissions over time.
+
+## Transaction Allowlist
+
+### Purpose
+The Transaction Allowlist enables you to control which addresses can submit transactions to your network. This is essential for:
+
+- Creating fully permissioned networks
+- Implementing KYC/AML requirements for users
+- Controlling network access during testing or initial deployment
+
+### Configuration
+Located at address `0x0200000000000000000000000000000000000002`, you can activate this precompile in your genesis file:
+
+```json
+{
+  "config": {
+    "txAllowListConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+    }
+  }
+}
+```
+
+By enabling this feature, you can define which addresses are allowed to submit transactions and manage these permissions over time.
+
+## Permissions Management
+
+Both precompiles use the [AllowList interface](/docs/avalanche-l1s/allowlist) to manage permissions. This provides a consistent way to:
+- Assign and revoke permissions
+- Manage admin and manager roles
+- Control who can deploy contracts or submit transactions
+
+For detailed information about the role-based permission system and available functions, see the [AllowList interface documentation](/docs/avalanche-l1s/allowlist).
+
+## Implementation
+
+The precompiles implement the following interface:
+
+```solidity
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+interface IAllowList {
+  event RoleSet(uint256 indexed role, address indexed account, address indexed sender, uint256 oldRole);
+
+  // Set [addr] to have the admin role over the precompile contract.
+  function setAdmin(address addr) external;
+
+  // Set [addr] to be enabled on the precompile contract.
+  function setEnabled(address addr) external;
+
+  // Set [addr] to have the manager role over the precompile contract.
+  function setManager(address addr) external;
+
+  // Set [addr] to have no role for the precompile contract.
+  function setNone(address addr) external;
+
+  // Read the status of [addr].
+  function readAllowList(address addr) external view returns (uint256 role);
+}
+```
+
+## Best Practices
+
+1. **Initial Setup**: Always configure at least one admin address in the genesis file to ensure you can manage permissions after deployment.
+
+2. **Role Management**:
+   - Use Admin roles sparingly and secure their private keys
+   - Assign Manager roles to trusted entities who need to manage user access
+   - Regularly audit the list of enabled addresses
+
+3. **Security Considerations**:
+   - Keep private keys of admin addresses secure
+   - Implement a multi-sig wallet as an admin for additional security
+   - Maintain an off-chain record of role assignments
+
+4. **Monitoring**:
+   - Monitor the `RoleSet` events to track permission changes
+   - Regularly audit the enabled addresses list
+   - Keep documentation of why each address was granted permissions
+
+You can find the implementations in the subnet-evm repository:
+- [Contract Deployer Allowlist](https://github.com/ava-labs/subnet-evm/blob/master/precompile/contracts/deployerallowlist/contract.go)
+- [Transaction Allowlist](https://github.com/ava-labs/subnet-evm/blob/master/precompile/contracts/txallowlist/contract.go) 

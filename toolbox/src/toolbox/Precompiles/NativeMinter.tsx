@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useWalletStore } from "../../lib/walletStore";
-import { useViemChainStore } from "../toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
+import { useViemChainStore } from "../../stores/toolboxStore";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
-import { Container } from "../components/Container";
-import { ResultField } from "../components/ResultField";
-import { EVMAddressInput } from "../components/EVMAddressInput";
+import { Container } from "../../components/Container";
+import { ResultField } from "../../components/ResultField";
+import { EVMAddressInput } from "../../components/EVMAddressInput";
 import nativeMinterAbi from "../../../contracts/precompiles/NativeMinter.json";
-import { AllowlistComponent } from "../components/AllowListComponents";
+import { AllowlistComponent } from "../../components/AllowListComponents";
+import { CheckPrecompile } from "../../components/CheckPrecompile";
 
 // Default Native Minter address
 const DEFAULT_NATIVE_MINTER_ADDRESS =
@@ -60,7 +61,10 @@ export default function NativeMinter() {
   const canMint = Boolean(recipient && isValidAmount && walletEVMAddress && coreWalletClient && !isMinting);
 
   return (
-    <div className="space-y-6">
+    <CheckPrecompile
+      configKey="contractNativeMinterConfig"
+      precompileName="Native Minter"
+    >
       <Container
         title="Mint Native Tokens"
         description="This will mint native tokens to the specified address."
@@ -105,12 +109,10 @@ export default function NativeMinter() {
         </div>
       </Container>
 
-      <div className="w-full">
-        <AllowlistComponent
-          precompileAddress={DEFAULT_NATIVE_MINTER_ADDRESS}
-          precompileType="Minter"
-        />
-      </div>
-    </div>
+      <AllowlistComponent
+        precompileAddress={DEFAULT_NATIVE_MINTER_ADDRESS}
+        precompileType="Minter"
+      />
+    </CheckPrecompile>
   );
 }

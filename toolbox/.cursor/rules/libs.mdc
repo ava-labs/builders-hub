@@ -7,7 +7,7 @@ alwaysApply: true
 - ui: @radix-ui/react-*
 
 Use buttons from src/components/Button.tsx
-If you do a button next to input, pass it like thsi
+If you do a button next to input, pass it like this
 ```
 <Input
                     value={poaOwnerAddress}

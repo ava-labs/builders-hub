@@ -184,14 +184,27 @@ export default function Hackathons({
 
   return (
     <SessionProvider>
-      <section className="px-8 py-6">
-        {topMostHackathon && (
-          <div className="w-full flex flex-col gap-8 justify-center">
-            <div className="sm:block relative w-full">
-              <OverviewBanner
-                hackathon={topMostHackathon}
-                id={topMostHackathon.id}
-                isTopMost={true}
+    <section className="px-8 py-6">
+      {topMostHackathon && (
+        <div className="w-full flex flex-col gap-8 justify-center">
+          <div className="sm:block relative w-full">
+            <OverviewBanner
+              hackathon={topMostHackathon}
+              id={topMostHackathon.id}
+              isTopMost={true}
+            />
+            <Link href={`/hackathons/${topMostHackathon.id}`}>
+              <Image
+                src={
+                  topMostHackathon.banner?.trim().trim().length > 0
+                    ? topMostHackathon.banner
+                    : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png"
+                }
+                alt="Hackathon background"
+                width={1270}
+                height={760}
+                className="w-full h-full"
+                priority
               />
               <Link href={`/hackathons/${topMostHackathon.id}`}>
                 <Image

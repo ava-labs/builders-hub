@@ -1,11 +1,47 @@
+"use client"
+import { useState } from "react"
 import Link from 'next/link'
-import { ExternalLink } from 'lucide-react'
+import { ArrowUpRight, ExternalLink } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 export function Footer() {
+  const [email, setEmail] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setIsSuccess(true);
+        setEmail('');
+      } else {
+        console.error('Newsletter signup failed:', result);
+      }
+    } catch (error) {
+      console.error('Error during newsletter signup:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <footer className="mt-auto border-t bg-card py-12 text-secondary-foreground">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 w-full max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 w-full max-w-6xl mx-auto">
           <FooterSection title="Avalanche" className="md:justify-self-start">
             <div className="flex flex-col space-y-3">
               <FooterLink href="https://subnets.avax.network/" external>Explorer</FooterLink>
@@ -31,7 +67,7 @@ export function Footer() {
             </div>
           </FooterSection>
           
-          <FooterSection title="More Links" className="md:justify-self-end">
+          <FooterSection title="More Links" className="md:justify-self-center md:text-center">
             <div className="flex flex-col space-y-3">
               <FooterLink href="https://avacloud.io/" external>Enterprise Solutions</FooterLink>
               <FooterLink href="https://github.com/ava-labs/audits" external>Audits</FooterLink>
@@ -39,6 +75,31 @@ export function Footer() {
               <FooterLink href="https://www.avax.network/legal" external>Legal</FooterLink>
               <FooterLink href="https://status.avax.network/" external>Network Status</FooterLink>
             </div>
+          </FooterSection>
+
+          <FooterSection title="Stay In Touch" className="md:justify-self-end">
+            <p className="text-sm mb-4">Don't miss new grant opportunities, tools and resource launches, event announcements, and more.</p>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="flex flex-col space-y-2">
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="bg-background border-border"
+                />
+                <Button type="submit" disabled={isSubmitting} variant="default" className="dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90">
+                  {isSubmitting ? "Subscribing..." : "Subscribe"}
+                  <ArrowUpRight className="h-4 w-4" />
+                </Button>
+                {isSuccess && (
+                  <div className="mt-2 text-sm text-green-600 bg-green-50 p-2 rounded-md">
+                    Pure signal, zero spam → straight to your inbox!
+                  </div>
+                )}
+              </div>
+            </form>
           </FooterSection>
         </div>
         <div className="mt-12 text-xs text-center text-secondary-foreground/70">

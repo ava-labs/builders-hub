@@ -4,7 +4,7 @@ import { useErrorBoundary } from "react-error-boundary";
 import { useState, useEffect } from "react";
 import { Copy, Check } from "lucide-react";
 import { Button } from "../../components/Button";
-import { Container } from "../components/Container";
+import { Container } from "../../components/Container";
 
 export default function UnitConverter() {
     const { showBoundary } = useErrorBoundary();
@@ -33,12 +33,12 @@ export default function UnitConverter() {
                     const [whole, decimal] = inputAmount.split('.');
                     const wholeValue = whole === '' ? BigInt(0) : BigInt(whole);
                     const wholeInWei = wholeValue * sourceUnit.factor;
-                    
+
                     const decimalPlaces = decimal.length;
                     const decimalValue = BigInt(decimal);
                     const decimalFactor = sourceUnit.factor / BigInt(10 ** decimalPlaces);
                     const decimalInWei = decimalValue * decimalFactor;
-                    
+
                     baseAmount = wholeInWei + decimalInWei;
                 } else {
                     baseAmount = BigInt(inputAmount) * sourceUnit.factor;
@@ -53,10 +53,10 @@ export default function UnitConverter() {
                     results[unit.id] = "0";
                     return;
                 }
-                
+
                 const quotient = baseAmount / unit.factor;
                 const remainder = baseAmount % unit.factor;
-                
+
                 if (remainder === BigInt(0)) {
                     results[unit.id] = quotient.toString();
                 } else {
@@ -65,7 +65,7 @@ export default function UnitConverter() {
                     results[unit.id] = `${quotient}.${trimmedDecimal}`;
                 }
             });
-            
+
             return results;
         } catch (error) {
             showBoundary(error);
@@ -94,7 +94,7 @@ export default function UnitConverter() {
     }, [amount, selectedUnit]);
 
     return (
-        <Container 
+        <Container
             title="AVAX Unit Converter"
             description="Convert between AVAX, P-Chain nAVAX, and C-Chain wei"
             logoColorTheme="red"
@@ -117,10 +117,9 @@ export default function UnitConverter() {
                     {units.map((unit) => (
                         <div key={unit.id} className="flex items-center">
                             <div className="w-44 flex-shrink-0 mr-3">
-                                <span className={`text-sm font-medium ${
-                                    unit.id === "nAVAX" ? "text-red-600 dark:text-red-400" : 
-                                    unit.id === "wei" ? "text-blue-600 dark:text-blue-400" : ""
-                                }`}>
+                                <span className={`text-sm font-medium ${unit.id === "nAVAX" ? "text-red-600 dark:text-red-400" :
+                                        unit.id === "wei" ? "text-blue-600 dark:text-blue-400" : ""
+                                    }`}>
                                     {unit.label}
                                 </span>
                             </div>
@@ -132,9 +131,9 @@ export default function UnitConverter() {
                                     placeholder="0"
                                     step={unit.exponent < 0 ? 0.000000001 : 0.01}
                                     className={`w-full rounded-md px-3 py-2.5 bg-white dark:bg-zinc-900 border 
-                                        ${unit.id === "nAVAX" ? "border-red-300 dark:border-red-700" : 
-                                        unit.id === "wei" ? "border-blue-300 dark:border-blue-700" :
-                                        "border-zinc-300 dark:border-zinc-700"} 
+                                        ${unit.id === "nAVAX" ? "border-red-300 dark:border-red-700" :
+                                            unit.id === "wei" ? "border-blue-300 dark:border-blue-700" :
+                                                "border-zinc-300 dark:border-zinc-700"} 
                                         text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 
                                         focus:ring-primary/30 focus:border-primary shadow-sm transition-colors 
                                         duration-200 rounded-r-none border-r-0`}
@@ -142,9 +141,9 @@ export default function UnitConverter() {
                                 <button
                                     onClick={() => handleCopy(unit.id === selectedUnit ? amount : results[unit.id] || "", unit.id)}
                                     className={`flex items-center justify-center px-2 bg-white dark:bg-zinc-900 border 
-                                        ${unit.id === "nAVAX" ? "border-red-300 dark:border-red-700" : 
-                                        unit.id === "wei" ? "border-blue-300 dark:border-blue-700" :
-                                        "border-zinc-300 dark:border-zinc-700"} 
+                                        ${unit.id === "nAVAX" ? "border-red-300 dark:border-red-700" :
+                                            unit.id === "wei" ? "border-blue-300 dark:border-blue-700" :
+                                                "border-zinc-300 dark:border-zinc-700"} 
                                         rounded-r-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors`}
                                 >
                                     {copied === unit.id ? (

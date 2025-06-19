@@ -1,0 +1,114 @@
+---
+title: Sherry
+category: Mini-Apps
+available: ["C-Chain"]
+description: "Sherry is the publishing layer that turns any interaction — from a tweet to a chatbot message — into a verifiable, tappable onchain action."
+logo: /images/sherry.png
+developer: Sherry Labs
+website: https://sherry.social
+documentation: https://docs.sherry.social
+---
+
+## Overview
+
+Sherry Protocol enables decentralised, verifiable distribution and execution of onchain actions. As the publishing layer for Web3, it allows anyone to create, embed, and amplify interactive Web3 actions anywhere on the internet and execute complex multi-step flows directly from their context.
+
+Our SDK empowers developers to create rich, composable mini-apps called Triggers that seamlessly integrate into social networks making blockchain interactions as simple as sharing a link. Sherry is building the foundation for a universal communication standard between AI Agents and Web3 applications.
+
+## Features
+
+- **Interactive Triggers**: Transform static posts into dynamic Web3 experiences with built-in validation and cross-chain support.
+- **Multi-Chain Support**: Native integration across Avalanche, Ethereum, and more blockchain networks.
+- **Multiple Action Types**: 
+  - **Blockchain Actions**: Smart contract interactions with rich parameter configuration
+  - **Transfer Actions**: Native token and ERC20 transfers with customizable UIs
+  - **Dynamic Actions**: User-defined actions with flexible parameters for custom logic
+  - **HTTP Actions**: API calls and form submissions
+  - **Nested Action Flows**: Complex multi-step processes with conditional logic
+- **Frictionless UX**: Users can interact with Web3 applications without leaving their social feed.
+- **Developer-Friendly SDK**: Full TypeScript support with comprehensive type definitions and built-in validation.
+- **AI Agent Ready**: Structured metadata designed to become a common language for AI agents to discover and execute blockchain capabilities.
+
+## Getting Started
+
+To begin building with Sherry:
+
+1. **Install the SDK**:
+   ```bash
+   npm install @sherrylinks/sdk
+   # or
+   yarn add @sherrylinks/sdk
+   ```
+
+2. **Create Your First Trigger**:
+   ```typescript
+   import { createMetadata, Metadata } from '@sherrylinks/sdk';
+
+   const metadata: Metadata = {
+     url: 'https://myapp.example',
+     icon: 'https://example.com/icon.png',
+     title: 'Send AVAX',
+     description: 'Quick AVAX transfer',
+     actions: [
+       {
+         label: 'Send 0.1 AVAX',
+         description: 'Transfer 0.1 AVAX to recipient',
+         to: '0x1234567890123456789012345678901234567890',
+         amount: 0.1,
+         chains: { source: 'avalanche' },
+       },
+     ],
+   };
+
+   const validatedMetadata = createMetadata(metadata);
+   ```
+
+3. **Deploy and Share**: Embed your trigger into social media posts and let users interact directly.
+
+## Documentation
+
+For comprehensive guides and technical documentation, visit [Sherry Documentation](https://docs.sherry.social). Key resources include:
+
+- **[SDK Introduction](https://docs.sherry.social/docs/intro)**: Getting started with the Sherry SDK
+- **[Action Types](https://docs.sherry.social/docs/sdk/action-types/blockchain-actions)**: Learn about different interaction types
+- **[Parameters Guide](https://docs.sherry.social/docs/sdk/parameters)**: Configure user inputs and validation
+- **[Chain Support](https://docs.sherry.social/docs/sdk/chains)**: Multi-chain deployment guide
+- **[Guides](https://docs.sherry.social/docs/sdk/examples)**: Guides and code samples for common use cases
+
+## Use Cases
+
+Sherry serves diverse Web3 integration needs:
+
+- **Social DeFi**: Enable token swaps, staking, and yield farming directly within social posts.
+- **DAO Governance**: Create voting interfaces and proposal submission forms embedded in community posts.
+- **NFT Experiences**: Allow minting, trading, and showcasing NFTs without leaving social platforms.
+- **Fundraising Campaigns**: Build donation and crowdfunding triggers with real-time progress tracking.
+- **Cross-Chain Operations**: Execute seamless asset transfers between different blockchain networks.
+- **AI Agent Integration**: Provide structured interfaces for AI agents to interact with Web3 protocols.
+- **Community Engagement**: Create interactive experiences that boost social media engagement while driving Web3 adoption.
+
+## Supported Chains
+
+Sherry currently supports the following blockchain networks:
+
+- **Avalanche C-Chain** (`avalanche`)
+- **Avalanche Fuji Testnet** (`fuji`)
+
+Additional L1 chains are continuously being added to expand the platform's reach and capabilities.
+
+## Recent Milestones
+
+**Avalanche Codebase **: Part of Avalanche Codebase S25.
+
+## Vision & Roadmap
+
+Sherry aims to be the performance layer of the permissionless internet — where every link, post, or message can carry embedded economic intent.  We're building the foundation for a universal standard of communication between AI Agents and blockchain applications. Our structured metadata is designed to become a common language that allows AI Agents to:
+
+- **Discover Blockchain Capabilities**: Enable AI agents to understand available actions in each Web3 application
+- **Execute Complex Actions**: Make it easier for agents to compose and execute sequences of blockchain actions
+- **Universal Interoperability**: Establish bridges between different AI and blockchain ecosystems
+- **Complexity Abstraction**: Hide technical details so agents can focus on meeting user needs
+
+## Conclusion
+
+Sherry represents the next evolution of how Web3 is experienced and adopted. Whether you're a developer building the next generation of social DApps, a community manager looking to engage your audience, or an AI agent seeking to interact with blockchain protocols, Sherry provides the infrastructure to make it happen.

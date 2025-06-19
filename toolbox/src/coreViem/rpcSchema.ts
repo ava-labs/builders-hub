@@ -20,6 +20,38 @@ export type CoreWalletRpcSchema = [
         }
     },
     {
+        Method: 'eth_getActiveRulesAt',
+        Parameters: []
+        ReturnType: {
+            ethRules: {
+                IsHomestead: boolean;
+                IsEIP150: boolean;
+                IsEIP155: boolean;
+                IsEIP158: boolean;
+                IsByzantium: boolean;
+                IsConstantinople: boolean;
+                IsPetersburg: boolean;
+                IsIstanbul: boolean;
+                IsCancun: boolean;
+                IsVerkle: boolean;
+            };
+            avalancheRules: {
+                IsSubnetEVM: boolean;
+                IsDurango: boolean;
+                IsEtna: boolean;
+                IsFortuna: boolean;
+            };
+            precompiles: {
+                warpConfig?: { timestamp: number };
+                contractDeployerAllowListConfig?: { timestamp: number };
+                txAllowListConfig?: { timestamp: number };
+                feeManagerConfig?: { timestamp: number };
+                rewardManagerConfig?: { timestamp: number };
+                contractNativeMinterConfig?: { timestamp: number };
+            };
+        }
+    },
+    {
         Method: 'avalanche_sendTransaction',
         Parameters: {
             transactionHex: string,

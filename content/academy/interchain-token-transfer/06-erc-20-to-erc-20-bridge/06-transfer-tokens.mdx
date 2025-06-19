@@ -1,0 +1,47 @@
+---
+title: Transfer Tokens
+description: Transfer an ERC20 from C-chain to your own blockchain
+updated: 2024-05-31
+authors: [ashucoder9]
+icon: Terminal
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+<Steps>
+<Step>
+
+### Transfer the Token Cross-chain
+
+Now that all the bridge contracts have been deployed and registered, you can transfer tokens between chains using our toolbox:
+
+<Callout>
+Make sure you have:
+1. Deployed your ERC-20 token (from [Deploy ERC-20 Token](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/02-deploy-erc-20-token))
+2. Deployed your ERC20Home contract (from [Deploy Home](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/03-deploy-home))
+3. Deployed your ERC20TokenRemote contract (from [Deploy Remote](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/04-deploy-remote))
+4. Registered your remote bridge with the home bridge (from [Register Remote](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/05-register-remote))
+5. Have enough test AVAX for gas fees
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={43113}>
+    <TestSend />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+
+### Verify the Transfer
+
+After initiating the transfer, you can verify it was successful by:
+
+1. Checking the transaction status in the toolbox
+2. Checking the transaction status in Core Wallet
+3. Viewing the transaction details on the [Fuji Explorer](https://testnet.snowtrace.io)
+4. Checking your token balance in Core Wallet on the destination chain
+
+<Callout title="Note" type="info">
+The transfer process may take a few moments to complete as it involves cross-chain communication. You can track the progress through the transaction hash.
+</Callout>
+</Step>
+</Steps> 

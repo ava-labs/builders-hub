@@ -10,8 +10,6 @@ icon: Terminal
 
 Now that we have an ERC20 token deployed and some of those tokens in our account to incentivize our relayer, let's include the incentive in our Sender contract.
 
-In the following contract, make sure to update `destinationBlockchainID` with your current deployment
-
 ```solidity title="contracts/interchain-messaging/incentivize-relayer/senderWithFees.sol"
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
@@ -21,7 +19,7 @@ In the following contract, make sure to update `destinationBlockchainID` with yo
 pragma solidity ^0.8.18;
 
 import "@teleporter/ITeleporterMessenger.sol";
-import {IERC20} from "@openzeppelin/contracts@4/token/ERC20/IERC20.sol"; // [!code highlight]
+import {IERC20} from "@openzeppelin/contracts@4/token/ERC20/IERC20.sol";
 
 contract SenderWithFeesOnCChain {
     ITeleporterMessenger public immutable messenger = ITeleporterMessenger(0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf);
@@ -29,17 +27,17 @@ contract SenderWithFeesOnCChain {
      * @dev Sends a message to another chain.
      */
     function sendMessage(address destinationAddress, string calldata message, address feeAddress) external {
-        IERC20 feeContract = IERC20(feeAddress); // [!code highlight]
-        uint256 feeAmount = 500000000000000; // [!code highlight]
-        feeContract.transferFrom(msg.sender, address(this), feeAmount);// [!code highlight]
-        feeContract.approve(address(teleporterMessenger),feeAmount); // [!code highlight]
+        IERC20 feeContract = IERC20(feeAddress);
+        uint256 feeAmount = 500000000000000;
+        feeContract.transferFrom(msg.sender, address(this), feeAmount);
+        feeContract.approve(address(messenger), feeAmount);
 
         messenger.sendCrossChainMessage(
             TeleporterMessageInput({
-                // Replace with blockchainID of your L1 (see instructions in Readme)
-                destinationBlockchainID: 0x108ce15038973062d8628fd20c8c657effe993dd8324297353e350dfc05dacad,
+                // BlockchainID of Dispatch L1
+                destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7,
                 destinationAddress: destinationAddress,
-                feeInfo: TeleporterFeeInfo({feeTokenAddress: feeAddress, amount: feeAmount}), // [!code highlight]
+                feeInfo: TeleporterFeeInfo({feeTokenAddress: feeAddress, amount: feeAmount}),
                 requiredGasLimit: 100000,
                 allowedRelayerAddresses: new address[](0),
                 message: abi.encode(message)

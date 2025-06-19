@@ -250,7 +250,7 @@ export default function HackathonPage() {
       <div className="py-12 sm:py-12">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto w-full lg:mx-0">
-          <img src="/hackathon-images/hackathon_bba.png" alt="Summit London Logo" className="mx-auto h-150 w-auto" />
+          <img src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/hackathon_bba-Yc5D6K8uDge1Ljc4vhtxprGmbQRr9d.png" alt="Summit London Logo" className="mx-auto h-150 w-auto" />
          <p className="mt-12 text-center text-lg leading-8 text-muted-foreground">
          This hackathon is your chance to explore, build, and redefine what's possible on Avalanche. Below, you'll find different building blocks of the stack—from deploying dApps on Avalanche L1s to creating cross-chain applications, AI integrations, developer tooling, and even custom virtual machines. These are just starting points—you have the freedom to innovate and design solutions that bring real value to the ecosystem. Whether you're building in DeFi, RWA, Gaming, SocialFi, Institutional solutions, or something entirely new, this is your opportunity to experiment, create, and push blockchain technology forward. 🚀 
           </p>

@@ -34,8 +34,8 @@ contract SenderOnCChain {
     function sendMessage(address destinationAddress, string calldata message) external {
         messenger.sendCrossChainMessage( // [!code highlight]
             TeleporterMessageInput({
-                // Replace with blockchainID of your Avalanche L1 (see instructions in Readme)
-                destinationBlockchainID: 0x3861e061737eaeb8d00f0514d210ad1062bfacdb4bd22d1d1f5ef876ae3a8921, // [!code highlight]
+                // BlockchainID of Dispatch L1
+                destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7, // [!code highlight]
                 destinationAddress: destinationAddress, 
                 feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
                 requiredGasLimit: 100000,
@@ -51,74 +51,11 @@ The key things to understand:
 
 - **Importing ITeleporterMessenger (Line 8):** We are importing the `ITeleporterMessenger` Interface we looked at in the previous activity.
 - **Defining teleporterMessenger contract (Line 12):** We are defining a `teleporterMessenger` contract using the imported interface. It is important to note, that our cross-chain dApp is not implementing the interface itself, but initializes a contract using that interface.
-- **Sending the message (Line 21):** We are sending the message by calling the function of our `teleporterMessenger`. As an input we are defining a `TeleporterMessageInput`. Make sure to replace the `destinationChainId` with the one of your Blockchain. We will need to provide the address of the receiving contract on the Avalanche L1 as a parameter to the function, since we have not deployed it yet and don't know the address at this time.   
+- **Sending the message (Line 21):** We are sending the message by calling the function of our `teleporterMessenger`. As an input we are defining a `TeleporterMessageInput`. The `destinationChainId` should be set to the Dispatch test L1's blockchain ID. We will need to provide the address of the receiving contract on the Dispatch test L1 as a parameter to the function, since we have not deployed it yet and don't know the address at this time.   
 - **No fees (Line 25):** In this exercise we are not providing any fees to the relayer for relaying the message. This is only possible since the relayer we are running here is configured to pick up any message even if it does not provide any rewards.
 - **Encoding the Message (Line 31):** The `TeleporterMessageInput` defines a message as an array of bytes. For now we will just simply encode the string with `abi.encode()`. In the future activities, you will see how we can encode multiple values of any type in that message.
+- **Hardcoded destinationBlockchainId:** For this course, we are using Dispatch, but normally you will have to replace the `destinationBlockchainID` with whatever chain you want to send a message to.
 
-</Step>
-<Step>
-
-### Get destinationBlockchainID
-
-To get the blockchainID on our Avalanche L1 let's use the Avalanche-CLI built in feature with the command:
-
-``` bash
-avalanche blockchain describe myblockchain
-```
-
-In the output you will find the blockchain details:
- 
-```
-+---------------------------------------------------------------------------------------------------------------+
-|                                                  MYBLOCKCHAIN                                                 |
-+---------------+-----------------------------------------------------------------------------------------------+
-| Name          | myblockchain                                                                                  |
-+---------------+-----------------------------------------------------------------------------------------------+
-| VM ID         | qDNV9vtxZYYNqm7TN1mYBuaaknLdefDbFK8bFmMLTJQJKaWjV                                             |
-+---------------+-----------------------------------------------------------------------------------------------+
-| VM Version    | v0.6.9                                                                                        |
-+---------------+--------------------------+--------------------------------------------------------------------+
-| Local Network | ChainID                  | 1                                                                  |
-|               +--------------------------+--------------------------------------------------------------------+
-|               | SubnetID                 | 2AKbBT8jFUfUsUJ2hhRiDUnAAajJdNhTKeNgEe3q77spMj1N8F                 |
-|               +--------------------------+--------------------------------------------------------------------+
-|               | Owners (Threhold=1)      | P-custom18jma8ppw3nhx5r4ap8clazz0dps7rv5u9xde7p                    |
-|               +--------------------------+--------------------------------------------------------------------+
-|               | BlockchainID (CB58)      | krN11ZE6BNgenbX71Wu3YWv2SS5C3p9pD3WLkkRLVhuETGNJb                  |
-|               +--------------------------+--------------------------------------------------------------------+
-|               | BlockchainID (HEX)       | 0x6391b85bafc78f1b10aec35695c2399c2fb7fff9f3b18ea903f77345e9e96e3e | // [!code highlight]
-+---------------+--------------------------+--------------------------------------------------------------------+
-```
-
-</Step>
-<Step>
-
-### Replace `destinationBlockchainID`
-
-Replace the destinationBlockchainID in `senderOnCChain.sol` with `BlockchainID (HEX)`
-
-```solidity
-contract SenderOnCChain {
-    ITeleporterMessenger public immutable messenger = ITeleporterMessenger(0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf);
-
-    /**
-     * @dev Sends a message to another chain.
-     */
-    function sendMessage(address destinationAddress, string calldata message) external {
-        messenger.sendCrossChainMessage(
-            TeleporterMessageInput({
-                // Replace with blockchainID of your L1 (see instructions in Readme)
-                destinationBlockchainID: 0x6391b85bafc78f1b10aec35695c2399c2fb7fff9f3b18ea903f77345e9e96e3e, // [!code highlight]
-                destinationAddress: destinationAddress,
-                feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
-                requiredGasLimit: 100000,
-                allowedRelayerAddresses: new address[](0),
-                message: abi.encode(message)
-            })
-        );
-    }
-}
-```
 </Step>
 <Step>
 
@@ -127,15 +64,15 @@ contract SenderOnCChain {
 To deploy a contract using Foundry use the following command:
 
 ```bash
-forge create --rpc-url local-c --private-key $PK contracts/interchain-messaging/send-receive/senderOnCChain.sol:SenderOnCChain --broadcast
+forge create --rpc-url fuji-c --private-key $PK contracts/interchain-messaging/send-receive/senderOnCChain.sol:SenderOnCChain --broadcast
 ```
 ```
 [⠊] Compiling...
 [⠒] Compiling 2 files with Solc 0.8.18
 [⠢] Solc 0.8.18 finished in 81.53ms
 Compiler run successful!
-Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-Deployed to: 0x5DB9A7629912EBF95876228C24A848de0bfB43A9 // [!code highlight]
+Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC // [$FUNDED_ADDRESS]
+Deployed to: 0x5DB9A7629912EBF95876228C24A848de0bfB43A9 // [$SENDER_ADDRESS]
 Transaction hash: 0xcde7873e9e3c68fb00a2ad6644dceb64a01a41941da46de5a0f559d6d70a1638
 ```
 </Step>
@@ -146,7 +83,7 @@ Transaction hash: 0xcde7873e9e3c68fb00a2ad6644dceb64a01a41941da46de5a0f559d6d70a
 Then save the sender contract address in an environment variable:
 
 ```bash
-export SENDER_ADDRESS=0x5DB9A7629912EBF95876228C24A848de0bfB43A9
+export SENDER_ADDRESS={your-sender-address}
 ```
 
 </Step>

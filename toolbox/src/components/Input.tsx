@@ -103,8 +103,14 @@ export function Input({
           </div>
         )}
 
+        {error ? (
+          <p className="text-xs text-red-500 mt-1">{error}</p>
+        ) : helperText ? (
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{helperText}</p>
+        ) : null}
+
         {suggestions && suggestions.length > 0 && (<>
-          <div className="text-xs mt-2">Suggestions:</div>
+          <div className="text-xs my-2">Suggestions:</div>
           <div className="z-50 mt-1 w-full bg-white dark:bg-zinc-800 rounded-md border border-zinc-200 dark:border-zinc-700 max-h-60 overflow-auto">
             <div className="py-1">
               {suggestions.map((suggestion, index) => (
@@ -121,12 +127,6 @@ export function Input({
           </div>
         </>)}
       </div>
-
-      {error ? (
-        <p className="text-xs text-red-500 mt-1">{error}</p>
-      ) : helperText ? (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{helperText}</p>
-      ) : null}
     </div>
   )
 }

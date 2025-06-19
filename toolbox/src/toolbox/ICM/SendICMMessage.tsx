@@ -1,7 +1,7 @@
 "use client";
 
-import { useToolboxStore, useViemChainStore, useSelectedL1, getToolboxStore, useL1ByChainId } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useToolboxStore, useViemChainStore, getToolboxStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useMemo } from "react";
 import { Button } from "../../components/Button";
@@ -10,12 +10,18 @@ import { createPublicClient, http } from 'viem';
 import ICMDemoABI from "../../../contracts/example-contracts/compiled/ICMDemo.json";
 import { utils } from "@avalabs/avalanchejs";
 import { Input } from "../../components/Input";
-import { Container } from "../components/Container";
-import SelectChainID from "../components/SelectChainID";
+import { Container } from "../../components/Container";
+import SelectChainID from "../../components/SelectChainID";
+import { useL1ByChainId, useSelectedL1 } from "../../stores/l1ListStore";
+import { useEffect } from "react";
+const predeployedDemos: Record<string, string> = {
+    //fuji
+    "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp": "0x05c474824e7d2cc67cf22b456f7cf60c0e3a1289"
+}
 
 export default function SendICMMessage() {
     const { showBoundary } = useErrorBoundary();
-    const { icmReceiverAddress } = useToolboxStore();
+    const { icmReceiverAddress, setIcmReceiverAddress } = useToolboxStore();
     const { coreWalletClient } = useWalletStore();
     const selectedL1 = useSelectedL1()();
     const [message, setMessage] = useState(Math.floor(Math.random() * 10000));
@@ -53,6 +59,16 @@ export default function SendICMMessage() {
             return undefined;
         }
     }, [targetL1?.id]);
+
+    useEffect(() => {
+        if (predeployedDemos[destinationChainId] && !icmReceiverAddress) {
+            setIcmReceiverAddress(predeployedDemos[destinationChainId]);
+        }
+
+        if (predeployedDemos[destinationChainId] && !targetToolboxStore.icmReceiverAddress) {
+            targetToolboxStore.setIcmReceiverAddress(predeployedDemos[destinationChainId]);
+        }
+    }, [destinationChainId]);
 
     async function handleSendMessage() {
         if (!icmReceiverAddress || !targetToolboxStore.icmReceiverAddress || !destinationBlockchainIDHex || !viemChain || !coreWalletClient) {

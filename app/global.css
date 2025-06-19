@@ -20,6 +20,11 @@
   )::marker {
   color: #e84142;
 }
+
+div.group\/accordion h3  {
+  margin-top: 0 !important;
+}
+
 /* .light .prose :where(a:not([data-card])):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
   color: #18181B; 
 }

@@ -13,7 +13,7 @@ The receiver contract now has two tasks:
 
 Therefore, we need to change the receiver contract to be able to send a message back. We will need to instantiate a `TeleporterMessenger` and call the `sendCrossChainMessage()` function. 
 
-```solidity title="contracts/interchain-messaging/send-roundtrip/receiverOnSubnet.sol"
+```solidity title="contracts/interchain-messaging/send-roundtrip/receiverOnDispatch.sol"
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
@@ -24,14 +24,14 @@ pragma solidity ^0.8.18;
 import "@teleporter/ITeleporterMessenger.sol"; // [!code highlight]
 import "@teleporter/ITeleporterReceiver.sol";
 
-contract ReceiverOnSubnet is ITeleporterReceiver {
+contract ReceiverOnDispatch is ITeleporterReceiver {
     ITeleporterMessenger public immutable messenger = ITeleporterMessenger(0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf); // [!code highlight]
 
     function receiveTeleporterMessage(bytes32 sourceBlockchainID, address originSenderAddress, bytes calldata message)
         external
     {
         // Only the Interchain Messaging receiver can deliver a message.
-        require(msg.sender == address(messenger), "ReceiverOnSubnet: unauthorized TeleporterMessenger");
+        require(msg.sender == address(messenger), "ReceiverOnDispatch: unauthorized TeleporterMessenger");
 
         // Send Roundtrip message back to sender
         string memory response = string.concat(abi.decode(message, (string)), " World!");

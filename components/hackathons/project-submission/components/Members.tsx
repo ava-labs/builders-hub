@@ -250,8 +250,7 @@ export default function MembersComponent({
                   Invite Member
                 </DialogTitle>
                 <DialogDescription className="text-sm text-zinc-400 mt-0 pt-0">
-                  Enter the email addresses of the persons you want to invite to
-                  your team.
+                  Enter the email addresses of the persons you want to invite to your team and then press <strong>Enter</strong>. When you've added all emails, click on <strong>Send Invitation</strong>.
                 </DialogDescription>
               </DialogHeader>
               <Card className="border border-red-500 dark:bg-zinc-800 rounded-md">

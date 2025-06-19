@@ -1,0 +1,205 @@
+---
+title: Transaction Fees & Validator Rewards
+description: Configure fee parameters and reward mechanisms for your Avalanche L1 blockchain.
+---
+
+## Overview
+
+The Subnet-EVM provides two powerful precompiles for managing transaction fees and rewards:
+
+- **Fee Manager**: Configure dynamic fee parameters and gas costs
+- **Reward Manager**: Control how transaction fees are distributed or burned
+
+Both precompiles use the [AllowList interface](/docs/avalanche-l1s/allowlist) to restrict access to their functionality.
+
+## Fee Manager
+
+### Purpose
+The Fee Manager allows you to configure the parameters of the dynamic fee algorithm on-chain. This gives you control over:
+
+- Gas limits and target block rates
+- Base fee parameters
+- Block gas cost parameters
+
+### Configuration
+Located at address `0x0200000000000000000000000000000000000003`, you can activate this precompile in your genesis file:
+
+```json
+{
+  "config": {
+    "feeManagerConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"],
+      "initialFeeConfig": {
+        "gasLimit": 20000000,
+        "targetBlockRate": 2,
+        "minBaseFee": 1000000000,
+        "targetGas": 100000000,
+        "baseFeeChangeDenominator": 48,
+        "minBlockGasCost": 0,
+        "maxBlockGasCost": 10000000,
+        "blockGasCostStep": 500000
+      }
+    }
+  }
+}
+```
+
+### Fee Parameters
+
+The Fee Manager allows configuration of the following parameters:
+
+| Parameter | Description | Recommended Range |
+|-----------|-------------|------------------|
+| gasLimit | Maximum gas allowed per block | 8M - 100M |
+| targetBlockRate | Target time between blocks (seconds) | 2 - 10 |
+| minBaseFee | Minimum base fee (in wei) | 25 - 500 gwei |
+| targetGas | Target gas usage per block | 5M - 50M |
+| baseFeeChangeDenominator | Controls how quickly base fee changes | 8 - 1000 |
+| minBlockGasCost | Minimum gas cost for a block | 0 - 1B |
+| maxBlockGasCost | Maximum gas cost for a block | > minBlockGasCost |
+| blockGasCostStep | How quickly block gas cost changes | < 5M |
+
+### Access Control and Additional Features
+
+The FeeManager precompile uses the [AllowList interface](/docs/avalanche-l1s/allowlist) to restrict access to its functionality.
+
+In addition to the AllowList interface, the FeeManager adds the following capabilities:
+
+- `getFeeConfig`: retrieves the current dynamic fee config
+- `getFeeConfigLastChangedAt`: retrieves the timestamp of the last block where the fee config was updated
+- `setFeeConfig`: sets the dynamic fee config on chain. This function can only be called by an Admin, Manager or Enabled address.
+- `FeeConfigChanged`: an event that is emitted when the fee config is updated. Topics include the sender, the old fee config, and the new fee config.
+
+You can also get the fee configuration at a block with the `eth_feeConfig` RPC method. For more information see [here](/docs/api-reference/subnet-evm-api#eth_feeconfig).
+
+## Reward Manager
+
+### Purpose
+The Reward Manager allows you to control how transaction fees are handled in your network. You can:
+
+- Send fees to a specific address (e.g., treasury)
+- Allow validators to collect fees
+- Burn fees entirely
+
+### Configuration
+Located at address `0x0200000000000000000000000000000000000004`, you can activate this precompile in your genesis file:
+
+```json
+{
+  "config": {
+    "rewardManagerConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"],
+      "initialRewardConfig": {
+        // Choose one of:
+        "allowFeeRecipients": true,  // Allow validators to collect fees
+        "rewardAddress": "0x...",    // Send fees to specific address
+        // Empty config = burn fees
+      }
+    }
+  }
+}
+```
+
+### Reward Mechanisms
+
+The Reward Manager supports three mutually exclusive mechanisms:
+
+1. **Validator Fee Collection** (`allowFeeRecipients`)
+   - Validators can specify their own fee recipient addresses
+   - Fees go to the block producer's chosen address
+   - Good for incentivizing network participation
+
+2. **Fixed Reward Address** (`rewardAddress`)
+   - All fees go to a single specified address
+   - Can be a contract or EOA
+   - Useful for treasury or DAO-controlled fee collection
+
+3. **Fee Burning** (default)
+   - All transaction fees are burned
+   - Reduces total token supply over time
+   - Similar to Ethereum's EIP-1559
+
+## Implementation
+
+### Fee Manager Interface
+
+```solidity
+interface IFeeManager {
+  struct FeeConfig {
+    uint256 gasLimit;
+    uint256 targetBlockRate;
+    uint256 minBaseFee;
+    uint256 targetGas;
+    uint256 baseFeeChangeDenominator;
+    uint256 minBlockGasCost;
+    uint256 maxBlockGasCost;
+    uint256 blockGasCostStep;
+  }
+  
+  event FeeConfigChanged(address indexed sender, FeeConfig oldFeeConfig, FeeConfig newFeeConfig);
+
+  function setFeeConfig(
+    uint256 gasLimit,
+    uint256 targetBlockRate,
+    uint256 minBaseFee,
+    uint256 targetGas,
+    uint256 baseFeeChangeDenominator,
+    uint256 minBlockGasCost,
+    uint256 maxBlockGasCost,
+    uint256 blockGasCostStep
+  ) external;
+
+  function getFeeConfig() external view returns (
+    uint256 gasLimit,
+    uint256 targetBlockRate,
+    uint256 minBaseFee,
+    uint256 targetGas,
+    uint256 baseFeeChangeDenominator,
+    uint256 minBlockGasCost,
+    uint256 maxBlockGasCost,
+    uint256 blockGasCostStep
+  );
+
+  function getFeeConfigLastChangedAt() external view returns (uint256 blockNumber);
+}
+```
+
+### Reward Manager Interface
+
+```solidity
+interface IRewardManager {
+  event RewardAddressChanged(
+    address indexed sender,
+    address indexed oldRewardAddress,
+    address indexed newRewardAddress
+  );
+  event FeeRecipientsAllowed(address indexed sender);
+  event RewardsDisabled(address indexed sender);
+
+  function setRewardAddress(address addr) external;
+  function allowFeeRecipients() external;
+  function disableRewards() external;
+  function currentRewardAddress() external view returns (address rewardAddress);
+  function areFeeRecipientsAllowed() external view returns (bool isAllowed);
+}
+```
+
+## Best Practices
+
+1. **Reward Management**:
+   - Choose reward mechanism based on network goals
+   - Consider using a multi-sig or DAO as reward address
+   - Monitor fee collection and distribution
+   - Keep documentation of fee policy changes
+
+2. **Security Considerations**:
+   - Use multi-sig for admin addresses
+   - Test fee changes on testnet first
+   - Monitor events for unauthorized changes
+   - Have a plan for fee parameter adjustments
+
+You can find the implementations in the subnet-evm repository:
+- [Fee Manager](https://github.com/ava-labs/subnet-evm/blob/master/precompile/contracts/feemanager/contract.go)
+- [Reward Manager](https://github.com/ava-labs/subnet-evm/blob/master/precompile/contracts/rewardmanager/contract.go) 

@@ -5,37 +5,44 @@ updated: 2024-05-31
 authors: [owenwahlgren]
 icon: Book
 ---
-
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 <Steps>
 <Step>
 
-### Transfer the Token Cross-chain with a Multi-hop Transfer
+### Transfer the Token Cross-chain
 
-Now that all the bridge contracts have been deployed and configured, send the ERC-20 token from `myblockchain` to `myblockchain2` with the [`cast send`](https://book.getfoundry.sh/reference/cast/cast-send) foundry command.
+Now that all the bridge contracts have been deployed and registered, you can transfer tokens between chains using our toolbox:
 
-The token will be routed through the Avalanche C-Chain and then to `myblockchain2`.
+<Callout>
+Make sure you have:
+1. Deployed your ERC-20 token (from [Deploy ERC-20 Token](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/02-deploy-erc-20-token))
+2. Deployed your ERC20Home contract (from [Deploy Home](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/03-deploy-home))
+3. Deployed your ERC20TokenRemote contract (from [Deploy Remote](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/04-deploy-remote))
+4. Registered your remote bridge with the home bridge (from [Register Remote](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/05-register-remote))
+5. Have enough ERC-20 tokens on the _R<sub>a</sub>_ chain: `Echo` (you can transfer tokens from the _H_ chain to the _R<sub>a</sub>_ chain first) (from [Transfer Tokens](/academy/interchain-token-transfer/06-erc-20-to-erc-20-bridge/06-transfer-tokens))
+6. Have enough test ECH for gas fees
+</Callout>
 
-```bash
-cast send --rpc-url myblockchain --private-key $PK $ERC20_TOKEN_REMOTE_L1 \
-"send((bytes32, address, address, address, uint256, uint256, uint256, address), uint256)" \
-"(${SOURCE_BLOCKCHAIN2_ID_HEX}, ${ERC20_TOKEN_REMOTE_CHAIN2}, ${FUNDED_ADDRESS}, ${ERC20_C_CHAIN}, 0, 0, 250000, ${FUNDED_ADDRESS})" 500000000000000
-```
+<ToolboxMdxWrapper enforceChainId={173750}>
+    <TestSend />
+</ToolboxMdxWrapper>
 
 </Step>
+
 <Step>
 
-### Check Balance
+### Verify the Transfer
 
-To confirm the token was bridged from `myblockchain1` to `myblockchain2` via the C-Chain, we will check the recipient's balance on `myblockchain2` with the [`cast call`](https://book.getfoundry.sh/reference/cast/cast-call?highlight=cast%20call#cast-call) foundry command:
+After initiating the transfer, you can verify it was successful by:
 
-```bash
-cast call --rpc-url myblockchain2 $ERC20_TOKEN_REMOTE_CHAIN2 "balanceOf(address)(uint)" $FUNDED_ADDRESS
-```
+1. Checking the transaction status in the toolbox
+2. Checking the transaction status in Core Wallet
+3. Viewing the transaction details on the [Fuji Explorer](https://testnet.snowtrace.io)
+4. Checking your token balance in Core Wallet on the destination chain
 
-```bash
-500000000000000 [5e14]
-```
+<Callout title="Note" type="info">
+The transfer process may take a few moments to complete as it involves cross-chain communication. You can track the progress through the transaction hash.
+</Callout>
 </Step>
 </Steps> 
