@@ -88,17 +88,14 @@ export default function Grow() {
                 "hover:-translate-y-2",
                 /* Dark mode - refined glass morphism */
                 "dark:bg-[rgba(15,15,15,0.7)] dark:backdrop-filter dark:backdrop-blur-[20px]",
-                "dark:border-[rgba(255,255,255,0.08)] dark:hover:border-[rgba(255,255,255,0.15)]",
+                "dark:border-transparent dark:hover:border-transparent",
                 "dark:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5),0_10px_10px_-5px_rgba(0,0,0,0.3)]",
                 "dark:hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.6),0_15px_20px_-5px_rgba(0,0,0,0.4)]",
                 "dark:hover:-translate-y-2 dark:hover:scale-[1.02]",
                 // Professional grid borders for middle columns
-                (index === 1 || index === 4) && "lg:border-x-0 lg:border-l lg:border-r dark:lg:border-l-[rgba(255,255,255,0.08)] dark:lg:border-r-[rgba(255,255,255,0.08)]",
+                (index === 1 || index === 4) && "lg:border-x-0 lg:border-l lg:border-r dark:lg:border-l-transparent dark:lg:border-r-transparent",
               )}
             >
-              {/* Premium hover glow */}
-              <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-green-500/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
-              
               <div className="relative z-10 p-8 lg:p-10 h-full min-h-[280px] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-6">
