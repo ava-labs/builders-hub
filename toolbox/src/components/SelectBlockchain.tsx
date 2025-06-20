@@ -115,7 +115,7 @@ export default function SelectBlockchain({
             />
 
             {/* Display blockchain details when a blockchain is selected */}
-            {value && <BlockchainDetailsDisplay type="blockchain" data={currentBlockchain} isLoading={!!isLoadingCurrent} />}
+            {value && <BlockchainDetailsDisplay blockchain={currentBlockchain} isLoading={!!isLoadingCurrent} />}
         </div>
     );
 } 

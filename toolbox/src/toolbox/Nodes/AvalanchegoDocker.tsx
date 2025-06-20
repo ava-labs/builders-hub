@@ -21,6 +21,7 @@ import { nipify, HostInput } from "../../components/HostInput";
 import { DockerInstallation } from "../../components/DockerInstallation";
 import { NodeReadinessValidator } from "../../components/NodeReadinessValidator";
 import { HealthCheckButton } from "../../components/HealthCheckButton";
+import InputSubnetId from "../../components/InputSubnetId";
 
 // Standard subnet-evm VM ID
 export const SUBNET_EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy";
@@ -283,11 +284,15 @@ export default function AvalanchegoDocker() {
                             onChange={setChainId}
                             error={subnetIdError}
                         />
+                        <InputSubnetId
+                            value={subnetId}
+                            onChange={setSubnetId}
+                            readOnly={true}
+                        />
 
                         {/* Show subnet details if available */}
                         <BlockchainDetailsDisplay
-                            type="subnet"
-                            data={subnet}
+                            subnet={subnet}
                             isLoading={isLoading}
                         />
                     </Step>

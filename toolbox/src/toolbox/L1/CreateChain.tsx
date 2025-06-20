@@ -54,6 +54,7 @@ export default function CreateChain() {
         setSubnetID(newSubnetId);
     };
 
+
     async function handleCreateSubnet() {
         setIsCreatingSubnet(true);
 
@@ -144,6 +145,9 @@ export default function CreateChain() {
                         label="Subnet ID"
                         value={subnetId}
                         onChange={handleSubnetIdChange}
+                        validationDelayMs={3000}
+                        hideSuggestions={true}
+                        placeholder="Create a Subnet in Step 1 or enter a SubnetID."
                     />
 
                     <Input

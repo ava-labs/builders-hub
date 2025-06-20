@@ -8,16 +8,20 @@ import { utils } from "@avalabs/avalanchejs";
 import { useAvaCloudSDK } from "../stores/useAvaCloudSDK";
 
 // Primary network subnet ID
-const PRIMARY_NETWORK_SUBNET_ID = "11111111111111111111111111111111LpoYY";
+export const PRIMARY_NETWORK_SUBNET_ID = "11111111111111111111111111111111LpoYY";
 
 export default function InputSubnetId({
     value,
     onChange,
     error,
     label = "Subnet ID",
-    hidePrimaryNetwork = false,
+    hidePrimaryNetwork = true,
     helperText,
-    id
+    id,
+    validationDelayMs = 500,
+    readOnly = false,
+    hideSuggestions = false,
+    placeholder
 }: {
     value: string,
     onChange: (value: string) => void,
@@ -26,6 +30,10 @@ export default function InputSubnetId({
     hidePrimaryNetwork?: boolean
     helperText?: string | null
     id?: string
+    validationDelayMs?: number
+    readOnly?: boolean
+    hideSuggestions?: boolean
+    placeholder?: string
 }) {
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const { l1List } = useL1ListStore()();
@@ -78,10 +86,10 @@ export default function InputSubnetId({
             } else {
                 setValidationError(null);
             }
-        }, 500); // Debounce validation
+        }, validationDelayMs); // Wait for subnet to be available before validation
 
         return () => clearTimeout(timeoutId);
-    }, [value, validateSubnetId]);
+    }, [value, validateSubnetId, validationDelayMs]);
 
     const subnetIdSuggestions: Suggestion[] = useMemo(() => {
         const result: Suggestion[] = [];
@@ -128,10 +136,15 @@ export default function InputSubnetId({
             label={label}
             value={value}
             onChange={onChange}
-            suggestions={subnetIdSuggestions}
+            suggestions={readOnly || hideSuggestions ? [] : subnetIdSuggestions}
             error={combinedError}
             helperText={helperText}
-            placeholder="Enter subnet ID"
+            placeholder={
+                readOnly
+                    ? "Automatically filled from Blockchain ID"
+                    : placeholder || "Enter subnet ID"
+            }
+            disabled={readOnly}
         />
     );
 } 

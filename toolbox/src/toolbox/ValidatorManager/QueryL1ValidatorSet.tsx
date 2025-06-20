@@ -9,9 +9,11 @@ import { networkIDs } from "@avalabs/avalanchejs"
 import { GlobalParamNetwork, L1ValidatorDetailsFull } from "@avalabs/avacloud-sdk/models/components"
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
 import SelectSubnetId from "../../components/SelectSubnetId"
+import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay"
 import { Tooltip } from "../../components/Tooltip"
 import { formatAvaxBalance } from "../../coreViem/utils/format"
 import { cb58ToHex } from "../Conversion/FormatConverter"
+import { getSubnetInfo } from "../../coreViem/utils/glacier"
 
 export default function QueryL1ValidatorSet() {
   const { avalancheNetworkID, isTestnet } = useWalletStore()
@@ -22,6 +24,9 @@ export default function QueryL1ValidatorSet() {
   const [selectedValidator, setSelectedValidator] = useState<L1ValidatorDetailsFull | null>(null)
   const [copiedNodeId, setCopiedNodeId] = useState<string | null>(null)
   const [subnetId, setSubnetId] = useState<string>("")
+  const [subnet, setSubnet] = useState<any>(null)
+  const [isLoadingSubnet, setIsLoadingSubnet] = useState(false)
+  const [subnetError, setSubnetError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState<string>("")
 
   // Network names for display
@@ -30,8 +35,40 @@ export default function QueryL1ValidatorSet() {
     [networkIDs.FujiID]: "fuji",
   }
 
+  // Fetch subnet details when subnet ID changes
+  useEffect(() => {
+    if (!subnetId) {
+      setSubnet(null)
+      setSubnetError(null)
+      return
+    }
+
+    setIsLoadingSubnet(true)
+    setSubnetError(null)
+    getSubnetInfo(subnetId)
+      .then((subnetInfo) => {
+        setSubnet(subnetInfo)
+        setSubnetError(null)
+      })
+      .catch((error) => {
+        console.error('Error getting subnet info:', error)
+        setSubnet(null)
+        setSubnetError((error as Error).message)
+      })
+      .finally(() => {
+        setIsLoadingSubnet(false)
+      })
+  }, [subnetId])
+
   const fetchValidators = async () => {
     if (!subnetId) return
+
+    // Check if there are subnet validation errors
+    if (subnetError) {
+      setError(`Invalid subnet: ${subnetError}`)
+      return
+    }
+
     setIsLoading(true)
     setError(null)
     setSelectedValidator(null)
@@ -137,10 +174,16 @@ export default function QueryL1ValidatorSet() {
             </p>
           </div>
 
+          {/* Show subnet details if available */}
+          <BlockchainDetailsDisplay
+            subnet={subnet}
+            isLoading={isLoadingSubnet}
+          />
+
           <Button
             onClick={() => fetchValidators()}
-            disabled={isLoading || !subnetId.trim()}
-            className={`w-full py-2 px-4 rounded-md text-sm font-medium flex items-center justify-center ${isLoading || !subnetId.trim()
+            disabled={isLoading || !subnetId.trim() || !!subnetError || isLoadingSubnet}
+            className={`w-full py-2 px-4 rounded-md text-sm font-medium flex items-center justify-center ${isLoading || !subnetId.trim() || !!subnetError || isLoadingSubnet
               ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
               : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm hover:shadow transition-all duration-200"
               }`}
@@ -149,6 +192,11 @@ export default function QueryL1ValidatorSet() {
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                 Fetching...
+              </>
+            ) : isLoadingSubnet ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Validating...
               </>
             ) : (
               "Fetch Validators"

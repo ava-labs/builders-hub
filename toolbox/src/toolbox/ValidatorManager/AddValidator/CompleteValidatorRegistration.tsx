@@ -162,6 +162,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
       // Step 5: Create P-Chain warp signature using the L1ValidatorRegistrationMessage
       const signature = await aggregateSignature({
         message: bytesToHex(l1ValidatorRegistrationMessage),
+        justification: bytesToHex(justification),
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });

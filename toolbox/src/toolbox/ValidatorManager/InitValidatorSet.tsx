@@ -26,7 +26,7 @@ export default function InitValidatorSet() {
     const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
     const viemChain = useViemChainStore();
     const { coreWalletClient, publicClient } = useWalletStore();
-    const { sdk } = useAvaCloudSDK();
+    const { aggregateSignature } = useAvaCloudSDK();
     const [isInitializing, setIsInitializing] = useState(false);
     const [txHash, setTxHash] = useState<string | null>(null);
     const [simulationWentThrough, _] = useState(false);
@@ -44,18 +44,11 @@ export default function InitValidatorSet() {
         try {
             const { message, justification, signingSubnetId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
 
-            // Use getNetworkName from wallet store to determine network from networkId
-            const { getNetworkName } = useWalletStore();
-            const networkName = getNetworkName();
-
-            const { signedMessage } = await sdk.data.signatureAggregator.aggregate({
-                network: networkName,
-                signatureAggregatorRequest: {
-                    message: message,
-                    justification: justification,
-                    signingSubnetId: signingSubnetId,
-                    quorumPercentage: 67,
-                }
+            const { signedMessage } = await aggregateSignature({
+                message: message,
+                justification: justification,
+                signingSubnetId: signingSubnetId,
+                quorumPercentage: 67,
             });
             setL1ConversionSignature(signedMessage);
         } catch (error) {
