@@ -162,6 +162,10 @@ const config = {
         source: '/docs/virtual-machines/evm-customization/testing-your-precompile',
         destination: '/docs/virtual-machines/custom-precompiles/test-precompile',
         permanent: true,
+      }, {
+        source: '/docs/nodes/run-a-node/manually#hardware-and-os-requirements',
+        destination: '/docs/nodes/system-requirements#hardware-and-operating-systems',
+        permanent: true,
       },
     ];
   },
