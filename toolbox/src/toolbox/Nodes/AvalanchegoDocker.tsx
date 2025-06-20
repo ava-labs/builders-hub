@@ -342,9 +342,15 @@ export default function AvalanchegoDocker() {
                                     <DynamicCodeBlock lang="bash" code={generateVMAliasesCommand(blockchainInfo.vmId)} />
 
                                     <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
-                                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                        <p className="text-sm">
                                             <strong>Note:</strong> This creates an alias mapping that allows the custom VM ({blockchainInfo.vmId}) to use the subnet-evm runtime.
                                             This is necessary for custom VMs that are compatible with the EVM but have different VM IDs.
+                                        </p>
+                                    </div>
+
+                                    <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                                        <p className="text-sm">
+                                            <strong>Warning:</strong> If you have created your own customized version of subnetEVM, you will not be able to follow this guide since it will install the standard subnetEVM software.
                                         </p>
                                     </div>
                                 </Step>
