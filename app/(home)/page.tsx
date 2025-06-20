@@ -10,7 +10,7 @@ export default function HomePage(): React.ReactElement {
     <>
       <HeroBackground />
       <Hero />
-      <main className="container relative max-w-[1100px] px-2 py-4 lg:py-16 bg-white/5 dark:bg-slate-900/10 backdrop-blur-sm border border-white/10 dark:border-slate-700/20 rounded-3xl">
+      <main className="container relative max-w-[1100px] px-2 py-4 lg:py-16">
           <Features />
           <Development />
           <Grow />

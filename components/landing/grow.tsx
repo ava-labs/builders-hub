@@ -64,83 +64,87 @@ const grow = [
 
 export default function Grow() {
   return (
-    <div className="flex flex-col justify-center items-center px-4 mb-16" id="grow">
-      <div className="flex items-center justify-center gap-3 mb-2">
+    <div className="flex flex-col justify-center items-center px-4 mb-20" id="grow">
+      <div className="flex items-center justify-center gap-3 mb-4">
         <h2 className="font-display text-3xl tracking-tight sm:text-5xl text-center font-bold
-          /* Light mode - clean */
-          text-gray-900
-          /* Dark mode - subtle premium */
-          dark:text-white dark:drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+          text-gray-900 dark:text-white">
           🌱 Grow
         </h2>
       </div>
       
-      <div className="mt-10 mx-auto font-geist relative">
-        <div className="w-full md:mx-0">
-          <div className="grid grid-cols-1 relative md:grid-rows-2 md:grid-cols-3 gap-4 md:gap-0">
-            {grow.map((item, index) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={cn(
-                  "group block relative transform-gpu transition-all duration-300 ease-in-out",
-                  /* Light mode - subtle sketch style */
-                  "border-2 border-gray-300 bg-white hover:bg-gray-50 hover:border-gray-500",
-                  "shadow-[1px_1px_rgba(0,0,0,0.1)] hover:shadow-[2px_2px_rgba(0,0,0,0.15)]",
-                  "hover:translate-x-[-1px] hover:translate-y-[-1px]",
-                  /* Dark mode - clean premium */
-                  "dark:border-slate-700 dark:bg-slate-900/50 dark:backdrop-blur-sm",
-                  "dark:hover:border-slate-600 dark:hover:bg-slate-800/60",
-                  "dark:shadow-[0_0_20px_rgba(59,130,246,0.05)]",
-                  "dark:hover:shadow-[0_0_30px_rgba(59,130,246,0.1)]",
-                  // Handle middle column borders for both rows
-                  (index === 1 || index === 4) && "md:border-x-0 md:border-l-2 md:border-r-2 dark:md:border-l-slate-700 dark:md:border-r-slate-700"
-                )}
-              >
-                <div className="flex flex-col p-10 h-full md:min-h-[240px] relative">
-                  <div className="flex items-center gap-2 my-1">
-                    <item.icon className="w-4 h-4 transition-transform group-hover:scale-110 
-                      text-gray-600 group-hover:text-gray-800
-                      dark:text-slate-400 dark:group-hover:text-slate-200" />
-                    <p className="text-gray-600 dark:text-slate-400 transition-colors">
-                      {item.label}
-                    </p>
+      <div className="mt-12 mx-auto font-geist relative max-w-7xl w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-0">
+          {grow.map((item, index) => (
+            <Link
+              key={item.id}
+              href={item.href}
+              className={cn(
+                "group block relative overflow-hidden",
+                "transition-all duration-400 cubic-bezier(0.4, 0, 0.2, 1)",
+                /* Light mode - clean professional */
+                "bg-white border border-gray-200/60 hover:border-gray-300/80",
+                "shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)]",
+                "hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.15),0_10px_15px_-5px_rgba(0,0,0,0.08)]",
+                "hover:-translate-y-2",
+                /* Dark mode - refined glass morphism */
+                "dark:bg-[rgba(15,15,15,0.7)] dark:backdrop-filter dark:backdrop-blur-[20px]",
+                "dark:border-[rgba(255,255,255,0.08)] dark:hover:border-[rgba(255,255,255,0.15)]",
+                "dark:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5),0_10px_10px_-5px_rgba(0,0,0,0.3)]",
+                "dark:hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.6),0_15px_20px_-5px_rgba(0,0,0,0.4)]",
+                "dark:hover:-translate-y-2 dark:hover:scale-[1.02]",
+                // Professional grid borders for middle columns
+                (index === 1 || index === 4) && "lg:border-x-0 lg:border-l lg:border-r dark:lg:border-l-[rgba(255,255,255,0.08)] dark:lg:border-r-[rgba(255,255,255,0.08)]",
+              )}
+            >
+              {/* Premium hover glow */}
+              <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-green-500/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
+              
+              <div className="relative z-10 p-8 lg:p-10 h-full min-h-[280px] flex flex-col">
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 rounded-xl bg-gray-100/80 dark:bg-[rgba(255,255,255,0.06)] 
+                                  backdrop-filter backdrop-blur-sm
+                                  transition-all duration-300 group-hover:bg-gray-200/80 dark:group-hover:bg-[rgba(255,255,255,0.12)]
+                                  shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+                    <item.icon className="w-6 h-6 text-gray-700 dark:text-slate-200 transition-transform duration-300 group-hover:scale-110" />
                   </div>
-                  
-                  <div className="mt-2">
-                    <div className="max-w-full">
-                      <div className="flex gap-3">
-                        <p
-                          className="max-w-lg text-xl font-normal tracking-tighter md:text-2xl
-                            text-gray-900 dark:text-white"
-                          dangerouslySetInnerHTML={{
-                            __html: item.title,
-                          }}
-                        />
-                      </div>
-                    </div>
-                    
-                    <p className="mt-2 text-sm text-left text-gray-600 dark:text-slate-300">
-                      {item.description}
-                    </p>
-                  </div>
-                  
-                  <div className="text-gray-700 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-white mt-4 inline-flex items-center transition-colors">
-                    Explore
-                    <svg
-                      className="w-4 h-4 ml-1 transform transition-transform group-hover:translate-x-1"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
+                  <span className="text-sm font-medium text-gray-600 dark:text-slate-400 tracking-wide uppercase">
+                    {item.label}
+                  </span>
                 </div>
-              </Link>
-            ))}
-          </div>
+                
+                {/* Content */}
+                <div className="flex-1">
+                  <h3
+                    className="text-2xl lg:text-3xl font-semibold leading-tight mb-4
+                      text-gray-900 dark:text-slate-100 tracking-tight"
+                    dangerouslySetInnerHTML={{ __html: item.title }}
+                  />
+                  
+                  <p className="text-gray-600 dark:text-slate-300 leading-relaxed text-base">
+                    {item.description}
+                  </p>
+                </div>
+                
+                {/* CTA */}
+                <div className="mt-8 flex items-center text-gray-800 dark:text-slate-300 font-medium 
+                              group-hover:text-gray-900 dark:group-hover:text-slate-200 transition-colors duration-300">
+                  <span className="mr-2">Explore</span>
+                  <svg
+                    className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </div>
+              </div>
+              
+              {/* Subtle inner highlight */}
+              <div className="absolute inset-[1px] rounded-lg bg-gradient-to-br from-white/3 to-transparent pointer-events-none dark:from-white/8"></div>
+            </Link>
+          ))}
         </div>
       </div>
     </div>

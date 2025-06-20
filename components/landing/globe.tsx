@@ -92,8 +92,8 @@ const constellationStyles = `
   }
   
   .dark .premium-glass {
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(148, 163, 184, 0.1);
+    background: rgba(10, 10, 10, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
   
   /* Elegant hover transitions */
@@ -162,7 +162,7 @@ export const Sponsors = () => {
 								</div>
 							</Link>
 						</TooltipTrigger>
-						<TooltipContent className="bg-white dark:bg-slate-900 border-red-500/20 text-slate-800 dark:text-slate-100 premium-shadow">
+						<TooltipContent className="bg-white dark:bg-[#0A0A0A] border-red-500/20 text-slate-800 dark:text-slate-100 premium-shadow">
 							<div className="text-center px-3 py-2">
 								<p className="font-bold text-lg text-red-600 dark:text-red-400">Avalanche</p>
 								<p className="text-sm text-slate-600 dark:text-slate-300">The Primary Network</p>
@@ -192,7 +192,7 @@ export const Sponsors = () => {
 								</div>
 							</div>
 						</TooltipTrigger>
-						<TooltipContent className="bg-white dark:bg-slate-900 border-slate-300/30 dark:border-slate-600/30 text-slate-800 dark:text-slate-100 premium-shadow">
+						<TooltipContent className="bg-white dark:bg-[#0A0A0A] border-slate-300/30 dark:border-slate-600/30 text-slate-800 dark:text-slate-100 premium-shadow">
 							<div className="text-center px-3 py-2">
 								<p className="font-bold text-sm text-slate-600 dark:text-slate-300">Ready to Join?</p>
 								<p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Build your chain with Avalanche</p>
@@ -498,7 +498,7 @@ const NetworkNode = ({ network, index, theme }: {
 								<div className={`relative premium-glass premium-shadow rounded-full p-3 ${theme.border} ${theme.glow} transition-all duration-300 group-hover:scale-110`}>
 									
 									{/* Inner content */}
-									<div className="relative bg-white/90 dark:bg-slate-900/90 rounded-full p-2 backdrop-blur-sm">
+									<div className="relative bg-white/90 dark:bg-[#0A0A0A]/90 rounded-full p-2 backdrop-blur-sm">
 										<Avatar className="w-10 h-10">
 											<AvatarImage 
 												src={network.image} 
@@ -516,7 +516,7 @@ const NetworkNode = ({ network, index, theme }: {
 					</div>
 				</TooltipTrigger>
 				<TooltipContent 
-					className="premium-glass border-red-500/20 text-slate-800 dark:text-slate-100 premium-shadow z-[9999]"
+					className="premium-glass border-red-500/20 text-slate-800 dark:text-slate-100 premium-shadow z-[9999] bg-white dark:bg-[#0A0A0A]"
 					sideOffset={8}
 				>
 					<div className="text-center px-3 py-2">

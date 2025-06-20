@@ -137,12 +137,12 @@ function RotatingText() {
   const words = ['courses', 'events', 'hackathons', 'bounties', 'tools', 'grants'];
 
   return (
-    <span className="text-rotator min-w-[140px] h-[1.2em] text-left">
+    <span className="text-rotator min-w-[120px] sm:min-w-[160px] lg:min-w-[200px] xl:min-w-[240px] h-[1.2em] text-left">
       <div className="text-rotator-inner">
         {words.map((word, index) => (
           <div 
             key={index}
-            className="h-[1.2em] flex items-center bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-bold"
+            className="h-[1.2em] flex items-center bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-black tracking-tighter"
           >
             {word}
           </div>
@@ -157,7 +157,7 @@ export function HeroBackground() {
   return (
     <div className="fixed inset-0 -z-10">
       {/* Premium Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-[#0A0A0A] dark:via-[#0A0A0A] dark:to-[#0A0A0A]">
         {/* Subtle grid overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)]"></div>
         
@@ -180,33 +180,33 @@ export default function Hero() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           
           {/* Content Section */}
-          <div className="space-y-8 text-center lg:text-left">
+          <div className="space-y-10 text-center lg:text-left">
             
             {/* Main Heading */}
-            <div className="space-y-6">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight">
+            <div className="space-y-8">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tighter leading-[0.95] sm:leading-[0.95] lg:leading-[0.9] xl:leading-[0.85]">
                 <span className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent dark:from-white dark:via-slate-100 dark:to-white animate-gradient-shift">
                   Learn, Build & Grow
                 </span>
                 <br />
-                <span className="flex items-center justify-center lg:justify-start gap-4 mt-4">
-                  <span className="text-black dark:text-white">with</span>
+                <span className="flex items-center justify-center lg:justify-start gap-3 sm:gap-4 lg:gap-5 mt-6 text-3xl sm:text-4xl lg:text-5xl xl:text-6xl">
+                  <span className="text-slate-700 dark:text-slate-200 font-semibold tracking-tight">with</span>
                   <RotatingText />
                 </span>
               </h1>
               
-              <p className="text-lg sm:text-xl lg:text-2xl text-slate-600 dark:text-slate-300 font-light leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                Explore everything you need to go from idea to impact — education, documentation, tools and grants.
+              <p className="text-lg sm:text-xl lg:text-2xl xl:text-2xl text-slate-600 dark:text-slate-300 font-light leading-[1.5] tracking-[-0.025em] max-w-2xl mx-auto lg:mx-0 text-balance">
+                Explore everything you need to go from idea to impact.
               </p>
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
               <Link
                 href="/academy"
-                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-base font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-105 transition-all duration-300 dark:shadow-blue-500/40 dark:hover:shadow-blue-500/60"
+                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-base font-bold tracking-[-0.015em] rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/50 hover:scale-[1.02] transition-all duration-300 dark:shadow-blue-500/50 dark:hover:shadow-blue-500/70"
               >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                 </svg>
                 Start Learning
@@ -214,10 +214,10 @@ export default function Hero() {
               
               <Link
                 href="/docs"
-                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-base font-semibold rounded-xl bg-white/10 glass-effect border border-slate-200/20 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-105 transition-all duration-300 backdrop-blur-sm dark:border-slate-700/30"
+                className="group premium-button inline-flex items-center justify-center px-8 py-4 text-base font-bold tracking-[-0.015em] rounded-xl bg-white/10 glass-effect border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm dark:border-slate-700/40"
               >
                 Explore Docs
-                <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </Link>
