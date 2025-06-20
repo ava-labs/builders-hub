@@ -38,15 +38,15 @@ export default function TransferOwnership() {
     } = validatorManagerData;
 
     // Ownership check
-    const isCurrentUserOwner = contractOwner && walletEVMAddress && 
+    const isCurrentUserOwner = contractOwner && walletEVMAddress &&
         contractOwner.toLowerCase() === walletEVMAddress.toLowerCase();
-    
+
     // Only show error if user is definitely not the owner
-    const showOwnershipError = !isLoadingOwnership && 
-                              contractOwner && 
-                              walletEVMAddress && 
-                              !isCurrentUserOwner && 
-                              !isOwnerContract;
+    const showOwnershipError = !isLoadingOwnership &&
+        contractOwner &&
+        walletEVMAddress &&
+        !isCurrentUserOwner &&
+        !isOwnerContract;
 
     // Check if new owner address is a contract
     useEffect(() => {
@@ -66,8 +66,8 @@ export default function TransferOwnership() {
 
             setIsCheckingNewOwner(true);
             try {
-                const bytecode = await publicClient.getBytecode({ 
-                    address: newOwnerAddress as `0x${string}` 
+                const bytecode = await publicClient.getBytecode({
+                    address: newOwnerAddress as `0x${string}`
                 });
                 const isContract = !!bytecode && bytecode !== '0x';
                 setIsNewOwnerContract(isContract);
@@ -108,12 +108,12 @@ export default function TransferOwnership() {
         }
     }
 
-    const canTransfer = !isTransferring && 
-                       !isLoadingValidatorManager && 
-                       validatorManagerAddress && 
-                       newOwnerAddress.trim() && 
-                       !validatorManagerError &&
-                       (isCurrentUserOwner || isOwnerContract || isLoadingOwnership); // Allow contract owners and loading states
+    const canTransfer = !isTransferring &&
+        !isLoadingValidatorManager &&
+        validatorManagerAddress &&
+        newOwnerAddress.trim() &&
+        !validatorManagerError &&
+        (isCurrentUserOwner || isOwnerContract || isLoadingOwnership); // Allow contract owners and loading states
 
     return (
         <Container
@@ -128,7 +128,7 @@ export default function TransferOwnership() {
                     hidePrimaryNetwork={true}
                     error={validatorManagerError}
                 />
-                
+
                 <ValidatorManagerDetails
                     validatorManagerAddress={validatorManagerData.validatorManagerAddress}
                     blockchainId={validatorManagerData.blockchainId}
@@ -157,7 +157,7 @@ export default function TransferOwnership() {
                         </div>
                     </div>
                 )}
-                
+
                 <EVMAddressInput
                     label="New Owner Address"
                     value={newOwnerAddress}
@@ -184,7 +184,7 @@ export default function TransferOwnership() {
                         </div>
                     </div>
                 )}
-                
+
                 <Button
                     variant="primary"
                     onClick={handleTransferOwnership}

@@ -7,6 +7,7 @@ import { avalancheFuji, avalanche } from 'viem/chains';
 import { zeroAddress } from 'viem';
 import { getPChainBalance, getNativeTokenBalance, getChains } from '../coreViem/utils/glacier';
 import debounce from 'debounce';
+import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components";
 
 let indexedChainsPromise: Promise<Number[]> | null = null;
 function getIndexedChains() {
@@ -107,7 +108,11 @@ export const useWalletStore = create(
                 debouncedUpdatePChainBalance();
                 debouncedUpdateL1Balance();
                 debouncedUpdateCChainBalance();
-            }
+            },
+            getNetworkName: (): GlobalParamNetwork => {
+                const { avalancheNetworkID } = get();
+                return avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
+            },
         }
     })
 )

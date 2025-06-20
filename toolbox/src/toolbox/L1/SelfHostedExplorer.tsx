@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
-import { getBlockchainInfo } from "../../coreViem/utils/glacier";
+import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../../components/InputChainId";
+import InputSubnetId from "../../components/InputSubnetId";
+import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
 import versions from "../../versions.json";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
@@ -240,6 +242,8 @@ volumes:
 export default function BlockScout() {
   const [chainId, setChainId] = useState("");
   const [subnetId, setSubnetId] = useState("");
+  const [subnet, setSubnet] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [domain, setDomain] = useState("");
   const [networkName, setNetworkName] = useState("");
   const [networkShortName, setNetworkShortName] = useState("");
@@ -260,6 +264,7 @@ export default function BlockScout() {
   useEffect(() => {
     setSubnetIdError(null);
     setSubnetId("");
+    setSubnet(null);
     if (!chainId) return
 
     // Set defaults from L1 store if available
@@ -271,11 +276,23 @@ export default function BlockScout() {
       setTokenSymbol(l1Info.coinName);
     }
 
-    getBlockchainInfo(chainId).then((chainInfo) => {
-      setSubnetId(chainInfo.subnetId);
-    }).catch((error) => {
-      setSubnetIdError((error as Error).message);
-    });
+    setIsLoading(true);
+    getBlockchainInfo(chainId)
+      .then(async (chainInfo) => {
+        setSubnetId(chainInfo.subnetId);
+        try {
+          const subnetInfo = await getSubnetInfo(chainInfo.subnetId);
+          setSubnet(subnetInfo);
+        } catch (error) {
+          setSubnetIdError((error as Error).message);
+        }
+      })
+      .catch((error) => {
+        setSubnetIdError((error as Error).message);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, [chainId]);
 
   useEffect(() => {
@@ -334,14 +351,20 @@ export default function BlockScout() {
             <InputChainId
               value={chainId}
               onChange={setChainId}
+              error={subnetIdError}
               hidePrimaryNetwork={true}
             />
 
-            <Input
-              label="Subnet ID"
+            <InputSubnetId
               value={subnetId}
-              disabled={true}
-              error={subnetIdError}
+              onChange={setSubnetId}
+              readOnly={true}
+            />
+
+            {/* Show subnet details if available */}
+            <BlockchainDetailsDisplay
+              subnet={subnet}
+              isLoading={isLoading}
             />
           </Step>
 

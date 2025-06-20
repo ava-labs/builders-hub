@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useErrorBoundary } from "react-error-boundary";
 
 import { useSelectedL1 } from "../../stores/l1ListStore";
 import { useViemChainStore } from "../../stores/toolboxStore";
@@ -12,21 +11,22 @@ import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/Valid
 
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
-import { networkIDs, utils } from '@avalabs/avalanchejs';
+import { utils } from '@avalabs/avalanchejs';
 import { CodeHighlighter } from '../../components/CodeHighlighter';
 import { Container } from '../../components/Container';
 import { ResultField } from '../../components/ResultField';
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
 import { getSubnetInfo } from '../../coreViem/utils/glacier';
+import { useAvaCloudSDK } from "../../stores/useAvaCloudSDK";
 
 const cb58ToHex = (cb58: string) => utils.bufferToHex(utils.base58check.decode(cb58));
 const add0x = (hex: string): `0x${string}` => hex.startsWith('0x') ? hex as `0x${string}` : `0x${hex}`;
+
 export default function InitValidatorSet() {
-    const { showBoundary } = useErrorBoundary();
     const [conversionTxID, setConversionTxID] = useState<string>("");
     const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
     const viemChain = useViemChainStore();
     const { coreWalletClient, publicClient } = useWalletStore();
+    const { aggregateSignature } = useAvaCloudSDK();
     const [isInitializing, setIsInitializing] = useState(false);
     const [txHash, setTxHash] = useState<string | null>(null);
     const [simulationWentThrough, _] = useState(false);
@@ -42,21 +42,18 @@ export default function InitValidatorSet() {
         setL1ConversionSignatureError("");
         setIsAggregating(true);
         try {
-            const { message, justification, signingSubnetId, networkId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
+            const { message, justification, signingSubnetId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
 
-            const { signedMessage } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
-                network: networkId === networkIDs.FujiID ? "fuji" : "mainnet",
-                signatureAggregatorRequest: {
-                    message: message,
-                    justification: justification,
-                    signingSubnetId: signingSubnetId,
-                    quorumPercentage: 67, // Default threshold for subnet validation
-                },
+            const { signedMessage } = await aggregateSignature({
+                message: message,
+                justification: justification,
+                signingSubnetId: signingSubnetId,
+                quorumPercentage: 67,
             });
             setL1ConversionSignature(signedMessage);
         } catch (error) {
-            showBoundary(error);
-            setL1ConversionSignatureError((error as Error)?.message || "Unknown error");
+            console.error("Error aggregating signatures:", error);
+            throw error;
         } finally {
             setIsAggregating(false);
         }

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
-import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { useAvaCloudSDK } from '../../../stores/useAvaCloudSDK';
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
@@ -26,7 +25,8 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   onSuccess,
   onError,
 }) => {
-  const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore();
+  const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
+  const { aggregateSignature } = useAvaCloudSDK();
   const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -34,8 +34,6 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState<string | null>(null);
   const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
   const [evmTxHashError, setEvmTxHashError] = useState<string | null>(null);
-
-  const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
 
   // Initialize EVM transaction hash when it becomes available
   useEffect(() => {
@@ -70,7 +68,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
         console.log("[WarpExtract] Transaction receipt:", receipt);
         console.log("[WarpExtract] Number of logs:", receipt.logs.length);
-        
+
         // Log all transaction logs for debugging
         receipt.logs.forEach((log, index) => {
           console.log(`[WarpExtract] Log #${index}:`, {
@@ -89,10 +87,10 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         // This works for both direct and multisig transactions when the warp precompile emits the event
         const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
         const warpPrecompileAddress = "0x0200000000000000000000000000000000000005";
-        
+
         const warpEventLog = receipt.logs.find((log) => {
           return log && log.address && log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
-                 log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
+            log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
         });
 
         if (warpEventLog && warpEventLog.data) {
@@ -138,36 +136,36 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   const handleSubmitPChainTx = async () => {
     setErrorState(null);
     setTxSuccess(null);
-    
+
     // Validate required inputs
     const evmTxValidation = !evmTxHashState.trim() ? "EVM transaction hash is required" : null;
-    
+
     setEvmTxHashError(evmTxValidation);
-    
+
     if (evmTxValidation) {
       setErrorState(evmTxValidation);
       onError(evmTxValidation);
       return;
     }
-    
+
     if (!subnetIdL1) {
       setErrorState("L1 Subnet ID is required. Please select a subnet first.");
       onError("L1 Subnet ID is required. Please select a subnet first.");
       return;
     }
-    
+
     if (!validatorBalance) {
       setErrorState("Validator balance is required. Please complete the previous step.");
       onError("Validator balance is required. Please complete the previous step.");
       return;
     }
-    
+
     if (!blsProofOfPossession) {
       setErrorState("BLS Proof of Possession is required. Please complete the previous step.");
       onError("BLS Proof of Possession is required. Please complete the previous step.");
       return;
     }
-    
+
     if (!unsignedWarpMessage) {
       setErrorState("Unsigned warp message not found. Check the transaction hash.");
       onError("Unsigned warp message not found. Check the transaction hash.");
@@ -187,15 +185,12 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     setIsProcessing(true);
     try {
       // Sign the warp message
-      const { signedMessage } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
-        network: networkName,
-        signatureAggregatorRequest: {
-          message: unsignedWarpMessage,
-          signingSubnetId: signingSubnetId || subnetIdL1,
-          quorumPercentage: 67,
-        },
+      const { signedMessage } = await aggregateSignature({
+        message: unsignedWarpMessage,
+        signingSubnetId: signingSubnetId || subnetIdL1,
+        quorumPercentage: 67,
       });
-      
+
       setSignedWarpMessage(signedMessage);
 
       // Submit to P-Chain using registerL1Validator with all required parameters
@@ -210,7 +205,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       onSuccess(pChainTxId);
     } catch (err: any) {
       let message = '';
-      
+
       // Better error extraction
       if (err instanceof Error) {
         message = err.message;
@@ -230,7 +225,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
           message = 'Unknown error occurred';
         }
       }
-      
+
       // Handle specific error types
       if (message.includes('User rejected') || message.includes('user rejected')) {
         message = 'Transaction was rejected by user';
@@ -241,7 +236,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       } else if (message.includes('nonce')) {
         message = 'Transaction nonce error. Please try again.';
       }
-      
+
       console.error('P-Chain transaction error:', err);
       setErrorState(`P-Chain transaction failed: ${message}`);
       onError(`P-Chain transaction failed: ${message}`);
@@ -297,15 +292,15 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
       {unsignedWarpMessage && (
         <div className="text-sm text-zinc-600 dark:text-zinc-400">
-          <p><strong>Unsigned Warp Message:</strong> {unsignedWarpMessage.substring(0,50)}...</p>
+          <p><strong>Unsigned Warp Message:</strong> {unsignedWarpMessage.substring(0, 50)}...</p>
           {signedWarpMessage && (
-            <p><strong>Signed Warp Message:</strong> {signedWarpMessage.substring(0,50)}...</p>
+            <p><strong>Signed Warp Message:</strong> {signedWarpMessage.substring(0, 50)}...</p>
           )}
         </div>
       )}
-      
-      <Button 
-        onClick={handleSubmitPChainTx} 
+
+      <Button
+        onClick={handleSubmitPChainTx}
         disabled={isProcessing || !evmTxHashState.trim() || !validatorBalance || !blsProofOfPossession || !unsignedWarpMessage || txSuccess !== null}
       >
         {isProcessing ? 'Processing...' : 'Sign & Submit to P-Chain'}
@@ -321,7 +316,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       )}
 
       {txSuccess && (
-        <Success 
+        <Success
           label="Transaction Hash"
           value={txSuccess.replace('P-Chain transaction successful! ID: ', '')}
         />
