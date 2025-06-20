@@ -227,6 +227,9 @@ export default function AvalanchegoDocker() {
     // Check if this blockchain uses a custom VM
     const isCustomVM = blockchainInfo && blockchainInfo.vmId !== SUBNET_EVM_VM_ID;
 
+    // Check if there are multiple blockchains on the same subnet
+    const hasMultipleBlockchains = subnet && subnet.blockchains && subnet.blockchains.length >= 2;
+
     return (
         <>
             <Container
@@ -295,9 +298,18 @@ export default function AvalanchegoDocker() {
                             subnet={subnet}
                             isLoading={isLoading}
                         />
+
+                        {/* Warning for multiple blockchains on the same subnet */}
+                        {hasMultipleBlockchains && (
+                            <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                                <p className="text-sm">
+                                    <strong>Warning:</strong> This subnet has {subnet.blockchains.length} blockchains associated with it. Due to there being multiple chains associated with this subnet, this guide won't be valid for setting up a node for the subnet.
+                                </p>
+                            </div>
+                        )}
                     </Step>
 
-                    {subnetId && blockchainInfo && (
+                    {subnetId && blockchainInfo && !hasMultipleBlockchains && (
                         <>
                             <Step>
                                 <h3 className="text-xl font-bold mb-4">Configure the Node</h3>
