@@ -65,6 +65,11 @@ const config = {
         permanent: true,
       },
       {
+        source: '/docs/virtual-machines/default-precompiles/nativeminter',
+        destination: '/docs/avalanche-l1s/evm-configuration/tokenomics#native-minter',
+        permanent: true,
+      },
+      {
         source: '/docs/virtual-machines/default-precompiles/feemanager',
         destination: '/docs/avalanche-l1s/evm-configuration/transaction-fees#fee-manager',
         permanent: true,
@@ -77,6 +82,11 @@ const config = {
       {
         source: '/docs/virtual-machines/default-precompiles/warpmessenger',
         destination: '/docs/avalanche-l1s/evm-configuration/warpmessenger',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/default-precompiles/transaction-fees',
+        destination: '/docs/avalanche-l1s/evm-configuration/transaction-fees',
         permanent: true,
       },
       {
@@ -127,6 +137,30 @@ const config = {
       }, {
         source: '/docs/api-reference/standards/guides/txn-fees#c-chain-fees',
         destination: '/docs/api-reference/guides/txn-fees#c-chain-fees',
+        permanent: true,
+      }, {
+        source: '/docs/tooling/guides/get-avalanche-cli',
+        destination: '/docs/tooling/get-avalanche-cli',
+        permanent: true,
+      }, {
+        source: '/evm-l1s/validator-manager/poa-vs-pos',
+        destination: 'docs/avalanche-l1s/validator-manager/poa-vs-pos',
+        permanent: true,
+      }, {
+        source: '/docs/avalanche-l1s/allowlist',
+        destination: '/docs/avalanche-l1s/evm-configuration/allowlist',
+        permanent: true,
+      }, {
+        source: '/docs/virtual-machines/evm-customization/generating-your-precompile',
+        destination: '/docs/virtual-machines/custom-precompiles/create-precompile',
+        permanent: true,
+      }, {
+        source: '/docs/virtual-machines/evm-customization/defining-precompile#event-file',
+        destination: '/docs/virtual-machines/custom-precompiles/defining-precompile#event-file',
+        permanent: true,
+      }, {
+        source: '/docs/virtual-machines/evm-customization/testing-your-precompile',
+        destination: '/docs/virtual-machines/custom-precompiles/test-precompile',
         permanent: true,
       },
     ];

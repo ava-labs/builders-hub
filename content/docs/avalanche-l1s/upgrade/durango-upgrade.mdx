@@ -38,9 +38,9 @@ Subnet-EVM Native Precompiles will start emitting events with the Durango networ
 
 ### Custom Events[​](#custom-events "Direct link to heading")
 
-Events above are already introduced and handled in Subnet-EVM native precompiles. If you have a custom precompile, you can start emitting your custom events using Durango activation. In order to do this you can define your custom event in your solidity interface and regenerate the go bindings using `precompilegen` tool, for more information see [here](/docs/virtual-machines/evm-customization/generating-your-precompile).
+Events above are already introduced and handled in Subnet-EVM native precompiles. If you have a custom precompile, you can start emitting your custom events using Durango activation. In order to do this you can define your custom event in your solidity interface and regenerate the go bindings using `precompilegen` tool, for more information see [here](/docs/virtual-machines/custom-precompiles/create-precompile).
 
-Generally you will generate an `event.go` file in addition to your existing precompile files. You need to implement how to emit your events and your events' gas costs, as in [hello world example](/docs/virtual-machines/evm-customization/defining-precompile#event-file). In this guide we will use the hello world example to demonstrate how to emit custom events. The event that will be introduced is:
+Generally you will generate an `event.go` file in addition to your existing precompile files. You need to implement how to emit your events and your events' gas costs, as in [hello world example](/docs/virtual-machines/custom-precompiles/defining-precompile#event-file). In this guide we will use the hello world example to demonstrate how to emit custom events. The event that will be introduced is:
 
 ```go
 event GreetingChanged(address indexed sender, string oldGreeting, string newGreeting)
