@@ -143,6 +143,7 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
 
       const signature = await aggregateSignature({
         message: bytesToHex(changeWeightMessage),
+        justification: bytesToHex(justification),
         signingSubnetId: signingSubnetId || subnetIdL1,
         quorumPercentage: 67,
       });
