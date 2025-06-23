@@ -108,7 +108,7 @@ export default function Page() {
         <section id="programs" className="space-y-12">
           <h2 className="text-3xl md:text-5xl font-bold text-center">Our Programs</h2>
           <div className="grid md:grid-cols-2 gap-6">
-            <a href="/grants/retro9000" target="_blank" rel="noopener noreferrer">
+            <a href="https://retro9000.avax.network" target="_blank" rel="noopener noreferrer">
               <ProgramCard
                 title="Retro9000"
                 description="Build innovative projects on Avalanche. Get rewarded for your creativity."
