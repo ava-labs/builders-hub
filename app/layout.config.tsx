@@ -367,7 +367,7 @@ export const grantsMenu: LinkItemType = {
       text: 'Retro9000',
       description:
         'Build innovative projects on Avalanche. Get rewarded for your creativity.',
-      url: '/grants/retro9000',
+      url: 'https://retro9000.avax.network',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },
