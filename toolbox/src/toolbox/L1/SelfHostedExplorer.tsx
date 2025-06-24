@@ -23,12 +23,12 @@ import { Button } from "../../components/Button";
 
 
 const dockerComposePsOutput = `NAME          IMAGE                                 COMMAND                  SERVICE       CREATED        STATUS        PORTS
-avago         avaplatform/subnet-evm_avalanchego:v0.7.3         "./avalanchego"          avago         1 minute ago   Up 1 minute   127.0.0.1:9650->9650/tcp, 0.0.0.0:9651->9651/tcp, :::9651->9651/tcp
-backend       blockscout/blockscout:6.10.1          "sh -c 'bin/blocksco…"   backend       1 minute ago   Up 1 minute   
-bc_frontend   ghcr.io/blockscout/frontend:v1.37.4   "./entrypoint.sh nod…"   bc_frontend   1 minute ago   Up 1 minute   3000/tcp
-caddy         caddy:latest                          "caddy run --config …"   caddy         1 minute ago   Up 1 minute   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp, 443/udp, 2019/tcp
-db            postgres:15                           "docker-entrypoint.s…"   db            1 minute ago   Up 1 minute   0.0.0.0:7432->5432/tcp, :::7432->5432/tcp
-redis-db      redis:alpine                          "docker-entrypoint.s…"   redis-db      1 minute ago   Up 1 minute   6379/tcp`;
+avago         avaplatform/subnet-evm_avalanchego:v0.7.4_v1.13.1  "./avalanchego"          avago         1 minute ago   Up 1 minute   127.0.0.1:9650->9650/tcp, 0.0.0.0:9651->9651/tcp, :::9651->9651/tcp
+backend       blockscout/blockscout:6.10.1                       "sh -c 'bin/blocksco…"   backend       1 minute ago   Up 1 minute   
+bc_frontend   ghcr.io/blockscout/frontend:v1.37.4                "./entrypoint.sh nod…"   bc_frontend   1 minute ago   Up 1 minute   3000/tcp
+caddy         caddy:latest                                       "caddy run --config …"   caddy         1 minute ago   Up 1 minute   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp, 443/udp, 2019/tcp
+db            postgres:15                                        "docker-entrypoint.s…"   db            1 minute ago   Up 1 minute   0.0.0.0:7432->5432/tcp, :::7432->5432/tcp
+redis-db      redis:alpine                                       "docker-entrypoint.s…"   redis-db      1 minute ago   Up 1 minute   6379/tcp`;
 
 const dockerComposePsOutputNoAvago = `NAME          IMAGE                                 COMMAND                  SERVICE       CREATED        STATUS        PORTS
 backend       blockscout/blockscout:6.10.1          "sh -c 'bin/blocksco…"   backend       1 minute ago   Up 1 minute   
