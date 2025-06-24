@@ -1,4 +1,3 @@
-
 import { ArrowLeftRight, Coins, MailIcon, SquareCode, SquareIcon, SquareStackIcon, TerminalIcon, Triangle, HexagonIcon, UserPen } from 'lucide-react';
 
 export type Course = {
@@ -11,6 +10,7 @@ export type Course = {
     languages: string[];
     tools: string[];
     instructors: string[];
+    category: "Foundations" | "Smart Contract Development" | "L1 Development" | "Interoperability";
 };
 
 const officialCourses: Course[] = [
@@ -23,7 +23,8 @@ const officialCourses: Course[] = [
         duration: "1 hour",
         languages: [],
         tools: [],
-        instructors: ["Martin Eckardt", "Ash"]
+        instructors: ["Martin Eckardt", "Ash"],
+        category: "Foundations"
     },
     {
         name: "Avalanche Fundamentals",
@@ -34,7 +35,8 @@ const officialCourses: Course[] = [
         duration: "1 hour",
         languages: [],
         tools: ["L1 Toolbox"],
-        instructors: ["Martin Eckardt", "Ash"]
+        instructors: ["Martin Eckardt", "Ash"],
+        category: "Foundations"
     },
     {
         name: "Avalanche Interchain Messaging",
@@ -45,7 +47,8 @@ const officialCourses: Course[] = [
         duration: "3 hours",
         tools: ["L1 Toolbox", "Docker"],
         languages: ["Solidity"],
-        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Nicolas Arnedo"] // + Usman
+        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Nicolas Arnedo"], // + Usman
+        category: "Interoperability"
     },
     {
         name: "Interchain Token Transfer",
@@ -56,7 +59,8 @@ const officialCourses: Course[] = [
         duration: "2.5 hours",
         tools: ["ICM", "Foundry"],
         languages: ["Solidity"],
-        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Owen Wahlgren", "Sarp"]
+        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Owen Wahlgren", "Sarp"],
+        category: "Interoperability"
     },
     {
         name: "Customizing the EVM",
@@ -67,7 +71,8 @@ const officialCourses: Course[] = [
         status: "featured",
         tools: ["Avalanche CLI"],
         languages: ["Go"],
-        instructors: ["Martin Eckardt", "Ash"] // + Usman
+        instructors: ["Martin Eckardt", "Ash"], // + Usman
+        category: "L1 Development"
     },
     {
         name: "Layer 1 Tokenomics",
@@ -78,7 +83,8 @@ const officialCourses: Course[] = [
         status: "featured",
         tools: ["Avalanche CLI", "ICM"],
         languages: ["Solidity"],
-        instructors: ["Sarp", "Owen Wahlgren"]
+        instructors: ["Sarp", "Owen Wahlgren"],
+        category: "L1 Development"
     },
     {
         name: "L1 Validator Management",
@@ -89,7 +95,8 @@ const officialCourses: Course[] = [
         status: "normal",
         tools: ["Warp"],
         languages: ["Solidity"],
-        instructors: ["Owen Wahlgren", "Martin Eckardt"]
+        instructors: ["Owen Wahlgren", "Martin Eckardt"],
+        category: "L1 Development"
     },
     {
         name: "AvaCloud APIs",
@@ -100,7 +107,8 @@ const officialCourses: Course[] = [
         status: "featured",
         tools: ["AvaCloudSDK", "AvaCloud API"],
         languages: ["Typescript"],
-        instructors: ["Owen Wahlgren"]
+        instructors: ["Owen Wahlgren"],
+        category: "Smart Contract Development"
     },
     {
         name: "Solidity Programming with Foundry",
@@ -111,7 +119,8 @@ const officialCourses: Course[] = [
         status: "featured",
         tools: ["Starter-Kit", "Foundry"],
         languages: ["Solidity"],
-        instructors: ["Andrea Vargas"]
+        instructors: ["Andrea Vargas"],
+        category: "Smart Contract Development"
     },
     {
         name: "HyperSDK",
@@ -122,7 +131,8 @@ const officialCourses: Course[] = [
         status: "hidden",
         tools: ["HyperSDK"],
         languages: ["Go", "Typescript"],
-        instructors: ["Aaron Buchwald", "Ilya", "Rodrigo Villar", "Martin Eckardt", "Owen Wahlgren"]
+        instructors: ["Aaron Buchwald", "Ilya", "Rodrigo Villar", "Martin Eckardt", "Owen Wahlgren"],
+        category: "L1 Development"
     },
     {
         name: "Chainlink on your L1 via ICM",
@@ -133,7 +143,8 @@ const officialCourses: Course[] = [
         duration: "2.5 hours",
         tools: ["ICM", "Chainlink VRF"],
         languages: ["Solidity"],
-        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash"]
+        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash"],
+        category: "Interoperability"
     }
     /*{
         name:"Chainlink VRF with Interchain Messaging ",

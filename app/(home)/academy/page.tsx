@@ -2,6 +2,8 @@ import COURSES from '@/content/courses';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
+import { ArrowRight } from 'lucide-react';
+import { HeroBackground } from '@/components/landing/hero';
 
 export const metadata: Metadata = createMetadata({
   title: 'Academy',
@@ -41,26 +43,17 @@ const pathImages = {
   "solidity-foundry": "solidity-foundry-eBSonwmeJqFy2VELXTqeUHqf7YclgL.jpg",
   "teleporter-chainlink-vrf": "teleporter-chainlink-vrf-y99jE9hXaWDnOLKuTPQ4r8ALZk5HkF.jpg",
   "teleporter-token-bridge": "teleporter-token-bridge-wMmPJftYyAOSKbvay0yZy5bScQMsZH.jpg",
+  "blockchain-fundamentals": "blockchain-fundamentals-skz9GZ84gSJ7MPvkSrbiNlnK5F7suB.jpg",
+  "l1-validator-management": "l1-validator-management-bJdsEFhaaPWKmm2R3oWyce1TBEZyNc.jpg",
 }
 
 export default function HomePage(): React.ReactElement {
   return (
     <>
+      <HeroBackground />
       <main className="container relative">
         <Hero />
-        <Courses
-          title="Explore our Courses"
-          description="We offer fundamental courses specifically designed for individuals who are new to the Avalanche ecosystem, and advanced courses for those who wish to master the art of configuring, modifying, or even creating entirely new Virtual Machines from scratch."
-          courses={COURSES.official_featured}
-        />
-
-        {COURSES.ecosystem.length > 0 && (
-          <Courses
-            title="Ecosystem Courses"
-            description="Check out the courses provided by our ecosystem partners."
-            courses={COURSES.ecosystem}
-          />
-        )}
+        <CourseCatalog />
       </main>
     </>
   );
@@ -70,63 +63,69 @@ function Hero(): React.ReactElement {
   return <></>;
 }
 
-function Courses(props: { title: string; description: string; courses: any[] }): React.ReactElement {
+function CourseCatalog(): React.ReactElement {
+  // Get all courses and group by category
+  const allCourses = COURSES.official_featured;
+  const categories = ["Foundations", "Smart Contract Development", "L1 Development", "Interoperability"];
+  
   return (
     <div className="py-12 sm:py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto w-full lg:mx-0">
-          <h2 className="font-display text-3xl tracking-tight sm:text-5xl text-center">
-            {props.title}
+          <h2 className="text-3xl sm:text-5xl font-black tracking-tighter text-center">
+            Explore our Courses
           </h2>
           <p className="mt-12 text-center text-lg leading-8 text-muted-foreground">
-            {props.description}
+            We offer fundamental courses specifically designed for individuals who are new to the Avalanche ecosystem, and advanced courses for those who wish to master the art of configuring, modifying, or even creating entirely new Virtual Machines from scratch.
           </p>
         </div>
-        <div className="flex justify-center items-center mt-8 gap-4">
-          <Link
-            href="/academy/blockchain-fundamentals"
-            className="block max-w-xl flex-1 p-4 text-sm rounded-lg bg-muted border border-b"
-            role="alert"
-          >
-            <span className="font-medium">Are you new to Blockchain?</span> Start with our Blockchain Fundamentals course{' '}
-            <span className="underline">here</span>.
-          </Link>
-        </div>
-        <div className="mx-auto mt-2 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 border-gray-200 pt-7 sm:mt-12 sm:pt-0 lg:mx-0 lg:max-w-none lg:grid-cols-3">
-          {props.courses.map((course) => (
-            <Link
-              href={`/academy/${course.slug}`}
-              key={course.slug}
-              className="flex max-w-xl flex-col items-start space-y-2"
-            >
-              <img
-                src={`https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/${pathImages[course.slug as keyof typeof pathImages]}` || `/course-banner/${course.slug}.jpg`}
-                alt=""
-                className="w-full aspect-3/2 object-cover rounded-lg mb-5"
-              />
-              <div className="flex flex-wrap items-center gap-4 text-xs">
-                <span className="text-gray-500">{course.duration}</span>
-                {[...course.tools, ...course.languages].map((item) => (
-                  <span
-                    key={item}
-                    className="relative z-10 rounded-full bg-fd-accent px-3 py-1.5 font-medium text-muted-foreground"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-              <div className="group">
-                <h3 className="mt-3 text-lg font-semibold leading-6 group-hover:text-gray-600">
-                  <span>{course.name}</span>
+        
+        {/* Course Categories */}
+        <div className="mt-16 space-y-16">
+          {categories.map((categoryName) => {
+            const coursesInCategory = allCourses.filter(course => course.category === categoryName);
+            if (coursesInCategory.length === 0) return null;
+            
+            return (
+              <div key={categoryName}>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8 border-b border-gray-200 dark:border-gray-700 pb-4">
+                  {categoryName === "Cross-Chain Communication" ? "Cross-Chain Communication (Interoperability)" : categoryName}
                 </h3>
-                <p className="mt-5 line-clamp-3 text-sm leading-6 text-muted-foreground">
-                  {course.description}
-                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {coursesInCategory.map((course) => (
+                    <Link
+                      key={course.slug}
+                      href={`/academy/${course.slug}`}
+                      className="group"
+                    >
+                      <div className="bg-gray-100 rounded-lg overflow-hidden hover:bg-gray-200 transition-colors">
+                        <img
+                          src={`https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/${pathImages[course.slug as keyof typeof pathImages]}` || `/course-banner/${course.slug}.jpg`}
+                          alt=""
+                          className="w-full aspect-3/2 object-cover"
+                        />
+                        <div className="p-6 flex flex-col justify-between min-h-32">
+                          <div>
+                            <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                              {course.name}
+                            </h4>
+                            <p className="text-sm text-gray-600 line-clamp-2">
+                              {course.description}
+                            </p>
+                          </div>
+                          <div className="flex justify-end mt-4">
+                            <ArrowRight className="h-5 w-5 text-gray-600 group-hover:text-gray-800 transition-colors" />
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </Link>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
-  )
+  );
 }
