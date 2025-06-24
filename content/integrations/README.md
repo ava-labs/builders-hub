@@ -20,7 +20,7 @@ Every integration file must start with frontmatter containing the following fiel
 ---
 title: "Your Integration Name"
 category: ["Category Name"]
-available: ["C-Chain", "Subnet", "All EVM L1s"]
+available: ["C-Chain", "All EVM L1s"]
 description: "Brief description of what your integration does"
 logo: /images/your-logo.png
 developer: "Developer/Company Name"
