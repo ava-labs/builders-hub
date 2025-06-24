@@ -1,0 +1,11 @@
+export { AnimatedBackground } from './AnimatedBackground';
+export { GridPattern, DotsPattern, WavePattern, HexagonPattern } from './SvgPatterns';
+export { HeroSection } from './HeroSection';
+export { MetricsSection } from './MetricsSection';
+export { OverviewSection } from './OverviewSection';
+export { PerformanceSection } from './PerformanceSection';
+export { ValidationSection } from './ValidationSection';
+export { EconomicsSection } from './EconomicsSection';
+export { FAQSection } from './FAQSection';
+export { CTASection } from './CTASection';
+export { HorizontalScrollSection } from './HorizontalScrollSection'; 
