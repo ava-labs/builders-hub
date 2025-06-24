@@ -109,7 +109,7 @@ export const docsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-               src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/9000-logo-FYhqyinnspUefGJcGgj9AcT116yq98.png"
+               src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/customizing-evm-DkMcINMgCwhkuHuumtAZtrPzROU74M.jpg"
                alt='Preview'
                width={900}
                height={400}
@@ -180,7 +180,7 @@ export const academyMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/course-preview-wXbIGdEfz2BMNZOht6qEL79OWrUJ2v.png"}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/avalanche-fundamentals-skz9GZ84gSJ7MPvkSrbiNlnK5F7suB.jpg"}
               alt='Preview'
               width={900}
               height={400}
@@ -252,7 +252,7 @@ export const toolsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/l1-toolbox-preview-can8L21MSIMXmXIfnr78t0qDcpRa52.png"}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/node-course-ACBahXfMGQEzwyh17g3vM3I2Wo3PUO.jpg"}
               alt='L1 Launcher Preview'
               width={900}
               height={400}
