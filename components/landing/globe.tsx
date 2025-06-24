@@ -212,7 +212,7 @@ const EcosystemConstellation = () => {
 		{
 			name: "FIFA Blockchain",
 			image: "https://images.ctfassets.net/gcj8jwzm6086/27QiWdtdwCaIeFbYhA47KG/5b4245767fc39d68b566f215e06c8f3a/FIFA_logo.png",
-			link: "https://www.fifa.com/",
+			link: "https://collect.fifa.com/",
 			type: "Gaming"
 		},
 		{
@@ -337,19 +337,19 @@ const EcosystemConstellation = () => {
 			name: "NUMINE Gaming",
 			image: "https://images.ctfassets.net/gcj8jwzm6086/411JTIUnbER3rI5dpOR54Y/3c0a8e47d58818a66edd868d6a03a135/numine_main_icon.png",
 			link: "https://numine.io/",
-			type: "Creative"
+			type: "Gaming"
 		},
 		{
 			name: "Tiltyard Studio",
 			image: "https://images.ctfassets.net/gcj8jwzm6086/5iZkicfOvjuwJYQqqCQN4y/9bdb761652d929459610c8b2da862cd5/android-chrome-512x512.png",
 			link: "https://tiltyard.gg/",
-			type: "Creative"
+			type: "Gaming"
 		},
 		{
-			name: "Pulsar Strategy",
+			name: "Pulsar",
 			image: "https://images.ctfassets.net/gcj8jwzm6086/5rAfnDh8ogkkEJ6ryvtUQQ/8f7d53e5d669702b8e0fc459a337ab94/logo512.png",
 			link: "https://pulsar.game/home",
-			type: "Creative"
+			type: "Gaming"
 		},
 		{
 			name: "PlayDapp",
