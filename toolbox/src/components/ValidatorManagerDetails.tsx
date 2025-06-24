@@ -15,7 +15,7 @@ interface ValidatorManagerDetailsProps {
   ownershipError?: string | null;
   isLoadingOwnership?: boolean;
   isOwnerContract?: boolean;
-  ownerType?: 'PoAManager' | 'StakingManager' | 'EOA' | null;
+  ownerType?: 'PoAManager' | 'StakingManager' | 'EOA' | 'Other' | null;
   isDetectingOwnerType?: boolean;
   isExpanded?: boolean;
   onToggleExpanded?: () => void;

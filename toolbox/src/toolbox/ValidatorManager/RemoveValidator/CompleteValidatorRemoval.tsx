@@ -32,7 +32,7 @@ interface CompleteValidatorRemovalProps {
   signingSubnetId: string;
   contractOwner: string | null;
   isLoadingOwnership: boolean;
-  ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | null;
+  ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | 'Other' | null;
 }
 
 const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
@@ -95,7 +95,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       onError("Validator Manager address is not set. Check L1 Subnet selection.");
       return;
     }
-    if (isContractOwner === false && !useMultisig) {
+    if (isContractOwner === false && !useMultisig && ownerType !== 'Other') {
       setErrorState("You are not the contract owner. Please contact the contract owner.");
       onError("You are not the contract owner. Please contact the contract owner.");
       return;
@@ -244,7 +244,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       
       <Button 
         onClick={handleCompleteRemoval} 
-        disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig) || isLoadingOwnership}
+        disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig && ownerType !== 'Other') || isLoadingOwnership}
       >
         {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : 'Sign & Complete Validator Removal')}
       </Button>
