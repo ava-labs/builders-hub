@@ -166,7 +166,19 @@ const config = {
         source: '/docs/nodes/run-a-node/manually#hardware-and-os-requirements',
         destination: '/docs/nodes/system-requirements#hardware-and-operating-systems',
         permanent: true,
-      },
+      }, {
+        source: "/build/cross-chain/awm/deep-dive",
+        destination: "/docs/cross-chain/avalanche-warp-messaging/evm-integration#how-does-avalanche-warp-messaging-work",
+        permanent: true,
+      }, {
+        source: "/docs/virtual-machines/custom-precompiles#minting-native-coins",
+        destination: "/docs/avalanche-l1s/evm-configuration/tokenomics#native-minter",
+        permanent: true,
+      }, {
+        source: "/docs/virtual-machines/evm-customization/introduction",
+        destination: "/docs/virtual-machines/evm-l1-customization",
+        permanent: true,
+      }
     ];
   },
 };
