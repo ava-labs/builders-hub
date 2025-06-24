@@ -54,7 +54,7 @@ type ComponentGroupType = {
 }
 
 const componentGroups: Record<string, ComponentGroupType> = {
-  'Create an L1': {
+  'L1 Creation': {
     academy: {
       text: "Learn about creating an L1",
       link: "https://build.avax.network/academy/avalanche-fundamentals"
@@ -133,7 +133,7 @@ const componentGroups: Record<string, ComponentGroupType> = {
       }
     ]
   },
-  "Validator Manager Operations": {
+  "Validator Operations": {
     components: [
       {
         id: "readContract",
@@ -602,7 +602,7 @@ export default function ToolboxApp() {
         </div>
       </div>
 
-      <div className="w-80 flex-shrink-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 flex flex-col h-screen shadow-sm rounded-r-xl ml-4 my-4 overflow-hidden">
+      <div className="w-[28rem] flex-shrink-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 flex flex-col h-screen shadow-sm rounded-r-xl ml-1 my-4 overflow-hidden">
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 border-b border-zinc-100 dark:border-zinc-800">
                         <div className="relative flex items-center mb-2">
@@ -626,7 +626,7 @@ export default function ToolboxApp() {
                     onClick={() => toggleGroup(groupName)}
                     className="flex w-full items-center justify-between px-4 py-3.5 text-left text-base font-semibold text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-colors duration-200"
                   >
-                    <span className="truncate">{groupName}</span>
+                    <span>{groupName}</span>
                     {expandedGroups[groupName]
                       ? <ChevronDown className="w-5 h-5 flex-shrink-0 ml-2 text-zinc-400" />
                       : <ChevronRight className="w-5 h-5 flex-shrink-0 ml-2 text-zinc-400" />
@@ -640,14 +640,14 @@ export default function ToolboxApp() {
                         href={group.academy.link} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="block mb-3 mt-2"
+                        className="block mb-3 mt-2 group"
                       >
-                        <div className="bg-blue-50 dark:bg-zinc-800 hover:bg-blue-100 dark:hover:bg-zinc-750 rounded-lg p-3 border border-blue-200 dark:border-zinc-700 transition-all duration-200">
-                          <div className="flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-zinc-200 mb-1">
+                        <div className="bg-blue-50 dark:bg-zinc-800 hover:bg-blue-100 dark:hover:bg-zinc-700 hover:shadow-md hover:border-blue-300 dark:hover:border-zinc-600 rounded-lg p-3 border border-blue-200 dark:border-zinc-700 transition-all duration-200 group-hover:scale-[1.02]">
+                          <div className="flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-zinc-200 mb-1 group-hover:text-blue-800 dark:group-hover:text-white transition-colors duration-200">
                             <img src="/small-logo.png" alt="Avalanche" className="h-4 w-auto" />
                             <span>Academy</span>
                           </div>
-                          <p className="text-xs text-blue-600 dark:text-zinc-400 leading-relaxed">
+                          <p className="text-xs text-blue-600 dark:text-zinc-400 leading-relaxed group-hover:text-blue-700 dark:group-hover:text-zinc-300 transition-colors duration-200">
                             {group.academy.text}
                           </p>
                         </div>
@@ -666,7 +666,7 @@ export default function ToolboxApp() {
                                 : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800'
                             }`}
                           >
-                            <span className="truncate block">{label}</span>
+                            <span className="block leading-tight">{label}</span>
                           </a>
                         </li>
                       ))}
