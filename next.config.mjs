@@ -190,6 +190,22 @@ const config = {
         source: "/docs/tooling/avalanchego-postman-collection/setup",
         destination: "/docs/tooling/avalanche-postman/add-postman-collection",
         permanent: true,
+      }, {
+        source: "/docs/avalanche-l1s/deploy-a-avalanche-l1/fuji-testnet",
+        destination: "/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet",
+        permanent: true,
+      }, {
+        source: "/docs/tooling/avalanche-cli#avalanche-l1-deploy",
+        destination: "/docs/tooling/cli-commands#deploy",
+        permanent: true,
+      }, {
+        source: "/docs/tooling/avalanche-cli#network-start",
+        destination: "/docs/tooling/cli-commands#start",
+        permanent: true,
+      }, {
+        source: "/docs/tooling/avalanche-cli",
+        destination: "/docs/tooling/cli-commands",
+        permanent: true,
       }
     ];
   },
