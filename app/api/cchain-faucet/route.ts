@@ -5,7 +5,7 @@ import { avalancheFuji, avalanche } from 'viem/chains';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { rateLimit } from '@/lib/rateLimit';
 
-const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
+const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
 const FAUCET_C_CHAIN_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
 const FIXED_AMOUNT = '2';
 
