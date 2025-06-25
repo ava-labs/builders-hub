@@ -37,7 +37,7 @@ export const PUT = withAuth(async (req: NextRequest, { params }: { params: Promi
       );
     }
 
-    if (session.id != id) {
+    if (session.user.id != id) {
       return NextResponse.json(
         { error: 'Forbidden.' },
         { status: 403 }
