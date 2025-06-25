@@ -199,7 +199,7 @@ func (s *SetTx) Execute(t *TransactionContext) error {
 
 #### Signed Transaction
 
-The unsigned transactions mentioned previously can't be issued to the network without first being signed. BlobVM implements signed transactions by embedding the unsigned transaction alongside its signature in [`Transaction`](https://github.com/ava-labs/blobvm/blob/master/chain/tx.go). In BlobVM, a signature is defined as the [ECDSA signature](https://en.wikipedia.org/wikiElliptic_Curve_Digital_Signature_Algorithm) of the issuer's private key of the [KECCAK256](https://keccak.team/keccak.html) hash of the unsigned transaction's data ([digest hash](https://eips.ethereum.org/EIPS/eip-712)).
+The unsigned transactions mentioned previously can't be issued to the network without first being signed. BlobVM implements signed transactions by embedding the unsigned transaction alongside its signature in [`Transaction`](https://github.com/ava-labs/blobvm/blob/master/chain/tx.go). In BlobVM, a signature is defined as the [ECDSA signature](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm) of the issuer's private key of the [KECCAK256](https://keccak.team/keccak.html) hash of the unsigned transaction's data ([digest hash](https://eips.ethereum.org/EIPS/eip-712)).
 
 ```go
 type Transaction struct {
@@ -316,13 +316,13 @@ Let's walk through an example on how to issue a `SetTx` transaction to the BlobV
 
 The [mempool](https://github.com/ava-labs/blobvm/blob/master/mempool/mempool.go) is a buffer of volatile memory that stores pending transactions. Transactions are stored in the mempool whenever a node learns about a new transaction either through gossip with other nodes or through an API call issued by a user.
 
-The mempool is implemented as a min-max [heap](https://en.wikipedia.org/wiki/Heap_data_structure) ordered by each transaction's gas price. The mempool is created during the [initialization](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L151) of VM.
+The mempool is implemented as a min-max [heap](https://en.wikipedia.org/wiki/Heap_data_structure) ordered by each transaction's gas price. The mempool is created during the [initialization](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L93) of VM.
 
 ```go
 vm.mempool = mempool.New(vm.genesis, vm.config.MempoolSize)
 ```
 
-Whenever a transaction is submitted to VM, it first gets initialized, verified, and executed locally. If the transaction looks valid, then it's added to the [mempool](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L431).
+Whenever a transaction is submitted to VM, it first gets initialized, verified, and executed locally. If the transaction looks valid, then it's added to the [mempool](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L414).
 
 #### Add Method
 
@@ -419,7 +419,7 @@ BlobVM implements two types of blocks, `StatefulBlock` and `StatelessBlock`.
 
 #### StatefulBlock
 
-A [`StatefulBlock`](https://github.com/ava-labs/blobvm/blob/master/chain/block.go#L26) contains strictly the metadata about the block that needs to be written to the database.
+A [`StatefulBlock`](https://github.com/ava-labs/blobvm/blob/master/chain/block.go#L27) contains strictly the metadata about the block that needs to be written to the database.
 
 ```go
 type StatefulBlock struct {
@@ -435,7 +435,7 @@ type StatefulBlock struct {
 
 #### StatelessBlock
 
-[StatelessBlock](https://github.com/ava-labs/blobvm/blob/master/chain/block.go#L39) is a superset of `StatefulBlock` and additionally contains fields that are needed to support block-level operations like verification and acceptance throughout its lifecycle in the VM.
+[StatelessBlock](https://github.com/ava-labs/blobvm/blob/master/chain/block.go#L40) is a superset of `StatefulBlock` and additionally contains fields that are needed to support block-level operations like verification and acceptance throughout its lifecycle in the VM.
 
 ```go
 type StatelessBlock struct {
@@ -459,7 +459,7 @@ Let's have a look at the fields of StatelessBlock:
 - `children`: The children of this block
 - `onAcceptDB`: The database this block should be written to upon acceptance.
 
-When the consensus engine tries to build a block by calling the VM's `BuildBlock`, the VM calls the [`block.NewBlock`](https://github.com/ava-labs/blobvm/blob/master/chain/block.go#L52) function to get a new block that is a child of the currently preferred block.
+When the consensus engine tries to build a block by calling the VM's `BuildBlock`, the VM calls the [`block.NewBlock`](https://github.com/ava-labs/blobvm/blob/master/chain/block.go#L53) function to get a new block that is a child of the currently preferred block.
 
 ```go
 func NewBlock(vm VM, parent snowman.Block, tmstp int64, context *Context) *StatelessBlock {
@@ -477,7 +477,7 @@ func NewBlock(vm VM, parent snowman.Block, tmstp int64, context *Context) *State
 }
 ```
 
-Some `StatelessBlock` fields like the block ID, byte representation, and timestamp aren't populated immediately. These are set during the `StatelessBlock`'s [`init`](https://github.com/ava-labs/blobvm/blob/master/chain/block.go#L112) method, which initializes these fields once the block has been populated with transactions.
+Some `StatelessBlock` fields like the block ID, byte representation, and timestamp aren't populated immediately. These are set during the `StatelessBlock`'s [`init`](https://github.com/ava-labs/blobvm/blob/master/chain/block.go#L113) method, which initializes these fields once the block has been populated with transactions.
 
 ```go
 func (b *StatelessBlock) init() error {
@@ -510,7 +510,7 @@ A block once built, can exist in two states:
 1. Rejected: The block was not accepted by consensus. In this case, the mempool will reclaim the rejected block's transactions so they can be included in a future block.
 2. Accepted: The block was accepted by consensus. In this case, we write the block to the blockchain by committing it to the database.
 
-When the consensus engine receives the built block, it calls the block's [`Verify`](https://github.com/ava-labs/blobvm/blob/master/chain/block.go#L227) method to validate that the block is well-formed. In BlobVM, the following constraints are placed on valid blocks:
+When the consensus engine receives the built block, it calls the block's [`Verify`](https://github.com/ava-labs/blobvm/blob/master/chain/block.go#L228) method to validate that the block is well-formed. In BlobVM, the following constraints are placed on valid blocks:
 
 1. A block must contain at least one transaction and the block's timestamp must be within 10s into the future.
 
@@ -591,7 +591,7 @@ func (b *StatelessBlock) Reject() error {
 
 ### API
 
-[Service](https://github.com/ava-labs/blobvm/blob/master/vm/public_service.go) implements an API server so users can interact with the VM. The VM implements the interface method [`CreateHandlers`](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L265) that exposes the VM's RPC API.
+[Service](https://github.com/ava-labs/blobvm/blob/master/vm/public_service.go) implements an API server so users can interact with the VM. The VM implements the interface method [`CreateHandlers`](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L267) that exposes the VM's RPC API.
 
 ```go
 func (vm *VM) CreateHandlers() (map[string]*common.HTTPHandler, error) {
@@ -641,7 +641,7 @@ Let's look at some of the important methods of `vm.go` that must be implemented:
 
 #### Initialize Method
 
-[Initialize](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L92) is invoked by `avalanchego` when creating the blockchain. `avalanchego` passes some parameters to the implementing VM.
+[Initialize](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L93) is invoked by `avalanchego` when creating the blockchain. `avalanchego` passes some parameters to the implementing VM.
 
 - `ctx` - Metadata about the VM's execution
 - `dbManager` - The database that the VM can write to
@@ -788,7 +788,7 @@ func (vm *VM) GetBlock(id ids.ID) (snowman.Block, error) {
 
 #### ParseBlock Method
 
-[`ParseBlock`](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L353) deserializes a block.
+[`ParseBlock`](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L373) deserializes a block.
 
 ```go
 func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
@@ -816,7 +816,7 @@ func (vm *VM) ParseBlock(source []byte) (snowman.Block, error) {
 
 #### BuildBlock Method
 
-Avalanche consensus calls [`BuildBlock`](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L377) when it receives a notification from the VM that it has pending transactions that are ready to be issued into a block.
+Avalanche consensus calls [`BuildBlock`](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L397) when it receives a notification from the VM that it has pending transactions that are ready to be issued into a block.
 
 ```go
 func (vm *VM) BuildBlock() (snowman.Block, error) {
@@ -839,7 +839,7 @@ func (vm *VM) BuildBlock() (snowman.Block, error) {
 
 #### SetPreference Method
 
-[`SetPreference`](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L437) sets the block ID preferred by this node. A node votes to accept or reject a block based on its current preference in consensus.
+[`SetPreference`](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L457) sets the block ID preferred by this node. A node votes to accept or reject a block based on its current preference in consensus.
 
 ```go
 func (vm *VM) SetPreference(id ids.ID) error {
@@ -851,7 +851,7 @@ func (vm *VM) SetPreference(id ids.ID) error {
 
 #### LastAccepted Method
 
-[LastAccepted](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L445) returns the block ID of the block that was most recently accepted by this node.
+[LastAccepted](https://github.com/ava-labs/blobvm/blob/master/vm/vm.go#L465) returns the block ID of the block that was most recently accepted by this node.
 
 ```go
 func (vm *VM) LastAccepted() (ids.ID, error) {

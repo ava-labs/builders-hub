@@ -178,6 +178,10 @@ const config = {
         source: "/docs/virtual-machines/evm-customization/introduction",
         destination: "/docs/virtual-machines/evm-l1-customization",
         permanent: true,
+      }, {
+        source: "/docs/virtual-machines/evm-customization/background-requirements",
+        destination: "/docs/virtual-machines/custom-precompiles/background-requirements",
+        permanent: true,
       }
     ];
   },
