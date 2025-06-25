@@ -182,6 +182,14 @@ const config = {
         source: "/docs/virtual-machines/evm-customization/background-requirements",
         destination: "/docs/virtual-machines/custom-precompiles/background-requirements",
         permanent: true,
+      }, {
+        source: "/docs/nodes/run-a-node/manually",
+        destination: "/docs/nodes/run-a-node/from-source",
+        permanent: true,
+      }, {
+        source: "/docs/tooling/avalanchego-postman-collection/setup",
+        destination: "/docs/tooling/avalanche-postman/add-postman-collection",
+        permanent: true,
       }
     ];
   },
