@@ -91,7 +91,7 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
         `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
         `-v ~/.avalanchego:/root/.avalanchego`,
         ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
-        `avaplatform/subnet-evm:${versions['avaplatform/subnet-evm']}`
+        `avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`
     ];
     return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
 }

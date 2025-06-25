@@ -51,12 +51,12 @@ function fetchTags(repoName) {
 async function main() {
     try {
         // Check for subnet-evm updates
-        const latestSubnetEvmTag = await fetchTags('avaplatform/subnet-evm');
+        const latestSubnetEvmTag = await fetchTags('avaplatform/subnet-evm_avalanchego');
         const versions = readVersionsFile();
-        const currentSubnetEvmVersion = versions['avaplatform/subnet-evm'];
+        const currentSubnetEvmVersion = versions['avaplatform/subnet-evm_avalanchego'];
 
         if (latestSubnetEvmTag !== currentSubnetEvmVersion) {
-            versions['avaplatform/subnet-evm'] = latestSubnetEvmTag;
+            versions['avaplatform/subnet-evm_avalanchego'] = latestSubnetEvmTag;
             fs.writeFileSync('src/versions.json', JSON.stringify(versions, null, 2));
 
             console.error(`New version ${latestSubnetEvmTag} is available for subnet-evm. Current version is ${currentSubnetEvmVersion}`);

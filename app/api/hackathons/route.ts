@@ -12,6 +12,7 @@ import { env } from 'process';
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
+    const userId = req.headers.get("id");
     const options: GetHackathonsOptions = {
       page: Number(searchParams.get('page') || 1),
       pageSize: Number(searchParams.get('pageSize') || 10),
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest) {
       date: searchParams.get('date') || undefined,
       status: searchParams.get('status') as HackathonStatus || undefined,
       search: searchParams.get('search') || undefined,
+      created_by: userId || undefined,
     };
     const response = await getFilteredHackathons(options);
 

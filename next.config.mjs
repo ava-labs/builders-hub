@@ -10,6 +10,9 @@ const config = {
     'typescript',
     'twoslash',
   ],
+  env: {
+    APIKEY: process.env.APIKEY,
+  },
   transpilePackages: ["next-mdx-remote"],
   images: {
     remotePatterns: [

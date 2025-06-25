@@ -1902,12 +1902,12 @@
     viem "^2.21.8"
 
 "@safe-global/protocol-kit@^5.2.4":
-  version "5.2.7"
-  resolved "https://registry.yarnpkg.com/@safe-global/protocol-kit/-/protocol-kit-5.2.7.tgz#50b593f3df797572afe97a0eb89c65226cc3afdc"
-  integrity sha512-eJEQcOiHVdKLnE3VVqtXfNV3o2ua7mktiXuXKszigv0IgzXBF9qkf6+FuI1SG79pLtUg+d4gHOInB7T7SnwzIw==
+  version "5.2.9"
+  resolved "https://registry.yarnpkg.com/@safe-global/protocol-kit/-/protocol-kit-5.2.9.tgz#9ca4c651048cd535c0ec67c61becefd1d54c6109"
+  integrity sha512-6Qs0reus548OFpz6vRH/zElUW4v06RddlziX6rjZhR4HQF/KfmFWEdozHCZ2zyHtIcXK6R6M0f/F/TuedLtZaw==
   dependencies:
-    "@safe-global/safe-deployments" "^1.37.34"
-    "@safe-global/safe-modules-deployments" "^2.2.9"
+    "@safe-global/safe-deployments" "^1.37.36"
+    "@safe-global/safe-modules-deployments" "^2.2.10"
     "@safe-global/types-kit" "^1.0.5"
     abitype "^1.0.2"
     semver "^7.6.3"
@@ -1932,10 +1932,10 @@
     "@safe-global/safe-gateway-typescript-sdk" "^3.5.3"
     viem "^2.1.1"
 
-"@safe-global/safe-deployments@^1.37.34":
-  version "1.37.34"
-  resolved "https://registry.yarnpkg.com/@safe-global/safe-deployments/-/safe-deployments-1.37.34.tgz#e3061327c12d73869a48acddb4742b2c2cf7c2b0"
-  integrity sha512-ynBFymugc3sZJ63NZuUuRYjjp5LIVPJqt/kJV/lnB0nh0JeUjX+W7NPNTjO6dxxdIi5p547pEaLKYKnaS4pTCQ==
+"@safe-global/safe-deployments@^1.37.36":
+  version "1.37.36"
+  resolved "https://registry.yarnpkg.com/@safe-global/safe-deployments/-/safe-deployments-1.37.36.tgz#1c463cc9000af600056f5e1874527b5679b62505"
+  integrity sha512-h9vuA659vvjJKf7wgoV5iPIHXWEQMoSkXAIZ2CJEoBteP9vP4LjyuPFp+wVQ6WyQSeHi22HjrlvGXxZD72Kqqw==
   dependencies:
     semver "^7.6.2"
 
@@ -1944,10 +1944,10 @@
   resolved "https://registry.yarnpkg.com/@safe-global/safe-gateway-typescript-sdk/-/safe-gateway-typescript-sdk-3.22.9.tgz#7f6571aaf1aecbe1217f6dd294ad2f3d90c2c8c2"
   integrity sha512-7ojVK/crhOaGowEO8uYWaopZzcr5rR76emgllGIfjCLR70aY4PbASpi9Pbs+7jIRzPDBBkM0RBo+zYx5UduX8Q==
 
-"@safe-global/safe-modules-deployments@^2.2.9":
-  version "2.2.9"
-  resolved "https://registry.yarnpkg.com/@safe-global/safe-modules-deployments/-/safe-modules-deployments-2.2.9.tgz#f1575863b5e62fcb3c6df4d1e480c3c9b249ba15"
-  integrity sha512-3brLLX4RkLlH2vB+1CgGo1iA73kckmPpgroTLaweZnysr1lKHqpqY0VAA3gmjHq1Qiq1Cx0fccDHk3c2rqRfsw==
+"@safe-global/safe-modules-deployments@^2.2.10":
+  version "2.2.10"
+  resolved "https://registry.yarnpkg.com/@safe-global/safe-modules-deployments/-/safe-modules-deployments-2.2.10.tgz#b33a7b1e5279550664214b3c16930d106b6d409c"
+  integrity sha512-xEOOqSt4zqSPEU4VWgQZmjXbsgFtXOHsz34af8hx7WBLoVKUZ3umOuSjBYb0qBOY4FiQWkgGYsvJJRQjA1ESBA==
 
 "@safe-global/types-kit@^1.0.4", "@safe-global/types-kit@^1.0.5":
   version "1.0.5"
@@ -8260,9 +8260,9 @@ viem@^2.1.1, viem@^2.22.9:
     ws "8.18.1"
 
 viem@^2.21.8:
-  version "2.31.3"
-  resolved "https://registry.yarnpkg.com/viem/-/viem-2.31.3.tgz#4157d7c87db5a23eee5f5e230849d5f30e731825"
-  integrity sha512-q3JGI5QFB4LEiLfg9f2ZwjUygAn2W0wMLtj++7E/L2i8Y7zKAkR4TEEOhwBn7gyYXpuc7f1vfd26PJbkEKuj5w==
+  version "2.31.4"
+  resolved "https://registry.yarnpkg.com/viem/-/viem-2.31.4.tgz#a8cce5579cc495a2586a16dd4062deecc0f53f1d"
+  integrity sha512-0UZ/asvzl6p44CIBRDbwEcn3HXIQQurBZcMo5qmLhQ8s27Ockk+RYohgTLlpLvkYs8/t4UUEREAbHLuek1kXcw==
   dependencies:
     "@noble/curves" "1.9.2"
     "@noble/hashes" "1.8.0"
