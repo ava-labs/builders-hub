@@ -5,10 +5,10 @@ description: Learn how to execute a native transfer on the C or P-Chain using th
 
 # Prerequisites
 
-- Install the [Avalanche CLI](/docs/tooling/guides/get-avalanche-cli).
-- Use the CLI to [create a key](/docs/tooling/avalanche-cli#key-create).
+- Install the [Avalanche CLI](/docs/tooling/get-avalanche-cli).
+- Use the CLI to [create a key](/docs/tooling/cli-commands#key-create).
 - Fund the key with AVAX. You can use the [faucet](https://test.core.app/tools/testnet-faucet/?subnet=c&token=c) with coupon code `devrel-avax-0112` to get testnet AVAX. 
-- *Optionally*, you can [export](/docs/tooling/avalanche-cli#key-export) your private key for use in scripting or other tools. 
+- *Optionally*, you can [export](/docs/tooling/cli-commands#key-export) your private key for use in scripting or other tools. 
 
 ## Initiate the `transfer` Command and Walk Through the Prompts
 
@@ -20,7 +20,7 @@ avalanche key transfer
 
 <Callout title="Note">
 
-This command and all of its flags are documented [here](/docs/tooling/avalanche-cli#key-transfer).
+This command and all of its flags are documented [here](/docs/tooling/cli-commands#key-transfer).
 
 </Callout>
 
@@ -108,4 +108,4 @@ this operation is going to:
   ▸ Yes
 ```
 
-After a successful transfer, you can check your CLI keys' balances with the [command](/docs/tooling/avalanche-cli#key-list): `avalanche key list`.
+After a successful transfer, you can check your CLI keys' balances with the [command](/docs/tooling/cli-commands#key-list): `avalanche key list`.

@@ -4,11 +4,11 @@ But why are there transaction fees (also commonly known as gas fees) at all? Let
 
 In the Ethereum Virtual Machine (EVM), transaction fees play a crucial role in regulating access to the limited processing resources within the blockchain network. The blockchain has a limit of how much computation it can process in a given time frame. Imagine the Ethereum network as a highway with lanes representing block space. Each transaction is like a vehicle that needs space on these lanes.
 
-![](/course-images/multi-chain-architecture/transaction-fees/low-demand.png)
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/multi-chain-architecture/transaction-fees/low-demand-ROW1xDwcbURumUP2Hpi5wa8E3x3ExQ.png)
 
 Now, just like on a highway during rush hour, if too many vehicles try to access the lanes at once, congestion occurs, slowing down the entire system. To prevent this congestion, Ethereum employs dynamic transaction fees. These fees keep users from issuing transactions during times of high demand, much like a flexible toll system on a highway. When traffic is light, the tolls remain low, allowing for smooth flow. However, as more vehicles (transactions) enter the highway (the blockchain), and it becomes congested, the tolls (transaction fees) rise.
 
-![](/course-images/multi-chain-architecture/transaction-fees/high-demand.png)
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/multi-chain-architecture/transaction-fees/high-demand-b3kITcvAfkm9hmlZwlA4V5VasQUuGm.png)
 
 When the transaction fees are high users will rethink the urgency or importance of their transactions, much like how drivers might reconsider their travel plans or opt for alternative routes when faced with higher tolls. Ultimately, this dynamic fee structure helps to maintain a balanced flow of transactions, preventing bottlenecks and ensuring the network operates efficiently even during periods of high demand.
 
@@ -26,11 +26,11 @@ Going back to our highway analogy, think of having the highway operator charge d
 
 These fluctuating fees can be a huge danger to the business model of many web3 dApps. Let's look at a simple example protocol, where users can swap two stablecoins:
 
-![](/course-images/multi-chain-architecture/transaction-fees/stablecoin-swap.png)
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/multi-chain-architecture/transaction-fees/stablecoin-swap-AHqvoi6nUAnsRVoywJhWafRFkEejJN.png)
 
 The users using these dApps will face multiple fees. In our example the fee structure could look something like this:
 
-![](/course-images/multi-chain-architecture/transaction-fees/swap-fees-low.png)
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/multi-chain-architecture/transaction-fees/swap-fees-low-rgJfH82rJZIRUf6KWtEXaD12inji0W.png)
 
 In our example the users are paying three kinds of fees:
 
@@ -40,11 +40,11 @@ In our example the users are paying three kinds of fees:
 
 The users don't really care how the fees are split between the different parties involved in the execution of the swap. At the end of the day they are looking at the overall cost for their intention.
 
-![](/course-images/multi-chain-architecture/transaction-fees/user-price-expectation.png)
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/multi-chain-architecture/transaction-fees/user-price-expectation-Eon0zUTqLZ3Vi9pSzge0VzYzy1kPtY.png)
 
 Some time passes now and the activity increases on the chain. The cause may be an NFT drop or a bull market. Due to rising activity and demand for the limited block space the transaction fees increase:
 
-![](/course-images/multi-chain-architecture/transaction-fees/swap-fees-high.png)
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/multi-chain-architecture/transaction-fees/swap-fees-high-t5ayOevkJm9A4b2aOkiGlUHAWkKPK5.png)
 
 Even though nothing about the protocol has changed and the increased chain activity may not even affect you in any other way, much less users will use the protocol now.
 

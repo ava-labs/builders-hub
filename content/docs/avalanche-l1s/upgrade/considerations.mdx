@@ -64,7 +64,7 @@ This will download the archive to the machine. Unpack it like this (use the corr
 tar xvf subnet-evm_0.2.9_linux_amd64.tar.gz
 ```
 
-This will unpack and place the contents of the archive in the current directory, file `subnet-evm` is the plugin binary. You need to stop the node now (if the node is running as a service, use `sudo systemctl stop avalanchego` command). You need to place that file into the plugins directory where the AvalancheGo binary is located. If the node is installed using the install script, the path will be `~/avalanche-node/plugins` Instead of the `subnet-evm` filename, VM binary needs to be named as the VM ID of the chain on the Avalanche L1. For example, for the [WAGMI Avalanche L1](https://subnets-test.avax.network/wagmi) that VM ID is `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`. So, the command to copy the new plugin binary would look like:
+This will unpack and place the contents of the archive in the current directory, file `subnet-evm` is the plugin binary. You need to stop the node now (if the node is running as a service, use `sudo systemctl stop avalanchego` command). You need to place that file into the plugins directory where the AvalancheGo binary is located. If the node is installed using the install script, the path will be `~/avalanche-node/plugins` Instead of the `subnet-evm` filename, VM binary needs to be named as the VM ID of the chain on the Avalanche L1. For example, for the [WAGMI Avalanche L1](/docs/avalanche-l1s/wagmi-avalanche-l1) that VM ID is `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`. So, the command to copy the new plugin binary would look like:
 
 ```bash
 cp subnet-evm ~/avalanche-node/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy

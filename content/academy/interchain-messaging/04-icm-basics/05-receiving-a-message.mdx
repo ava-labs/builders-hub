@@ -8,7 +8,7 @@ icon: BookOpen
 
 To receive a message we need to enable our cross-L1 dApps to being called by the Interchain Messaging contract.
 
-![](/course-images/teleporter/teleporter-source-destination-with-relayer.png)
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/teleporter/teleporter-source-destination-with-relayer-SvUFYGP77XxLjoyWqf7IpC85Ssxmmo.png)
 
 The Interchain Messaging does not know our contract and what functions it has. Therefore, our dApp on the destination L1 has to implement the ITeleporterReceiver interface. It is very straight forward and only requires a single method for receiving the message that then can be called by the Interchain Messaging contract:
 

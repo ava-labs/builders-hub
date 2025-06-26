@@ -89,15 +89,15 @@ export default function Page() {
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
             Join the Avalanche community at our global events, hackathons, and meetups to connect, learn, and build the future of blockchain technology.
           </p>
-          <Link href="#events">
+          {/* <Link href="#events">
             <Button className="mt-6 rounded-full text-lg px-8 py-6 bg-red-500 hover:bg-red-600 transition-all duration-300 shadow-lg hover:shadow-xl text-white dark:text-white">
               Find Events <ArrowRight color="white" className="ml-2 h-5 w-5" />
             </Button>
-          </Link>
+          </Link> */}
         </section>
 
         {/* Featured Event Section */}
-        <section className="relative">
+        {/* <section className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 dark:from-yellow-500/10 dark:to-amber-500/10 rounded-3xl" />
           <div className="relative px-6 py-12 md:py-20 text-center space-y-6 rounded-3xl border border-yellow-500/30 backdrop-blur-sm shadow-2xl transform transition-all duration-300">
             <div className="flex justify-center">
@@ -117,37 +117,36 @@ export default function Page() {
               </Button>
             </Link>
           </div>
-        </section>
+        </section> */}
 
         {/* Events Grid */}
         <section id="events" className="space-y-12">
-          <h2 className="text-3xl md:text-5xl font-bold text-center">Upcoming Events</h2>
           <div className="grid md:grid-cols-3 gap-6">
-            <a href="https://www.avalanchesummitlondon.com/" target="_blank" rel="noopener noreferrer">
+            <a href="/hackathons" target="_blank" rel="noopener noreferrer">
               <EventCard
-                title="Avalanche Summit London"
-                description="Join us for Avalanche Summit, London, as we explore the world's original global financial hub through the lens of Web3."
-                icon={<CalendarDays className="w-8 h-8" color='white'/>}
-                image={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/avalanche_summit_london-Nyk29ywbU9RZbKaXzVtZxXd1nqBJBx.png"}
-                url="https://www.avalanchesummitlondon.com/"
-                color="red"
+                title="Hackathons"
+                description="Hackathons aim to harness the potential of Avalanche´s robust technology stack to address pressing issues and create scalable, practical solutions."
+                icon={<Award className="w-8 h-8" color='white'/>}
+                image={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/hackathons-banner-nyqtkzooc3tJ4qcLjfLJijXz6uJ6oH.png"}
+                url="/hackathons"
+                color="blue"
                 arrowColor={arrowColor}
               />
             </a>
-            <a href="/hackathon" target="_blank" rel="noopener noreferrer">
+            <a href="https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4" target="_blank" rel="noopener noreferrer">
               <EventCard
-                title="Summit Hackathon London"
-                description="This hackathon aims to harness the potential of Avalanche's robust technology stack to address pressing issues and create scalable, practical solutions."
-                icon={<Award className="w-8 h-8" color='white'/>}
-                image={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/hackathon_luma-NaEATEzSOmU29OK2JUTtShMWrPvWl3.png"}
-                url="/hackathon"
-                color="blue"
+                title="Avalanche Calendar"
+                description="Explore upcoming Avalanche events, meetups, and community gatherings. Stay connected with the latest happenings in the ecosystem."
+                icon={<CalendarDays className="w-8 h-8" color='white'/>}
+                image={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/Avalanche-Event-TnQovuFzkt8CGHyF0wfiSYTrGVtuPU.jpg"}
+                url="https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4"
+                color="purple"
                 arrowColor={arrowColor}
               />
             </a>
             <a href="https://lu.ma/Team1?utm_source=builder_hub" target="_blank" rel="noopener noreferrer">
               <EventCard
-                title="Team1 Events"
+                title="Community driven events"
                 description="Check out and join the global meetups, workshops and events organized by Avalanche Team1"
                 icon={<Users className="w-8 h-8" color='white'/>}
                 image={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"}

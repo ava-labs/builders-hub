@@ -18,6 +18,7 @@ export type HackathonHeader = {
   content: Hackathon
   top_most: boolean
   custom_link: string | undefined
+  created_by: string
 }
 
 export type HackathonsFilters = {
