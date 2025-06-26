@@ -1,48 +1,55 @@
-import { ChevronRight, Layers, UserPen, MessageCircle, Coins, Droplet, Code, Settings, Wrench } from 'lucide-react';
+import { ChevronRight, Layers, UserPen, MessageCircle, Coins, Droplet, Code, Settings, Wrench, Server } from 'lucide-react';
 
 const SplashPage = () => {
   const features = [
     {
-      title: "Create L1",
-      description: "Launch your custom blockchain",
+      title: "Create Chain",
+      description: "Launch your custom L1 blockchain",
       icon: <Layers className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
       href: "#createChain"
     },
     {
-      title: "Manage Validators",
-      description: "Configure and manage validator contracts",
+      title: "Add Validator",
+      description: "Add validators to your L1 network",
       icon: <UserPen className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
-      href: "#deployValidatorManager"
+      href: "#addValidator"
     },
     {
-      title: "Deploy ICM",
-      description: "Set up cross-chain messaging for your L1",
+      title: "ICM Relayer",
+      description: "Set up cross-chain message relaying",
       icon: <MessageCircle className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",  
-      href: "#teleporterMessenger"
+      href: "#icmRelayer"
     },
     {
-      title: "Deploy ICTT",
-      description: "Set up cross-chain token transfers for your L1",
+      title: "Native Token Remote",
+      description: "Deploy native token bridge contracts",
       icon: <Coins className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
-      href: "#deployExampleERC20"
+      href: "#deployNativeTokenRemote"
     },
     {
-      title: "Precompiles",
-      description: "Manage precompile contracts",
+      title: "Deployer Allowlist",
+      description: "Control contract deployment permissions",
       icon: <Settings className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
       href: "#deployerAllowlist"
     },
     {
-      title: "Utils",
-      description: "Node utilities and conversion tools",
+      title: "RPC Methods Check",
+      description: "Verify node RPC endpoint functionality",
       icon: <Wrench className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
       href: "#rpcMethodsCheck"
+    },
+    {
+      title: "AvalancheGo Docker",
+      description: "Set up node infrastructure with Docker",
+      icon: <Server className="w-6 h-6" />,
+      bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
+      href: "#avalanchegoDocker"
     }
   ];
 
@@ -64,13 +71,12 @@ const SplashPage = () => {
             onClick={() => handleCardClick(feature.href)}
             className="group block p-4 rounded-xl transition-all duration-300 bg-white/90 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-700/70 shadow-md hover:shadow-xl hover:border-zinc-300/90 dark:hover:border-zinc-600/90 hover:bg-white dark:hover:bg-zinc-900/90 cursor-pointer relative overflow-hidden"
           >
-            {/* Subtle gradient overlay on hover */}
-            <div className="absolute inset-0 bg-gradient-to-br from-red-50/20 to-transparent dark:from-red-950/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
             
             <div className="relative h-full min-h-[140px] flex flex-col">
               {/* Icon */}
               <div className="mb-3">
-                <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-950/30 group-hover:bg-red-100 dark:group-hover:bg-red-950/50 transition-colors duration-300">
+                <div className="w-10 h-10 flex items-center justify-center">
                   <div className="text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300 transition-colors duration-300">
                     {feature.icon}
                   </div>
@@ -90,7 +96,7 @@ const SplashPage = () => {
               
               {/* Arrow - positioned at bottom right */}
               <div className="flex justify-end mt-3">
-                <div className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 group-hover:bg-red-100 dark:group-hover:bg-red-950/40 transition-all duration-300 group-hover:scale-110">
+                <div className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 transition-all duration-300 group-hover:scale-110">
                   <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-zinc-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors duration-200" />
                 </div>
               </div>

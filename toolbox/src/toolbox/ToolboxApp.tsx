@@ -648,7 +648,7 @@ export default function ToolboxApp() {
         </div>
       </div>
 
-      <div className="w-[28rem] flex-shrink-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 flex flex-col h-screen shadow-sm rounded-r-xl ml-1 my-4 overflow-hidden">
+      <div className="w-80 flex-shrink-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 flex flex-col h-screen shadow-sm rounded-r-xl ml-1 my-4 overflow-hidden">
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 border-b border-zinc-100 dark:border-zinc-800">
                         <div className="flex items-center mb-2">
