@@ -272,10 +272,10 @@ export default function AvalancheMetrics() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Avalanche Mainnet Chain Metrics
+              Avalanche Mainnet L1 Stats
             </h1>
             <p className="text-muted-foreground mt-1">
-              Real-time blockchain performance analytics
+              An opinionated collection of stats for the Avalanche Mainnet L1s. Updated daily.
             </p>
           </div>
           <div className="text-left sm:text-right">
@@ -305,7 +305,7 @@ export default function AvalancheMetrics() {
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
                 <span className="text-xs md:text-sm font-medium text-green-600 dark:text-green-400">
-                  Total Weekly Active Chains
+                  Weekly Active Chains
                 </span>
               </div>
               <p className="text-xl md:text-2xl font-bold text-green-700 dark:text-green-300 mt-1">
@@ -324,7 +324,7 @@ export default function AvalancheMetrics() {
               <div className="flex items-center gap-2">
                 <FileCode className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
                 <span className="text-xs md:text-sm font-medium text-purple-600 dark:text-purple-400">
-                  Total Weekly Deployed Contracts
+                  Weekly Deployed Contracts
                 </span>
               </div>
               <p className="text-xl md:text-2xl font-bold text-purple-700 dark:text-purple-300 mt-1">
@@ -343,7 +343,7 @@ export default function AvalancheMetrics() {
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 md:h-5 md:w-5 text-orange-600" />
                 <span className="text-xs md:text-sm font-medium text-orange-600 dark:text-orange-400">
-                  Total Weekly Active Addresses
+                  Weekly Active Addresses
                 </span>
               </div>
               <p className="text-xl md:text-2xl font-bold text-orange-700 dark:text-orange-300 mt-1">
@@ -363,7 +363,7 @@ export default function AvalancheMetrics() {
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
               <BarChart3 className="h-5 w-5 text-primary" />
-              Chain Performance Overview
+              L1 Metrics Overview
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -372,7 +372,7 @@ export default function AvalancheMetrics() {
                 <TableHeader>
                   <TableRow className="border-b-2">
                     <TableHead className="font-semibold py-4 min-w-[200px] px-4">
-                      <SortButton field="chainName">Chain Name</SortButton>
+                      <SortButton field="chainName">L1 Name</SortButton>
                     </TableHead>
                     <TableHead className="font-semibold text-center min-w-[120px]">
                       <SortButton field="weeklyTps">
