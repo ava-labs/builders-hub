@@ -54,7 +54,7 @@ export default function Paths() {
   return (
     <div className="flex flex-col px-4 mb-20">
       <div className="flex items-center gap-3 mb-4">
-        <h2 className="text-xl font-medium tracking-wide text-zinc-700 dark:text-zinc-300 uppercase">
+        <h2 className="text-xl font-bold tracking-wide text-zinc-700 dark:text-zinc-300 uppercase">
           Choose your path
         </h2>
       </div>

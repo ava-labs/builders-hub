@@ -94,22 +94,22 @@ const premiumStyles = `
       transform: translateY(0px); 
     }
     18%, 32% { 
-      transform: translateY(-16.666%); 
+      transform: translateY(-12.5%); 
     }
     34%, 48% { 
-      transform: translateY(-33.333%); 
+      transform: translateY(-25%); 
     }
     50%, 64% { 
-      transform: translateY(-50%); 
+      transform: translateY(-37.5%); 
     }
     66%, 80% { 
-      transform: translateY(-66.666%); 
+      transform: translateY(-50%); 
     }
     82%, 96% { 
-      transform: translateY(-83.333%); 
+      transform: translateY(-62.5%); 
     }
     98%, 100% { 
-      transform: translateY(-100%); 
+      transform: translateY(-75%); 
     }
   }
   
@@ -120,7 +120,7 @@ const premiumStyles = `
   }
   
   .text-rotator-inner {
-    animation: rotate-up 18s ease-in-out infinite;
+    animation: rotate-up 21s ease-in-out infinite;
   }
 `;
 
@@ -134,7 +134,7 @@ if (typeof document !== 'undefined') {
 
 // Rotating Text Component
 function RotatingText() {
-  const words = ['courses', 'events', 'hackathons', 'bounties', 'tools', 'grants'];
+  const words = ['courses', 'events', 'hackathons', 'bounties', 'tools', 'grants', 'documentation', 'academy'];
 
   return (
     <span className="text-rotator min-w-[120px] sm:min-w-[160px] lg:min-w-[200px] xl:min-w-[240px] h-[1.2em] text-left">
@@ -179,14 +179,13 @@ export default function Hero() {
             <div className="space-y-6">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tighter leading-[0.95] sm:leading-[0.95] lg:leading-[0.9] xl:leading-[0.85]">
                 <span className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent dark:from-white dark:via-slate-100 dark:to-white animate-gradient-shift">
-                  Learn, Build & Grow
-                </span>
-                <br />
-                <span className="flex items-center justify-center lg:justify-start gap-3 sm:gap-4 lg:gap-5 mt-4 text-3xl sm:text-4xl lg:text-5xl xl:text-6xl">
-                  <span className="text-slate-700 dark:text-slate-200 font-semibold tracking-tight">with</span>
-                  <RotatingText />
+                BuilderHub
                 </span>
               </h1>
+              
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-semibold tracking-tight leading-[1.1] flex justify-center lg:justify-start">
+                <RotatingText />
+              </h2>
               
               <p className="text-lg sm:text-xl lg:text-2xl xl:text-2xl text-slate-600 dark:text-slate-300 font-light leading-[1.5] tracking-[-0.025em] max-w-2xl mx-auto lg:mx-0 text-balance">
                 Explore everything you need to go from idea to impact.
