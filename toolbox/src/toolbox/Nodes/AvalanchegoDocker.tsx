@@ -62,15 +62,10 @@ export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruning
 }
 
 const generateVMAliasesCommand = (vmId: string) => {
-    return `mkdir -p ~/.avalanchego/configs/vms
-
-cat > ~/.avalanchego/configs/vms/aliases.json <<EOF
-{
-  "${vmId}": [
-    "${SUBNET_EVM_VM_ID}"
-  ]
-}
-EOF`;
+    const vmAliases = {
+        [vmId]: [SUBNET_EVM_VM_ID]
+    };
+    return btoa(JSON.stringify(vmAliases, null, 2));
 }
 
 const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, chainId: string, vmId: string, debugEnabled: boolean = false, pruningEnabled: boolean = false) => {
@@ -115,10 +110,14 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
         `avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`
     ];
 
-    // Add vm-aliases-file parameter for custom VMs
+    // Add vm-aliases-file-content parameter for custom VMs
     if (isCustomVM) {
         chunks.push("/avalanchego/build/avalanchego");
-        chunks.push("--vm-aliases-file=/root/.avalanchego/configs/vms/aliases.json");
+        const vmAliases = {
+            [vmId]: [SUBNET_EVM_VM_ID]
+        };
+        const base64Content = btoa(JSON.stringify(vmAliases, null, 2));
+        chunks.push(`--vm-aliases-file-content=${base64Content}`);
     }
 
     return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
@@ -347,10 +346,13 @@ export default function AvalanchegoDocker() {
                             {isCustomVM && (
                                 <Step>
                                     <h3 className="text-xl font-bold mb-4">Custom VM Setup</h3>
-                                    <p>This blockchain uses a non-standart Virtual Machine ID. You need to create a VM aliases file before starting the node.</p>
+                                    <p>This blockchain uses a non-standard Virtual Machine ID. The Docker command below will automatically configure the VM aliases using the <code>--vm-aliases-file-content</code> flag.</p>
 
-                                    <p className="mb-2">Run the following command to create the VM aliases configuration:</p>
+                                    <p className="mb-2">The VM aliases configuration that will be used (base64 encoded):</p>
                                     <DynamicCodeBlock lang="bash" code={generateVMAliasesCommand(blockchainInfo.vmId)} />
+
+                                    <p className="mt-4 mb-2">Decoded JSON content:</p>
+                                    <DynamicCodeBlock lang="json" code={JSON.stringify({ [blockchainInfo.vmId]: [SUBNET_EVM_VM_ID] }, null, 2)} />
 
                                     <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
                                         <p className="text-sm">
@@ -380,7 +382,7 @@ export default function AvalanchegoDocker() {
                                         </p>
                                         <ul className="text-xs text-blue-700 dark:text-blue-300 mt-2 list-disc list-inside">
                                             <li><code>VM_ID={blockchainInfo.vmId}</code> - Specifies the custom VM ID</li>
-                                            <li><code>--vm-aliases-file</code> - Points to the VM aliases configuration file</li>
+                                            <li><code>--vm-aliases-file-content</code> - Contains base64 encoded VM aliases configuration</li>
                                         </ul>
                                     </div>
                                 )}
