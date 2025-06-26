@@ -1,82 +1,93 @@
-import { ChevronRight, Layers, UserPen, MessageCircle, Coins } from 'lucide-react';
+import { ChevronRight, Layers, UserPen, MessageCircle, Coins, Droplet, Code } from 'lucide-react';
 
 const SplashPage = () => {
   const features = [
     {
-      title: "Create an L1",
-      description: "Launch your own Layer 1 blockchain with custom parameters and genesis data.",
-      icon: <Layers className="w-8 h-8" />,
+      title: "Create L1",
+      description: "Launch your custom blockchain",
+      icon: <Layers className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
       href: "#createChain"
     },
     {
-      title: "Validator Management",
-      description: "Deploy and manage validator contracts to control your L1's validator set.",
-      icon: <UserPen className="w-8 h-8" />,
+      title: "Validators",
+      description: "Configure and manage validator contracts",
+      icon: <UserPen className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
       href: "#deployValidatorManager"
     },
     {
-      title: "Interchain Messaging",
-      description: "Enable cross-L1 communication using ICM for seamless interoperability.",
-      icon: <MessageCircle className="w-8 h-8" />,
+      title: "Deploy ICM",
+      description: "Set up cross-chain messaging for your L1",
+      icon: <MessageCircle className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",  
       href: "#teleporterMessenger"
     },
     {
-      title: "Interchain Token Transfer",
-      description: "Set up native cross-chain token bridges with ICTT for asset interoperability.",
-      icon: <Coins className="w-8 h-8" />,
+      title: "Deploy ICTT",
+      description: "Set up cross-chain token transfers for your L1",
+      icon: <Coins className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
       href: "#deployExampleERC20"
-    }
+    },
   ];
 
   const handleCardClick = (href: string) => {
-    window.location.hash = href.substring(1);
+    if (href.startsWith('http')) {
+      window.open(href, '_blank', 'noopener,noreferrer');
+    } else {
+      window.location.hash = href.substring(1);
+    }
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       {/* Header Section */}
-      <div className="text-center mb-12">
-        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-zinc-900 dark:text-white mb-6 tracking-tight leading-[0.9]">
+      <div className="text-center mb-16">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-zinc-900 dark:text-white mb-6 tracking-tight leading-tight">
           Build Your{" "}
-          <span className="bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent font-extrabold">
             L1
           </span>
         </h1>
-        <p className="text-xl sm:text-2xl text-zinc-600 dark:text-zinc-300 max-w-4xl mx-auto leading-relaxed font-light">
+        <p className="text-lg sm:text-xl text-zinc-600 dark:text-zinc-400 max-w-3xl mx-auto leading-relaxed">
           The complete toolkit for launching and managing Layer 1 blockchains on Avalanche
         </p>
       </div>
 
       {/* Feature Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
         {features.map((feature, index) => (
           <div
             key={index}
             onClick={() => handleCardClick(feature.href)}
-            className="group cursor-pointer bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 rounded-2xl p-8 hover:shadow-xl hover:shadow-zinc-900/10 dark:hover:shadow-zinc-900/30 transition-all duration-300 hover:scale-[1.02] hover:border-zinc-300 dark:hover:border-zinc-600"
+            className="group block p-8 rounded-2xl transition-all duration-200 bg-white/80 dark:bg-zinc-900/60 backdrop-blur-sm border border-zinc-200/60 dark:border-zinc-700/60 shadow-lg hover:shadow-xl hover:border-zinc-300/80 dark:hover:border-zinc-600/80 cursor-pointer relative"
           >
-            {/* Icon Section */}
-            <div className={`${feature.bgColor} rounded-2xl p-4 w-fit mb-6 group-hover:scale-110 transition-transform duration-300`}>
-              <div className="text-zinc-600 dark:text-zinc-300">
-                {feature.icon}
+            <div className="h-full min-h-[160px] flex flex-col items-center text-center">
+              {/* Icon */}
+              <div className="mb-6">
+                <div className="w-14 h-14 flex items-center justify-center">
+                  <div className="text-zinc-700 dark:text-zinc-300">
+                    {feature.icon}
+                  </div>
+                </div>
               </div>
-            </div>
-
-            {/* Content */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-zinc-900 dark:text-white group-hover:text-zinc-800 dark:group-hover:text-zinc-100 transition-colors">
+              
+              {/* Content */}
+              <div className="flex-1">
+                <h3 className="text-lg font-bold mb-4 text-zinc-900 dark:text-white transition-colors duration-200 leading-tight">
                   {feature.title}
                 </h3>
-                <ChevronRight className="w-5 h-5 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 group-hover:translate-x-1 transition-all duration-300" />
+                
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed text-left">
+                  {feature.description}
+                </p>
               </div>
-              <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                {feature.description}
-              </p>
+            </div>
+            
+            {/* Arrow - positioned absolutely in bottom right */}
+            <div className="absolute bottom-4 right-6">
+              <ChevronRight className="w-5 h-5 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors duration-200" />
             </div>
           </div>
         ))}
@@ -88,17 +99,17 @@ const SplashPage = () => {
           Ready to get started?
         </h3>
         <p className="text-zinc-600 dark:text-zinc-400 mb-6 max-w-2xl mx-auto">
-          Choose a tool from the sidebar to begin building your Layer 1 blockchain, or explore the Avalanche Academy for comprehensive guides.
+          Choose a tool from the sidebar to begin building your Layer 1 blockchain, or explore these helpful resources.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 justify-center">
           <a
             href="https://build.avax.network/academy/avalanche-fundamentals"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 hover:scale-105"
+            className="inline-flex items-center justify-center px-6 py-3 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white font-semibold rounded-xl hover:bg-white dark:hover:bg-zinc-800 transition-all duration-300 hover:scale-105"
           >
             <img src="/small-logo.png" alt="Avalanche" className="h-4 w-auto mr-2" />
-            Avalanche Academy
+            Academy
           </a>
           <a
             href="https://build.avax.network/docs"
@@ -106,8 +117,28 @@ const SplashPage = () => {
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center px-6 py-3 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white font-semibold rounded-xl hover:bg-white dark:hover:bg-zinc-800 transition-all duration-300 hover:scale-105"
           >
-            View Documentation
+            <img src="/small-logo.png" alt="Avalanche" className="h-4 w-auto mr-2" />
+
+            Documentation
             <ChevronRight className="w-4 h-4 ml-2" />
+          </a>
+          <a
+            href="https://core.app/tools/testnet-faucet/?subnet=c&token=c"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center px-6 py-3 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white font-semibold rounded-xl hover:bg-white dark:hover:bg-zinc-800 transition-all duration-300 hover:scale-105"
+          >
+            <Droplet className="w-4 h-4 mr-2 text-red-500" />
+            Fuji Faucet
+          </a>
+          <a
+            href="https://github.com/ava-labs/avalanche-starter-kit"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center px-6 py-3 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white font-semibold rounded-xl hover:bg-white dark:hover:bg-zinc-800 transition-all duration-300 hover:scale-105"
+          >
+            <Code className="w-4 h-4 mr-2 text-red-500" />
+            Starter Kit
           </a>
         </div>
       </div>

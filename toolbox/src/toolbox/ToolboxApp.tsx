@@ -45,16 +45,21 @@ type ComponentType = {
   walletMode: WalletMode;
 }
 
+type ComponentSubgroupType = {
+  components: ComponentType[]
+}
+
 type ComponentGroupType = {
   academy?: {
     text: string;
     link: string;
   },
-  components: ComponentType[]
+  components?: ComponentType[]
+  subgroups?: Record<string, ComponentSubgroupType>
 }
 
 const componentGroups: Record<string, ComponentGroupType> = {
-  'L1 Creation': {
+  'Create L1': {
     academy: {
       text: "Learn about creating an L1",
       link: "https://build.avax.network/academy/avalanche-fundamentals"
@@ -90,103 +95,121 @@ const componentGroups: Record<string, ComponentGroupType> = {
       }
     ]
   },
-  "Validator Manager Setup": {
+  "Validator Manager": {
     academy: {
       text: "Learn about managing the validator set of an L1",
       link: "https://build.avax.network/academy/l1-validator-management"
     },
-    components: [
-      {
-        id: "deployValidatorManager",
-        label: "Deploy Validator Manager Contract",
-        component: lazy(() => import('./ValidatorManager/DeployValidatorManager')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/DeployValidatorManager.tsx"],
-        walletMode: "l1"
-      },
-      {
-        id: "upgradeProxy",
-        label: "Upgrade Proxy Implementation",
-        component: lazy(() => import('./Proxy/UpgradeProxy')),
-        fileNames: ["toolbox/src/toolbox/Proxy/UpgradeProxy.tsx"],
-        walletMode: "l1"
-      },
-      {
-        id: "initialize",
-        label: "Set Initial Configuration",
-        component: lazy(() => import('./ValidatorManager/Initialize')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/Initialize.tsx"],
-        walletMode: "l1"
-      },
-      {
-        id: "initValidatorSet",
-        label: "Initialize Validator Set",
-        component: lazy(() => import('./ValidatorManager/InitValidatorSet')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/InitValidatorSet.tsx"],
-        walletMode: "l1"
-      },
-      {
-        id: "migrateV1ToV2",
-        label: "Migrate v1 to v2",
-        component: lazy(() => import('./ValidatorManager/MigrateV1ToV2')),
-        fileNames: ["toolbox/src/toolbox//ValidatorManager/MigrateV1ToV2.tsx"],
-        walletMode: "l1"
-      }
-    ]
+    subgroups: {
+              "Setup": {
+          components: [
+            {
+              id: "deployProxyContract",
+              label: "Deploy Proxy Contract",
+              component: lazy(() => import('./Proxy/DeployProxyContract')),
+              fileNames: ["toolbox/src/toolbox/Proxy/DeployProxyContract.tsx"],
+              walletMode: "l1"
+            },
+            {
+              id: "deployValidatorManager",
+              label: "Deploy Validator Manager Contract",
+              component: lazy(() => import('./ValidatorManager/DeployValidatorManager')),
+              fileNames: ["toolbox/src/toolbox/ValidatorManager/DeployValidatorManager.tsx"],
+              walletMode: "l1"
+            },
+            {
+              id: "upgradeProxy",
+              label: "Upgrade Proxy Implementation",
+              component: lazy(() => import('./Proxy/UpgradeProxy')),
+              fileNames: ["toolbox/src/toolbox/Proxy/UpgradeProxy.tsx"],
+              walletMode: "l1"
+            },
+            {
+              id: "initialize",
+              label: "Set Initial Configuration",
+              component: lazy(() => import('./ValidatorManager/Initialize')),
+              fileNames: ["toolbox/src/toolbox/ValidatorManager/Initialize.tsx"],
+              walletMode: "l1"
+            },
+            {
+              id: "initValidatorSet",
+              label: "Initialize Validator Set",
+              component: lazy(() => import('./ValidatorManager/InitValidatorSet')),
+              fileNames: ["toolbox/src/toolbox/ValidatorManager/InitValidatorSet.tsx"],
+              walletMode: "l1"
+            },
+            {
+              id: 'deployPoAManager',
+              label: "Deploy PoA Manager",
+              component: lazy(() => import('./ValidatorManager/DeployPoAManager')),
+              fileNames: ["toolbox/src/toolbox/ValidatorManager/DeployPoAManager.tsx"],
+              walletMode: "l1"
+            }
+          ]
+        },
+              "Operations": {
+          components: [
+            {
+              id: "readContract",
+              label: "Read Contract",
+              component: lazy(() => import('./ValidatorManager/ReadContract')),
+              fileNames: ["toolbox/src/toolbox/ValidatorManager/ReadContract.tsx"],
+              walletMode: "l1"
+            },
+            {
+              id: "addValidator",
+              label: "Add L1 Validator",
+              component: lazy(() => import('./ValidatorManager/AddValidator/AddValidator')),
+              fileNames: ["toolbox/src/toolbox/ValidatorManager/AddValidator/AddValidator.tsx"],
+              walletMode: "l1"
+            },
+            {
+              id: "changeWeight",
+              label: "Change L1 Validator Weight",
+              component: lazy(() => import('./ValidatorManager/ChangeWeight/ChangeWeight')),
+              fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeight/ChangeWeight.tsx"],
+              walletMode: "l1"
+            },
+            {
+              id: "removeValidator",
+              label: "Remove L1 Validator",
+              component: lazy(() => import('./ValidatorManager/RemoveValidator/RemoveValidator')),
+              fileNames: ["toolbox/src/toolbox/ValidatorManager/RemoveValidator/RemoveValidator.tsx"],
+              walletMode: "l1"
+            },
+            {
+              id: "migrateV1ToV2",
+              label: "Migrate v1 to v2",
+              component: lazy(() => import('./ValidatorManager/MigrateV1ToV2')),
+              fileNames: ["toolbox/src/toolbox//ValidatorManager/MigrateV1ToV2.tsx"],
+              walletMode: "l1"
+            },
+            {
+              id: 'balanceTopup',
+              label: "Increase L1 Validator Balance",
+              component: lazy(() => import('./Nodes/BalanceTopup')),
+              fileNames: ["toolbox/src/toolbox/Nodes/BalanceTopup.tsx"],
+              walletMode: "c-chain"
+            },
+            {
+              id: "queryL1ValidatorSet",
+              label: "Query L1 Validator Set",
+              component: lazy(() => import('./ValidatorManager/QueryL1ValidatorSet')),
+              fileNames: ["toolbox/src/toolbox/ValidatorManager/QueryL1ValidatorSet.tsx"],
+              walletMode: "testnet-mainnet"
+            },
+            {
+              id: "transferOwnership",
+              label: "Transfer Contract Ownership",
+              component: lazy(() => import('./StakingManager/TransferOwnership')),
+              fileNames: ["toolbox/src/toolbox/StakingManager/TransferOwnership.tsx"],
+              walletMode: "l1"
+            }
+          ]
+        }
+    }
   },
-  "Validator Operations": {
-    components: [
-      {
-        id: "readContract",
-        label: "Read Contract",
-        component: lazy(() => import('./ValidatorManager/ReadContract')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/ReadContract.tsx"],
-        walletMode: "l1"
-      },
-      {
-        id: "addValidator",
-        label: "Add L1 Validator",
-        component: lazy(() => import('./ValidatorManager/AddValidator/AddValidator')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/AddValidator/AddValidator.tsx"],
-        walletMode: "l1"
-      },
-      {
-        id: "changeWeight",
-        label: "Change L1 Validator Weight",
-        component: lazy(() => import('./ValidatorManager/ChangeWeight/ChangeWeight')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeight/ChangeWeight.tsx"],
-        walletMode: "l1"
-      },
-      {
-        id: "removeValidator",
-        label: "Remove L1 Validator",
-        component: lazy(() => import('./ValidatorManager/RemoveValidator/RemoveValidator')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/RemoveValidator/RemoveValidator.tsx"],
-        walletMode: "l1"
-      },
-      {
-        id: 'balanceTopup',
-        label: "Increase L1 Validator Balance",
-        component: lazy(() => import('./Nodes/BalanceTopup')),
-        fileNames: ["toolbox/src/toolbox/Nodes/BalanceTopup.tsx"],
-        walletMode: "c-chain"
-      },
-      {
-        id: "queryL1ValidatorSet",
-        label: "Query L1 Validator Set",
-        component: lazy(() => import('./ValidatorManager/QueryL1ValidatorSet')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/QueryL1ValidatorSet.tsx"],
-        walletMode: "testnet-mainnet"
-      },
-      {
-        id: "transferOwnership",
-        label: "Transfer Contract Ownership",
-        component: lazy(() => import('./StakingManager/TransferOwnership')),
-        fileNames: ["toolbox/src/toolbox/StakingManager/TransferOwnership.tsx"],
-        walletMode: "l1"
-      }
-    ]
-  },
-  "Staking Manager Setup": {
+  "Staking Manager": {
     academy: {
       text: "Learn about setting up Proof-of-Stake for an L1",
       link: "https://build.avax.network/academy/l1-validator-management"
@@ -321,24 +344,7 @@ const componentGroups: Record<string, ComponentGroupType> = {
       }
     ]
   },
-  "Proxy Utils": {
-    components: [
-      {
-        id: "deployProxyContract",
-        label: "Deploy Proxy Contract",
-        component: lazy(() => import('./Proxy/DeployProxyContract')),
-        fileNames: ["toolbox/src/toolbox/Proxy/DeployProxyContract.tsx"],
-        walletMode: "l1"
-      },
-      {
-        id: "upgradeProxy",
-        label: "Upgrade Proxy Implementation",
-        component: lazy(() => import('./Proxy/UpgradeProxy')),
-        fileNames: ["toolbox/src/toolbox/Proxy/UpgradeProxy.tsx"],
-        walletMode: "l1"
-      }
-    ]
-  },
+
   "Precompiles": {
     academy: {
       text: "Learn about Subnet-EVM precompiled contracts",
@@ -389,53 +395,47 @@ const componentGroups: Record<string, ComponentGroupType> = {
       }
     ]
   },
-  "Node Utils": {
-    components: [
-      {
-        id: "rpcMethodsCheck",
-        label: "RPC Methods Check",
-        component: lazy(() => import('./Nodes/RPCMethodsCheck')),
-        fileNames: ["toolbox/src/toolbox/Nodes/RPCMethodsCheck.tsx"],
-        walletMode: "testnet-mainnet",
+  "Utils": {
+    subgroups: {
+      "Node": {
+        components: [
+          {
+            id: "rpcMethodsCheck",
+            label: "RPC Methods Check",
+            component: lazy(() => import('./Nodes/RPCMethodsCheck')),
+            fileNames: ["toolbox/src/toolbox/Nodes/RPCMethodsCheck.tsx"],
+            walletMode: "testnet-mainnet",
+          },
+          {
+            id: "performanceMonitor",
+            label: "Performance Monitor",
+            component: lazy(() => import('./Nodes/PerformanceMonitor')),
+            fileNames: ["toolbox/src/toolbox/Nodes/PerformanceMonitor.tsx"],
+            walletMode: "optional",
+          }
+        ]
       },
-      {
-        id: "performanceMonitor",
-        label: "Performance Monitor",
-        component: lazy(() => import('./Nodes/PerformanceMonitor')),
-        fileNames: ["toolbox/src/toolbox/Nodes/PerformanceMonitor.tsx"],
-        walletMode: "optional",
+      "Conversion": {
+        components: [
+          {
+            id: 'formatConverter',
+            label: "Format Converter",
+            component: lazy(() => import('./Conversion/FormatConverter')),
+            fileNames: [],
+            walletMode: "optional",
+          },
+          {
+            id: 'unitConverter',
+            label: "AVAX Unit Converter",
+            component: lazy(() => import('./Conversion/UnitConverter')),
+            fileNames: [],
+            walletMode: "optional",
+          }
+        ]
       }
-    ]
+    }
   },
-  'Conversion Utils': {
-    components: [
-      {
-        id: 'formatConverter',
-        label: "Format Converter",
-        component: lazy(() => import('./Conversion/FormatConverter')),
-        fileNames: [],
-        walletMode: "optional",
-      },
-      {
-        id: 'unitConverter',
-        label: "AVAX Unit Converter",
-        component: lazy(() => import('./Conversion/UnitConverter')),
-        fileNames: [],
-        walletMode: "optional",
-      }
-    ]
-  },
-  'Expert Tools': {
-    components: [
-      {
-        id: 'deployPoAManager',
-        label: "Deploy PoA Manager",
-        component: lazy(() => import('./ValidatorManager/DeployPoAManager')),
-        fileNames: ["toolbox/src/toolbox/ValidatorManager/DeployPoAManager.tsx"],
-        walletMode: "l1"
-      }
-    ]
-  }
+
 };
 
 // Loading component for Suspense
@@ -453,19 +453,26 @@ export default function ToolboxApp() {
     window.location.hash ? window.location.hash.substring(1) : defaultTool
   );
 
-  // Helper function to find which group contains a specific tool
-  const findParentGroup = (toolId: string): string | null => {
+  // Helper function to find which group and subgroup contains a specific tool
+  const findParentGroupAndSubgroup = (toolId: string): { groupName: string | null, subgroupName: string | null } => {
     for (const [groupName, group] of Object.entries(componentGroups)) {
-      if (group.components.some(component => component.id === toolId)) {
-        return groupName;
+      if (group.components?.some(component => component.id === toolId)) {
+        return { groupName, subgroupName: null };
+      }
+      if (group.subgroups) {
+        for (const [subgroupName, subgroup] of Object.entries(group.subgroups)) {
+          if (subgroup.components.some(component => component.id === toolId)) {
+            return { groupName, subgroupName };
+          }
+        }
       }
     }
-    return null;
+    return { groupName: null, subgroupName: null };
   };
 
   // Get initial tool from URL hash or default
   const initialTool = window.location.hash ? window.location.hash.substring(1) : defaultTool;
-  const initialParentGroup = findParentGroup(initialTool);
+  const { groupName: initialParentGroup, subgroupName: initialSubgroup } = findParentGroupAndSubgroup(initialTool);
 
   // State to track expanded/collapsed groups
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
@@ -473,6 +480,13 @@ export default function ToolboxApp() {
       ...acc,
       [key]: key === initialParentGroup // Set parent group of selected tool to expanded
     }), {})
+  );
+
+  // State to track expanded/collapsed subgroups
+  const [expandedSubgroups, setExpandedSubgroups] = useState<Record<string, boolean>>(
+    initialParentGroup && initialSubgroup 
+      ? { [`${initialParentGroup}-${initialSubgroup}`]: true }
+      : {}
   );
 
   // Toggle group expansion
@@ -483,19 +497,34 @@ export default function ToolboxApp() {
     }));
   };
 
+  // Toggle subgroup expansion
+  const toggleSubgroup = (subgroupKey: string) => {
+    setExpandedSubgroups(prev => ({
+      ...prev,
+      [subgroupKey]: !prev[subgroupKey]
+    }));
+  };
+
   // Listen for URL hash changes (e.g. back/forward navigation)
   useEffect(() => {
     const handleHashChange = () => {
       const newTool = window.location.hash ? window.location.hash.substring(1) : defaultTool;
       setSelectedTool(newTool);
       
-      // Auto-expand the parent group of the selected tool
-      const parentGroup = findParentGroup(newTool);
+      // Auto-expand the parent group and subgroup of the selected tool
+      const { groupName: parentGroup, subgroupName } = findParentGroupAndSubgroup(newTool);
       if (parentGroup) {
         setExpandedGroups(prev => ({
           ...prev,
           [parentGroup]: true
         }));
+        
+        if (subgroupName) {
+          setExpandedSubgroups(prev => ({
+            ...prev,
+            [`${parentGroup}-${subgroupName}`]: true
+          }));
+        }
       }
     };
     window.addEventListener("hashchange", handleHashChange);
@@ -508,13 +537,20 @@ export default function ToolboxApp() {
     // Optionally update local state immediately
     setSelectedTool(toolId);
     
-    // Auto-expand the parent group of the selected tool
-    const parentGroup = findParentGroup(toolId);
+    // Auto-expand the parent group and subgroup of the selected tool
+    const { groupName: parentGroup, subgroupName } = findParentGroupAndSubgroup(toolId);
     if (parentGroup) {
       setExpandedGroups(prev => ({
         ...prev,
         [parentGroup]: true
       }));
+      
+      if (subgroupName) {
+        setExpandedSubgroups(prev => ({
+          ...prev,
+          [`${parentGroup}-${subgroupName}`]: true
+        }));
+      }
     }
   };
 
@@ -537,7 +573,17 @@ export default function ToolboxApp() {
       );
     }
 
-    const allComponents = Object.values(componentGroups).map(group => group.components).flat();
+    const allComponents: ComponentType[] = [];
+    Object.values(componentGroups).forEach(group => {
+      if (group.components) {
+        allComponents.push(...group.components);
+      }
+      if (group.subgroups) {
+        Object.values(group.subgroups).forEach(subgroup => {
+          allComponents.push(...subgroup.components);
+        });
+      }
+    });
     allComponents.push({
       id: "dev",
       label: "Dev",
@@ -605,26 +651,39 @@ export default function ToolboxApp() {
       <div className="w-[28rem] flex-shrink-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 flex flex-col h-screen shadow-sm rounded-r-xl ml-1 my-4 overflow-hidden">
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 border-b border-zinc-100 dark:border-zinc-800">
-                        <div className="relative flex items-center mb-2">
-              <img src="/small-logo.png" alt="Avalanche" className="h-8 w-auto brightness-0 dark:brightness-0 dark:invert" />
+                        <div className="flex items-center mb-2">
               <button
                 onClick={() => {
                   window.location.hash = "";
                   setSelectedTool("splash");
                 }}
-                className="text-zinc-900 dark:text-white text-xl font-bold tracking-tight absolute left-1/2 transform -translate-x-1/2 top-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 cursor-pointer"
+                className="flex items-center group transition-all duration-200 cursor-pointer"
               >
-                L1 Toolbox
+                <div className="relative">
+                  <img 
+                    src="/small-logo.png" 
+                    alt="Avalanche" 
+                    className="h-8 w-auto brightness-0 dark:invert transition-all duration-200" 
+                  />
+                  <img 
+                    src="/small-logo.png" 
+                    alt="" 
+                    className="absolute inset-0 h-8 w-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    style={{
+                      filter: 'brightness(0) saturate(100%) invert(27%) sepia(96%) saturate(1919%) hue-rotate(213deg) brightness(99%) contrast(107%)'
+                    }}
+                  />
+                </div>
               </button>
             </div>
             </div>
             
-            <nav className="p-4 space-y-2">
+            <nav className="p-4 space-y-3">
               {Object.entries(componentGroups).map(([groupName, group]) => (
                 <div key={groupName}>
                   <button
                     onClick={() => toggleGroup(groupName)}
-                    className="flex w-full items-center justify-between px-4 py-3.5 text-left text-base font-semibold text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-colors duration-200"
+                    className="flex w-full items-center justify-between px-4 py-5 text-left text-base font-semibold text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-colors duration-200 border-b border-zinc-100 dark:border-zinc-800 mb-1"
                   >
                     <span>{groupName}</span>
                     {expandedGroups[groupName]
@@ -654,23 +713,65 @@ export default function ToolboxApp() {
                       </a>
                     )}
                     
-                    <ul className="space-y-0.5">
-                      {group.components.map(({ id, label }) => (
-                        <li key={id}>
-                          <a
-                            href={`#${id}`}
-                            onClick={() => handleComponentClick(id)}
-                            className={`block px-4 py-2.5 text-sm rounded-lg transition-all duration-200 ${
-                              selectedTool === id
-                                ? 'bg-blue-600 dark:bg-zinc-700 text-white dark:text-white font-medium shadow-sm'
-                                : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                            }`}
+                    {/* Render regular components if they exist */}
+                    {group.components && (
+                      <ul className="space-y-1">
+                        {group.components.map(({ id, label }) => (
+                          <li key={id}>
+                            <a
+                              href={`#${id}`}
+                              onClick={() => handleComponentClick(id)}
+                              className={`block px-4 py-3 text-sm rounded-lg transition-all duration-200 ${
+                                selectedTool === id
+                                  ? 'bg-blue-600 dark:bg-zinc-700 text-white dark:text-white font-medium shadow-sm'
+                                  : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                              }`}
+                            >
+                              <span className="block leading-relaxed font-medium">{label}</span>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {/* Render subgroups if they exist */}
+                    {group.subgroups && Object.entries(group.subgroups).map(([subgroupName, subgroup]) => {
+                      const subgroupKey = `${groupName}-${subgroupName}`;
+                      return (
+                        <div key={subgroupName} className="mt-3">
+                          <button
+                            onClick={() => toggleSubgroup(subgroupKey)}
+                            className="flex w-full items-center justify-between px-3 py-3.5 text-left text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-md transition-colors duration-200 border-b border-zinc-100 dark:border-zinc-800 mb-1"
                           >
-                            <span className="block leading-tight">{label}</span>
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
+                            <span>{subgroupName}</span>
+                            {expandedSubgroups[subgroupKey]
+                              ? <ChevronDown className="w-4 h-4 flex-shrink-0 ml-2 text-zinc-400" />
+                              : <ChevronRight className="w-4 h-4 flex-shrink-0 ml-2 text-zinc-400" />
+                            }
+                          </button>
+                          
+                          {expandedSubgroups[subgroupKey] && (
+                            <ul className="mt-1 ml-3 space-y-1">
+                              {subgroup.components.map(({ id, label }) => (
+                                <li key={id}>
+                                  <a
+                                    href={`#${id}`}
+                                    onClick={() => handleComponentClick(id)}
+                                    className={`block px-4 py-3 text-sm rounded-lg transition-all duration-200 ${
+                                      selectedTool === id
+                                        ? 'bg-blue-600 dark:bg-zinc-700 text-white dark:text-white font-medium shadow-sm'
+                                        : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                                    }`}
+                                  >
+                                    <span className="block leading-relaxed font-medium">{label}</span>
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

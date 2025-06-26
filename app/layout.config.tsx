@@ -245,14 +245,14 @@ export const academyMenu: LinkItemType = {
 export const toolsMenu: LinkItemType = {
   type: 'menu',
   text: 'Tools',
-  url: '/tools',
+  url: '/tools/l1-toolbox',
   items: [
     {
       menu: {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/node-course-ACBahXfMGQEzwyh17g3vM3I2Wo3PUO.jpg"}
+              src="/l1toolbox.png"
               alt='L1 Launcher Preview'
               width={900}
               height={400}
@@ -266,7 +266,7 @@ export const toolsMenu: LinkItemType = {
         className: 'md:row-span-2 lg:col-span-1',
       },
       icon: <Waypoints />,
-      text: 'L1 Toolbox (Beta)',
+      text: 'L1 Toolbox',
       description: 'Manage your L1 with a highly granular set of tools.',
       url: '/tools/l1-toolbox',
     },
@@ -496,10 +496,10 @@ export const baseOptions: BaseLayoutProps = {
   // githubUrl: 'https://github.com/ava-labs/builders-hub',
   nav: {
     title: (
-      <>
-        {<AvalancheLogo className='size-7' fill='currentColor' />}
-        <span style={{ fontSize: 'large' }}>Builder Hub</span>
-      </>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <AvalancheLogo className='size-7' fill='currentColor' />
+        <span style={{ fontSize: 'large', marginTop: '4px' }}>Builder Hub</span>
+      </div>
     ),
   },
   links: [

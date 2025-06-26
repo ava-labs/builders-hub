@@ -134,19 +134,26 @@ export function Container({
         "relative",
       )}
     >
-      {/* Gradient background header */}
-      <div className="bg-gradient-to-r from-zinc-50 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 p-4">
+      {/* Header */}
+      <div className="p-6 border-b border-zinc-100 dark:border-zinc-800">
         <div className="flex items-center gap-4">
-          <div
-            className={`bg-gradient-to-br ${colorTheme.gradient} ${colorTheme.darkGradient} rounded-lg p-2.5 h-[60px] w-[60px] flex items-center justify-center flex-shrink-0 shadow-sm dark:shadow-zinc-900/50`}
-          >
-            <img src={logoSrc || "/small-logo.png"} alt={logoAlt} className="h-8 w-auto" />
+          <div className="relative">
+            <img 
+              src={logoSrc} 
+              alt={logoAlt} 
+              className="h-8 w-auto brightness-0 dark:invert transition-all duration-200" 
+            />
           </div>
-
-          <div className="flex flex-col justify-center h-[60px]">
-            <h3 className="text-base font-semibold mb-1 mt-0 text-zinc-800 dark:text-white">{title}</h3>
-            {description && <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">{description}</p>}
-            {subDescription && <p className="text-xs mt-0 mb-0 text-zinc-500 dark:text-zinc-400">{subDescription}</p>}
+          <div>
+            <h3 className="text-lg font-semibold text-zinc-800 dark:text-white">{title}</h3>
+            {description && (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                {description}
+              </div>
+            )}
+            {subDescription && (
+              <p className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">{subDescription}</p>
+            )}
           </div>
         </div>
       </div>

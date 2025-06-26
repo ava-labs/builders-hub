@@ -144,7 +144,7 @@ function Integrations({ list }: { list: any[] }) {
     return (
         <div className="mt-16">
             <div className="flex flex-col md:flex-row md:space-x-12">
-                <div className="w-full mb-12 md:w-1/5">
+                <div className="w-full mb-12 md:w-1/4">
                     <div className="md:sticky md:top-24 pt-8">
                         {/* Glassmorphism sidebar */}
                         <div className="backdrop-blur-md bg-white/5 dark:bg-white/5 rounded-2xl border border-white/10 dark:border-white/20 p-6 shadow-lg">
@@ -189,7 +189,7 @@ function Integrations({ list }: { list: any[] }) {
                         </div>
                     </div>
                 </div>
-                <div className="w-full md:w-4/5">
+                <div className="w-full md:w-3/4">
                     {/* Render the integrations for each category */}
                     {categories.map(category => (
                         <div key={category} className="mb-16">
