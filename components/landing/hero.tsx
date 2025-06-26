@@ -161,13 +161,6 @@ export function HeroBackground() {
         {/* Subtle grid overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)]"></div>
         
-        {/* Constellation dots */}
-        <div className="absolute inset-0">
-          <div className="absolute top-1/5 left-1/5 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60"></div>
-          <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60" style={{animationDelay: '1s'}}></div>
-          <div className="absolute bottom-1/3 left-1/3 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60" style={{animationDelay: '2s'}}></div>
-          <div className="absolute bottom-1/5 right-1/3 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60" style={{animationDelay: '3s'}}></div>
-        </div>
       </div>
     </div>
   );

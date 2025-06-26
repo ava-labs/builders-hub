@@ -88,7 +88,7 @@ function CourseCatalog(): React.ReactElement {
             
             return (
               <div key={categoryName}>
-                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8 border-b border-gray-200 dark:border-gray-700 pb-4">
+                <h3 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-8 border-b border-zinc-200 dark:border-zinc-700 pb-4">
                   {categoryName === "Cross-Chain Communication" ? "Cross-Chain Communication (Interoperability)" : categoryName}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -98,7 +98,7 @@ function CourseCatalog(): React.ReactElement {
                       href={`/academy/${course.slug}`}
                       className="group"
                     >
-                      <div className="bg-gray-100 rounded-lg overflow-hidden hover:bg-gray-200 transition-colors">
+                      <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg overflow-hidden hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
                         <img
                           src={`https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/${pathImages[course.slug as keyof typeof pathImages]}` || `/course-banner/${course.slug}.jpg`}
                           alt=""
@@ -106,15 +106,15 @@ function CourseCatalog(): React.ReactElement {
                         />
                         <div className="p-6 flex flex-col justify-between min-h-32">
                           <div>
-                            <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                            <h4 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
                               {course.name}
                             </h4>
-                            <p className="text-sm text-gray-600 line-clamp-2">
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">
                               {course.description}
                             </p>
                           </div>
                           <div className="flex justify-end mt-4">
-                            <ArrowRight className="h-5 w-5 text-gray-600 group-hover:text-gray-800 transition-colors" />
+                            <ArrowRight className="h-5 w-5 text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-zinc-300 transition-colors" />
                           </div>
                         </div>
                       </div>
