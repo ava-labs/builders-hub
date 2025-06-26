@@ -1,4 +1,4 @@
-import { ChevronRight, Layers, UserPen, MessageCircle, Coins, Droplet, Code, Settings, Wrench, Shield } from 'lucide-react';
+import { ChevronRight, Layers, UserPen, MessageCircle, Coins, Droplet, Code, Settings, Wrench } from 'lucide-react';
 
 const SplashPage = () => {
   const features = [
