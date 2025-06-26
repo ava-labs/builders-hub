@@ -61,13 +61,6 @@ export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruning
     return btoa(JSON.stringify(configMap))
 }
 
-const generateVMAliasesCommand = (vmId: string) => {
-    const vmAliases = {
-        [vmId]: [SUBNET_EVM_VM_ID]
-    };
-    return btoa(JSON.stringify(vmAliases, null, 2));
-}
-
 const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, chainId: string, vmId: string, debugEnabled: boolean = false, pruningEnabled: boolean = false) => {
     const env: Record<string, string> = {
         AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true",
@@ -342,33 +335,6 @@ export default function AvalanchegoDocker() {
                                 </ul>
                             </Step>)}
 
-                            {/* Custom VM Setup Step */}
-                            {isCustomVM && (
-                                <Step>
-                                    <h3 className="text-xl font-bold mb-4">Custom VM Setup</h3>
-                                    <p>This blockchain uses a non-standard Virtual Machine ID. The Docker command below will automatically configure the VM aliases using the <code>--vm-aliases-file-content</code> flag.</p>
-
-                                    <p className="mb-2">The VM aliases configuration that will be used (base64 encoded):</p>
-                                    <DynamicCodeBlock lang="bash" code={generateVMAliasesCommand(blockchainInfo.vmId)} />
-
-                                    <p className="mt-4 mb-2">Decoded JSON content:</p>
-                                    <DynamicCodeBlock lang="json" code={JSON.stringify({ [blockchainInfo.vmId]: [SUBNET_EVM_VM_ID] }, null, 2)} />
-
-                                    <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
-                                        <p className="text-sm">
-                                            <strong>Note:</strong> This creates an alias mapping that allows the custom VM ({blockchainInfo.vmId}) to use the subnet-evm runtime.
-                                            This is necessary for custom VMs that are compatible with the EVM but have different VM IDs.
-                                        </p>
-                                    </div>
-
-                                    <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-                                        <p className="text-sm">
-                                            <strong>Warning:</strong> If you have created your own customized version of subnetEVM, you will not be able to follow this guide since it will install the standard subnetEVM software.
-                                        </p>
-                                    </div>
-                                </Step>
-                            )}
-
                             <Step>
                                 <h3 className="text-xl font-bold">Start AvalancheGo Node</h3>
                                 <p>Run the following Docker command to start your node:</p>
@@ -376,15 +342,17 @@ export default function AvalanchegoDocker() {
                                 <DynamicCodeBlock lang="bash" code={rpcCommand} />
 
                                 {isCustomVM && (
-                                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                                        <p className="text-sm text-blue-800 dark:text-blue-200">
-                                            <strong>Custom VM Notice:</strong> This command includes additional parameters for custom VM support:
-                                        </p>
-                                        <ul className="text-xs text-blue-700 dark:text-blue-300 mt-2 list-disc list-inside">
-                                            <li><code>VM_ID={blockchainInfo.vmId}</code> - Specifies the custom VM ID</li>
-                                            <li><code>--vm-aliases-file-content</code> - Contains base64 encoded VM aliases configuration</li>
-                                        </ul>
-                                    </div>
+                                    <Accordions type="single" className="mt-4">
+                                        <Accordion title="Custom VM Configuration">
+                                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                This blockchain uses a non-standard Virtual Machine ID. The Docker command automatically includes the <code>--vm-aliases-file-content</code> flag with base64 encoded VM aliases configuration.
+                                            </p>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                                <strong>VM ID:</strong> {blockchainInfo.vmId}<br />
+                                                <strong>Aliases to:</strong> {SUBNET_EVM_VM_ID}
+                                            </p>
+                                        </Accordion>
+                                    </Accordions>
                                 )}
 
                                 <Accordions type="single" className="mt-8">
