@@ -77,7 +77,7 @@ const SplashPage = () => {
               {/* Icon */}
               <div className="mb-3">
                 <div className="w-10 h-10 flex items-center justify-center">
-                  <div className="text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300 transition-colors duration-300">
+                  <div className="text-zinc-900 dark:text-zinc-100 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-300">
                     {feature.icon}
                   </div>
                 </div>
@@ -97,7 +97,7 @@ const SplashPage = () => {
               {/* Arrow - positioned at bottom right */}
               <div className="flex justify-end mt-3">
                 <div className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 transition-all duration-300 group-hover:scale-110">
-                  <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-zinc-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors duration-200" />
+                  <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-200" />
                 </div>
               </div>
             </div>
