@@ -1,75 +1,31 @@
-"use client"
+"use client";
 
-import { useWalletStore } from "../../stores/walletStore"
 import { useState, useEffect } from "react"
 import {
   AlertCircle,
   Info,
   CheckCircle,
-  Loader2,
   Clock,
   Users,
   Database,
   ExternalLink,
 } from "lucide-react"
-import { networkIDs } from "@avalabs/avalanchejs"
-import { Button } from "../../components/Button"
 import { Container } from "../../components/Container"
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
-import { GlobalParamNetwork, Subnet } from "@avalabs/avacloud-sdk/models/components"
-import SelectSubnetId from "../../components/SelectSubnetId"
+import SelectSubnet, { SubnetSelection } from "../../components/SelectSubnet"
 
 export default function QueryL1Details() {
-  const [subnetId, setSubnetID] = useState("")
-  const { avalancheNetworkID } = useWalletStore()
-  const [subnetDetails, setSubnetDetails] = useState<Subnet | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [selection, setSelection] = useState<SubnetSelection>({ subnetId: '', subnet: null })
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
 
-  // Network names for display
-  const networkNames: Record<number, GlobalParamNetwork> = {
-    [networkIDs.MainnetID]: "mainnet",
-    [networkIDs.FujiID]: "fuji",
-  }
 
+  // Update error state when subnet details change
   useEffect(() => {
-    if (subnetId) {
-      fetchSubnetDetails()
+    if (selection.subnetId && !selection.subnet) {
+      setError("Failed to fetch subnet details")
+    } else {
+      setError(null)
     }
-  }, [subnetId, avalancheNetworkID])
-
-  async function fetchSubnetDetails() {
-    if (!subnetId) {
-      setError("Please enter a subnet ID")
-      return
-    }
-
-    setIsLoading(true)
-    setError(null)
-    setSuccess(false)
-
-    try {
-      const network = networkNames[Number(avalancheNetworkID)]
-      if (!network) {
-        throw new Error("Invalid network selected")
-      }
-
-      const subnet = await new AvaCloudSDK().data.primaryNetwork.getSubnetById({
-        network: network,
-        subnetId,
-      });
-
-      setSubnetDetails(subnet)
-      setSuccess(true)
-    } catch (error: any) {
-      setError(error.message || "Failed to fetch subnet details")
-      setSubnetDetails(null)
-      console.error("Error fetching subnet details:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  }, [selection])
 
   function formatTimestamp(timestamp: number): string {
     return new Date(timestamp * 1000).toLocaleString()
@@ -90,43 +46,16 @@ export default function QueryL1Details() {
             </div>
           )}
 
-          {success && !subnetDetails && (
-            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md text-green-800 dark:text-green-200 text-sm">
-              <div className="flex items-center">
-                <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                <span>Subnet details retrieved successfully</span>
-              </div>
-            </div>
-          )}
-
           <div className="mb-4 relative z-10">
-            <SelectSubnetId
-              value={subnetId}
-              onChange={setSubnetID}
+            <SelectSubnet
+              value={selection.subnetId}
+              onChange={setSelection}
               error={null}
             />
           </div>
-
-          <Button
-            onClick={fetchSubnetDetails}
-            disabled={!subnetId || isLoading}
-            className={`w-full py-2 px-4 rounded-md text-sm font-medium flex items-center justify-center ${!subnetId || isLoading
-              ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
-              : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm hover:shadow transition-all duration-200"
-              }`}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Fetching Details...
-              </>
-            ) : (
-              "Fetch Subnet Details"
-            )}
-          </Button>
         </div>
 
-        {subnetDetails && (
+        {selection.subnet && (
           <div className="space-y-3 mt-4">
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md rounded-xl p-4 relative overflow-hidden">
               {/* Background gradient effect - blue for both light and dark mode */}
@@ -144,7 +73,7 @@ export default function QueryL1Details() {
                         <div className="flex items-center">
                           <span className="text-xs text-zinc-500 dark:text-zinc-400 mr-2">Subnet ID:</span>
                           <code className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-md text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
-                            {subnetDetails.subnetId}
+                            {selection.subnet.subnetId}
                           </code>
                         </div>
                       </div>
@@ -152,16 +81,16 @@ export default function QueryL1Details() {
                   </div>
 
                   <div
-                    className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${subnetDetails.isL1
+                    className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${selection.subnet.isL1
                       ? "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-100"
                       : "bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-100"
                       }`}
                   >
                     <div
-                      className={`w-1.5 h-1.5 rounded-full mr-1.5 ${subnetDetails.isL1 ? "bg-blue-500" : "bg-purple-500"
+                      className={`w-1.5 h-1.5 rounded-full mr-1.5 ${selection.subnet.isL1 ? "bg-blue-500" : "bg-purple-500"
                         }`}
                     ></div>
-                    {subnetDetails.isL1 ? "Sovereign L1" : "Subnet"}
+                    {selection.subnet.isL1 ? "Sovereign L1" : "Subnet"}
                   </div>
                 </div>
 
@@ -182,13 +111,13 @@ export default function QueryL1Details() {
                         <div>
                           <span className="text-zinc-500 dark:text-zinc-400">Created:</span>
                           <p className="font-mono text-zinc-900 dark:text-zinc-100">
-                            {formatTimestamp(subnetDetails.createBlockTimestamp)}
+                            {formatTimestamp(selection.subnet.createBlockTimestamp)}
                           </p>
                         </div>
                         <div>
                           <span className="text-zinc-500 dark:text-zinc-400">Block Index:</span>
                           <p className="font-mono text-zinc-900 dark:text-zinc-100">
-                            {subnetDetails.createBlockIndex}
+                            {selection.subnet.createBlockIndex}
                           </p>
                         </div>
                       </div>
@@ -196,7 +125,7 @@ export default function QueryL1Details() {
                   </div>
 
                   {/* L1 Specific Information */}
-                  {subnetDetails.isL1 && (
+                  {selection.subnet.isL1 && (
                     <div
                       className="bg-zinc-50 dark:bg-zinc-800/70 rounded-md border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer"
                     >
@@ -208,22 +137,22 @@ export default function QueryL1Details() {
 
                       </div>
                       <div className="p-2 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80">
-                        {subnetDetails.l1ValidatorManagerDetails && (
+                        {selection.subnet.l1ValidatorManagerDetails && (
                           <div className="space-y-2">
                             <div>
                               <span className="text-zinc-500 dark:text-zinc-400 text-xs">Validator Manager Blockchain ID:</span>
                               <p className="font-mono text-xs text-zinc-900 dark:text-zinc-100 mt-1">
-                                {subnetDetails.l1ValidatorManagerDetails.blockchainId}
+                                {selection.subnet.l1ValidatorManagerDetails.blockchainId}
                               </p>
                             </div>
                             <div>
                               <span className="text-zinc-500 dark:text-zinc-400 text-xs">Validator Manager Contract Address:</span>
                               <div className="flex items-center mt-1">
                                 <p className="font-mono text-xs text-zinc-900 dark:text-zinc-100 truncate">
-                                  {subnetDetails.l1ValidatorManagerDetails.contractAddress}
+                                  {selection.subnet.l1ValidatorManagerDetails.contractAddress}
                                 </p>
                                 <a
-                                  href={`https://subnets.avax.network/c-chain/address/${subnetDetails.l1ValidatorManagerDetails.contractAddress}`}
+                                  href={`https://subnets.avax.network/c-chain/address/${selection.subnet.l1ValidatorManagerDetails.contractAddress}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="ml-1 p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
@@ -235,15 +164,15 @@ export default function QueryL1Details() {
                           </div>
                         )}
 
-                        {subnetDetails.l1ConversionTransactionHash && (
+                        {selection.subnet.l1ConversionTransactionHash && (
                           <div className="mb-2">
                             <span className="text-zinc-500 dark:text-zinc-400 text-xs">L1 Conversion P-Chain Transaction ID:</span>
                             <div className="flex items-center mt-1">
                               <p className="font-mono text-xs text-zinc-900 dark:text-zinc-100 truncate">
-                                {subnetDetails.l1ConversionTransactionHash}
+                                {selection.subnet.l1ConversionTransactionHash}
                               </p>
                               <a
-                                href={`https://subnets.avax.network/p-chain/tx/${subnetDetails.l1ConversionTransactionHash}`}
+                                href={`https://subnets.avax.network/p-chain/tx/${selection.subnet.l1ConversionTransactionHash}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="ml-1 p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
@@ -268,7 +197,7 @@ export default function QueryL1Details() {
                       </div>
                       <div className="flex items-center">
                         <span className="bg-zinc-200 dark:bg-zinc-700 text-xs font-medium px-2 py-0.5 rounded-full text-zinc-700 dark:text-zinc-200 mr-2">
-                          {subnetDetails.subnetOwnershipInfo.addresses.length}
+                          {selection.subnet.subnetOwnershipInfo.addresses.length}
                         </span>
 
                       </div>
@@ -279,13 +208,13 @@ export default function QueryL1Details() {
                         <div>
                           <span className="text-zinc-500 dark:text-zinc-400">Threshold:</span>
                           <p className="font-mono text-zinc-900 dark:text-zinc-100">
-                            {subnetDetails.subnetOwnershipInfo.threshold}
+                            {selection.subnet.subnetOwnershipInfo.threshold}
                           </p>
                         </div>
                         <div>
                           <span className="text-zinc-500 dark:text-zinc-400">Locktime:</span>
                           <p className="font-mono text-zinc-900 dark:text-zinc-100">
-                            {subnetDetails.subnetOwnershipInfo.locktime}
+                            {selection.subnet.subnetOwnershipInfo.locktime}
                           </p>
                         </div>
                       </div>
@@ -293,7 +222,7 @@ export default function QueryL1Details() {
                       <div className="mt-2">
                         <span className="text-zinc-500 dark:text-zinc-400 text-xs">Owner Addresses:</span>
                         <div className="max-h-32 overflow-y-auto mt-1 rounded border border-zinc-200 dark:border-zinc-700">
-                          {subnetDetails.subnetOwnershipInfo.addresses.map((address, index) => (
+                          {selection.subnet.subnetOwnershipInfo.addresses.map((address, index) => (
                             <div
                               key={index}
                               className="p-1.5 font-mono text-xs text-zinc-900 dark:text-zinc-100 break-all bg-white dark:bg-zinc-900/80 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0"
@@ -307,7 +236,7 @@ export default function QueryL1Details() {
                   </div>
 
                   {/* Blockchains */}
-                  {subnetDetails.blockchains && subnetDetails.blockchains.length > 0 && (
+                  {selection.subnet.blockchains && selection.subnet.blockchains.length > 0 && (
                     <div
                       className="bg-zinc-50 dark:bg-zinc-800/70 rounded-md border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer"
                     >
@@ -318,14 +247,14 @@ export default function QueryL1Details() {
                         </div>
                         <div className="flex items-center">
                           <span className="bg-zinc-200 dark:bg-zinc-700 text-xs font-medium px-2 py-0.5 rounded-full text-zinc-700 dark:text-zinc-200 mr-2">
-                            {subnetDetails.blockchains.length}
+                            {selection.subnet.blockchains.length}
                           </span>
                         </div>
                       </div>
 
                       <div className="p-2 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80">
                         <div className="space-y-1.5">
-                          {subnetDetails.blockchains.map((blockchain, index) => (
+                          {selection.subnet.blockchains.map((blockchain, index) => (
                             <div
                               key={index}
                               className="flex items-center p-1.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-md border border-zinc-200 dark:border-zinc-700"

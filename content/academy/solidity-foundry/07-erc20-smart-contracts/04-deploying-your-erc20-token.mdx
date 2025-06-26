@@ -24,12 +24,12 @@ The two reasons above, in additions to other small nuances, make it evident that
 
 OpenZeppelin's Wizard Contract Creator is a useful tool which allows for developers to deploy contracts on the fly. By this, we mean that by just filling a couple of fields and selecting a few options, we can autogenerate the code necessary to deploy a ERC-20 token to our liking! To get started, head over to [wizard.openzeppelin.com/#erc20](wizard.openzeppelin.com/#erc20) where you will see the following:
 
-![](/course-images/smartcontract-foundry/erc20-OpenZeppelin.png)
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/smartcontract-foundry/erc20-OpenZeppelin-gz9mc7CErNPx0PLFLwGMq2XBKlKOdE.png)
 
 
 Front and center, you will see some Solidity code. At first, it seem as if this ERC20 contract OpenZeppelin has generated for us contains basically nothing. However, if you look closely, you will see that the MyToken contract that OpenZeppelin has generated for us inherits the ERC20, ERC20Permit contracts, which are defined and contain all the logic for our ERC-20 contract. This is the great part about the OpenZeppelin Wizard Contract Creator - we can easily modify our ERC-20 contract by inheriting the contracts whose functionalities we want. Therefore, as an example, let's create the following contract:
 
-![](/course-images/smartcontract-foundry/erc20-OpenZeppelin2.png)
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/smartcontract-foundry/erc20-OpenZeppelin2-14GEmGL7MxlXGny0bUtZa3gjenHURz.png)
  
 In the above, we've created a new ERC-20 contract named BigRedCoin. Furthermore, this ERC-20 token allocates to the deployer 20000 tokens on initialization and gives the owner full rights over the behavior of the token. Now that we have our ERC-20 token contract customized, how do we actually deploy it?
 

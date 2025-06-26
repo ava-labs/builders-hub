@@ -1,7 +1,11 @@
 import { Validator, SubnetInfo, L1ValidatorManagerDetails } from './types';
 import { pChainEndpoint } from './consts';
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
+import { useWalletStore } from "../../../../toolbox/src/stores/walletStore";
+const { isTestnet } = useWalletStore();
+
 export const avaCloudSDK = new AvaCloudSDK({
+    serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
     chainId: "43114",
     network: "fuji",
 });

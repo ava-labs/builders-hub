@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
-import { getBlockchainInfo } from "../../coreViem/utils/glacier";
+import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputChainId from "../../components/InputChainId";
+import InputSubnetId from "../../components/InputSubnetId";
+import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
 import versions from "../../versions.json";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
@@ -21,14 +23,13 @@ import { Checkbox } from "../../components/Checkbox";
 import { Button } from "../../components/Button";
 
 
-
 const dockerComposePsOutput = `NAME          IMAGE                                 COMMAND                  SERVICE       CREATED        STATUS        PORTS
-avago         avaplatform/subnet-evm:v0.7.3         "./avalanchego"          avago         1 minute ago   Up 1 minute   127.0.0.1:9650->9650/tcp, 0.0.0.0:9651->9651/tcp, :::9651->9651/tcp
-backend       blockscout/blockscout:6.10.1          "sh -c 'bin/blocksco…"   backend       1 minute ago   Up 1 minute   
-bc_frontend   ghcr.io/blockscout/frontend:v1.37.4   "./entrypoint.sh nod…"   bc_frontend   1 minute ago   Up 1 minute   3000/tcp
-caddy         caddy:latest                          "caddy run --config …"   caddy         1 minute ago   Up 1 minute   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp, 443/udp, 2019/tcp
-db            postgres:15                           "docker-entrypoint.s…"   db            1 minute ago   Up 1 minute   0.0.0.0:7432->5432/tcp, :::7432->5432/tcp
-redis-db      redis:alpine                          "docker-entrypoint.s…"   redis-db      1 minute ago   Up 1 minute   6379/tcp`;
+avago         avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}  "./avalanchego"          avago         1 minute ago   Up 1 minute   127.0.0.1:9650->9650/tcp, 0.0.0.0:9651->9651/tcp, :::9651->9651/tcp
+backend       blockscout/blockscout:6.10.1                       "sh -c 'bin/blocksco…"   backend       1 minute ago   Up 1 minute   
+bc_frontend   ghcr.io/blockscout/frontend:v1.37.4                "./entrypoint.sh nod…"   bc_frontend   1 minute ago   Up 1 minute   3000/tcp
+caddy         caddy:latest                                       "caddy run --config …"   caddy         1 minute ago   Up 1 minute   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp, 443/udp, 2019/tcp
+db            postgres:15                                        "docker-entrypoint.s…"   db            1 minute ago   Up 1 minute   0.0.0.0:7432->5432/tcp, :::7432->5432/tcp
+redis-db      redis:alpine                                       "docker-entrypoint.s…"   redis-db      1 minute ago   Up 1 minute   6379/tcp`;
 
 const dockerComposePsOutputNoAvago = `NAME          IMAGE                                 COMMAND                  SERVICE       CREATED        STATUS        PORTS
 backend       blockscout/blockscout:6.10.1          "sh -c 'bin/blocksco…"   backend       1 minute ago   Up 1 minute   
@@ -206,7 +207,7 @@ services:
 
   const avalancheGoService = config.includeAvago ? `
   avago:
-    image: avaplatform/subnet-evm:${versions['avaplatform/subnet-evm']}
+    image: avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}
     container_name: avago
     restart: always
     ports:
@@ -240,6 +241,8 @@ volumes:
 export default function BlockScout() {
   const [chainId, setChainId] = useState("");
   const [subnetId, setSubnetId] = useState("");
+  const [subnet, setSubnet] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [domain, setDomain] = useState("");
   const [networkName, setNetworkName] = useState("");
   const [networkShortName, setNetworkShortName] = useState("");
@@ -260,6 +263,7 @@ export default function BlockScout() {
   useEffect(() => {
     setSubnetIdError(null);
     setSubnetId("");
+    setSubnet(null);
     if (!chainId) return
 
     // Set defaults from L1 store if available
@@ -271,11 +275,23 @@ export default function BlockScout() {
       setTokenSymbol(l1Info.coinName);
     }
 
-    getBlockchainInfo(chainId).then((chainInfo) => {
-      setSubnetId(chainInfo.subnetId);
-    }).catch((error) => {
-      setSubnetIdError((error as Error).message);
-    });
+    setIsLoading(true);
+    getBlockchainInfo(chainId)
+      .then(async (chainInfo) => {
+        setSubnetId(chainInfo.subnetId);
+        try {
+          const subnetInfo = await getSubnetInfo(chainInfo.subnetId);
+          setSubnet(subnetInfo);
+        } catch (error) {
+          setSubnetIdError((error as Error).message);
+        }
+      })
+      .catch((error) => {
+        setSubnetIdError((error as Error).message);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, [chainId]);
 
   useEffect(() => {
@@ -334,14 +350,20 @@ export default function BlockScout() {
             <InputChainId
               value={chainId}
               onChange={setChainId}
+              error={subnetIdError}
               hidePrimaryNetwork={true}
             />
 
-            <Input
-              label="Subnet ID"
+            <InputSubnetId
               value={subnetId}
-              disabled={true}
-              error={subnetIdError}
+              onChange={setSubnetId}
+              readOnly={true}
+            />
+
+            {/* Show subnet details if available */}
+            <BlockchainDetailsDisplay
+              subnet={subnet}
+              isLoading={isLoading}
             />
           </Step>
 

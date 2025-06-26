@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
-import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { useAvaCloudSDK } from '../../../stores/useAvaCloudSDK';
 
 interface SubmitPChainTxChangeWeightProps {
   subnetIdL1: string;
@@ -27,7 +26,8 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore();
+  const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
+  const { aggregateSignature } = useAvaCloudSDK();
   const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -40,8 +40,6 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
     weight: bigint;
     messageID: `0x${string}`;
   } | null>(null);
-
-  const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
 
   // Update evmTxHash when initialEvmTxHash prop changes
   useEffect(() => {
@@ -77,7 +75,7 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
 
         console.log("[WarpExtract] Transaction receipt:", receipt);
         console.log("[WarpExtract] Number of logs:", receipt.logs.length);
-        
+
         // Log all transaction logs for debugging
         receipt.logs.forEach((log, index) => {
           console.log(`[WarpExtract] Log #${index}:`, {
@@ -96,10 +94,10 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
         // This works for both direct and multisig transactions when the warp precompile emits the event
         const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
         const warpPrecompileAddress = "0x0200000000000000000000000000000000000005";
-        
+
         const warpEventLog = receipt.logs.find((log) => {
           return log && log.address && log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
-                 log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
+            log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
         });
 
         if (warpEventLog && warpEventLog.data) {
@@ -164,7 +162,7 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
   const handleSubmitPChainTx = async () => {
     setErrorState(null);
     setTxSuccess(null);
-    
+
     if (!evmTxHash.trim()) {
       setErrorState("EVM transaction hash is required.");
       onError("EVM transaction hash is required.");
@@ -199,15 +197,12 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
     setIsProcessing(true);
     try {
       // Step 1: Sign the warp message
-      const { signedMessage } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
-        network: networkName,
-        signatureAggregatorRequest: {
-          message: unsignedWarpMessage,
-          signingSubnetId: signingSubnetId || subnetIdL1,
-          quorumPercentage: 67,
-        },
+      const { signedMessage } = await aggregateSignature({
+        message: unsignedWarpMessage,
+        signingSubnetId: signingSubnetId || subnetIdL1,
+        quorumPercentage: 67,
       });
-      
+
       setSignedWarpMessage(signedMessage);
 
       // Step 2: Submit to P-Chain
@@ -220,7 +215,7 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
       onSuccess(pChainTxId, eventData);
     } catch (err: any) {
       let message = err instanceof Error ? err.message : String(err);
-      
+
       // Handle specific error types
       if (message.includes('User rejected')) {
         message = 'Transaction was rejected by user';
@@ -231,7 +226,7 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
       } else if (message.includes('nonce')) {
         message = 'Transaction nonce error. Please try again.';
       }
-      
+
       setErrorState(`P-Chain transaction failed: ${message}`);
       onError(`P-Chain transaction failed: ${message}`);
     } finally {
@@ -267,14 +262,14 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
 
       {unsignedWarpMessage && (
         <div className="text-sm text-zinc-600 dark:text-zinc-400">
-          <p><strong>Unsigned Warp Message:</strong> {unsignedWarpMessage.substring(0,50)}...</p>
+          <p><strong>Unsigned Warp Message:</strong> {unsignedWarpMessage.substring(0, 50)}...</p>
           {signedWarpMessage && (
-            <p><strong>Signed Warp Message:</strong> {signedWarpMessage.substring(0,50)}...</p>
+            <p><strong>Signed Warp Message:</strong> {signedWarpMessage.substring(0, 50)}...</p>
           )}
         </div>
       )}
-      <Button 
-        onClick={handleSubmitPChainTx} 
+      <Button
+        onClick={handleSubmitPChainTx}
         disabled={isProcessing || !evmTxHash.trim() || !unsignedWarpMessage || !eventData || txSuccess !== null}
       >
         {isProcessing ? 'Processing...' : 'Sign & Submit to P-Chain'}
@@ -290,7 +285,7 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
       )}
 
       {txSuccess && (
-        <Success 
+        <Success
           label="Transaction Hash"
           value={txSuccess.replace('P-Chain transaction successful! ID: ', '')}
         />

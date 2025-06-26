@@ -90,7 +90,7 @@ export default function Page() {
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
-            <a href="/grants/retro9000" className="block hover:no-underline">
+            <a href="https://retro9000.avax.network" target="_blank" rel="noopener noreferrer" className="block hover:no-underline">
               <ProgramCard
                 title="Retro9000"
                 description="Build innovative projects on Avalanche and get rewarded for your creativity and impact."

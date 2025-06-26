@@ -10,6 +10,9 @@ const config = {
     'typescript',
     'twoslash',
   ],
+  env: {
+    APIKEY: process.env.APIKEY,
+  },
   transpilePackages: ["next-mdx-remote"],
   images: {
     remotePatterns: [
@@ -65,6 +68,11 @@ const config = {
         permanent: true,
       },
       {
+        source: '/docs/virtual-machines/default-precompiles/nativeminter',
+        destination: '/docs/avalanche-l1s/evm-configuration/tokenomics#native-minter',
+        permanent: true,
+      },
+      {
         source: '/docs/virtual-machines/default-precompiles/feemanager',
         destination: '/docs/avalanche-l1s/evm-configuration/transaction-fees#fee-manager',
         permanent: true,
@@ -77,6 +85,11 @@ const config = {
       {
         source: '/docs/virtual-machines/default-precompiles/warpmessenger',
         destination: '/docs/avalanche-l1s/evm-configuration/warpmessenger',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/default-precompiles/transaction-fees',
+        destination: '/docs/avalanche-l1s/evm-configuration/transaction-fees',
         permanent: true,
       },
       {
@@ -128,7 +141,75 @@ const config = {
         source: '/docs/api-reference/standards/guides/txn-fees#c-chain-fees',
         destination: '/docs/api-reference/guides/txn-fees#c-chain-fees',
         permanent: true,
-      },
+      }, {
+        source: '/docs/tooling/guides/get-avalanche-cli',
+        destination: '/docs/tooling/get-avalanche-cli',
+        permanent: true,
+      }, {
+        source: '/evm-l1s/validator-manager/poa-vs-pos',
+        destination: 'docs/avalanche-l1s/validator-manager/poa-vs-pos',
+        permanent: true,
+      }, {
+        source: '/docs/avalanche-l1s/allowlist',
+        destination: '/docs/avalanche-l1s/evm-configuration/allowlist',
+        permanent: true,
+      }, {
+        source: '/docs/virtual-machines/evm-customization/generating-your-precompile',
+        destination: '/docs/virtual-machines/custom-precompiles/create-precompile',
+        permanent: true,
+      }, {
+        source: '/docs/virtual-machines/evm-customization/defining-precompile#event-file',
+        destination: '/docs/virtual-machines/custom-precompiles/defining-precompile#event-file',
+        permanent: true,
+      }, {
+        source: '/docs/virtual-machines/evm-customization/testing-your-precompile',
+        destination: '/docs/virtual-machines/custom-precompiles/test-precompile',
+        permanent: true,
+      }, {
+        source: '/docs/nodes/run-a-node/manually#hardware-and-os-requirements',
+        destination: '/docs/nodes/system-requirements#hardware-and-operating-systems',
+        permanent: true,
+      }, {
+        source: "/build/cross-chain/awm/deep-dive",
+        destination: "/docs/cross-chain/avalanche-warp-messaging/evm-integration#how-does-avalanche-warp-messaging-work",
+        permanent: true,
+      }, {
+        source: "/docs/virtual-machines/custom-precompiles#minting-native-coins",
+        destination: "/docs/avalanche-l1s/evm-configuration/tokenomics#native-minter",
+        permanent: true,
+      }, {
+        source: "/docs/virtual-machines/evm-customization/introduction",
+        destination: "/docs/virtual-machines/evm-l1-customization",
+        permanent: true,
+      }, {
+        source: "/docs/virtual-machines/evm-customization/background-requirements",
+        destination: "/docs/virtual-machines/custom-precompiles/background-requirements",
+        permanent: true,
+      }, {
+        source: "/docs/nodes/run-a-node/manually",
+        destination: "/docs/nodes/run-a-node/from-source",
+        permanent: true,
+      }, {
+        source: "/docs/tooling/avalanchego-postman-collection/setup",
+        destination: "/docs/tooling/avalanche-postman/add-postman-collection",
+        permanent: true,
+      }, {
+        source: "/docs/avalanche-l1s/deploy-a-avalanche-l1/fuji-testnet",
+        destination: "/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet",
+        permanent: true,
+      }, {
+        source: "/docs/tooling/avalanche-cli#avalanche-l1-deploy",
+        destination: "/docs/tooling/cli-commands#deploy",
+        permanent: true,
+      }, {
+        source: "/docs/tooling/avalanche-cli#network-start",
+        destination: "/docs/tooling/cli-commands#start",
+        permanent: true,
+      }, {
+        source: "/docs/tooling/avalanche-cli",
+        destination: "/docs/tooling/cli-commands",
+        permanent: true,
+      }
     ];
   },
 };

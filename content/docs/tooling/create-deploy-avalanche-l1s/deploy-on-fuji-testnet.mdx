@@ -7,7 +7,7 @@ description: This tutorial shows how to deploy an Avalanche L1 on Fuji Testnet.
 This document describes how to use the new Avalanche-CLI to deploy an Avalanche L1 on `Fuji`.
 </Callout>
 
-After trying out an Avalanche L1 on a local box by following [this tutorial](/docs/avalanche-l1s/deploy-a-avalanche-l1/local-network), next step is to try it out on `Fuji` Testnet.
+After trying out an Avalanche L1 on a local box by following [this tutorial](/docs/tooling/create-deploy-avalanche-l1s/deploy-locally), next step is to try it out on `Fuji` Testnet.
 
 In this article, it's shown how to do the following on `Fuji` Testnet.
 
@@ -35,7 +35,7 @@ This chain implements the Ethereum Virtual Machine and supports Solidity smart c
 Avalanche-CLI[​](#avalanche-cli "Direct link to heading")
 ---------------------------------------------------------
 
-If not yet installed, install `Avalanche-CLI` following the tutorial at [Avalanche-CLI installation](/docs/tooling/guides/get-avalanche-cli)
+If not yet installed, install `Avalanche-CLI` following the tutorial at [Avalanche-CLI installation](/docs/tooling/get-avalanche-cli)
 
 ### Private Key[​](#private-key "Direct link to heading")
 
@@ -51,7 +51,7 @@ This tutorial focuses on stored key usage and leave ledger operation details for
 - list
 
 <Callout type="warn">
-You should only use the private key created for this tutorial for testing operations on `Fuji` or other testnets. Don't use this key on `Mainnet`. CLI is going to store the key on your file system. Whoever gets access to that key is going to have access to all funds secured by that private key. To deploy to `Mainnet`, follow [this tutorial](/docs/avalanche-l1s/deploy-a-avalanche-l1/avalanche-mainnet).
+You should only use the private key created for this tutorial for testing operations on `Fuji` or other testnets. Don't use this key on `Mainnet`. CLI is going to store the key on your file system. Whoever gets access to that key is going to have access to all funds secured by that private key.
 </Callout>
 
 Run `create` if you don't have any private key available yet. You can create multiple named keys. Each command requiring a key is going to therefore require the appropriate key name you want to use.
