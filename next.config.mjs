@@ -32,6 +32,10 @@ const config = {
         protocol: 'https',
         hostname: '*.public.blob.vercel-storage.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.ctfassets.net',
+      },
     ],
   },
   async redirects() {

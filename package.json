@@ -11,7 +11,7 @@
     "postinstall": "prisma generate && fumadocs-mdx && cd toolbox && yarn"
   },
   "dependencies": {
-    "@avalabs/avacloud-sdk": "0.12.1",
+    "@avalabs/avacloud-sdk": "^0.12.2",
     "@avalabs/avalanchejs": "^5.0.0",
     "@fumadocs/mdx-remote": "^1.2.0",
     "@hookform/resolvers": "^4.1.3",
