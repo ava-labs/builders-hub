@@ -122,6 +122,7 @@ const SplashPage = () => {
           >
             <img src="/small-logo.png" alt="Avalanche" className="h-4 w-auto mr-2" />
             Academy
+            <ChevronRight className="w-4 h-4 ml-2" />
           </a>
           <a
             href="https://build.avax.network/docs"
@@ -130,7 +131,6 @@ const SplashPage = () => {
             className="inline-flex items-center justify-center px-6 py-3 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white font-semibold rounded-xl hover:bg-white dark:hover:bg-zinc-800 transition-all duration-300 hover:scale-105"
           >
             <img src="/small-logo.png" alt="Avalanche" className="h-4 w-auto mr-2" />
-
             Documentation
             <ChevronRight className="w-4 h-4 ml-2" />
           </a>
@@ -142,6 +142,7 @@ const SplashPage = () => {
           >
             <Droplet className="w-4 h-4 mr-2 text-red-500" />
             Fuji Faucet
+            <ChevronRight className="w-4 h-4 ml-2" />
           </a>
           <a
             href="https://github.com/ava-labs/avalanche-starter-kit"
@@ -151,6 +152,7 @@ const SplashPage = () => {
           >
             <Code className="w-4 h-4 mr-2 text-red-500" />
             Starter Kit
+            <ChevronRight className="w-4 h-4 ml-2" />
           </a>
         </div>
       </div>
