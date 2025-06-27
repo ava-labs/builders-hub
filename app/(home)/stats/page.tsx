@@ -45,6 +45,7 @@ export default function AvalancheMetrics() {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>("weeklyTxCount");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [visibleCount, setVisibleCount] = useState(25);
 
   const parseCSV = (csvText: string): ChainMetrics[] => {
     const lines = csvText.trim().split("\n");
@@ -164,6 +165,8 @@ export default function AvalancheMetrics() {
       setSortField(field);
       setSortDirection("desc");
     }
+    // Reset visible count when sorting changes
+    setVisibleCount(25);
   };
 
   const sortedData = [...chainMetrics].sort((a, b) => {
@@ -182,6 +185,14 @@ export default function AvalancheMetrics() {
 
     return sortDirection === "asc" ? aNum - bNum : bNum - aNum;
   });
+
+  // Get visible data based on current pagination
+  const visibleData = sortedData.slice(0, visibleCount);
+  const hasMoreData = visibleCount < sortedData.length;
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => Math.min(prev + 25, sortedData.length));
+  };
 
   const SortButton = ({
     field,
@@ -431,7 +442,7 @@ export default function AvalancheMetrics() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedData.map((chain, index) => {
+                  {visibleData.map((chain, index) => {
                     const activityStatus = getActivityStatus(
                       chain.weeklyTxCount,
                       chain.weeklyActiveAddresses
@@ -523,8 +534,26 @@ export default function AvalancheMetrics() {
           </CardContent>
         </Card>
 
-        {/* Footer */}
+        {/* Load More Button */}
+        {hasMoreData && (
+          <div className="flex justify-center">
+            <Button
+              onClick={handleLoadMore}
+              variant="outline"
+              size="lg"
+              className="px-8 py-3 bg-transparent"
+            >
+              Load More Chains ({sortedData.length - visibleCount} remaining)
+            </Button>
+          </div>
+        )}
+
+        {/* Showing count indicator */}
         <div className="text-center">
+          <p className="text-sm text-muted-foreground mb-2">
+            Showing {Math.min(visibleCount, sortedData.length)} of{" "}
+            {sortedData.length} chains
+          </p>
           <p className="text-sm text-muted-foreground">
             Data is updated daily via automated script. Chain logos and metrics
             are fetched from CSV data source.
