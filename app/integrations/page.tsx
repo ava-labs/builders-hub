@@ -146,8 +146,7 @@ function Integrations({ list }: { list: any[] }) {
             <div className="flex flex-col md:flex-row md:space-x-12">
                 <div className="w-full mb-12 md:w-1/4">
                     <div className="md:sticky md:top-24 pt-8">
-                        {/* Glassmorphism sidebar */}
-                        <div className="backdrop-blur-md bg-white/5 dark:bg-white/5 rounded-2xl border border-white/10 dark:border-white/20 p-6 shadow-lg">
+                        <div className="backdrop-blur-sm bg-white/10 dark:bg-white/5 border border-slate-200/20 dark:border-white/20 shadow-sm rounded-xl p-6">
                             <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Categories</h3>
                             <ul className="space-y-2 max-h-[60vh] overflow-y-auto pr-2 
                                 [&::-webkit-scrollbar]:w-2
@@ -169,22 +168,22 @@ function Integrations({ list }: { list: any[] }) {
                                 dark:hover:[&::-webkit-scrollbar-thumb]:to-white/40
                                 [&::-webkit-scrollbar-thumb]:transition-all
                                 [&::-webkit-scrollbar-thumb]:duration-300">
-                                {/* Render the categories on sidelist */}
-                                {categories.map((category) => (
-                                    <li key={category} className='w-full'>
-                                        <a 
-                                            href={`#${category}`} 
-                                            className="group block w-full text-sm leading-6 rounded-xl backdrop-blur-sm bg-white/5 dark:bg-white/5 border border-slate-200/20 dark:border-white/20 shadow-sm py-3 px-4 hover:bg-white/10 dark:hover:bg-white/10 hover:scale-[1.02] transition-all duration-300 flex items-center justify-between cursor-pointer"
-                                        >
-                                            <span className="font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300">
-                                                {category}
-                                            </span>
-                                            <div className='flex text-xs bg-slate-100 dark:bg-white/10 px-2 py-1 rounded-full text-slate-600 dark:text-slate-300 group-hover:bg-slate-200 dark:group-hover:bg-white/20 transition-colors duration-300'>
-                                                {integrations[category].length}
-                                            </div>
-                                        </a>
-                                    </li>
-                                ))}
+                            {/* Render the categories on sidelist */}
+                            {categories.map((category) => (
+                                <li key={category} className='w-full'>
+                                    <a 
+                                        href={`#${category}`} 
+                                        className="group block w-full text-sm leading-6 py-3 px-4 hover:bg-slate-100/50 dark:hover:bg-white/5 transition-all duration-300 flex items-center justify-between cursor-pointer rounded-lg"
+                                    >
+                                        <span className="font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300">
+                                            {category}
+                                        </span>
+                                        <div className='flex text-xs bg-slate-100 dark:bg-white/10 px-2 py-1 rounded-full text-slate-600 dark:text-slate-300 group-hover:bg-slate-200 dark:group-hover:bg-white/20 transition-colors duration-300'>
+                                            {integrations[category].length}
+                                        </div>
+                                    </a>
+                                </li>
+                            ))}
                             </ul>
                         </div>
                     </div>
@@ -205,20 +204,18 @@ function Integrations({ list }: { list: any[] }) {
                                     <Link
                                         key={integration.url}
                                         href={integration.url}
-                                        className="group relative flex flex-col min-h-[280px] backdrop-blur-md bg-white/10 dark:bg-white/5 rounded-2xl transition-all duration-200 shadow-lg shadow-slate-200/20 dark:shadow-white/5 hover:shadow-xl hover:shadow-slate-300/30 dark:hover:shadow-white/10 border border-white/20 dark:border-white/20 hover:scale-[1.02] hover:bg-white/15 dark:hover:bg-white/10"
+                                        className="group relative flex flex-col min-h-[280px] bg-white dark:bg-zinc-900/50 rounded-2xl transition-all duration-200 border border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_2px_10px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:border-zinc-300/80 dark:hover:border-zinc-700/80"
                                     >
                                         {/* Content Container */}
                                         <div className="relative z-10 p-6 flex flex-col h-full gap-4">
                                             {/* Header with Logo and Title */}
-                                            <div className="flex items-start gap-4">
+                                            <div className="flex items-center gap-4">
                                                 <div className="shrink-0">
-                                                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/20 dark:bg-white/10 p-2 backdrop-blur-sm border border-white/20 dark:border-white/20 shadow-md transition-shadow duration-200 group-hover:shadow-lg">
-                                                        <img
-                                                            src={integration.data.logo}
-                                                            alt={integration.data.title}
-                                                            className="w-full h-full object-contain rounded-lg"
-                                                        />
-                                                    </div>
+                                                    <img
+                                                        src={integration.data.logo}
+                                                        alt={integration.data.title}
+                                                        className="w-12 h-12 object-contain rounded-lg"
+                                                    />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 leading-tight">

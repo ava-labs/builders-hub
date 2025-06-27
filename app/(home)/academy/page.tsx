@@ -66,7 +66,7 @@ function Hero(): React.ReactElement {
 function CourseCatalog(): React.ReactElement {
   // Get all courses and group by category
   const allCourses = COURSES.official_featured;
-  const categories = ["Foundations", "Smart Contract Development", "L1 Development", "Interoperability"];
+  const categories = ["Fundamentals", "Interoperability", "Smart Contract Development", "L1 Development"];
   
   return (
     <div className="py-12 sm:py-24">

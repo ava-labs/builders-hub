@@ -32,11 +32,11 @@ const paths = [
     title: "Interoperability",
     description: "Build cross-chain apps",
     icon: Network,
-    href: "/docs/cross-chain"
+    href: "/academy/interchain-messaging"
   },
   {
     id: 4,
-    title: "Network",
+    title: "Primary Network",
     description: "Run validators",
     icon: Server,
     href: "/docs/nodes"

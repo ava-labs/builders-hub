@@ -693,7 +693,7 @@ export default function ToolboxApp() {
                   </button>
                   
                   {expandedGroups[groupName] && (
-                    <div className="mt-1 ml-3 pl-3 border-l-2 border-zinc-100 dark:border-zinc-800">
+                    <div className="mt-1">
                     {group.academy && (
                       <a 
                         href={group.academy.link} 
@@ -712,6 +712,8 @@ export default function ToolboxApp() {
                         </div>
                       </a>
                     )}
+                    
+                    <div className="ml-3 pl-3 border-l-2 border-zinc-100 dark:border-zinc-800">
                     
                     {/* Render regular components if they exist */}
                     {group.components && (
@@ -772,10 +774,11 @@ export default function ToolboxApp() {
                         </div>
                       );
                     })}
-                  </div>
-                )}
-              </div>
-            ))}
+                    </div>
+                    </div>
+                  )}
+                </div>
+              ))}
           </nav>
         </div>
         

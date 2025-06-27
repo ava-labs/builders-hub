@@ -65,16 +65,16 @@ function Highlights(): React.ReactElement {
   const highlights = [
     {
       id: 1,
-      title: "Smart Contract Developer",
-      description: "Deploy dApps on Avalanche C-Chain with familiar EVM tools",
+      title: "Node & Validators",
+      description: "Run a node or validator on the Avalanche Primary Network",
       icon: SquareGanttChart,
-      href: "/docs/dapps",
+      href: "/docs/nodes/run-a-node/using-docker",
       badge: "Popular",
       badgeColor: "bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 border-red-200 dark:border-red-700/50"
     },
     {
       id: 2,
-      title: "Layer 1 Developer",
+      title: "Launch an L1",
       description: "Launch your own custom blockchain with unique features",
       icon: Blocks,
       href: "/docs/avalanche-l1s",
@@ -87,7 +87,7 @@ function Highlights(): React.ReactElement {
     <div className="flex flex-col px-4 mb-20">
       <div className="flex items-center gap-3 mb-4">
         <h2 className="text-xl font-medium tracking-wide text-zinc-700 dark:text-zinc-300 uppercase">
-          Popular Paths
+          Popular Resources
         </h2>
       </div>
       

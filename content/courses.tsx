@@ -10,7 +10,7 @@ export type Course = {
     languages: string[];
     tools: string[];
     instructors: string[];
-    category: "Foundations" | "Smart Contract Development" | "L1 Development" | "Interoperability";
+    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability";
 };
 
 const officialCourses: Course[] = [
@@ -24,7 +24,7 @@ const officialCourses: Course[] = [
         languages: [],
         tools: [],
         instructors: ["Martin Eckardt", "Ash"],
-        category: "Foundations"
+        category: "Fundamentals"
     },
     {
         name: "Avalanche Fundamentals",
@@ -36,7 +36,7 @@ const officialCourses: Course[] = [
         languages: [],
         tools: ["L1 Toolbox"],
         instructors: ["Martin Eckardt", "Ash"],
-        category: "Foundations"
+        category: "Fundamentals"
     },
     {
         name: "Avalanche Interchain Messaging",

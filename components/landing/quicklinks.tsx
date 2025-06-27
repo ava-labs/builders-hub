@@ -6,7 +6,8 @@ import {
   Wrench,
   Search,
   BookOpen,
-  ArrowRight
+  ArrowRight,
+  ArrowLeftRight
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
@@ -21,20 +22,27 @@ const quickLinks = [
   },
   {
     id: 2,
+    title: "Bridge",
+    description: "Bridge assets to and from the C-Chain",
+    icon: ArrowLeftRight,
+    href: "https://core.app/en/bridge/"
+  },
+  {
+    id: 3,
     title: "L1 Toolbox",
     description: "Launch your own L1",
     icon: Wrench,
     href: "/tools/l1-toolbox"
   },
   {
-    id: 3,
+    id: 4,
     title: "Explorer",
     description: "Learn from zero to hero",
     icon: Search,
     href: "https://subnets.avax.network"
   },
   {
-    id: 4,
+    id: 5,
     title: "API References",
     description: "Avalanche APIs",
     icon: BookOpen,
@@ -52,7 +60,7 @@ export default function QuickLinks() {
       </div>
       
       <div className="mt-12 mx-auto font-geist relative max-w-7xl w-full">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {quickLinks.map((link, index) => (
             <Link
               key={link.id}

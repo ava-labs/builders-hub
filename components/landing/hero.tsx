@@ -5,6 +5,7 @@ import { cn } from "@/utils/cn";
 import Link from "next/link";
 import Image from "next/image";
 import { Sponsors } from '@/components/landing/globe';
+import { GraduationCap } from 'lucide-react';
 
 // Premium animation styles
 const premiumStyles = `
@@ -134,7 +135,7 @@ if (typeof document !== 'undefined') {
 
 // Rotating Text Component
 function RotatingText() {
-  const words = ['courses', 'events', 'hackathons', 'bounties', 'tools', 'grants', 'documentation', 'academy'];
+  const words = ['Courses', 'Events', 'Hackathons', 'Bounties', 'Tools', 'Grants', 'Documentation', 'Academy'];
 
   return (
     <span className="text-rotator min-w-[120px] sm:min-w-[160px] lg:min-w-[200px] xl:min-w-[240px] h-[1.2em] text-left">
@@ -179,7 +180,7 @@ export default function Hero() {
             <div className="space-y-6">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tighter leading-[0.95] sm:leading-[0.95] lg:leading-[0.9] xl:leading-[0.85]">
                 <span className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent dark:from-white dark:via-slate-100 dark:to-white animate-gradient-shift">
-                BuilderHub
+                Builder Hub
                 </span>
               </h1>
               
@@ -195,20 +196,18 @@ export default function Hero() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link
-                href="/docs"
+                href="/academy"
                 className="group premium-button inline-flex items-center justify-center px-8 py-4 text-base font-bold tracking-[-0.015em] rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/50 hover:scale-[1.02] transition-all duration-300 dark:shadow-blue-500/50 dark:hover:shadow-blue-500/70"
               >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                </svg>
-                Start Building
+                <GraduationCap className="w-5 h-5 mr-3" />
+                Start Learning
               </Link>
               
               <Link
                 href="/docs"
                 className="group premium-button inline-flex items-center justify-center px-8 py-4 text-base font-bold tracking-[-0.015em] rounded-xl bg-white/10 glass-effect border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm dark:border-slate-700/40"
               >
-                Learn
+                Build
                 <svg className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>

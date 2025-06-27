@@ -29,15 +29,15 @@ function EventCard({ title, description, icon, image, url, color, arrowColor }: 
   }
 
   return (
-    <div className="group relative overflow-hidden rounded-lg transition-all duration-300 hover:shadow-sm">
-      <div className="relative p-6 space-y-4 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow duration-200">
-        <div className="flex justify-between items-start">
-          <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${gradients[color]} flex items-center justify-center text-white`}>
+    <div className="group relative overflow-hidden rounded-lg transition-all duration-300 hover:shadow-sm h-[400px]">
+      <div className="relative p-6 bg-card border border-border rounded-lg hover:shadow-sm transition-shadow duration-200 h-full flex flex-col">
+        <div className="flex justify-between items-start mb-4">
+          <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${gradients[color]} flex items-center justify-center text-white flex-shrink-0`}>
             {icon}
           </div>
-          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         </div>
-        <div className="w-full h-48 relative rounded-lg overflow-hidden mb-4">
+        <div className="w-full h-48 relative rounded-lg overflow-hidden mb-4 flex-shrink-0">
           <Image 
             src={image}
             alt={title}
@@ -46,8 +46,10 @@ function EventCard({ title, description, icon, image, url, color, arrowColor }: 
             className="transition-transform duration-300 group-hover:scale-105"
           />
         </div>
-        <h3 className="text-xl font-semibold">{title}</h3>
-        <p className="text-muted-foreground text-sm">{description}</p>
+        <div className="flex-1 flex flex-col min-h-0">
+          <h3 className="text-xl font-semibold mb-2 flex-shrink-0">{title}</h3>
+          <p className="text-muted-foreground text-sm flex-1 overflow-hidden">{description}</p>
+        </div>
       </div>
     </div>
   )
