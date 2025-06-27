@@ -546,6 +546,94 @@ export default function QueryL1ValidatorSet() {
               </div>
             </div>
           </div>
+
+          {/* Remaining Balance Owner Information */}
+          {selectedValidator.remainingBalanceOwner && (
+            <div className="bg-zinc-50 dark:bg-zinc-800/70 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 mt-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center">
+                  <Users className="h-4 w-4 text-blue-500 dark:text-blue-400 mr-2" />
+                  Remaining Balance Owner
+                </h4>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+                  Threshold: {selectedValidator.remainingBalanceOwner.threshold}
+                </span>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Addresses</p>
+                  <span className="bg-zinc-200 dark:bg-zinc-700 text-xs font-medium px-2 py-0.5 rounded-full text-zinc-700 dark:text-zinc-300">
+                    {selectedValidator.remainingBalanceOwner.addresses.length}
+                  </span>
+                </div>
+                <div className="max-h-40 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900/80 divide-y divide-zinc-200 dark:divide-zinc-700">
+                  {selectedValidator.remainingBalanceOwner.addresses.map((address, index) => (
+                    <div key={index} className="flex items-center justify-between p-2.5">
+                      <p className="font-mono text-xs break-all text-zinc-800 dark:text-zinc-200 pr-2">
+                        {address}
+                      </p>
+                      <button
+                        onClick={() => copyToClipboard(address)}
+                        className="p-0.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex-shrink-0"
+                        title="Copy Address"
+                      >
+                        {copiedNodeId === address ? (
+                          <Check size={12} className="text-green-500" />
+                        ) : (
+                          <Copy size={12} className="text-zinc-500 dark:text-zinc-400" />
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Deactivation Owner Information */}
+          {selectedValidator.deactivationOwner && (
+            <div className="bg-zinc-50 dark:bg-zinc-800/70 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 mt-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center">
+                  <Users className="h-4 w-4 text-blue-500 dark:text-blue-400 mr-2" />
+                  Deactivation Owner
+                </h4>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+                  Threshold: {selectedValidator.deactivationOwner.threshold}
+                </span>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Addresses</p>
+                  <span className="bg-zinc-200 dark:bg-zinc-700 text-xs font-medium px-2 py-0.5 rounded-full text-zinc-700 dark:text-zinc-300">
+                    {selectedValidator.deactivationOwner.addresses.length}
+                  </span>
+                </div>
+                <div className="max-h-40 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900/80 divide-y divide-zinc-200 dark:divide-zinc-700">
+                  {selectedValidator.deactivationOwner.addresses.map((address, index) => (
+                    <div key={index} className="flex items-center justify-between p-2.5">
+                      <p className="font-mono text-xs break-all text-zinc-800 dark:text-zinc-200 pr-2">
+                        {address}
+                      </p>
+                      <button
+                        onClick={() => copyToClipboard(address)}
+                        className="p-0.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex-shrink-0"
+                        title="Copy Address"
+                      >
+                        {copiedNodeId === address ? (
+                          <Check size={12} className="text-green-500" />
+                        ) : (
+                          <Copy size={12} className="text-zinc-500 dark:text-zinc-400" />
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
