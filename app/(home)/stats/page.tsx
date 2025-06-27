@@ -437,7 +437,7 @@ export default function AvalancheMetrics() {
                       </SortButton>
                     </TableHead>
                     <TableHead className="font-semibold text-center min-w-[100px]">
-                      Status
+                      Activity
                     </TableHead>
                   </TableRow>
                 </TableHeader>
