@@ -1,46 +1,128 @@
-chainId,chainName,chainLogoURI,weeklyTps,maxTps,weeklyTxCount,weeklyContractsDeployed,weeklyActiveAddresses
-8787,"Animalia","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,0.00,0,0,0
-4313,"Artery","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,0.00,0,0,0
-43114,"Avalanche (C-Chain)","https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",14.32,833.00,2416738,64378,598567
-5506,"BangoL1","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,1.00,0,0,0
-4337,"Beam L1","https://images.ctfassets.net/gcj8jwzm6086/2ZXZw0POSuXhwoGTiv2fzh/5b9d9e81acb434461da5addb1965f59d/chain-logo.png",0.18,10.00,34242,339,18893
-46975,"Blaze","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,0.00,0,0,0
-1344,"Blitz L1","https://images.ctfassets.net/gcj8jwzm6086/5ZhwQeXUwtVZPIRoWXhgrw/03d0ed1c133e59f69bcef52e27d1bdeb/image__2___2_.png",0.00,5.50,380,0,393
-28530,"Blockticity","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.15,1.00,47141,0,3
-737373,"CX Chain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,1.00,0,0,0
-96786,"delaunch","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,0.00,0,0,0
-432204,"Dexalot L1","https://images.ctfassets.net/gcj8jwzm6086/2y6naoolB28y6PpxuZgnl5/0371843c401427ec146128c7bb62941d/dexalot.png",10.03,82.00,2006679,6,199
-53935,"DFK L1","https://images.ctfassets.net/gcj8jwzm6086/15KL2tZgiggSNEgHbrxG4C/5f9b3f91c0a7666cd3d26b4d273fa158/defikingdoms.png",6.11,179.00,1077373,45,9625
-389,"Ethix ETX","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,1.00,0,0,0
-33345,"even","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,2.50,520,0,523
-33311,"feature L1","https://images.ctfassets.net/gcj8jwzm6086/2hWSbxXPv2QTPCtCaEp7Kp/522b520e7e5073f7e7459f9bd581bafa/FTR_LOGO_-_FLAT_BLACK.png",0.00,48.00,1,0,2
-13322,"FIFA Blockchain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.02,7.50,4457,35,1548
-62789,"FRQTAL NETWORK","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,1.00,0,0,0
-741741,"GOOD CARE","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,1.00,0,0,0
-43419,"Gunzilla Mainnet","https://images.ctfassets.net/gcj8jwzm6086/3z2BVey3D1mak361p87Vu/ca7191fec2aa23dfa845da59d4544784/unnamed.png",1.33,690.00,233279,4,11315
-68414,"Henesys","https://images.ctfassets.net/gcj8jwzm6086/4vLq0seR2nSWK79ldnXnKR/c63f65587cc5da3dae7a8bc087792dc9/NEXPACE_TICKER_Color.png",9.02,248.50,1838090,69581,96589
-1853,"HighOctane L1","https://images.ctfassets.net/gcj8jwzm6086/2oZCwsNAWMMEtl4rydQ4Sh/16da5fbf9e454e03b925377c3b2e4139/image.png",0.07,14.00,12512,0,115
-10036,"Innovo Markets Mainnet L1","https://images.ctfassets.net/gcj8jwzm6086/5wd9o1kxI1nG0Kb2LrEooJ/9e14075a20dc67c4ba5ab0ca404192b8/1675173474597.png",0.00,1.00,588,0,15
-1216,"intersect L1","https://images.ctfassets.net/gcj8jwzm6086/4mDZ5q3a5lxHJcBLTORuMr/b47935fa6007cb3430acabef7e13e9ca/explorer.png",0.00,1.00,8,0,5
-6533,"KALICHAIN","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.02,0.50,3668,0,25
-379,"KOROSHI L1","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,0.50,14,0,12
-10849,"Lamina1 L1","https://images.ctfassets.net/gcj8jwzm6086/5KPky47nVRvtHKYV0rQy5X/e0d153df56fd1eac204f58ca5bc3e133/L1-YouTube-Avatar.png",6.63,28.00,1199563,7,209440
-10850,"Lamina1 Identity L1","https://images.ctfassets.net/gcj8jwzm6086/4ihNeP5Qo9diLy0y6ouG3L/8c656592cc45f820188fb647f1a178f2/L1-YouTube-Avatar.png",0.00,2.50,21,0,11
-62521,"lucid","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,0.00,0,0,0
-5419,"Marnisa","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,2.50,85,1,9
-1888,"Memoria","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,3.00,85,0,26
-8021,"NUMINE Mainnet","https://images.ctfassets.net/gcj8jwzm6086/411JTIUnbER3rI5dpOR54Y/3c0a8e47d58818a66edd868d6a03a135/numine_main_icon.png",0.00,1.50,249,4,96
-3011,"PLAYA3ULL GAMES L1","https://images.ctfassets.net/gcj8jwzm6086/27mn0a6a5DJeUxcJnZr7pb/8a28d743d65bf35dfbb2e63ba2af7f61/brandmark_-_square_-_Sam_Thompson.png",0.04,122.00,7687,0,370
-16180,"PLYR PHI L1","https://images.ctfassets.net/gcj8jwzm6086/5K1xUbrhZPhSOEtsHoghux/b64edf007db24d8397613f7d9338260a/logomark_fullorange.svg",0.02,1.00,3029,12,64
-357,"Pulsar L1","https://images.ctfassets.net/gcj8jwzm6086/5rAfnDh8ogkkEJ6ryvtUQQ/8f7d53e5d669702b8e0fc459a337ab94/logo512.png",16.16,60.00,3015266,0,1089
-12150,"QChain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.49,3.00,87659,0,38005
-2044,"Shrapnel L1","https://images.ctfassets.net/gcj8jwzm6086/3bCKwLkE3vlwnMr52R0RXr/fe8ac511db870a7487986795cb14621e/token-logo.png",0.03,9.50,4938,0,42
-6119,"UPTN","https://images.ctfassets.net/gcj8jwzm6086/5jmuPVLmmUSDrfXxbIrWwo/4bdbe8d55b775b613156760205d19f9f/symbol_UPTN_-_js_won.png",0.20,8.00,35881,0,148
-8227,"Space L1","https://images.ctfassets.net/gcj8jwzm6086/27oUMNb9hSTA7HfFRnqUtZ/2f80e6b277f4b4ee971675b5f73c06bf/Space_Symbol_256X256__v2.svg",0.11,15.00,19972,0,7
-5566,"StraitsX L1","https://images.ctfassets.net/gcj8jwzm6086/3jGGJxIwb3GjfSEJFXkpj9/2ea8ab14f7280153905a29bb91b59ccb/icon.png",0.01,16.50,1117,0,280
-61587,"Growth L1","https://images.ctfassets.net/gcj8jwzm6086/76IPuyrLUYnK0VgueFSi7M/aee8e71bbc409578afcb1ab13593da43/TGP_Logo_Short_-_Straight_BG.png",4.72,56.00,808208,124698,212937
-710420,"Tiltyard L1","https://images.ctfassets.net/gcj8jwzm6086/5iZkicfOvjuwJYQqqCQN4y/9bdb761652d929459610c8b2da862cd5/android-chrome-512x512.png",0.00,8.50,795,0,3
-84358,"TITAN L1","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,0.00,0,0,0
-13790,"TixChain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,0.00,0,0,0
-21024,"TradeX Markets","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0.00,0.50,6,0,2
-27827,"zeroone Mainnet L1","https://images.ctfassets.net/gcj8jwzm6086/1lOFyhAJ0JkDkAmpeCznxL/c83287a3c03f8c2c1477e0c4379c98d4/HINDW3Tu_400x400.jpg",0.01,4.00,1134,389,339
+chainId,chainName,chainLogoURI,weeklyTxCount,weeklyContractsDeployed,weeklyActiveAddresses
+80000,"aibmainnet","",6,0,6
+8787,"Animalia","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0
+4313,"Artery","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,1,0
+65713,"as0314t1tp","",0,0,0
+43114,"Avalanche (C-Chain)","https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",2416738,62457,598567
+40404,"bango","",0,0,0
+5506,"BangoL1","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0
+4337,"Beam L1","https://images.ctfassets.net/gcj8jwzm6086/2ZXZw0POSuXhwoGTiv2fzh/5b9d9e81acb434461da5addb1965f59d/chain-logo.png",34242,314,18893
+46975,"Blaze","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0
+1344,"Blitz L1","https://images.ctfassets.net/gcj8jwzm6086/5ZhwQeXUwtVZPIRoWXhgrw/03d0ed1c133e59f69bcef52e27d1bdeb/image__2___2_.png",380,0,393
+28530,"Blockticity","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",47141,0,3
+578,"bloodloop","",0,0,0
+35414,"cedomis","",0,0,0
+2053,"certalink","",0,0,0
+33210,"cloudverse","",0,0,0
+42069,"coqnet","",25373849,0,1012
+737373,"CX Chain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0
+707070,"cxchain","",0,0,0
+96786,"delaunch","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0
+75685,"demol1","",0,0,0
+432204,"Dexalot L1","https://images.ctfassets.net/gcj8jwzm6086/2y6naoolB28y6PpxuZgnl5/0371843c401427ec146128c7bb62941d/dexalot.png",2006679,6,199
+53935,"DFK L1","https://images.ctfassets.net/gcj8jwzm6086/15KL2tZgiggSNEgHbrxG4C/5f9b3f91c0a7666cd3d26b4d273fa158/defikingdoms.png",1077373,52,9625
+7979,"dos","",20244,8,4277
+389,"Ethix ETX","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0
+33345,"even","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",520,0,523
+33311,"feature L1","https://images.ctfassets.net/gcj8jwzm6086/2hWSbxXPv2QTPCtCaEp7Kp/522b520e7e5073f7e7459f9bd581bafa/FTR_LOGO_-_FLAT_BLACK.png",1,0,2
+13322,"FIFA Blockchain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",4457,15,1548
+62786,"frqtal","",0,0,0
+62789,"FRQTAL NETWORK","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0
+741741,"GOOD CARE","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0
+6765897101,"greendot","",0,0,0
+61587,"Growth L1","https://images.ctfassets.net/gcj8jwzm6086/76IPuyrLUYnK0VgueFSi7M/aee8e71bbc409578afcb1ab13593da43/TGP_Logo_Short_-_Straight_BG.png",808208,116319,212937
+43512,"gunzilla","",0,0,0
+43419,"Gunzilla Mainnet","https://images.ctfassets.net/gcj8jwzm6086/3z2BVey3D1mak361p87Vu/ca7191fec2aa23dfa845da59d4544784/unnamed.png",233279,5,11315
+35578,"henesys","",0,0,0
+68414,"Henesys","https://images.ctfassets.net/gcj8jwzm6086/4vLq0seR2nSWK79ldnXnKR/c63f65587cc5da3dae7a8bc087792dc9/NEXPACE_TICKER_Color.png",1838090,58595,96589
+1853,"HighOctane L1","https://images.ctfassets.net/gcj8jwzm6086/2oZCwsNAWMMEtl4rydQ4Sh/16da5fbf9e454e03b925377c3b2e4139/image.png",12512,0,115
+1992,"hubblenet","",0,0,0
+2345,"ienium","",0,0,0
+10036,"Innovo Markets Mainnet L1","https://images.ctfassets.net/gcj8jwzm6086/5wd9o1kxI1nG0Kb2LrEooJ/9e14075a20dc67c4ba5ab0ca404192b8/1675173474597.png",588,0,15
+151122,"intainmkt","",0,0,0
+1216,"intersect L1","https://images.ctfassets.net/gcj8jwzm6086/4mDZ5q3a5lxHJcBLTORuMr/b47935fa6007cb3430acabef7e13e9ca/explorer.png",8,0,5
+6533,"KALICHAIN","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",3668,0,25
+379,"KOROSHI L1","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",14,0,12
+10850,"Lamina1 Identity L1","https://images.ctfassets.net/gcj8jwzm6086/4ihNeP5Qo9diLy0y6ouG3L/8c656592cc45f820188fb647f1a178f2/L1-YouTube-Avatar.png",21,0,11
+10849,"Lamina1 L1","https://images.ctfassets.net/gcj8jwzm6086/5KPky47nVRvtHKYV0rQy5X/e0d153df56fd1eac204f58ca5bc3e133/L1-YouTube-Avatar.png",1199563,7,209440
+62521,"lucid","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0
+5419,"Marnisa","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",85,1,9
+3454,"masa","",0,0,0
+13396,"masanetwor","",0,0,0
+333000333,"meld","",0,0,0
+1888,"Memoria","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",85,0,26
+74601,"mi0624t1ms","",2,0,2
+53849,"mi0624t2ms","",2,0,2
+50476,"mi0624t3ms","",0,0,0
+87062,"mi0624t4ms","",1,0,2
+29111,"mugen","",0,0,0
+1188811,"numine","",0,0,0
+8021,"NUMINE Mainnet","https://images.ctfassets.net/gcj8jwzm6086/411JTIUnbER3rI5dpOR54Y/3c0a8e47d58818a66edd868d6a03a135/numine_main_icon.png",249,8,96
+5041,"omochi","",0,0,0
+5040,"onigiri","",0,0,0
+3011,"PLAYA3ULL GAMES L1","https://images.ctfassets.net/gcj8jwzm6086/27mn0a6a5DJeUxcJnZr7pb/8a28d743d65bf35dfbb2e63ba2af7f61/brandmark_-_square_-_Sam_Thompson.png",7687,0,370
+504441,"playdappne","",0,0,0
+1080,"playthink","",0,0,0
+16180,"PLYR PHI L1","https://images.ctfassets.net/gcj8jwzm6086/5K1xUbrhZPhSOEtsHoghux/b64edf007db24d8397613f7d9338260a/logomark_fullorange.svg",3029,11,64
+357,"Pulsar L1","https://images.ctfassets.net/gcj8jwzm6086/5rAfnDh8ogkkEJ6ryvtUQQ/8f7d53e5d669702b8e0fc459a337ab94/logo512.png",3015266,0,1089
+12150,"QChain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",87659,0,38005
+89043,"qi0207m1mp","",0,0,0
+48394,"qr0108t1ms","",0,0,0
+79807,"qr0203t1ms","",0,0,0
+82728,"qr0203t2ms","",0,0,0
+31215,"qr0211t1mp","",0,0,0
+28461,"qr0211t1ms","",0,0,0
+9850,"qr0318t1ms","",0,0,0
+74719,"qr0408t1ms","",0,0,0
+91792,"qr0523t1mp","",0,0,0
+24127,"qr0527t1ms","",0,0,0
+59434,"qr0528t2ms","",0,0,0
+83620,"qr0529t1mp","",0,0,0
+1375,"qr0606t1mp","",0,0,0
+49900,"qr0606t1ms","",0,0,0
+27480,"qr0609t1mp","",0,0,0
+77593,"qr0609t2mp","",0,0,0
+62381,"qr0609t3mp","",0,0,0
+88265,"qr0609t4mp","",0,0,0
+37625,"qr0609t5mp","",0,0,0
+36593,"qr0609t6mp","",0,0,0
+21272,"qr0617t2ms","",0,0,0
+37759,"qr0617t3ms","",0,0,0
+20726,"qr0618t1ms","",0,0,0
+86611,"qr0618t2ms","",0,0,0
+87189,"qr0623t1ms","",0,0,0
+3062,"qr0623t2ms","",0,0,2
+76683,"qr0623t3ms","",0,0,0
+91900,"qr0623t4ms","",0,0,0
+923,"qr0623t5ms","",0,0,0
+83414,"qr0623t6ms","",0,0,2
+61849,"qr0624t1ms","",0,0,0
+75887,"qr0624t2ms","",0,0,0
+936903,"qr0719t1ms","",0,0,0
+931499,"qr0830t1ms","",0,0,0
+64764,"qr1125t1tp","",0,0,0
+95251,"qr1127t2mp","",0,0,0
+57759,"qr1218t1mp","",0,0,0
+7766,"qr1219t1ms","",0,0,0
+912888,"qr1223t1ms","",0,0,0
+64273,"really","",0,0,0
+111003001,"rymedic","",0,0,0
+111001001,"rymedii","",0,0,0
+111002001,"rymedit","",0,0,0
+2044,"Shrapnel L1","https://images.ctfassets.net/gcj8jwzm6086/3bCKwLkE3vlwnMr52R0RXr/fe8ac511db870a7487986795cb14621e/token-logo.png",4938,0,42
+9899,"solert","",0,0,0
+8227,"Space L1","https://images.ctfassets.net/gcj8jwzm6086/27oUMNb9hSTA7HfFRnqUtZ/2f80e6b277f4b4ee971675b5f73c06bf/Space_Symbol_256X256__v2.svg",19972,0,7
+1234,"stepnetwork","",11529,0,229
+5566,"StraitsX L1","https://images.ctfassets.net/gcj8jwzm6086/3jGGJxIwb3GjfSEJFXkpj9/2ea8ab14f7280153905a29bb91b59ccb/icon.png",1117,0,280
+62707,"tele1","",0,0,0
+70953,"tele2","",0,0,0
+710420,"Tiltyard L1","https://images.ctfassets.net/gcj8jwzm6086/5iZkicfOvjuwJYQqqCQN4y/9bdb761652d929459610c8b2da862cd5/android-chrome-512x512.png",795,0,3
+84358,"TITAN L1","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0
+13790,"TixChain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0
+21024,"TradeX Markets","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",6,0,2
+6119,"UPTN","https://images.ctfassets.net/gcj8jwzm6086/5jmuPVLmmUSDrfXxbIrWwo/4bdbe8d55b775b613156760205d19f9f/symbol_UPTN_-_js_won.png",35881,0,148
+40875,"v1migrate","",0,0,0
+98968,"wow","",0,0,0
+26935,"ww1217t1ms","",0,0,0
+8888,"xanachain","",0,0,0
+27827,"zeroone Mainnet L1","https://images.ctfassets.net/gcj8jwzm6086/1lOFyhAJ0JkDkAmpeCznxL/c83287a3c03f8c2c1477e0c4379c98d4/HINDW3Tu_400x400.jpg",1134,365,339

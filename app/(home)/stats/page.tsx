@@ -20,7 +20,6 @@ import {
   ArrowUp,
   ArrowDown,
   Activity,
-  Zap,
   Users,
   FileCode,
   BarChart3,
@@ -31,11 +30,9 @@ interface ChainMetrics {
   chainId: string;
   chainName: string;
   chainLogoURI: string;
-  weeklyTps: number;
-  maxTps: number;
-  weeklyTxCount: number;
-  weeklyContractsDeployed: number;
-  weeklyActiveAddresses: number;
+  weeklyTxCount: number | string;
+  weeklyContractsDeployed: number | string;
+  weeklyActiveAddresses: number | string;
 }
 
 type SortField = keyof ChainMetrics;
@@ -46,7 +43,7 @@ export default function AvalancheMetrics() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<SortField>("weeklyTps");
+  const [sortField, setSortField] = useState<SortField>("weeklyTxCount");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const parseCSV = (csvText: string): ChainMetrics[] => {
@@ -78,15 +75,20 @@ export default function AvalancheMetrics() {
         const chainName = values[1].replace(/"/g, "");
         const chainLogoURI = values[2].replace(/"/g, "");
 
+        // Helper function to parse metric values
+        const parseMetricValue = (value: string): number | string => {
+          if (value === "N/A" || value === "") return "N/A";
+          const parsed = Number.parseInt(value);
+          return isNaN(parsed) ? "N/A" : parsed;
+        };
+
         data.push({
           chainId: values[0],
           chainName: chainName.toUpperCase(),
           chainLogoURI: chainLogoURI,
-          weeklyTps: Number.parseFloat(values[3]) || 0,
-          maxTps: Number.parseFloat(values[4]) || 0,
-          weeklyTxCount: Number.parseInt(values[5]) || 0,
-          weeklyContractsDeployed: Number.parseInt(values[6]) || 0,
-          weeklyActiveAddresses: Number.parseInt(values[7]) || 0,
+          weeklyTxCount: parseMetricValue(values[3]),
+          weeklyContractsDeployed: parseMetricValue(values[4]),
+          weeklyActiveAddresses: parseMetricValue(values[5]),
         });
       }
     }
@@ -139,12 +141,18 @@ export default function AvalancheMetrics() {
     return num.toLocaleString();
   };
 
-  const getActivityStatus = (transactions: number, addresses: number) => {
-    if (transactions === 0 && addresses === 0)
+  const getActivityStatus = (
+    transactions: number | string,
+    addresses: number | string
+  ) => {
+    const txCount = typeof transactions === "number" ? transactions : 0;
+    const addrCount = typeof addresses === "number" ? addresses : 0;
+
+    if (txCount === 0 && addrCount === 0)
       return { label: "Inactive", variant: "secondary" as const };
-    if (transactions < 100 && addresses < 1000)
+    if (txCount < 100 && addrCount < 1000)
       return { label: "Low", variant: "outline" as const };
-    if (transactions < 1000 && addresses < 10000)
+    if (txCount < 1000 && addrCount < 10000)
       return { label: "Medium", variant: "default" as const };
     return { label: "High", variant: "default" as const };
   };
@@ -168,9 +176,11 @@ export default function AvalancheMetrics() {
         : bValue.localeCompare(aValue);
     }
 
-    return sortDirection === "asc"
-      ? (aValue as number) - (bValue as number)
-      : (bValue as number) - (aValue as number);
+    // Handle mixed types (number vs string)
+    const aNum = typeof aValue === "number" ? aValue : 0;
+    const bNum = typeof bValue === "number" ? bValue : 0;
+
+    return sortDirection === "asc" ? aNum - bNum : bNum - aNum;
   });
 
   const SortButton = ({
@@ -275,7 +285,8 @@ export default function AvalancheMetrics() {
               Avalanche Mainnet L1 Stats
             </h1>
             <p className="text-muted-foreground mt-1">
-              An opinionated collection of stats for the Avalanche Mainnet L1s. Updated daily.
+              An opinionated collection of stats for the Avalanche Mainnet L1s.
+              Updated daily.
             </p>
           </div>
           <div className="text-left sm:text-right">
@@ -310,10 +321,17 @@ export default function AvalancheMetrics() {
               </div>
               <p className="text-xl md:text-2xl font-bold text-green-700 dark:text-green-300 mt-1">
                 {
-                  chainMetrics.filter(
-                    (chain) =>
-                      chain.weeklyTxCount > 0 || chain.weeklyActiveAddresses > 0
-                  ).length
+                  chainMetrics.filter((chain) => {
+                    const txCount =
+                      typeof chain.weeklyTxCount === "number"
+                        ? chain.weeklyTxCount
+                        : 0;
+                    const addrCount =
+                      typeof chain.weeklyActiveAddresses === "number"
+                        ? chain.weeklyActiveAddresses
+                        : 0;
+                    return txCount > 0 || addrCount > 0;
+                  }).length
                 }
               </p>
             </CardContent>
@@ -329,10 +347,13 @@ export default function AvalancheMetrics() {
               </div>
               <p className="text-xl md:text-2xl font-bold text-purple-700 dark:text-purple-300 mt-1">
                 {formatFullNumber(
-                  chainMetrics.reduce(
-                    (sum, chain) => sum + chain.weeklyContractsDeployed,
-                    0
-                  )
+                  chainMetrics.reduce((sum, chain) => {
+                    const contracts =
+                      typeof chain.weeklyContractsDeployed === "number"
+                        ? chain.weeklyContractsDeployed
+                        : 0;
+                    return sum + contracts;
+                  }, 0)
                 )}
               </p>
             </CardContent>
@@ -348,10 +369,13 @@ export default function AvalancheMetrics() {
               </div>
               <p className="text-xl md:text-2xl font-bold text-orange-700 dark:text-orange-300 mt-1">
                 {formatFullNumber(
-                  chainMetrics.reduce(
-                    (sum, chain) => sum + chain.weeklyActiveAddresses,
-                    0
-                  )
+                  chainMetrics.reduce((sum, chain) => {
+                    const addresses =
+                      typeof chain.weeklyActiveAddresses === "number"
+                        ? chain.weeklyActiveAddresses
+                        : 0;
+                    return sum + addresses;
+                  }, 0)
                 )}
               </p>
             </CardContent>
@@ -373,24 +397,6 @@ export default function AvalancheMetrics() {
                   <TableRow className="border-b-2">
                     <TableHead className="font-semibold py-4 min-w-[200px] px-4">
                       <SortButton field="chainName">L1 Name</SortButton>
-                    </TableHead>
-                    <TableHead className="font-semibold text-center min-w-[120px]">
-                      <SortButton field="weeklyTps">
-                        <span className="hidden sm:flex items-center gap-1">
-                          <Zap className="h-4 w-4 text-green-600" />
-                          Weekly TPS
-                        </span>
-                        <span className="sm:hidden">TPS</span>
-                      </SortButton>
-                    </TableHead>
-                    <TableHead className="font-semibold text-center min-w-[120px]">
-                      <SortButton field="maxTps">
-                        <span className="hidden sm:flex items-center gap-1">
-                          <Activity className="h-4 w-4 text-emerald-600" />
-                          Max TPS
-                        </span>
-                        <span className="sm:hidden">Max</span>
-                      </SortButton>
                     </TableHead>
                     <TableHead className="font-semibold text-center min-w-[140px]">
                       <SortButton field="weeklyTxCount">
@@ -461,56 +467,43 @@ export default function AvalancheMetrics() {
                         <TableCell className="text-center">
                           <span
                             className={`font-mono font-semibold text-sm ${
-                              chain.weeklyTps > 0
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {chain.weeklyTps.toFixed(2)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span
-                            className={`font-mono font-semibold text-sm ${
-                              chain.maxTps > 0
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {chain.maxTps.toFixed(2)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span
-                            className={`font-mono font-semibold text-sm ${
+                              typeof chain.weeklyTxCount === "number" &&
                               chain.weeklyTxCount > 0
                                 ? "text-blue-600 dark:text-blue-400"
                                 : "text-muted-foreground"
                             }`}
                           >
-                            {formatFullNumber(chain.weeklyTxCount)}
+                            {typeof chain.weeklyTxCount === "number"
+                              ? formatFullNumber(chain.weeklyTxCount)
+                              : chain.weeklyTxCount}
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
                           <span
                             className={`font-mono font-semibold text-sm ${
-                              chain.weeklyContractsDeployed > 0
+                              typeof chain.weeklyContractsDeployed ===
+                                "number" && chain.weeklyContractsDeployed > 0
                                 ? "text-purple-600 dark:text-purple-400"
                                 : "text-muted-foreground"
                             }`}
                           >
-                            {formatFullNumber(chain.weeklyContractsDeployed)}
+                            {typeof chain.weeklyContractsDeployed === "number"
+                              ? formatFullNumber(chain.weeklyContractsDeployed)
+                              : chain.weeklyContractsDeployed}
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
                           <span
                             className={`font-mono font-semibold text-sm ${
+                              typeof chain.weeklyActiveAddresses === "number" &&
                               chain.weeklyActiveAddresses > 0
                                 ? "text-orange-600 dark:text-orange-400"
                                 : "text-muted-foreground"
                             }`}
                           >
-                            {formatFullNumber(chain.weeklyActiveAddresses)}
+                            {typeof chain.weeklyActiveAddresses === "number"
+                              ? formatFullNumber(chain.weeklyActiveAddresses)
+                              : chain.weeklyActiveAddresses}
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
