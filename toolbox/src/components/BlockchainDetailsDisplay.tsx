@@ -14,6 +14,7 @@ interface BlockchainDetailsDisplayProps {
     error?: string | null
     isExpanded?: boolean
     onToggleExpanded?: () => void
+    customTitle?: string
 }
 
 export default function BlockchainDetailsDisplay({
@@ -22,7 +23,8 @@ export default function BlockchainDetailsDisplay({
     isLoading,
     error,
     isExpanded = false,
-    onToggleExpanded
+    onToggleExpanded,
+    customTitle
 }: BlockchainDetailsDisplayProps) {
     const [copiedText, setCopiedText] = useState<string | null>(null)
     const [internalIsExpanded, setInternalIsExpanded] = useState(false)
@@ -131,7 +133,7 @@ export default function BlockchainDetailsDisplay({
                     </div>
                     <div className="flex items-center">
                         <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                            {getTitle()}
+                            {customTitle || getTitle()}
                         </span>
                         <div className="flex items-center space-x-2 ml-3">
                             {getNetworkBadges()}

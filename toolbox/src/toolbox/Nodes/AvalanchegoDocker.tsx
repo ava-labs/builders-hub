@@ -152,6 +152,8 @@ export default function AvalanchegoDocker() {
     const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
     const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
     const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
+    const [makePublicRPC, setMakePublicRPC] = useState<boolean | null>(null);
+    const [selectedRPCBlockchainId, setSelectedRPCBlockchainId] = useState<string>("");
 
     const { avalancheNetworkID } = useWalletStore();
     const { addL1 } = useL1ListStore()();
@@ -167,21 +169,26 @@ export default function AvalanchegoDocker() {
 
     useEffect(() => {
         setSubnetIdError(null);
-        setSubnetId("");
+        setChainId("");
         setSubnet(null);
         setBlockchainInfo(null);
-        if (!chainId) return;
+        if (!subnetId) return;
 
         setIsLoading(true);
-        getBlockchainInfo(chainId)
-            .then(async (chainInfo) => {
-                setBlockchainInfo(chainInfo);
-                setSubnetId(chainInfo.subnetId);
-                try {
-                    const subnetInfo = await getSubnetInfo(chainInfo.subnetId);
-                    setSubnet(subnetInfo);
-                } catch (error) {
-                    setSubnetIdError((error as Error).message);
+        getSubnetInfo(subnetId)
+            .then(async (subnetInfo) => {
+                setSubnet(subnetInfo);
+                // Always get blockchain info for the first blockchain (for Docker command generation)
+                if (subnetInfo.blockchains && subnetInfo.blockchains.length > 0) {
+                    const blockchainId = subnetInfo.blockchains[0].blockchainId;
+                    setChainId(blockchainId);
+                    setSelectedRPCBlockchainId(blockchainId); // Auto-select first blockchain for RPC
+                    try {
+                        const chainInfo = await getBlockchainInfo(blockchainId);
+                        setBlockchainInfo(chainInfo);
+                    } catch (error) {
+                        setSubnetIdError((error as Error).message);
+                    }
                 }
             })
             .catch((error) => {
@@ -190,7 +197,7 @@ export default function AvalanchegoDocker() {
             .finally(() => {
                 setIsLoading(false);
             });
-    }, [chainId]);
+    }, [subnetId]);
 
     useEffect(() => {
         if (!isRPC) {
@@ -213,13 +220,12 @@ export default function AvalanchegoDocker() {
         setSubnetIdError(null);
         setIsAddChainModalOpen(false);
         setNodeIsReady(false);
+        setMakePublicRPC(null);
+        setSelectedRPCBlockchainId("");
     };
 
     // Check if this blockchain uses a custom VM
     const isCustomVM = blockchainInfo && blockchainInfo.vmId !== SUBNET_EVM_VM_ID;
-
-    // Check if there are multiple blockchains on the same subnet
-    const hasMultipleBlockchains = subnet && subnet.blockchains && subnet.blockchains.length >= 2;
 
     return (
         <>
@@ -271,36 +277,33 @@ export default function AvalanchegoDocker() {
 
                     <Step>
                         <h3 className="text-xl font-bold mb-4">Select L1</h3>
-                        <p>Enter the Avalanche Blockchain ID (not EVM chain ID) of the L1 you want to run a node for.</p>
+                        <p>Enter the Avalanche Subnet ID of the L1 you want to run a node for.</p>
 
-                        <InputChainId
-                            value={chainId}
-                            onChange={setChainId}
-                            error={subnetIdError}
-                        />
                         <InputSubnetId
                             value={subnetId}
                             onChange={setSubnetId}
-                            readOnly={true}
+                            error={subnetIdError}
                         />
 
                         {/* Show subnet details if available */}
-                        <BlockchainDetailsDisplay
-                            subnet={subnet}
-                            isLoading={isLoading}
-                        />
-
-                        {/* Warning for multiple blockchains on the same subnet */}
-                        {hasMultipleBlockchains && (
-                            <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-                                <p className="text-sm">
-                                    <strong>Warning:</strong> This subnet has {subnet.blockchains.length} blockchains associated with it. Due to there being multiple chains associated with this subnet, this guide won't be valid for setting up a node for the subnet.
-                                </p>
+                        {subnet && subnet.blockchains && subnet.blockchains.length > 0 && (
+                            <div className="space-y-4">
+                                {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string; createBlockTimestamp: number; createBlockNumber: string; vmId: string; subnetId: string; evmChainId: number }, index: number) => (
+                                    <BlockchainDetailsDisplay
+                                        key={blockchain.blockchainId}
+                                        blockchain={{
+                                            ...blockchain,
+                                            isTestnet: avalancheNetworkID === networkIDs.FujiID
+                                        }}
+                                        isLoading={isLoading}
+                                        customTitle={`${blockchain.blockchainName} Blockchain Details`}
+                                    />
+                                ))}
                             </div>
                         )}
                     </Step>
 
-                    {subnetId && blockchainInfo && !hasMultipleBlockchains && (
+                    {subnetId && blockchainInfo && (
                         <>
                             <Step>
                                 <h3 className="text-xl font-bold mb-4">Configure the Node</h3>
@@ -368,6 +371,50 @@ export default function AvalanchegoDocker() {
                                 </Accordions>
                             </Step>
                             <Step>
+                                <h3 className="text-xl font-bold mb-4">Public RPC Setup</h3>
+                                <p>Do you want to make this node a public RPC endpoint? This will allow external wallets and applications to connect to your node.</p>
+
+                                <div className="mt-4 space-y-4">
+                                    <RadioGroup
+                                        value={makePublicRPC === null ? "" : makePublicRPC ? "yes" : "no"}
+                                        className="space-y-2"
+                                        onChange={(value) => {
+                                            setMakePublicRPC(value === "yes");
+                                            if (value === "no") {
+                                                setDomain("");
+                                            }
+                                        }}
+                                        idPrefix={`public-rpc-setup-`}
+                                        items={[
+                                            { value: "yes", label: "Yes, make it a public RPC" },
+                                            { value: "no", label: "No, will turn into a validator node" }
+                                        ]}
+                                    />
+
+                                    {makePublicRPC && subnet && subnet.blockchains && subnet.blockchains.length > 1 && (
+                                        <div className="mt-4">
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Select Blockchain for RPC Endpoint
+                                            </label>
+                                            <select
+                                                value={selectedRPCBlockchainId}
+                                                onChange={(e) => setSelectedRPCBlockchainId(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                            >
+                                                {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string }) => (
+                                                    <option key={blockchain.blockchainId} value={blockchain.blockchainId}>
+                                                        {blockchain.blockchainName} ({blockchain.blockchainId})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                This blockchain will be used for the RPC endpoint URL generation.
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </Step>
+                            <Step>
                                 <h3 className="text-xl font-bold">Wait for the Node to Bootstrap</h3>
                                 <p>Your node will now bootstrap and sync the P-Chain and your L1. This process should take a <strong>few minutes</strong>. You can follow the process by checking the logs with the following command:</p>
 
@@ -400,7 +447,35 @@ export default function AvalanchegoDocker() {
                                     onBootstrapCheckChange={(checked) => setNodeIsReady(checked)}
                                 />
                             </Step>
-                            {nodeIsReady && isRPC && (
+                            {nodeIsReady && isRPC && makePublicRPC === false && (
+                                <Step>
+                                    <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
+                                    <p>Click the button below to add your L1 to your wallet:</p>
+
+                                    <Button
+                                        onClick={() => setIsAddChainModalOpen(true)}
+                                        className="mt-4 w-48"
+                                    >
+                                        Add to Wallet
+                                    </Button>
+
+                                    {isAddChainModalOpen && <AddChainModal
+                                        onClose={() => setIsAddChainModalOpen(false)}
+                                        onAddChain={(chain) => {
+                                            setChainAddedToWallet(chain.name);
+                                            // Try addL1 but catch any errors that might cause resets
+                                            try {
+                                                addL1(chain);
+                                            } catch (error) {
+                                                console.log("addL1 error (non-blocking):", error);
+                                            }
+                                        }}
+                                        allowLookup={false}
+                                        fixedRPCUrl={`http://localhost:9650/ext/bc/${chainId}/rpc`}
+                                    />}
+                                </Step>
+                            )}
+                            {nodeIsReady && isRPC && makePublicRPC && (
                                 <>
                                     {nodeRunningMode === "server" && (
                                         <>
@@ -432,10 +507,10 @@ export default function AvalanchegoDocker() {
                                                     <p>Do a final check from a machine different then the one that your node is running on.</p>
 
                                                     <div className="space-y-6">
-                                                        <DynamicCodeBlock lang="bash" code={rpcHealthCheckCommand(domain, chainId)} />
+                                                        <DynamicCodeBlock lang="bash" code={rpcHealthCheckCommand(domain, selectedRPCBlockchainId)} />
 
                                                         <HealthCheckButton
-                                                            chainId={chainId}
+                                                            chainId={selectedRPCBlockchainId}
                                                             domain={domain}
                                                         />
                                                     </div>
@@ -443,7 +518,7 @@ export default function AvalanchegoDocker() {
                                             </>
                                             )}
                                         </>)}
-                                    {(nodeRunningMode === "localhost" || domain) && (<Step>
+                                    {(nodeRunningMode === "localhost" || (makePublicRPC && domain)) && (<Step>
                                         <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
                                         <p>Click the button below to add your L1 to your wallet:</p>
 
@@ -466,7 +541,7 @@ export default function AvalanchegoDocker() {
                                                 }
                                             }}
                                             allowLookup={false}
-                                            fixedRPCUrl={nodeRunningMode === "server" ? `https://${nipify(domain)}/ext/bc/${chainId}/rpc` : `http://localhost:9650/ext/bc/${chainId}/rpc`}
+                                            fixedRPCUrl={nodeRunningMode === "server" ? `https://${nipify(domain)}/ext/bc/${selectedRPCBlockchainId}/rpc` : `http://localhost:9650/ext/bc/${chainId}/rpc`}
                                         />}
                                     </Step>)}
                                 </>
