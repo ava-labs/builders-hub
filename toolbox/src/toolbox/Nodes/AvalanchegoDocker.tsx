@@ -15,7 +15,7 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { AddChainModal } from "../../components/ConnectWallet/AddChainModal";
 import { useL1ListStore } from "../../stores/l1ListStore";
 import { Button } from "../../components/Button";
-import { RadioGroup } from "../../components/RadioGroup";
+import { ToggleGroup, ToggleGroupItem } from "../../../../components/ui/toggle-group";
 import { Success } from "../../components/Success";
 import { nipify, HostInput } from "../../components/HostInput";
 import { DockerInstallation } from "../../components/DockerInstallation";
@@ -239,21 +239,26 @@ export default function AvalanchegoDocker() {
 
                         <p>If you do not have access to a server, you can also run a node for educational purposes locally. Where are you running your node?</p>
 
-                        <RadioGroup
+                        <ToggleGroup
+                            type="single"
                             value={nodeRunningMode}
-                            className="space-y-2"
-                            onChange={(value) => {
-                                setNodeRunningMode(value);
-                                if (value === "localhost") {
-                                    setDomain("");
+                            onValueChange={(value) => {
+                                if (value) {
+                                    setNodeRunningMode(value);
+                                    if (value === "localhost") {
+                                        setDomain("");
+                                    }
                                 }
                             }}
-                            idPrefix={`avago-in-docker-running-mode-`}
-                            items={[
-                                { value: "server", label: "Server (AWS, GCP, ..,)" },
-                                { value: "localhost", label: "On my computer (localhost)" }
-                            ]}
-                        />
+                            className="grid grid-cols-2 gap-3"
+                        >
+                            <ToggleGroupItem value="server" className="flex-1">
+                                Server (AWS, GCP, ..,)
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="localhost" className="flex-1">
+                                On my computer (localhost)
+                            </ToggleGroupItem>
+                        </ToggleGroup>
                     </Step>
                     <Step>
                         <DockerInstallation
@@ -374,21 +379,26 @@ export default function AvalanchegoDocker() {
                                 <p>Do you want to make this node a public RPC endpoint? This will allow external wallets and applications to connect to your node.</p>
 
                                 <div className="mt-4 space-y-4">
-                                    <RadioGroup
+                                    <ToggleGroup
+                                        type="single"
                                         value={makePublicRPC === null ? "" : makePublicRPC ? "yes" : "no"}
-                                        className="space-y-2"
-                                        onChange={(value) => {
-                                            setMakePublicRPC(value === "yes");
-                                            if (value === "no") {
-                                                setDomain("");
+                                        onValueChange={(value) => {
+                                            if (value) {
+                                                setMakePublicRPC(value === "yes");
+                                                if (value === "no") {
+                                                    setDomain("");
+                                                }
                                             }
                                         }}
-                                        idPrefix={`public-rpc-setup-`}
-                                        items={[
-                                            { value: "yes", label: "Yes, make it a public RPC" },
-                                            { value: "no", label: "No, will turn into a validator node" }
-                                        ]}
-                                    />
+                                        className="grid grid-cols-2 gap-3"
+                                    >
+                                        <ToggleGroupItem value="yes" className="flex-1">
+                                            Yes, make it a public RPC
+                                        </ToggleGroupItem>
+                                        <ToggleGroupItem value="no" className="flex-1">
+                                            No, will turn into a validator node
+                                        </ToggleGroupItem>
+                                    </ToggleGroup>
 
                                     {makePublicRPC && subnet && subnet.blockchains && subnet.blockchains.length > 1 && (
                                         <div className="mt-4">
