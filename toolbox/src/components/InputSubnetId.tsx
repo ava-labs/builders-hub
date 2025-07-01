@@ -5,7 +5,6 @@ import { useL1ListStore } from "../stores/l1ListStore";
 import { useCreateChainStore } from "../stores/createChainStore";
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { utils } from "@avalabs/avalanchejs";
-import { useAvaCloudSDK } from "../stores/useAvaCloudSDK";
 import { getSubnetInfo } from "../coreViem/utils/glacier";
 
 // Primary network subnet ID
@@ -38,7 +37,6 @@ export default function InputSubnetId({
 }) {
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const { l1List } = useL1ListStore()();
-    const { getSubnetById } = useAvaCloudSDK();
 
     const [validationError, setValidationError] = useState<string | null>(null);
 
