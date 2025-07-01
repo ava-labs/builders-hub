@@ -15,7 +15,7 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { AddChainModal } from "../../components/ConnectWallet/AddChainModal";
 import { useL1ListStore } from "../../stores/l1ListStore";
 import { Button } from "../../components/Button";
-import { ToggleGroup, ToggleGroupItem } from "../../../../components/ui/toggle-group";
+
 import { Success } from "../../components/Success";
 import { nipify, HostInput } from "../../components/HostInput";
 import { DockerInstallation } from "../../components/DockerInstallation";
@@ -239,26 +239,33 @@ export default function AvalanchegoDocker() {
 
                         <p>If you do not have access to a server, you can also run a node for educational purposes locally. Where are you running your node?</p>
 
-                        <ToggleGroup
-                            type="single"
-                            value={nodeRunningMode}
-                            onValueChange={(value) => {
-                                if (value) {
-                                    setNodeRunningMode(value);
-                                    if (value === "localhost") {
-                                        setDomain("");
-                                    }
-                                }
-                            }}
-                            className="grid grid-cols-2 gap-3"
-                        >
-                            <ToggleGroupItem value="server" className="flex-1">
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setNodeRunningMode("server");
+                                }}
+                                className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors border ${nodeRunningMode === "server"
+                                    ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                                    : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700"
+                                    }`}
+                            >
                                 Server (AWS, GCP, ..,)
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value="localhost" className="flex-1">
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setNodeRunningMode("localhost");
+                                    setDomain("");
+                                }}
+                                className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors border ${nodeRunningMode === "localhost"
+                                    ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                                    : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700"
+                                    }`}
+                            >
                                 On my computer (localhost)
-                            </ToggleGroupItem>
-                        </ToggleGroup>
+                            </button>
+                        </div>
                     </Step>
                     <Step>
                         <DockerInstallation
@@ -379,26 +386,33 @@ export default function AvalanchegoDocker() {
                                 <p>Do you want to make this node a public RPC endpoint? This will allow external wallets and applications to connect to your node.</p>
 
                                 <div className="mt-4 space-y-4">
-                                    <ToggleGroup
-                                        type="single"
-                                        value={makePublicRPC === null ? "" : makePublicRPC ? "yes" : "no"}
-                                        onValueChange={(value) => {
-                                            if (value) {
-                                                setMakePublicRPC(value === "yes");
-                                                if (value === "no") {
-                                                    setDomain("");
-                                                }
-                                            }
-                                        }}
-                                        className="grid grid-cols-2 gap-3"
-                                    >
-                                        <ToggleGroupItem value="yes" className="flex-1">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMakePublicRPC(true);
+                                            }}
+                                            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors border ${makePublicRPC === true
+                                                ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                                                : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700"
+                                                }`}
+                                        >
                                             Yes, make it a public RPC
-                                        </ToggleGroupItem>
-                                        <ToggleGroupItem value="no" className="flex-1">
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMakePublicRPC(false);
+                                                setDomain("");
+                                            }}
+                                            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors border ${makePublicRPC === false
+                                                ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                                                : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700"
+                                                }`}
+                                        >
                                             No, will turn into a validator node
-                                        </ToggleGroupItem>
-                                    </ToggleGroup>
+                                        </button>
+                                    </div>
 
                                     {makePublicRPC && subnet && subnet.blockchains && subnet.blockchains.length > 1 && (
                                         <div className="mt-4">
