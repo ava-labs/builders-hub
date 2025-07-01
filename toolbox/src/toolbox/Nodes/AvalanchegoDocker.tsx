@@ -6,7 +6,6 @@ import { networkIDs } from "@avalabs/avalanchejs";
 import versions from "../../versions.json";
 import { Container } from "../../components/Container";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
-import InputChainId from "../../components/InputChainId";
 import InputSubnetId from "../../components/InputSubnetId";
 import { Checkbox } from "../../components/Checkbox";
 import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
@@ -288,7 +287,7 @@ export default function AvalanchegoDocker() {
                         {/* Show subnet details if available */}
                         {subnet && subnet.blockchains && subnet.blockchains.length > 0 && (
                             <div className="space-y-4">
-                                {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string; createBlockTimestamp: number; createBlockNumber: string; vmId: string; subnetId: string; evmChainId: number }, index: number) => (
+                                {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string; createBlockTimestamp: number; createBlockNumber: string; vmId: string; subnetId: string; evmChainId: number }) => (
                                     <BlockchainDetailsDisplay
                                         key={blockchain.blockchainId}
                                         blockchain={{
@@ -414,68 +413,9 @@ export default function AvalanchegoDocker() {
                                     )}
                                 </div>
                             </Step>
-                            <Step>
-                                <h3 className="text-xl font-bold">Wait for the Node to Bootstrap</h3>
-                                <p>Your node will now bootstrap and sync the P-Chain and your L1. This process should take a <strong>few minutes</strong>. You can follow the process by checking the logs with the following command:</p>
 
-                                <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
-
-                                <Accordions type="single" className="mt-8">
-                                    <Accordion title="Understanding the Logs">
-                                        <p>The bootstrapping has three phases:</p>
-
-                                        <ul className="list-disc pl-5 mt-1">
-                                            <li>
-                                                <strong>Fetching the blocks of the P-Chain:</strong>
-                                                The node fetches all the P-Chain blocks. The <code>eta</code> field is giving the estimated remaining time for the fetching process.
-                                                <DynamicCodeBlock lang="bash" code='[05-04|17:14:13.793] INFO <P Chain> bootstrap/bootstrapper.go:615 fetching blocks {"numFetchedBlocks": 10099, "numTotalBlocks": 23657, "eta": "37s"}' />
-                                            </li>
-                                            <li>
-                                                <strong>Executing the blocks of the P-Chain:</strong>
-                                                The node will sync the P-Chain and your L1.
-                                                <DynamicCodeBlock lang="bash" code='[05-04|17:14:45.641] INFO <P Chain> bootstrap/storage.go:244 executing blocks {"numExecuted": 9311, "numToExecute": 23657, "eta": "15s"}' />
-                                            </li>
-                                        </ul>
-                                        <p>After the P-Chain is fetched and executed the process is repeated for the tracked Subnet.</p>
-                                    </Accordion>
-                                </Accordions>
-
-                                <NodeReadinessValidator
-                                    chainId={chainId}
-                                    domain={nodeRunningMode === "server" ? domain || "127.0.0.1:9650" : "127.0.0.1:9650"}
-                                    isDebugTrace={enableDebugTrace}
-                                    onBootstrapCheckChange={(checked) => setNodeIsReady(checked)}
-                                />
-                            </Step>
-                            {nodeIsReady && isRPC && makePublicRPC === false && (
-                                <Step>
-                                    <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
-                                    <p>Click the button below to add your L1 to your wallet:</p>
-
-                                    <Button
-                                        onClick={() => setIsAddChainModalOpen(true)}
-                                        className="mt-4 w-48"
-                                    >
-                                        Add to Wallet
-                                    </Button>
-
-                                    {isAddChainModalOpen && <AddChainModal
-                                        onClose={() => setIsAddChainModalOpen(false)}
-                                        onAddChain={(chain) => {
-                                            setChainAddedToWallet(chain.name);
-                                            // Try addL1 but catch any errors that might cause resets
-                                            try {
-                                                addL1(chain);
-                                            } catch (error) {
-                                                console.log("addL1 error (non-blocking):", error);
-                                            }
-                                        }}
-                                        allowLookup={false}
-                                        fixedRPCUrl={`http://localhost:9650/ext/bc/${chainId}/rpc`}
-                                    />}
-                                </Step>
-                            )}
-                            {nodeIsReady && isRPC && makePublicRPC && (
+                            {/* Conditional steps based on makePublicRPC choice */}
+                            {makePublicRPC === true && (
                                 <>
                                     {nodeRunningMode === "server" && (
                                         <>
@@ -501,7 +441,7 @@ export default function AvalanchegoDocker() {
                                                     <DynamicCodeBlock lang="bash" code={reverseProxyCommand(domain)} />
                                                 </>)}
                                             </Step>
-                                            {domain && (<>
+                                            {domain && (
                                                 <Step>
                                                     <h3 className="text-xl font-bold mb-4">Check connection via Proxy</h3>
                                                     <p>Do a final check from a machine different then the one that your node is running on.</p>
@@ -515,36 +455,100 @@ export default function AvalanchegoDocker() {
                                                         />
                                                     </div>
                                                 </Step>
-                                            </>
                                             )}
-                                        </>)}
-                                    {(nodeRunningMode === "localhost" || (makePublicRPC && domain)) && (<Step>
-                                        <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
-                                        <p>Click the button below to add your L1 to your wallet:</p>
+                                        </>
+                                    )}
+                                    {(nodeRunningMode === "localhost" || (makePublicRPC && domain)) && (
+                                        <Step>
+                                            <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
+                                            <p>Click the button below to add your L1 to your wallet:</p>
 
-                                        <Button
-                                            onClick={() => setIsAddChainModalOpen(true)}
-                                            className="mt-4 w-48"
-                                        >
-                                            Add to Wallet
-                                        </Button>
+                                            <Button
+                                                onClick={() => setIsAddChainModalOpen(true)}
+                                                className="mt-4 w-48"
+                                            >
+                                                Add to Wallet
+                                            </Button>
 
-                                        {isAddChainModalOpen && <AddChainModal
-                                            onClose={() => setIsAddChainModalOpen(false)}
-                                            onAddChain={(chain) => {
-                                                setChainAddedToWallet(chain.name);
-                                                // Try addL1 but catch any errors that might cause resets
-                                                try {
-                                                    addL1(chain);
-                                                } catch (error) {
-                                                    console.log("addL1 error (non-blocking):", error);
-                                                }
-                                            }}
-                                            allowLookup={false}
-                                            fixedRPCUrl={nodeRunningMode === "server" ? `https://${nipify(domain)}/ext/bc/${selectedRPCBlockchainId}/rpc` : `http://localhost:9650/ext/bc/${chainId}/rpc`}
-                                        />}
-                                    </Step>)}
+                                            {isAddChainModalOpen && <AddChainModal
+                                                onClose={() => setIsAddChainModalOpen(false)}
+                                                onAddChain={(chain) => {
+                                                    setChainAddedToWallet(chain.name);
+                                                    // Try addL1 but catch any errors that might cause resets
+                                                    try {
+                                                        addL1(chain);
+                                                    } catch (error) {
+                                                        console.log("addL1 error (non-blocking):", error);
+                                                    }
+                                                }}
+                                                allowLookup={false}
+                                                fixedRPCUrl={nodeRunningMode === "server" ? `https://${nipify(domain)}/ext/bc/${selectedRPCBlockchainId}/rpc` : `http://localhost:9650/ext/bc/${chainId}/rpc`}
+                                            />}
+                                        </Step>
+                                    )}
                                 </>
+                            )}
+
+                            {makePublicRPC === false && (
+                                <Step>
+                                    <h3 className="text-xl font-bold">Wait for the Node to Bootstrap</h3>
+                                    <p>Your node will now bootstrap and sync the P-Chain and your L1. This process should take a <strong>few minutes</strong>. You can follow the process by checking the logs with the following command:</p>
+
+                                    <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
+
+                                    <Accordions type="single" className="mt-8">
+                                        <Accordion title="Understanding the Logs">
+                                            <p>The bootstrapping has three phases:</p>
+
+                                            <ul className="list-disc pl-5 mt-1">
+                                                <li>
+                                                    <strong>Fetching the blocks of the P-Chain:</strong>
+                                                    The node fetches all the P-Chain blocks. The <code>eta</code> field is giving the estimated remaining time for the fetching process.
+                                                    <DynamicCodeBlock lang="bash" code='[05-04|17:14:13.793] INFO <P Chain> bootstrap/bootstrapper.go:615 fetching blocks {"numFetchedBlocks": 10099, "numTotalBlocks": 23657, "eta": "37s"}' />
+                                                </li>
+                                                <li>
+                                                    <strong>Executing the blocks of the P-Chain:</strong>
+                                                    The node will sync the P-Chain and your L1.
+                                                    <DynamicCodeBlock lang="bash" code='[05-04|17:14:45.641] INFO <P Chain> bootstrap/storage.go:244 executing blocks {"numExecuted": 9311, "numToExecute": 23657, "eta": "15s"}' />
+                                                </li>
+                                            </ul>
+                                            <p>After the P-Chain is fetched and executed the process is repeated for the tracked Subnet.</p>
+                                        </Accordion>
+                                    </Accordions>
+
+                                    <NodeReadinessValidator
+                                        chainId={chainId}
+                                        domain={nodeRunningMode === "server" ? domain || "127.0.0.1:9650" : "127.0.0.1:9650"}
+                                        isDebugTrace={enableDebugTrace}
+                                        onBootstrapCheckChange={(checked) => setNodeIsReady(checked)}
+                                    />
+                                </Step>
+                            )}
+
+                            {/* Show success message when node is ready for validator mode */}
+                            {nodeIsReady && isRPC && makePublicRPC === false && (
+                                <Step>
+                                    <h3 className="text-xl font-bold mb-4">Node Setup Complete</h3>
+                                    <p>Your AvalancheGo node is now fully bootstrapped and ready to be used as a validator node.</p>
+
+                                    <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                                        <div className="flex items-center">
+                                            <div className="flex-shrink-0">
+                                                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <div className="ml-3">
+                                                <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                                                    Node is ready for validation
+                                                </p>
+                                                <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                                                    Your node has successfully synced with the network and is ready to be added as a validator.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Step>
                             )}
                         </>)}
 

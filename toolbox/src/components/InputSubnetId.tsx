@@ -6,6 +6,7 @@ import { useCreateChainStore } from "../stores/createChainStore";
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { utils } from "@avalabs/avalanchejs";
 import { useAvaCloudSDK } from "../stores/useAvaCloudSDK";
+import { getSubnetInfo } from "../coreViem/utils/glacier";
 
 // Primary network subnet ID
 export const PRIMARY_NETWORK_SUBNET_ID = "11111111111111111111111111111111LpoYY";
@@ -52,7 +53,7 @@ export default function InputSubnetId({
         }
     };
 
-    // Validate subnet ID using AvaCloud SDK
+    // Validate subnet ID using Glacier API (same as BlockchainDetailsDisplay)
     const validateSubnetId = useCallback(async (subnetId: string) => {
         if (!subnetId || subnetId.length < 10) {
             setValidationError(null);
@@ -68,7 +69,7 @@ export default function InputSubnetId({
         try {
             setValidationError(null);
 
-            await getSubnetById({ subnetId });
+            await getSubnetInfo(subnetId);
 
             // If we get here, the subnet exists
             setValidationError(null);
@@ -76,7 +77,7 @@ export default function InputSubnetId({
             // Show validation error for invalid subnet IDs
             setValidationError("Subnet ID not found or invalid");
         }
-    }, [getSubnetById]);
+    }, []);
 
     // Validate when value changes
     useEffect(() => {
