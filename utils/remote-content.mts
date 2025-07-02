@@ -327,6 +327,13 @@ async function main(): Promise<void> {
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/avm/",
     },
     {
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/coreth/master/eth/ethconfig/config.md",
+      outputPath: "content/docs/nodes/configure/chain-configs/c-chain.mdx",
+      title: "C-Chain Configurations",
+      description: "This page describes the configuration options available for the C-Chain.",
+      contentUrl: "https://github.com/ava-labs/coreth/blob/master/eth/ethconfig/",
+    },
+    {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/config/config.md",
       outputPath: "content/docs/nodes/configure/configs-flags.mdx",
       title: "AvalancheGo Config Flags",
