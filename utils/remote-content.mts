@@ -328,7 +328,7 @@ async function main(): Promise<void> {
     },
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/coreth/master/eth/ethconfig/config.md",
-      outputPath: "content/docs/nodes/configure/chain-configs/c-chain.mdx",
+      outputPath: "content/docs/nodes/chain-configs/c-chain.mdx",
       title: "C-Chain Configurations",
       description: "This page describes the configuration options available for the C-Chain.",
       contentUrl: "https://github.com/ava-labs/coreth/blob/master/eth/ethconfig/",
