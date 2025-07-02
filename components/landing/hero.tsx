@@ -91,26 +91,29 @@ const premiumStyles = `
   
   /* Rotating text animations */
   @keyframes rotate-up {
-    0%, 16% { 
-      transform: translateY(0px); 
+    0%, 14% { 
+      transform: translateY(0%); 
     }
-    18%, 32% { 
+    16%, 28% { 
       transform: translateY(-12.5%); 
     }
-    34%, 48% { 
+    30%, 42% { 
       transform: translateY(-25%); 
     }
-    50%, 64% { 
+    44%, 56% { 
       transform: translateY(-37.5%); 
     }
-    66%, 80% { 
+    58%, 70% { 
       transform: translateY(-50%); 
     }
-    82%, 96% { 
+    72%, 84% { 
       transform: translateY(-62.5%); 
     }
-    98%, 100% { 
+    86%, 98% { 
       transform: translateY(-75%); 
+    }
+    100% { 
+      transform: translateY(-87.5%); 
     }
   }
   
@@ -118,10 +121,24 @@ const premiumStyles = `
     overflow: hidden;
     position: relative;
     display: inline-block;
+    vertical-align: top;
   }
   
   .text-rotator-inner {
-    animation: rotate-up 21s ease-in-out infinite;
+    animation: rotate-up 24s ease-in-out infinite;
+    will-change: transform;
+  }
+  
+  /* Mobile-specific improvements */
+  @media (max-width: 640px) {
+    .text-rotator {
+      min-width: 90px !important;
+      text-align: center;
+    }
+    
+    .text-rotator-inner {
+      animation-duration: 20s;
+    }
   }
 `;
 
@@ -138,12 +155,12 @@ function RotatingText() {
   const words = ['Courses', 'Events', 'Hackathons', 'Bounties', 'Tools', 'Grants', 'Documentation', 'Academy'];
 
   return (
-    <span className="text-rotator min-w-[120px] sm:min-w-[160px] lg:min-w-[200px] xl:min-w-[240px] h-[1.2em] text-left">
+    <span className="text-rotator min-w-[100px] sm:min-w-[140px] lg:min-w-[180px] xl:min-w-[220px] h-[1.3em] text-center lg:text-left inline-block">
       <div className="text-rotator-inner">
         {words.map((word, index) => (
           <div 
             key={index}
-            className="h-[1.2em] flex items-center bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-black tracking-tighter"
+            className="h-[1.3em] flex items-center justify-center lg:justify-start bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent font-black tracking-tighter whitespace-nowrap"
           >
             {word}
           </div>
@@ -184,7 +201,7 @@ export default function Hero() {
                 </span>
               </h1>
               
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-semibold tracking-tight leading-[1.1] flex justify-center lg:justify-start">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-semibold tracking-tight leading-[1.2] flex items-center justify-center lg:justify-start min-h-[1.5em]">
                 <RotatingText />
               </h2>
               
