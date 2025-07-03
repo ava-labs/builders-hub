@@ -1,5 +1,8 @@
 //FIXME: Sooner or later we should use the SDK
 
+import { useWalletStore } from "../../stores/walletStore";
+import { networkIDs } from "@avalabs/avalanchejs";
+
 const endpoint = "https://glacier-api.avax.network"
 
 
@@ -16,10 +19,20 @@ interface BlockchainInfo {
 type Network = "testnet" | "mainnet";
 
 export async function getBlockchainInfo(blockchainId: string): Promise<BlockchainInfo & { isTestnet: boolean }> {
-    return Promise.any([
-        getBlockchainInfoForNetwork("testnet", blockchainId).then(info => ({ ...info, isTestnet: true })),
-        getBlockchainInfoForNetwork("mainnet", blockchainId).then(info => ({ ...info, isTestnet: false })),
-    ]);
+    // Get current network from wallet store
+    const { avalancheNetworkID } = useWalletStore.getState();
+    const currentNetwork = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "testnet";
+    const otherNetwork = currentNetwork === "mainnet" ? "testnet" : "mainnet";
+    
+    try {
+        // Try current network first
+        const info = await getBlockchainInfoForNetwork(currentNetwork, blockchainId);
+        return { ...info, isTestnet: currentNetwork === "testnet" };
+    } catch (error) {
+        // If blockchain doesn't exist on current network, try the other network
+        const info = await getBlockchainInfoForNetwork(otherNetwork, blockchainId);
+        return { ...info, isTestnet: otherNetwork === "testnet" };
+    }
 }
 
 export async function getBlockchainInfoForNetwork(network: Network, blockchainId: string): Promise<BlockchainInfo> {
@@ -70,10 +83,18 @@ interface SubnetInfo {
 }
 
 export async function getSubnetInfo(subnetId: string): Promise<SubnetInfo> {
-    return Promise.any([
-        getSubnetInfoForNetwork("testnet", subnetId),
-        getSubnetInfoForNetwork("mainnet", subnetId),
-    ]);
+    // Get current network from wallet store
+    const { avalancheNetworkID } = useWalletStore.getState();
+    const currentNetwork = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "testnet";
+    const otherNetwork = currentNetwork === "mainnet" ? "testnet" : "mainnet";
+    
+    try {
+        // Try current network first
+        return await getSubnetInfoForNetwork(currentNetwork, subnetId);
+    } catch (error) {
+        // If subnet doesn't exist on current network, try the other network
+        return await getSubnetInfoForNetwork(otherNetwork, subnetId);
+    }
 }
 
 export async function getSubnetInfoForNetwork(network: Network, subnetId: string): Promise<SubnetInfo> {
