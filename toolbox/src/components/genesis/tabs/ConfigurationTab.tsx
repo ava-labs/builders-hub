@@ -1,8 +1,7 @@
 import { SetStateAction } from "react";
 import { Address } from "viem";
-import { AlertCircle, Check, Info } from "lucide-react";
+import { AlertCircle, Check } from "lucide-react";
 import { Button } from "../../Button";
-import { estimateComponentSizes, formatBytes } from "../utils";
 
 // Genesis Components
 import { ChainParamsSection } from "../sections/ChainParamsSection";

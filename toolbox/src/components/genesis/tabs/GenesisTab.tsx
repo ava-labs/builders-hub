@@ -29,7 +29,6 @@ export function GenesisTab({
     isEditingGenesis,
     editedGenesisData,
     copied,
-    genesisSizeBytes,
     genesisSizeFormatted,
     genesisSizeStatus,
     setEditedGenesisData,
