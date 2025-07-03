@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Switch } from '@radix-ui/react-switch';
 import { Info, ChevronDown, ChevronRight } from 'lucide-react';
-import { Address } from 'viem';
 
 export interface PreinstallConfig {
     proxy: boolean;
@@ -31,7 +30,6 @@ interface ContractInfoProps {
 }
 
 const ContractInfo: React.FC<ContractInfoProps> = ({
-    id,
     title,
     address,
     description,

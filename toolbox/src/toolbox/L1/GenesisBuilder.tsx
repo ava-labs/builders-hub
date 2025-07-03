@@ -9,7 +9,6 @@ import { Address } from "viem";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 
 // Genesis Components
-import { PrecompileCard } from "../../components/genesis/PrecompileCard";
 import { ChainParamsSection } from "../../components/genesis/sections/ChainParamsSection";
 import { TokenomicsSection } from "../../components/genesis/sections/TokenomicsSection";
 import { PermissionsSection } from "../../components/genesis/sections/PermissionsSection";
@@ -28,7 +27,6 @@ import {
     isValidAllowlistPrecompileConfig
 } from "../../components/genesis/types";
 import { PreinstallConfig } from "../../components/genesis/PreinstalledContractsSection";
-import { formatAddressList } from "../../components/genesis/utils";
 
 // --- Constants --- 
 const DEFAULT_FEE_CONFIG: FeeConfigType = {
