@@ -1,6 +1,33 @@
 import React, { useState } from 'react';
-import { Switch } from '@radix-ui/react-switch';
 import { Info, ChevronDown, ChevronRight } from 'lucide-react';
+
+interface SwitchProps {
+    checked: boolean;
+    onCheckedChange: (checked: boolean) => void;
+    className?: string;
+}
+
+const Switch: React.FC<SwitchProps> = ({ checked, onCheckedChange, className = '' }) => {
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={checked}
+            onClick={() => onCheckedChange(!checked)}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-zinc-900 ${
+                checked 
+                    ? 'bg-green-500 dark:bg-green-600' 
+                    : 'bg-zinc-200 dark:bg-zinc-700'
+            } ${className}`}
+        >
+            <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                    checked ? 'translate-x-5' : 'translate-x-1'
+                }`}
+            />
+        </button>
+    );
+};
 
 export interface PreinstallConfig {
     proxy: boolean;
@@ -65,18 +92,7 @@ const ContractInfo: React.FC<ContractInfoProps> = ({
                     <Switch
                         checked={enabled}
                         onCheckedChange={onToggle}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-zinc-900 ${
-                            enabled 
-                                ? 'bg-green-500 dark:bg-green-600' 
-                                : 'bg-zinc-200 dark:bg-zinc-700'
-                        }`}
-                    >
-                        <span
-                            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                                enabled ? 'translate-x-5' : 'translate-x-1'
-                            }`}
-                        />
-                    </Switch>
+                    />
                 </div>
             </div>
 
