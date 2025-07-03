@@ -25,11 +25,27 @@ import {
   BarChart3,
   Loader2,
 } from "lucide-react";
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import {
+  Area,
+  AreaChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
 
 interface ChainMetrics {
   chainId: string;
   chainName: string;
   chainLogoURI: string;
+  day1TxCount: number | string;
+  day2TxCount: number | string;
+  day3TxCount: number | string;
+  day4TxCount: number | string;
+  day5TxCount: number | string;
+  day6TxCount: number | string;
+  day7TxCount: number | string;
   weeklyTxCount: number | string;
   weeklyContractsDeployed: number | string;
   weeklyActiveAddresses: number | string;
@@ -87,9 +103,16 @@ export default function AvalancheMetrics() {
           chainId: values[0],
           chainName: chainName.toUpperCase(),
           chainLogoURI: chainLogoURI,
-          weeklyTxCount: parseMetricValue(values[3]),
-          weeklyContractsDeployed: parseMetricValue(values[4]),
-          weeklyActiveAddresses: parseMetricValue(values[5]),
+          day1TxCount: parseMetricValue(values[3]),
+          day2TxCount: parseMetricValue(values[4]),
+          day3TxCount: parseMetricValue(values[5]),
+          day4TxCount: parseMetricValue(values[6]),
+          day5TxCount: parseMetricValue(values[7]),
+          day6TxCount: parseMetricValue(values[8]),
+          day7TxCount: parseMetricValue(values[9]),
+          weeklyTxCount: parseMetricValue(values[10]),
+          weeklyContractsDeployed: parseMetricValue(values[11]),
+          weeklyActiveAddresses: parseMetricValue(values[12]),
         });
       }
     }
@@ -156,6 +179,81 @@ export default function AvalancheMetrics() {
     if (txCount < 1000 && addrCount < 10000)
       return { label: "Medium", variant: "default" as const };
     return { label: "High", variant: "default" as const };
+  };
+
+  const getChartData = () => {
+    // Get top 5 chains by weekly transaction count
+    const validChains = chainMetrics
+      .filter(
+        (chain) =>
+          typeof chain.weeklyTxCount === "number" && chain.weeklyTxCount > 0
+      )
+      .sort((a, b) => (b.weeklyTxCount as number) - (a.weeklyTxCount as number))
+      .slice(0, 5);
+
+    // Create chart data for each day
+    const days = [
+      "Day 1",
+      "Day 2",
+      "Day 3",
+      "Day 4",
+      "Day 5",
+      "Day 6",
+      "Day 7",
+    ];
+    const dayKeys = [
+      "day1TxCount",
+      "day2TxCount",
+      "day3TxCount",
+      "day4TxCount",
+      "day5TxCount",
+      "day6TxCount",
+      "day7TxCount",
+    ] as const;
+
+    const chartData = days.map((day, index) => {
+      const dayKey = dayKeys[index];
+      const dataPoint: any = { day };
+
+      // Add top chains data
+      let topChainsTotal = 0;
+      validChains.forEach((chain) => {
+        const chainKey =
+          chain.chainName.length > 10
+            ? chain.chainName.substring(0, 10) + "..."
+            : chain.chainName;
+        const value =
+          typeof chain[dayKey] === "number" ? (chain[dayKey] as number) : 0;
+        dataPoint[chainKey] = value;
+        dataPoint[`${chainKey}_fullName`] = chain.chainName;
+        topChainsTotal += value;
+      });
+
+      // Calculate total transactions for this day across ALL chains
+      const totalDayTransactions = chainMetrics.reduce((sum, chain) => {
+        const value =
+          typeof chain[dayKey] === "number" ? (chain[dayKey] as number) : 0;
+        return sum + value;
+      }, 0);
+
+      // Others = Total for this day - Top 5 chains for this day
+      const othersTotal = totalDayTransactions - topChainsTotal;
+
+      if (othersTotal > 0) {
+        dataPoint["Others"] = othersTotal;
+        dataPoint["Others_fullName"] = "Others";
+      }
+
+      return dataPoint;
+    });
+
+    return { chartData, topChains: validChains };
+  };
+
+  const chartConfig = {
+    transactions: {
+      label: "Daily Transactions",
+    },
   };
 
   const handleSort = (field: SortField) => {
@@ -286,6 +384,18 @@ export default function AvalancheMetrics() {
     );
   }
 
+  const { chartData, topChains } = getChartData();
+
+  // Define beautiful colors similar to the screenshot
+  const areaColors = [
+    "#8dd3c7", // Soft teal/mint
+    "#fdb462", // Warm orange/salmon
+    "#b3de69", // Light green
+    "#fccde5", // Soft pink
+    "#80b1d3", // Light blue
+    "#bebada", // Light purple
+  ];
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main className="container mx-auto px-4 py-6 md:py-12 space-y-6">
@@ -393,6 +503,167 @@ export default function AvalancheMetrics() {
           </Card>
         </div>
 
+        {/* Daily Transaction Trends Chart */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              Daily Transaction Trends - Top L1s
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Individual daily transaction volumes for top performing chains
+              over the past 7 days
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[350px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={chartData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                >
+                  <defs>
+                    {topChains.map((_, index) => (
+                      <linearGradient
+                        key={index}
+                        id={`gradient-${index}`}
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor={areaColors[index]}
+                          stopOpacity={0.6}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor={areaColors[index]}
+                          stopOpacity={0.1}
+                        />
+                      </linearGradient>
+                    ))}
+                    <linearGradient
+                      id="gradient-others"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor={areaColors[5]}
+                        stopOpacity={0.6}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={areaColors[5]}
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-muted/30"
+                  />
+                  <XAxis
+                    dataKey="day"
+                    className="text-xs"
+                    tick={{ fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    className="text-xs"
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) => formatNumber(value)}
+                    axisLine={false}
+                    tickLine={false}
+                    scale="log"
+                    domain={["dataMin", "dataMax"]}
+                  />
+                  <ChartTooltip
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        const validPayload = payload
+                          .filter(
+                            (entry) =>
+                              typeof entry.value === "number" && entry.value > 0
+                          )
+                          .sort(
+                            (a, b) => (b.value as number) - (a.value as number)
+                          );
+
+                        return (
+                          <div className="bg-background border border-border rounded-lg shadow-lg p-4 min-w-[250px]">
+                            <p className="font-semibold text-sm mb-3">
+                              {label} Transactions
+                            </p>
+                            <div className="space-y-2">
+                              {validPayload.map((entry, index) => {
+                                const fullName =
+                                  chartData.find((d) => d.day === label)?.[
+                                    `${entry.dataKey}_fullName`
+                                  ] || entry.dataKey;
+                                return (
+                                  <div
+                                    key={index}
+                                    className="flex items-center justify-between gap-3"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        className="w-3 h-3 rounded-sm"
+                                        style={{ backgroundColor: entry.color }}
+                                      />
+                                      <span className="text-sm font-medium">
+                                        {fullName}
+                                      </span>
+                                    </div>
+                                    <span className="text-sm font-mono font-semibold">
+                                      {formatFullNumber(entry.value as number)}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  {topChains.map((chain, index) => {
+                    const key =
+                      chain.chainName.length > 10
+                        ? chain.chainName.substring(0, 10) + "..."
+                        : chain.chainName;
+                    return (
+                      <Area
+                        key={index}
+                        type="monotone"
+                        dataKey={key}
+                        stroke={areaColors[index]}
+                        strokeWidth={2}
+                        fill={`url(#gradient-${index})`}
+                        fillOpacity={0.4}
+                      />
+                    );
+                  })}
+                  <Area
+                    type="monotone"
+                    dataKey="Others"
+                    stroke={areaColors[5]}
+                    strokeWidth={2}
+                    fill="url(#gradient-others)"
+                    fillOpacity={0.4}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
         {/* Main Table */}
         <Card>
           <CardHeader className="pb-4">
@@ -415,7 +686,7 @@ export default function AvalancheMetrics() {
                           <BarChart3 className="h-4 w-4 text-blue-600" />
                           Weekly Transactions
                         </span>
-                        <span className="lg:hidden">Transactions</span>
+                        <span className="lg:hidden">Weekly Tx</span>
                       </SortButton>
                     </TableHead>
                     <TableHead className="font-semibold text-center min-w-[140px]">
