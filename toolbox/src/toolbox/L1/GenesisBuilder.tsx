@@ -14,6 +14,7 @@ import { ChainParamsSection } from "../../components/genesis/sections/ChainParam
 import { TokenomicsSection } from "../../components/genesis/sections/TokenomicsSection";
 import { PermissionsSection } from "../../components/genesis/sections/PermissionsSection";
 import { TransactionFeesSection } from "../../components/genesis/sections/TransactionFeesSection";
+import { PreinstallsTab } from "../../components/genesis/tabs/PreinstallsTab";
 
 // Genesis Utilities & Types
 import { generateGenesis } from "../../components/genesis/genGenesis";
@@ -26,6 +27,7 @@ import {
     generateEmptyAllowlistPrecompileConfig,
     isValidAllowlistPrecompileConfig
 } from "../../components/genesis/types";
+import { PreinstallConfig } from "../../components/genesis/PreinstalledContractsSection";
 import { formatAddressList } from "../../components/genesis/utils";
 
 // --- Constants --- 
@@ -93,6 +95,17 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
 
     // Add a flag to control when genesis should be generated
     const [shouldGenerateGenesis, setShouldGenerateGenesis] = useState(false);
+
+    // Preinstall configuration state
+    const [preinstallConfig, setPreinstallConfig] = useState<PreinstallConfig>({
+        proxy: true,
+        proxyAdmin: true,
+        safeSingletonFactory: true,
+        multicall3: true,
+        icmMessenger: true,
+        wrappedNativeToken: true,
+        create2Deployer: true,
+    });
 
     // --- Effects --- 
 
@@ -167,7 +180,7 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
         evmChainId, gasLimit, targetBlockRate, tokenAllocations,
         contractDeployerAllowListConfig, contractNativeMinterConfig, txAllowListConfig,
         feeManagerEnabled, feeManagerAdmins, rewardManagerEnabled, rewardManagerAdmins,
-        feeConfig
+        feeConfig, preinstallConfig
     ]);
 
     // Generate genesis file only when shouldGenerateGenesis is true
@@ -201,7 +214,8 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
                     txAllowlistConfig: txAllowListCopy,
                     contractDeployerAllowlistConfig: contractDeployerAllowListCopy,
                     nativeMinterAllowlistConfig: contractNativeMinterCopy,
-                    poaOwnerAddress: ownerAddressForProxy as Address
+                    poaOwnerAddress: ownerAddressForProxy as Address,
+                    preinstallConfig: preinstallConfig
                 });
 
                 // Override feeConfig, gasLimit, targetBlockRate, warpConfig in the base genesis
@@ -246,7 +260,7 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
 
         return () => clearTimeout(debounceTimer);
         // Only depend on shouldGenerateGenesis flag and the actual data needed
-    }, [shouldGenerateGenesis, evmChainId, gasLimit, targetBlockRate, tokenAllocations, contractDeployerAllowListConfig, contractNativeMinterConfig, txAllowListConfig, feeManagerEnabled, feeManagerAdmins, rewardManagerEnabled, rewardManagerAdmins, feeConfig, warpConfig, setGenesisData]);
+    }, [shouldGenerateGenesis, evmChainId, gasLimit, targetBlockRate, tokenAllocations, contractDeployerAllowListConfig, contractNativeMinterConfig, txAllowListConfig, feeManagerEnabled, feeManagerAdmins, rewardManagerEnabled, rewardManagerAdmins, feeConfig, warpConfig, preinstallConfig, setGenesisData]);
 
     // --- Handlers --- 
 
@@ -289,6 +303,12 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
     const isSectionExpanded = useCallback((sectionId: SectionId) => expandedSections.has(sectionId), [expandedSections]);
 
     const isGenesisReady = genesisData && Object.keys(validationMessages.errors).length === 0;
+
+    // Calculate genesis size in bytes and KiB
+    const genesisSizeBytes = genesisData ? new Blob([genesisData]).size : 0;
+    const genesisSizeKiB = genesisSizeBytes / 1024;
+    const maxSizeKiB = 64; // P-Chain transaction limit
+    const sizePercentage = Math.min((genesisSizeKiB / maxSizeKiB) * 100, 100);
 
     // Memoize common props for TokenomicsSection
     const handleTokenAllocationsChange = useCallback((newAllocations: SetStateAction<AllocationEntry[]>) => {
@@ -347,7 +367,7 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
             {/* Tabs */}
             <div className="border-b border-zinc-200 dark:border-zinc-800">
                 <div className="flex -mb-px">
-                    {["config", "precompiles", "genesis"].map(tabId => (
+                    {["config", "precompiles", "preinstalls", "genesis"].map(tabId => (
                         <button
                             key={tabId}
                             onClick={() => setActiveTab(tabId)}
@@ -359,6 +379,7 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
                         >
                             {tabId === "config" && "Configuration"}
                             {tabId === "precompiles" && "Precompile Info"}
+                            {tabId === "preinstalls" && "Pre-Deployed Contracts"}
                             {tabId === "genesis" && "Genesis JSON"}
                         </button>
                     ))}
@@ -465,8 +486,14 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
                                     View Precompile Info
                                 </Button>
                                 <Button
+                                    onClick={() => setActiveTab("preinstalls")}
+                                    variant="secondary"
+                                >
+                                    View Pre-Deployed Contracts
+                                </Button>
+                                <Button
                                     onClick={() => setActiveTab("genesis")}
-                                    variant="primary"
+                                    variant="secondary"
                                 >
                                     View Genesis JSON
                                 </Button>
@@ -479,43 +506,102 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
             {/* Precompiles Tab */}
             {activeTab === "precompiles" && (
                 <div className="space-y-6">
-                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm overflow-hidden p-5">
-                        <h3 className="text-lg font-medium mb-4 text-zinc-800 dark:text-white">Precompile Info</h3>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-                            Review the status of precompiles based on your configuration.
-                        </p>
+                    <div className="space-y-4">
+                        {/* Header */}
+                        <div className="text-center mb-4">
+                            <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
+                                Precompile Configuration
+                            </h2>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
+                                Review the status and configuration of precompiles based on your settings.
+                            </p>
+                            
+                            {/* Status Summary */}
+                            <div className="inline-flex items-center space-x-2 bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-full">
+                                <div className={`w-1.5 h-1.5 rounded-full ${(() => {
+                                    const enabledCount = [
+                                        contractDeployerAllowListConfig.activated,
+                                        contractNativeMinterConfig.activated,
+                                        txAllowListConfig.activated,
+                                        feeManagerEnabled,
+                                        rewardManagerEnabled,
+                                        warpConfig.enabled
+                                    ].filter(Boolean).length;
+                                    return enabledCount === 6 ? 'bg-green-500' : enabledCount > 0 ? 'bg-yellow-500' : 'bg-zinc-400';
+                                })()}`} />
+                                <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                                    {[
+                                        contractDeployerAllowListConfig.activated,
+                                        contractNativeMinterConfig.activated,
+                                        txAllowListConfig.activated,
+                                        feeManagerEnabled,
+                                        rewardManagerEnabled,
+                                        warpConfig.enabled
+                                    ].filter(Boolean).length} of 6 precompiles enabled
+                                </span>
+                            </div>
+                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <PrecompileCard
-                                title="Contract Deployer Allow List"
-                                address={PRECOMPILE_ADDRESSES.contractDeployer}
-                                enabled={contractDeployerAllowListConfig.activated}
-                            >
-                                {contractDeployerAllowListConfig.activated && (
+                        {/* Contract Deployer Allow List */}
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 transition-all duration-200 hover:shadow-sm dark:hover:shadow-zinc-900/20">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <div className="flex items-baseline space-x-2 mb-1">
+                                        <h3 className="font-semibold text-zinc-900 dark:text-white leading-none">Contract Deployer Allow List</h3>
+                                        <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${contractDeployerAllowListConfig.activated 
+                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                        }`}>
+                                            {contractDeployerAllowListConfig.activated ? 'Enabled' : 'Disabled'}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                        Controls which addresses can deploy smart contracts on the blockchain
+                                    </p>
+                                    <div className="text-xs font-mono text-zinc-500 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                        {PRECOMPILE_ADDRESSES.contractDeployer}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {contractDeployerAllowListConfig.activated && (
+                                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 mt-3">
                                     <div className="space-y-3">
                                         {contractDeployerAllowListConfig.addresses.Admin.length > 0 && (
                                             <div>
-                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Admin Addresses:</div>
-                                                <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
-                                                    {contractDeployerAllowListConfig.addresses.Admin.map(entry => entry.address).join(', ')}
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Admin Addresses</div>
+                                                <div className="space-y-1">
+                                                    {contractDeployerAllowListConfig.addresses.Admin.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )}
 
                                         {contractDeployerAllowListConfig.addresses.Manager.length > 0 && (
                                             <div>
-                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Manager Addresses:</div>
-                                                <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
-                                                    {contractDeployerAllowListConfig.addresses.Manager.map(entry => entry.address).join(', ')}
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Manager Addresses</div>
+                                                <div className="space-y-1">
+                                                    {contractDeployerAllowListConfig.addresses.Manager.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )}
 
                                         {contractDeployerAllowListConfig.addresses.Enabled.length > 0 && (
                                             <div>
-                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Enabled Addresses:</div>
-                                                <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
-                                                    {contractDeployerAllowListConfig.addresses.Enabled.map(entry => entry.address).join(', ')}
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Enabled Addresses</div>
+                                                <div className="space-y-1">
+                                                    {contractDeployerAllowListConfig.addresses.Enabled.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )}
@@ -528,39 +614,70 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
                                                 </div>
                                             )}
                                     </div>
-                                )}
-                            </PrecompileCard>
+                                </div>
+                            )}
+                        </div>
 
-                            <PrecompileCard
-                                title="Native Minter"
-                                address={PRECOMPILE_ADDRESSES.nativeMinter}
-                                enabled={contractNativeMinterConfig.activated}
-                            >
-                                {contractNativeMinterConfig.activated && (
+                        {/* Native Minter */}
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 transition-all duration-200 hover:shadow-sm dark:hover:shadow-zinc-900/20">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <div className="flex items-baseline space-x-2 mb-1">
+                                        <h3 className="font-semibold text-zinc-900 dark:text-white leading-none">Native Minter</h3>
+                                        <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${contractNativeMinterConfig.activated 
+                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                        }`}>
+                                            {contractNativeMinterConfig.activated ? 'Enabled' : 'Disabled'}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                        Allows authorized addresses to mint native tokens on the blockchain
+                                    </p>
+                                    <div className="text-xs font-mono text-zinc-500 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                        {PRECOMPILE_ADDRESSES.nativeMinter}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {contractNativeMinterConfig.activated && (
+                                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 mt-3">
                                     <div className="space-y-3">
                                         {contractNativeMinterConfig.addresses.Admin.length > 0 && (
                                             <div>
-                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Admin Addresses:</div>
-                                                <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
-                                                    {contractNativeMinterConfig.addresses.Admin.map(entry => entry.address).join(', ')}
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Admin Addresses</div>
+                                                <div className="space-y-1">
+                                                    {contractNativeMinterConfig.addresses.Admin.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )}
 
                                         {contractNativeMinterConfig.addresses.Manager.length > 0 && (
                                             <div>
-                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Manager Addresses:</div>
-                                                <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
-                                                    {contractNativeMinterConfig.addresses.Manager.map(entry => entry.address).join(', ')}
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Manager Addresses</div>
+                                                <div className="space-y-1">
+                                                    {contractNativeMinterConfig.addresses.Manager.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )}
 
                                         {contractNativeMinterConfig.addresses.Enabled.length > 0 && (
                                             <div>
-                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Enabled Addresses:</div>
-                                                <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
-                                                    {contractNativeMinterConfig.addresses.Enabled.map(entry => entry.address).join(', ')}
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Enabled Addresses</div>
+                                                <div className="space-y-1">
+                                                    {contractNativeMinterConfig.addresses.Enabled.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )}
@@ -573,39 +690,70 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
                                                 </div>
                                             )}
                                     </div>
-                                )}
-                            </PrecompileCard>
+                                </div>
+                            )}
+                        </div>
 
-                            <PrecompileCard
-                                title="Transaction Allow List"
-                                address={PRECOMPILE_ADDRESSES.txAllowList}
-                                enabled={txAllowListConfig.activated}
-                            >
-                                {txAllowListConfig.activated && (
+                        {/* Transaction Allow List */}
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 transition-all duration-200 hover:shadow-sm dark:hover:shadow-zinc-900/20">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <div className="flex items-baseline space-x-2 mb-1">
+                                        <h3 className="font-semibold text-zinc-900 dark:text-white leading-none">Transaction Allow List</h3>
+                                        <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${txAllowListConfig.activated 
+                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                        }`}>
+                                            {txAllowListConfig.activated ? 'Enabled' : 'Disabled'}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                        Controls which addresses can submit transactions to the blockchain
+                                    </p>
+                                    <div className="text-xs font-mono text-zinc-500 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                        {PRECOMPILE_ADDRESSES.txAllowList}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {txAllowListConfig.activated && (
+                                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 mt-3">
                                     <div className="space-y-3">
                                         {txAllowListConfig.addresses.Admin.length > 0 && (
                                             <div>
-                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Admin Addresses:</div>
-                                                <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
-                                                    {txAllowListConfig.addresses.Admin.map(entry => entry.address).join(', ')}
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Admin Addresses</div>
+                                                <div className="space-y-1">
+                                                    {txAllowListConfig.addresses.Admin.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )}
 
                                         {txAllowListConfig.addresses.Manager.length > 0 && (
                                             <div>
-                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Manager Addresses:</div>
-                                                <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
-                                                    {txAllowListConfig.addresses.Manager.map(entry => entry.address).join(', ')}
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Manager Addresses</div>
+                                                <div className="space-y-1">
+                                                    {txAllowListConfig.addresses.Manager.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )}
 
                                         {txAllowListConfig.addresses.Enabled.length > 0 && (
                                             <div>
-                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Enabled Addresses:</div>
-                                                <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
-                                                    {txAllowListConfig.addresses.Enabled.map(entry => entry.address).join(', ')}
+                                                <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Enabled Addresses</div>
+                                                <div className="space-y-1">
+                                                    {txAllowListConfig.addresses.Enabled.map((entry, index) => (
+                                                        <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                            {entry.address}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )}
@@ -618,61 +766,154 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
                                                 </div>
                                             )}
                                     </div>
-                                )}
-                            </PrecompileCard>
-
-                            <PrecompileCard
-                                title="Fee Manager"
-                                address={PRECOMPILE_ADDRESSES.feeManager}
-                                enabled={feeManagerEnabled}
-                            >
-                                {feeManagerEnabled && (
-                                    <div>
-                                        <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Admin Addresses:</div>
-                                        <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
-                                            {feeManagerAdmins.length > 0
-                                                ? formatAddressList(feeManagerAdmins)
-                                                : <span className="text-red-500">None specified (Required)</span>}
-                                        </div>
-                                    </div>
-                                )}
-                            </PrecompileCard>
-
-                            <PrecompileCard
-                                title="Reward Manager"
-                                address={PRECOMPILE_ADDRESSES.rewardManager}
-                                enabled={rewardManagerEnabled}
-                            >
-                                {rewardManagerEnabled && (
-                                    <div>
-                                        <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Admin Addresses:</div>
-                                        <div className="text-xs mt-1 font-mono text-zinc-600 dark:text-zinc-400 break-all">
-                                            {rewardManagerAdmins.length > 0
-                                                ? formatAddressList(rewardManagerAdmins)
-                                                : <span className="text-red-500">None specified (Required)</span>}
-                                        </div>
-                                    </div>
-                                )}
-                            </PrecompileCard>
-
-                            <PrecompileCard
-                                title="Warp Messenger"
-                                address={PRECOMPILE_ADDRESSES.warpMessenger}
-                                enabled={warpConfig.enabled} // Currently always enabled
-                            >
-                                <div className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                    <div>Quorum: {warpConfig.quorumNumerator}%</div>
-                                    <div>Require Primary Signers: {warpConfig.requirePrimaryNetworkSigners ? "Yes" : "No"}</div>
                                 </div>
-                            </PrecompileCard>
+                            )}
+                        </div>
+
+                        {/* Fee Manager */}
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 transition-all duration-200 hover:shadow-sm dark:hover:shadow-zinc-900/20">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <div className="flex items-baseline space-x-2 mb-1">
+                                        <h3 className="font-semibold text-zinc-900 dark:text-white leading-none">Fee Manager</h3>
+                                        <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${feeManagerEnabled 
+                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                        }`}>
+                                            {feeManagerEnabled ? 'Enabled' : 'Disabled'}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                        Manages dynamic fee configuration and collection on the blockchain
+                                    </p>
+                                    <div className="text-xs font-mono text-zinc-500 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                        {PRECOMPILE_ADDRESSES.feeManager}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {feeManagerEnabled && (
+                                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 mt-3">
+                                    <div>
+                                        <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Admin Addresses</div>
+                                        {feeManagerAdmins.length > 0 ? (
+                                            <div className="space-y-1">
+                                                {feeManagerAdmins.map((address, index) => (
+                                                    <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                        {address}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-xs text-red-500 dark:text-red-400">
+                                                No admin addresses configured (Required)
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Reward Manager */}
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 transition-all duration-200 hover:shadow-sm dark:hover:shadow-zinc-900/20">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <div className="flex items-baseline space-x-2 mb-1">
+                                        <h3 className="font-semibold text-zinc-900 dark:text-white leading-none">Reward Manager</h3>
+                                        <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${rewardManagerEnabled 
+                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                        }`}>
+                                            {rewardManagerEnabled ? 'Enabled' : 'Disabled'}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                        Manages validator rewards and distribution mechanisms
+                                    </p>
+                                    <div className="text-xs font-mono text-zinc-500 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                        {PRECOMPILE_ADDRESSES.rewardManager}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {rewardManagerEnabled && (
+                                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 mt-3">
+                                    <div>
+                                        <div className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-1">Admin Addresses</div>
+                                        {rewardManagerAdmins.length > 0 ? (
+                                            <div className="space-y-1">
+                                                {rewardManagerAdmins.map((address, index) => (
+                                                    <div key={index} className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                                        {address}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-xs text-red-500 dark:text-red-400">
+                                                No admin addresses configured (Required)
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Warp Messenger */}
+                        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 transition-all duration-200 hover:shadow-sm dark:hover:shadow-zinc-900/20">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <div className="flex items-baseline space-x-2 mb-1">
+                                        <h3 className="font-semibold text-zinc-900 dark:text-white leading-none">Warp Messenger</h3>
+                                        <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${warpConfig.enabled 
+                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                        }`}>
+                                            {warpConfig.enabled ? 'Enabled' : 'Disabled'}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                        Enables cross-chain communication and message passing between subnets
+                                    </p>
+                                    <div className="text-xs font-mono text-zinc-500 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded border break-all">
+                                        {PRECOMPILE_ADDRESSES.warpMessenger}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {warpConfig.enabled && (
+                                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 mt-3">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Quorum Threshold</span>
+                                            <span className="text-sm text-zinc-600 dark:text-zinc-400">{warpConfig.quorumNumerator}%</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Require Primary Network Signers</span>
+                                            <span className="text-sm text-zinc-600 dark:text-zinc-400">{warpConfig.requirePrimaryNetworkSigners ? "Yes" : "No"}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     <div className="flex justify-center space-x-4">
                         <Button onClick={() => setActiveTab("config")} variant="secondary">Back to Configuration</Button>
-                        {isGenesisReady && <Button onClick={() => setActiveTab("genesis")} variant="primary">View Genesis JSON</Button>}
+                        <Button onClick={() => setActiveTab("preinstalls")} variant="secondary">View Pre-Deployed Contracts</Button>
+                        {isGenesisReady && <Button onClick={() => setActiveTab("genesis")} variant="secondary">View Genesis JSON</Button>}
                     </div>
                 </div>
+            )}
+
+            {/* Preinstalls Tab */}
+            {activeTab === "preinstalls" && (
+                <PreinstallsTab
+                    preinstallConfig={preinstallConfig}
+                    setPreinstallConfig={setPreinstallConfig}
+                    ownerAddress={tokenAllocations[0]?.address}
+                    isGenesisReady={!!isGenesisReady}
+                    setActiveTab={setActiveTab}
+                />
             )}
 
             {/* Genesis JSON Tab */}
@@ -692,9 +933,44 @@ export default function GenesisBuilder({ genesisData, setGenesisData, initiallyE
 
                     <DynamicCodeBlock lang="json" code={genesisData} />
 
+                    {/* Genesis Size Progress Bar */}
+                    <div className="mt-4 p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                Genesis Size
+                            </span>
+                            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                                {genesisSizeKiB.toFixed(2)} KiB / {maxSizeKiB} KiB
+                            </span>
+                        </div>
+                        <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2.5">
+                            <div
+                                className={`h-2.5 rounded-full transition-all duration-300 ${
+                                    sizePercentage >= 90 
+                                        ? "bg-red-500" 
+                                        : sizePercentage >= 75 
+                                        ? "bg-yellow-500" 
+                                        : "bg-green-500"
+                                }`}
+                                style={{ width: `${sizePercentage}%` }}
+                            ></div>
+                        </div>
+                        <div className="flex justify-between items-center mt-2">
+                            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                {sizePercentage >= 90 && "⚠️ Approaching P-Chain limit"}
+                                {sizePercentage >= 75 && sizePercentage < 90 && "⚡ Consider optimizing"}
+                                {sizePercentage < 75 && "✅ Within safe limits"}
+                            </span>
+                            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                {sizePercentage.toFixed(1)}%
+                            </span>
+                        </div>
+                    </div>
+
                     <div className="mt-4 flex justify-center space-x-4">
                         <Button onClick={() => setActiveTab("config")} variant="secondary">Back to Configuration</Button>
-                        <Button onClick={() => setActiveTab("precompiles")} variant="secondary">View Precompile Info</Button>
+                        <Button onClick={() => setActiveTab("precompiles")} variant="secondary">View Precompiles</Button>
+                        <Button onClick={() => setActiveTab("preinstalls")} variant="secondary">View Pre-Deployed Contracts</Button>
                     </div>
                 </div>
             )}
