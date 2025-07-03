@@ -511,8 +511,8 @@ export default function AvalancheMetrics() {
               Daily Transaction Trends - Top L1s
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Individual daily transaction volumes for top performing chains
-              over the past 7 days
+              Stacked daily transaction volumes showing total activity across
+              top L1s over the past 7 days
             </p>
           </CardHeader>
           <CardContent>
@@ -580,8 +580,6 @@ export default function AvalancheMetrics() {
                     tickFormatter={(value) => formatNumber(value)}
                     axisLine={false}
                     tickLine={false}
-                    scale="log"
-                    domain={["dataMin", "dataMax"]}
                   />
                   <ChartTooltip
                     content={({ active, payload, label }) => {
@@ -643,6 +641,7 @@ export default function AvalancheMetrics() {
                         key={index}
                         type="monotone"
                         dataKey={key}
+                        stackId="1"
                         stroke={areaColors[index]}
                         strokeWidth={2}
                         fill={`url(#gradient-${index})`}
@@ -653,6 +652,7 @@ export default function AvalancheMetrics() {
                   <Area
                     type="monotone"
                     dataKey="Others"
+                    stackId="1"
                     stroke={areaColors[5]}
                     strokeWidth={2}
                     fill="url(#gradient-others)"
