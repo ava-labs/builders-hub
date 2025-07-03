@@ -118,12 +118,27 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
 const reverseProxyCommand = (domain: string) => {
     domain = nipify(domain);
 
+    const caddyfile = `${domain} {
+    reverse_proxy localhost:9650
+    
+    header {
+        Access-Control-Allow-Origin *
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    }
+    
+    @options method OPTIONS
+    respond @options 204
+}`;
+
+    const base64Config = btoa(caddyfile);
+
     return `docker run -d \\
   --name caddy \\
   --network host \\
   -v caddy_data:/data \\
   caddy:2.8-alpine \\
-  caddy reverse-proxy --from ${domain} --to localhost:9650`
+  sh -c "echo '${base64Config}' | base64 -d > /etc/caddy/Caddyfile && caddy run --config /etc/caddy/Caddyfile"`
 }
 
 const rpcHealthCheckCommand = (domain: string, chainId: string) => {
