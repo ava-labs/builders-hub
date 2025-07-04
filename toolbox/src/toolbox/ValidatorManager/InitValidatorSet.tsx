@@ -16,7 +16,7 @@ import { CodeHighlighter } from '../../components/CodeHighlighter';
 import { Container } from '../../components/Container';
 import { ResultField } from '../../components/ResultField';
 import { getSubnetInfo } from '../../coreViem/utils/glacier';
-import { useAvaCloudSDK } from "../../stores/useAvaCloudSDK";
+import { useAvalancheSDK } from "../../hooks/useAvalancheSDK";
 
 const cb58ToHex = (cb58: string) => utils.bufferToHex(utils.base58check.decode(cb58));
 const add0x = (hex: string): `0x${string}` => hex.startsWith('0x') ? hex as `0x${string}` : `0x${hex}`;
@@ -26,7 +26,7 @@ export default function InitValidatorSet() {
     const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
     const viemChain = useViemChainStore();
     const { coreWalletClient, publicClient } = useWalletStore();
-    const { aggregateSignature } = useAvaCloudSDK();
+    const { aggregateSignature } = useAvalancheSDK();
     const [isInitializing, setIsInitializing] = useState(false);
     const [txHash, setTxHash] = useState<string | null>(null);
     const [simulationWentThrough, _] = useState(false);

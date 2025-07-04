@@ -114,11 +114,15 @@ export default function Initialize() {
                 // Otherwise, fallback to log checking with a smaller block range
             }
 
-            // Fallback: Check logs but with a more limited range
+            // Fallback: Check logs from the beginning
             // Get current block number
             const latestBlock = await publicClient.getBlockNumber();
-            // Use a reasonable range (2000 blocks) or start from recent blocks
-            const fromBlock = latestBlock > 2000n ? latestBlock - 2000n : 0n;
+            // Check from block 0 to catch all events
+            const fromBlock = 0n;
+
+            console.log('Checking for Initialized events from block', fromBlock.toString(), 'to latest');
+            console.log('Contract address:', proxyAddress);
+            console.log('Event definition:', initializedEvent);
 
             const logs = await publicClient.getLogs({
                 address: proxyAddress as `0x${string}`,
@@ -128,6 +132,7 @@ export default function Initialize() {
             });
 
             console.log('Initialization logs:', logs);
+            console.log('Total logs found:', logs.length);
             setIsInitialized(logs.length > 0);
             if (logs.length > 0) {
                 setInitEvent(logs[0]);

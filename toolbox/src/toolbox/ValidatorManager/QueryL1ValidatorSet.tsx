@@ -6,8 +6,7 @@ import { Calendar, Clock, Users, Coins, Info, Copy, Check, Search, ChevronDown }
 import { Container } from "../../components/Container"
 import { Button } from "../../components/Button"
 import { networkIDs } from "@avalabs/avalanchejs"
-import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components"
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk"
+import { useAvalancheSDK } from "../../hooks/useAvalancheSDK"
 import SelectSubnetId from "../../components/SelectSubnetId"
 import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay"
 import { Tooltip } from "../../components/Tooltip"
@@ -34,7 +33,8 @@ interface ValidatorResponse {
 }
 
 export default function QueryL1ValidatorSet() {
-  const { avalancheNetworkID, isTestnet } = useWalletStore()
+  const { avalancheNetworkID } = useWalletStore()
+  const { listL1Validators } = useAvalancheSDK()
   const [validators, setValidators] = useState<ValidatorResponse[]>([])
   const [filteredValidators, setFilteredValidators] = useState<ValidatorResponse[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -48,7 +48,7 @@ export default function QueryL1ValidatorSet() {
   const [searchTerm, setSearchTerm] = useState<string>("")
 
   // Network names for display
-  const networkNames: Record<number, GlobalParamNetwork> = {
+  const networkNames: Record<number, "mainnet" | "fuji"> = {
     [networkIDs.MainnetID]: "mainnet",
     [networkIDs.FujiID]: "fuji",
   }
@@ -94,13 +94,7 @@ export default function QueryL1ValidatorSet() {
         throw new Error("Invalid network selected")
       }
 
-      const sdk = new AvaCloudSDK({
-        serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
-        network: networkNames[Number(avalancheNetworkID)],
-      })
-
-      const result = await sdk.data.primaryNetwork.listL1Validators({
-        network: networkNames[Number(avalancheNetworkID)],
+      const result = await listL1Validators({
         subnetId,
       })
 
