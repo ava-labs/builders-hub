@@ -118,12 +118,27 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
 const reverseProxyCommand = (domain: string) => {
     domain = nipify(domain);
 
+    const caddyfile = `${domain} {
+    reverse_proxy localhost:9650
+    
+    header {
+        Access-Control-Allow-Origin *
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    }
+    
+    @options method OPTIONS
+    respond @options 204
+}`;
+
+    const base64Config = btoa(caddyfile);
+
     return `docker run -d \\
   --name caddy \\
   --network host \\
   -v caddy_data:/data \\
   caddy:2.8-alpine \\
-  caddy reverse-proxy --from ${domain} --to localhost:9650`
+  sh -c "echo '${base64Config}' | base64 -d > /etc/caddy/Caddyfile && caddy run --config /etc/caddy/Caddyfile"`
 }
 
 const rpcHealthCheckCommand = (domain: string, chainId: string) => {
@@ -173,29 +188,56 @@ export default function AvalanchegoDocker() {
         setBlockchainInfo(null);
         if (!subnetId) return;
 
+        // Use AbortController to cancel previous requests
+        const abortController = new AbortController();
+        
         setIsLoading(true);
-        getSubnetInfo(subnetId)
-            .then(async (subnetInfo) => {
+        
+        const loadSubnetData = async () => {
+            try {
+                const subnetInfo = await getSubnetInfo(subnetId, abortController.signal);
+                
+                // Check if this request was cancelled
+                if (abortController.signal.aborted) return;
+                
                 setSubnet(subnetInfo);
+                
                 // Always get blockchain info for the first blockchain (for Docker command generation)
                 if (subnetInfo.blockchains && subnetInfo.blockchains.length > 0) {
                     const blockchainId = subnetInfo.blockchains[0].blockchainId;
                     setChainId(blockchainId);
                     setSelectedRPCBlockchainId(blockchainId); // Auto-select first blockchain for RPC
+                    
                     try {
-                        const chainInfo = await getBlockchainInfo(blockchainId);
+                        const chainInfo = await getBlockchainInfo(blockchainId, abortController.signal);
+                        
+                        // Check if this request was cancelled
+                        if (abortController.signal.aborted) return;
+                        
                         setBlockchainInfo(chainInfo);
                     } catch (error) {
-                        setSubnetIdError((error as Error).message);
+                        if (!abortController.signal.aborted) {
+                            setSubnetIdError((error as Error).message);
+                        }
                     }
                 }
-            })
-            .catch((error) => {
-                setSubnetIdError((error as Error).message);
-            })
-            .finally(() => {
-                setIsLoading(false);
-            });
+            } catch (error) {
+                if (!abortController.signal.aborted) {
+                    setSubnetIdError((error as Error).message);
+                }
+            } finally {
+                if (!abortController.signal.aborted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+        
+        loadSubnetData();
+        
+        // Cleanup function to abort the request if component unmounts or subnetId changes
+        return () => {
+            abortController.abort();
+        };
     }, [subnetId]);
 
     useEffect(() => {

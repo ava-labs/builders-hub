@@ -1,5 +1,8 @@
 //FIXME: Sooner or later we should use the SDK
 
+import { useWalletStore } from "../../stores/walletStore";
+import { networkIDs } from "@avalabs/avalanchejs";
+
 const endpoint = "https://glacier-api.avax.network"
 
 
@@ -15,21 +18,39 @@ interface BlockchainInfo {
 
 type Network = "testnet" | "mainnet";
 
-export async function getBlockchainInfo(blockchainId: string): Promise<BlockchainInfo & { isTestnet: boolean }> {
-    return Promise.any([
-        getBlockchainInfoForNetwork("testnet", blockchainId).then(info => ({ ...info, isTestnet: true })),
-        getBlockchainInfoForNetwork("mainnet", blockchainId).then(info => ({ ...info, isTestnet: false })),
-    ]);
+export async function getBlockchainInfo(blockchainId: string, signal?: AbortSignal): Promise<BlockchainInfo & { isTestnet: boolean }> {
+    // Get current network from wallet store
+    const { avalancheNetworkID } = useWalletStore.getState();
+    const currentNetwork = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "testnet";
+    const otherNetwork = currentNetwork === "mainnet" ? "testnet" : "mainnet";
+    
+    try {
+        // Try current network first
+        const info = await getBlockchainInfoForNetwork(currentNetwork, blockchainId, signal);
+        return { ...info, isTestnet: currentNetwork === "testnet" };
+    } catch (error) {
+        // If request was aborted, don't try the other network
+        if (signal?.aborted) {
+            throw error;
+        }
+        // If blockchain doesn't exist on current network, try the other network
+        const info = await getBlockchainInfoForNetwork(otherNetwork, blockchainId, signal);
+        return { ...info, isTestnet: otherNetwork === "testnet" };
+    }
 }
 
-export async function getBlockchainInfoForNetwork(network: Network, blockchainId: string): Promise<BlockchainInfo> {
+export async function getBlockchainInfoForNetwork(network: Network, blockchainId: string, signal?: AbortSignal): Promise<BlockchainInfo> {
 
     const url = `${endpoint}/v1/networks/${network}/blockchains/${blockchainId}`;
     const response = await fetch(url, {
         method: 'GET',
         headers: {
             'accept': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
         },
+        signal
     });
 
     if (!response.ok) {
@@ -69,21 +90,37 @@ interface SubnetInfo {
     blockchains: SubnetBlockchainInfo[];
 }
 
-export async function getSubnetInfo(subnetId: string): Promise<SubnetInfo> {
-    return Promise.any([
-        getSubnetInfoForNetwork("testnet", subnetId),
-        getSubnetInfoForNetwork("mainnet", subnetId),
-    ]);
+export async function getSubnetInfo(subnetId: string, signal?: AbortSignal): Promise<SubnetInfo> {
+    // Get current network from wallet store
+    const { avalancheNetworkID } = useWalletStore.getState();
+    const currentNetwork = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "testnet";
+    const otherNetwork = currentNetwork === "mainnet" ? "testnet" : "mainnet";
+    
+    try {
+        // Try current network first
+        return await getSubnetInfoForNetwork(currentNetwork, subnetId, signal);
+    } catch (error) {
+        // If request was aborted, don't try the other network
+        if (signal?.aborted) {
+            throw error;
+        }
+        // If subnet doesn't exist on current network, try the other network
+        return await getSubnetInfoForNetwork(otherNetwork, subnetId, signal);
+    }
 }
 
-export async function getSubnetInfoForNetwork(network: Network, subnetId: string): Promise<SubnetInfo> {
+export async function getSubnetInfoForNetwork(network: Network, subnetId: string, signal?: AbortSignal): Promise<SubnetInfo> {
 
     const url = `${endpoint}/v1/networks/${network}/subnets/${subnetId}`;
     const response = await fetch(url, {
         method: 'GET',
         headers: {
             'accept': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
         },
+        signal
     });
 
     if (!response.ok) {
@@ -137,6 +174,9 @@ export async function getPChainBalance(network: Network, address: string): Promi
         method: 'GET',
         headers: {
             'accept': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
         },
     });
 
@@ -188,6 +228,9 @@ export async function getChainDetails(chainId: string): Promise<ChainDetails> {
         method: 'GET',
         headers: {
             'accept': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
         },
     });
 
@@ -210,6 +253,9 @@ export async function getChains(): Promise<ChainDetails[]> {
         method: 'GET',
         headers: {
             'accept': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
         },
     });
 
@@ -249,6 +295,9 @@ export async function getNativeTokenBalance(chainId: string | number, address: s
         method: 'GET',
         headers: {
             'accept': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
         },
     });
 

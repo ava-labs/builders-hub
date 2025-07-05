@@ -17,11 +17,7 @@ After confirming that an Avalanche L1 suits your project's requirements, the nex
 
 #### EVM-Based Avalanche L1s
 
-EVM-based Avalanche L1s are essentially forks of the Avalanche C-Chain. They support Solidity smart contracts and standard [Ethereum APIs](/docs/api-reference/c-chain/api#ethereum-apis). Ava Labs' implementation, [Subnet-EVM](https://github.com/ava-labs/subnet-evm), is the most mature option available. It is recognized for its robust developer tooling and regular updates, making it the safest and most popular choice for building your blockchain.
-
-#### Experimental Avalanche L1s
-
-Experimental Avalanche L1s are proof-of-concept virtual machines developed by Ava Labs to showcase novel capabilities that extend beyond the traditional EVM. Examples include [TimestampVM Go](/docs/virtual-machines/golang-vms/simple-golang-vm) and [TimestampVMRust](/docs/virtual-machines/timestamp-vm/introduction). They are designed to inspire innovative ideas but are not intended for production environments since their performance and security have not undergone full-scale audits.
+The majority of Avalanche L1s are utilizing the Ethereum Virtual Machine. They support Solidity smart contracts and standard [Ethereum APIs](/docs/api-reference/c-chain/api#ethereum-apis). Ava Labs' implementation, [Subnet-EVM](https://github.com/ava-labs/subnet-evm), is the most mature option available. It is recognized for its robust developer tooling and regular updates, making it the safest and most popular choice for building your blockchain.
 
 #### Custom Avalanche L1s
 
@@ -44,23 +40,3 @@ The Subnet-EVM provides several precompiled contracts that you can use in your A
 - [Tokenomics](/docs/avalanche-l1s/evm-configuration/tokenomics) - Manage native token supply and minting
 - [Transaction Fees & Validator Rewards](/docs/avalanche-l1s/evm-configuration/transaction-fees) - Configure fee parameters and reward mechanisms
 - [Warp Messenger](/docs/avalanche-l1s/evm-configuration/warpmessenger) - Perform cross-chain operations
-
-## Learn Avalanche-CLI
-
-After defining your requirements, the next step is to get acquainted with Avalanche-CLI. This tool is essential for rapid prototyping and deployment, covering the full lifecycle from development to production. Begin your journey by following the [Avalanche-CLI Installation and Setup](https://build.avax.network/docs/tooling/get-avalanche-cli) instructions.
-
-### Deploy Your Avalanche L1 Locally
-
-The first stage of development involves deploying your Avalanche L1 on your local machine or on a private cloud server (such as Amazon EC2). This environment lets you lock in customizations and build your full-stack decentralized application without the limitations of a public network. Local deployments also offer rapid update cycles.
-
-### Deploy Your Avalanche L1 to Fuji
-
-Next, move your Avalanche L1 and decentralized application to the Fuji Testnet. This public testing environment allows you to simulate running validator nodes, coordinate among network participants, and monitor network health. It also offers a chance to practice managing transactions with hardware wallets. However, bear in mind that update cycles on Fuji Testnet run slower than on local setups, typically taking from hours to days.
-
-### Deploy Your Avalanche L1 to Mainnet
-
-The final step is launching your Avalanche L1 on Mainnet, making your network available to real users. Although some changes may still be possible at this stage, any modifications usually take longer to implement, so your focus should shift toward maintaining network stability and scheduling routine upgrades.
-
-## Start Developing Custom VMs
-
-If you've mastered Subnet-EVM and are looking for an additional challenge, consider building a custom VM. Beyond the conventional EVM, you might consider porting a virtual machine from an existing blockchain, such as Bitcoin's or Solana's, to Avalanche. Alternatively, you might develop a custom virtual machine designed exclusively for your application's needs. This approach enables you to optimize performance for specialized functions, whether you are creating a decentralized exchange, implementing a centralized limit order book, or addressing another unique requirement. Another approach is to design an entirely more efficient implementation of the EVM, further expanding the possibilities on Avalanche L1s.
