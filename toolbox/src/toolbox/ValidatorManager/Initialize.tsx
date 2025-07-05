@@ -114,9 +114,6 @@ export default function Initialize() {
                 // Otherwise, fallback to log checking with a smaller block range
             }
 
-            // Fallback: Check logs from the beginning
-            // Get current block number
-            const latestBlock = await publicClient.getBlockNumber();
             // Check from block 0 to catch all events
             const fromBlock = 0n;
 
