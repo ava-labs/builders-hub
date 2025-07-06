@@ -77,8 +77,6 @@ export default function Initialize() {
         });
     }, [subnetId]);
 
-
-
     async function checkIfInitialized() {
         if (!proxyAddress || !window.avalanche) return;
 
@@ -92,21 +90,17 @@ export default function Initialize() {
                 throw new Error('Initialized event not found in ABI');
             }
 
-            // Instead of querying from block 0, try to check initialization status using the contract method first
+            // Try to call a read-only method that would fail if not initialized
             try {
-                // Try to call a read-only method that would fail if not initialized
                 const isInit = await publicClient.readContract({
                     address: proxyAddress as `0x${string}`,
                     abi: ValidatorManagerABI.abi,
                     functionName: 'admin'
                 });
-
-                // If we get here without error, contract is initialized
                 setIsInitialized(true);
                 console.log('Contract is initialized, admin:', isInit);
                 return;
             } catch (readError) {
-                // If this fails with a specific revert message about not being initialized, we know it's not initialized
                 if ((readError as any)?.message?.includes('not initialized')) {
                     setIsInitialized(false);
                     return;
@@ -114,12 +108,9 @@ export default function Initialize() {
                 // Otherwise, fallback to log checking with a smaller block range
             }
 
-            // Check from block 0 to catch all events
-            const fromBlock = 0n;
-
-            console.log('Checking for Initialized events from block', fromBlock.toString(), 'to latest');
-            console.log('Contract address:', proxyAddress);
-            console.log('Event definition:', initializedEvent);
+            // Fallback: Check logs but with a more limited range
+            const latestBlock = await publicClient.getBlockNumber();
+            const fromBlock = latestBlock > 2000n ? latestBlock - 2000n : 0n;
 
             const logs = await publicClient.getLogs({
                 address: proxyAddress as `0x${string}`,
@@ -129,7 +120,6 @@ export default function Initialize() {
             });
 
             console.log('Initialization logs:', logs);
-            console.log('Total logs found:', logs.length);
             setIsInitialized(logs.length > 0);
             if (logs.length > 0) {
                 setInitEvent(logs[0]);
@@ -179,7 +169,6 @@ export default function Initialize() {
     }
 
     return (
-
         <Container
             title="Initial Validator Manager Configuration"
             description="This will initialize the ValidatorManager contract with the initial configuration."
@@ -222,8 +211,6 @@ export default function Initialize() {
                     disabled
                 />
 
-
-
                 <div className="space-y-4">
                     <Input
                         label="Churn Period (seconds)"
@@ -264,7 +251,6 @@ export default function Initialize() {
                 )}
             </div>
         </Container>
-
     );
 };
 
