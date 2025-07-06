@@ -92,6 +92,7 @@ export default function InitValidatorSet() {
             if (!coreWalletClient) throw new Error('Core wallet client not found');
 
             const { validators, subnetId, chainId, managerAddress } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
+
             // Prepare transaction arguments
             const txArgs = [
                 {
@@ -100,13 +101,10 @@ export default function InitValidatorSet() {
                     validatorManagerAddress: managerAddress as `0x${string}`,
                     initialValidators: validators
                         .map(({ nodeID, weight, signer }: { nodeID: string, weight: number, signer: { publicKey: string } }) => {
-                            // Ensure nodeID and blsPublicKey are properly formatted
-                            // If nodeID is in BinTools format, convert to hex
                             const nodeIDBytes = nodeID.startsWith('0x')
                                 ? nodeID
                                 : add0x(nodeID);
 
-                            // If blsPublicKey is in BinTools format, convert to hex
                             const blsPublicKeyBytes = signer.publicKey.startsWith('0x')
                                 ? signer.publicKey
                                 : add0x(signer.publicKey);
@@ -121,14 +119,16 @@ export default function InitValidatorSet() {
                 0 // messageIndex parameter
             ];
 
-
             setCollectedData({ ...txArgs[0] as any, L1ConversionSignature })
 
             // Convert signature to bytes and pack into access list
-            const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
+            const formattedSignature: `0x${string}` = L1ConversionSignature.startsWith('0x')
+                ? L1ConversionSignature as `0x${string}`
+                : `0x${L1ConversionSignature}`;
+
+            const signatureBytes = hexToBytes(formattedSignature);
             const accessList = packWarpIntoAccessList(signatureBytes);
 
-            // FIXME: for whatever reason, viem simulation does not work consistently, so we just send the transaction
             const hash = await coreWalletClient.writeContract({
                 address: managerAddress as `0x${string}`,
                 abi: ValidatorManagerABI.abi,
@@ -139,16 +139,6 @@ export default function InitValidatorSet() {
                 chain: viemChain || undefined,
             });
 
-            // console.log("Simulated transaction:", sim);
-            // setSimulationWentThrough(true);
-
-            // console.log("sim", JSON.stringify(sim, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2));
-
-
-            // Send transaction
-            // const hash = await coreWalletClient.writeContract(sim.request);
-
-            // Wait for transaction confirmation
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
             if (receipt.status === 'success') {

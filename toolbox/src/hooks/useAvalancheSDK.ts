@@ -27,7 +27,7 @@ interface GetSubnetByIdParams {
 }
 
 export const useAvalancheSDK = (customNetwork?: "mainnet" | "fuji") => {
-    const { isTestnet, getNetworkName } = useWalletStore();
+    const { isTestnet, getNetworkName, walletChainId } = useWalletStore();
 
     // Determine network name
     const networkName = useMemo(() => {
@@ -37,11 +37,13 @@ export const useAvalancheSDK = (customNetwork?: "mainnet" | "fuji") => {
 
     // Create SDK instance
     const sdk = useMemo(() => {
-        return new Avalanche({
-            serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
+        const sdkConfig = {
+            chainId: walletChainId.toString(),
+            serverURL: "https://glacier-api.avax.network",
             network: networkName,
-        });
-    }, [isTestnet, networkName]);
+        };
+        return new Avalanche(sdkConfig);
+    }, [isTestnet, networkName, walletChainId]);
 
     // Signature aggregation method
     const aggregateSignature = useCallback(async ({
@@ -51,8 +53,7 @@ export const useAvalancheSDK = (customNetwork?: "mainnet" | "fuji") => {
         quorumPercentage = 67,
     }: SignatureAggregationParams): Promise<SignatureAggregationResult> => {
         try {
-            // Use the SDK's signature aggregation method
-            const result = await sdk.data.signatureAggregator.aggregate({
+            const requestPayload = {
                 network: networkName,
                 signatureAggregatorRequest: {
                     message,
@@ -60,13 +61,15 @@ export const useAvalancheSDK = (customNetwork?: "mainnet" | "fuji") => {
                     quorumPercentage,
                     justification,
                 },
-            });
+            };
+
+            const result = await sdk.data.signatureAggregator.aggregate(requestPayload);
             return { signedMessage: result.signedMessage };
         } catch (error) {
             console.error('Signature aggregation error:', error);
             throw error;
         }
-    }, [sdk, networkName]);
+    }, [sdk, networkName, walletChainId, isTestnet]);
 
     // Primary Network - Subnet operations
     const getSubnetById = useCallback(async ({ subnetId }: GetSubnetByIdParams) => {
