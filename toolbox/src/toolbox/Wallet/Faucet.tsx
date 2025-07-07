@@ -148,7 +148,7 @@ export default function Faucet() {
           </div>
 
           <div
-            onClick={() => window.location.hash = "deployERC20TokenHome"}
+            onClick={() => window.location.hash = "deployTokenHome"}
             className="group block p-4 rounded-xl transition-all duration-300 bg-white/90 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-700/70 shadow-md hover:shadow-xl hover:border-zinc-300/90 dark:hover:border-zinc-600/90 hover:bg-white dark:hover:bg-zinc-900/90 cursor-pointer relative overflow-hidden"
           >
             <div className="relative h-full min-h-[140px] flex flex-col">
