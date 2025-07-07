@@ -4,6 +4,54 @@ import { CChainFaucetButton } from "../../components/ConnectWallet/CChainFaucetB
 import { PChainFaucetButton } from "../../components/ConnectWallet/PChainFaucetButton";
 import { Droplet, ChevronRight, Layers, UserPen, Coins, Code } from "lucide-react";
 
+interface QuickLinkCardProps {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  onClick?: () => void;
+  href?: string;
+}
+
+function QuickLinkCard({ title, description, icon, onClick, href }: QuickLinkCardProps) {
+  const Component = href ? 'a' : 'div';
+  const props = href 
+    ? { href, target: "_blank", rel: "noopener noreferrer" }
+    : { onClick };
+
+  return (
+    <Component
+      {...props}
+      className="group block p-4 rounded-xl transition-all duration-300 bg-white/90 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-700/70 shadow-md hover:shadow-xl hover:border-zinc-300/90 dark:hover:border-zinc-600/90 hover:bg-white dark:hover:bg-zinc-900/90 cursor-pointer relative overflow-hidden"
+    >
+      <div className="relative h-full min-h-[140px] flex flex-col">
+        <div className="mb-3">
+          <div className="w-10 h-10 flex items-center justify-center">
+            <div className="text-zinc-900 dark:text-zinc-100 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-300">
+              {icon}
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex-1 flex flex-col">
+          <h3 className="text-lg font-bold mb-2 text-zinc-900 dark:text-white transition-colors duration-200 leading-tight group-hover:text-zinc-800 dark:group-hover:text-zinc-50">
+            {title}
+          </h3>
+          
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-snug flex-1 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-200">
+            {description}
+          </p>
+        </div>
+        
+        <div className="flex justify-end mt-3">
+          <div className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 transition-all duration-300 group-hover:scale-110">
+            <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-200" />
+          </div>
+        </div>
+      </div>
+    </Component>
+  );
+}
+
 export default function Faucet() {
   const { 
     isTestnet
@@ -85,131 +133,33 @@ export default function Faucet() {
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div
+          <QuickLinkCard
+            title="Create Chain"
+            description="Launch your custom L1 blockchain"
+            icon={<Layers className="w-6 h-6" />}
             onClick={() => window.location.hash = "createChain"}
-            className="group block p-4 rounded-xl transition-all duration-300 bg-white/90 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-700/70 shadow-md hover:shadow-xl hover:border-zinc-300/90 dark:hover:border-zinc-600/90 hover:bg-white dark:hover:bg-zinc-900/90 cursor-pointer relative overflow-hidden"
-          >
-            <div className="relative h-full min-h-[140px] flex flex-col">
-              <div className="mb-3">
-                <div className="w-10 h-10 flex items-center justify-center">
-                  <div className="text-zinc-900 dark:text-zinc-100 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-300">
-                    <Layers className="w-6 h-6" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex-1 flex flex-col">
-                <h3 className="text-lg font-bold mb-2 text-zinc-900 dark:text-white transition-colors duration-200 leading-tight group-hover:text-zinc-800 dark:group-hover:text-zinc-50">
-                  Create Chain
-                </h3>
-                
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-snug flex-1 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-200">
-                  Launch your custom L1 blockchain
-                </p>
-              </div>
-              
-              <div className="flex justify-end mt-3">
-                <div className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 transition-all duration-300 group-hover:scale-110">
-                  <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-200" />
-                </div>
-              </div>
-            </div>
-          </div>
+          />
 
-          <div
+          <QuickLinkCard
+            title="Validator Balance"
+            description="Increase L1 validator balance"
+            icon={<UserPen className="w-6 h-6" />}
             onClick={() => window.location.hash = "balanceTopup"}
-            className="group block p-4 rounded-xl transition-all duration-300 bg-white/90 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-700/70 shadow-md hover:shadow-xl hover:border-zinc-300/90 dark:hover:border-zinc-600/90 hover:bg-white dark:hover:bg-zinc-900/90 cursor-pointer relative overflow-hidden"
-          >
-            <div className="relative h-full min-h-[140px] flex flex-col">
-              <div className="mb-3">
-                <div className="w-10 h-10 flex items-center justify-center">
-                  <div className="text-zinc-900 dark:text-zinc-100 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-300">
-                    <UserPen className="w-6 h-6" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex-1 flex flex-col">
-                <h3 className="text-lg font-bold mb-2 text-zinc-900 dark:text-white transition-colors duration-200 leading-tight group-hover:text-zinc-800 dark:group-hover:text-zinc-50">
-                  Validator Balance
-                </h3>
-                
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-snug flex-1 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-200">
-                  Increase L1 validator balance
-                </p>
-              </div>
-              
-              <div className="flex justify-end mt-3">
-                <div className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 transition-all duration-300 group-hover:scale-110">
-                  <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-200" />
-                </div>
-              </div>
-            </div>
-          </div>
+          />
 
-          <div
+          <QuickLinkCard
+            title="Deploy Token Home"
+            description="Deploy token bridge contracts"
+            icon={<Coins className="w-6 h-6" />}
             onClick={() => window.location.hash = "deployTokenHome"}
-            className="group block p-4 rounded-xl transition-all duration-300 bg-white/90 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-700/70 shadow-md hover:shadow-xl hover:border-zinc-300/90 dark:hover:border-zinc-600/90 hover:bg-white dark:hover:bg-zinc-900/90 cursor-pointer relative overflow-hidden"
-          >
-            <div className="relative h-full min-h-[140px] flex flex-col">
-              <div className="mb-3">
-                <div className="w-10 h-10 flex items-center justify-center">
-                  <div className="text-zinc-900 dark:text-zinc-100 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-300">
-                    <Coins className="w-6 h-6" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex-1 flex flex-col">
-                <h3 className="text-lg font-bold mb-2 text-zinc-900 dark:text-white transition-colors duration-200 leading-tight group-hover:text-zinc-800 dark:group-hover:text-zinc-50">
-                  Deploy Token Home
-                </h3>
-                
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-snug flex-1 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-200">
-                  Deploy token bridge contracts
-                </p>
-              </div>
-              
-              <div className="flex justify-end mt-3">
-                <div className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 transition-all duration-300 group-hover:scale-110">
-                  <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-200" />
-                </div>
-              </div>
-            </div>
-          </div>
+          />
 
-          <a
+          <QuickLinkCard
+            title="Learn More"
+            description="Avalanche fundamentals guide"
+            icon={<Code className="w-6 h-6" />}
             href="https://build.avax.network/academy/avalanche-fundamentals"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group block p-4 rounded-xl transition-all duration-300 bg-white/90 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-700/70 shadow-md hover:shadow-xl hover:border-zinc-300/90 dark:hover:border-zinc-600/90 hover:bg-white dark:hover:bg-zinc-900/90 cursor-pointer relative overflow-hidden"
-          >
-            <div className="relative h-full min-h-[140px] flex flex-col">
-              <div className="mb-3">
-                <div className="w-10 h-10 flex items-center justify-center">
-                  <div className="text-zinc-900 dark:text-zinc-100 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-300">
-                    <Code className="w-6 h-6" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex-1 flex flex-col">
-                <h3 className="text-lg font-bold mb-2 text-zinc-900 dark:text-white transition-colors duration-200 leading-tight group-hover:text-zinc-800 dark:group-hover:text-zinc-50">
-                  Learn More
-                </h3>
-                
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-snug flex-1 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-200">
-                  Avalanche fundamentals guide
-                </p>
-              </div>
-              
-              <div className="flex justify-end mt-3">
-                <div className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 transition-all duration-300 group-hover:scale-110">
-                  <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors duration-200" />
-                </div>
-              </div>
-            </div>
-          </a>
+          />
         </div>
       </div>
     </div>
