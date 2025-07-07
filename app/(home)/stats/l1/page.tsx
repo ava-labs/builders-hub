@@ -1,7 +1,5 @@
 "use client";
-
 import type React from "react";
-
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +47,7 @@ interface ChainMetrics {
   weeklyTxCount: number | string;
   weeklyContractsDeployed: number | string;
   weeklyActiveAddresses: number | string;
+  totalIcmMessages: number | string;
 }
 
 type SortField = keyof ChainMetrics;
@@ -113,6 +112,7 @@ export default function AvalancheMetrics() {
           weeklyTxCount: parseMetricValue(values[10]),
           weeklyContractsDeployed: parseMetricValue(values[11]),
           weeklyActiveAddresses: parseMetricValue(values[12]),
+          totalIcmMessages: parseMetricValue(values[13]),
         });
       }
     }
@@ -167,16 +167,18 @@ export default function AvalancheMetrics() {
 
   const getActivityStatus = (
     transactions: number | string,
-    addresses: number | string
+    addresses: number | string,
+    icmMessages: number | string
   ) => {
     const txCount = typeof transactions === "number" ? transactions : 0;
     const addrCount = typeof addresses === "number" ? addresses : 0;
+    const icmCount = typeof icmMessages === "number" ? icmMessages : 0;
 
-    if (txCount === 0 && addrCount === 0)
+    if (txCount === 0 && addrCount === 0 && icmCount === 0)
       return { label: "Inactive", variant: "secondary" as const };
-    if (txCount < 100 && addrCount < 1000)
+    if (txCount < 100 && addrCount < 1000 && icmCount < 10)
       return { label: "Low", variant: "outline" as const };
-    if (txCount < 1000 && addrCount < 10000)
+    if (txCount < 1000 && addrCount < 10000 && icmCount < 100)
       return { label: "Medium", variant: "default" as const };
     return { label: "High", variant: "default" as const };
   };
@@ -417,7 +419,7 @@ export default function AvalancheMetrics() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
           <Card className="border-blue-200 dark:border-blue-800">
             <CardContent className="p-3 md:p-4">
               <div className="flex items-center gap-2">
@@ -496,6 +498,28 @@ export default function AvalancheMetrics() {
                         ? chain.weeklyActiveAddresses
                         : 0;
                     return sum + addresses;
+                  }, 0)
+                )}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-green-200 dark:border-green-800">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
+                <span className="text-xs md:text-sm font-medium text-green-600 dark:text-green-400">
+                  All-time ICM Messages
+                </span>
+              </div>
+              <p className="text-xl md:text-2xl font-bold text-green-700 dark:text-green-300 mt-1">
+                {formatFullNumber(
+                  chainMetrics.reduce((sum, chain) => {
+                    const icmMessages =
+                      typeof chain.totalIcmMessages === "number"
+                        ? chain.totalIcmMessages
+                        : 0;
+                    return sum + icmMessages;
                   }, 0)
                 )}
               </p>
@@ -707,6 +731,15 @@ export default function AvalancheMetrics() {
                         <span className="lg:hidden">Addresses</span>
                       </SortButton>
                     </TableHead>
+                    <TableHead className="font-semibold text-center min-w-[140px]">
+                      <SortButton field="totalIcmMessages">
+                        <span className="hidden lg:flex items-center gap-1">
+                          <Activity className="h-4 w-4 text-green-600" />
+                          Total ICM Count
+                        </span>
+                        <span className="lg:hidden">ICM</span>
+                      </SortButton>
+                    </TableHead>
                     <TableHead className="font-semibold text-center min-w-[100px]">
                       Activity
                     </TableHead>
@@ -716,7 +749,8 @@ export default function AvalancheMetrics() {
                   {visibleData.map((chain, index) => {
                     const activityStatus = getActivityStatus(
                       chain.weeklyTxCount,
-                      chain.weeklyActiveAddresses
+                      chain.weeklyActiveAddresses,
+                      chain.totalIcmMessages
                     );
                     return (
                       <TableRow
@@ -786,6 +820,20 @@ export default function AvalancheMetrics() {
                             {typeof chain.weeklyActiveAddresses === "number"
                               ? formatFullNumber(chain.weeklyActiveAddresses)
                               : chain.weeklyActiveAddresses}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span
+                            className={`font-mono font-semibold text-sm ${
+                              typeof chain.totalIcmMessages === "number" &&
+                              chain.totalIcmMessages > 0
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {typeof chain.totalIcmMessages === "number"
+                              ? formatFullNumber(chain.totalIcmMessages)
+                              : chain.totalIcmMessages}
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
