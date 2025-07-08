@@ -206,7 +206,17 @@ export async function POST(req: Request) {
   let relevantContext = '';
   if (lastUserMessage) {
     const sections = await loadLLMsContent();
+    console.log(`Total sections loaded: ${sections.length}`);
+    
     const relevantSections = searchContent(lastUserMessage.content, sections);
+    console.log(`Query: "${lastUserMessage.content}"`);
+    console.log(`Found ${relevantSections.length} relevant sections`);
+    if (relevantSections.length > 0) {
+      console.log('Top 3 results:');
+      relevantSections.slice(0, 3).forEach((section, i) => {
+        console.log(`  ${i + 1}. ${section.title} (score: ${section.score})`);
+      });
+    }
     
     if (relevantSections.length > 0) {
       relevantContext = '\n\n=== AVAILABLE DOCUMENTATION CONTEXT ===\n';
