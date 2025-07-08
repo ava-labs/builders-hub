@@ -121,7 +121,7 @@ function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
             isLoading 
               ? 'bg-fd-background hover:bg-fd-muted text-fd-foreground border border-fd-border' 
               : input.length > 0 
-                ? 'bg-fd-primary hover:bg-fd-primary/90 text-fd-primary-foreground' 
+                ? 'bg-red-600 hover:bg-red-700 text-white' 
                 : 'text-fd-muted-foreground cursor-not-allowed hover:text-fd-muted-foreground/70',
           )}
           disabled={!isLoading && input.length === 0}
@@ -266,14 +266,14 @@ function SuggestedFollowUps({ questions, onQuestionClick }: {
             onClick={() => onQuestionClick(question)}
             className={cn(
               "group relative p-3 rounded-lg border border-fd-border/30 bg-fd-card/50",
-              "hover:border-fd-primary/30 hover:bg-fd-accent/30 hover:shadow-sm",
+              "hover:border-red-600/30 hover:bg-red-50 dark:hover:bg-red-950/30 hover:shadow-sm",
               "transition-all duration-200 ease-out",
               "text-left text-xs"
             )}
           >
             <div className="flex items-start gap-2">
               <div className="mt-0.5 p-1 rounded-md bg-fd-muted/50 transition-all duration-200">
-                <MessageCircleQuestion className="size-3 text-fd-primary" />
+                <MessageCircleQuestion className="size-3 text-red-600" />
               </div>
               <span className="flex-1 text-fd-foreground/70 group-hover:text-fd-foreground leading-relaxed transition-colors duration-200">
                 {question}
@@ -332,7 +332,7 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
       <div className="flex gap-4 px-4 py-6">
         <div className={cn(
           'flex size-8 shrink-0 items-center justify-center rounded-full',
-          isUser ? 'bg-fd-primary/10 text-fd-primary' : 'bg-fd-secondary text-fd-secondary-foreground',
+          isUser ? 'bg-red-100 dark:bg-red-950 text-red-600' : 'bg-fd-secondary text-fd-secondary-foreground',
         )}>
           {roleIcon[message.role] ?? <User className="size-5" />}
         </div>
@@ -354,7 +354,7 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
                   className={cn(
                     "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs",
                     "bg-fd-muted hover:bg-fd-muted/80 rounded-md",
-                    "border border-fd-border hover:border-fd-primary/30",
+                    "border border-fd-border hover:border-red-600/30",
                     "transition-all duration-200"
                   )}
                 >
@@ -698,7 +698,7 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
                     href={`/tools/l1-toolbox#${selectedTool}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm font-medium hover:text-fd-primary hover:underline transition-colors cursor-pointer flex items-center gap-1"
+                    className="text-sm font-medium hover:text-red-600 hover:underline transition-colors cursor-pointer flex items-center gap-1"
                   >
                     Toolbox: {selectedTool}
                     <ChevronRight className="size-3" />
@@ -747,7 +747,7 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
     <ChatContext value={chat}>
       <div className="flex items-center justify-between border-b border-fd-border px-4 py-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="size-4 text-fd-primary" />
+          <Sparkles className="size-4 text-red-600" />
           <DialogTitle className="text-sm font-semibold">AI Assistant</DialogTitle>
         </div>
         <div className="flex items-center gap-1">
@@ -777,12 +777,12 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center p-6">
             <div className="text-center space-y-4">
-              <div className="mx-auto size-10 rounded-full bg-fd-primary/10 flex items-center justify-center">
-                <Sparkles className="size-5 text-fd-primary" />
+              <div className="mx-auto size-10 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
+                <Sparkles className="size-5 text-red-600" />
               </div>
               <h3 className="text-sm font-medium">How can I help?</h3>
               <p className="text-xs text-fd-muted-foreground">
-                Ask me anything about the docs
+                Ask me anything about Avalanche
               </p>
             </div>
           </div>
@@ -860,7 +860,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
     <ChatContext value={chat}>
       <div className="flex items-center justify-between border-b border-fd-border px-4 py-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="size-5 text-fd-primary" />
+          <Sparkles className="size-5 text-red-600" />
           <DialogTitle className="text-lg font-semibold">AI Assistant</DialogTitle>
         </div>
         <div className="flex items-center gap-1">
@@ -893,8 +893,8 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
           <div className="flex h-full items-center justify-center p-8">
             <div className="text-center space-y-6 max-w-2xl">
               <div className="space-y-4">
-                <div className="mx-auto size-12 rounded-full bg-fd-primary/10 flex items-center justify-center">
-                  <Sparkles className="size-6 text-fd-primary" />
+                <div className="mx-auto size-12 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
+                  <Sparkles className="size-6 text-red-600" />
                 </div>
                 <h3 className="text-lg font-medium">How can I help you today?</h3>
                 <p className="text-sm text-fd-muted-foreground">
@@ -909,15 +909,15 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
                     onClick={() => handleSuggestionClick(question)}
                     className={cn(
                       "group relative p-4 rounded-xl border border-fd-border/50 bg-fd-card",
-                      "hover:border-fd-primary/50 hover:bg-fd-accent/50 hover:shadow-md",
+                      "hover:border-red-600/50 hover:bg-red-50 dark:hover:bg-red-950/50 hover:shadow-md",
                       "transition-all duration-200 ease-out transform hover:scale-[1.02]",
                       "text-left text-sm overflow-hidden"
                     )}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-fd-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-red-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     <div className="relative flex items-start gap-3">
                       <div className="mt-0.5 p-2 rounded-lg bg-fd-muted/50 transition-all duration-200">
-                        <MessageCircleQuestion className="size-4 text-fd-primary transition-colors duration-200" />
+                        <MessageCircleQuestion className="size-4 text-red-600 transition-colors duration-200" />
                       </div>
                       <span className="flex-1 text-fd-foreground/80 group-hover:text-fd-foreground leading-relaxed transition-colors duration-200">
                         {question}

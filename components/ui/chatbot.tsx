@@ -14,7 +14,7 @@ const Chatbot: React.FC = () => {
       )}
       aria-label="Open AI Assistant"
     >
-      <Sparkles className="h-5 w-5 text-blue-500" />
+      <Sparkles className="h-5 w-5 text-red-600" />
     </AISearchTrigger>
   );
 };
