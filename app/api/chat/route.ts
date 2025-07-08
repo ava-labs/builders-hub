@@ -36,7 +36,23 @@ async function loadLLMsContent() {
 
 function searchContent(query: string, sections: Array<{ title: string; url: string; content: string }>) {
   const queryLower = query.toLowerCase();
-  const words = queryLower.split(/\s+/).filter(word => word.length > 2);
+  
+  // Extract words but be smarter about filtering
+  // Keep words that are 2+ chars, or are important short words like "is"
+  const words = queryLower.split(/\s+/).filter(word => {
+    // Keep words that are 2+ characters
+    if (word.length >= 2) return true;
+    // Keep important short words
+    if (['is', 'a', 'i'].includes(word)) return true;
+    return false;
+  });
+  
+  // For "what is X" queries, extract the main subject
+  let mainSubject = '';
+  const whatIsMatch = queryLower.match(/what\s+is\s+(.+)/);
+  if (whatIsMatch) {
+    mainSubject = whatIsMatch[1].trim();
+  }
   
   // Define important keywords that should be weighted more heavily
   const importantKeywords = new Set([
@@ -48,7 +64,9 @@ function searchContent(query: string, sections: Array<{ title: string; url: stri
     'l1', 'validator', 'stake', 'delegate', 'teleporter', 'icm', 'ictt',
     'evm', 'rpc', 'api', 'endpoint', 'network', 'testnet', 'mainnet',
     'bridge', 'cross-chain', 'interchain', 'message', 'transfer',
-    'precompile', 'native', 'minter', 'fee', 'reward', 'warp'
+    'precompile', 'native', 'minter', 'fee', 'reward', 'warp',
+    // Add integration-specific terms
+    'avacloud', 'cloud', 'service', 'integration', 'tool', 'platform'
   ]);
   
   // Score each section based on relevance
@@ -56,6 +74,13 @@ function searchContent(query: string, sections: Array<{ title: string; url: stri
     let score = 0;
     const contentLower = section.content.toLowerCase();
     const titleLower = section.title.toLowerCase();
+    
+    // For "what is X" queries, heavily boost exact title matches
+    if (mainSubject && titleLower === mainSubject) {
+      score += 100;
+    } else if (mainSubject && titleLower.includes(mainSubject)) {
+      score += 50;
+    }
     
     // Split content into paragraphs for better context matching
     const paragraphs = contentLower.split('\n\n');
@@ -95,8 +120,15 @@ function searchContent(query: string, sections: Array<{ title: string; url: stri
       score += 30;
     }
     
+    // Special boost for integration pages when asking about specific tools/services
+    if (section.url.startsWith('/integrations/') && mainSubject) {
+      if (titleLower.includes(mainSubject) || contentLower.includes(mainSubject)) {
+        score += 20;
+      }
+    }
+    
     // Boost for beginner-friendly content
-    const beginnerTerms = ['getting started', 'introduction', 'basics', 'tutorial', 'quick start', 'first', 'simple'];
+    const beginnerTerms = ['getting started', 'introduction', 'basics', 'tutorial', 'quick start', 'first', 'simple', 'overview'];
     beginnerTerms.forEach(term => {
       if (contentLower.includes(term)) score += 5;
     });
@@ -112,7 +144,7 @@ function searchContent(query: string, sections: Array<{ title: string; url: stri
   
   // Return top 10 most relevant sections
   return scored
-    .filter(s => s.score >= 0)
+    .filter(s => s.score > 0) // Changed from >= 0 to > 0 to filter out zero scores
     .sort((a, b) => b.score - a.score)
     .slice(0, 10);
 }
