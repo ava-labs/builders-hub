@@ -50,6 +50,13 @@ const SplashPage = () => {
       icon: <Server className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
       href: "#avalanchegoDocker"
+    },
+    {
+      title: "Faucet",
+      description: "Get free AVAX tokens for testing",
+      icon: <Droplet className="w-6 h-6" />,
+      bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
+      href: "#faucet"
     }
   ];
 
@@ -113,7 +120,7 @@ const SplashPage = () => {
         <p className="text-zinc-600 dark:text-zinc-400 mb-6 max-w-2xl mx-auto">
           Choose a tool from the sidebar to begin building your Layer 1 blockchain, or explore these helpful resources.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 justify-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-center">
           <a
             href="https://build.avax.network/academy/avalanche-fundamentals"
             target="_blank"
@@ -132,16 +139,6 @@ const SplashPage = () => {
           >
             <img src="/small-logo.png" alt="Avalanche" className="h-4 w-auto mr-2" />
             Documentation
-            <ChevronRight className="w-4 h-4 ml-2" />
-          </a>
-          <a
-            href="https://core.app/tools/testnet-faucet/?subnet=c&token=c"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center px-6 py-3 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white font-semibold rounded-xl hover:bg-white dark:hover:bg-zinc-800 transition-all duration-300 hover:scale-105"
-          >
-            <Droplet className="w-4 h-4 mr-2 text-red-500" />
-            Fuji Faucet
             <ChevronRight className="w-4 h-4 ml-2" />
           </a>
           <a

@@ -13,7 +13,13 @@ import { useWalletStore } from "../../stores/walletStore";
 
 const LOW_BALANCE_THRESHOLD = 1;
 
-export const CChainFaucetButton = () => {
+interface CChainFaucetButtonProps {
+  className?: string;
+  buttonProps?: React.ButtonHTMLAttributes<HTMLButtonElement>;
+  children?: React.ReactNode;
+}
+
+export const CChainFaucetButton = ({ className, buttonProps, children }: CChainFaucetButtonProps = {}) => {
   const { walletEVMAddress, isTestnet, cChainBalance, updateCChainBalance } =
     useWalletStore();
 
@@ -89,6 +95,13 @@ export const CChainFaucetButton = () => {
     return null;
   }
 
+  // Default styling
+  const defaultClassName = `px-2 py-1 text-xs font-medium text-white rounded transition-colors ${
+    cChainBalance < LOW_BALANCE_THRESHOLD
+      ? "bg-blue-500 hover:bg-blue-600 shimmer"
+      : "bg-zinc-600 hover:bg-zinc-700"
+  } ${isRequestingCTokens ? "opacity-50 cursor-not-allowed" : ""}`;
+
   return (
     <>
       <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
@@ -120,16 +133,13 @@ export const CChainFaucetButton = () => {
       </AlertDialog>
 
       <button
+        {...buttonProps}
         onClick={handleCChainTokenRequest}
         disabled={isRequestingCTokens}
-        className={`px-2 py-1 text-xs font-medium text-white rounded transition-colors ${
-          cChainBalance < LOW_BALANCE_THRESHOLD
-            ? "bg-blue-500 hover:bg-blue-600 shimmer"
-            : "bg-zinc-600 hover:bg-zinc-700"
-        } ${isRequestingCTokens ? "opacity-50 cursor-not-allowed" : ""}`}
+        className={className || defaultClassName}
         title="Get free C-Chain AVAX"
       >
-        {isRequestingCTokens ? "Requesting..." : "Faucet"}
+        {isRequestingCTokens ? "Requesting..." : (children || "Faucet")}
       </button>
     </>
   );

@@ -16,7 +16,7 @@ function Tracks({ hackathon }: { hackathon: HackathonHeader }) {
   return (
     <section>
       <h2 className="text-4xl font-bold mb-8" id="tracks">
-        Prizes & Tracks
+        About
       </h2>
       <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800" />
       <div className="relative py-32 mt-24 grid">

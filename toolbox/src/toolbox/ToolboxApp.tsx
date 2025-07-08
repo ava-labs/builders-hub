@@ -396,6 +396,15 @@ const componentGroups: Record<string, ComponentGroupType> = {
     ]
   },
   "Utils": {
+    components: [
+      {
+        id: "faucet",
+        label: "Faucet",
+        component: lazy(() => import('./Wallet/Faucet')),
+        fileNames: ["toolbox/src/toolbox/Wallet/Faucet.tsx"],
+        walletMode: "c-chain",
+      }
+    ],
     subgroups: {
       "Node": {
         components: [

@@ -13,7 +13,13 @@ import { useWalletStore } from "../../stores/walletStore";
 
 const LOW_BALANCE_THRESHOLD = 0.5
 
-export const PChainFaucetButton = () => {
+interface PChainFaucetButtonProps {
+    className?: string;
+    buttonProps?: React.ButtonHTMLAttributes<HTMLButtonElement>;
+    children?: React.ReactNode;
+}
+
+export const PChainFaucetButton = ({ className, buttonProps, children }: PChainFaucetButtonProps = {}) => {
     const {pChainAddress, isTestnet, pChainBalance, updatePChainBalance } = useWalletStore();
 
     const [isRequestingPTokens, setIsRequestingPTokens] = useState(false);
@@ -77,6 +83,13 @@ export const PChainFaucetButton = () => {
         return null;
     }
 
+    // Default styling
+    const defaultClassName = `px-2 py-1 text-xs font-medium text-white rounded transition-colors ${
+        pChainBalance < LOW_BALANCE_THRESHOLD ? "bg-blue-500 hover:bg-blue-600 shimmer" : "bg-zinc-600 hover:bg-zinc-700"
+    } ${
+        isRequestingPTokens ? "opacity-50 cursor-not-allowed" : ""
+    }`;
+
     return (
         <>
             <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
@@ -105,16 +118,13 @@ export const PChainFaucetButton = () => {
             </AlertDialog>
 
             <button
+                {...buttonProps}
                 onClick={handlePChainTokenRequest}
                 disabled={isRequestingPTokens}
-                className={`px-2 py-1 text-xs font-medium text-white rounded transition-colors ${
-                    pChainBalance < LOW_BALANCE_THRESHOLD ? "bg-blue-500 hover:bg-blue-600 shimmer" : "bg-zinc-600 hover:bg-zinc-700"
-                } ${
-                    isRequestingPTokens ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className={className || defaultClassName}
                 title="Get free P-Chain AVAX"
             >
-                {isRequestingPTokens ? "Requesting..." : "Faucet"}
+                {isRequestingPTokens ? "Requesting..." : (children || "Faucet")}
             </button>
         </>
     );
