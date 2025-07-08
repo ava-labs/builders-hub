@@ -10,6 +10,7 @@ import Image from "next/image";
 import { NavigationMenu } from "@/components/hackathons/NavigationMenu";
 import Schedule from "@/components/hackathons/hackathon/sections/Schedule";
 import Tracks from "@/components/hackathons/hackathon/sections/Tracks";
+import About from "@/components/hackathons/hackathon/sections/About";
 import Sponsors from "@/components/hackathons/hackathon/sections/Sponsors";
 import Submission from "@/components/hackathons/hackathon/sections/Submission";
 import Resources from "@/components/hackathons/hackathon/sections/Resources";
@@ -35,7 +36,8 @@ export default async function HackathonPage({
   const hackathon = await getHackathon(id);
 
   const menuItems = [
-    { name: "About", ref: "tracks" },
+    { name: "About", ref: "about" },
+    { name: "Prizes & Tracks", ref: "tracks" },
     { name: "Resources", ref: "resources" },
     { name: "Schedule", ref: "schedule" },
     { name: "Submission", ref: "submission" },
@@ -106,6 +108,7 @@ export default async function HackathonPage({
             </Link>
           </div>
           <div className="py-8 sm:p-8 flex flex-col gap-20">
+            {hackathon.content.tracks_text && <About hackathon={hackathon} />}
             {hackathon.content.tracks && <Tracks hackathon={hackathon} />}
             <Resources hackathon={hackathon} />
             {hackathon.content.schedule && <Schedule hackathon={hackathon} />}
