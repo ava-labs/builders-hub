@@ -35,7 +35,7 @@ export default async function HackathonPage({
   const hackathon = await getHackathon(id);
 
   const menuItems = [
-    { name: "Prizes & Tracks", ref: "tracks" },
+    { name: "About", ref: "tracks" },
     { name: "Resources", ref: "resources" },
     { name: "Schedule", ref: "schedule" },
     { name: "Submission", ref: "submission" },
