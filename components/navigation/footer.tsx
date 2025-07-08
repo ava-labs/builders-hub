@@ -74,6 +74,8 @@ export function Footer() {
               <FooterLink href="https://core.app/" external>Core Wallet</FooterLink>
               <FooterLink href="https://www.avax.network/legal" external>Legal</FooterLink>
               <FooterLink href="https://status.avax.network/" external>Network Status</FooterLink>
+              <FooterLink href="/llms.txt" external>LLMs</FooterLink>
+
             </div>
           </FooterSection>
 
