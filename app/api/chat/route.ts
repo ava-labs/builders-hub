@@ -43,15 +43,50 @@ function searchContent(query: string, sections: Array<{ title: string; url: stri
     // Keep words that are 2+ characters
     if (word.length >= 2) return true;
     // Keep important short words
-    if (['is', 'a', 'i'].includes(word)) return true;
+    if (['is', 'a', 'i', 'to', 'on', 'in', 'of'].includes(word)) return true;
     return false;
   });
   
-  // For "what is X" queries, extract the main subject
+  // Extract query patterns for better understanding
   let mainSubject = '';
+  let queryType = 'general';
+  
+  // Pattern: "what is X"
   const whatIsMatch = queryLower.match(/what\s+is\s+(.+)/);
   if (whatIsMatch) {
     mainSubject = whatIsMatch[1].trim();
+    queryType = 'definition';
+  }
+  
+  // Pattern: "how to X" or "how do I X"
+  const howToMatch = queryLower.match(/how\s+(?:to|do\s+i)\s+(.+)/);
+  if (howToMatch) {
+    mainSubject = howToMatch[1].trim();
+    queryType = 'tutorial';
+  }
+  
+  // Pattern: "X tutorial" or "X guide"
+  const tutorialMatch = queryLower.match(/(.+?)\s+(?:tutorial|guide|example)/);
+  if (tutorialMatch) {
+    mainSubject = tutorialMatch[1].trim();
+    queryType = 'tutorial';
+  }
+  
+  // Pattern: "error" or "issue" or "problem"
+  if (queryLower.match(/error|issue|problem|fix|troubleshoot/)) {
+    queryType = 'troubleshooting';
+  }
+  
+  // Pattern: questions about specific features
+  const featureMatch = queryLower.match(/(?:does|can|support|have|include)\s+(.+?)\s+(?:support|have|include|work|compatible)/);
+  if (featureMatch) {
+    mainSubject = featureMatch[1].trim();
+    queryType = 'feature-check';
+  }
+  
+  // Pattern: comparison queries
+  if (queryLower.match(/difference|compare|versus|vs\.|between/)) {
+    queryType = 'comparison';
   }
   
   // Define important keywords that should be weighted more heavily
@@ -66,7 +101,9 @@ function searchContent(query: string, sections: Array<{ title: string; url: stri
     'bridge', 'cross-chain', 'interchain', 'message', 'transfer',
     'precompile', 'native', 'minter', 'fee', 'reward', 'warp',
     // Add integration-specific terms
-    'avacloud', 'cloud', 'service', 'integration', 'tool', 'platform'
+    'avacloud', 'cloud', 'service', 'integration', 'tool', 'platform',
+    'monitor', 'analytics', 'indexer', 'oracle', 'sdk', 'framework',
+    'infrastructure', 'provider', 'explorer', 'audit', 'security'
   ]);
   
   // Score each section based on relevance
@@ -75,16 +112,48 @@ function searchContent(query: string, sections: Array<{ title: string; url: stri
     const contentLower = section.content.toLowerCase();
     const titleLower = section.title.toLowerCase();
     
-    // For "what is X" queries, heavily boost exact title matches
-    if (mainSubject && titleLower === mainSubject) {
-      score += 100;
-    } else if (mainSubject && titleLower.includes(mainSubject)) {
-      score += 50;
+    // Query type specific scoring
+    if (queryType === 'definition') {
+      // For "what is X" queries, heavily boost exact title matches
+      if (mainSubject && titleLower === mainSubject) {
+        score += 100;
+      } else if (mainSubject && titleLower.includes(mainSubject)) {
+        score += 50;
+      }
+      // Boost overview sections
+      if (contentLower.includes('## overview') || contentLower.includes('# overview')) {
+        score += 20;
+      }
+    } else if (queryType === 'tutorial') {
+      // For "how to" queries, boost tutorial/guide content
+      if (section.url.includes('/guides/') || section.url.includes('/academy/')) {
+        score += 30;
+      }
+      // Boost step-by-step content
+      if (contentLower.match(/step\s+\d+|getting\s+started|how\s+to|tutorial|guide/gi)) {
+        score += 25;
+      }
+    } else if (queryType === 'troubleshooting') {
+      // Boost troubleshooting sections
+      if (contentLower.match(/troubleshoot|common\s+errors|debugging|solution|fix/gi)) {
+        score += 25;
+      }
+    } else if (queryType === 'feature-check') {
+      // Boost feature lists and capability descriptions
+      if (contentLower.match(/features|capabilities|supports|compatible|includes/gi)) {
+        score += 20;
+      }
+    } else if (queryType === 'comparison') {
+      // Boost comparison content
+      if (contentLower.match(/comparison|difference|versus|compared\s+to|unlike/gi)) {
+        score += 20;
+      }
     }
     
     // Split content into paragraphs for better context matching
     const paragraphs = contentLower.split('\n\n');
     
+    // Calculate word relevance scores
     words.forEach(word => {
       const isImportant = importantKeywords.has(word);
       const wordWeight = isImportant ? 2 : 1;
@@ -100,16 +169,16 @@ function searchContent(query: string, sections: Array<{ title: string; url: stri
         score += 8 * wordWeight * headerMatches.length;
       }
       
-      // Content matches
-      const contentMatches = (contentLower.match(new RegExp(word, 'g')) || []).length;
-      score += contentMatches * wordWeight;
+      // Content matches with proximity bonus
+      const contentMatches = (contentLower.match(new RegExp(`\\b${word}\\b`, 'g')) || []).length;
+      score += Math.min(contentMatches * wordWeight, 50); // Cap to prevent spam matches
       
       // Bonus for words appearing close together in paragraphs
       paragraphs.forEach(paragraph => {
         if (paragraph.includes(word)) {
           const wordsInParagraph = words.filter(w => paragraph.includes(w)).length;
           if (wordsInParagraph > 1) {
-            score += wordsInParagraph * 2;
+            score += wordsInParagraph * 3;
           }
         }
       });
@@ -117,34 +186,68 @@ function searchContent(query: string, sections: Array<{ title: string; url: stri
     
     // Boost score for exact phrase matches
     if (contentLower.includes(queryLower)) {
-      score += 30;
+      score += 40;
     }
     
     // Special boost for integration pages when asking about specific tools/services
-    if (section.url.startsWith('/integrations/') && mainSubject) {
-      if (titleLower.includes(mainSubject) || contentLower.includes(mainSubject)) {
-        score += 20;
+    if (section.url.startsWith('/integrations/')) {
+      // Always give integrations a base boost since they're often very relevant
+      score += 15;
+      
+      if (mainSubject && (titleLower.includes(mainSubject) || contentLower.includes(mainSubject))) {
+        score += 30;
       }
+      
+      // Boost integrations for common use cases
+      const integrationKeywords = ['deploy', 'build', 'monitor', 'analyze', 'bridge', 'oracle', 'indexer', 'api', 'sdk', 'wallet', 'explorer', 'node', 'rpc'];
+      integrationKeywords.forEach(keyword => {
+        if (queryLower.includes(keyword) && contentLower.includes(keyword)) {
+          score += 10;
+        }
+      });
     }
     
     // Boost for beginner-friendly content
-    const beginnerTerms = ['getting started', 'introduction', 'basics', 'tutorial', 'quick start', 'first', 'simple', 'overview'];
+    const beginnerTerms = ['getting started', 'introduction', 'basics', 'tutorial', 'quick start', 'first', 'simple', 'overview', 'beginner'];
     beginnerTerms.forEach(term => {
       if (contentLower.includes(term)) score += 5;
     });
     
-    // Penalty for very technical/advanced content
-    const advancedTerms = ['advanced', 'expert', 'deep dive', 'internals', 'architecture'];
-    advancedTerms.forEach(term => {
-      if (contentLower.includes(term)) score -= 3;
-    });
+    // Boost for code examples
+    if (section.content.includes('```')) {
+      score += 10;
+    }
+    
+    // Penalty for very technical/advanced content (unless specifically asked for)
+    if (!queryLower.includes('advanced') && !queryLower.includes('deep')) {
+      const advancedTerms = ['advanced', 'expert', 'deep dive', 'internals', 'architecture'];
+      advancedTerms.forEach(term => {
+        if (contentLower.includes(term)) score -= 5;
+      });
+    }
+    
+    // Boost recent/updated content (if mentioned)
+    if (contentLower.match(/updated|recent|latest|new\s+in/gi)) {
+      score += 5;
+    }
     
     return { ...section, score };
   });
   
-  // Return top 10 most relevant sections
-  return scored
-    .filter(s => s.score > 0) // Changed from >= 0 to > 0 to filter out zero scores
+  // Return top 10 most relevant sections, but ensure minimum score threshold
+  const filtered = scored.filter(s => s.score > 5); // Increased minimum score threshold
+  
+  // If we have many high-scoring results, be more selective
+  if (filtered.length > 20) {
+    const topScore = filtered[0]?.score || 0;
+    // Keep only results that are at least 20% of the top score
+    return filtered
+      .filter(s => s.score >= topScore * 0.2)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+  }
+  
+  return filtered
     .sort((a, b) => b.score - a.score)
     .slice(0, 10);
 }
@@ -227,10 +330,11 @@ export async function POST(req: Request) {
         relevantContext += `--- Document ${index + 1} ---\n`;
         relevantContext += `Title: ${section.title}\n`;
         relevantContext += `Source URL: ${fullUrl}\n`;
+        relevantContext += `Relevance Score: ${section.score}\n`;
         relevantContext += `Content:\n`;
         
-        // Include more content but clearly mark where it's truncated
-        const contentLength = 1500; // Increased from 800 to provide more context
+        // Significantly increase content length for better context
+        const contentLength = 3000; // Doubled from 1500
         const fullContent = section.content;
         
         if (fullContent.length > contentLength) {
@@ -238,16 +342,29 @@ export async function POST(req: Request) {
           // Try to cut at a natural break (paragraph or sentence)
           const lastParagraph = truncatedContent.lastIndexOf('\n\n');
           const lastSentence = truncatedContent.lastIndexOf('. ');
+          const lastCodeBlock = truncatedContent.lastIndexOf('```');
           
           let cutPoint = contentLength;
+          // Prefer paragraph breaks
           if (lastParagraph > contentLength * 0.8) {
             cutPoint = lastParagraph;
-          } else if (lastSentence > contentLength * 0.8) {
+          } 
+          // But avoid cutting in the middle of a code block
+          else if (lastCodeBlock > contentLength * 0.7) {
+            // Check if we're in the middle of a code block
+            const codeBlockEnd = truncatedContent.indexOf('```', lastCodeBlock + 3);
+            if (codeBlockEnd === -1) {
+              // We're in a code block, try to cut before it
+              cutPoint = lastCodeBlock;
+            }
+          }
+          // Otherwise try sentence breaks
+          else if (lastSentence > contentLength * 0.8) {
             cutPoint = lastSentence + 1;
           }
           
           relevantContext += fullContent.substring(0, cutPoint);
-          relevantContext += '\n[... Content truncated. Full document available at the source URL ...]\n';
+          relevantContext += '\n\n[... Content truncated for length. Full documentation available at the source URL above ...]\n';
         } else {
           relevantContext += fullContent;
         }
@@ -255,6 +372,16 @@ export async function POST(req: Request) {
         relevantContext += '\n--- End of Document ---\n\n';
       });
       
+      // Add a summary of what was found
+      relevantContext += '=== SEARCH SUMMARY ===\n';
+      relevantContext += `Found ${relevantSections.length} relevant documents for your query.\n`;
+      if (relevantSections.length > 5) {
+        relevantContext += `Showing the top ${Math.min(relevantSections.length, 10)} most relevant results.\n`;
+        relevantContext += 'Additional related documents:\n';
+        relevantSections.slice(5, 10).forEach((section) => {
+          relevantContext += `- ${section.title}: https://build.avax.network${section.url}\n`;
+        });
+      }
       relevantContext += '=== END OF DOCUMENTATION CONTEXT ===\n';
     } else {
       relevantContext = '\n\n=== DOCUMENTATION CONTEXT ===\n';
@@ -278,6 +405,10 @@ export async function POST(req: Request) {
     - If the provided documentation partially answers a question, use it and note what aspects aren't covered
     - For basic programming concepts (like "what is an API"), you can provide general explanations
     - For Avalanche-specific information, rely on the documentation provided
+    - The relevance score indicates how well each document matches the query - higher scores mean better matches
+    - Use multiple documents when they provide complementary information
+    - If you see code examples in the documentation, include them in your response
+    - When multiple related documents are found, synthesize the information to provide a comprehensive answer
     
     TOOLBOX PRIORITY:
     When users ask about HOW to do something, ALWAYS check if there's a Toolbox tool available first!
@@ -294,6 +425,20 @@ export async function POST(req: Request) {
     - Explain briefly what the tool does
     - Then provide any relevant documentation links for learning more
     
+    INTEGRATIONS PRIORITY:
+    The Avalanche ecosystem has many powerful integrations that can help developers!
+    - ALWAYS check if there are relevant integrations in the documentation context
+    - When users ask about building, deploying, monitoring, or any development task, look for integration solutions
+    - Proactively mention integrations even if not directly asked - they often provide easier solutions
+    - The integrations page (https://build.avax.network/integrations) showcases all available tools and services
+    - Common integration categories include:
+      * Development tools (IDEs, SDKs, frameworks)
+      * Infrastructure (node providers, APIs, indexers)
+      * DeFi protocols and bridges
+      * Analytics and monitoring tools
+      * Wallets and user interfaces
+      * Security and auditing services
+    
     Your communication style:
     - Use simple, clear language and avoid technical jargon unless necessary
     - When you must use technical terms, explain them in plain English
@@ -302,11 +447,13 @@ export async function POST(req: Request) {
     
     When answering questions:
     1. First, check if there's a Toolbox tool that can help with the task
-    2. Check the provided documentation context for relevant information
-    3. If documentation is available, use it and cite the source
-    4. If documentation is partial, use what's available and explain what else the user might need
-    5. For general programming concepts, you can provide explanations
-    6. Always be clear about what information comes from Avalanche docs vs general knowledge
+    2. Look for relevant integrations that could solve the user's problem
+    3. Check the provided documentation context for relevant information
+    4. If documentation is available, use it and cite the source
+    5. If documentation is partial, use what's available and explain what else the user might need
+    6. For general programming concepts, you can provide explanations
+    7. Always be clear about what information comes from Avalanche docs vs general knowledge
+    8. When relevant, mention that users can explore more integrations at https://build.avax.network/integrations
     
     FOLLOW-UP QUESTIONS:
     At the end of EVERY response, you MUST include exactly 3 relevant follow-up questions that would help the user dive deeper into the topic or explore related concepts. These should be natural progressions from your answer.
@@ -348,8 +495,9 @@ export async function POST(req: Request) {
     
     Example responses:
     - "Great question! You can use the [Create Chain tool](https://build.avax.network/tools/l1-toolbox#createChain) in the Avalanche Toolbox to create a new L1 blockchain interactively. For detailed documentation, check out [this guide](URL)."
-    - "Based on the Avalanche documentation [source](URL), you need to... [explanation]. For the specific configuration details, you might want to check the full documentation."
-    - "While I don't have specific Avalanche documentation on that exact topic, here's what generally applies... I'd recommend checking the official docs or community forums for Avalanche-specific details."
+    - "For monitoring your L1, you might want to check out [integration name](URL) which provides real-time analytics. You can explore more monitoring solutions in the [integrations page](https://build.avax.network/integrations)."
+    - "Based on the Avalanche documentation [source](URL), you need to... [explanation]. Additionally, [integration name](URL) can simplify this process by providing [benefit]."
+    - "While I don't have specific Avalanche documentation on that exact topic, here's what generally applies... You might find useful tools in the [integrations directory](https://build.avax.network/integrations) that can help with this."
     
     Base URLs for resources:
     - Toolbox (interactive tools!): https://build.avax.network/tools/l1-toolbox
@@ -388,6 +536,8 @@ export async function POST(req: Request) {
     Important reminders:
     - Always format links as markdown: [Link Text](URL)
     - Prioritize Toolbox tools for hands-on tasks
+    - Proactively suggest relevant integrations that can help users
+    - When discussing development tasks, mention the integrations page: https://build.avax.network/integrations
     - Use code blocks with syntax highlighting when quoting documentation
     - Cite sources when using documentation
     - Be helpful even when documentation is incomplete
