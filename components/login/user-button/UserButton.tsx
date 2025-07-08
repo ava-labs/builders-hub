@@ -14,8 +14,23 @@ import SignOutComponent from '../sign-out/SignOut';
 import { useState } from 'react';
 import { CircleUserRound, UserRound } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
+
 export function UserButton() {
-  const { data: session, status } = useSession() ?? {};
+  // Temporary fix: Handle useSession when SessionProvider might not be available
+  let session = null;
+  let status = 'unauthenticated';
+  
+  try {
+    const sessionData = useSession();
+    if (sessionData) {
+      session = sessionData.data;
+      status = sessionData.status;
+    }
+  } catch (error) {
+    // If useSession throws because SessionProvider is missing, we'll use defaults
+    console.warn('SessionProvider not found, using unauthenticated state');
+  }
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isAuthenticated = status === 'authenticated';
   const handleSignOut = (): void => {
@@ -24,7 +39,7 @@ export function UserButton() {
   console.debug('session', session, isAuthenticated);
   return (
     <>
-      {isAuthenticated ? (
+      {isAuthenticated && session?.user ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
