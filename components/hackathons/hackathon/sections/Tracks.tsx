@@ -11,6 +11,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import TrackCard from "../TrackCard";
 import TrackDialogContent from "../TrackDialogContent";
+import { MDXRemote } from "next-mdx-remote/rsc";
 
 function Tracks({ hackathon }: { hackathon: HackathonHeader }) {
   return (
@@ -20,7 +21,9 @@ function Tracks({ hackathon }: { hackathon: HackathonHeader }) {
       </h2>
       <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800" />
       <div className="pt-5 pb-5">
-        <p>{hackathon.content.tracks_text}</p>
+        <div className="prose prose-sm max-w-none dark:prose-invert">
+          <MDXRemote source={hackathon.content.tracks_text} />
+        </div>
       </div>
       <div className="relative py-32 mt-24 grid">
         <div className="absolute -z-10 w-screen h-full left-1/2 transform -translate-x-1/2 bg-zinc-200" />
