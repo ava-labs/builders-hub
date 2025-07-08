@@ -89,6 +89,22 @@ function searchContent(query: string, sections: Array<{ title: string; url: stri
     queryType = 'comparison';
   }
   
+  // Pattern: requirements/specifications queries
+  if (queryLower.match(/requirement|specification|minimum|hardware|system.*requirement/)) {
+    queryType = 'requirements';
+    // Extract what requirements they're asking about
+    const reqMatch = queryLower.match(/(?:hardware|system|software|minimum|recommended)\s*requirements?\s*(?:for\s+)?(.+)?/);
+    if (reqMatch && reqMatch[1]) {
+      mainSubject = reqMatch[1].trim();
+    }
+  }
+  
+  // Pattern: faucet/funding queries
+  if (queryLower.match(/faucet|test.*(?:avax|tokens?)|get.*(?:avax|tokens?)|fund|funding|gas.*money|fuji.*(?:avax|tokens?)/)) {
+    queryType = 'faucet';
+    mainSubject = 'faucet';
+  }
+  
   // Define important keywords that should be weighted more heavily
   const importantKeywords = new Set([
     'deploy', 'create', 'build', 'install', 'setup', 'configure', 'start',
@@ -103,7 +119,12 @@ function searchContent(query: string, sections: Array<{ title: string; url: stri
     // Add integration-specific terms
     'avacloud', 'cloud', 'service', 'integration', 'tool', 'platform',
     'monitor', 'analytics', 'indexer', 'oracle', 'sdk', 'framework',
-    'infrastructure', 'provider', 'explorer', 'audit', 'security'
+    'infrastructure', 'provider', 'explorer', 'audit', 'security',
+    // Add node and system-specific terms
+    'hardware', 'requirements', 'system', 'cpu', 'ram', 'memory', 'storage',
+    'disk', 'ssd', 'specifications', 'minimum', 'recommended', 'performance',
+    // Add faucet-specific terms
+    'faucet', 'avax', 'fuji', 'test', 'tokens', 'fund', 'funding', 'gas'
   ]);
   
   // Score each section based on relevance
@@ -147,6 +168,51 @@ function searchContent(query: string, sections: Array<{ title: string; url: stri
       // Boost comparison content
       if (contentLower.match(/comparison|difference|versus|compared\s+to|unlike/gi)) {
         score += 20;
+      }
+    } else if (queryType === 'requirements') {
+      // Heavily boost requirements documentation
+      if (titleLower.includes('requirements') || titleLower.includes('specifications')) {
+        score += 60;
+      }
+      if (section.url.includes('requirements') || section.url.includes('specifications')) {
+        score += 40;
+      }
+      // Boost content with requirement details
+      if (contentLower.match(/\b(cpu|ram|memory|storage|disk|ssd|hdd|operating system|os|ubuntu|macos|windows):/gi)) {
+        score += 35;
+      }
+    } else if (queryType === 'faucet') {
+      // For faucet queries, slightly reduce doc priority since Toolbox is preferred
+      // But still include faucet-related documentation
+      if (titleLower.includes('faucet') || contentLower.includes('faucet')) {
+        score += 30;
+      }
+      if (contentLower.match(/test.*tokens?|fuji.*avax|testnet.*fund/gi)) {
+        score += 20;
+      }
+    }
+    
+    // Special boost for fundamental/reference documentation
+    if (queryLower.match(/requirement|specification|minimum|hardware|system/)) {
+      // Boost system requirements and specification pages
+      if (section.url.includes('/system-requirements') || 
+          section.url.includes('/specifications') ||
+          section.url.includes('/requirements') ||
+          titleLower.includes('requirements') ||
+          titleLower.includes('specifications')) {
+        score += 50;
+      }
+      
+      // Boost content that contains requirement tables or lists
+      if (contentLower.match(/cpu:|ram:|memory:|storage:|disk:|operating system:|os:/gi)) {
+        score += 30;
+      }
+    }
+    
+    // Boost node-specific documentation when asking about nodes
+    if (queryLower.includes('node')) {
+      if (section.url.includes('/nodes/') || titleLower.includes('node')) {
+        score += 25;
       }
     }
     
@@ -293,7 +359,7 @@ const TOOLBOX_TOOLS = {
   'Utils': {
     description: 'Utility tools for development',
     tools: [
-      { name: 'Faucet', id: 'faucet', description: 'Get test tokens for development' },
+      { name: 'Faucet', id: 'faucet', description: 'Get testnet / test AVAX tokens for development on Fuji network' },
       { name: 'RPC Methods Check', id: 'rpcMethodsCheck', description: 'Verify RPC endpoint functionality' },
       { name: 'AVAX Unit Converter', id: 'unitConverter', description: 'Convert between AVAX units' }
     ]
@@ -414,6 +480,13 @@ export async function POST(req: Request) {
     When users ask about HOW to do something, ALWAYS check if there's a Toolbox tool available first!
     The Avalanche Toolbox (https://build.avax.network/tools/l1-toolbox) provides interactive tools for common tasks.
     
+    FAUCET PRIORITY:
+    When users ask about getting test tokens, testnet AVAX, Fuji tokens, or anything faucet-related:
+    1. ALWAYS recommend the Toolbox Faucet FIRST: https://build.avax.network/tools/l1-toolbox#faucet
+    2. The Toolbox Faucet is the PREFERRED method for getting test tokens on Fuji
+    3. Only mention other faucets (like Core faucet) as secondary alternatives
+    4. Example response: "You can get test AVAX tokens using the [Faucet tool](https://build.avax.network/tools/l1-toolbox#faucet) in the Avalanche Toolbox! This is the easiest way to fund your Fuji testnet address."
+    
     Available Toolbox Categories:
     ${Object.entries(TOOLBOX_TOOLS).map(([category, info]) => 
       `\n    **${category}**: ${info.description}
@@ -447,6 +520,7 @@ export async function POST(req: Request) {
     
     When answering questions:
     1. First, check if there's a Toolbox tool that can help with the task
+       - ESPECIALLY for faucet/test token requests - ALWAYS use Toolbox Faucet first
     2. Look for relevant integrations that could solve the user's problem
     3. Check the provided documentation context for relevant information
     4. If documentation is available, use it and cite the source
@@ -512,6 +586,8 @@ export async function POST(req: Request) {
     - Cross-Chain: https://build.avax.network/docs/cross-chain
     - DApps: https://build.avax.network/docs/dapps
     - Nodes: https://build.avax.network/docs/nodes
+      * System Requirements: https://build.avax.network/docs/nodes/system-requirements
+      * Running a Node: https://build.avax.network/docs/nodes/using-install-script
     - Virtual Machines: https://build.avax.network/docs/virtual-machines
     - API Reference: https://build.avax.network/docs/api-reference
     - Tooling: https://build.avax.network/docs/tooling
@@ -555,7 +631,7 @@ export async function POST(req: Request) {
     - Discord Community: https://discord.gg/avalanche
     - Developer Forum: https://forum.avax.network
     - Avalanche Explorer: https://subnets.avax.network
-    - Testnet Faucet: https://core.app/tools/testnet-faucet
+    - For test tokens: ALWAYS use Toolbox Faucet first: https://build.avax.network/tools/l1-toolbox#faucet
     
     When generating follow-up questions:
     - Reference specific documentation sections: "What does the [Section Name] documentation say about..."
