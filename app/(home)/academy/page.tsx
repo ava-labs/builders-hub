@@ -83,7 +83,7 @@ function CourseCatalog(): React.ReactElement {
     "Fundamentals": allCourses.filter(course => course.category === "Fundamentals"),
     "Interoperability": allCourses.filter(course => course.category === "Interoperability"), 
     "Smart Contract Development": allCourses.filter(course => course.category === "Smart Contract Development"),
-    "L1 Development": allCourses.filter(course => course.category === "L1 Development"),
+    "Layer 1 Development": allCourses.filter(course => course.category === "L1 Development"),
   };
   
   return (
@@ -255,6 +255,14 @@ function CourseCatalog(): React.ReactElement {
 
         {/* Course Categories - Bento Grid Style */}
         <div>
+          <div className="mb-8 text-center">
+            <h3 className="text-2xl font-bold text-zinc-900 dark:text-white">
+              All Courses
+            </h3>
+            <p className="mt-2 text-base text-zinc-600 dark:text-zinc-400">
+              Explore our complete catalog of courses organized by learning path
+            </p>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {Object.entries(coursesByCategory).map(([categoryName, courses]) => {
               if (courses.length === 0) return null;

@@ -218,7 +218,7 @@ const roleName: Record<string, string> = {
 
 const roleIcon: Record<string, ReactElement> = {
   user: <User className="size-5" />,
-  assistant: <Bot className="size-5" />,
+  assistant: <Sparkles className="size-5 text-red-600" />,
 };
 
 function parseFollowUpQuestions(content: string): string[] {
@@ -337,8 +337,8 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
     )}>
       <div className="flex gap-4 px-4 py-6">
         <div className={cn(
-          'flex size-8 shrink-0 items-center justify-center rounded-full',
-          isUser ? 'bg-red-100 dark:bg-red-950 text-red-600' : 'bg-fd-secondary text-fd-secondary-foreground',
+          'flex size-8 shrink-0 items-center justify-center',
+          isUser ? 'rounded-full bg-fd-muted text-fd-foreground' : '',
         )}>
           {roleIcon[message.role] ?? <User className="size-5" />}
         </div>
@@ -821,8 +821,8 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
             ))}
             {status === 'streaming' && messages[messages.length - 1]?.role === 'user' && (
               <div className="flex gap-3 px-4 py-4 bg-fd-muted/30">
-                <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-fd-secondary text-fd-secondary-foreground">
-                  <Bot className="size-4" />
+                <div className="flex size-6 shrink-0 items-center justify-center">
+                  <Sparkles className="size-4 text-red-600" />
                 </div>
                 <div className="flex items-center gap-2 text-xs text-fd-muted-foreground">
                   <div className="flex gap-1">
@@ -989,8 +989,8 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
             ))}
             {isLoading && messages[messages.length - 1]?.role === 'user' && (
               <div className="flex gap-4 px-4 py-6 bg-fd-muted/30">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-fd-secondary text-fd-secondary-foreground">
-                  <Bot className="size-5" />
+                <div className="flex size-8 shrink-0 items-center justify-center">
+                  <Sparkles className="size-5 text-red-600" />
                 </div>
                 <div className="flex items-center gap-2 text-sm text-fd-muted-foreground">
                   <div className="flex gap-1">
