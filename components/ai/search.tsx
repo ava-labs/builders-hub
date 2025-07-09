@@ -843,10 +843,13 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
   const isLoading = status === 'streaming';
 
   const suggestedQuestions = [
-    "How do I deploy a smart contract on C-Chain?",
-    "How do I create an Avalanche L1?",
-    "How do I set up a local node?",
-    "Explain Avalanche consensus mechanism",
+    "How do I create a custom L1?",
+    "How do I setup a block explorer for my L1?",
+    "How do I setup a node?",
+    "Where can I get testnet AVAX?",
+    "Explain Avalanche's consensus mechanism",
+    "What is the primary network?",
+    "How do I setup ICTT?",
   ];
 
   const handleSuggestionClick = async (question: string) => {
