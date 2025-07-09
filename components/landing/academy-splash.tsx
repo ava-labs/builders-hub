@@ -41,7 +41,7 @@ export default function AcademySplash() {
                 href="/academy"
                 className={cn(
                   "group inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl",
-                  "bg-red-600 hover:bg-red-700 text-white font-medium",
+                  "bg-blue-600 hover:bg-blue-700 text-white font-medium",
                   "transition-all duration-200",
                   "shadow-lg hover:shadow-xl"
                 )}
@@ -81,7 +81,7 @@ export default function AcademySplash() {
                   <div className="size-20 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800">
                     <Image 
                       src="/wolfie/wolfie-hack.png" 
-                      alt="Wolfie Hacks"
+                      alt="Intern Wolfie"
                       width={80}
                       height={80}
                       className="w-full h-full object-cover"
@@ -112,7 +112,7 @@ export default function AcademySplash() {
                     <span className="text-sm font-bold text-zinc-900 dark:text-white">78%</span>
                   </div>
                   <div className="relative h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-                    <div className="absolute inset-0 bg-red-600 rounded-full w-[78%] transition-all duration-700"></div>
+                    <div className="absolute inset-0 bg-blue-600 rounded-full w-[78%] transition-all duration-700"></div>
                   </div>
                 </div>
               </div>
@@ -147,7 +147,7 @@ export default function AcademySplash() {
                       Currently Learning
                     </p>
                     <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                      Interchain Messaging with Chainlink
+                      Chainlink VRF with Avalanche ICM
                     </p>
                   </div>
                   <ChevronRight className="size-4 text-zinc-400 dark:text-zinc-600 group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors" />
