@@ -1,132 +1,133 @@
 chainId,chainName,chainLogoURI,day1TxCount,day2TxCount,day3TxCount,day4TxCount,day5TxCount,day6TxCount,day7TxCount,weeklyTxCount,weeklyContractsDeployed,weeklyActiveAddresses,totalIcmMessages
-80000,"aibmainnet","",0,0,0,6,0,3,19,28,0,0,N/A
+80000,"aibmainnet","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
 8787,"animalia","",0,0,0,0,0,0,0,0,0,0,N/A
-4313,"Artery","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",1266,12781,13943,14921,15891,9034,33955,101791,3,658,N/A
-65713,"as0314t1tp","",0,0,0,0,0,0,0,0,0,0,N/A
-43114,"Avalanche (C-Chain)","https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",176511,1302496,1303694,1309091,1345570,891411,1189300,7518073,1528720,16484,475964
-40404,"bango","",0,0,0,0,0,0,0,0,0,0,N/A
-5506,"BangoL1","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,4,0,36,12,10,62,1,0,N/A
-4337,"Beam L1","https://images.ctfassets.net/gcj8jwzm6086/2ZXZw0POSuXhwoGTiv2fzh/5b9d9e81acb434461da5addb1965f59d/chain-logo.png",2786,17147,15352,16829,20054,19612,18103,109883,206,2854,N/A
-46975,"Blaze","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0,0,0,0,0,0,0,0,N/A
-1344,"Blitz L1","https://images.ctfassets.net/gcj8jwzm6086/5ZhwQeXUwtVZPIRoWXhgrw/03d0ed1c133e59f69bcef52e27d1bdeb/image__2___2_.png",0,0,0,142,248,239,238,867,0,0,N/A
-28530,"Blockticity","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",156,755,302,803,112,618,898,3644,0,3,N/A
-35414,"cedomis","",0,0,0,0,0,0,0,0,0,0,N/A
-2053,"certalink","",0,0,0,0,0,0,0,0,0,0,N/A
-33210,"cloudverse","",0,0,0,0,0,0,0,0,0,0,N/A
-42069,"coqnet","",1745098,12954282,12954958,12553958,12907318,12948631,12955953,79020198,0,1004,52064
-737373,"CX Chain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0,0,0,2,0,2,0,0,N/A
-707070,"cxchain","",0,0,0,0,0,0,0,0,0,0,N/A
+4313,"Artery","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",6312,18366,8093,0,0,0,0,32771,0,11948,N/A
+65713,"as0314t1tp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+43114,"Avalanche (C-Chain)","https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",427643,1248303,1323754,1305197,1302317,1310378,1342844,8260436,1887753,2437354,488448
+40404,"bango","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+5506,"BangoL1","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+4337,"Beam L1","https://images.ctfassets.net/gcj8jwzm6086/2ZXZw0POSuXhwoGTiv2fzh/5b9d9e81acb434461da5addb1965f59d/chain-logo.png",5644,26020,17726,17098,15407,16825,20023,118743,228,111179,N/A
+46975,"Blaze","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+1344,"Blitz L1","https://images.ctfassets.net/gcj8jwzm6086/5ZhwQeXUwtVZPIRoWXhgrw/03d0ed1c133e59f69bcef52e27d1bdeb/image__2___2_.png",142,248,239,0,0,0,0,629,0,668,N/A
+28530,"Blockticity","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",444,1491,803,0,0,0,0,2738,0,6,N/A
+578,"BloodLoop","https://images.ctfassets.net/gcj8jwzm6086/6Jil3wxMnHU0hiLkUtDOmU/43dd6bfefed98ea4e96845bf15a9917e/bloodloop.png",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+35414,"cedomis","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+2053,"certalink","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+33210,"cloudverse","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+42069,"coqnet","",4498728,12953328,12868329,12934857,12967649,12586255,12848470,81657616,0,8119,55208
+737373,"CX Chain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+707070,"cxchain","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
 96786,"delaunch","",0,0,0,0,0,0,0,0,0,0,N/A
-75685,"demol1","",0,0,0,0,0,0,0,0,0,0,N/A
-432204,"Dexalot L1","https://images.ctfassets.net/gcj8jwzm6086/2y6naoolB28y6PpxuZgnl5/0371843c401427ec146128c7bb62941d/dexalot.png",89567,504889,442135,699210,832517,810435,713053,4091806,0,86,55175
-53935,"DFK L1","https://images.ctfassets.net/gcj8jwzm6086/15KL2tZgiggSNEgHbrxG4C/5f9b3f91c0a7666cd3d26b4d273fa158/defikingdoms.png",81604,617815,598644,579293,596097,598032,607894,3679379,30,6490,N/A
-7979,"dos","",1151,11666,11598,10723,10080,9072,10836,65126,4,708,N/A
-389,"Ethix ETX","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0,0,0,0,0,0,0,0,N/A
-33345,"even","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",29,161,185,297,327,270,327,1596,0,32,N/A
-33311,"feature L1","https://images.ctfassets.net/gcj8jwzm6086/2hWSbxXPv2QTPCtCaEp7Kp/522b520e7e5073f7e7459f9bd581bafa/FTR_LOGO_-_FLAT_BLACK.png",0,0,1,0,3,0,1,5,0,0,88
-13322,"FIFA Blockchain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",81,805,1629,11148,3242,1181,1338,19424,47,63,N/A
-62786,"frqtal","",0,0,0,0,0,0,0,0,0,0,N/A
-62789,"FRQTAL NETWORK","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0,0,1,0,25,26,0,0,N/A
-741741,"GOOD CARE","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0,0,0,0,0,0,0,0,12
-6765897101,"greendot","",0,0,0,0,0,0,0,0,0,0,N/A
-61587,"Growth L1","https://images.ctfassets.net/gcj8jwzm6086/76IPuyrLUYnK0VgueFSi7M/aee8e71bbc409578afcb1ab13593da43/TGP_Logo_Short_-_Straight_BG.png",16491,421699,404323,399134,363222,368651,376059,2349579,95532,10459,N/A
-43512,"gunzilla","",0,0,0,0,0,0,0,0,0,0,N/A
-43419,"Gunzilla Mainnet","https://images.ctfassets.net/gcj8jwzm6086/3z2BVey3D1mak361p87Vu/ca7191fec2aa23dfa845da59d4544784/unnamed.png",17476,176508,158458,170653,155946,114842,112989,906872,3,3645,187
-35578,"henesys","",0,0,0,0,0,0,0,0,0,0,N/A
-68414,"Henesys","https://images.ctfassets.net/gcj8jwzm6086/4vLq0seR2nSWK79ldnXnKR/c63f65587cc5da3dae7a8bc087792dc9/NEXPACE_TICKER_Color.png",104439,662897,562923,540922,531862,506633,394816,3304492,11563,16040,322302
-1853,"HighOctane L1","https://images.ctfassets.net/gcj8jwzm6086/2oZCwsNAWMMEtl4rydQ4Sh/16da5fbf9e454e03b925377c3b2e4139/image.png",782,5942,5976,5960,5960,6038,6021,36679,8,11,N/A
-1992,"hubblenet","",0,0,0,0,0,0,0,0,0,0,N/A
-2345,"ienium","",0,0,0,0,0,0,0,0,0,0,N/A
-10036,"Innovo Markets Mainnet L1","https://images.ctfassets.net/gcj8jwzm6086/5wd9o1kxI1nG0Kb2LrEooJ/9e14075a20dc67c4ba5ab0ca404192b8/1675173474597.png",0,0,0,0,0,14,0,14,0,0,N/A
-151122,"intainmkt","",0,0,0,2,19,13,0,34,0,0,N/A
-1216,"intersect L1","https://images.ctfassets.net/gcj8jwzm6086/4mDZ5q3a5lxHJcBLTORuMr/b47935fa6007cb3430acabef7e13e9ca/explorer.png",0,0,1,1,1,0,23,26,0,0,N/A
-6533,"KALICHAIN","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",231,1811,1894,1875,1694,1794,1900,11199,0,25,7
-379,"KOROSHI L1","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",1,5,3,10,11,7,5,42,0,4,2556
-10850,"Lamina1 Identity L1","https://images.ctfassets.net/gcj8jwzm6086/4ihNeP5Qo9diLy0y6ouG3L/8c656592cc45f820188fb647f1a178f2/L1-YouTube-Avatar.png",193,1445,1446,1621,1719,4290,4,10718,0,1,N/A
-10849,"Lamina1 L1","https://images.ctfassets.net/gcj8jwzm6086/5KPky47nVRvtHKYV0rQy5X/e0d153df56fd1eac204f58ca5bc3e133/L1-YouTube-Avatar.png",81258,599136,600489,600563,601902,600726,602212,3686286,4,37108,1486
-50776,"Letsbuyhealthcare","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,2,2,2578,3,13,1,2599,8,0,N/A
+75685,"demol1","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+432204,"Dexalot L1","https://images.ctfassets.net/gcj8jwzm6086/2y6naoolB28y6PpxuZgnl5/0371843c401427ec146128c7bb62941d/dexalot.png",195296,644948,652906,506534,441378,698184,832325,3971571,4,1169,55410
+53935,"DFK L1","https://images.ctfassets.net/gcj8jwzm6086/15KL2tZgiggSNEgHbrxG4C/5f9b3f91c0a7666cd3d26b4d273fa158/defikingdoms.png",220712,619316,608457,620687,603326,579084,598250,3849832,0,69450,N/A
+7979,"dos","",2780,9011,9636,11698,11552,10755,10074,65506,8,4078,N/A
+389,"Ethix ETX","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+33345,"even","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+33311,"feature L1","https://images.ctfassets.net/gcj8jwzm6086/2hWSbxXPv2QTPCtCaEp7Kp/522b520e7e5073f7e7459f9bd581bafa/FTR_LOGO_-_FLAT_BLACK.png",1,1,3,0,0,0,0,5,0,6,88
+13322,"FIFA Blockchain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",429,1384,1460,0,0,0,0,3273,9,650,N/A
+62786,"frqtal","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+62789,"FRQTAL NETWORK","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+741741,"GOOD CARE","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,12
+6765897101,"greendot","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+61587,"Growth L1","https://images.ctfassets.net/gcj8jwzm6086/76IPuyrLUYnK0VgueFSi7M/aee8e71bbc409578afcb1ab13593da43/TGP_Logo_Short_-_Straight_BG.png",102525,372677,369847,421385,402673,400785,363018,2432910,115222,1003866,N/A
+43512,"gunzilla","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+43419,"Gunzilla Mainnet","https://images.ctfassets.net/gcj8jwzm6086/3z2BVey3D1mak361p87Vu/ca7191fec2aa23dfa845da59d4544784/unnamed.png",26733,122756,141027,176840,157926,171182,156025,952489,7,43131,228
+35578,"henesys","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+68414,"Henesys","https://images.ctfassets.net/gcj8jwzm6086/4vLq0seR2nSWK79ldnXnKR/c63f65587cc5da3dae7a8bc087792dc9/NEXPACE_TICKER_Color.png",0,0,0,0,0,0,0,0,0,0,331192
+1853,"HighOctane L1","https://images.ctfassets.net/gcj8jwzm6086/2oZCwsNAWMMEtl4rydQ4Sh/16da5fbf9e454e03b925377c3b2e4139/image.png",2347,6139,5972,5949,5296,4666,0,30369,10,383,N/A
+1992,"hubblenet","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+2345,"ienium","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+10036,"Innovo Markets Mainnet L1","https://images.ctfassets.net/gcj8jwzm6086/5wd9o1kxI1nG0Kb2LrEooJ/9e14075a20dc67c4ba5ab0ca404192b8/1675173474597.png",0,0,0,0,0,0,0,0,0,0,N/A
+151122,"intainmkt","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+1216,"intersect L1","https://images.ctfassets.net/gcj8jwzm6086/4mDZ5q3a5lxHJcBLTORuMr/b47935fa6007cb3430acabef7e13e9ca/explorer.png",0,0,0,0,0,0,0,0,0,0,N/A
+6533,"KALICHAIN","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",627,1762,1833,1811,1894,1875,1694,11496,0,202,7
+379,"KOROSHI L1","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",1,7,6,5,3,10,11,43,0,77,2566
+10850,"Lamina1 Identity L1","https://images.ctfassets.net/gcj8jwzm6086/4ihNeP5Qo9diLy0y6ouG3L/8c656592cc45f820188fb647f1a178f2/L1-YouTube-Avatar.png",1270,1445,1446,1621,1719,4290,0,11791,0,93,N/A
+10849,"Lamina1 L1","https://images.ctfassets.net/gcj8jwzm6086/5KPky47nVRvtHKYV0rQy5X/e0d153df56fd1eac204f58ca5bc3e133/L1-YouTube-Avatar.png",548800,595535,599017,600814,599718,603068,0,3546952,4,1513,1486
+50776,"Letsbuyhealthcare","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
 62521,"lucid","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0,0,0,0,0,0,0,0,3
-5419,"Marnisa","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0,19,20,2,28,69,0,0,N/A
-3454,"masa","",0,0,0,0,0,0,0,0,0,0,N/A
-13396,"masanetwor","",0,0,0,0,0,0,0,0,0,0,N/A
+5419,"Marnisa","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+3454,"masa","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+13396,"masanetwor","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
 333000333,"meld","",0,0,0,0,0,0,0,0,0,0,N/A
 1888,"memoria","",0,0,0,0,0,0,0,0,0,0,137
-74601,"mi0624t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-53849,"mi0624t2ms","",0,0,0,0,0,0,0,0,0,0,N/A
-50476,"mi0624t3ms","",0,0,0,0,0,0,0,0,0,0,N/A
-87062,"mi0624t4ms","",0,0,0,0,0,0,0,0,0,0,N/A
-29111,"mugen","",0,0,0,0,0,0,0,0,0,0,N/A
-1188811,"numine","",0,0,0,0,0,0,0,0,0,0,N/A
-8021,"NUMINE Mainnet","https://images.ctfassets.net/gcj8jwzm6086/411JTIUnbER3rI5dpOR54Y/3c0a8e47d58818a66edd868d6a03a135/numine_main_icon.png",32,272,578,146,207,216,200,1651,0,27,4594
-5041,"omochi","",0,0,0,0,0,0,0,0,0,0,N/A
+74601,"mi0624t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+53849,"mi0624t2ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+50476,"mi0624t3ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+87062,"mi0624t4ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+29111,"mugen","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+1188811,"numine","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+8021,"NUMINE Mainnet","https://images.ctfassets.net/gcj8jwzm6086/411JTIUnbER3rI5dpOR54Y/3c0a8e47d58818a66edd868d6a03a135/numine_main_icon.png",49,1063,455,272,578,146,207,2770,3,655,4690
+5041,"omochi","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
 5040,"onigiri","",0,0,0,0,0,0,0,0,0,0,N/A
-58166,"oumla","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,55,17,0,0,61,0,133,53,0,N/A
-3011,"PLAYA3ULL GAMES L1","https://images.ctfassets.net/gcj8jwzm6086/27mn0a6a5DJeUxcJnZr7pb/8a28d743d65bf35dfbb2e63ba2af7f61/brandmark_-_square_-_Sam_Thompson.png",431,1942,3565,3822,3638,3644,3524,20566,0,41,N/A
+58166,"oumla","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+3011,"PLAYA3ULL GAMES L1","https://images.ctfassets.net/gcj8jwzm6086/27mn0a6a5DJeUxcJnZr7pb/8a28d743d65bf35dfbb2e63ba2af7f61/brandmark_-_square_-_Sam_Thompson.png",546,916,1028,1942,3565,3822,3638,15457,0,1704,N/A
 504441,"playdappne","",0,0,0,0,0,0,0,0,0,0,N/A
-1080,"playthink","",0,0,0,0,0,0,0,0,0,0,N/A
-16180,"PLYR PHI L1","https://images.ctfassets.net/gcj8jwzm6086/5K1xUbrhZPhSOEtsHoghux/b64edf007db24d8397613f7d9338260a/logomark_fullorange.svg",202,1514,1497,1472,1465,1478,1522,9150,3,16,1778
-357,"Pulsar L1","https://images.ctfassets.net/gcj8jwzm6086/5rAfnDh8ogkkEJ6ryvtUQQ/8f7d53e5d669702b8e0fc459a337ab94/logo512.png",195633,1433785,1505503,1491172,1257005,1252021,1063144,8198263,0,1059,N/A
-12150,"QChain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",1249,10470,9465,10993,10511,8499,32173,83360,5,430,9
-89043,"qi0207m1mp","",0,0,0,0,0,0,0,0,0,0,N/A
-48394,"qr0108t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-79807,"qr0203t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-82728,"qr0203t2ms","",0,0,0,0,0,0,0,0,0,0,N/A
-31215,"qr0211t1mp","",0,0,0,0,0,0,0,0,0,0,N/A
-28461,"qr0211t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-9850,"qr0318t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-74719,"qr0408t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-91792,"qr0523t1mp","",0,0,0,0,0,0,0,0,0,0,N/A
-24127,"qr0527t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-59434,"qr0528t2ms","",0,0,0,0,0,0,0,0,0,0,N/A
-83620,"qr0529t1mp","",0,0,0,0,0,0,0,0,0,0,N/A
-1375,"qr0606t1mp","",0,0,0,0,0,0,0,0,0,0,N/A
-49900,"qr0606t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-27480,"qr0609t1mp","",0,0,0,0,0,0,0,0,0,0,N/A
-77593,"qr0609t2mp","",0,0,0,0,0,0,0,0,0,0,N/A
-62381,"qr0609t3mp","",0,0,0,0,0,0,0,0,0,0,N/A
-88265,"qr0609t4mp","",0,0,0,0,0,0,0,0,0,0,N/A
-37625,"qr0609t5mp","",0,0,0,0,0,0,0,0,0,0,N/A
-36593,"qr0609t6mp","",0,0,0,0,0,0,0,0,0,0,N/A
-21272,"qr0617t2ms","",0,0,0,0,0,0,0,0,0,0,N/A
-37759,"qr0617t3ms","",0,0,0,0,0,0,0,0,0,0,N/A
-20726,"qr0618t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-86611,"qr0618t2ms","",0,0,0,0,0,0,0,0,0,0,N/A
-87189,"qr0623t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-3062,"qr0623t2ms","",0,0,0,0,0,0,0,0,0,0,N/A
-76683,"qr0623t3ms","",0,0,0,0,0,0,0,0,0,0,N/A
-91900,"qr0623t4ms","",0,0,0,0,0,0,0,0,0,0,N/A
-923,"qr0623t5ms","",0,0,0,0,0,0,0,0,0,0,N/A
-83414,"qr0623t6ms","",0,0,0,0,0,0,0,0,0,0,N/A
-61849,"qr0624t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-75887,"qr0624t2ms","",0,0,0,0,0,0,0,0,0,0,N/A
-66005,"qr0630t1mp","",0,0,0,0,0,0,0,0,0,0,N/A
-51206,"qr0630t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-936903,"qr0719t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-931499,"qr0830t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-64764,"qr1125t1tp","",0,0,0,0,0,0,0,0,0,0,N/A
-95251,"qr1127t2mp","",0,0,0,0,0,0,0,0,0,0,N/A
-57759,"qr1218t1mp","",0,0,0,0,0,0,0,0,0,0,31
-7766,"qr1219t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-912888,"qr1223t1ms","",0,0,0,0,0,0,0,0,0,0,N/A
-64273,"really","",0,0,0,0,0,0,0,0,0,0,N/A
-111003001,"rymedic","",0,0,0,0,0,0,0,0,0,0,N/A
-111001001,"rymedii","",0,0,0,0,0,0,0,0,0,0,N/A
-111002001,"rymedit","",0,0,0,0,0,0,0,0,0,0,N/A
-2044,"Shrapnel L1","https://images.ctfassets.net/gcj8jwzm6086/3bCKwLkE3vlwnMr52R0RXr/fe8ac511db870a7487986795cb14621e/token-logo.png",241,1822,1488,1956,1930,2102,1988,11527,0,4,N/A
-9899,"solert","",0,0,0,0,0,0,0,0,0,0,N/A
-8227,"Space L1","https://images.ctfassets.net/gcj8jwzm6086/27oUMNb9hSTA7HfFRnqUtZ/2f80e6b277f4b4ee971675b5f73c06bf/Space_Symbol_256X256__v2.svg",1253,9199,8842,9252,9150,9350,9258,56304,0,7,N/A
-1234,"stepnetwork","",809,5361,5974,4861,5966,5516,5801,34288,4,17,N/A
-5566,"StraitsX L1","https://images.ctfassets.net/gcj8jwzm6086/3jGGJxIwb3GjfSEJFXkpj9/2ea8ab14f7280153905a29bb91b59ccb/icon.png",169,1082,2090,970,990,844,745,6890,0,99,35
+1080,"playthink","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+16180,"PLYR PHI L1","https://images.ctfassets.net/gcj8jwzm6086/5K1xUbrhZPhSOEtsHoghux/b64edf007db24d8397613f7d9338260a/logomark_fullorange.svg",517,1475,1476,1514,1497,1472,1465,9416,4,384,1778
+357,"Pulsar L1","https://images.ctfassets.net/gcj8jwzm6086/5rAfnDh8ogkkEJ6ryvtUQQ/8f7d53e5d669702b8e0fc459a337ab94/logo512.png",803746,1663432,1458912,1430427,1503813,1488856,1262396,9611582,0,8123,N/A
+12150,"QChain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",16090,33352,10535,10492,9486,11021,10492,101468,4,31505,9
+89043,"qi0207m1mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+48394,"qr0108t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+79807,"qr0203t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+82728,"qr0203t2ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+31215,"qr0211t1mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+28461,"qr0211t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+9850,"qr0318t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+74719,"qr0408t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+91792,"qr0523t1mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+24127,"qr0527t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+59434,"qr0528t2ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+83620,"qr0529t1mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+1375,"qr0606t1mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+49900,"qr0606t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+27480,"qr0609t1mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+77593,"qr0609t2mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+62381,"qr0609t3mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+88265,"qr0609t4mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+37625,"qr0609t5mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+36593,"qr0609t6mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+21272,"qr0617t2ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+37759,"qr0617t3ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+20726,"qr0618t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+86611,"qr0618t2ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+87189,"qr0623t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+3062,"qr0623t2ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+76683,"qr0623t3ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+91900,"qr0623t4ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+923,"qr0623t5ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+83414,"qr0623t6ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+61849,"qr0624t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+75887,"qr0624t2ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+66005,"qr0630t1mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+51206,"qr0630t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+936903,"qr0719t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+931499,"qr0830t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+64764,"qr1125t1tp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+95251,"qr1127t2mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+57759,"qr1218t1mp","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,31
+7766,"qr1219t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+912888,"qr1223t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+64273,"really","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+111003001,"rymedic","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+111001001,"rymedii","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+111002001,"rymedit","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+2044,"Shrapnel L1","https://images.ctfassets.net/gcj8jwzm6086/3bCKwLkE3vlwnMr52R0RXr/fe8ac511db870a7487986795cb14621e/token-logo.png",462,2163,1929,1822,1488,1956,1930,11750,0,257,N/A
+9899,"solert","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+8227,"Space L1","https://images.ctfassets.net/gcj8jwzm6086/27oUMNb9hSTA7HfFRnqUtZ/2f80e6b277f4b4ee971675b5f73c06bf/Space_Symbol_256X256__v2.svg",3132,9328,9062,9175,8852,9254,9166,57969,0,283,N/A
+1234,"stepnetwork","",2148,3068,5948,5361,5976,4866,5947,33314,1,1114,N/A
+5566,"StraitsX L1","https://images.ctfassets.net/gcj8jwzm6086/3jGGJxIwb3GjfSEJFXkpj9/2ea8ab14f7280153905a29bb91b59ccb/icon.png",606,1063,1089,1082,2090,970,990,7890,0,758,36
 62707,"tele1","",0,0,0,0,0,0,0,0,0,0,N/A
 70953,"tele2","",0,0,0,0,0,0,0,0,0,0,N/A
-17177,"The LYLTY Economy","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0,0,0,0,0,0,0,0,N/A
-710420,"Tiltyard L1","https://images.ctfassets.net/gcj8jwzm6086/5iZkicfOvjuwJYQqqCQN4y/9bdb761652d929459610c8b2da862cd5/android-chrome-512x512.png",20,208,157,266,254,293,301,1499,0,2,N/A
+17177,"The LYLTY Economy","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+710420,"Tiltyard L1","https://images.ctfassets.net/gcj8jwzm6086/5iZkicfOvjuwJYQqqCQN4y/9bdb761652d929459610c8b2da862cd5/android-chrome-512x512.png",51,298,211,208,157,266,254,1445,0,37,N/A
 84358,"TITAN L1","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0,0,0,0,0,0,0,0,N/A
-13790,"TixChain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,0,0,4,1,6,84,95,11,0,N/A
-21024,"TradeX Markets","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",0,1,0,7,74,2,2,86,0,0,N/A
-6119,"UPTN","https://images.ctfassets.net/gcj8jwzm6086/5jmuPVLmmUSDrfXxbIrWwo/4bdbe8d55b775b613156760205d19f9f/symbol_UPTN_-_js_won.png",2285,19601,17332,16240,17466,17423,18762,109109,0,19,N/A
-40875,"v1migrate","",0,0,0,0,0,0,0,0,0,0,N/A
-98968,"wow","",0,0,0,0,0,0,0,0,0,0,N/A
-26935,"ww1217t1ms","",0,0,0,0,0,0,0,0,0,0,2
+13790,"TixChain","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+21024,"TradeX Markets","https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",17,81,23,1,7,74,2,205,0,17,N/A
+6119,"UPTN","https://images.ctfassets.net/gcj8jwzm6086/5jmuPVLmmUSDrfXxbIrWwo/4bdbe8d55b775b613156760205d19f9f/symbol_UPTN_-_js_won.png",4569,17647,16850,19568,17337,16191,17453,109615,0,173,N/A
+40875,"v1migrate","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+98968,"wow","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A
+26935,"ww1217t1ms","",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,2
 8888,"xanachain","",0,0,0,0,0,0,0,0,0,0,N/A
-27827,"zeroone Mainnet L1","https://images.ctfassets.net/gcj8jwzm6086/1lOFyhAJ0JkDkAmpeCznxL/c83287a3c03f8c2c1477e0c4379c98d4/HINDW3Tu_400x400.jpg",70,585,450,638,580,698,614,3635,386,95,33638
+27827,"zeroone Mainnet L1","https://images.ctfassets.net/gcj8jwzm6086/1lOFyhAJ0JkDkAmpeCznxL/c83287a3c03f8c2c1477e0c4379c98d4/HINDW3Tu_400x400.jpg",167,687,663,585,450,638,580,3770,428,3795,33730
