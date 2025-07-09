@@ -136,9 +136,9 @@ export default function AcademySplash() {
               {/* Current Focus */}
               <Link 
                 href="/academy/icm-chainlink"
-                className="block bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 mb-6 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors group"
+                className="block relative overflow-hidden bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 mb-6 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors group"
               >
-                <div className="flex items-center gap-3">
+                <div className="relative flex items-center gap-3">
                   <div className="size-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700 transition-colors">
                     <BookOpen className="size-5 text-zinc-700 dark:text-zinc-300" />
                   </div>
@@ -152,6 +152,11 @@ export default function AcademySplash() {
                   </div>
                   <ChevronRight className="size-4 text-zinc-400 dark:text-zinc-600 group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors" />
                 </div>
+                <img
+                  src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/icm-chainlink-1W7GtDwLj25WkXIsFeJpWy8K3ovrVM.jpg"
+                  alt=""
+                  className="absolute right-0 top-0 h-full w-1/2 object-cover opacity-5 lg:opacity-10"
+                />
               </Link>
 
               {/* CTA */}
@@ -159,8 +164,8 @@ export default function AcademySplash() {
                 href="/login"
                 className={cn(
                   "w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl",
-                  "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700",
-                  "text-zinc-900 dark:text-white font-medium text-sm",
+                  "bg-blue-600 hover:bg-blue-700",
+                  "text-white font-medium text-sm",
                   "transition-all duration-200 group"
                 )}
               >
