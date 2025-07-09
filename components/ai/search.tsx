@@ -32,6 +32,7 @@ import { type Message, useChat, type UseChatHelpers } from '@ai-sdk/react';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import dynamic from 'next/dynamic';
 import { useIsMobile } from '../../hooks/use-mobile';
+import React from 'react';
 
 const ChatContext = createContext<UseChatHelpers | null>(null);
 function useChatContext() {
@@ -314,12 +315,17 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
   useEffect(() => {
     if (!isUser && !isStreaming && !isMobile) {
       const toolRefs = extractToolReferences(message.content);
-      setDetectedTools(toolRefs);
-      // Only auto-open once per message
-      if (toolRefs.length > 0 && onToolReference && !hasAutoOpened) {
+      // Only keep unique tool references
+      const uniqueTools = Array.from(new Set(toolRefs));
+      setDetectedTools(uniqueTools);
+      
+      // Always auto-open the first tool reference if we haven't already
+      if (uniqueTools.length > 0 && onToolReference && !hasAutoOpened) {
         setHasAutoOpened(true);
-        // Use the first tool reference
-        onToolReference(toolRefs[0]);
+        // Add a small delay to ensure the component is ready
+        setTimeout(() => {
+          onToolReference(uniqueTools[0]);
+        }, 100);
       }
     }
   }, [message.content, isUser, isStreaming, onToolReference, isMobile, hasAutoOpened]);
@@ -344,9 +350,10 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
             <Markdown text={cleanContent} onToolClick={isMobile ? undefined : onToolReference} />
           </div>
           
-          {/* Show tool reopener if tools were detected and we're on desktop */}
+          {/* Show all tools referenced */}
           {!isUser && detectedTools.length > 0 && !isMobile && onToolReference && (
             <div className="mt-3 flex flex-wrap gap-2">
+              <p className="text-xs text-fd-muted-foreground w-full mb-1">Tools referenced:</p>
               {detectedTools.map((toolId) => (
                 <button
                   key={toolId}
@@ -359,7 +366,7 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
                   )}
                 >
                   <ChevronRight className="size-3" />
-                  Open {toolId} in sidebar
+                  {toolId}
                 </button>
               ))}
             </div>
@@ -419,7 +426,7 @@ function Markdown({ text, onToolClick }: { text: string; onToolClick?: (toolId: 
                   e.preventDefault();
                   onToolClick(toolMatch[1]);
                 }}
-                className={cn(props.className, "cursor-pointer hover:underline")}
+                className={cn(props.className, "cursor-pointer hover:underline text-red-600")}
               />
             );
           }
@@ -464,19 +471,8 @@ const ToolboxApp = dynamic(() => import('../../toolbox/src/toolbox/ToolboxApp').
       useEffect(() => {
         document.body.classList.add('toolbox-embedded');
         
-        // Override hashchange behavior to prevent unwanted navigation
-        const handleHashChange = (e: HashChangeEvent) => {
-          if (e.newURL.includes('#') && !e.newURL.endsWith('#')) {
-            // Allow the hash change but prevent default behavior
-            e.stopImmediatePropagation();
-          }
-        };
-        
-        window.addEventListener('hashchange', handleHashChange, true);
-        
         return () => {
           document.body.classList.remove('toolbox-embedded');
-          window.removeEventListener('hashchange', handleHashChange, true);
         };
       }, []);
       
@@ -529,11 +525,6 @@ const EmbeddedStyles = () => {
       .toolbox-embedded .fixed.inset-0.z-50 {
         z-index: 9998 !important;
       }
-      
-      /* Override hash-based navigation */
-      .toolbox-embedded {
-        pointer-events: auto !important;
-      }
     `;
     document.head.appendChild(style);
     
@@ -552,22 +543,21 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
   const [closedTools, setClosedTools] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'big' | 'small'>('big'); // Default to big view
   const isMobile = useIsMobile();
-  
-  // Debug selectedTool changes
-  useEffect(() => {
-    console.log('selectedTool changed to:', selectedTool);
-  }, [selectedTool]);
+  const toolSwitchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Define handleCloseTool before useEffect that uses it
   const handleCloseTool = () => {
-    console.log('Close button clicked', { isClosing, selectedTool });
     if (isClosing) return; // Prevent multiple close attempts
     
     setIsClosing(true);
     
+    // Clear any pending tool switches
+    if (toolSwitchTimeoutRef.current) {
+      clearTimeout(toolSwitchTimeoutRef.current);
+    }
+    
     // Don't clear the hash, just hide the tool
     setTimeout(() => {
-      console.log('Closing tool panel');
       if (selectedTool) {
         setClosedTools(prev => new Set(prev).add(selectedTool));
       }
@@ -575,6 +565,41 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
       setIsClosing(false);
     }, 50);
   };
+  
+  // Handle tool selection
+  const handleToolSelect = (toolId: string) => {
+    if (!isMobile && !isClosing) {
+      // If we're already showing this tool, do nothing
+      if (selectedTool === toolId) {
+        return;
+      }
+      
+      // Clear any existing timeout
+      if (toolSwitchTimeoutRef.current) {
+        clearTimeout(toolSwitchTimeoutRef.current);
+      }
+      
+      // Remove from closedTools if it was there
+      setClosedTools(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(toolId);
+        return newSet;
+      });
+      
+      // Switch to the new tool immediately
+      setSelectedTool(toolId);
+      props.onToolSelect?.(toolId);
+    }
+  };
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (toolSwitchTimeoutRef.current) {
+        clearTimeout(toolSwitchTimeoutRef.current);
+      }
+    };
+  }, []);
   
   // Add escape key handler to close toolbox
   useEffect(() => {
@@ -592,23 +617,19 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
     }
   }, [selectedTool, isClosing]);
   
-  // Component to render the tool
-  const ToolRenderer = ({ toolId }: { toolId: string }) => {
-    const hasSetHash = useRef(false);
-    
+  // Component to render the tool - memoized to prevent re-renders
+  const ToolRenderer = React.memo(({ toolId }: { toolId: string }) => {
     useEffect(() => {
-      // Only set hash once to prevent re-triggering
-      if (toolId && !hasSetHash.current && !isClosing) {
-        hasSetHash.current = true;
-        // Small delay to ensure the component is mounted
-        setTimeout(() => {
-          window.location.hash = toolId;
-        }, 50);
+      // Always update the hash when toolId changes
+      if (toolId && !isClosing) {
+        // Use replaceState to avoid adding to browser history
+        const newHash = `#${toolId}`;
+        if (window.location.hash !== newHash) {
+          window.history.replaceState(null, '', newHash);
+          // Dispatch a hashchange event to notify the toolbox
+          window.dispatchEvent(new HashChangeEvent('hashchange'));
+        }
       }
-      
-      return () => {
-        hasSetHash.current = false;
-      };
     }, [toolId]);
     
     return (
@@ -617,7 +638,9 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
         <ToolboxApp />
       </>
     );
-  };
+  });
+  
+  ToolRenderer.displayName = 'ToolRenderer';
 
   return (
     <Dialog {...props}>
@@ -669,18 +692,7 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
                   selectedTool ? "md:w-[40%] md:border-r md:border-fd-border" : "md:w-full"
                 )}>
                   <Content 
-                    onToolReference={(toolId) => {
-                      if (!isMobile && !isClosing) {
-                        // Remove from closedTools if it was there
-                        setClosedTools(prev => {
-                          const newSet = new Set(prev);
-                          newSet.delete(toolId);
-                          return newSet;
-                        });
-                        setSelectedTool(toolId);
-                        props.onToolSelect?.(toolId);
-                      }
-                    }}
+                    onToolReference={handleToolSelect}
                     onCollapse={() => setViewMode('small')}
                   />
                 </div>
@@ -693,27 +705,27 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
                 {/* Desktop tool panel */}
                 {selectedTool && !isMobile && (
                   <div key={selectedTool} className="hidden md:flex md:w-[60%] md:flex-col bg-fd-muted/20">
-                                    <div className="toolbox-embedded-header flex items-center justify-between border-b border-fd-border px-4 py-3 relative z-[9999]">
-                  <a 
-                    href={`/tools/l1-toolbox#${selectedTool}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium hover:text-red-600 hover:underline transition-colors cursor-pointer flex items-center gap-1"
-                  >
-                    Toolbox: {selectedTool}
-                    <ChevronRight className="size-3" />
-                  </a>
-                  <button
-                    onClick={handleCloseTool}
-                    className={cn(
-                      buttonVariants({ size: 'icon', variant: 'ghost' }),
-                      'size-6 rounded-md relative z-[9999]',
-                    )}
-                    style={{ position: 'relative', zIndex: 9999 }}
-                  >
-                    <X className="size-3" />
-                  </button>
-                </div>
+                    <div className="toolbox-embedded-header flex items-center justify-between border-b border-fd-border px-4 py-3 relative z-[9999]">
+                      <a 
+                        href={`/tools/l1-toolbox#${selectedTool}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium hover:text-red-600 hover:underline transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        Toolbox: {selectedTool}
+                        <ChevronRight className="size-3" />
+                      </a>
+                      <button
+                        onClick={handleCloseTool}
+                        className={cn(
+                          buttonVariants({ size: 'icon', variant: 'ghost' }),
+                          'size-6 rounded-md relative z-[9999]',
+                        )}
+                        style={{ position: 'relative', zIndex: 9999 }}
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
                     <div className="flex-1 overflow-auto bg-fd-background relative">
                       <ToolRenderer toolId={selectedTool} />
                     </div>
@@ -729,10 +741,15 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
 }
 
 function SmallViewContent({ onExpand }: { onExpand: () => void }) {
+  const [selectedModel, setSelectedModel] = useState<'anthropic' | 'openai'>('anthropic');
+  
   const chat = useChat({
     id: 'search',
     streamProtocol: 'data',
     sendExtraMessageFields: true,
+    body: {
+      model: selectedModel,
+    },
     onResponse(response) {
       if (response.status === 401) {
         console.error(response.statusText);
@@ -777,7 +794,7 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center p-6">
             <div className="text-center space-y-4">
-              <div className="mx-auto size-10 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
+              <div className="mx-auto size-10 rounded-full bg-fd-muted/50 flex items-center justify-center">
                 <Sparkles className="size-5 text-red-600" />
               </div>
               <h3 className="text-sm font-medium">How can I help?</h3>
@@ -822,15 +839,42 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
       </List>
       
       <SearchAIInput className="px-3 pb-3 pt-2" />
+      
+      <div className="px-3 py-2 text-center">
+        <p className="text-[10px] text-fd-muted-foreground flex items-center justify-center gap-1">
+          Powered by
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value as 'anthropic' | 'openai')}
+            className={cn(
+              "text-[10px] px-1 py-0.5 rounded border border-fd-border/50",
+              "bg-fd-background hover:bg-fd-muted/50",
+              "focus:outline-none focus:ring-1 focus:ring-red-600/20",
+              "transition-colors cursor-pointer",
+              "-my-0.5" // Align with text
+            )}
+            disabled={status === 'streaming'}
+          >
+            <option value="anthropic">Anthropic</option>
+            <option value="openai">OpenAI</option>
+          </select>
+          • Responses may be inaccurate
+        </p>
+      </div>
     </ChatContext>
   );
 }
 
 function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: string) => void; onCollapse?: () => void }) {
+  const [selectedModel, setSelectedModel] = useState<'anthropic' | 'openai'>('anthropic');
+  
   const chat = useChat({
     id: 'search',
     streamProtocol: 'data',
     sendExtraMessageFields: true,
+    body: {
+      model: selectedModel,
+    },
     onResponse(response) {
       if (response.status === 401) {
         console.error(response.statusText);
@@ -896,7 +940,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
           <div className="flex h-full items-center justify-center p-8">
             <div className="text-center space-y-6 max-w-2xl">
               <div className="space-y-4">
-                <div className="mx-auto size-12 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
+                <div className="mx-auto size-12 rounded-full bg-fd-muted/50 flex items-center justify-center">
                   <Sparkles className="size-6 text-red-600" />
                 </div>
                 <h3 className="text-lg font-medium">How can I help you today?</h3>
@@ -965,8 +1009,24 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
       <SearchAIInput />
       
       <div className="px-4 py-2 text-center">
-        <p className="text-xs text-fd-muted-foreground">
-          Powered by OpenAI • Responses may be inaccurate
+        <p className="text-xs text-fd-muted-foreground flex items-center justify-center gap-1">
+          Powered by
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value as 'anthropic' | 'openai')}
+            className={cn(
+              "text-xs px-1.5 py-0.5 rounded border border-fd-border/50",
+              "bg-fd-background hover:bg-fd-muted/50",
+              "focus:outline-none focus:ring-1 focus:ring-red-600/20",
+              "transition-colors cursor-pointer",
+              "-my-0.5" // Align with text
+            )}
+            disabled={isLoading}
+          >
+            <option value="anthropic">Anthropic</option>
+            <option value="openai">OpenAI</option>
+          </select>
+          • Responses may be inaccurate
         </p>
       </div>
     </ChatContext>
