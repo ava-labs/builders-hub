@@ -39,7 +39,7 @@ const officialCourses: Course[] = [
         category: "Fundamentals"
     },
     {
-        name: "Avalanche Interchain Messaging",
+        name: "Interchain Messaging",
         description: "Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche network",
         slug: "interchain-messaging",
         icon: <MailIcon />,

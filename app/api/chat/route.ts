@@ -1,7 +1,12 @@
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
 export const runtime = 'edge';
+
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -468,7 +473,7 @@ const TOOLBOX_TOOLS = {
 };
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages, model = 'anthropic' } = await req.json();
   
   // Get the last user message to search for relevant docs
   const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
@@ -564,8 +569,13 @@ export async function POST(req: Request) {
     }
   }
 
+  // Select the appropriate model based on the request
+  const selectedModel = model === 'openai' 
+    ? openai('gpt-4o-mini')
+    : anthropic('claude-3-5-sonnet-20241022');
+
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: selectedModel,
     messages: messages,
     onFinish: async ({ text }) => {
       // Log any URLs that were generated

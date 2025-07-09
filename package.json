@@ -11,7 +11,8 @@
     "postinstall": "prisma generate && fumadocs-mdx && cd toolbox && yarn"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^1.3.22",
+    "@ai-sdk/anthropic": "^1.2.12",
+    "@ai-sdk/openai": "^1.3.23",
     "@ai-sdk/react": "^1.2.12",
     "@avalabs/avacloud-sdk": "^0.12.2",
     "@avalabs/avalanchejs": "^5.0.0",
