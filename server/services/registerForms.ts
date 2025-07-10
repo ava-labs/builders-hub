@@ -179,17 +179,17 @@ export async function sendConfirmationMail(
   const hackathon = await prisma.hackathon.findUnique({
     where: { id: hackathon_id },
   });
-  const text = `your registration application for ${hackathon?.title} has been received.`;
+  const text = `your registration application for ${hackathon?.title} has been approved.`;
   const subject = `Hackathon Registration`;
   const html = `
     <div style="background-color: #18181B; color: white; font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border-radius: 8px; border: 1px solid #EF4444; text-align: center;">
       <h2 style="color: white; font-size: 20px; margin-bottom: 16px;">Hackathon registration</h2>
 
       <div style="background-color: #27272A; border: 1px solid #EF4444; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">We have received your registration application for</p>
+        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">Your registration for</p>
         <p style="font-size: 20px; font-weight: bold; color: #EF4444; margin: 8px 0;">${hackathon?.title}</p>
-        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">Please note that your registration is pending for approval.</p>
-        <p style="font-size: 10px; font-weight: bold; color: #ffffff; margin: 8px 0;">This is an automated message — please do not reply</p>
+        <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;"> has been approved. Please <a href="https://t.me/c/avalancheacademy/4337" style="color: #3B82F6; text-decoration: underline;">join the hackathon chat</a>. </p>
+        <p style="font-size: 10px; font-weight: bold; color: #ffffff; margin: 8px 0;">This is an automated message — please do not reply.</p>
       </div>
 
       <p style="font-size: 12px; color: #A1A1AA;">If you did not expect this invitation, you can safely ignore this email.</p>
