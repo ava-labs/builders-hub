@@ -6,7 +6,7 @@ import { networkIDs } from "@avalabs/avalanchejs";
 import versions from "../../versions.json";
 import { Container } from "../../components/Container";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
-import InputSubnetId from "../../components/InputSubnetId";
+import InputSubnetId, { PRIMARY_NETWORK_SUBNET_ID } from "../../components/InputSubnetId";
 import { Checkbox } from "../../components/Checkbox";
 import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
 import { Steps, Step } from "fumadocs-ui/components/steps";
@@ -61,15 +61,21 @@ export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruning
 }
 
 const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, chainId: string, vmId: string, debugEnabled: boolean = false, pruningEnabled: boolean = false) => {
+    // Check if this is the Primary Network
+    const isPrimaryNetwork = subnets.includes(PRIMARY_NETWORK_SUBNET_ID);
+    
     const env: Record<string, string> = {
-        AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true",
+        AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: isPrimaryNetwork ? "false" : "true",
         AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
         AVAGO_HTTP_HOST: "0.0.0.0",
     };
 
-    subnets = subnets.filter(subnet => subnet !== "");
-    if (subnets.length !== 0) {
-        env.AVAGO_TRACK_SUBNETS = subnets.join(",");
+    // Only track subnets if not Primary Network
+    if (!isPrimaryNetwork) {
+        subnets = subnets.filter(subnet => subnet !== "");
+        if (subnets.length !== 0) {
+            env.AVAGO_TRACK_SUBNETS = subnets.join(",");
+        }
     }
 
     if (networkID === networkIDs.FujiID) {
@@ -84,14 +90,23 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
         env.AVAGO_HTTP_ALLOWED_HOSTS = "\"*\"";
     }
 
-    env.AVAGO_CHAIN_CONFIG_CONTENT = nodeConfigBase64(chainId, debugEnabled, pruningEnabled);
+    // Add chain config - use "C" alias for Primary Network
+    if (isPrimaryNetwork) {
+        env.AVAGO_CHAIN_CONFIG_CONTENT = nodeConfigBase64("C", debugEnabled, pruningEnabled);
+    } else {
+        env.AVAGO_CHAIN_CONFIG_CONTENT = nodeConfigBase64(chainId, debugEnabled, pruningEnabled);
+    }
 
     // Check if this is a custom VM (not the standard subnet-evm)
     const isCustomVM = vmId !== SUBNET_EVM_VM_ID;
 
-    if (isCustomVM) {
+    // Only add VM_ID for custom VMs on non-primary networks
+    if (isCustomVM && !isPrimaryNetwork) {
         env.VM_ID = vmId;
     }
+    
+    // Use the same subnet-evm image for both Primary Network and L1s
+    const dockerImage = `avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`;
 
     const chunks = [
         "docker run -it -d",
@@ -99,11 +114,11 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
         `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
         `-v ~/.avalanchego:/root/.avalanchego`,
         ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
-        `avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`
+        dockerImage
     ];
 
-    // Add vm-aliases-file-content parameter for custom VMs
-    if (isCustomVM) {
+    // Add vm-aliases-file-content parameter for custom VMs (but not for Primary Network)
+    if (isCustomVM && !isPrimaryNetwork) {
         chunks.push("/avalanchego/build/avalanchego");
         const vmAliases = {
             [vmId]: [SUBNET_EVM_VM_ID]
@@ -141,13 +156,16 @@ const reverseProxyCommand = (domain: string) => {
   sh -c "echo '${base64Config}' | base64 -d > /etc/caddy/Caddyfile && caddy run --config /etc/caddy/Caddyfile"`
 }
 
-const rpcHealthCheckCommand = (domain: string, chainId: string) => {
+const rpcHealthCheckCommand = (domain: string, chainId: string, isPrimaryNetwork: boolean = false) => {
     const processedDomain = nipify(domain);
+    
+    // Use chain alias for Primary Network, blockchain ID for L1s
+    const chainPath = isPrimaryNetwork ? "C" : chainId;
 
     return `curl -X POST --data '{ 
   "jsonrpc":"2.0", "method":"eth_chainId", "params":[], "id":1 
 }' -H 'content-type:application/json;' \\
-https://${processedDomain}/ext/bc/${chainId}/rpc`
+https://${processedDomain}/ext/bc/${chainPath}/rpc`
 }
 
 export default function AvalanchegoDocker() {
@@ -206,7 +224,13 @@ export default function AvalanchegoDocker() {
                 if (subnetInfo.blockchains && subnetInfo.blockchains.length > 0) {
                     const blockchainId = subnetInfo.blockchains[0].blockchainId;
                     setChainId(blockchainId);
-                    setSelectedRPCBlockchainId(blockchainId); // Auto-select first blockchain for RPC
+                    
+                    // For Primary Network, default to C-Chain, otherwise use first blockchain
+                    if (subnetId === PRIMARY_NETWORK_SUBNET_ID) {
+                        setSelectedRPCBlockchainId("C");
+                    } else {
+                        setSelectedRPCBlockchainId(blockchainId); // Auto-select first blockchain for RPC
+                    }
                     
                     try {
                         const chainInfo = await getBlockchainInfo(blockchainId, abortController.signal);
@@ -333,6 +357,7 @@ export default function AvalanchegoDocker() {
                         <p>Enter the Avalanche Subnet ID of the L1 you want to run a node for.</p>
 
                         <InputSubnetId
+                            hidePrimaryNetwork={false}
                             value={subnetId}
                             onChange={setSubnetId}
                             error={subnetIdError}
@@ -456,26 +481,52 @@ export default function AvalanchegoDocker() {
                                         </button>
                                     </div>
 
-                                    {makePublicRPC && subnet && subnet.blockchains && subnet.blockchains.length > 1 && (
-                                        <div className="mt-4">
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Select Blockchain for RPC Endpoint
-                                            </label>
-                                            <select
-                                                value={selectedRPCBlockchainId}
-                                                onChange={(e) => setSelectedRPCBlockchainId(e.target.value)}
-                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                            >
-                                                {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string }) => (
-                                                    <option key={blockchain.blockchainId} value={blockchain.blockchainId}>
-                                                        {blockchain.blockchainName} ({blockchain.blockchainId})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                This blockchain will be used for the RPC endpoint URL generation.
-                                            </p>
-                                        </div>
+                                    {makePublicRPC && (
+                                        <>
+                                            {/* Primary Network chain selection */}
+                                            {subnetId === PRIMARY_NETWORK_SUBNET_ID && (
+                                                <div className="mt-4">
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        Select Primary Network Chain
+                                                    </label>
+                                                    <select
+                                                        value={selectedRPCBlockchainId}
+                                                        onChange={(e) => setSelectedRPCBlockchainId(e.target.value)}
+                                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                                    >
+                                                        <option value="C">C-Chain (EVM)</option>
+                                                        <option value="P">P-Chain (Platform)</option>
+                                                        <option value="X">X-Chain (Exchange)</option>
+                                                    </select>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                        Select which Primary Network chain to connect to.
+                                                    </p>
+                                                </div>
+                                            )}
+                                            
+                                            {/* L1 blockchain selection */}
+                                            {subnetId !== PRIMARY_NETWORK_SUBNET_ID && subnet && subnet.blockchains && subnet.blockchains.length > 1 && (
+                                                <div className="mt-4">
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        Select Blockchain for RPC Endpoint
+                                                    </label>
+                                                    <select
+                                                        value={selectedRPCBlockchainId}
+                                                        onChange={(e) => setSelectedRPCBlockchainId(e.target.value)}
+                                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                                    >
+                                                        {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string }) => (
+                                                            <option key={blockchain.blockchainId} value={blockchain.blockchainId}>
+                                                                {blockchain.blockchainName} ({blockchain.blockchainId})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                        This blockchain will be used for the RPC endpoint URL generation.
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </Step>
@@ -513,10 +564,10 @@ export default function AvalanchegoDocker() {
                                                     <p>Do a final check from a machine different then the one that your node is running on.</p>
 
                                                     <div className="space-y-6">
-                                                        <DynamicCodeBlock lang="bash" code={rpcHealthCheckCommand(domain, selectedRPCBlockchainId)} />
+                                                        <DynamicCodeBlock lang="bash" code={rpcHealthCheckCommand(domain, selectedRPCBlockchainId, subnetId === PRIMARY_NETWORK_SUBNET_ID)} />
 
                                                         <HealthCheckButton
-                                                            chainId={selectedRPCBlockchainId}
+                                                            chainId={subnetId === PRIMARY_NETWORK_SUBNET_ID ? "C" : selectedRPCBlockchainId}
                                                             domain={domain}
                                                         />
                                                     </div>
@@ -548,7 +599,9 @@ export default function AvalanchegoDocker() {
                                                     }
                                                 }}
                                                 allowLookup={false}
-                                                fixedRPCUrl={nodeRunningMode === "server" ? `https://${nipify(domain)}/ext/bc/${selectedRPCBlockchainId}/rpc` : `http://localhost:9650/ext/bc/${chainId}/rpc`}
+                                                fixedRPCUrl={nodeRunningMode === "server" 
+                                                    ? `https://${nipify(domain)}/ext/bc/${subnetId === PRIMARY_NETWORK_SUBNET_ID ? "C" : selectedRPCBlockchainId}/rpc` 
+                                                    : `http://localhost:9650/ext/bc/${subnetId === PRIMARY_NETWORK_SUBNET_ID ? "C" : chainId}/rpc`}
                                             />}
                                         </Step>
                                     )}
@@ -583,7 +636,7 @@ export default function AvalanchegoDocker() {
                                     </Accordions>
 
                                     <NodeReadinessValidator
-                                        chainId={chainId}
+                                        chainId={subnetId === PRIMARY_NETWORK_SUBNET_ID ? "C" : chainId}
                                         domain={nodeRunningMode === "server" ? domain || "127.0.0.1:9650" : "127.0.0.1:9650"}
                                         isDebugTrace={enableDebugTrace}
                                         onBootstrapCheckChange={(checked) => setNodeIsReady(checked)}
