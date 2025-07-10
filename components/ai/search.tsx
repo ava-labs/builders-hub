@@ -662,7 +662,7 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
                 "transition-all duration-300"
               )}
             >
-              <div className="flex h-full bg-fd-background rounded-xl border border-fd-border shadow-2xl overflow-hidden flex-col">
+              <div className="flex h-full bg-fd-background/95 backdrop-blur-sm rounded-xl border border-fd-border shadow-2xl overflow-hidden flex-col">
                 <SmallViewContent 
                   onExpand={() => setViewMode('big')}
                 />
@@ -685,7 +685,7 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
                 "md:h-[85vh] max-h-[90vh] focus-visible:outline-none data-[state=closed]:animate-fd-fade-out data-[state=open]:animate-fd-fade-in transition-all duration-300"
               )}
             >
-              <div className="flex h-full bg-fd-background rounded-xl border border-fd-border shadow-2xl overflow-hidden">
+              <div className="flex h-full bg-fd-background/90 backdrop-blur-md rounded-xl border border-fd-border shadow-2xl overflow-hidden">
                 {/* Desktop view - side by side */}
                 <div className={cn(
                   "hidden md:flex md:flex-col",
