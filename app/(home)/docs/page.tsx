@@ -262,14 +262,15 @@ function Hero(): React.ReactElement {
           <div className="mb-8 relative flex items-end justify-center gap-2">
 
           </div>
-           {/* AI Assistant */}
-           <div className="mt-4 flex justify-center">
-            <Chatbot variant="static" />
-          </div>
           
           {/* Quick Search */}
-          <div className="mt-8 w-full max-w-md">
+          <div className="w-full max-w-md">
             <SearchTrigger />
+          </div>
+
+          {/* AI Assistant */}
+          <div className="mt-6 flex justify-center">
+            <Chatbot variant="static" />
           </div>
         </div>
       </div>

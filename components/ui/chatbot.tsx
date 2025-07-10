@@ -11,6 +11,8 @@ interface ChatbotProps {
 }
 
 const Chatbot: React.FC<ChatbotProps> = ({ variant = 'fixed', className }) => {
+  const isStatic = variant === 'static';
+  
   return (
     <AISearchTrigger
       className={cn(
@@ -18,15 +20,24 @@ const Chatbot: React.FC<ChatbotProps> = ({ variant = 'fixed', className }) => {
         variant === 'fixed' 
           ? 'fixed bottom-4 right-4 z-40' 
           : 'relative',
-        'h-14 min-w-[3.5rem] rounded-full shadow-lg transition-all duration-300 ease-in-out',
-        'hover:shadow-xl hover:min-w-[160px] group overflow-hidden',
+        'h-14 rounded-full shadow-lg transition-all duration-300 ease-in-out',
+        'hover:shadow-xl group overflow-hidden',
+        isStatic ? 'min-w-[160px] px-4' : 'min-w-[3.5rem] hover:min-w-[160px]',
         className
       )}
       aria-label="Open AI Assistant"
     >
-      <div className="flex items-center justify-center px-4 w-full h-full">
+      <div className={cn(
+        "flex items-center justify-center w-full h-full",
+        isStatic ? "gap-2" : "group-hover:gap-2"
+      )}>
         <Sparkles className="h-5 w-5 text-red-600 flex-shrink-0" />
-        <span className="overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out max-w-0 opacity-0 group-hover:ml-2 group-hover:max-w-[100px] group-hover:opacity-100">
+        <span className={cn(
+          "whitespace-nowrap transition-all duration-300 ease-in-out",
+          isStatic 
+            ? "opacity-100" 
+            : "overflow-hidden max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100"
+        )}>
           AI Assistant
         </span>
       </div>
