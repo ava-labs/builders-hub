@@ -1,4 +1,5 @@
 "use client";
+
 import type React from "react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -11,8 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   ArrowUpDown,
   ArrowUp,
@@ -22,6 +23,7 @@ import {
   FileCode,
   BarChart3,
   Loader2,
+  Search,
 } from "lucide-react";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import {
@@ -61,6 +63,7 @@ export default function AvalancheMetrics() {
   const [sortField, setSortField] = useState<SortField>("weeklyTxCount");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [visibleCount, setVisibleCount] = useState(25);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const parseCSV = (csvText: string): ChainMetrics[] => {
     const lines = csvText.trim().split("\n");
@@ -75,7 +78,6 @@ export default function AvalancheMetrics() {
 
       for (let j = 0; j < line.length; j++) {
         const char = line[j];
-
         if (char === '"') {
           inQuotes = !inQuotes;
         } else if (char === "," && !inQuotes) {
@@ -91,7 +93,6 @@ export default function AvalancheMetrics() {
         const chainName = values[1].replace(/"/g, "");
         const chainLogoURI = values[2].replace(/"/g, "");
 
-        // Helper function to parse metric values
         const parseMetricValue = (value: string): number | string => {
           if (value === "N/A" || value === "") return "N/A";
           const parsed = Number.parseInt(value);
@@ -127,21 +128,19 @@ export default function AvalancheMetrics() {
 
       try {
         const response = await fetch("/data/chain-metrics.csv");
-
         if (!response.ok) {
           throw new Error(`Failed to fetch CSV: ${response.status}`);
         }
 
         const csvText = await response.text();
         const metrics = parseCSV(csvText);
-
         setChainMetrics(metrics);
 
         const lastModified = response.headers.get("last-modified");
         if (lastModified) {
-          setLastUpdated(new Date(lastModified).toLocaleString());
+          setLastUpdated(new Date(lastModified).toLocaleDateString());
         } else {
-          setLastUpdated(new Date().toLocaleString());
+          setLastUpdated(new Date().toLocaleDateString());
         }
       } catch (err: any) {
         console.error("Error fetching CSV data:", err);
@@ -165,26 +164,7 @@ export default function AvalancheMetrics() {
     return num.toLocaleString();
   };
 
-  const getActivityStatus = (
-    transactions: number | string,
-    addresses: number | string,
-    icmMessages: number | string
-  ) => {
-    const txCount = typeof transactions === "number" ? transactions : 0;
-    const addrCount = typeof addresses === "number" ? addresses : 0;
-    const icmCount = typeof icmMessages === "number" ? icmMessages : 0;
-
-    if (txCount === 0 && addrCount === 0 && icmCount === 0)
-      return { label: "Inactive", variant: "secondary" as const };
-    if (txCount < 100 && addrCount < 1000 && icmCount < 10)
-      return { label: "Low", variant: "outline" as const };
-    if (txCount < 1000 && addrCount < 10000 && icmCount < 100)
-      return { label: "Medium", variant: "default" as const };
-    return { label: "High", variant: "default" as const };
-  };
-
   const getChartData = () => {
-    // Get top 5 chains by weekly transaction count
     const validChains = chainMetrics
       .filter(
         (chain) =>
@@ -193,16 +173,16 @@ export default function AvalancheMetrics() {
       .sort((a, b) => (b.weeklyTxCount as number) - (a.weeklyTxCount as number))
       .slice(0, 5);
 
-    // Create chart data for each day
-    const days = [
-      "Day 1",
-      "Day 2",
-      "Day 3",
-      "Day 4",
-      "Day 5",
-      "Day 6",
-      "Day 7",
-    ];
+    const today = new Date();
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      days.push(
+        date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      );
+    }
+
     const dayKeys = [
       "day1TxCount",
       "day2TxCount",
@@ -217,7 +197,6 @@ export default function AvalancheMetrics() {
       const dayKey = dayKeys[index];
       const dataPoint: any = { day };
 
-      // Add top chains data
       let topChainsTotal = 0;
       validChains.forEach((chain) => {
         const chainKey =
@@ -231,16 +210,13 @@ export default function AvalancheMetrics() {
         topChainsTotal += value;
       });
 
-      // Calculate total transactions for this day across ALL chains
       const totalDayTransactions = chainMetrics.reduce((sum, chain) => {
         const value =
           typeof chain[dayKey] === "number" ? (chain[dayKey] as number) : 0;
         return sum + value;
       }, 0);
 
-      // Others = Total for this day - Top 5 chains for this day
       const othersTotal = totalDayTransactions - topChainsTotal;
-
       if (othersTotal > 0) {
         dataPoint["Others"] = othersTotal;
         dataPoint["Others_fullName"] = "Others";
@@ -265,11 +241,14 @@ export default function AvalancheMetrics() {
       setSortField(field);
       setSortDirection("desc");
     }
-    // Reset visible count when sorting changes
     setVisibleCount(25);
   };
 
-  const sortedData = [...chainMetrics].sort((a, b) => {
+  const filteredData = chainMetrics.filter((chain) => {
+    return chain.chainName.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
+  const sortedData = [...filteredData].sort((a, b) => {
     const aValue = a[sortField];
     const bValue = b[sortField];
 
@@ -279,14 +258,11 @@ export default function AvalancheMetrics() {
         : bValue.localeCompare(aValue);
     }
 
-    // Handle mixed types (number vs string)
     const aNum = typeof aValue === "number" ? aValue : 0;
     const bNum = typeof bValue === "number" ? bValue : 0;
-
     return sortDirection === "asc" ? aNum - bNum : bNum - aNum;
   });
 
-  // Get visible data based on current pagination
   const visibleData = sortedData.slice(0, visibleCount);
   const hasMoreData = visibleCount < sortedData.length;
 
@@ -304,23 +280,55 @@ export default function AvalancheMetrics() {
     <Button
       variant="ghost"
       size="sm"
-      className="h-auto p-0 font-semibold hover:bg-transparent text-foreground"
+      className="h-auto p-0 font-medium hover:bg-transparent text-muted-foreground hover:text-foreground transition-colors"
       onClick={() => handleSort(field)}
     >
-      <span className="flex items-center gap-1">
+      <span className="flex items-center gap-1.5">
         {children}
         {sortField === field ? (
           sortDirection === "asc" ? (
-            <ArrowUp className="h-3 w-3" />
+            <ArrowUp className="h-3.5 w-3.5" />
           ) : (
-            <ArrowDown className="h-3 w-3" />
+            <ArrowDown className="h-3.5 w-3.5" />
           )
         ) : (
-          <ArrowUpDown className="h-3 w-3 opacity-50" />
+          <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />
         )}
       </span>
     </Button>
   );
+
+  const getActivityDots = (
+    transactions: number | string,
+    addresses: number | string,
+    icmMessages: number | string
+  ) => {
+    const txCount = typeof transactions === "number" ? transactions : 0;
+    const addrCount = typeof addresses === "number" ? addresses : 0;
+    const icmCount = typeof icmMessages === "number" ? icmMessages : 0;
+
+    if (txCount === 0 && addrCount === 0 && icmCount === 0) return 0;
+    if (txCount < 100 && addrCount < 1000 && icmCount < 10) return 1;
+    if (txCount < 1000 && addrCount < 10000 && icmCount < 100) return 2;
+    return 3;
+  };
+
+  const ActivityIndicator = ({ count }: { count: number }) => {
+    const getColor = (index: number) => {
+      if (index >= count) return "bg-muted";
+      if (count === 1) return "bg-red-500";
+      if (count === 2) return "bg-yellow-500";
+      return "bg-green-600";
+    };
+
+    return (
+      <div className="flex items-center justify-center gap-1">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className={`w-3 h-1.5 rounded-full ${getColor(i)}`} />
+        ))}
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -328,7 +336,7 @@ export default function AvalancheMetrics() {
         <main className="container mx-auto px-4 py-12">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+              <Loader2 className="h-12 w-12 animate-spin text-orange-500 mx-auto mb-4" />
               <p className="text-lg font-medium">Loading chain metrics...</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Fetching latest data from CSV
@@ -388,150 +396,190 @@ export default function AvalancheMetrics() {
 
   const { chartData, topChains } = getChartData();
 
-  // Define beautiful colors similar to the screenshot
   const areaColors = [
-    "#8dd3c7", // Soft teal/mint
-    "#fdb462", // Warm orange/salmon
-    "#b3de69", // Light green
-    "#fccde5", // Soft pink
-    "#80b1d3", // Light blue
-    "#bebada", // Light purple
+    "#667eea",
+    "#764ba2",
+    "#f093fb",
+    "#4facfe",
+    "#43e97b",
+    "#38f9d7",
   ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <main className="container mx-auto px-4 py-6 md:py-12 space-y-6">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+      <main className="container mx-auto px-4 py-8 space-y-8">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+          <div className="space-y-3">
+            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">
               Avalanche Mainnet L1 Stats
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-base text-muted-foreground max-w-2xl leading-relaxed">
               An opinionated collection of stats for the Avalanche Mainnet L1s.
               Updated daily.
             </p>
           </div>
-          <div className="text-left sm:text-right">
-            <p className="text-sm text-muted-foreground">Last updated</p>
-            <p className="text-sm font-medium">{lastUpdated || "Just now"}</p>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Last updated</span>
+            <span className="font-medium">{lastUpdated || "Just now"}</span>
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
-          <Card className="border-blue-200 dark:border-blue-800">
-            <CardContent className="p-3 md:p-4">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
-                <span className="text-xs md:text-sm font-medium text-blue-600 dark:text-blue-400">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+          <Card className="py-0 bg-card hover:border-border transition-colors">
+            <CardContent className="p-6">
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-muted-foreground">
                   Total Mainnet L1s
-                </span>
+                </h3>
+                <div className="space-y-1">
+                  <p className="text-3xl font-bold text-foreground">
+                    {chainMetrics.length}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Active blockchain networks
+                  </p>
+                </div>
               </div>
-              <p className="text-xl md:text-2xl font-bold text-blue-700 dark:text-blue-300 mt-1">
-                {chainMetrics.length}
-              </p>
             </CardContent>
           </Card>
 
-          <Card className="border-green-200 dark:border-green-800">
-            <CardContent className="p-3 md:p-4">
-              <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
-                <span className="text-xs md:text-sm font-medium text-green-600 dark:text-green-400">
-                  Weekly Active Chains
-                </span>
+          <Card className="py-0 bg-card hover:border-border transition-colors">
+            <CardContent className="p-6">
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Weekly Transactions
+                </h3>
+                <div className="space-y-1">
+                  <p className="text-3xl font-bold text-foreground">
+                    {formatNumber(
+                      chainMetrics.reduce((sum, chain) => {
+                        const tx =
+                          typeof chain.weeklyTxCount === "number"
+                            ? chain.weeklyTxCount
+                            : 0;
+                        return sum + tx;
+                      }, 0)
+                    )}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Across all L1 chains
+                  </p>
+                </div>
               </div>
-              <p className="text-xl md:text-2xl font-bold text-green-700 dark:text-green-300 mt-1">
-                {
-                  chainMetrics.filter((chain) => {
-                    const txCount =
-                      typeof chain.weeklyTxCount === "number"
-                        ? chain.weeklyTxCount
-                        : 0;
-                    const addrCount =
-                      typeof chain.weeklyActiveAddresses === "number"
-                        ? chain.weeklyActiveAddresses
-                        : 0;
-                    return txCount > 0 || addrCount > 0;
-                  }).length
-                }
-              </p>
             </CardContent>
           </Card>
 
-          <Card className="border-purple-200 dark:border-purple-800">
-            <CardContent className="p-3 md:p-4">
-              <div className="flex items-center gap-2">
-                <FileCode className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
-                <span className="text-xs md:text-sm font-medium text-purple-600 dark:text-purple-400">
-                  Weekly Deployed Contracts
-                </span>
+          <Card className="py-0 bg-card hover:border-border transition-colors">
+            <CardContent className="p-6">
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Active Addresses
+                </h3>
+                <div className="space-y-1">
+                  <p className="text-3xl font-bold text-foreground">
+                    {formatNumber(
+                      chainMetrics.reduce((sum, chain) => {
+                        const addresses =
+                          typeof chain.weeklyActiveAddresses === "number"
+                            ? chain.weeklyActiveAddresses
+                            : 0;
+                        return sum + addresses;
+                      }, 0)
+                    )}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Weekly active users
+                  </p>
+                </div>
               </div>
-              <p className="text-xl md:text-2xl font-bold text-purple-700 dark:text-purple-300 mt-1">
-                {formatFullNumber(
-                  chainMetrics.reduce((sum, chain) => {
-                    const contracts =
-                      typeof chain.weeklyContractsDeployed === "number"
-                        ? chain.weeklyContractsDeployed
-                        : 0;
-                    return sum + contracts;
-                  }, 0)
-                )}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-orange-200 dark:border-orange-800">
-            <CardContent className="p-3 md:p-4">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 md:h-5 md:w-5 text-orange-600" />
-                <span className="text-xs md:text-sm font-medium text-orange-600 dark:text-orange-400">
-                  Weekly Active Addresses
-                </span>
-              </div>
-              <p className="text-xl md:text-2xl font-bold text-orange-700 dark:text-orange-300 mt-1">
-                {formatFullNumber(
-                  chainMetrics.reduce((sum, chain) => {
-                    const addresses =
-                      typeof chain.weeklyActiveAddresses === "number"
-                        ? chain.weeklyActiveAddresses
-                        : 0;
-                    return sum + addresses;
-                  }, 0)
-                )}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-green-200 dark:border-green-800">
-            <CardContent className="p-3 md:p-4">
-              <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
-                <span className="text-xs md:text-sm font-medium text-green-600 dark:text-green-400">
-                  All-time ICM Messages
-                </span>
-              </div>
-              <p className="text-xl md:text-2xl font-bold text-green-700 dark:text-green-300 mt-1">
-                {formatFullNumber(
-                  chainMetrics.reduce((sum, chain) => {
-                    const icmMessages =
-                      typeof chain.totalIcmMessages === "number"
-                        ? chain.totalIcmMessages
-                        : 0;
-                    return sum + icmMessages;
-                  }, 0)
-                )}
-              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Daily Transaction Trends Chart */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="py-0 bg-blue-500/10 border-blue-500/20">
+            <CardContent className="p-4">
+              <div className="text-center space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Weekly Active Chains
+                </p>
+                <p className="text-lg font-bold text-foreground">
+                  {
+                    chainMetrics.filter((chain) => {
+                      const txCount =
+                        typeof chain.weeklyTxCount === "number"
+                          ? chain.weeklyTxCount
+                          : 0;
+                      const addrCount =
+                        typeof chain.weeklyActiveAddresses === "number"
+                          ? chain.weeklyActiveAddresses
+                          : 0;
+                      return txCount > 0 || addrCount > 0;
+                    }).length
+                  }
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="py-0 bg-purple-500/10 border-purple-500/20">
+            <CardContent className="p-4">
+              <div className="text-center space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Contracts Deployed
+                </p>
+                <p className="text-lg font-bold text-foreground">
+                  {formatNumber(
+                    chainMetrics.reduce((sum, chain) => {
+                      const contracts =
+                        typeof chain.weeklyContractsDeployed === "number"
+                          ? chain.weeklyContractsDeployed
+                          : 0;
+                      return sum + contracts;
+                    }, 0)
+                  )}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="py-0 bg-green-500/10 border-green-500/20">
+            <CardContent className="p-4">
+              <div className="text-center space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                  ICM Messages
+                </p>
+                <p className="text-lg font-bold text-foreground">
+                  {formatNumber(
+                    chainMetrics.reduce((sum, chain) => {
+                      const icmMessages =
+                        typeof chain.totalIcmMessages === "number"
+                          ? chain.totalIcmMessages
+                          : 0;
+                      return sum + icmMessages;
+                    }, 0)
+                  )}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="py-0 bg-yellow-500/10 border-yellow-500/20">
+            <CardContent className="p-4">
+              <div className="text-center space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Total Validators
+                </p>
+                <p className="text-lg font-bold text-foreground">2092</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-              <BarChart3 className="h-5 w-5 text-primary" />
+              <BarChart3 className="h-5 w-5 text-orange-500" />
               Daily Transaction Trends - Top L1s
             </CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -688,172 +736,184 @@ export default function AvalancheMetrics() {
           </CardContent>
         </Card>
 
-        {/* Main Table */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              L1 Metrics Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-b-2">
-                    <TableHead className="font-semibold py-4 min-w-[200px] px-4">
-                      <SortButton field="chainName">L1 Name</SortButton>
-                    </TableHead>
-                    <TableHead className="font-semibold text-center min-w-[140px]">
-                      <SortButton field="weeklyTxCount">
-                        <span className="hidden lg:flex items-center gap-1">
-                          <BarChart3 className="h-4 w-4 text-blue-600" />
-                          Weekly Transactions
-                        </span>
-                        <span className="lg:hidden">Weekly Tx</span>
-                      </SortButton>
-                    </TableHead>
-                    <TableHead className="font-semibold text-center min-w-[140px]">
-                      <SortButton field="weeklyContractsDeployed">
-                        <span className="hidden lg:flex items-center gap-1">
-                          <FileCode className="h-4 w-4 text-purple-600" />
-                          Contracts Deployed
-                        </span>
-                        <span className="lg:hidden">Contracts</span>
-                      </SortButton>
-                    </TableHead>
-                    <TableHead className="font-semibold text-center min-w-[140px]">
-                      <SortButton field="weeklyActiveAddresses">
-                        <span className="hidden lg:flex items-center gap-1">
-                          <Users className="h-4 w-4 text-orange-600" />
-                          Active Addresses
-                        </span>
-                        <span className="lg:hidden">Addresses</span>
-                      </SortButton>
-                    </TableHead>
-                    <TableHead className="font-semibold text-center min-w-[140px]">
-                      <SortButton field="totalIcmMessages">
-                        <span className="hidden lg:flex items-center gap-1">
-                          <Activity className="h-4 w-4 text-green-600" />
-                          Total ICM Count
-                        </span>
-                        <span className="lg:hidden">ICM</span>
-                      </SortButton>
-                    </TableHead>
-                    <TableHead className="font-semibold text-center min-w-[100px]">
-                      Activity
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visibleData.map((chain, index) => {
-                    const activityStatus = getActivityStatus(
-                      chain.weeklyTxCount,
-                      chain.weeklyActiveAddresses,
-                      chain.totalIcmMessages
-                    );
-                    return (
-                      <TableRow
-                        key={chain.chainId}
-                        className="hover:bg-muted/50 transition-colors"
-                      >
-                        <TableCell className="font-medium py-4 p-4">
-                          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 rounded-xl bg-white"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSearchTerm("");
+              setVisibleCount(25);
+            }}
+          >
+            Clear Search
+          </Button>
+        </div>
+
+        <div className="bg-card/50 backdrop-blur-sm rounded-lg border overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b-2 bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="font-medium py-6 px-6 text-muted-foreground min-w-[200px]">
+                    <SortButton field="chainName">L1 Name</SortButton>
+                  </TableHead>
+                  <TableHead className="font-medium text-center min-w-[140px] text-muted-foreground">
+                    <SortButton field="weeklyTxCount">
+                      <span className="hidden lg:flex items-center gap-1">
+                        <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        Weekly Transactions
+                      </span>
+                      <span className="lg:hidden">Weekly Tx</span>
+                    </SortButton>
+                  </TableHead>
+                  <TableHead className="font-medium text-center min-w-[140px] text-muted-foreground">
+                    <SortButton field="weeklyContractsDeployed">
+                      <span className="hidden lg:flex items-center gap-1">
+                        <FileCode className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                        Contracts Deployed
+                      </span>
+                      <span className="lg:hidden">Contracts</span>
+                    </SortButton>
+                  </TableHead>
+                  <TableHead className="font-medium text-center min-w-[140px] text-muted-foreground">
+                    <SortButton field="weeklyActiveAddresses">
+                      <span className="hidden lg:flex items-center gap-1">
+                        <Users className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                        Active Addresses
+                      </span>
+                      <span className="lg:hidden">Addresses</span>
+                    </SortButton>
+                  </TableHead>
+                  <TableHead className="font-medium text-center min-w-[140px] text-muted-foreground">
+                    <SortButton field="totalIcmMessages">
+                      <span className="hidden lg:flex items-center gap-1">
+                        <Activity className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        Total ICM Count
+                      </span>
+                      <span className="lg:hidden">ICM</span>
+                    </SortButton>
+                  </TableHead>
+                  <TableHead className="font-medium text-center min-w-[100px] text-muted-foreground">
+                    Activity
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleData.map((chain, index) => {
+                  return (
+                    <TableRow
+                      key={chain.chainId}
+                      className="border-b border-border/50 hover:bg-muted/30 transition-colors"
+                    >
+                      <TableCell className="py-4 px-6">
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
                             {chain.chainLogoURI ? (
                               <Image
                                 src={chain.chainLogoURI || "/placeholder.svg"}
                                 alt={`${chain.chainName} logo`}
                                 width={32}
                                 height={32}
-                                className="rounded-full ring-2 ring-border flex-shrink-0"
+                                className="rounded-full flex-shrink-0 ring-2 ring-border/50"
                                 onError={(e) => {
                                   e.currentTarget.style.display = "none";
                                 }}
                               />
                             ) : (
-                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
                                 {chain.chainName.charAt(0)}
                               </div>
                             )}
-                            <span className="font-semibold text-sm md:text-base truncate">
-                              {chain.chainName}
-                            </span>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span
-                            className={`font-mono font-semibold text-sm ${
-                              typeof chain.weeklyTxCount === "number" &&
-                              chain.weeklyTxCount > 0
-                                ? "text-blue-600 dark:text-blue-400"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {typeof chain.weeklyTxCount === "number"
-                              ? formatFullNumber(chain.weeklyTxCount)
-                              : chain.weeklyTxCount}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span
-                            className={`font-mono font-semibold text-sm ${
-                              typeof chain.weeklyContractsDeployed ===
-                                "number" && chain.weeklyContractsDeployed > 0
-                                ? "text-purple-600 dark:text-purple-400"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {typeof chain.weeklyContractsDeployed === "number"
-                              ? formatFullNumber(chain.weeklyContractsDeployed)
-                              : chain.weeklyContractsDeployed}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span
-                            className={`font-mono font-semibold text-sm ${
-                              typeof chain.weeklyActiveAddresses === "number" &&
-                              chain.weeklyActiveAddresses > 0
-                                ? "text-orange-600 dark:text-orange-400"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {typeof chain.weeklyActiveAddresses === "number"
-                              ? formatFullNumber(chain.weeklyActiveAddresses)
-                              : chain.weeklyActiveAddresses}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span
-                            className={`font-mono font-semibold text-sm ${
-                              typeof chain.totalIcmMessages === "number" &&
-                              chain.totalIcmMessages > 0
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {typeof chain.totalIcmMessages === "number"
-                              ? formatFullNumber(chain.totalIcmMessages)
-                              : chain.totalIcmMessages}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge
-                            variant={activityStatus.variant}
-                            className="font-medium text-xs"
-                          >
-                            {activityStatus.label}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                          <div>
+                            <div className="font-semibold text-foreground text-base">
+                              {chain.chainName}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span
+                          className={`font-mono font-semibold text-sm ${
+                            typeof chain.weeklyTxCount === "number" &&
+                            chain.weeklyTxCount > 0
+                              ? "text-foreground"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {typeof chain.weeklyTxCount === "number"
+                            ? formatFullNumber(chain.weeklyTxCount)
+                            : chain.weeklyTxCount}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span
+                          className={`font-mono font-semibold text-sm ${
+                            typeof chain.weeklyContractsDeployed === "number" &&
+                            chain.weeklyContractsDeployed > 0
+                              ? "text-foreground"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {typeof chain.weeklyContractsDeployed === "number"
+                            ? formatFullNumber(chain.weeklyContractsDeployed)
+                            : chain.weeklyContractsDeployed}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span
+                          className={`font-mono font-semibold text-sm ${
+                            typeof chain.weeklyActiveAddresses === "number" &&
+                            chain.weeklyActiveAddresses > 0
+                              ? "text-foreground"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {typeof chain.weeklyActiveAddresses === "number"
+                            ? formatFullNumber(chain.weeklyActiveAddresses)
+                            : chain.weeklyActiveAddresses}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span
+                          className={`font-mono font-semibold text-sm ${
+                            typeof chain.totalIcmMessages === "number" &&
+                            chain.totalIcmMessages > 0
+                              ? "text-foreground"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {typeof chain.totalIcmMessages === "number"
+                            ? formatFullNumber(chain.totalIcmMessages)
+                            : chain.totalIcmMessages}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <ActivityIndicator
+                          count={getActivityDots(
+                            chain.weeklyTxCount,
+                            chain.weeklyActiveAddresses,
+                            chain.totalIcmMessages
+                          )}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
 
-        {/* Load More Button */}
         {hasMoreData && (
           <div className="flex justify-center">
             <Button
@@ -867,7 +927,6 @@ export default function AvalancheMetrics() {
           </div>
         )}
 
-        {/* Showing count indicator */}
         <div className="text-center">
           <p className="text-sm text-muted-foreground mb-2">
             Showing {Math.min(visibleCount, sortedData.length)} of{" "}
