@@ -6,10 +6,18 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import React, { useState } from "react";
 import { RegisterFormValues } from "./RegistrationForm";
 import { useFormContext } from "react-hook-form";
 import { User } from "next-auth";
+import { countries } from "@/constants/countries";
 
 interface Step1Props {
   user?: User; // Optional User prop
@@ -121,22 +129,29 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             )}
           />
 
-          {/* City */}
+          {/* Country */}
           <FormField
             control={form.control}
             name="city"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>City of Residence</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Your city"
-                    {...field}
-                    className="bg-transparent placeholder-zinc-600"
-                  />
-                </FormControl>
+                <FormLabel>Country of Residence</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="text-zinc-600">
+                      <SelectValue placeholder="Select your country" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-zinc-600 rounded-md shadow-md max-h-60 overflow-y-auto">
+                    {countries.map((country) => (
+                      <SelectItem key={country.value} value={country.label}>
+                        {country.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage className="text-zinc-600">
-                  Enter your current city of residence.
+                  This will help us bring in-person events closer to you.
                 </FormMessage>
               </FormItem>
             )}
