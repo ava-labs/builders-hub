@@ -348,14 +348,14 @@ const SplashPage = () => {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <a
-            href="https://github.com/ava-labs/avalanche-docs/discussions"
+            href="https://github.com/ava-labs/builders-hub/issues"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-between p-4 bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all duration-200 group"
           >
             <div className="flex items-center gap-3">
               <Github className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
-              <span className="font-medium text-zinc-900 dark:text-white">Github Developer Forum</span>
+              <span className="font-medium text-zinc-900 dark:text-white">Github Issues</span>
             </div>
             <ExternalLink className="w-4 h-4 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
           </a>
@@ -413,7 +413,7 @@ const SplashPage = () => {
               <svg className="w-5 h-5 text-zinc-600 dark:text-zinc-400" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
               </svg>
-              <span className="font-medium text-zinc-900 dark:text-white">Telegram Academy</span>
+              <span className="font-medium text-zinc-900 dark:text-white">Builder Hub Telegram</span>
             </div>
             <ExternalLink className="w-4 h-4 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
           </a>
