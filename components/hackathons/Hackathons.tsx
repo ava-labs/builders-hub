@@ -233,10 +233,9 @@ export default function Hackathons({
           Upcoming
         </h2>
         <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-        {upcomingHackathons.filter((x) => !x.top_most).length > 0 ? (
+        {upcomingHackathons.length > 0 ? (
           <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
             {upcomingHackathons
-              .filter((x) => !x.top_most)
               .map((hackathon: any) => (
                 <HackathonCard key={hackathon.id} hackathon={hackathon} />
               ))}
@@ -267,8 +266,8 @@ export default function Hackathons({
             <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
             <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
               {ongoingHackathons.map((hackathon: any) => (
-                <HackathonCard key={hackathon.id} hackathon={hackathon} />
-              ))}
+                  <HackathonCard key={hackathon.id} hackathon={hackathon} />
+                ))}
             </div>
           </>
         )}
@@ -328,8 +327,8 @@ export default function Hackathons({
         {/* <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" color="transparent" /> */}
         <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2 my-8">
           {pastHackathons.map((hackathon: any) => (
-            <HackathonCard key={hackathon.id} hackathon={hackathon} />
-          ))}
+              <HackathonCard key={hackathon.id} hackathon={hackathon} />
+            ))}
         </div>
         <Pagination className="flex justify-end gap-2">
           <PaginationContent className="flex-wrap cursor-pointer">
