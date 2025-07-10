@@ -1,41 +1,70 @@
-import { ChevronRight, Layers, UserPen, MessageCircle, Coins, Droplet, Code, Settings, Wrench, Server } from 'lucide-react';
+import { ChevronRight, Droplet, Code, Wrench, Server, Github, FileText, ExternalLink, Plus, UserPlus, Radio, Banknote, Shield, FileCode, Zap, Calculator, Repeat } from 'lucide-react';
+import { primaryNetworks, secondaryNetworks } from '../../../components/landing/globe';
 
 const SplashPage = () => {
   const features = [
     {
       title: "Create Chain",
       description: "Launch your custom L1 blockchain",
-      icon: <Layers className="w-6 h-6" />,
+      icon: <Plus className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
       href: "#createChain"
     },
     {
-      title: "Add Validator",
+      title: "Add L1 Validator", 
       description: "Add validators to your L1 network",
-      icon: <UserPen className="w-6 h-6" />,
+      icon: <UserPlus className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
       href: "#addValidator"
     },
     {
-      title: "ICM Relayer",
-      description: "Set up cross-chain message relaying",
-      icon: <MessageCircle className="w-6 h-6" />,
+      title: "Deploy Teleporter",
+      description: "Set up cross-chain messaging",
+      icon: <Radio className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",  
-      href: "#icmRelayer"
+      href: "#teleporterMessenger"
     },
     {
       title: "Native Token Remote",
       description: "Deploy native token bridge contracts",
-      icon: <Coins className="w-6 h-6" />,
+      icon: <Banknote className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
       href: "#deployNativeTokenRemote"
     },
     {
-      title: "Deployer Allowlist",
-      description: "Control contract deployment permissions",
-      icon: <Settings className="w-6 h-6" />,
+      title: "Deploy Proxy Contract",
+      description: "Set up upgradeable contracts",
+      icon: <Shield className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
-      href: "#deployerAllowlist"
+      href: "#deployProxyContract"
+    },
+    {
+      title: "Deploy Validator Manager",
+      description: "Manage L1 validator sets",
+      icon: <FileCode className="w-6 h-6" />,
+      bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
+      href: "#deployValidatorManager"
+    },
+    {
+      title: "Initialize Validator Set",
+      description: "Configure initial validators",
+      icon: <Zap className="w-6 h-6" />,
+      bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
+      href: "#initValidatorSet"
+    },
+    {
+      title: "Format Converter",
+      description: "Convert between data formats",
+      icon: <Repeat className="w-6 h-6" />,
+      bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
+      href: "#formatConverter"
+    },
+    {
+      title: "AVAX Unit Converter",
+      description: "Convert between AVAX units",
+      icon: <Calculator className="w-6 h-6" />,
+      bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
+      href: "#unitConverter"
     },
     {
       title: "RPC Methods Check",
@@ -45,7 +74,7 @@ const SplashPage = () => {
       href: "#rpcMethodsCheck"
     },
     {
-      title: "AvalancheGo Docker",
+      title: "Node Setup with Docker",
       description: "Set up node infrastructure with Docker",
       icon: <Server className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
@@ -59,6 +88,9 @@ const SplashPage = () => {
       href: "#faucet"
     }
   ];
+
+  // Combine primary and secondary networks, limiting to 12 for display
+  const ecosystemChains = [...primaryNetworks, ...secondaryNetworks].slice(0, 12);
 
   const handleCardClick = (href: string) => {
     if (href.startsWith('http')) {
@@ -112,44 +144,153 @@ const SplashPage = () => {
         ))}
       </div>
 
-      {/* Bottom CTA Section */}
-      <div className="text-center bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 rounded-2xl p-8">
-        <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-3">
-          Ready to get started?
-        </h3>
-        <p className="text-zinc-600 dark:text-zinc-400 mb-6 max-w-2xl mx-auto">
-          Choose a tool from the sidebar to begin building your Layer 1 blockchain, or explore these helpful resources.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-center">
+      {/* Ecosystem Section */}
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6 text-center">
+          Explore Avalanche L1s
+        </h2>
+        <div className="flex flex-wrap justify-center gap-3">
+          {ecosystemChains.map((chain, index) => (
+            <a
+              key={index}
+              href={chain.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-3 px-4 py-2.5 rounded-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-900/70 hover:border-zinc-300/50 dark:hover:border-zinc-700/50 transition-all duration-300 hover:scale-105"
+              title={`${chain.name}${chain.type ? ` - ${chain.type}` : ''}`}
+            >
+              <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+                <img 
+                  src={chain.image} 
+                  alt={chain.name}
+                  className="w-full h-full object-contain filter dark:brightness-90 group-hover:scale-110 transition-transform duration-300 rounded-full"
+                  onError={(e) => {
+                    // Fallback to a placeholder if image fails to load
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.parentElement!.innerHTML = `<div class="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-600 dark:text-zinc-400">${chain.name.substring(0, 2).toUpperCase()}</div>`;
+                  }}
+                />
+              </div>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors duration-200 whitespace-nowrap">
+                {chain.name}
+              </span>
+            </a>
+          ))}
+        </div>
+        <div className="text-center mt-6">
           <a
-            href="https://build.avax.network/academy/avalanche-fundamentals"
+            href="https://subnets.avax.network/subnets/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center px-6 py-3 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white font-semibold rounded-xl hover:bg-white dark:hover:bg-zinc-800 transition-all duration-300 hover:scale-105"
+            className="inline-flex items-center text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors duration-200"
           >
-            <img src="/small-logo.png" alt="Avalanche" className="h-4 w-auto mr-2" />
-            Academy
-            <ChevronRight className="w-4 h-4 ml-2" />
+            View all ecosystem projects
+            <ChevronRight className="w-4 h-4 ml-1" />
           </a>
+        </div>
+      </div>
+
+      {/* Support Section */}
+      <div className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 rounded-2xl p-8">
+        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6">
+          Support
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <a
+            href="https://github.com/ava-labs/avalanche-docs/discussions"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between p-4 bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all duration-200 group"
+          >
+            <div className="flex items-center gap-3">
+              <Github className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+              <span className="font-medium text-zinc-900 dark:text-white">Github Developer Forum</span>
+            </div>
+            <ExternalLink className="w-4 h-4 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+          </a>
+
+          <a
+            href="https://github.com/ava-labs/avalanche-starter-kit/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between p-4 bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all duration-200 group"
+          >
+            <div className="flex items-center gap-3">
+              <Code className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+              <span className="font-medium text-zinc-900 dark:text-white">App Examples</span>
+            </div>
+            <ExternalLink className="w-4 h-4 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+          </a>
+
+          <a
+            href="https://x.com/avax"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between p-4 bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all duration-200 group"
+          >
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5 text-zinc-600 dark:text-zinc-400" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+              <span className="font-medium text-zinc-900 dark:text-white">Avalanche on X</span>
+            </div>
+            <ExternalLink className="w-4 h-4 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+          </a>
+
+          <a
+            href="https://discord.gg/avax"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between p-4 bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all duration-200 group"
+          >
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5 text-zinc-600 dark:text-zinc-400" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
+              </svg>
+              <span className="font-medium text-zinc-900 dark:text-white">Discord</span>
+            </div>
+            <ExternalLink className="w-4 h-4 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+          </a>
+
+          <a
+            href="https://t.me/avalancheacademy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between p-4 bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all duration-200 group"
+          >
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5 text-zinc-600 dark:text-zinc-400" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
+              </svg>
+              <span className="font-medium text-zinc-900 dark:text-white">Telegram Academy</span>
+            </div>
+            <ExternalLink className="w-4 h-4 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+          </a>
+
           <a
             href="https://build.avax.network/docs"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center px-6 py-3 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white font-semibold rounded-xl hover:bg-white dark:hover:bg-zinc-800 transition-all duration-300 hover:scale-105"
+            className="flex items-center justify-between p-4 bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all duration-200 group"
           >
-            <img src="/small-logo.png" alt="Avalanche" className="h-4 w-auto mr-2" />
-            Documentation
-            <ChevronRight className="w-4 h-4 ml-2" />
+            <div className="flex items-center gap-3">
+              <FileText className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+              <span className="font-medium text-zinc-900 dark:text-white">Docs</span>
+            </div>
+            <ExternalLink className="w-4 h-4 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
           </a>
+
           <a
-            href="https://github.com/ava-labs/avalanche-starter-kit"
+            href="https://build.avax.network/academy/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center px-6 py-3 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white font-semibold rounded-xl hover:bg-white dark:hover:bg-zinc-800 transition-all duration-300 hover:scale-105"
+            className="flex items-center justify-between p-4 bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all duration-200 group lg:col-span-3"
           >
-            <Code className="w-4 h-4 mr-2 text-red-500" />
-            Starter Kit
-            <ChevronRight className="w-4 h-4 ml-2" />
+            <div className="flex items-center gap-3">
+              <img src="/small-logo.png" alt="Avalanche" className="h-5 w-auto" />
+              <span className="font-medium text-zinc-900 dark:text-white">Academy</span>
+            </div>
+            <ExternalLink className="w-4 h-4 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
           </a>
         </div>
       </div>
