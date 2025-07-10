@@ -82,16 +82,16 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             name="company_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Company (if applicable)</FormLabel>
+                <FormLabel>Company/University (if applicable)</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter your company name"
+                    placeholder="Enter your company/University name"
                     {...field}
                     className="bg-transparent placeholder-zinc-600"
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">
-                  If you are part of a company, mention it here. Otherwise,
+                  If you are part of a company or affiliated with a university, mention it here. Otherwise,
                   leave blank.
                 </FormMessage>
               </FormItem>
@@ -142,23 +142,21 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             )}
           />
 
-          {/* Dietary Restrictions */}
+          {/* Telegram User */}
           <FormField
             control={form.control}
-            name="dietary"
+            name="telegram_user"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Dietary Restrictions</FormLabel>
+                <FormLabel>Telegram Username</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter any dietary restrictions (if applicable)"
+                    placeholder="Enter your Telegram username (without @)"
                     className="bg-transparent placeholder-zinc-600"
                     {...field}
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">
-                  If you have allergies or dietary needs, please specify them
-                  here.
                 </FormMessage>
               </FormItem>
             )}

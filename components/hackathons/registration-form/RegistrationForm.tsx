@@ -33,40 +33,17 @@ export const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
   company_name: z.string().optional(),
-  telegram_user: z.string().optional(),
+  telegram_user: z.string().min(1, "Telegram username is required"),
   role: z.string().optional(),
   city: z.string().min(1, "City is required"),
-  interests: z.array(z.string()).min(1, "Interests are required"),
-  web3_proficiency: z.string().min(1, "web3 proficiency is required"),
-  tools: z.array(z.string()).min(1, "Tools are required"),
-  roles: z.array(z.string()).min(1, "Roles are required"),
-  languages: z.array(z.string()).min(1, "Languages are required"),
-  hackathon_participation: z
-    .string()
-    .min(1, "Hackathon participation is required"),
+  interests: z.array(z.string()).optional(),
+  web3_proficiency: z.string().optional(),
+  tools: z.array(z.string()).optional(),
+  roles: z.array(z.string()).optional(),
+  languages: z.array(z.string()).optional(),
+  hackathon_participation: z.string().optional(),
   dietary: z.string().optional().default(""),
-  github_portfolio: z
-    .string()
-    .min(2, { message: "GitHub repository is required" })
-    .url({ message: "Please enter a valid URL" })
-    .refine(
-      (val) => {
-        try {
-          const url = new URL(val.startsWith("http") ? val : `https://${val}`);
-          return (
-            url.hostname === "github.com" &&
-            url.pathname.split("/").length >= 2 &&
-            url.pathname.split("/")[1].length > 0
-          );
-        } catch {
-          return false;
-        }
-      },
-      {
-        message:
-          "Please enter a valid GitHub URL (e.g., https://github.com/username or github.com/username)",
-      }
-    ),
+  github_portfolio: z.string().optional(),
   terms_event_conditions: z.boolean().refine((value) => value === true, {
     message: "You must agree to participate in any Builder Hub events. Event Terms and Conditions.",
   }),
@@ -307,7 +284,7 @@ export function RegisterForm({
         "name",
         "email",
         "company_name",
-        "dietary",
+        "telegram_user",
         "role",
         "city",
       ];
