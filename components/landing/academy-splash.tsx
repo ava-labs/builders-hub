@@ -152,11 +152,6 @@ export default function AcademySplash() {
                   </div>
                   <ChevronRight className="size-4 text-zinc-400 dark:text-zinc-600 group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors" />
                 </div>
-                <img
-                  src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/icm-chainlink-1W7GtDwLj25WkXIsFeJpWy8K3ovrVM.jpg"
-                  alt=""
-                  className="absolute right-0 top-0 h-full w-1/2 object-cover opacity-5 lg:opacity-10"
-                />
               </Link>
 
               {/* CTA */}
