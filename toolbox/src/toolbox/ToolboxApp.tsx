@@ -753,8 +753,8 @@ export default function ToolboxApp() {
       </div>
 
       <div 
-        className={`fixed left-0 top-0 h-screen bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border-r border-zinc-200 dark:border-zinc-800 flex flex-col shadow-sm transition-all duration-300 z-50 ${
-          isSidebarHovered ? 'w-80' : 'w-16'
+        className={`fixed left-0 top-0 h-screen bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 z-50 ${
+          isSidebarHovered ? 'w-80 shadow-xl' : 'w-16 shadow-sm'
         }`}
         onMouseEnter={() => setIsSidebarHovered(true)}
         onMouseLeave={() => setIsSidebarHovered(false)}
@@ -987,7 +987,7 @@ export default function ToolboxApp() {
         </div>
       </div>
       
-      <div className={`flex-1 p-6 min-w-0 transition-all duration-300 ${isSidebarHovered ? 'ml-80' : 'ml-16'}`}>
+      <div className="flex-1 p-6 min-w-0 ml-16">
         {renderSelectedComponent()}
       </div>
     </div>
