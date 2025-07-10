@@ -45,13 +45,13 @@ function Hero(): React.ReactElement {
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 via-transparent to-transparent dark:from-blue-950/20 dark:via-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-zinc-50/50 via-transparent to-transparent dark:from-zinc-950/20 dark:via-transparent" />
       
       <div className="relative mx-auto max-w-7xl px-6 lg:px-8 py-16">
         <div className="mx-auto w-full lg:mx-0">
           <div className="flex flex-col items-center text-center">
             {/* Badge */}
-            {/* <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-blue-100 dark:bg-blue-900/30 px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-300">
+            {/* <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-zinc-100 dark:bg-zinc-900/30 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
               <BookOpen className="h-4 w-4" />
               <span>Interactive Learning Paths</span>
             </div> */}
@@ -108,7 +108,7 @@ function CourseCatalog(): React.ReactElement {
     
     // Development/Programming topics
     if (topicLower.includes('solidity') || topicLower.includes('foundry') || topicLower.includes('smart contract')) {
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
+      return "bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300";
     }
     
     // Validator/Staking topics
@@ -142,9 +142,9 @@ function CourseCatalog(): React.ReactElement {
         <div className="mb-20">
           <div className="text-center mb-12">
             <div className="flex justify-center mb-6">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-100 dark:border-blue-900/30">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-zinc-50 to-zinc-100 dark:from-zinc-950/20 dark:to-zinc-950/30 border border-zinc-200 dark:border-zinc-800/30">
                 <div className="flex -space-x-1">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-zinc-500 animate-pulse" />
                   <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse delay-75" />
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse delay-150" />
                 </div>
@@ -173,7 +173,7 @@ function CourseCatalog(): React.ReactElement {
           
           {/* Background decoration */}
           <div className="relative">
-            <div className="absolute inset-0 -top-20 bg-gradient-to-b from-transparent via-blue-50/20 to-transparent dark:via-blue-950/10 pointer-events-none" />
+            <div className="absolute inset-0 -top-20 bg-gradient-to-b from-transparent via-zinc-50/20 to-transparent dark:via-zinc-950/10 pointer-events-none" />
             <LearningTree />
           </div>
         </div>
@@ -186,7 +186,7 @@ function CourseCatalog(): React.ReactElement {
             </h2>
             <Link 
               href="/guides" 
-              className="ml-auto text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors flex items-center gap-1"
+              className="ml-auto text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 font-medium transition-colors flex items-center gap-1"
             >
               View all guides
               <ArrowRight className="h-3 w-3" />
@@ -232,7 +232,7 @@ function CourseCatalog(): React.ReactElement {
                   
                   {/* Content */}
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-2 text-zinc-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    <h3 className="text-lg font-semibold mb-2 text-zinc-900 dark:text-white line-clamp-2 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors">
                       {guide.data.title}
                     </h3>
                     
@@ -247,7 +247,7 @@ function CourseCatalog(): React.ReactElement {
                       <Clock className="w-3 h-3" />
                       <span>5-10 min read</span>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors" />
                   </div>
                 </div>
               </Link>
