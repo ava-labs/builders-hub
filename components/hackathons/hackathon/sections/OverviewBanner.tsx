@@ -45,15 +45,23 @@ export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered 
           ${hackathon.total_prizes.toLocaleString("en-US")}
         </h2>
         <div className="pointer-events-auto w-full mb-12 hidden xl:block">
-          <JoinButton
-            isRegistered={isRegistered}
-            hackathonId={id}
-            customLink={hackathon.content.join_custom_link}
-            customText={isTopMost ? "LEARN MORE" : hackathon.content.join_custom_text}
-            className="w-full bg-red-500 border-none text-zinc-100 rounded-md"
-            variant="secondary"
-            allowNavigationWhenRegistered={true}
-          />
+          {isTopMost ? (
+            <Button asChild variant="secondary" className="w-full bg-red-500 border-none text-zinc-100 rounded-md">
+              <Link href={`/hackathons/${id}`}>
+                LEARN MORE
+              </Link>
+            </Button>
+          ) : (
+            <JoinButton
+              isRegistered={isRegistered}
+              hackathonId={id}
+              customLink={hackathon.content.join_custom_link}
+              customText={hackathon.content.join_custom_text}
+              className="w-full bg-red-500 border-none text-zinc-100 rounded-md"
+              variant="secondary"
+              allowNavigationWhenRegistered={true}
+            />
+          )}
         </div>
         <div className="flex flex-col">
           <div className="hidden md:flex flex-col gap-2 max-w-[60%] md:max-w-[45%] xl:max-w-[60%]">
