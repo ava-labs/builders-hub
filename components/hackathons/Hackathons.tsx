@@ -58,6 +58,7 @@ function buildQueryString(
 type Props = {
   initialPastHackathons: HackathonHeader[];
   initialUpcomingHackathons: HackathonHeader[];
+  initialOngoingHackathons: HackathonHeader[];
   initialFilters: HackathonsFilters;
   totalPastHackathons: number;
   totalUpcomingHackathons: number;
@@ -66,6 +67,7 @@ type Props = {
 export default function Hackathons({
   initialPastHackathons,
   initialUpcomingHackathons,
+  initialOngoingHackathons,
   initialFilters,
   totalPastHackathons,
   totalUpcomingHackathons,
@@ -82,6 +84,9 @@ export default function Hackathons({
   const [upcomingHackathons, setUpcomingHackathons] = useState<
     HackathonHeader[]
   >(initialUpcomingHackathons);
+  const [ongoingHackathons, setOngoingHackathons] = useState<
+    HackathonHeader[]
+  >(initialOngoingHackathons);
 
   const [filters, setFilters] = useState<HackathonsFilters>(initialFilters);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -176,7 +181,8 @@ export default function Hackathons({
       handleSearchChange(searchValue);
     }
   };
-  const topMostHackathon = upcomingHackathons.find((x) => x.top_most);
+  const topMostHackathon = upcomingHackathons.find((x) => x.top_most) || 
+                          ongoingHackathons.find((x) => x.top_most);
 
   const addNewHackathon = () => {
     router.push('/hackathons/edit');
@@ -233,6 +239,21 @@ export default function Hackathons({
               <HackathonCard key={hackathon.id} hackathon={hackathon} />
             ))}
         </div>
+        
+        {ongoingHackathons.length > 0 && (
+          <>
+            <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">
+              Ongoing
+            </h2>
+            <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
+            <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
+              {ongoingHackathons.map((hackathon: any) => (
+                <HackathonCard key={hackathon.id} hackathon={hackathon} />
+              ))}
+            </div>
+          </>
+        )}
+        
         <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">
           Past
         </h2>
