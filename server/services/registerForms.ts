@@ -32,41 +32,48 @@ export const registerValidations: Validation[] = [
       requiredField(registerForm, "city"),
   },
   {
-    field: "interests",
-    message: "Please select at least one interest.",
+    field: "telegram_user",
+    message: "Telegram username is required.",
     validation: (registerForm: RegistrationForm) =>
-      hasAtLeastOne(registerForm, "interests"),
+      requiredField(registerForm, "telegram_user"),
   },
-  {
-    field: "web3_proficiency",
-    message: "Web3 proficiency is required.",
-    validation: (registerForm: RegistrationForm) =>
-      requiredField(registerForm, "web3_proficiency"),
-  },
-  {
-    field: "tools",
-    message: "Please select at least one tool.",
-    validation: (registerForm: RegistrationForm) =>
-      hasAtLeastOne(registerForm, "tools"),
-  },
-  {
-    field: "roles",
-    message: "Please select at least one role.",
-    validation: (registerForm: RegistrationForm) =>
-      hasAtLeastOne(registerForm, "roles"),
-  },
-  {
-    field: "languages",
-    message: "Please select at least one programming language.",
-    validation: (registerForm: RegistrationForm) =>
-      hasAtLeastOne(registerForm, "languages"),
-  },
-  {
-    field: "hackathon_participation",
-    message: "Hackathon participation is required.",
-    validation: (registerForm: RegistrationForm) =>
-      requiredField(registerForm, "hackathon_participation"),
-  },
+  // Note: The following fields are now optional in Step 2
+  // {
+  //   field: "interests",
+  //   message: "Please select at least one interest.",
+  //   validation: (registerForm: RegistrationForm) =>
+  //     hasAtLeastOne(registerForm, "interests"),
+  // },
+  // {
+  //   field: "web3_proficiency",
+  //   message: "Web3 proficiency is required.",
+  //   validation: (registerForm: RegistrationForm) =>
+  //     requiredField(registerForm, "web3_proficiency"),
+  // },
+  // {
+  //   field: "tools",
+  //   message: "Please select at least one tool.",
+  //   validation: (registerForm: RegistrationForm) =>
+  //     hasAtLeastOne(registerForm, "tools"),
+  // },
+  // {
+  //   field: "roles",
+  //   message: "Please select at least one role.",
+  //   validation: (registerForm: RegistrationForm) =>
+  //     hasAtLeastOne(registerForm, "roles"),
+  // },
+  // {
+  //   field: "languages",
+  //   message: "Please select at least one programming language.",
+  //   validation: (registerForm: RegistrationForm) =>
+  //     hasAtLeastOne(registerForm, "languages"),
+  // },
+  // {
+  //   field: "hackathon_participation",
+  //   message: "Hackathon participation is required.",
+  //   validation: (registerForm: RegistrationForm) =>
+  //     requiredField(registerForm, "hackathon_participation"),
+  // },
   {
     field: "terms_event_conditions",
     message: "You must accept the Event Terms and Conditions to continue.",
@@ -87,13 +94,36 @@ export const registerValidations: Validation[] = [
   },
 ];
 
+export const createRegisterValidations = (isOnlineHackathon: boolean): Validation[] => {
+  const baseValidations = registerValidations.filter(validation => validation.field !== "prohibited_items");
+  
+  if (!isOnlineHackathon) {
+    baseValidations.push({
+      field: "prohibited_items",
+      message: "You must agree not to bring prohibited items to continue.",
+      validation: (registerForm: RegistrationForm) =>
+        registerForm.prohibited_items === true,
+    });
+  }
+  
+  return baseValidations;
+};
+
 export const validateRegisterForm = (
-  registerData: Partial<RegistrationForm>
-): Validation[] => validateEntity(registerValidations, registerData);
+  registerData: Partial<RegistrationForm>,
+  isOnlineHackathon: boolean = false
+): Validation[] => validateEntity(createRegisterValidations(isOnlineHackathon), registerData);
 export async function createRegisterForm(
   registerData: Partial<RegistrationForm>
 ): Promise<RegistrationForm> {
-  const errors = validateRegisterForm(registerData);
+  // Get hackathon information to determine if it's online
+  const hackathon = await prisma.hackathon.findUnique({
+    where: { id: registerData.hackathon_id },
+  });
+  
+  const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
+  
+  const errors = validateRegisterForm(registerData, isOnlineHackathon);
   console.error(errors);
   if (errors.length > 0) {
     throw new ValidationError("Validation failed", errors);
