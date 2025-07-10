@@ -1,169 +1,172 @@
 "use client";
 
 import React from "react";
-import { Award, GraduationCap } from "lucide-react";
+import { GraduationCap, ChevronRight, Code2, Sparkles, TrendingUp, Trophy, Flame, ArrowRight, BookOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function AcademySplash() {
   return (
-    <div className="flex flex-col px-4 mb-20 py-16 lg:py-24 bg-gray-50/80 dark:bg-[rgba(15,15,15,0.4)] -mx-4">
-      <div className="mt-12 mx-auto font-geist relative max-w-7xl w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+    <div className="flex flex-col px-4 mb-20 py-16 lg:py-24">
+      <div className="mt-12 mx-auto relative max-w-7xl w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left side - Academy Info */}
-          <div className="flex flex-col justify-center">
-            <div className="mb-4">
-              <span className="text-sm font-medium text-gray-600 dark:text-slate-400 tracking-wide uppercase">
-                LEARN
-              </span>
+          <div className="flex flex-col justify-center space-y-8">
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2">
+                <GraduationCap className="size-5 text-zinc-600 dark:text-zinc-400" />
+                <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+                  Learn & Build
+                </span>
+              </div>
+              
+              <h2 className="text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight">
+                <span className="text-zinc-900 dark:text-white">
+                  Avalanche
+                </span>
+                <span className="block text-red-600">
+                  Academy
+                </span>
+              </h2>
+              
+              <p className="text-lg lg:text-xl text-zinc-600 dark:text-zinc-300 leading-relaxed max-w-xl">
+                Join thousands of developers learning blockchain through hands-on courses, 
+                hackathons, and real bounties. Track your progress and earn rewards.
+              </p>
             </div>
             
-            <h2 className="font-display text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tight mb-6
-              text-gray-900 dark:text-white">
-              Avalanche Academy
-            </h2>
-            
-            <p className="text-gray-600 dark:text-slate-300 leading-relaxed text-lg mb-8 max-w-2xl">
-              We offer fundamental courses specifically designed for individuals who are new to the Avalanche 
-              ecosystem, and advanced courses for those who wish to master the art of configuring, modifying, or even 
-              creating entirely new Virtual Machines from scratch.
-            </p>
-            
-            <div>
+            <div className="flex flex-col sm:flex-row gap-4">
               <Link
                 href="/academy"
                 className={cn(
-                  "inline-flex items-center gap-3 px-8 py-4 rounded-lg font-medium text-base",
-                  "transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1)",
-                  /* Light mode */
-                  "bg-gray-900 text-white hover:bg-gray-800",
-                  "border border-gray-900 hover:border-gray-800",
-                  "shadow-[0_4px_14px_0_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_0_rgba(0,0,0,0.15)]",
-                  /* Dark mode */
-                  "dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100",
-                  "dark:border-white dark:hover:border-gray-100",
-                  "hover:-translate-y-0.5"
+                  "group inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl",
+                  "bg-blue-600 hover:bg-blue-700 text-white font-medium",
+                  "transition-all duration-200",
+                  "shadow-lg hover:shadow-xl"
                 )}
               >
-                <GraduationCap className="w-5 h-5" />
-                Start learning
+                <span>Start Learning</span>
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              
+              <Link
+                href="/hackathons"
+                className={cn(
+                  "group inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl",
+                  "bg-white dark:bg-zinc-900/50 text-zinc-900 dark:text-white",
+                  "border border-zinc-200 dark:border-zinc-800",
+                  "font-medium",
+                  "transition-all duration-200",
+                  "hover:border-zinc-300 dark:hover:border-zinc-700"
+                )}
+              >
+                <Trophy className="size-5" />
+                <span>Join Hackathons</span>
               </Link>
             </div>
           </div>
           
-          {/* Right side - Certification Bento */}
-          <div className="w-full max-w-lg">
-            <div className="grid grid-cols-2 gap-4">
-              {/* Main Certificate Card */}
-              <div className={cn(
-                "col-span-2 p-6 rounded-2xl relative overflow-hidden",
-                "bg-gradient-to-br from-white via-gray-50/50 to-slate-50/30 dark:from-gray-900/90 dark:via-gray-800/40 dark:to-gray-900/60",
-                "border border-gray-200/60 dark:border-gray-700/50",
-                "shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]",
-                "backdrop-blur-sm"
-              )}>
-                {/* Subtle decorative elements */}
-                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-slate-200/20 to-gray-300/10 rounded-full blur-3xl dark:from-gray-600/20 dark:to-gray-700/10"></div>
-                <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-slate-300/15 to-gray-400/10 rounded-full blur-2xl dark:from-gray-500/15 dark:to-gray-600/10"></div>
-                
-                <div className="relative z-10 flex items-center justify-between mb-5">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-                      Official Certification
-                    </h3>
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                      Avalanche Developer
-                    </p>
+          {/* Right side - Wolfie Profile Card */}
+          <div className="relative">
+            {/* Main Profile Card */}
+            <div className={cn(
+              "relative bg-white dark:bg-zinc-900/50 rounded-2xl",
+              "border border-zinc-200 dark:border-zinc-800",
+              "shadow-xl dark:shadow-2xl p-8"
+            )}>
+              {/* Header with Wolfie */}
+              <div className="flex items-center gap-6 mb-8">
+                <div className="relative">
+                  <div className="size-20 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                    <Image 
+                      src="/wolfie/wolfie-hack.png" 
+                      alt="Intern Wolfie"
+                      width={80}
+                      height={80}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center shadow-lg shadow-slate-700/20 dark:from-slate-200 dark:to-slate-300 dark:shadow-slate-200/20">
-                    <Award className="w-6 h-6 text-white dark:text-slate-800" />
+                  <div className="absolute -bottom-2 -right-2 flex items-center gap-1 bg-red-600 text-white px-2 py-1 rounded-lg">
+                    <Flame className="size-3" />
+                    <span className="text-xs font-bold">42</span>
                   </div>
                 </div>
-                <div className="relative z-10 space-y-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-300 font-medium">Completion Progress</span>
-                    <span className="font-bold text-gray-900 dark:text-white text-base">78%</span>
-                  </div>
-                  <div className="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-slate-600 to-slate-700 rounded-full w-[78%] shadow-sm dark:from-slate-300 dark:to-slate-400"></div>
-                    <div className="absolute inset-0 bg-gradient-to-r from-slate-500/40 to-slate-600/40 rounded-full w-[78%] animate-pulse dark:from-slate-200/40 dark:to-slate-300/40"></div>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    Complete 3 more courses to earn your certification
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-1">
+                    Wolfie Hacks
+                  </h3>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    Level 15 • Master Builder
                   </p>
                 </div>
               </div>
-              
-              {/* Courses Completed */}
-              <div className={cn(
-                "p-4 rounded-2xl relative overflow-hidden",
-                "bg-gradient-to-br from-slate-50 to-white dark:from-slate-800/30 dark:to-gray-900/50",
-                "border border-slate-200/60 dark:border-slate-700/40",
-                "shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]"
-              )}>
-                <div className="absolute top-0 right-0 w-8 h-8 bg-slate-300/20 rounded-full blur-sm dark:bg-slate-600/20"></div>
-                <div className="relative text-center">
-                  <div className="text-3xl font-black text-slate-700 dark:text-slate-300 mb-1">
-                    12
-                  </div>
-                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                    Courses<br />Completed
-                  </div>
-                </div>
-              </div>
-              
-              {/* Hours Studied */}
-              <div className={cn(
-                "p-4 rounded-2xl relative overflow-hidden",
-                "bg-gradient-to-br from-zinc-50 to-white dark:from-zinc-800/30 dark:to-gray-900/50",
-                "border border-zinc-200/60 dark:border-zinc-700/40",
-                "shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]"
-              )}>
-                <div className="absolute top-0 right-0 w-8 h-8 bg-zinc-300/20 rounded-full blur-sm dark:bg-zinc-600/20"></div>
-                <div className="relative text-center">
-                  <div className="text-3xl font-black text-zinc-700 dark:text-zinc-300 mb-1">
-                    48
-                  </div>
-                  <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                    Hours<br />Studied
-                  </div>
-                </div>
-              </div>
-              
-              {/* Skills Mastered */}
-              <div className={cn(
-                "col-span-2 p-5 rounded-2xl relative overflow-hidden",
-                "bg-gradient-to-br from-gray-50 via-white to-slate-50/30 dark:from-gray-800/30 dark:via-gray-900/50 dark:to-slate-900/40",
-                "border border-gray-200/60 dark:border-gray-700/40",
-                "shadow-[0_6px_24px_rgba(0,0,0,0.05)] dark:shadow-[0_6px_24px_rgba(0,0,0,0.2)]"
-              )}>
-                <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-br from-gray-300/15 to-slate-400/10 rounded-full blur-xl dark:from-gray-600/15 dark:to-slate-700/10"></div>
-                <div className="relative flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                    Skills Mastered
-                  </h4>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-slate-500 rounded-full animate-pulse dark:bg-slate-400"></div>
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                      8/12
+
+              {/* Progress */}
+              <div className="space-y-6 mb-8">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Academy Progress
                     </span>
+                    <span className="text-sm font-bold text-zinc-900 dark:text-white">78%</span>
+                  </div>
+                  <div className="relative h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                    <div className="absolute inset-0 bg-blue-600 rounded-full w-[78%] transition-all duration-700"></div>
                   </div>
                 </div>
-                <div className="relative flex flex-wrap gap-2">
-                  <span className="px-3 py-1.5 text-xs font-semibold bg-slate-700 text-white rounded-lg shadow-sm dark:bg-slate-200 dark:text-slate-800">
-                    Smart Contracts
-                  </span>
-                  <span className="px-3 py-1.5 text-xs font-semibold bg-gray-700 text-white rounded-lg shadow-sm dark:bg-gray-200 dark:text-gray-800">
-                    Avalanche L1s
-                  </span>
-                  <span className="px-3 py-1.5 text-xs font-semibold bg-zinc-700 text-white rounded-lg shadow-sm dark:bg-zinc-200 dark:text-zinc-800">
-                    Interoperability
-                  </span>
-                  <span className="px-3 py-1.5 text-xs font-semibold bg-stone-700 text-white rounded-lg shadow-sm dark:bg-stone-200 dark:text-stone-800">
-                    Custom VMs
-                  </span>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-zinc-900 dark:text-white">12</div>
+                  <div className="text-xs text-zinc-600 dark:text-zinc-400">Certificates</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-zinc-900 dark:text-white">7</div>
+                  <div className="text-xs text-zinc-600 dark:text-zinc-400">Bounties</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-zinc-900 dark:text-white">3</div>
+                  <div className="text-xs text-zinc-600 dark:text-zinc-400">Hackathons</div>
                 </div>
               </div>
+
+              {/* Current Focus */}
+              <Link 
+                href="/academy/icm-chainlink"
+                className="block relative overflow-hidden bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 mb-6 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors group"
+              >
+                <div className="relative flex items-center gap-3">
+                  <div className="size-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700 transition-colors">
+                    <BookOpen className="size-5 text-zinc-700 dark:text-zinc-300" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                      Currently Learning
+                    </p>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                      Chainlink VRF with Avalanche ICM
+                    </p>
+                  </div>
+                  <ChevronRight className="size-4 text-zinc-400 dark:text-zinc-600 group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors" />
+                </div>
+              </Link>
+
+              {/* CTA */}
+              <Link
+                href="/login"
+                className={cn(
+                  "w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl",
+                  "bg-blue-600 hover:bg-blue-700",
+                  "text-white font-medium text-sm",
+                  "transition-all duration-200 group"
+                )}
+              >
+                <span>Create Account</span>
+                <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
             </div>
           </div>
         </div>
