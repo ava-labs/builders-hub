@@ -191,6 +191,7 @@ export default function Hackathons({
               hackathon={topMostHackathon}
               id={topMostHackathon.id}
               isTopMost={true}
+              isRegistered={false} //To keep showing "Learn More" button
             />
             <Link href={`/hackathons/${topMostHackathon.id}`}>
               <Image
