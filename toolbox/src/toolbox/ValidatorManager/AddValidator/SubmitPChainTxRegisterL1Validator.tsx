@@ -4,7 +4,7 @@ import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
-import { useAvaCloudSDK } from '../../../stores/useAvaCloudSDK';
+import { useAvalancheSDK } from '../../../hooks/useAvalancheSDK';
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
@@ -26,7 +26,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   onError,
 }) => {
   const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
-  const { aggregateSignature } = useAvaCloudSDK();
+  const { aggregateSignature } = useAvalancheSDK();
   const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);

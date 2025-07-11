@@ -12,7 +12,7 @@ import { GetRegistrationJustification } from '../justification';
 import { packL1ValidatorWeightMessage } from '../../../coreViem/utils/convertWarp';
 import { packWarpIntoAccessList } from '../packWarp';
 import { extractL1ValidatorWeightMessage } from '../../../coreViem/methods/extractL1ValidatorWeightMessage';
-import { useAvaCloudSDK } from '../../../stores/useAvaCloudSDK';
+import { useAvalancheSDK } from '../../../hooks/useAvalancheSDK';
 
 interface CompleteChangeWeightProps {
   subnetIdL1: string;
@@ -40,7 +40,7 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
   ownerType,
 }) => {
   const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
-  const { aggregateSignature } = useAvaCloudSDK();
+  const { aggregateSignature } = useAvalancheSDK();
   const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
 
