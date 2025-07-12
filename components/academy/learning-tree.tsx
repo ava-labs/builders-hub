@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
-import { ArrowRight, BookOpen, Code, Globe, Layers, ChevronDown } from "lucide-react";
+import { ArrowRight, BookOpen, Code, Layers, ChevronDown, ArrowLeftRight } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface CourseNode {
@@ -115,7 +115,7 @@ const categoryStyles = {
   },
   "Interoperability": {
     gradient: "from-purple-500 to-purple-600",
-    icon: Globe,
+    icon: ArrowLeftRight,
     lightBg: "bg-purple-50",
     darkBg: "dark:bg-purple-950/30"
   },
