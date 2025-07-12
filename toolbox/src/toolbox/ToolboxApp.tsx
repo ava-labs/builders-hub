@@ -1,8 +1,7 @@
 "use client";
 
-import { Button } from "../components/Button";
 import { ErrorBoundary } from "react-error-boundary";
-import { RefreshCw, ChevronDown, ChevronRight, Layers, Users, MessageSquare, Coins, Settings, Wrench, GraduationCap, Home, Plus, Shield, ArrowUpDown, UserPlus, Weight, UserMinus, GitMerge, DollarSign, Search, RotateCcw, Calculator, Send, FileCode, BookOpen, Server, Globe, Zap, List, Lock, Banknote, Gift, Radio, Droplets, Monitor, Activity, RefreshCcw, Repeat, Moon, Sun, ArrowLeft } from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronRight, Layers, Users, MessagesSquare, Coins, Settings, Wrench, GraduationCap, Home, Plus, Shield, ArrowUpDown, UserPlus, Weight, UserMinus, GitMerge, DollarSign, Search, RotateCcw, Calculator, Send, FileCode, BookOpen, Server, Globe, Zap, List, Lock, Banknote, Gift, Radio, Droplets, Monitor, Activity, RefreshCcw, Repeat, Moon, Sun, ArrowLeft, Pin } from 'lucide-react';
 import { useState, useEffect, lazy, Suspense } from "react";
 import { GithubLink } from "../components/GithubLink";
 import { ErrorFallback } from "../components/ErrorFallback";
@@ -264,7 +263,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
     }
   },
   "Interchain Messaging": {
-    icon: <MessageSquare className="w-5 h-5" />,
+    icon: <MessagesSquare className="w-5 h-5" />,
     academy: {
       text: "Learn about cross-L1 interoperability using ICM",
       link: "https://build.avax.network/academy/interchain-messaging"
@@ -524,8 +523,10 @@ export default function ToolboxApp() {
     window.location.hash ? window.location.hash.substring(1) : defaultTool
   );
   
-  // State to track sidebar hover
+  // State to track sidebar hover and pin
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const [isSidebarPinned, setIsSidebarPinned] = useState(false);
+  const [showDarkModeToggle, setShowDarkModeToggle] = useState(false);
   
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -556,6 +557,28 @@ export default function ToolboxApp() {
       setIsDarkMode(false);
     }
   }, []);
+
+  // Determine if sidebar should be expanded
+  const isSidebarExpanded = isSidebarHovered || isSidebarPinned;
+
+  // Handle dark mode toggle visibility with delay
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    if (isSidebarExpanded) {
+      // Delay showing the toggle until transition is complete (300ms)
+      timeoutId = setTimeout(() => {
+        setShowDarkModeToggle(true);
+      }, 300);
+    } else {
+      // Hide immediately when sidebar collapses
+      setShowDarkModeToggle(false);
+    }
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isSidebarExpanded]);
 
   // Helper function to find which group and subgroup contains a specific tool
   const findParentGroupAndSubgroup = (toolId: string): { groupName: string | null, subgroupName: string | null } => {
@@ -754,14 +777,14 @@ export default function ToolboxApp() {
 
       <div 
         className={`fixed left-0 top-0 h-screen bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 z-50 ${
-          isSidebarHovered ? 'w-80 shadow-xl' : 'w-16 shadow-sm'
+          isSidebarExpanded ? 'w-80 shadow-xl' : 'w-16 shadow-sm'
         }`}
-        onMouseEnter={() => setIsSidebarHovered(true)}
-        onMouseLeave={() => setIsSidebarHovered(false)}
+        onMouseEnter={() => !isSidebarPinned && setIsSidebarHovered(true)}
+        onMouseLeave={() => !isSidebarPinned && setIsSidebarHovered(false)}
       >
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className={`p-4 border-b border-zinc-100 dark:border-zinc-800 transition-all duration-300 ${isSidebarHovered ? 'px-6' : 'px-3'}`}>
-            <div className="flex items-center justify-between mb-2">
+                      <div className={`p-4 border-b border-zinc-100 dark:border-zinc-800 transition-all duration-300 ${isSidebarExpanded ? 'px-6' : 'px-3'}`}>
+            <div className="mb-2 relative">
               <button
                 onClick={() => {
                   window.location.hash = "";
@@ -786,12 +809,25 @@ export default function ToolboxApp() {
                 </div>
               </button>
               
-              {/* Dark mode toggle - only visible when sidebar is expanded */}
-              {isSidebarHovered && (
+              {/* Pin and Dark mode toggles - only visible when sidebar is fully expanded */}
+              <div className={`absolute right-0 top-0 flex items-center gap-2 transition-all duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <button
+                  onClick={() => setIsSidebarPinned(!isSidebarPinned)}
+                  className={`p-2 rounded-lg transition-all duration-200 ${
+                    isSidebarPinned 
+                      ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50' 
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                  }`}
+                  title={isSidebarPinned ? "Unpin sidebar" : "Pin sidebar"}
+                  tabIndex={isSidebarExpanded ? 0 : -1}
+                >
+                  <Pin className={`w-5 h-5 transition-transform duration-200 ${isSidebarPinned ? 'rotate-45' : ''}`} />
+                </button>
                 <button
                   onClick={toggleDarkMode}
                   className="p-2 rounded-lg text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200"
                   title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+                  tabIndex={isSidebarExpanded ? 0 : -1}
                 >
                   {isDarkMode ? (
                     <Sun className="w-5 h-5" />
@@ -799,7 +835,7 @@ export default function ToolboxApp() {
                     <Moon className="w-5 h-5" />
                   )}
                 </button>
-              )}
+              </div>
             </div>
           </div>
             
@@ -819,22 +855,22 @@ export default function ToolboxApp() {
                         toggleGroup(groupName);
                       }
                     }}
-                    className={`flex w-full items-center ${isSidebarHovered ? 'justify-between' : 'justify-center'} px-3 py-3 text-left text-base font-semibold text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-all duration-200 border-b border-zinc-100 dark:border-zinc-800 mb-1 group ${
+                    className={`flex w-full items-center justify-between px-3 py-3 text-left text-base font-semibold text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-all duration-200 border-b border-zinc-100 dark:border-zinc-800 mb-1 group ${
                       isSingleComponent && singleComponent && selectedTool === singleComponent.id
                         ? 'bg-blue-50 dark:bg-zinc-700 text-blue-700 dark:text-white border-blue-200 dark:border-zinc-600'
                         : ''
                     }`}
-                    title={!isSidebarHovered ? groupName : undefined}
+                    title={!isSidebarExpanded ? groupName : undefined}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="flex-shrink-0">{group.icon}</div>
                       <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${
-                        isSidebarHovered ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
+                        isSidebarExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
                       }`}>{groupName}</span>
                     </div>
                     {!isSingleComponent && (
                       <div className={`flex-shrink-0 transition-all duration-300 ${
-                        isSidebarHovered ? 'opacity-100 ml-2' : 'opacity-0 ml-0'
+                        isSidebarExpanded ? 'opacity-100 ml-2' : 'opacity-0 ml-0'
                       }`}>
                         {expandedGroups[groupName]
                           ? <ChevronDown className="w-5 h-5 text-zinc-400" />
@@ -846,7 +882,7 @@ export default function ToolboxApp() {
                   
                   {!isSingleComponent && expandedGroups[groupName] && (
                     <div className={`overflow-hidden transition-all duration-300 ${
-                      isSidebarHovered 
+                      isSidebarExpanded 
                         ? 'max-h-[2000px] opacity-100 mt-1' 
                         : 'max-h-0 opacity-0'
                     }`}>
@@ -856,7 +892,7 @@ export default function ToolboxApp() {
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="block mb-3 mt-2 mx-3 group"
-                          tabIndex={isSidebarHovered ? 0 : -1}
+                          tabIndex={isSidebarExpanded ? 0 : -1}
                         >
                           <div className="bg-blue-50 dark:bg-zinc-800 hover:bg-blue-100 dark:hover:bg-zinc-700 hover:shadow-md hover:border-blue-300 dark:hover:border-zinc-600 rounded-lg p-3 border border-blue-200 dark:border-zinc-700 transition-all duration-200 group-hover:scale-[1.02]">
                             <div className="flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-zinc-200 mb-1 group-hover:text-blue-800 dark:group-hover:text-white transition-colors duration-200">
@@ -885,12 +921,12 @@ export default function ToolboxApp() {
                                       ? 'bg-blue-600 dark:bg-zinc-700 text-white dark:text-white font-medium shadow-sm'
                                       : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800'
                                   }`}
-                                  title={!isSidebarHovered ? label : undefined}
-                                  tabIndex={isSidebarHovered ? 0 : -1}
+                                  title={!isSidebarExpanded ? label : undefined}
+                                  tabIndex={isSidebarExpanded ? 0 : -1}
                                 >
                                   <div className="flex-shrink-0">{icon}</div>
                                   <span className={`block leading-relaxed font-medium whitespace-nowrap overflow-hidden transition-all duration-300 ${
-                                    isSidebarHovered ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
+                                    isSidebarExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
                                   }`}>{label}</span>
                                 </a>
                               </li>
@@ -906,16 +942,16 @@ export default function ToolboxApp() {
                               <button
                                 onClick={() => toggleSubgroup(subgroupKey)}
                                 className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-md transition-all duration-200 border-b border-zinc-100 dark:border-zinc-800 mb-1 group"
-                                tabIndex={isSidebarHovered ? 0 : -1}
+                                tabIndex={isSidebarExpanded ? 0 : -1}
                               >
                                 <div className="flex items-center gap-2 min-w-0">
                                   <div className="flex-shrink-0">{subgroup.icon}</div>
                                   <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${
-                                    isSidebarHovered ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
+                                    isSidebarExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
                                   }`}>{subgroupName}</span>
                                 </div>
                                 <div className={`flex-shrink-0 transition-all duration-300 ${
-                                  isSidebarHovered ? 'opacity-100 ml-2' : 'opacity-0 ml-0'
+                                  isSidebarExpanded ? 'opacity-100 ml-2' : 'opacity-0 ml-0'
                                 }`}>
                                   {expandedSubgroups[subgroupKey]
                                     ? <ChevronDown className="w-4 h-4 text-zinc-400" />
@@ -936,12 +972,12 @@ export default function ToolboxApp() {
                                             ? 'bg-blue-600 dark:bg-zinc-700 text-white dark:text-white font-medium shadow-sm'
                                             : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800'
                                         }`}
-                                        title={!isSidebarHovered ? label : undefined}
-                                        tabIndex={isSidebarHovered ? 0 : -1}
+                                        title={!isSidebarExpanded ? label : undefined}
+                                        tabIndex={isSidebarExpanded ? 0 : -1}
                                       >
                                         <div className="flex-shrink-0">{icon}</div>
                                         <span className={`block leading-relaxed font-medium whitespace-nowrap overflow-hidden transition-all duration-300 ${
-                                          isSidebarHovered ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
+                                          isSidebarExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
                                         }`}>{label}</span>
                                       </a>
                                     </li>
@@ -960,34 +996,34 @@ export default function ToolboxApp() {
           </nav>
         </div>
         
-        <div className={`border-t border-zinc-200 dark:border-zinc-700 p-2 bg-zinc-50 dark:bg-zinc-800/50 transition-all duration-300 ${isSidebarHovered ? 'px-4' : ''} space-y-2`}>
+        <div className={`border-t border-zinc-200 dark:border-zinc-700 p-2 bg-zinc-50 dark:bg-zinc-800/50 transition-all duration-300 ${isSidebarExpanded ? 'px-4' : ''} space-y-2`}>
           <a
             href="/"
-            className={`w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 border border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700 ${!isSidebarHovered ? 'px-2' : ''}`}
+            className={`w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 border border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700`}
           >
-            <ArrowLeft className={`w-4 h-4 transition-all duration-300 ${isSidebarHovered ? 'mr-2' : 'mr-0'}`} />
+            <ArrowLeft className={`w-4 h-4 transition-all duration-300 ${isSidebarExpanded ? 'mr-2' : 'mr-0'}`} />
             <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${
-              isSidebarHovered ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
+              isSidebarExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
             }`}>Back to Builder Hub</span>
           </a>
-          <Button
+          <button
             onClick={() => {
               if (window.confirm("Are you sure you want to reset the state?")) {
                 resetAllStores();
               }
             }}
-            className={`w-full text-sm font-medium ${!isSidebarHovered ? 'px-2' : ''}`}
-            variant="secondary"
-            icon={<RefreshCw className={`w-4 h-4 transition-all duration-300 ${isSidebarHovered ? 'mr-2' : 'mr-0'}`} />}
+            className="w-full flex items-center px-3 py-2 text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-900/50 rounded-lg transition-all duration-200"
+            title={!isSidebarExpanded ? "Reset State" : undefined}
           >
-            <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${
-              isSidebarHovered ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
+            <RefreshCw className="w-4 h-4 flex-shrink-0" />
+            <span className={`ml-2 whitespace-nowrap overflow-hidden transition-all duration-300 ${
+              isSidebarExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0 ml-0'
             }`}>Reset State</span>
-          </Button>
+          </button>
         </div>
       </div>
       
-      <div className="flex-1 p-6 min-w-0 ml-16">
+      <div className={`flex-1 p-6 min-w-0 transition-all duration-300 ${isSidebarPinned ? 'ml-80' : 'ml-16'}`}>
         {renderSelectedComponent()}
       </div>
     </div>
