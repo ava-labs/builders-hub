@@ -1,7 +1,6 @@
 import {
   SquareGanttChart, MonitorCog, Logs, MonitorCheck, Settings, Cable, Webhook, Github,
   Wrench,
-  GraduationCap,
   Terminal,
   Blocks,
   ArrowRight
@@ -11,6 +10,7 @@ import { cn } from '@/utils/cn';
 import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
 import { SearchTrigger } from '@/components/SearchTrigger';
+import Chatbot from '@/components/ui/chatbot';
 
 
 export const metadata: Metadata = createMetadata({
@@ -152,14 +152,6 @@ function AllCategories(): React.ReactElement {
   const categories = [
     {
       id: 1,
-      title: "Learn the Fundamentals",
-      description: "Master Avalanche concepts and architecture",
-      icon: GraduationCap,
-      href: "/academy/avalanche-fundamentals",
-      badge: "Beginner"
-    },
-    {
-      id: 2,
       title: "Virtual Machines",
       description: "Customize the EVM or build new VMs from scratch",
       icon: MonitorCog,
@@ -167,7 +159,7 @@ function AllCategories(): React.ReactElement {
       badge: "Advanced"
     },
     {
-      id: 3,
+      id: 2,
       title: "Interoperability",
       description: "Connect and transfer assets between L1s",
       icon: Cable,
@@ -175,7 +167,7 @@ function AllCategories(): React.ReactElement {
       badge: "Feature"
     },
     {
-      id: 4,
+      id: 3,
       title: "Nodes & Validators",
       description: "Run nodes and participate in network consensus",
       icon: MonitorCheck,
@@ -183,7 +175,7 @@ function AllCategories(): React.ReactElement {
       badge: "Infrastructure"
     },
     {
-      id: 5,
+      id: 4,
       title: "APIs & RPCs",
       description: "Integrate with Avalanche network APIs",
       icon: Webhook,
@@ -191,7 +183,7 @@ function AllCategories(): React.ReactElement {
       badge: "Reference"
     },
     {
-      id: 6,
+      id: 5,
       title: "Developer Tools",
       description: "CLI tools and utilities for development",
       icon: Wrench,
@@ -272,8 +264,13 @@ function Hero(): React.ReactElement {
           </div>
           
           {/* Quick Search */}
-          <div className="mt-8 w-full max-w-md">
+          <div className="w-full max-w-md">
             <SearchTrigger />
+          </div>
+
+          {/* AI Assistant */}
+          <div className="mt-6 flex justify-center">
+            <Chatbot variant="static" />
           </div>
         </div>
       </div>

@@ -105,6 +105,7 @@ export default function HackathonCard({
                 ? hackathon.custom_link
                 : `/hackathons/${hackathon.id}`
             }
+            target={hackathon.custom_link ? "_blank" : "_self"}
           >
             LEARN MORE
           </Link>

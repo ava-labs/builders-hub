@@ -18,7 +18,7 @@ const quickLinks = [
     title: "Faucet",
     description: "Get testnet AVAX",
     icon: Droplet,
-    href: "https://core.app/tools/testnet-faucet/?subnet=c&token=c"
+    href: "https://build.avax.network/tools/l1-toolbox#faucet"
   },
   {
     id: 2,

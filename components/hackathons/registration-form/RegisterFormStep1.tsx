@@ -6,10 +6,18 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import React, { useState } from "react";
 import { RegisterFormValues } from "./RegistrationForm";
 import { useFormContext } from "react-hook-form";
 import { User } from "next-auth";
+import { countries } from "@/constants/countries";
 
 interface Step1Props {
   user?: User; // Optional User prop
@@ -82,16 +90,16 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             name="company_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Company (if applicable)</FormLabel>
+                <FormLabel>Company/University (if applicable)</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter your company name"
+                    placeholder="Enter your company/University name"
                     {...field}
                     className="bg-transparent placeholder-zinc-600"
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">
-                  If you are part of a company, mention it here. Otherwise,
+                  If you are part of a company or affiliated with a university, mention it here. Otherwise,
                   leave blank.
                 </FormMessage>
               </FormItem>
@@ -121,44 +129,49 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             )}
           />
 
-          {/* City */}
+          {/* Country */}
           <FormField
             control={form.control}
             name="city"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>City of Residence</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Your city"
-                    {...field}
-                    className="bg-transparent placeholder-zinc-600"
-                  />
-                </FormControl>
+                <FormLabel>Country of Residence</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="text-zinc-600">
+                      <SelectValue placeholder="Select your country" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-zinc-600 rounded-md shadow-md max-h-60 overflow-y-auto">
+                    {countries.map((country) => (
+                      <SelectItem key={country.value} value={country.label}>
+                        {country.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage className="text-zinc-600">
-                  Enter your current city of residence.
+                  This will help us bring in-person events closer to you.
                 </FormMessage>
               </FormItem>
             )}
           />
 
-          {/* Dietary Restrictions */}
+          {/* Telegram User */}
           <FormField
             control={form.control}
-            name="dietary"
+            name="telegram_user"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Dietary Restrictions</FormLabel>
+                <FormLabel>Telegram Username</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter any dietary restrictions (if applicable)"
+                    placeholder="Enter your Telegram username (without @)"
                     className="bg-transparent placeholder-zinc-600"
                     {...field}
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600">
-                  If you have allergies or dietary needs, please specify them
-                  here.
                 </FormMessage>
               </FormItem>
             )}

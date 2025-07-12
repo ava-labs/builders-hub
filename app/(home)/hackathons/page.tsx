@@ -28,7 +28,15 @@ export default async function HackathonsPage({
       page: page ?? 1,
       pageSize: Number(recordsByPage ?? 4),
       location: location,
-      status: '!ENDED',
+      status: "UPCOMING",
+    });
+
+  const { hackathons: ongoingHackathons, total: totalOngoingHackathons } =
+    await getFilteredHackathons({
+      page: page ?? 1,
+      pageSize: Number(recordsByPage ?? 4),
+      location: location,
+      status: "ONGOING",
     });
 
   const initialFilters: HackathonsFilters = {
@@ -43,6 +51,7 @@ export default async function HackathonsPage({
         <Hackathons
           initialPastHackathons={pastHackathons}
           initialUpcomingHackathons={upcomingHackathons}
+          initialOngoingHackathons={ongoingHackathons}
           initialFilters={initialFilters}
           totalPastHackathons={totalPastHackathons}
           totalUpcomingHackathons={totalUpcomingHackathons}

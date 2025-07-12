@@ -568,4 +568,12 @@ html body[data-scroll-locked] {
   .text-shadow-[shadow] {
     text-shadow: var(--shadow);
   }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
