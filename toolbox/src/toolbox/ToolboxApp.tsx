@@ -526,7 +526,7 @@ export default function ToolboxApp() {
   // State to track sidebar hover and pin
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [isSidebarPinned, setIsSidebarPinned] = useState(false);
-  const [showDarkModeToggle, setShowDarkModeToggle] = useState(false);
+  const [_, setShowDarkModeToggle] = useState(false);
   
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(() => {
