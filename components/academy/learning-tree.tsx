@@ -37,7 +37,7 @@ const learningPaths: CourseNode[] = [
     slug: "avalanche-fundamentals",
     category: "Fundamentals",
     dependencies: ["blockchain-fundamentals"],
-    position: { x: 50, y: 250 },
+    position: { x: 50, y: 150 },
     mobileOrder: 2
   },
   
@@ -45,87 +45,65 @@ const learningPaths: CourseNode[] = [
   {
     id: "interchain-messaging",
     name: "Interchain Messaging",
-    description: "Build cross-chain dApps",
+    description: "Build apps leveraging Avalanche's Interchain Messaging",
     slug: "interchain-messaging",
     category: "Interoperability",
     dependencies: ["avalanche-fundamentals"],
-    position: { x: 20, y: 500 },
+    position: { x: 20, y: 350 },
     mobileOrder: 3
+  },
+  {
+    id: "l1-validator-management",
+    name: "L1 Validator Management",
+    description: "Manage permissioned and permissionless L1 validator sets",
+    slug: "l1-validator-management",
+    category: "L1 Development",
+    dependencies: ["avalanche-fundamentals"],
+    position: { x: 50, y: 350 },
+    mobileOrder: 6
   },
   {
     id: "customizing-evm",
     name: "Customizing the EVM",
     description: "Add custom precompiles and configure the EVM",
     slug: "customizing-evm",
-    category: "L1 Development",
+    category: "VM Customization",
     dependencies: ["avalanche-fundamentals"],
-    position: { x: 50, y: 500 },
-    mobileOrder: 4
-  },
-  {
-    id: "solidity-foundry",
-    name: "Solidity with Foundry",
-    description: "Develop smart contracts with Foundry",
-    slug: "solidity-foundry",
-    category: "Smart Contract Development",
-    dependencies: ["avalanche-fundamentals"],
-    position: { x: 80, y: 500 },
-    mobileOrder: 5
+    position: { x: 80, y: 350 },
+    mobileOrder: 8
   },
   
   // Fourth Layer - Advanced topics (adjusted for no overlap)
   {
     id: "interchain-token-transfer",
     name: "Interchain Token Transfer",
-    description: "Transfer assets between chains using ICM",
+    description: "Transfer assets between chains using Interchain Messaging",
     slug: "interchain-token-transfer",
     category: "Interoperability",
     dependencies: ["interchain-messaging"],
-    position: { x: 5, y: 750 },
-    mobileOrder: 6
+    position: { x: 5, y: 550 },
+    mobileOrder: 4
   },
   {
     id: "icm-chainlink",
     name: "Chainlink via ICM",
-    description: "Integrate Chainlink services to your L1",
+    description: "Use Chainlink services on an L1 through the Interchain Messaging",
     slug: "icm-chainlink",
     category: "Interoperability",
     dependencies: ["interchain-messaging"],
-    position: { x: 35, y: 750 },
-    mobileOrder: 7
+    position: { x: 35, y: 550 },
+    mobileOrder: 5
   },
-  {
-    id: "avacloudapis",
-    name: "AvaCloud APIs",
-    description: "Build web apps",
-    slug: "avacloudapis",
-    category: "Smart Contract Development",
-    dependencies: ["solidity-foundry"],
-    position: { x: 80, y: 750 },
-    mobileOrder: 8
-  },
-  
-  // Fifth Layer - L1 Development courses moved down
   {
     id: "l1-tokenomics",
     name: "L1 Tokenomics",
-    description: "Design L1 economics",
+    description: "Design L1 economics with transaction fees and staking",
     slug: "l1-tokenomics",
     category: "L1 Development",
-    dependencies: ["customizing-evm"],
-    position: { x: 35, y: 1000 },
-    mobileOrder: 9
+    dependencies: ["l1-validator-management"],
+    position: { x: 65, y: 550 },
+    mobileOrder: 7
   },
-  {
-    id: "l1-validator-management",
-    name: "L1 Validator Management",
-    description: "Manage validators for your L1",
-    slug: "l1-validator-management",
-    category: "L1 Development",
-    dependencies: ["customizing-evm"],
-    position: { x: 65, y: 1000 },
-    mobileOrder: 10
-  }
 ];
 
 const categoryStyles = {
@@ -147,7 +125,7 @@ const categoryStyles = {
     lightBg: "bg-emerald-50",
     darkBg: "dark:bg-emerald-950/30"
   },
-  "Smart Contract Development": {
+  "VM Customization": {
     gradient: "from-orange-500 to-orange-600",
     icon: Code,
     lightBg: "bg-orange-50",
@@ -187,17 +165,8 @@ export default function LearningTree() {
   }, [hoveredNode]);
 
   // Calculate SVG dimensions based on node positions
-  const maxX = Math.max(...learningPaths.map(node => node.position.x)) + 10;
   const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 200;
   
-  // Get unique Y positions (levels) and their categories
-  const levels = [...new Set(learningPaths.map(node => node.position.y))].sort((a, b) => a - b);
-  const levelCategories = levels.map(y => {
-    const nodesAtLevel = learningPaths.filter(node => node.position.y === y);
-    const categories = [...new Set(nodesAtLevel.map(node => node.category))];
-    return { y, categories };
-  });
-
   const drawConnections = () => {
     const connections: React.JSX.Element[] = [];
     
@@ -214,7 +183,7 @@ export default function LearningTree() {
             const childCenterX = node.position.x;
             
             // Card dimensions
-            const cardHeight = 120;
+            const cardHeight = 110;
             
             // Lines should connect from bottom of parent to top of child
             const parentBottomY = parentNode.position.y + cardHeight;
@@ -374,7 +343,7 @@ export default function LearningTree() {
                 left: `${node.position.x}%`,
                 top: `${node.position.y}px`,
                 transform: 'translateX(-50%)',
-                width: '260px',
+                width: '280px',
                 zIndex: isHighlighted ? 20 : 10
               }}
               onMouseEnter={() => setHoveredNode(node.id)}
@@ -386,7 +355,7 @@ export default function LearningTree() {
               >
                 <div
                   className={cn(
-                    "relative w-full p-5 rounded-2xl transition-all duration-300",
+                    "relative w-full p-5 rounded-2xl transition-all duration-300 min-height-[110px]",
                     "bg-white dark:bg-zinc-900",
                     "border dark:border-zinc-800",
                     "shadow-sm",
@@ -449,7 +418,16 @@ export default function LearningTree() {
 
   return (
     <div className="relative w-full">
-      {isMobile ? <MobileLayout /> : <DesktopLayout />}
+      {/* Mobile Layout - visible on small screens, hidden on lg and up */}
+      <div className="block lg:hidden">
+        <MobileLayout />
+      </div>
+
+      {/* Desktop Layout - hidden on small screens, visible on lg and up */}
+      <div className="hidden lg:block">
+        <DesktopLayout />
+      </div>
     </div>
+    
   );
 } 
