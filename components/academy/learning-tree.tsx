@@ -22,7 +22,7 @@ const learningPaths: CourseNode[] = [
   {
     id: "blockchain-fundamentals",
     name: "Blockchain Fundamentals",
-    description: "Start here to understand blockchain basics",
+    description: "Start here to learn about blockchain and solidity basics",
     slug: "blockchain-fundamentals",
     category: "Fundamentals",
     position: { x: 50, y: 0 },
@@ -33,7 +33,7 @@ const learningPaths: CourseNode[] = [
   {
     id: "avalanche-fundamentals",
     name: "Avalanche Fundamentals",
-    description: "Learn Avalanche consensus, Multi-Chain Architecture, and VMs",
+    description: "Learn about Avalanche Consensus, Multi-Chain Architecture, and VMs",
     slug: "avalanche-fundamentals",
     category: "Fundamentals",
     dependencies: ["blockchain-fundamentals"],
