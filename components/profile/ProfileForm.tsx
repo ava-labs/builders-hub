@@ -77,12 +77,35 @@ export default function ProfileForm({
   }, [initialData]);
 
   const onSkip = async () => {
-    await axios.put(`/api/profile/${id}`, {}).catch((error) => {
-      throw new Error(`Error while saving profile: ${error.message}`);
-    });
-    await update();
-    setIsSaving(false);
-    router.push("/");
+    // Validate that name is filled before allowing skip
+    const currentName = form.getValues("name");
+    if (!currentName || currentName.trim() === "") {
+      toast({
+        title: "Name is required",
+        description: "Enter your full name to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Save the current form data before skipping
+    setIsSaving(true);
+    try {
+      const formData = form.getValues();
+      await axios.put(`/api/profile/${id}`, formData).catch((error) => {
+        throw new Error(`Error while saving profile: ${error.message}`);
+      });
+      await update();
+      router.push("/");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error while saving profile.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const onSubmit = async (data: ProfileFormValues) => {
@@ -176,7 +199,7 @@ export default function ProfileForm({
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name in Hackathon</FormLabel>
+                <FormLabel>Full Name *</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Enter your full name"
@@ -199,7 +222,7 @@ export default function ProfileForm({
           <div className="space-y-4">
             <FormLabel>Profile Picture</FormLabel>
             <div className="flex flex-col gap-4">
-              <div className="w-24 h-24 border-2 border-dashed border-red-500 rounded-lg flex items-center justify-center">
+              <div className="w-24 h-24 border-2 border-dashed border-border rounded-lg flex items-center justify-center">
                 {form.watch("image") ? (
                   <img
                     src={form.watch("image")}
