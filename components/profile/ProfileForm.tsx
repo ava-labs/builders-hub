@@ -41,12 +41,23 @@ const profileSchema = z.object({
   notification_email: z.string().email("Invalid email"),
   image: z.string().optional(),
   social_media: z.array(z.string()).default([]),
-  notifications: z.boolean().default(false).refine((val) => val === true, {
-    message: "You must agree to receive notifications to continue",
-  }),
+  notifications: z.boolean().default(false),
   profile_privacy: z.string().default("public"),
   telegram_user: z.string().optional(),
 });
+
+// Type for data coming from database (notifications can be null)
+interface ProfileFormProps {
+  name: string;
+  bio?: string;
+  email: string;
+  notification_email: string;
+  image?: string;
+  social_media: string[];
+  notifications: boolean | null;
+  profile_privacy: string;
+  telegram_user?: string;
+}
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
@@ -54,14 +65,41 @@ export default function ProfileForm({
   initialData,
   id,
 }: {
-  initialData: ProfileFormValues;
+  initialData: ProfileFormProps;
   id: string;
 }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Detect if it's the first time (notifications is null)
+  const isFirstTime = initialData.notifications === null;
+  
+  // Create dynamic schema based on whether it's first time
+  const dynamicSchema = z.object({
+    name: z.string().min(1, "Full name is required"),
+    bio: z.string().max(250, "Bio must not exceed 250 characters").optional(),
+    email: z.string().email("Invalid email"),
+    notification_email: z.string().email("Invalid email"),
+    image: z.string().optional(),
+    social_media: z.array(z.string()).default([]),
+    notifications: isFirstTime 
+      ? z.boolean().default(false).refine((val) => val === true, {
+          message: "You must agree to receive notifications to continue",
+        })
+      : z.boolean().default(false),
+    profile_privacy: z.string().default("public"),
+    telegram_user: z.string().optional(),
+  });
+
+  // Process initial data: if notifications is null, use false
+  const processedInitialData: ProfileFormValues = {
+    ...initialData,
+    notifications: initialData.notifications ?? false,
+  };
+
   const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: initialData,
+    resolver: zodResolver(dynamicSchema),
+    defaultValues: processedInitialData,
     reValidateMode: "onSubmit",
   });
   const { formState, reset } = form;
@@ -71,8 +109,12 @@ export default function ProfileForm({
   const { update } = useSession();
   useEffect(() => {
     if (initialData) {
-      initialData.bio = initialData.bio || "";
-      form.reset(initialData);
+      const processedData = {
+        ...initialData,
+        bio: initialData.bio || "",
+        notifications: initialData.notifications ?? false,
+      } as ProfileFormValues;
+      form.reset(processedData);
     }
   }, [initialData]);
 

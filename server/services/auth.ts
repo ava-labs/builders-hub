@@ -34,6 +34,7 @@ export async function upsertUser(user: User, account: Account | null, profile: P
       authentication_mode: account?.provider ?? "",
       last_login: null,
       user_name: (profile as any)?.login ?? "",
+      notifications: null,
     },
   });
 

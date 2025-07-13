@@ -44,7 +44,7 @@ model User {
   notification_email  String?
   profile_privacy     String?       @default("public")
   social_media        String[]
-  notifications       Boolean?      @default(true)
+  notifications       Boolean?
   custom_attributes   String[]
   telegram_user       String?
   memberships         Member[]
