@@ -462,24 +462,7 @@ function Markdown({ text, onToolClick }: { text: string; onToolClick?: (toolId: 
 }
 
 // Dynamically import the ToolboxApp to avoid SSR issues
-const ToolboxApp = dynamic(() => import('../../toolbox/src/toolbox/ToolboxApp').then(mod => {
-  // Wrap the ToolboxApp to inject the embedded prop
-  const OriginalToolboxApp = mod.default;
-  return {
-    default: (props: any) => {
-      // Add a class to the root element when embedded
-      useEffect(() => {
-        document.body.classList.add('toolbox-embedded');
-        
-        return () => {
-          document.body.classList.remove('toolbox-embedded');
-        };
-      }, []);
-      
-      return <OriginalToolboxApp {...props} />;
-    }
-  };
-}), {
+const ToolboxApp = dynamic(() => import('../../toolbox/src/toolbox/ToolboxApp'), {
   ssr: false,
   loading: () => (
     <div className="flex justify-center items-center h-full">
@@ -488,53 +471,7 @@ const ToolboxApp = dynamic(() => import('../../toolbox/src/toolbox/ToolboxApp').
   ),
 });
 
-// Add embedded styles
-const EmbeddedStyles = () => {
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      /* Hide sidebar when embedded */
-      .toolbox-embedded .w-80.flex-shrink-0 {
-        display: none !important;
-      }
-      
-      /* Make content full width */
-      .toolbox-embedded .flex-1.p-6 {
-        max-width: 100% !important;
-        padding: 1.5rem !important;
-      }
-      
-      /* Adjust container */
-      .toolbox-embedded .container.mx-auto {
-        margin: 0 !important;
-      }
-      
-      /* Hide background effects */
-      .toolbox-embedded .fixed.inset-0.-z-10 {
-        display: none !important;
-      }
-      
-      /* Ensure close button is always on top */
-      .toolbox-embedded-header {
-        position: relative;
-        z-index: 9999 !important;
-      }
-      
-      /* Lower z-index for wallet modals when embedded */
-      .toolbox-embedded [role="dialog"],
-      .toolbox-embedded .fixed.inset-0.z-50 {
-        z-index: 9998 !important;
-      }
-    `;
-    document.head.appendChild(style);
-    
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
-  
-  return null;
-};
+
 
 export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: string) => void }) {
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
@@ -632,12 +569,7 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
       }
     }, [toolId]);
     
-    return (
-      <>
-        <EmbeddedStyles />
-        <ToolboxApp />
-      </>
-    );
+    return <ToolboxApp embedded />;
   });
   
   ToolRenderer.displayName = 'ToolRenderer';
