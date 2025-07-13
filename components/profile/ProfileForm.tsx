@@ -11,6 +11,7 @@ import {
   FormItem,
   FormLabel,
   FormDescription,
+  FormMessage,
 } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,7 +41,9 @@ const profileSchema = z.object({
   notification_email: z.string().email("Invalid email"),
   image: z.string().optional(),
   social_media: z.array(z.string()).default([]),
-  notifications: z.boolean().default(true),
+  notifications: z.boolean().default(false).refine((val) => val === true, {
+    message: "You must agree to receive notifications to continue",
+  }),
   profile_privacy: z.string().default("public"),
   telegram_user: z.string().optional(),
 });
@@ -474,7 +477,7 @@ export default function ProfileForm({
           <div>
             <h3 className="text-lg font-medium">Notifications</h3>
             <p className="text-sm text-muted-foreground">
-              Manage the basic settings and primary details of your hackathon.
+              Manage the basic settings and primary details of your profile.
             </p>
           </div>
 
@@ -482,29 +485,32 @@ export default function ProfileForm({
             control={form.control}
             name="notifications"
             render={({ field }) => (
-              <FormItem className="flex items-center justify-between p-4 border rounded">
-                <div className="space-y-1">
-                  <FormLabel>Email Notifications</FormLabel>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line italic">
-                    I wish to stay informed about Avalanche news and events and
-                    agree to receive newsletters and other promotional materials
-                    at the contact information I provided. {"\n"}I know that I
-                    may opt-out at any time. I have read and agree to the{" "}
-                    <a
-                      href="https://www.avax.network/privacy-policy"
-                      className="text-primary hover:text-primary/80 dark:text-primary/90 dark:hover:text-primary/70"
-                    >
-                      Avalanche Privacy Policy
-                    </a>
-                    .
-                  </p>
+              <FormItem className="space-y-3">
+                <div className="flex items-center justify-between p-4 border rounded">
+                  <div className="space-y-1">
+                    <FormLabel>Email Notifications</FormLabel>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line italic">
+                      I wish to stay informed about Avalanche news and events and
+                      agree to receive newsletters and other promotional materials
+                      at the email address I provided. {"\n"}I know that I
+                      may opt-out at any time. I have read and agree to the{" "}
+                      <a
+                        href="https://www.avax.network/privacy-policy"
+                        className="text-primary hover:text-primary/80 dark:text-primary/90 dark:hover:text-primary/70"
+                      >
+                        Avalanche Privacy Policy
+                      </a>
+                      .
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
                 </div>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
