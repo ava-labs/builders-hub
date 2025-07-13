@@ -515,8 +515,12 @@ const ComponentLoader = () => (
   </div>
 );
 
-export default function ToolboxApp() {
-  const defaultTool = "splash";
+interface ToolboxAppProps {
+  embedded?: boolean;
+}
+
+export default function ToolboxApp({ embedded = false }: ToolboxAppProps) {
+  const defaultTool = embedded ? "" : "splash";
 
   // Use state from URL hash. Default to splash page if hash is empty.
   const [selectedTool, setSelectedTool] = useState(
@@ -758,24 +762,27 @@ export default function ToolboxApp() {
   };
 
   return (
-    <div className="container mx-auto flex flex-col md:flex-row relative">
-      {/* Premium Background */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-[#0A0A0A] dark:via-[#0A0A0A] dark:to-[#0A0A0A]">
-          {/* Subtle grid overlay */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)]"></div>
-          
-          {/* Constellation dots */}
-          <div className="absolute inset-0">
-            <div className="absolute top-1/5 left-1/5 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60"></div>
-            <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60" style={{animationDelay: '1s'}}></div>
-            <div className="absolute bottom-1/3 left-1/3 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60" style={{animationDelay: '2s'}}></div>
-            <div className="absolute bottom-1/5 right-1/3 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60" style={{animationDelay: '3s'}}></div>
+    <div className={embedded ? "" : "container mx-auto flex flex-col md:flex-row relative"}>
+      {/* Premium Background - only show when not embedded */}
+      {!embedded && (
+        <div className="fixed inset-0 -z-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-[#0A0A0A] dark:via-[#0A0A0A] dark:to-[#0A0A0A]">
+            {/* Subtle grid overlay */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)]"></div>
+            
+            {/* Constellation dots */}
+            <div className="absolute inset-0">
+              <div className="absolute top-1/5 left-1/5 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60"></div>
+              <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60" style={{animationDelay: '1s'}}></div>
+              <div className="absolute bottom-1/3 left-1/3 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60" style={{animationDelay: '2s'}}></div>
+              <div className="absolute bottom-1/5 right-1/3 w-1 h-1 bg-slate-400/40 rounded-full animate-constellation-twinkle dark:bg-slate-500/60" style={{animationDelay: '3s'}}></div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <div 
+      {!embedded && (
+        <div 
         className={`fixed left-0 top-0 h-screen bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 z-50 ${
           isSidebarExpanded ? 'w-80 shadow-xl' : 'w-16 shadow-sm'
         }`}
@@ -1022,8 +1029,9 @@ export default function ToolboxApp() {
           </button>
         </div>
       </div>
+      )}
       
-      <div className={`flex-1 p-6 min-w-0 transition-all duration-300 ${isSidebarPinned ? 'ml-80' : 'ml-16'}`}>
+      <div className={embedded ? "w-full" : `flex-1 p-6 min-w-0 transition-all duration-300 ${isSidebarPinned ? 'ml-80' : 'ml-16'}`}>
         {renderSelectedComponent()}
       </div>
     </div>
