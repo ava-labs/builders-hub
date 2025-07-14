@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useCallback, useRef } from "react"
-import { Loader2, ChevronDown, Info, X } from "lucide-react"
+import { Loader2, ChevronDown, Info } from "lucide-react"
 import { Button } from "./Button"
 import { Input } from "./Input"
 import { Container } from "./Container"
@@ -35,7 +35,7 @@ export default function CrossChainTransfer({
     const [exportTxId, setExportTxId] = useState<string>("")
     const [importTxId, setImportTxId] = useState<string | null>(null)
     const [waitingForConfirmation, setWaitingForConfirmation] = useState<boolean>(false)
-    const [currentStep, setCurrentStep] = useState<number>(1)
+    const [_, setCurrentStep] = useState<number>(1)
     const [showSourceDropdown, setShowSourceDropdown] = useState<boolean>(false)
     const [showDestinationDropdown, setShowDestinationDropdown] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)

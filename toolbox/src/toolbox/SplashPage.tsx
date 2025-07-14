@@ -1,4 +1,4 @@
-import { ChevronRight, Droplet, Code, Wrench, Server, Github, FileText, ExternalLink, Plus, UserPlus, Radio, Banknote, Shield, FileCode, Zap, Calculator, Repeat, ArrowUpDown } from 'lucide-react';
+import { ChevronRight, Droplet, Code, Wrench, Server, Github, FileText, ExternalLink, Plus, UserPlus, Radio, Banknote, Shield, FileCode, Zap, Repeat, ArrowUpDown } from 'lucide-react';
 
 const SplashPage = () => {
   // Primary tier - Most important partnerships (larger display)

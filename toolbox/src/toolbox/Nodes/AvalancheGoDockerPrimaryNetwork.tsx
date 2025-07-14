@@ -104,15 +104,6 @@ export default function AvalancheGoDockerPrimaryNetwork() {
         }
     }, [nodeType]);
 
-    const handleReset = () => {
-        setNodeType("validator");
-        setRpcCommand("");
-        setDomain("");
-        setEnableDebugTrace(false);
-        setPruningEnabled(true);
-        setNodeIsReady(false);
-    };
-
     return (
         <>
             <Container
