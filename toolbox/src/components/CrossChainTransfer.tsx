@@ -349,7 +349,7 @@ export default function CrossChainTransfer({
     return (
         <Container
             title="Cross-chain transfer"
-            description="Transfer tokens between Exchange (X), Platform (P), and Contract (C) chains."
+            description="Transfer AVAX between Platform (P) and Contract (C) chains."
         >
             <div className="flex flex-col gap-6 w-full max-w-3xl mx-auto">
                 {/* Alert Banner */}
