@@ -47,6 +47,7 @@ model User {
   notifications       Boolean?
   custom_attributes   String[]
   telegram_user       String?
+  created_at          DateTime      @default(now()) @db.Timestamptz(3)
   memberships         Member[]
   registrations       RegisterForm?
   hackathons          Hackathon[]
