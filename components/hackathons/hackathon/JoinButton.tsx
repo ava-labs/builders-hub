@@ -13,6 +13,7 @@ interface JoinButtonProps {
   variant?: "red" | "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   showChatWhenRegistered?: boolean; // New prop to control behavior
   allowNavigationWhenRegistered?: boolean; // New prop to allow navigation when registered
+  utm?: string; // UTM parameter to track campaign source
 }
 
 export default function JoinButton({
@@ -23,8 +24,10 @@ export default function JoinButton({
   className,
   variant = "red",
   showChatWhenRegistered = false,
-  allowNavigationWhenRegistered = false
+  allowNavigationWhenRegistered = false,
+  utm = ""
 }: JoinButtonProps) {
+  
   const getButtonText = () => {
     if (isRegistered) {
       if (showChatWhenRegistered) {
@@ -41,15 +44,19 @@ export default function JoinButton({
         return "https://t.me/avalancheacademy";
       }
       if (allowNavigationWhenRegistered) {
-        return customLink
-          ? customLink
-          : `/hackathons/registration-form?hackathon=${hackathonId}`;
+        if (customLink) {
+          return customLink;
+        }
+        const baseUrl = `/hackathons/registration-form?hackathon=${hackathonId}`;
+        return utm ? `${baseUrl}&utm=${utm}` : baseUrl;
       }
       return "#";
     }
-    return customLink
-      ? customLink
-      : `/hackathons/registration-form?hackathon=${hackathonId}`;
+    if (customLink) {
+      return customLink;
+    }
+    const baseUrl = `/hackathons/registration-form?hackathon=${hackathonId}`;
+    return utm ? `${baseUrl}&utm=${utm}` : baseUrl;
   };
 
   const getButtonTarget = () => {

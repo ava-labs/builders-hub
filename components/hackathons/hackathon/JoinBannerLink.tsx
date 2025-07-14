@@ -10,6 +10,7 @@ interface JoinBannerLinkProps {
   customLink?: string;
   bannerSrc: string;
   altText?: string;
+  utm?: string; // UTM parameter to track campaign source
 }
 
 export default function JoinBannerLink({
@@ -17,13 +18,17 @@ export default function JoinBannerLink({
   hackathonId,
   customLink,
   bannerSrc,
-  altText = "Hackathon background"
+  altText = "Hackathon background",
+  utm = ""
 }: JoinBannerLinkProps) {
+  
   const getHref = () => {
     // Always allow navigation to registration form (even if registered, so they can modify)
-    return customLink
-      ? customLink
-      : `/hackathons/registration-form?hackathon=${hackathonId}`;
+    if (customLink) {
+      return customLink;
+    }
+    const baseUrl = `/hackathons/registration-form?hackathon=${hackathonId}`;
+    return utm ? `${baseUrl}&utm=${utm}` : baseUrl;
   };
 
   const getTarget = () => {

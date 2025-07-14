@@ -34,10 +34,15 @@ export async function generateStaticParams() {
 
 export default async function HackathonPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { id } = await params;
+  const resolvedSearchParams = await searchParams;
+  const utm = resolvedSearchParams?.utm ?? "";
+  
   const hackathon = await getHackathon(id);
 
   // Check if user is authenticated and registered
@@ -83,6 +88,7 @@ export default async function HackathonPage({
           className="w-2/5 md:w-1/3 lg:w-1/4 cursor-pointer"
           variant="red"
           showChatWhenRegistered={true}
+          utm={utm as string}
         />
       </div>
       <div className="p-4 flex flex-col gap-24">
@@ -91,7 +97,7 @@ export default async function HackathonPage({
       <div className="flex flex-col mt-2 ">
         <div className="sm:px-8 pt-6 ">
           <div className="sm:block relative w-full">
-            <OverviewBanner hackathon={hackathon} id={id} isTopMost={false} isRegistered={isRegistered} />
+            <OverviewBanner hackathon={hackathon} id={id} isTopMost={false} isRegistered={isRegistered} utm={utm as string} />
             <JoinBannerLink
               isRegistered={isRegistered}
               hackathonId={id}
@@ -102,6 +108,7 @@ export default async function HackathonPage({
                   : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png"
               }
               altText="Hackathon background"
+              utm={utm as string}
             />
           </div>
           <div className="py-8 sm:p-8 flex flex-col gap-20">

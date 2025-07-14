@@ -13,9 +13,10 @@ type Props = {
   hackathon: HackathonHeader;
   isTopMost: boolean;
   isRegistered: boolean;
+  utm?: string;
 };
 
-export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered }: Props) {
+export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered, utm = "" }: Props) {
   const startDate = new Date(hackathon.start_date);
   const endDate = new Date(hackathon.end_date);
 
@@ -60,6 +61,7 @@ export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered 
               className="w-full bg-red-500 border-none text-zinc-100 rounded-md"
               variant="secondary"
               allowNavigationWhenRegistered={true}
+              utm={utm}
             />
           )}
         </div>
