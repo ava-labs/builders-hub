@@ -7,20 +7,17 @@ import versions from "../../versions.json";
 import { Container } from "../../components/Container";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputSubnetId from "../../components/InputSubnetId";
-import { Checkbox } from "../../components/Checkbox";
 import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import { AddChainModal } from "../../components/ConnectWallet/AddChainModal";
-import { useL1ListStore } from "../../stores/l1ListStore";
 import { Button } from "../../components/Button";
-
 import { Success } from "../../components/Success";
-import { nipify, HostInput } from "../../components/HostInput";
 import { DockerInstallation } from "../../components/DockerInstallation";
-import { NodeReadinessValidator } from "../../components/NodeReadinessValidator";
-import { HealthCheckButton } from "../../components/HealthCheckButton";
+import { NodeBootstrapValidator } from "../../components/NodeBootstrapValidator";
+import { ReverseProxySetup } from "../../components/ReverseProxySetup";
+import { AddToWalletStep } from "../../components/AddToWalletStep";
+import { ConfigureNodeType } from "../../components/ConfigureNodeType";
 
 // Standard subnet-evm VM ID
 export const SUBNET_EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy";
@@ -115,40 +112,7 @@ const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: num
     return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
 }
 
-const reverseProxyCommand = (domain: string) => {
-    domain = nipify(domain);
 
-    const caddyfile = `${domain} {
-    reverse_proxy localhost:9650
-    
-    header {
-        Access-Control-Allow-Origin *
-        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-        Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
-    }
-    
-    @options method OPTIONS
-    respond @options 204
-}`;
-
-    const base64Config = btoa(caddyfile);
-
-    return `docker run -d \\
-  --name caddy \\
-  --network host \\
-  -v caddy_data:/data \\
-  caddy:2.8-alpine \\
-  sh -c "echo '${base64Config}' | base64 -d > /etc/caddy/Caddyfile && caddy run --config /etc/caddy/Caddyfile"`
-}
-
-const rpcHealthCheckCommand = (domain: string, chainId: string) => {
-    const processedDomain = nipify(domain);
-
-    return `curl -X POST --data '{ 
-  "jsonrpc":"2.0", "method":"eth_chainId", "params":[], "id":1 
-}' -H 'content-type:application/json;' \\
-https://${processedDomain}/ext/bc/${chainId}/rpc`
-}
 
 export default function AvalanchegoDocker() {
     const [chainId, setChainId] = useState("");
@@ -156,21 +120,19 @@ export default function AvalanchegoDocker() {
     const [subnet, setSubnet] = useState<any>(null);
     const [blockchainInfo, setBlockchainInfo] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [isRPC, setIsRPC] = useState<boolean>(true);
+    const [nodeType, setNodeType] = useState<"validator" | "rpc" | "public-rpc">("validator");
     const [rpcCommand, setRpcCommand] = useState("");
-    const [nodeRunningMode, setNodeRunningMode] = useState("server");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
     const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
-    const [isAddChainModalOpen, setIsAddChainModalOpen] = useState<boolean>(false);
     const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
     const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
-    const [makePublicRPC, setMakePublicRPC] = useState<boolean | null>(null);
     const [selectedRPCBlockchainId, setSelectedRPCBlockchainId] = useState<string>("");
 
     const { avalancheNetworkID } = useWalletStore();
-    const { addL1 } = useL1ListStore()();
+
+    const isRPC = nodeType === "rpc" || nodeType === "public-rpc";
 
     useEffect(() => {
         try {
@@ -180,6 +142,16 @@ export default function AvalanchegoDocker() {
             setRpcCommand((error as Error).message);
         }
     }, [subnetId, isRPC, avalancheNetworkID, enableDebugTrace, chainId, pruningEnabled, blockchainInfo]);
+
+    useEffect(() => {
+        if (nodeType === "validator") {
+            setDomain("");
+            setEnableDebugTrace(false);
+            setPruningEnabled(true);
+        } else if (nodeType === 'rpc') {
+            setDomain("");
+        }
+    }, [nodeType]);
 
     useEffect(() => {
         setSubnetIdError(null);
@@ -251,17 +223,14 @@ export default function AvalanchegoDocker() {
         setSubnetId("");
         setSubnet(null);
         setBlockchainInfo(null);
-        setIsRPC(true);
+        setNodeType("validator");
         setChainAddedToWallet(null);
         setRpcCommand("");
-        setNodeRunningMode("server");
         setDomain("");
         setEnableDebugTrace(false);
         setPruningEnabled(true);
         setSubnetIdError(null);
-        setIsAddChainModalOpen(false);
         setNodeIsReady(false);
-        setMakePublicRPC(null);
         setSelectedRPCBlockchainId("");
     };
 
@@ -279,35 +248,8 @@ export default function AvalanchegoDocker() {
                         <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
                         <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. Low specs (e.g. 2 vCPUs, 4GB RAM,  20GB storage) are sufficient for basic tests. For more extensive test and production L1s use a larger instance with appropriate resources (e.g. 8 vCPUs, 16GB RAM, 1 TB storage).</p>
 
-                        <p>If you do not have access to a server, you can also run a node for educational purposes locally. Where are you running your node?</p>
+                        <p>If you do not have access to a server, you can also run a node for educational purposes locally. Simply select the "RPC Node (Local)" option in the next step.</p>
 
-                        <div className="grid grid-cols-2 gap-3">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setNodeRunningMode("server");
-                                }}
-                                className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors border ${nodeRunningMode === "server"
-                                    ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-                                    : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700"
-                                    }`}
-                            >
-                                Server (AWS, GCP, ..,)
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setNodeRunningMode("localhost");
-                                    setDomain("");
-                                }}
-                                className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors border ${nodeRunningMode === "localhost"
-                                    ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-                                    : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700"
-                                    }`}
-                            >
-                                On my computer (localhost)
-                            </button>
-                        </div>
                     </Step>
                     <Step>
                         <DockerInstallation
@@ -359,37 +301,39 @@ export default function AvalanchegoDocker() {
                     {subnetId && blockchainInfo && (
                         <>
                             <Step>
-                                <h3 className="text-xl font-bold mb-4">Configure the Node</h3>
-                                <p>Select wether you want to expose the RPC endpoint for the node. This is required to connect a wallet to this node. It is ok to expose RPC on a testnet validator. For mainnet nodes, we recommend running separate validator and RPC nodes.</p>
-                                <Checkbox
-                                    label={`Expose RPC API`}
-                                    checked={isRPC}
-                                    onChange={setIsRPC}
-                                />
-
-                                {isRPC && <Checkbox
-                                    label="Enable Debug & Trace"
-                                    checked={enableDebugTrace}
-                                    onChange={setEnableDebugTrace}
-                                />}
-
-                                {isRPC && <Checkbox
-                                    label="Enable Archive Mode (pruning will be disabled)"
-                                    checked={!pruningEnabled}
-                                    onChange={(checked: boolean) => setPruningEnabled(!checked)}
-                                />}
+                                <ConfigureNodeType
+                                    nodeType={nodeType}
+                                    setNodeType={setNodeType}
+                                    isRPC={isRPC}
+                                    enableDebugTrace={enableDebugTrace}
+                                    setEnableDebugTrace={setEnableDebugTrace}
+                                    pruningEnabled={pruningEnabled}
+                                    setPruningEnabled={setPruningEnabled}
+                                >
+                                    {/* Blockchain selection for multiple blockchains */}
+                                    {nodeType === "public-rpc" && subnet && subnet.blockchains && subnet.blockchains.length > 1 && (
+                                        <div className="mt-6">
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Select Blockchain for RPC Endpoint
+                                            </label>
+                                            <select
+                                                value={selectedRPCBlockchainId}
+                                                onChange={(e) => setSelectedRPCBlockchainId(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                            >
+                                                {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string }) => (
+                                                    <option key={blockchain.blockchainId} value={blockchain.blockchainId}>
+                                                        {blockchain.blockchainName} ({blockchain.blockchainId})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                This blockchain will be used for the RPC endpoint URL generation.
+                                            </p>
+                                        </div>
+                                    )}
+                                </ConfigureNodeType>
                             </Step>
-                            {nodeRunningMode === "server" && (<Step>
-                                <h3 className="text-xl font-bold mb-4">Port Configuration</h3>
-                                <p>Make sure the following port{isRPC && 's'} are open:</p>
-                                <ul>
-                                    {isRPC && <>
-                                        <li><strong>443</strong> (for the Reverse Proxy)</li>
-                                        <li><strong>9650</strong> (for the RPC endpoint)</li>
-                                    </>}
-                                    <li><strong>9651</strong> (for the node-to-node communication)</li>
-                                </ul>
-                            </Step>)}
 
                             <Step>
                                 <h3 className="text-xl font-bold">Start AvalancheGo Node</h3>
@@ -423,139 +367,32 @@ export default function AvalanchegoDocker() {
                                     </Accordion>
                                 </Accordions>
                             </Step>
-                            <Step>
-                                <h3 className="text-xl font-bold mb-4">Public RPC Setup</h3>
-                                <p>Do you want to make this node a public RPC endpoint? This will allow external wallets and applications to connect to your node.</p>
 
-                                <div className="mt-4 space-y-4">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setMakePublicRPC(true);
-                                            }}
-                                            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors border ${makePublicRPC === true
-                                                ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-                                                : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700"
-                                                }`}
-                                        >
-                                            Yes, make it a public RPC
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setMakePublicRPC(false);
-                                                setDomain("");
-                                            }}
-                                            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors border ${makePublicRPC === false
-                                                ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-                                                : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700"
-                                                }`}
-                                        >
-                                            No, will turn into a validator node
-                                        </button>
-                                    </div>
 
-                                    {makePublicRPC && subnet && subnet.blockchains && subnet.blockchains.length > 1 && (
-                                        <div className="mt-4">
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Select Blockchain for RPC Endpoint
-                                            </label>
-                                            <select
-                                                value={selectedRPCBlockchainId}
-                                                onChange={(e) => setSelectedRPCBlockchainId(e.target.value)}
-                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                            >
-                                                {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string }) => (
-                                                    <option key={blockchain.blockchainId} value={blockchain.blockchainId}>
-                                                        {blockchain.blockchainName} ({blockchain.blockchainId})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                This blockchain will be used for the RPC endpoint URL generation.
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </Step>
-
-                            {/* Conditional steps based on makePublicRPC choice */}
-                            {makePublicRPC === true && (
-                                <>
-                                    {nodeRunningMode === "server" && (
-                                        <>
-                                            <Step>
-                                                <h3 className="text-xl font-bold mb-4">Set Up Reverse Proxy</h3>
-                                                <p>To connect your wallet you need to be able to connect to the RPC via https. For testing purposes you can set up a reverse Proxy to achieve this.</p>
-
-                                                <p>You can use the following command to check your IP:</p>
-
-                                                <DynamicCodeBlock lang="bash" code="curl checkip.amazonaws.com" />
-
-                                                <p>Paste the IP of your node below:</p>
-
-                                                <HostInput
-                                                    label="Domain or IPv4 address for reverse proxy (optional)"
-                                                    value={domain}
-                                                    onChange={setDomain}
-                                                    placeholder="example.com or 1.2.3.4"
-                                                />
-
-                                                {domain && (<>
-                                                    <p>Run the following command on the machine of your node:</p>
-                                                    <DynamicCodeBlock lang="bash" code={reverseProxyCommand(domain)} />
-                                                </>)}
-                                            </Step>
-                                            {domain && (
-                                                <Step>
-                                                    <h3 className="text-xl font-bold mb-4">Check connection via Proxy</h3>
-                                                    <p>Do a final check from a machine different then the one that your node is running on.</p>
-
-                                                    <div className="space-y-6">
-                                                        <DynamicCodeBlock lang="bash" code={rpcHealthCheckCommand(domain, selectedRPCBlockchainId)} />
-
-                                                        <HealthCheckButton
-                                                            chainId={selectedRPCBlockchainId}
-                                                            domain={domain}
-                                                        />
-                                                    </div>
-                                                </Step>
-                                            )}
-                                        </>
-                                    )}
-                                    {(nodeRunningMode === "localhost" || (makePublicRPC && domain)) && (
-                                        <Step>
-                                            <h3 className="text-xl font-bold mb-4">Add to Wallet</h3>
-                                            <p>Click the button below to add your L1 to your wallet:</p>
-
-                                            <Button
-                                                onClick={() => setIsAddChainModalOpen(true)}
-                                                className="mt-4 w-48"
-                                            >
-                                                Add to Wallet
-                                            </Button>
-
-                                            {isAddChainModalOpen && <AddChainModal
-                                                onClose={() => setIsAddChainModalOpen(false)}
-                                                onAddChain={(chain) => {
-                                                    setChainAddedToWallet(chain.name);
-                                                    // Try addL1 but catch any errors that might cause resets
-                                                    try {
-                                                        addL1(chain);
-                                                    } catch (error) {
-                                                        console.log("addL1 error (non-blocking):", error);
-                                                    }
-                                                }}
-                                                allowLookup={false}
-                                                fixedRPCUrl={nodeRunningMode === "server" ? `https://${nipify(domain)}/ext/bc/${selectedRPCBlockchainId}/rpc` : `http://localhost:9650/ext/bc/${chainId}/rpc`}
-                                            />}
-                                        </Step>
-                                    )}
-                                </>
+                            {/* Conditional steps based on nodeType */}
+                            {nodeType === "public-rpc" && (
+                                <Step>
+                                    <ReverseProxySetup
+                                        domain={domain}
+                                        setDomain={setDomain}
+                                        chainId={selectedRPCBlockchainId}
+                                        showHealthCheck={true}
+                                    />
+                                </Step>
+                            )}
+                            {((nodeType === "rpc") || 
+                                (nodeType === "public-rpc" && !!domain)) && (
+                                <Step>
+                                    <AddToWalletStep
+                                        chainId={selectedRPCBlockchainId || chainId}
+                                        domain={domain}
+                                        nodeRunningMode={nodeType === 'public-rpc' ? 'server' : 'localhost'}
+                                        onChainAdded={setChainAddedToWallet}
+                                    />
+                                </Step>
                             )}
 
-                            {makePublicRPC === false && (
+                            {nodeType === "validator" && (
                                 <Step>
                                     <h3 className="text-xl font-bold">Wait for the Node to Bootstrap</h3>
                                     <p>Your node will now bootstrap and sync the P-Chain and your L1. This process should take a <strong>few minutes</strong>. You can follow the process by checking the logs with the following command:</p>
@@ -582,17 +419,17 @@ export default function AvalanchegoDocker() {
                                         </Accordion>
                                     </Accordions>
 
-                                    <NodeReadinessValidator
-                                        chainId={chainId}
-                                        domain={nodeRunningMode === "server" ? domain || "127.0.0.1:9650" : "127.0.0.1:9650"}
-                                        isDebugTrace={enableDebugTrace}
-                                        onBootstrapCheckChange={(checked) => setNodeIsReady(checked)}
-                                    />
+                                                        <NodeBootstrapValidator
+                        chainId={chainId}
+                        domain={domain || "127.0.0.1:9650"}
+                        isDebugTrace={enableDebugTrace}
+                        onBootstrapCheckChange={(checked: boolean) => setNodeIsReady(checked)}
+                    />
                                 </Step>
                             )}
 
                             {/* Show success message when node is ready for validator mode */}
-                            {nodeIsReady && isRPC && makePublicRPC === false && (
+                            {nodeIsReady && nodeType === "validator" && (
                                 <Step>
                                     <h3 className="text-xl font-bold mb-4">Node Setup Complete</h3>
                                     <p>Your AvalancheGo node is now fully bootstrapped and ready to be used as a validator node.</p>

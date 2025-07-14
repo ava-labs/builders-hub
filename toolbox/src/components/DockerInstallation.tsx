@@ -32,6 +32,13 @@ newgrp docker
 # Test installation
 docker run -it --rm hello-world
 `,
+    'macOS': `# Install Docker Desktop for Mac
+# Download from: https://www.docker.com/products/docker-desktop/
+echo "Please download and install Docker Desktop for Mac from the official Docker website."
+
+# After installation, you can test it by running:
+docker run -it --rm hello-world
+`,
 } as const;
 
 export const dockerInstallInstructions: Record<string, string> = {
@@ -70,6 +77,15 @@ sudo usermod -aG docker $USER
 newgrp docker
 
 # Test installation
+docker run -it --rm hello-world
+docker compose version
+`,
+    'macOS': `# Install Docker Desktop for Mac
+# Download from: https://www.docker.com/products/docker-desktop/
+echo "Please download and install Docker Desktop for Mac from the official Docker website."
+echo "Docker Compose is included with Docker Desktop."
+
+# After installation, you can test it by running:
 docker run -it --rm hello-world
 docker compose version
 `,

@@ -1,6 +1,6 @@
 "use client"
-import { useEffect, useState } from "react"
-import { Loader2 } from "lucide-react"
+import { useEffect, useState, useCallback, useRef } from "react"
+import { Loader2, ChevronDown, Info, X } from "lucide-react"
 import { Button } from "./Button"
 import { Input } from "./Input"
 import { Container } from "./Container"
@@ -9,8 +9,10 @@ import { evmImportTx } from "../coreViem/methods/evmImport"
 import { evmExport } from "../coreViem/methods/evmExport"
 import { pvmImport } from "../coreViem/methods/pvmImport"
 import { pvmExport } from "../coreViem/methods/pvmExport"
-
+import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs'
+import { getRPCEndpoint } from '../coreViem/utils/rpc'
 import { useErrorBoundary } from "react-error-boundary"
+import { Success } from './Success'
 
 // Helper function for delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -28,96 +30,199 @@ export default function CrossChainTransfer({
     const [amount, setAmount] = useState<string>(suggestedAmount)
     const [sourceChain, setSourceChain] = useState<string>("c-chain")
     const [destinationChain, setDestinationChain] = useState<string>("p-chain")
-    const [availableBalance, setAvailableBalance] = useState<number>(0)
-    const [pChainAvailableBalance, setPChainAvailableBalance] = useState<number>(0)
     const [exportLoading, setExportLoading] = useState<boolean>(false)
     const [importLoading, setImportLoading] = useState<boolean>(false)
     const [exportTxId, setExportTxId] = useState<string>("")
+    const [importTxId, setImportTxId] = useState<string | null>(null)
     const [waitingForConfirmation, setWaitingForConfirmation] = useState<boolean>(false)
     const [currentStep, setCurrentStep] = useState<number>(1)
+    const [showSourceDropdown, setShowSourceDropdown] = useState<boolean>(false)
+    const [showDestinationDropdown, setShowDestinationDropdown] = useState<boolean>(false)
+    const [error, setError] = useState<string | null>(null)
+    const [importError, setImportError] = useState<string | null>(null)
+    const [cToP_UTXOs, setC_To_P_UTXOs] = useState<Utxo<TransferOutput>[]>([])
+    const [pToC_UTXOs, setP_To_C_UTXOs] = useState<Utxo<TransferOutput>[]>([])
+    const isFetchingRef = useRef(false)
+    
     const { showBoundary } = useErrorBoundary()
 
-    const { pChainAddress, walletEVMAddress, coreWalletClient, publicClient } = useWalletStore()
+    const { 
+        pChainAddress, 
+        walletEVMAddress, 
+        coreWalletClient, 
+        publicClient, 
+        isTestnet, 
+        coreEthAddress,
+        cChainBalance,
+        pChainBalance,
+        updateCChainBalance,
+        updatePChainBalance
+    } = useWalletStore()
 
-    // Function to fetch balances from both chains
-    const fetchBalances = async () => {
-        if (publicClient && walletEVMAddress) {
-            publicClient.getBalance({
-                address: walletEVMAddress as `0x${string}`,
-            }).then((balance: bigint) => {
-                setAvailableBalance(Number(balance) / 1e18)
-            }).catch(showBoundary)
+    // Calculate total AVAX in UTXOs
+    const totalCToPUtxoAmount = cToP_UTXOs.reduce((sum, utxo) => {
+        return sum + Number(utxo.output.amt.value()) / 1_000_000_000;
+    }, 0);
+
+    const totalPToCUtxoAmount = pToC_UTXOs.reduce((sum, utxo) => {
+        return sum + Number(utxo.output.amt.value()) / 1_000_000_000;
+    }, 0);
+
+    const onBalanceChanged = useCallback(() => {
+        updateCChainBalance()?.catch(showBoundary)
+        updatePChainBalance()?.catch(showBoundary);
+    }, [updateCChainBalance, updatePChainBalance, showBoundary]);
+
+    // Fetch UTXOs from both chains
+    const fetchUTXOs = useCallback(async () => {
+        if (!pChainAddress || !walletEVMAddress || isFetchingRef.current) return false;
+
+        isFetchingRef.current = true;
+
+        // Store previous counts for comparison
+        const prevCToPCount = cToP_UTXOs.length;
+        const prevPToCCount = pToC_UTXOs.length;
+
+        try {
+            const platformEndpoint = getRPCEndpoint(Boolean(isTestnet));
+            const pvmApi = new pvm.PVMApi(platformEndpoint);
+
+            const cChainUTXOs = await pvmApi.getUTXOs({
+                addresses: [pChainAddress],
+                sourceChain: 'C'
+            });
+            setC_To_P_UTXOs(cChainUTXOs.utxos as Utxo<TransferOutput>[]);
+
+            const evmApi = new evm.EVMApi(platformEndpoint);
+
+            // Get P-chain UTXOs (for P->C transfers)
+            const pChainUTXOs = await evmApi.getUTXOs({
+                addresses: [coreEthAddress],
+                sourceChain: 'P'
+            });
+            setP_To_C_UTXOs(pChainUTXOs.utxos as Utxo<TransferOutput>[]);
+
+            // Check if the number of UTXOs has changed
+            const newCToPCount = cChainUTXOs.utxos.length;
+            const newPToCCount = pChainUTXOs.utxos.length;
+
+            // Return true if UTXOs count changed
+            return prevCToPCount !== newCToPCount || prevPToCCount !== newPToCCount;
+        } catch (e) {
+            console.error("Error fetching UTXOs:", e);
+            return false;
+        } finally {
+            isFetchingRef.current = false;
         }
+    }, [pChainAddress, walletEVMAddress, coreEthAddress, isTestnet, cToP_UTXOs.length, pToC_UTXOs.length]);
 
-        if (coreWalletClient && pChainAddress) {
-            coreWalletClient.getPChainBalance().then((balance: bigint) => {
-                setPChainAvailableBalance(Number(balance) / 1e9)
-            }).catch(showBoundary)
+    const pollForUTXOChanges = useCallback(async () => {
+        try {
+            for (let i = 0; i < 10; i++) {
+                await new Promise(resolve => setTimeout(resolve, (i + 1) * 1000));
+                const utxosChanged = await fetchUTXOs();
+
+                // Break the loop if UTXOs changed
+                if (utxosChanged) {
+                    break;
+                }
+            }
+        } catch (e) {
+            showBoundary(`Error fetching UTXOs: ${e}`);
         }
-    }
+    }, [fetchUTXOs, showBoundary]);
 
+    // Initial fetch of UTXOs and balances
     useEffect(() => {
         if (publicClient && walletEVMAddress) {
-            fetchBalances()
+            fetchUTXOs();
+            onBalanceChanged();
         }
-    }, [publicClient, walletEVMAddress, pChainAddress])
+    }, [publicClient, walletEVMAddress, pChainAddress, fetchUTXOs, onBalanceChanged])
 
-    // Effect to handle automatic import after export
+    // Persistent polling for pending export UTXOs
     useEffect(() => {
-        if (exportTxId) {
-            const startImport = async () => {
-                // Show waiting message
-                setWaitingForConfirmation(true);
-                // Wait for 5 seconds to ensure the export transaction has time to confirm
-                await delay(5000);
-                setWaitingForConfirmation(false);
-                handleImport();
-            };
-            startImport();
-        }
-    }, [exportTxId]);
+        if (!walletEVMAddress || !pChainAddress) return;
+        let interval: NodeJS.Timeout | undefined;
+        let stopped = false;
+        const poll = async () => {
+            if (stopped) return;
+            await fetchUTXOs();
+        };
+        // Poll every 5 seconds
+        interval = setInterval(poll, 5000);
+        // Initial fetch
+        poll();
+        return () => {
+            stopped = true;
+            if (interval) clearInterval(interval);
+        };
+    }, [walletEVMAddress, pChainAddress, fetchUTXOs]);
 
     const handleMaxAmount = () => {
         if (sourceChain === "c-chain") {
-            setAmount(availableBalance.toString())
+            setAmount(cChainBalance.toString())
         } else {
-            setAmount(pChainAvailableBalance.toString())
+            setAmount(pChainBalance.toString())
         }
-        // Update the step to 2 when MAX is clicked
+        setError(null);
         setCurrentStep(2);
     }
 
     // Handler to swap source and destination chains
     const handleSwapChains = () => {
-        // Remove temporary restriction on P→C transfers
         const tempChain = sourceChain
         setSourceChain(destinationChain)
         setDestinationChain(tempChain)
+        setError(null);
+        setImportError(null);
     }
 
     // Handle amount change with step update
     const handleAmountChange = (newAmount: string) => {
-        setAmount(newAmount);
-        onAmountChange?.(newAmount);
+        if (/^\d*\.?\d*$/.test(newAmount) || newAmount === "") {
+            setAmount(newAmount);
+            onAmountChange?.(newAmount);
+            setError(null);
 
-        // If amount is valid, move to step 3
-        if (Number(newAmount) > 0) {
-            setCurrentStep(2);
-        } else {
-            setCurrentStep(1);
+            // If amount is valid, move to step 2
+            if (Number(newAmount) > 0) {
+                setCurrentStep(2);
+            } else {
+                setCurrentStep(1);
+            }
         }
     }
 
+    const validateAmount = (): boolean => {
+        const numericAmount = Number(amount);
+        if (isNaN(numericAmount) || numericAmount <= 0) {
+            setError("Please enter a valid positive amount.");
+            return false;
+        }
+        
+        const currentBalance = sourceChain === "c-chain" ? cChainBalance : pChainBalance;
+        if (numericAmount > currentBalance) {
+            setError(`Amount exceeds available balance of ${currentBalance.toFixed(4)} AVAX.`);
+            return false;
+        }
+        
+        setError(null);
+        return true;
+    };
+
     // Add handlers for buttons
     const handleExport = async () => {
+        if (!validateAmount()) return;
+        
         if (typeof window === 'undefined' || !walletEVMAddress || !pChainAddress || !coreWalletClient) {
-            console.error("Missing required data or not in client environment")
-            return
+            setError("Wallet not connected or required data missing.");
+            return;
         }
 
         setCurrentStep(3); // Move to step 3 when export is initiated
         setExportLoading(true);
-        console.log("Export initiated with amount:", amount, "from", sourceChain, "to", destinationChain)
+        setError(null);
 
         try {
             if (sourceChain === "c-chain") {
@@ -141,8 +246,21 @@ export default function CrossChainTransfer({
                 console.log("P-Chain Export transaction sent:", response);
                 setExportTxId(response.txID || String(response));
             }
+
+            await pollForUTXOChanges();
+            onBalanceChanged();
+            
+            // Show waiting message
+            setWaitingForConfirmation(true);
+            // Wait for 5 seconds to ensure the export transaction has time to confirm
+            await delay(5000);
+            setWaitingForConfirmation(false);
+            
         } catch (error) {
             showBoundary(error);
+            let msg = 'Unknown error';
+            if (error instanceof Error) msg = error.message;
+            setError(`Export failed: ${msg}`);
             console.error("Error sending export transaction:", error);
         } finally {
             setExportLoading(false);
@@ -151,12 +269,12 @@ export default function CrossChainTransfer({
 
     const handleImport = async () => {
         if (typeof window === 'undefined' || !walletEVMAddress || !pChainAddress || !coreWalletClient) {
-            console.error("Missing required data or not in client environment")
-            return
+            setImportError("Wallet not connected or required data missing.");
+            return;
         }
 
         setImportLoading(true);
-        console.log("Import initiated from", sourceChain, "to", destinationChain)
+        setImportError(null);
 
         try {
             if (destinationChain === "p-chain") {
@@ -164,39 +282,34 @@ export default function CrossChainTransfer({
                 const response = await pvmImport(coreWalletClient, {
                     pChainAddress
                 });
-
                 console.log("Import transaction sent:", response);
+                if (typeof response === 'object' && response !== null && 'txID' in response) {
+                    setImportTxId((response as any).txID);
+                } else {
+                    setImportTxId(String(response));
+                }
             } else {
                 // Import to C-Chain using evmImportTx function
                 const response = await evmImportTx(coreWalletClient, {
                     walletEVMAddress
                 });
-
                 console.log("C-Chain Import transaction sent:", response);
+                if (typeof response === 'object' && response !== null && 'txID' in response) {
+                    setImportTxId((response as any).txID);
+                } else {
+                    setImportTxId(String(response));
+                }
             }
 
-            // Add a short delay to ensure transaction is processed before refreshing balances
-            await delay(2000);
-
-            // Refresh balances multiple times after import to catch updates
-            // Sometimes the balance update takes a moment to propagate
-            const refreshIntervals = [2000, 4000, 8000];
-
-            // Schedule multiple refreshes
-            for (const interval of refreshIntervals) {
-                setTimeout(async () => {
-                    try {
-                        await fetchBalances();
-                        console.log(`Refreshed balances after ${interval}ms`);
-                    } catch (error) {
-                        console.error(`Error refreshing balances after ${interval}ms:`, error);
-                    }
-                }, interval);
-            }
+            await pollForUTXOChanges();
+            onBalanceChanged();
 
             onTransferComplete?.();
         } catch (error) {
             console.error("Error sending import transaction:", error);
+            let msg = 'Unknown error';
+            if (error instanceof Error) msg = error.message;
+            setImportError(`Import failed: ${msg}`);
         } finally {
             setImportLoading(false);
             // Clear export transaction ID after import is done
@@ -204,219 +317,312 @@ export default function CrossChainTransfer({
         }
     }
 
+    // Chain option components
+    const ChainOption = ({ chain, label, description }: { chain: string, label: string, description: string }) => (
+        <div className="flex items-center p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer rounded-md">
+            <div className="rounded-full w-8 h-8 flex items-center justify-center mr-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700">
+                {chain === "c-chain" ? (
+                    <img
+                        src="https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg"
+                        alt="C-Chain Logo"
+                        className="h-6 w-6"
+                    />
+                ) : (
+                    <img
+                        src="https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg"
+                        alt="P-Chain Logo"
+                        className="h-6 w-6"
+                    />
+                )}
+            </div>
+            <div>
+                <div className="font-medium text-zinc-900 dark:text-white">{label}</div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">{description}</div>
+            </div>
+        </div>
+    );
+
+    // Get the available UTXOs based on current direction
+    const availableUTXOs = destinationChain === "p-chain" ? cToP_UTXOs : pToC_UTXOs;
+    const totalUtxoAmount = destinationChain === "p-chain" ? totalCToPUtxoAmount : totalPToCUtxoAmount;
+
     return (
         <Container
-            title="Cross Chain Transfer"
-            description="Move your AVAX tokens between the C-Chain (EVM) and P-Chain (Platform chain)."
+            title="Cross-chain transfer"
+            description="Transfer tokens between Exchange (X), Platform (P), and Contract (C) chains."
         >
             <div className="flex flex-col gap-6 w-full max-w-3xl mx-auto">
-                {/* Step Indicator */}
-                <div className="flex justify-between items-center px-2">
-                    <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full ${currentStep >= 1 ? 'bg-red-500 text-white' : 'bg-zinc-300 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400'} flex items-center justify-center font-semibold transition-colors duration-200`}>1</div>
-                        <span className={`text-xs mt-1 ${currentStep >= 1 ? 'text-red-500 dark:text-red-400 font-medium' : 'text-zinc-600 dark:text-zinc-400'}`}>Select Chains</span>
-                    </div>
-                    <div className={`flex-1 h-1 mx-2 ${currentStep >= 2 ? 'bg-red-300 dark:bg-red-700' : 'bg-zinc-200 dark:bg-zinc-700'} transition-colors duration-200`}></div>
-                    <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full ${currentStep >= 2 ? 'bg-red-500 text-white' : 'bg-zinc-300 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400'} flex items-center justify-center font-semibold transition-colors duration-200`}>2</div>
-                        <span className={`text-xs mt-1 ${currentStep >= 2 ? 'text-red-500 dark:text-red-400 font-medium' : 'text-zinc-600 dark:text-zinc-400'}`}>Enter Amount</span>
-                    </div>
-                    <div className={`flex-1 h-1 mx-2 ${currentStep >= 3 ? 'bg-red-300 dark:bg-red-700' : 'bg-zinc-200 dark:bg-zinc-700'} transition-colors duration-200`}></div>
-                    <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full ${currentStep >= 3 ? 'bg-red-500 text-white' : 'bg-zinc-300 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400'} flex items-center justify-center font-semibold transition-colors duration-200`}>3</div>
-                        <span className={`text-xs mt-1 ${currentStep >= 3 ? 'text-red-500 dark:text-red-400 font-medium' : 'text-zinc-600 dark:text-zinc-400'}`}>Confirm Transfer</span>
+                {/* Alert Banner */}
+                <div className="bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white p-4 rounded-lg flex items-start gap-3 border border-zinc-200 dark:border-zinc-700">
+                    <Info className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                        <div className="text-red-500 font-medium">This transfer requires 2 transactions</div>
+                        <div className="text-sm text-zinc-700 dark:text-zinc-300">You will be prompted to sign 2 separate transactions: one export, and one import</div>
                     </div>
                 </div>
 
-                {/* Chain Selection Section */}
-                <div className="grid grid-cols-12 gap-4 items-center bg-white dark:bg-zinc-900 p-5 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                    <div className="col-span-12 mb-2">
-                        <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100">Select Chains</h3>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Choose which chain to transfer from and to</p>
-                    </div>
-
-                    {/* Source Chain */}
-                    <div className="col-span-5 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-4 border border-zinc-200 dark:border-zinc-700 hover:shadow-md transition-shadow cursor-pointer">
-                        <div className="flex flex-col items-center space-y-2">
-                            <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">From</span>
-                            <div className="flex items-center">
+                {/* From Chain Selection */}
+                <div className="relative">
+                    <div className="flex justify-between items-center px-4 py-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <div className="font-medium text-zinc-900 dark:text-white">From</div>
+                        <div 
+                            className="flex items-center gap-2 cursor-pointer" 
+                            onClick={() => setShowSourceDropdown(!showSourceDropdown)}
+                        >
+                            <div className="rounded-full w-8 h-8 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700">
                                 {sourceChain === "c-chain" ? (
-                                    <>
-                                        <div className="bg-red-500 rounded-full p-3 flex items-center justify-center mr-3 w-10 h-10 shadow-sm">
-                                            <span className="text-white font-bold text-base">C</span>
-                                        </div>
-                                        <span className="font-medium text-zinc-800 dark:text-zinc-200">C-Chain</span>
-                                    </>
+                                    <img
+                                        src="https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg"
+                                        alt="C-Chain Logo"
+                                        className="h-6 w-6"
+                                    />
                                 ) : (
-                                    <>
-                                        <div className="bg-gradient-to-r from-red-500 to-blue-500 rounded-full p-3 flex items-center justify-center mr-3 w-10 h-10 shadow-sm">
-                                            <span className="text-white font-bold text-base">P</span>
-                                        </div>
-                                        <span className="font-medium text-zinc-800 dark:text-zinc-200">P-Chain</span>
-                                    </>
+                                    <img
+                                        src="https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg"
+                                        alt="P-Chain Logo"
+                                        className="h-6 w-6"
+                                    />
                                 )}
                             </div>
-                            <div className="text-xs text-zinc-500 dark:text-zinc-400 text-center">
-                                {sourceChain === "c-chain"
-                                    ? "EVM-compatible chain for smart contracts"
-                                    : "Native chain for staking & validators"}
-                            </div>
+                            <span className="text-zinc-900 dark:text-white font-medium">Avalanche ({sourceChain === "c-chain" ? "C-Chain" : "P-Chain"})</span>
+                            <ChevronDown className="h-4 w-4 text-zinc-900 dark:text-white" />
                         </div>
                     </div>
+                    
+                    {/* Source Chain Dropdown */}
+                    {showSourceDropdown && (
+                        <div className="absolute right-0 mt-2 w-full md:w-96 bg-white dark:bg-zinc-900 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 z-10">
+                            <div className="p-2">
+                                <div onClick={() => {
+                                    setSourceChain("c-chain");
+                                    setShowSourceDropdown(false);
+                                }}>
+                                    <ChainOption 
+                                        chain="c-chain" 
+                                        label="Avalanche (C-Chain)" 
+                                        description="EVM-compatible chain for smart contracts" 
+                                    />
+                                </div>
+                                <div onClick={() => {
+                                    setSourceChain("p-chain");
+                                    setShowSourceDropdown(false);
+                                }}>
+                                    <ChainOption 
+                                        chain="p-chain" 
+                                        label="Avalanche (P-Chain)" 
+                                        description="Native chain for staking & validators" 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
+                {/* Transfer Amount Input */}
+                <div className="flex items-center">
+                    <div className="flex-1">
+                        <Input
+                            type="text"
+                            value={amount}
+                            onChange={handleAmountChange}
+                            className="w-full px-4 py-3 h-14 text-xl bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg text-zinc-900 dark:text-white"
+                            placeholder="Enter amount to transfer"
+                            label=""
+                            error={error ?? undefined}
+                            button={
+                                <Button
+                                    variant="secondary"
+                                    onClick={handleMaxAmount}
+                                    disabled={exportLoading || (sourceChain === "c-chain" ? cChainBalance <= 0 : pChainBalance <= 0)}
+                                    stickLeft
+                                >
+                                    MAX
+                                </Button>
+                            }
+                        />
+                    </div>
+                    
                     {/* Swap Button */}
-                    <div className="col-span-2 flex justify-center relative">
-                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-0.5 bg-zinc-200 dark:bg-zinc-700"></div>
+                    <div className="mx-4">
                         <button
                             onClick={handleSwapChains}
-                            className="w-12 h-12 rounded-full border border-zinc-200 dark:border-zinc-800 flex items-center justify-center bg-white dark:bg-zinc-900 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all duration-200 cursor-pointer hover:shadow-md z-10 group relative"
+                            className="w-12 h-12 rounded-full flex items-center justify-center bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 transition-all border border-zinc-300 dark:border-zinc-700"
                             aria-label="Swap source and destination chains"
                         >
-                            <div className="relative flex items-center justify-center">
-                                <svg
-                                    className="w-6 h-6 text-zinc-400 group-hover:text-red-500 transition-all duration-300 group-hover:scale-110 transform rotate-90"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M7 16L12 21L17 16"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        className="group-hover:translate-y-0.5 transition-transform duration-300"
-                                    />
-                                    <path
-                                        d="M17 8L12 3L7 8"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        className="group-hover:-translate-y-0.5 transition-transform duration-300"
-                                    />
-                                    <path
-                                        d="M12 3V21"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        className="group-hover:scale-y-110 origin-center transition-transform duration-300"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="absolute inset-0 rounded-full border border-transparent group-hover:border-red-500/30 group-hover:scale-110 transition-all duration-300"></div>
+                            <svg
+                                className="w-6 h-6 text-zinc-700 dark:text-white"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                    d="M7 16L12 21L17 16"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                                <path
+                                    d="M17 8L12 3L7 8"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                                <path
+                                    d="M12 3V21"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
                         </button>
-                    </div>
-
-                    {/* Destination Chain */}
-                    <div className="col-span-5 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-4 border border-zinc-200 dark:border-zinc-700 hover:shadow-md transition-shadow cursor-pointer">
-                        <div className="flex flex-col items-center space-y-2">
-                            <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">To</span>
-                            <div className="flex items-center">
-                                {destinationChain === "c-chain" ? (
-                                    <>
-                                        <div className="bg-red-500 rounded-full p-3 flex items-center justify-center mr-3 w-10 h-10 shadow-sm">
-                                            <span className="text-white font-bold text-base">C</span>
-                                        </div>
-                                        <span className="font-medium text-zinc-800 dark:text-zinc-200">C-Chain</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="bg-gradient-to-r from-red-500 to-blue-500 rounded-full p-3 flex items-center justify-center mr-3 w-10 h-10 shadow-sm">
-                                            <span className="text-white font-bold text-base">P</span>
-                                        </div>
-                                        <span className="font-medium text-zinc-800 dark:text-zinc-200">P-Chain</span>
-                                    </>
-                                )}
-                            </div>
-                            <div className="text-xs text-zinc-500 dark:text-zinc-400 text-center">
-                                {destinationChain === "c-chain"
-                                    ? "EVM-compatible chain for smart contracts"
-                                    : "Native chain for staking & validators"}
-                            </div>
-                        </div>
                     </div>
                 </div>
 
-                {/* Transfer Amount Section */}
-                <div className="rounded-lg bg-white dark:bg-zinc-900 p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                    <div className="space-y-6">
-                        <div className="space-y-2">
-                            <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100">Transfer Amount</h3>
-                            <p className="text-sm text-zinc-500 dark:text-zinc-400">Specify how much AVAX to transfer between chains</p>
-                            <div className="relative mt-2">
-                                <Input
-                                    type="text"
-                                    value={amount}
-                                    onChange={(newAmount) => {
-                                        handleAmountChange(newAmount);
-                                    }}
-                                    className="w-full px-4 py-3 h-14 text-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-zinc-100 pr-20 focus:outline-none focus:ring-2 focus:ring-red-500 dark:focus:ring-red-400 transition-all duration-200"
-                                    label=""
-                                />
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
-                                    <span className="mr-2 text-zinc-500 dark:text-zinc-400">AVAX</span>
-                                    <Button
-                                        variant="secondary"
-                                        className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 bg-zinc-100 dark:bg-zinc-800 h-9 px-2 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                                        onClick={handleMaxAmount}
-                                        disabled={false}
-                                    >
-                                        MAX
-                                    </Button>
+                {/* To Chain Selection */}
+                <div className="relative">
+                    <div className="flex justify-between items-center px-4 py-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <div className="font-medium text-zinc-900 dark:text-white">To</div>
+                        <div 
+                            className="flex items-center gap-2 cursor-pointer" 
+                            onClick={() => setShowDestinationDropdown(!showDestinationDropdown)}
+                        >
+                            <div className="rounded-full w-8 h-8 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700">
+                                {destinationChain === "c-chain" ? (
+                                    <img
+                                        src="https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg"
+                                        alt="C-Chain Logo"
+                                        className="h-6 w-6"
+                                    />
+                                ) : (
+                                    <img
+                                        src="https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg"
+                                        alt="P-Chain Logo"
+                                        className="h-6 w-6"
+                                    />
+                                )}
+                            </div>
+                            <span className="text-zinc-900 dark:text-white font-medium">Avalanche ({destinationChain === "c-chain" ? "C-Chain" : "P-Chain"})</span>
+                            <ChevronDown className="h-4 w-4 text-zinc-900 dark:text-white" />
+                        </div>
+                    </div>
+                    
+                    {/* Destination Chain Dropdown */}
+                    {showDestinationDropdown && (
+                        <div className="absolute right-0 mt-2 w-full md:w-96 bg-white dark:bg-zinc-900 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 z-10">
+                            <div className="p-2">
+                                <div onClick={() => {
+                                    setDestinationChain("c-chain");
+                                    setShowDestinationDropdown(false);
+                                }}>
+                                    <ChainOption 
+                                        chain="c-chain" 
+                                        label="Avalanche (C-Chain)" 
+                                        description="EVM-compatible chain for smart contracts" 
+                                    />
+                                </div>
+                                <div onClick={() => {
+                                    setDestinationChain("p-chain");
+                                    setShowDestinationDropdown(false);
+                                }}>
+                                    <ChainOption 
+                                        chain="p-chain" 
+                                        label="Avalanche (P-Chain)" 
+                                        description="Native chain for staking & validators" 
+                                    />
                                 </div>
                             </div>
                         </div>
+                    )}
+                </div>
 
-                        {/* Information Box */}
-                        <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4 border border-blue-200 dark:border-blue-800">
-                            <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">About Cross-Chain Transfers</h4>
-                            <ul className="text-xs text-blue-700 dark:text-blue-400 space-y-1 pl-5 list-disc">
-                                <li>Transfers require two transactions: an export from the source chain and an import to the destination chain</li>
-                                <li>Import will automatically start after export is confirmed</li>
-                                <li>Transfer times vary but typically take 15-30 seconds to complete</li>
-                                <li>Small network fees apply to each transaction</li>
-                            </ul>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="space-y-3">
-                            <Button
-                                variant="primary"
-                                onClick={handleExport}
-                                disabled={exportLoading || importLoading || waitingForConfirmation || Number(amount) <= 0}
-                                className="w-full py-3 px-4 text-base font-medium text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {exportLoading ? (
-                                    <span className="flex items-center justify-center">
-                                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                                        Exporting from {sourceChain === "c-chain" ? "C-Chain" : "P-Chain"}...
-                                    </span>
-                                ) : `Transfer ${Number(amount) > 0 ? amount : "0"} AVAX ${sourceChain === "c-chain" ? "C→P" : "P→C"}`}
-                            </Button>
-
-                            {waitingForConfirmation && (
-                                <div className="flex items-center p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                                    <Loader2 className="h-5 w-5 mr-3 animate-spin text-yellow-500" />
-                                    <div>
-                                        <span className="text-yellow-700 dark:text-yellow-300 text-sm font-medium">Export Successful!</span>
-                                        <span className="text-yellow-600 dark:text-yellow-400 text-xs block">Waiting for confirmation before import...</span>
-                                    </div>
+                {/* UTXOs Display */}
+                {availableUTXOs.length > 0 && (
+                    <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <h2 className="text-md font-medium text-zinc-900 dark:text-white mb-2">
+                            Pending UTXOs to Import
+                        </h2>
+                        <div className="text-sm text-zinc-700 dark:text-zinc-300 py-3 px-4 bg-zinc-50 dark:bg-zinc-700 rounded-md">
+                            {availableUTXOs.map((utxo, index) => (
+                                <div key={index}>
+                                    {(Number(utxo.output.amt.value()) / 1_000_000_000).toFixed(6)} AVAX
                                 </div>
-                            )}
-
-                            {importLoading && (
-                                <div className="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                    <Loader2 className="h-5 w-5 mr-3 animate-spin text-blue-500" />
-                                    <div>
-                                        <span className="text-blue-700 dark:text-blue-300 text-sm font-medium">Importing to {destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}...</span>
-                                        <span className="text-blue-600 dark:text-blue-400 text-xs block">Finalizing your transfer</span>
-                                    </div>
-                                </div>
-                            )}
+                            ))}
+                            <div className="mt-2 font-medium">
+                                Total: {totalUtxoAmount.toFixed(6)} AVAX
+                            </div>
                         </div>
                     </div>
+                )}
+
+                {/* Estimated Fees */}
+                <div className="flex justify-between items-center px-4 py-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                    <div className="font-medium text-zinc-900 dark:text-white">Estimated total fees</div>
+                    <div className="font-medium text-zinc-900 dark:text-white">~0.001 AVAX</div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="space-y-3">
+                    {/* Export Button */}
+                    {(!exportTxId && !importTxId) && (
+                        <Button
+                            variant="primary"
+                            onClick={handleExport}
+                            disabled={exportLoading || importLoading || waitingForConfirmation || Number(amount) <= 0 || !!error}
+                            className="w-full py-3 px-4 text-base font-medium text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {exportLoading ? (
+                                <span className="flex items-center justify-center">
+                                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                    Exporting from {sourceChain === "c-chain" ? "C-Chain" : "P-Chain"}...
+                                </span>
+                            ) : `Transfer ${Number(amount) > 0 ? amount : "0"} AVAX ${sourceChain === "c-chain" ? "C→P" : "P→C"}`}
+                        </Button>
+                    )}
+
+                    {/* Import Button */}
+                    {(exportTxId || availableUTXOs.length > 0) && !importTxId && (
+                        <Button
+                            variant="primary"
+                            onClick={handleImport}
+                            disabled={importLoading || availableUTXOs.length === 0}
+                            className="w-full py-3 px-4 text-base font-medium text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {importLoading ? (
+                                <span className="flex items-center justify-center">
+                                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                    Importing to {destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}...
+                                </span>
+                            ) : `Import to ${destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}`}
+                        </Button>
+                    )}
+
+                    {waitingForConfirmation && (
+                        <div className="flex items-center p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                            <Loader2 className="h-5 w-5 mr-3 animate-spin text-yellow-500" />
+                            <div>
+                                <span className="text-yellow-700 dark:text-yellow-300 text-sm font-medium">Export Successful!</span>
+                                <span className="text-yellow-600 dark:text-yellow-400 text-xs block">Waiting for confirmation before import...</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {importError && (
+                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                            <div className="text-red-700 dark:text-red-300 text-sm">
+                                {importError}
+                            </div>
+                        </div>
+                    )}
+
+                    {importTxId && (
+                        <Success
+                            label={`Successfully Bridged from ${sourceChain === "c-chain" ? "C-Chain" : "P-Chain"} to ${destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}`}
+                            value={importTxId}
+                        />
+                    )}
                 </div>
             </div>
         </Container>

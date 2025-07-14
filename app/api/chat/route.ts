@@ -430,7 +430,7 @@ const TOOLBOX_TOOLS = {
     description: 'Tools for creating and managing Avalanche L1 blockchains',
     tools: [
       { name: 'Create Chain', id: 'createChain', description: 'Create a new L1 blockchain' },
-      { name: 'Node Setup with Docker', id: 'avalanchegoDocker', description: 'Set up an Avalanche node using Docker' },
+      { name: 'Node Setup with Docker', id: 'avalanchegoDockerL1', description: 'Set up an Avalanche node for your L1 using Docker' },
       { name: 'Convert Subnet to L1', id: 'convertToL1', description: 'Convert an existing subnet to an L1' },
       { name: 'Self-Hosted Explorer', id: 'selfHostedExplorer', description: 'Deploy your own blockchain explorer' }
     ]
@@ -468,6 +468,13 @@ const TOOLBOX_TOOLS = {
       { name: 'Faucet', id: 'faucet', description: 'Get testnet / test AVAX tokens for development on Fuji network' },
       { name: 'RPC Methods Check', id: 'rpcMethodsCheck', description: 'Verify RPC endpoint functionality' },
       { name: 'AVAX Unit Converter', id: 'unitConverter', description: 'Convert between AVAX units' }
+    ]
+  },
+  'Primary Network': {
+    description: 'Tools for working with the Avalanche Primary Network',
+    tools: [
+      { name: 'Primary Network Node Setup with Docker', id: 'avalanchegoDockerPrimaryNetwork', description: 'Set up a Docker container running a validator or RPC node for the Avalanche Primary Network (P-Chain, X-Chain, and C-Chain)' },
+      { name: 'Cross-Chain Transfer', id: 'crossChainTransfer', description: 'Transfer AVAX between P-Chain, X-Chain, and C-Chain on the Primary Network' }
     ]
   }
 };

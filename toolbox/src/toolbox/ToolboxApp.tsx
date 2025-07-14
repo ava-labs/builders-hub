@@ -1,7 +1,7 @@
 "use client";
 
 import { ErrorBoundary } from "react-error-boundary";
-import { RefreshCw, ChevronDown, ChevronRight, Layers, Users, MessagesSquare, Coins, Settings, Wrench, GraduationCap, Home, Plus, Shield, ArrowUpDown, UserPlus, Weight, UserMinus, GitMerge, DollarSign, Search, RotateCcw, Calculator, Send, FileCode, BookOpen, Server, Globe, Zap, List, Lock, Banknote, Gift, Radio, Droplets, Monitor, Activity, RefreshCcw, Repeat, Moon, Sun, ArrowLeft, Pin } from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronRight, Layers, Users, MessagesSquare, Coins, Settings, Wrench, GraduationCap, Home, Plus, Shield, ArrowUpDown, UserPlus, Weight, UserMinus, GitMerge, DollarSign, Search, RotateCcw, Calculator, Send, FileCode, BookOpen, Server, Globe, Zap, List, Lock, Banknote, Gift, Radio, Droplets, Monitor, Activity, RefreshCcw, Repeat, Moon, Sun, ArrowLeft, Pin, Network } from 'lucide-react';
 import { useState, useEffect, lazy, Suspense } from "react";
 import { GithubLink } from "../components/GithubLink";
 import { ErrorFallback } from "../components/ErrorFallback";
@@ -77,10 +77,10 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         icon: <Plus className="w-4 h-4" />
       },
       {
-        id: "avalanchegoDocker",
-        label: "Node Setup with Docker",
-        component: lazy(() => import('./Nodes/AvalanchegoDocker')),
-        fileNames: ["toolbox/src/toolbox/Nodes/AvalanchegoDocker.tsx"],
+        id: "avalanchegoDockerL1",
+        label: "L1 Node Setup with Docker",
+        component: lazy(() => import('./Nodes/AvalancheGoDockerL1')),
+        fileNames: ["toolbox/src/toolbox/Nodes/AvalancheGoDockerL1.tsx"],
         walletMode: "testnet-mainnet",
         icon: <Server className="w-4 h-4" />
       },
@@ -487,6 +487,31 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         ]
       }
     }
+  },
+  'Primary Network': {
+    icon: <Network className="w-5 h-5" />,
+    academy: {
+      text: "Learn about the Avalanche Primary Network",
+      link: "https://build.avax.network/docs/quick-start/primary-network"
+    },
+    components: [
+      {
+        id: "avalanchegoDockerPrimaryNetwork",
+        label: "Node Setup with Docker",
+        component: lazy(() => import('./Nodes/AvalancheGoDockerPrimaryNetwork')),
+        fileNames: ["toolbox/src/toolbox/Nodes/AvalancheGoDockerPrimaryNetwork.tsx"],
+        walletMode: "testnet-mainnet",
+        icon: <Server className="w-4 h-4" />
+      },
+      {
+        id: "crossChainTransfer",
+        label: "Cross-Chain Transfer",
+        component: lazy(() => import('../components/CrossChainTransfer')),
+        fileNames: ["toolbox/src/components/CrossChainTransfer.tsx"],
+        walletMode: "c-chain",
+        icon: <ArrowUpDown className="w-4 h-4" />
+      }
+    ]
   },
   "Faucet": {
     icon: <Droplets className="w-5 h-5" />,
