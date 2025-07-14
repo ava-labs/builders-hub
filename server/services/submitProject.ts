@@ -140,6 +140,7 @@ function normalizeUser(user: Partial<User>): User {
     profile_privacy: user.profile_privacy ?? null,
     social_media: user.social_media ?? [],
     notifications: user.notifications ?? null,
+    created_at: user.created_at ?? new Date(),
   };
 }
 export async function getProject(projectId: string): Promise<Project | null> {
