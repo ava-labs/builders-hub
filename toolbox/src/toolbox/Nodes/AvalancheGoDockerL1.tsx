@@ -120,7 +120,7 @@ export default function AvalanchegoDocker() {
     const [subnet, setSubnet] = useState<any>(null);
     const [blockchainInfo, setBlockchainInfo] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [nodeType, setNodeType] = useState<"validator" | "rpc" | "public-rpc">("validator");
+    const [nodeType, setNodeType] = useState<"validator" | "public-rpc">("validator");
     const [rpcCommand, setRpcCommand] = useState("");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
@@ -132,7 +132,7 @@ export default function AvalanchegoDocker() {
 
     const { avalancheNetworkID } = useWalletStore();
 
-    const isRPC = nodeType === "rpc" || nodeType === "public-rpc";
+    const isRPC = nodeType === "public-rpc";
 
     useEffect(() => {
         try {
@@ -148,8 +148,6 @@ export default function AvalanchegoDocker() {
             setDomain("");
             setEnableDebugTrace(false);
             setPruningEnabled(true);
-        } else if (nodeType === 'rpc') {
-            setDomain("");
         }
     }, [nodeType]);
 
@@ -380,8 +378,7 @@ export default function AvalanchegoDocker() {
                                     />
                                 </Step>
                             )}
-                            {((nodeType === "rpc") || 
-                                (nodeType === "public-rpc" && !!domain)) && (
+                            {((nodeType === "public-rpc" && !!domain)) && (
                                 <Step>
                                     <AddToWalletStep
                                         chainId={selectedRPCBlockchainId || chainId}

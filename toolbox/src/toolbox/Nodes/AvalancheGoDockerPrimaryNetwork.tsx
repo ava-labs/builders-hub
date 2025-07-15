@@ -77,7 +77,7 @@ const generatePrimaryNetworkDockerCommand = (isRPC: boolean, networkID: number, 
 };
 
 export default function AvalancheGoDockerPrimaryNetwork() {
-    const [nodeType, setNodeType] = useState<"validator" | "rpc" | "public-rpc">("validator");
+    const [nodeType, setNodeType] = useState<"validator" | "public-rpc">("validator");
     const [rpcCommand, setRpcCommand] = useState("");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
@@ -86,7 +86,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
 
     const { avalancheNetworkID } = useWalletStore();
 
-    const isRPC = nodeType === "rpc" || nodeType === "public-rpc";
+    const isRPC = nodeType === "public-rpc";
 
     useEffect(() => {
         try {
