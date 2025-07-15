@@ -2,7 +2,7 @@
 
 import { Checkbox } from "./Checkbox";
 
-type NodeType = "validator" | "rpc" | "public-rpc";
+type NodeType = "validator" | "public-rpc";
 
 interface ConfigureNodeTypeProps {
     nodeType: NodeType;
@@ -52,30 +52,13 @@ export const ConfigureNodeType: React.FC<ConfigureNodeTypeProps> = ({
                     <input
                         type="radio"
                         name="nodeType"
-                        value="rpc"
-                        checked={nodeType === "rpc"}
-                        onChange={() => setNodeType("rpc")}
-                        className="mt-1"
-                    />
-                    <div>
-                        <div className="font-medium">RPC Node (Local)</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                            Exposes RPC endpoint for local development and testing.
-                        </div>
-                    </div>
-                </label>
-
-                <label className="flex items-start space-x-3 cursor-pointer">
-                    <input
-                        type="radio"
-                        name="nodeType"
                         value="public-rpc"
                         checked={nodeType === "public-rpc"}
                         onChange={() => setNodeType("public-rpc")}
                         className="mt-1"
                     />
                     <div>
-                        <div className="font-medium">RPC Node (Public)</div>
+                        <div className="font-medium">Public RPC Node</div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                             Exposes RPC endpoint publicly via HTTPS. Suitable for production dApps and requires a server.
                         </div>
@@ -100,7 +83,21 @@ export const ConfigureNodeType: React.FC<ConfigureNodeTypeProps> = ({
                     />
                 </div>
             )}
-            {/* Port configuration inline */}
+            
+            {/* Port configuration for validator node */}
+            {nodeType === 'validator' && (
+                <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <h4 className="font-medium mb-2">Required Ports</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Make sure the following port is open on your server:
+                    </p>
+                    <ul className="list-disc pl-5 mt-2 text-sm space-y-1">
+                        <li><strong>9651</strong> - Node-to-node communication</li>
+                    </ul>
+                </div>
+            )}
+            
+            {/* Port configuration for public RPC node */}
             {nodeType === 'public-rpc' && (
                 <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <h4 className="font-medium mb-2">Required Ports</h4>
