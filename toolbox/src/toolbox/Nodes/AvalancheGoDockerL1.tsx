@@ -3,7 +3,6 @@
 import { useWalletStore } from "../../stores/walletStore";
 import { useState, useEffect } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
-import versions from "../../versions.json";
 import { Container } from "../../components/Container";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputSubnetId from "../../components/InputSubnetId";
@@ -14,105 +13,11 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import { DockerInstallation } from "../../components/DockerInstallation";
-import { NodeBootstrapValidator } from "../../components/NodeBootstrapValidator";
+import { NodeBootstrapCheck } from "../../components/NodeBootstrapCheck";
 import { ReverseProxySetup } from "../../components/ReverseProxySetup";
 import { AddToWalletStep } from "../../components/AddToWalletStep";
 import { ConfigureNodeType } from "../../components/ConfigureNodeType";
-
-// Standard subnet-evm VM ID
-export const SUBNET_EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy";
-
-export const nodeConfigBase64 = (chainId: string, debugEnabled: boolean, pruningEnabled: boolean) => {
-    const vmConfig = debugEnabled ? {
-        "pruning-enabled": pruningEnabled,
-        "log-level": "debug",
-        "warp-api-enabled": true,
-        "eth-apis": [
-            "eth",
-            "eth-filter",
-            "net",
-            "admin",
-            "web3",
-            "internal-eth",
-            "internal-blockchain",
-            "internal-transaction",
-            "internal-debug",
-            "internal-account",
-            "internal-personal",
-            "debug",
-            "debug-tracer",
-            "debug-file-tracer",
-            "debug-handler"
-        ]
-    } : {
-        "pruning-enabled": pruningEnabled,
-    }
-
-    // First encode the inner config object
-    const vmConfigEncoded = btoa(JSON.stringify(vmConfig));
-
-    const configMap: Record<string, { Config: string, Upgrade: any }> = {}
-    configMap[chainId] = { Config: vmConfigEncoded, Upgrade: null }
-
-    return btoa(JSON.stringify(configMap))
-}
-
-const generateDockerCommand = (subnets: string[], isRPC: boolean, networkID: number, chainId: string, vmId: string, debugEnabled: boolean = false, pruningEnabled: boolean = false) => {
-    const env: Record<string, string> = {
-        AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true",
-        AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
-        AVAGO_HTTP_HOST: "0.0.0.0",
-    };
-
-    subnets = subnets.filter(subnet => subnet !== "");
-    if (subnets.length !== 0) {
-        env.AVAGO_TRACK_SUBNETS = subnets.join(",");
-    }
-
-    if (networkID === networkIDs.FujiID) {
-        env.AVAGO_NETWORK_ID = "fuji";
-    } else if (networkID === networkIDs.MainnetID) {
-        delete env.AVAGO_NETWORK_ID; //default is mainnet
-    } else {
-        throw new Error(`This tool only supports Fuji (${networkIDs.FujiID}) and Mainnet (${networkIDs.MainnetID}). Network ID ${networkID} is not supported.`);
-    }
-
-    if (isRPC) {
-        env.AVAGO_HTTP_ALLOWED_HOSTS = "\"*\"";
-    }
-
-    env.AVAGO_CHAIN_CONFIG_CONTENT = nodeConfigBase64(chainId, debugEnabled, pruningEnabled);
-
-    // Check if this is a custom VM (not the standard subnet-evm)
-    const isCustomVM = vmId !== SUBNET_EVM_VM_ID;
-
-    if (isCustomVM) {
-        env.VM_ID = vmId;
-    }
-
-    const chunks = [
-        "docker run -it -d",
-        `--name avago`,
-        `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
-        `-v ~/.avalanchego:/root/.avalanchego`,
-        ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
-        `avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`
-    ];
-
-    // Add vm-aliases-file-content parameter for custom VMs
-    if (isCustomVM) {
-        chunks.push("/avalanchego/build/avalanchego");
-        const vmAliases = {
-            [vmId]: [SUBNET_EVM_VM_ID]
-        };
-        const base64Content = btoa(JSON.stringify(vmAliases, null, 2));
-        chunks.push(`--vm-aliases-file-content=${base64Content}`);
-    }
-
-    return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
-}
-
-
+import { SUBNET_EVM_VM_ID, generateDockerCommand } from "./config";
 
 export default function AvalanchegoDocker() {
     const [chainId, setChainId] = useState("");
@@ -137,7 +42,16 @@ export default function AvalanchegoDocker() {
     useEffect(() => {
         try {
             const vmId = blockchainInfo?.vmId || SUBNET_EVM_VM_ID;
-            setRpcCommand(generateDockerCommand([subnetId], isRPC, avalancheNetworkID, chainId, vmId, enableDebugTrace, pruningEnabled));
+            setRpcCommand(generateDockerCommand(
+                [subnetId], 
+                isRPC, 
+                avalancheNetworkID, 
+                chainId, 
+                vmId, 
+                enableDebugTrace, 
+                pruningEnabled,
+                false // isPrimaryNetwork = false
+            ));
         } catch (error) {
             setRpcCommand((error as Error).message);
         }
@@ -416,12 +330,12 @@ export default function AvalanchegoDocker() {
                                         </Accordion>
                                     </Accordions>
 
-                                                        <NodeBootstrapValidator
-                        chainId={chainId}
-                        domain={domain || "127.0.0.1:9650"}
-                        isDebugTrace={enableDebugTrace}
-                        onBootstrapCheckChange={(checked: boolean) => setNodeIsReady(checked)}
-                    />
+                                    <NodeBootstrapCheck
+                                        chainId={chainId}
+                                        domain={domain || "127.0.0.1:9650"}
+                                        isDebugTrace={enableDebugTrace}
+                                        onBootstrapCheckChange={(checked: boolean) => setNodeIsReady(checked)}
+                                    />
                                 </Step>
                             )}
 

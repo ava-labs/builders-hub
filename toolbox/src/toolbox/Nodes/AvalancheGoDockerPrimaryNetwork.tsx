@@ -2,79 +2,15 @@
 
 import { useWalletStore } from "../../stores/walletStore";
 import { useState, useEffect } from "react";
-import { networkIDs } from "@avalabs/avalanchejs";
 import { Container } from "../../components/Container";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { DockerInstallation } from "../../components/DockerInstallation";
-import { NodeBootstrapValidator } from "../../components/NodeBootstrapValidator";
+import { NodeBootstrapCheck } from "../../components/NodeBootstrapCheck";
 import { ReverseProxySetup } from "../../components/ReverseProxySetup";
 import { ConfigureNodeType } from "../../components/ConfigureNodeType";
-
-const AVALANCHEGO_VERSION = "v1.13.2-r";
-const C_CHAIN_ID = "C";
-
-const generatePrimaryNetworkDockerCommand = (isRPC: boolean, networkID: number, enableDebugTrace: boolean = false, pruningEnabled: boolean = true) => {
-    const env: Record<string, string> = {
-        AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
-        AVAGO_HTTP_HOST: "0.0.0.0",
-    };
-
-    if (networkID === networkIDs.FujiID) {
-        env.AVAGO_NETWORK_ID = "fuji";
-    } else if (networkID === networkIDs.MainnetID) {
-        // Default is mainnet, no need to set
-    } else {
-        throw new Error(`This tool only supports Fuji (${networkIDs.FujiID}) and Mainnet (${networkIDs.MainnetID}). Network ID ${networkID} is not supported.`);
-    }
-
-    if (isRPC) {
-        env.AVAGO_HTTP_ALLOWED_HOSTS = "\"*\"";
-    }
-
-    // Configure C-Chain if debug trace or archive mode is needed
-    if (isRPC && (enableDebugTrace || !pruningEnabled)) {
-        const cChainConfig = enableDebugTrace ? {
-            "pruning-enabled": pruningEnabled,
-            "log-level": "debug",
-            "eth-apis": [
-                "eth",
-                "eth-filter",
-                "net",
-                "admin",
-                "web3",
-                "internal-eth",
-                "internal-blockchain",
-                "internal-transaction",
-                "internal-debug",
-                "internal-account",
-                "internal-personal",
-                "debug",
-                "debug-tracer",
-                "debug-file-tracer",
-                "debug-handler"
-            ]
-        } : {
-            "pruning-enabled": pruningEnabled,
-        };
-
-        const configMap: Record<string, { Config: string, Upgrade: any }> = {};
-        configMap[C_CHAIN_ID] = { Config: btoa(JSON.stringify(cChainConfig)), Upgrade: null };
-        env.AVAGO_CHAIN_CONFIG_CONTENT = btoa(JSON.stringify(configMap));
-    }
-
-    const chunks = [
-        "docker run -it -d",
-        `--name avago`,
-        `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
-        `-v ~/.avalanchego:/root/.avalanchego`,
-        ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
-        `avaplatform/avalanchego:${AVALANCHEGO_VERSION}`
-    ];
-
-    return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
-};
+import { C_CHAIN_ID, generateDockerCommand } from "./config";
 
 export default function AvalancheGoDockerPrimaryNetwork() {
     const [nodeType, setNodeType] = useState<"validator" | "public-rpc">("validator");
@@ -90,7 +26,16 @@ export default function AvalancheGoDockerPrimaryNetwork() {
 
     useEffect(() => {
         try {
-            setRpcCommand(generatePrimaryNetworkDockerCommand(isRPC, avalancheNetworkID, enableDebugTrace, pruningEnabled));
+            setRpcCommand(generateDockerCommand(
+                [], // No subnets for Primary Network
+                isRPC, 
+                avalancheNetworkID, 
+                C_CHAIN_ID, 
+                "", // No custom VM ID for Primary Network
+                enableDebugTrace, 
+                pruningEnabled,
+                true // isPrimaryNetwork = true
+            ));
         } catch (error) {
             setRpcCommand((error as Error).message);
         }
@@ -214,7 +159,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
                                 </Accordion>
                             </Accordions>
 
-                            <NodeBootstrapValidator
+                            <NodeBootstrapCheck
                                 chainId={C_CHAIN_ID}
                                 domain={domain || "127.0.0.1:9650"}
                                 isDebugTrace={enableDebugTrace}

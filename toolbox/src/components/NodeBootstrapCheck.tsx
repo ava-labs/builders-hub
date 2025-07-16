@@ -4,7 +4,7 @@ import { Button } from "./Button";
 import { Checkbox } from "./Checkbox";
 import { nipify } from "./HostInput";
 
-interface NodeBootstrapValidatorProps {
+interface NodeBootstrapCheckProps {
     // Required: parameters to generate the check command
     chainId: string;
     domain: string;
@@ -46,7 +46,7 @@ ${baseUrl}/ext/bc/${chainId}/rpc`;
 
 
 
-export const NodeBootstrapValidator = ({
+export const NodeBootstrapCheck = ({
     chainId,
     domain,
     isDebugTrace = false,
@@ -55,7 +55,7 @@ export const NodeBootstrapValidator = ({
     onAction,
     onBootstrapCheckChange,
     children
-}: NodeBootstrapValidatorProps) => {
+}: NodeBootstrapCheckProps) => {
     const [bootstrapChecked, setBootstrapChecked] = useState(false);
 
     const handleButtonClick = () => {
