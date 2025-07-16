@@ -3,7 +3,7 @@
 import { Users, Database, Key, Copy, AlertTriangle, FileText, Globe, ChevronDown, ChevronRight, Network } from "lucide-react"
 import { useState } from "react"
 import type { BlockchainInfo } from "./SelectBlockchain";
-import { SUBNET_EVM_VM_ID } from "../toolbox/Nodes/AvalancheGoDockerL1";
+import { SUBNET_EVM_VM_ID } from "../toolbox/Nodes/config";
 import { useWalletStore } from "../stores/walletStore";
 import { PRIMARY_NETWORK_SUBNET_ID } from "./InputSubnetId";
 
