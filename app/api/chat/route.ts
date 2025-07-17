@@ -291,18 +291,18 @@ function searchContent(query: string, sections: Array<{ id: string; title: strin
   let lunrResults: lunr.Index.Result[] = [];
   
   try {
-    lunrResults = lunrIndex.search(lunrQuery.trim());
+    lunrResults = lunrIndex!.search(lunrQuery.trim());
   } catch (e) {
     // Fallback to simple query if advanced query fails
     console.warn('Advanced query failed, falling back to simple search:', e);
-    lunrResults = lunrIndex.search(queryTerms.join(' '));
+    lunrResults = lunrIndex!.search(queryTerms.join(' '));
   }
   
   // If no results, try individual terms
   if (lunrResults.length === 0) {
     queryTerms.forEach(term => {
       try {
-        const termResults = lunrIndex.search(`${term} ${term}*`);
+        const termResults = lunrIndex!.search(`${term} ${term}*`);
         lunrResults.push(...termResults);
       } catch (e) {
         console.warn(`Failed to search for term ${term}:`, e);
