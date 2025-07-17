@@ -246,6 +246,63 @@ async function getTotalIcmMessages(chainId, chainName) {
   }
 }
 
+async function getSubnetId(chainId, chainName) {
+  try {
+    const url = `https://metrics.avax.network/v2/chains/${chainId}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return "N/A";
+    }
+
+    const data = await response.json();
+    
+    if (!data?.subnetId) {
+      return "N/A";
+    }
+
+    return data.subnetId;
+  } catch (error) {
+    return "N/A";
+  }
+}
+
+async function getValidatorCount(subnetId, chainName) {
+  try {
+    if (!subnetId || subnetId === "N/A") {
+      return "N/A";
+    }
+    
+    const url = `https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?pageSize=1&subnetId=${subnetId}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return "N/A";
+    }
+
+    const data = await response.json();
+    
+    if (!data?.results?.[0]?.value) {
+      return "N/A";
+    }
+
+    const value = Number(data.results[0].value);
+    return value;
+  } catch (error) {
+    return "N/A";
+  }
+}
+
 async function updateMetricsCSV() {
   if (!ROUTESCAN_API_KEY) {
     console.error('ERROR: ROUTESCAN_API_KEY is required. Please add your Routescan API key.');
@@ -262,7 +319,7 @@ async function updateMetricsCSV() {
   console.log(`Total unique chains fetched: ${uniqueChains.length}`);
 
   const csvData = [];
-  csvData.push('chainId,chainName,chainLogoURI,day1TxCount,day2TxCount,day3TxCount,day4TxCount,day5TxCount,day6TxCount,day7TxCount,weeklyTxCount,weeklyContractsDeployed,weeklyActiveAddresses,totalIcmMessages');
+  csvData.push('chainId,chainName,chainLogoURI,subnetId,day1TxCount,day2TxCount,day3TxCount,day4TxCount,day5TxCount,day6TxCount,day7TxCount,weeklyTxCount,weeklyContractsDeployed,weeklyActiveAddresses,totalIcmMessages,validatorCount');
 
   for (const chain of uniqueChains) {
     try {
@@ -273,11 +330,14 @@ async function updateMetricsCSV() {
       const weeklyContractsDeployed = await getWeeklyContractsDeployed(chain.chainId, chain.chainName);
       const weeklyActiveAddresses = await getWeeklyActiveAddresses(chain.chainId, chain.chainName);
       const totalIcmMessages = await getTotalIcmMessages(chain.chainId, chain.chainName);
+      const subnetId = await getSubnetId(chain.chainId, chain.chainName);
+      const validatorCount = await getValidatorCount(subnetId, chain.chainName);
 
       const row = [
         chain.chainId,
         `"${chain.chainName}"`,
         `"${chain.logoUri}"`,
+        `"${subnetId}"`,
         day1TxCount === "N/A" ? "N/A" : day1TxCount,
         day2TxCount === "N/A" ? "N/A" : day2TxCount,
         day3TxCount === "N/A" ? "N/A" : day3TxCount,
@@ -288,7 +348,8 @@ async function updateMetricsCSV() {
         weeklyTxCount === "N/A" ? "N/A" : weeklyTxCount,
         weeklyContractsDeployed === "N/A" ? "N/A" : weeklyContractsDeployed,
         weeklyActiveAddresses === "N/A" ? "N/A" : weeklyActiveAddresses,
-        totalIcmMessages === "N/A" ? "N/A" : totalIcmMessages
+        totalIcmMessages === "N/A" ? "N/A" : totalIcmMessages,
+        validatorCount === "N/A" ? "N/A" : validatorCount
       ].join(',');
 
       csvData.push(row);
@@ -300,7 +361,7 @@ async function updateMetricsCSV() {
         chain.chainId,
         `"${chain.chainName}"`,
         `"${chain.logoUri}"`,
-        'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A'
+        'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A'
       ].join(',');
       csvData.push(row);
     }
