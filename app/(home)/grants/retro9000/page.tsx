@@ -217,7 +217,6 @@ export default function GrantsForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header Section */}
         <section className="text-center space-y-8 pt-8 pb-12">
@@ -1318,6 +1317,5 @@ export default function GrantsForm() {
           </div>
         )}
       </div>
-    </div>
   );
 }
