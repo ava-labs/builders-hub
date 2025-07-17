@@ -225,11 +225,11 @@ const SplashPage = () => {
       href: "#rpcMethodsCheck"
     },
     {
-      title: "Node Setup with Docker",
+      title: "L1 Node Setup with Docker",
       description: "Set up node infrastructure with Docker",
       icon: <Server className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
-      href: "#avalanchegoDocker"
+      href: "#avalanchegoDockerL1"
     },
     {
       title: "Faucet",
