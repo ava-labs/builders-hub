@@ -50,6 +50,7 @@ interface ChainMetrics {
   weeklyContractsDeployed: number | string;
   weeklyActiveAddresses: number | string;
   totalIcmMessages: number | string;
+  validatorCount: number | string;
 }
 
 type SortField = keyof ChainMetrics;
@@ -92,6 +93,7 @@ export default function AvalancheMetrics() {
       if (values.length >= headers.length) {
         const chainName = values[1].replace(/"/g, "");
         const chainLogoURI = values[2].replace(/"/g, "");
+        // Skip subnetId (values[3]) since we don't use it in the UI
 
         const parseMetricValue = (value: string): number | string => {
           if (value === "N/A" || value === "") return "N/A";
@@ -103,17 +105,18 @@ export default function AvalancheMetrics() {
           chainId: values[0],
           chainName: chainName.toUpperCase(),
           chainLogoURI: chainLogoURI,
-          day1TxCount: parseMetricValue(values[3]),
-          day2TxCount: parseMetricValue(values[4]),
-          day3TxCount: parseMetricValue(values[5]),
-          day4TxCount: parseMetricValue(values[6]),
-          day5TxCount: parseMetricValue(values[7]),
-          day6TxCount: parseMetricValue(values[8]),
-          day7TxCount: parseMetricValue(values[9]),
-          weeklyTxCount: parseMetricValue(values[10]),
-          weeklyContractsDeployed: parseMetricValue(values[11]),
-          weeklyActiveAddresses: parseMetricValue(values[12]),
-          totalIcmMessages: parseMetricValue(values[13]),
+          day1TxCount: parseMetricValue(values[4]),
+          day2TxCount: parseMetricValue(values[5]),
+          day3TxCount: parseMetricValue(values[6]),
+          day4TxCount: parseMetricValue(values[7]),
+          day5TxCount: parseMetricValue(values[8]),
+          day6TxCount: parseMetricValue(values[9]),
+          day7TxCount: parseMetricValue(values[10]),
+          weeklyTxCount: parseMetricValue(values[11]),
+          weeklyContractsDeployed: parseMetricValue(values[12]),
+          weeklyActiveAddresses: parseMetricValue(values[13]),
+          totalIcmMessages: parseMetricValue(values[14]),
+          validatorCount: parseMetricValue(values[15]),
         });
       }
     }
@@ -570,7 +573,17 @@ export default function AvalancheMetrics() {
                 <p className="text-xs font-medium text-muted-foreground">
                   Total Validators
                 </p>
-                <p className="text-lg font-bold text-foreground">2092</p>
+                <p className="text-lg font-bold text-foreground">
+                  {formatNumber(
+                    chainMetrics.reduce((sum, chain) => {
+                      const validators =
+                        typeof chain.validatorCount === "number"
+                          ? chain.validatorCount
+                          : 0;
+                      return sum + validators;
+                    }, 0)
+                  )}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -802,6 +815,15 @@ export default function AvalancheMetrics() {
                       <span className="lg:hidden">ICM</span>
                     </SortButton>
                   </TableHead>
+                  <TableHead className="font-medium text-center min-w-[140px] text-muted-foreground">
+                    <SortButton field="validatorCount">
+                      <span className="hidden lg:flex items-center gap-1">
+                        <Users className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                        Validators
+                      </span>
+                      <span className="lg:hidden">Validators</span>
+                    </SortButton>
+                  </TableHead>
                   <TableHead className="font-medium text-center min-w-[100px] text-muted-foreground">
                     Activity
                   </TableHead>
@@ -895,6 +917,20 @@ export default function AvalancheMetrics() {
                           {typeof chain.totalIcmMessages === "number"
                             ? formatFullNumber(chain.totalIcmMessages)
                             : chain.totalIcmMessages}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span
+                          className={`font-mono font-semibold text-sm ${
+                            typeof chain.validatorCount === "number" &&
+                            chain.validatorCount > 0
+                              ? "text-foreground"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {typeof chain.validatorCount === "number"
+                            ? formatFullNumber(chain.validatorCount)
+                            : chain.validatorCount}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
