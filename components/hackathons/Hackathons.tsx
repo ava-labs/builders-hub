@@ -58,6 +58,7 @@ function buildQueryString(
 type Props = {
   initialPastHackathons: HackathonHeader[];
   initialUpcomingHackathons: HackathonHeader[];
+  initialOngoingHackathons: HackathonHeader[];
   initialFilters: HackathonsFilters;
   totalPastHackathons: number;
   totalUpcomingHackathons: number;
@@ -66,6 +67,7 @@ type Props = {
 export default function Hackathons({
   initialPastHackathons,
   initialUpcomingHackathons,
+  initialOngoingHackathons,
   initialFilters,
   totalPastHackathons,
   totalUpcomingHackathons,
@@ -82,6 +84,9 @@ export default function Hackathons({
   const [upcomingHackathons, setUpcomingHackathons] = useState<
     HackathonHeader[]
   >(initialUpcomingHackathons);
+  const [ongoingHackathons, setOngoingHackathons] = useState<
+    HackathonHeader[]
+  >(initialOngoingHackathons);
 
   const [filters, setFilters] = useState<HackathonsFilters>(initialFilters);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -176,7 +181,8 @@ export default function Hackathons({
       handleSearchChange(searchValue);
     }
   };
-  const topMostHackathon = upcomingHackathons.find((x) => x.top_most);
+  const topMostHackathon = upcomingHackathons.find((x) => x.top_most) || 
+                          ongoingHackathons.find((x) => x.top_most);
 
   const addNewHackathon = () => {
     router.push('/hackathons/edit');
@@ -191,6 +197,7 @@ export default function Hackathons({
               hackathon={topMostHackathon}
               id={topMostHackathon.id}
               isTopMost={true}
+              isRegistered={false} //To keep showing "Learn More" button
             />
             <Link href={`/hackathons/${topMostHackathon.id}`}>
               <Image
@@ -226,13 +233,45 @@ export default function Hackathons({
           Upcoming
         </h2>
         <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-        <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
-          {upcomingHackathons
-            .filter((x) => !x.top_most)
-            .map((hackathon: any) => (
-              <HackathonCard key={hackathon.id} hackathon={hackathon} />
-            ))}
-        </div>
+        {upcomingHackathons.length > 0 ? (
+          <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
+            {upcomingHackathons
+              .map((hackathon: any) => (
+                <HackathonCard key={hackathon.id} hackathon={hackathon} />
+              ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="max-w-md">
+              <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
+                No upcoming hackathons at the moment. Join our Telegram community to be the first to know about new opportunities!
+              </p>
+              <a
+                href="https://t.me/avalancheacademy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md transition-colors duration-200"
+              >
+                Join Telegram Group
+              </a>
+            </div>
+          </div>
+        )}
+        
+        {ongoingHackathons.length > 0 && (
+          <>
+            <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">
+              Ongoing
+            </h2>
+            <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
+            <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
+              {ongoingHackathons.map((hackathon: any) => (
+                  <HackathonCard key={hackathon.id} hackathon={hackathon} />
+                ))}
+            </div>
+          </>
+        )}
+        
         <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">
           Past
         </h2>
@@ -288,8 +327,8 @@ export default function Hackathons({
         {/* <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" color="transparent" /> */}
         <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2 my-8">
           {pastHackathons.map((hackathon: any) => (
-            <HackathonCard key={hackathon.id} hackathon={hackathon} />
-          ))}
+              <HackathonCard key={hackathon.id} hackathon={hackathon} />
+            ))}
         </div>
         <Pagination className="flex justify-end gap-2">
           <PaginationContent className="flex-wrap cursor-pointer">

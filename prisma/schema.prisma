@@ -44,9 +44,10 @@ model User {
   notification_email  String?
   profile_privacy     String?       @default("public")
   social_media        String[]
-  notifications       Boolean?      @default(true)
+  notifications       Boolean?
   custom_attributes   String[]
   telegram_user       String?
+  created_at          DateTime      @default(now()) @db.Timestamptz(3)
   memberships         Member[]
   registrations       RegisterForm?
   hackathons          Hackathon[]

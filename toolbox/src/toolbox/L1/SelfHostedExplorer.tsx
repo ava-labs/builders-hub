@@ -371,14 +371,14 @@ export default function BlockScout() {
             <>
               <Step>
                 <h3 className="text-xl font-bold mb-4">RPC Node Setup</h3>
-                <p>Choose how you want to set up the RPC node for your explorer:</p>
+                <p>Choose how you want to set up the RPC node for your explorer. We don't recommend running the explorer on the same machine as a validator or public RPC.</p>
 
                 <div className="space-y-4 mt-4">
                   <RadioGroup
                     items={[
                       {
                         value: 'local',
-                        label: 'Spin up a new AvalancheGo node'
+                        label: 'Spin up a new dedicated RPC node with the explorer'
                       },
                       {
                         value: 'existing',
@@ -395,7 +395,7 @@ export default function BlockScout() {
                       <RPCURLInput
                         value={existingRpcUrl}
                         onChange={setExistingRpcUrl}
-                        helperText="Enter the full RPC URL (e.g. https://your-node.com/ext/bc/blockchain-id/rpc)"
+                        helperText="Enter the full RPC URL (e.g. https://your-node.com/ext/bc/blockchain-id/rpc) or localhost:9650 for an existing local RPC"
                         placeholder="https://your-node.com/ext/bc/blockchain-id/rpc"
                       />
                     </div>

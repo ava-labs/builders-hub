@@ -149,10 +149,15 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     if (options.status) {
         switch (options.status) {
             case "ENDED":
-                hackathonsLite = hackathons.filter(hackathon => hackathon.start_date.getTime() < Date.now());
+                hackathonsLite = hackathons.filter(hackathon => hackathon.end_date.getTime() < Date.now());
                 break;
-            case "!ENDED":
-                hackathonsLite = hackathons.filter(hackathon => hackathon.start_date.getTime() >= Date.now());
+            case "ONGOING":
+                hackathonsLite = hackathons.filter(hackathon => 
+                    hackathon.start_date.getTime() <= Date.now() && hackathon.end_date.getTime() >= Date.now()
+                );
+                break;
+            case "UPCOMING":
+                hackathonsLite = hackathons.filter(hackathon => hackathon.start_date.getTime() > Date.now());
                 break;
         }
     }
@@ -160,7 +165,7 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     const totalHackathons = await prisma.hackathon.count({
         where: filters,
     });
-
+    
     return {
         hackathons: hackathonsLite.map((hackathon) => ({
             ...hackathon,

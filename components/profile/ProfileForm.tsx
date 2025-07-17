@@ -11,6 +11,7 @@ import {
   FormItem,
   FormLabel,
   FormDescription,
+  FormMessage,
 } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,10 +41,23 @@ const profileSchema = z.object({
   notification_email: z.string().email("Invalid email"),
   image: z.string().optional(),
   social_media: z.array(z.string()).default([]),
-  notifications: z.boolean().default(true),
+  notifications: z.boolean().default(false),
   profile_privacy: z.string().default("public"),
   telegram_user: z.string().optional(),
 });
+
+// Type for data coming from database (notifications can be null)
+interface ProfileFormProps {
+  name: string;
+  bio?: string;
+  email: string;
+  notification_email: string;
+  image?: string;
+  social_media: string[];
+  notifications: boolean | null;
+  profile_privacy: string;
+  telegram_user?: string;
+}
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
@@ -51,14 +65,41 @@ export default function ProfileForm({
   initialData,
   id,
 }: {
-  initialData: ProfileFormValues;
+  initialData: ProfileFormProps;
   id: string;
 }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Detect if it's the first time (notifications is null)
+  const isFirstTime = initialData.notifications === null;
+  
+  // Create dynamic schema based on whether it's first time
+  const dynamicSchema = z.object({
+    name: z.string().min(1, "Full name is required"),
+    bio: z.string().max(250, "Bio must not exceed 250 characters").optional(),
+    email: z.string().email("Invalid email"),
+    notification_email: z.string().email("Invalid email"),
+    image: z.string().optional(),
+    social_media: z.array(z.string()).default([]),
+    notifications: isFirstTime 
+      ? z.boolean().default(false).refine((val) => val === true, {
+          message: "You must agree to receive notifications to continue",
+        })
+      : z.boolean().default(false),
+    profile_privacy: z.string().default("public"),
+    telegram_user: z.string().optional(),
+  });
+
+  // Process initial data: if notifications is null, use false
+  const processedInitialData: ProfileFormValues = {
+    ...initialData,
+    notifications: initialData.notifications ?? false,
+  };
+
   const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: initialData,
+    resolver: zodResolver(dynamicSchema),
+    defaultValues: processedInitialData,
     reValidateMode: "onSubmit",
   });
   const { formState, reset } = form;
@@ -68,18 +109,45 @@ export default function ProfileForm({
   const { update } = useSession();
   useEffect(() => {
     if (initialData) {
-      initialData.bio = initialData.bio || "";
-      form.reset(initialData);
+      const processedData = {
+        ...initialData,
+        bio: initialData.bio || "",
+        notifications: initialData.notifications ?? false,
+      } as ProfileFormValues;
+      form.reset(processedData);
     }
   }, [initialData]);
 
   const onSkip = async () => {
-    await axios.put(`/api/profile/${id}`, {}).catch((error) => {
-      throw new Error(`Error while saving profile: ${error.message}`);
-    });
-    await update();
-    setIsSaving(false);
-    router.push("/");
+    // Validate that name is filled before allowing skip
+    const currentName = form.getValues("name");
+    if (!currentName || currentName.trim() === "") {
+      toast({
+        title: "Name is required",
+        description: "Enter your full name to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Save the current form data before skipping
+    setIsSaving(true);
+    try {
+      const formData = form.getValues();
+      await axios.put(`/api/profile/${id}`, formData).catch((error) => {
+        throw new Error(`Error while saving profile: ${error.message}`);
+      });
+      await update();
+      router.push("/");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error while saving profile.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const onSubmit = async (data: ProfileFormValues) => {
@@ -173,7 +241,7 @@ export default function ProfileForm({
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name in Hackathon</FormLabel>
+                <FormLabel>Full Name *</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Enter your full name"
@@ -196,7 +264,7 @@ export default function ProfileForm({
           <div className="space-y-4">
             <FormLabel>Profile Picture</FormLabel>
             <div className="flex flex-col gap-4">
-              <div className="w-24 h-24 border-2 border-dashed border-red-500 rounded-lg flex items-center justify-center">
+              <div className="w-24 h-24 border-2 border-dashed border-border rounded-lg flex items-center justify-center">
                 {form.watch("image") ? (
                   <img
                     src={form.watch("image")}
@@ -474,7 +542,7 @@ export default function ProfileForm({
           <div>
             <h3 className="text-lg font-medium">Notifications</h3>
             <p className="text-sm text-muted-foreground">
-              Manage the basic settings and primary details of your hackathon.
+              Manage the basic settings and primary details of your profile.
             </p>
           </div>
 
@@ -482,29 +550,32 @@ export default function ProfileForm({
             control={form.control}
             name="notifications"
             render={({ field }) => (
-              <FormItem className="flex items-center justify-between p-4 border rounded">
-                <div className="space-y-1">
-                  <FormLabel>Email Notifications</FormLabel>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line italic">
-                    I wish to stay informed about Avalanche news and events and
-                    agree to receive newsletters and other promotional materials
-                    at the contact information I provided. {"\n"}I know that I
-                    may opt-out at any time. I have read and agree to the{" "}
-                    <a
-                      href="https://www.avax.network/privacy-policy"
-                      className="text-primary hover:text-primary/80 dark:text-primary/90 dark:hover:text-primary/70"
-                    >
-                      Avalanche Privacy Policy
-                    </a>
-                    .
-                  </p>
+              <FormItem className="space-y-3">
+                <div className="flex items-center justify-between p-4 border rounded">
+                  <div className="space-y-1">
+                    <FormLabel>Email Notifications</FormLabel>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line italic">
+                      I wish to stay informed about Avalanche news and events and
+                      agree to receive newsletters and other promotional materials
+                      at the email address I provided. {"\n"}I know that I
+                      may opt-out at any time. I have read and agree to the{" "}
+                      <a
+                        href="https://www.avax.network/privacy-policy"
+                        className="text-primary hover:text-primary/80 dark:text-primary/90 dark:hover:text-primary/70"
+                      >
+                        Avalanche Privacy Policy
+                      </a>
+                      .
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
                 </div>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />

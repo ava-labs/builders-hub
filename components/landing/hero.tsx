@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Sponsors } from '@/components/landing/globe';
 import { GraduationCap } from 'lucide-react';
+import Chatbot from '@/components/ui/chatbot';
 
 // Premium animation styles
 const premiumStyles = `
@@ -229,7 +230,15 @@ export default function Hero() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </Link>
-            </div>         
+            </div>
+            
+            {/* AI Assistant */}
+            <div className="flex justify-center lg:justify-start mt-4">
+              <Chatbot 
+                variant="static" 
+                className="bg-transparent border-slate-200 dark:border-slate-700 shadow-none hover:shadow-lg min-w-[160px]" 
+              />
+            </div>
           </div>
 
           {/* Ecosystem Visualization */}

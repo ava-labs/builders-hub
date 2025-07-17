@@ -29,54 +29,33 @@ import Modal from "@/components/ui/Modal";
 import ProcessCompletedDialog from "./ProcessCompletedDialog";
 
 // Esquema de validación
-export const registerSchema = z.object({
+const createRegisterSchema = (isOnline: boolean) => z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
   company_name: z.string().optional(),
-  telegram_user: z.string().optional(),
+  telegram_user: z.string().min(1, "Telegram username is required"),
   role: z.string().optional(),
   city: z.string().min(1, "City is required"),
-  interests: z.array(z.string()).min(1, "Interests are required"),
-  web3_proficiency: z.string().min(1, "web3 proficiency is required"),
-  tools: z.array(z.string()).min(1, "Tools are required"),
-  roles: z.array(z.string()).min(1, "Roles are required"),
-  languages: z.array(z.string()).min(1, "Languages are required"),
-  hackathon_participation: z
-    .string()
-    .min(1, "Hackathon participation is required"),
+  interests: z.array(z.string()).optional(),
+  web3_proficiency: z.string().optional(),
+  tools: z.array(z.string()).optional(),
+  roles: z.array(z.string()).optional(),
+  languages: z.array(z.string()).optional(),
+  hackathon_participation: z.string().optional(),
   dietary: z.string().optional().default(""),
-  github_portfolio: z
-    .string()
-    .min(2, { message: "GitHub repository is required" })
-    .url({ message: "Please enter a valid URL" })
-    .refine(
-      (val) => {
-        try {
-          const url = new URL(val.startsWith("http") ? val : `https://${val}`);
-          return (
-            url.hostname === "github.com" &&
-            url.pathname.split("/").length >= 2 &&
-            url.pathname.split("/")[1].length > 0
-          );
-        } catch {
-          return false;
-        }
-      },
-      {
-        message:
-          "Please enter a valid GitHub URL (e.g., https://github.com/username or github.com/username)",
-      }
-    ),
+  github_portfolio: z.string().optional(),
   terms_event_conditions: z.boolean().refine((value) => value === true, {
     message: "You must agree to participate in any Builder Hub events. Event Terms and Conditions.",
   }),
   newsletter_subscription: z.boolean().refine((value) => value === true, {
     message: "Subscribe to newsletters and promotional materials. You can opt out anytime. Avalanche Privacy Policy.",
   }),
-  prohibited_items: z.boolean().refine((value) => value === true, {
+  prohibited_items: isOnline ? z.boolean().optional() : z.boolean().refine((value) => value === true, {
     message: "You must agree not to bring prohibited items to continue.",
   }),
 });
+
+export const registerSchema = createRegisterSchema(false); // Default schema for TypeScript inference
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 
@@ -100,27 +79,32 @@ export function RegisterForm({
   const router = useRouter();
   const [isSavingLater, setIsSavingLater] = useState(false);
 
+  // Determine if hackathon is online based on location
+  const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
+  
+  const getDefaultValues = () => ({
+    name: currentUser?.name || "",
+    email: currentUser?.email || "",
+    company_name: "",
+    role: "",
+    city: "",
+    dietary: "",
+    interests: [],
+    web3_proficiency: "",
+    tools: [],
+    roles: [],
+    languages: [],
+    hackathon_participation: "",
+    github_portfolio: "",
+    telegram_user: "",
+    terms_event_conditions: false,
+    newsletter_subscription: false,
+    prohibited_items: false,
+  });
+
   const form = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      name: currentUser?.name || "",
-      email: currentUser?.email || "",
-      company_name: "",
-      role: "",
-      city: "",
-      dietary: "",
-      interests: [],
-      web3_proficiency: "",
-      tools: [],
-      roles: [],
-      languages: [],
-      hackathon_participation: "",
-      github_portfolio: "",
-      telegram_user: "",
-      terms_event_conditions: false,
-      newsletter_subscription: false,
-      prohibited_items: false,
-    },
+    resolver: zodResolver(createRegisterSchema(isOnlineHackathon)),
+    defaultValues: getDefaultValues(),
   });
 
   function setDataFromLocalStorage() {
@@ -182,7 +166,7 @@ export function RegisterForm({
           github_portfolio: loadedData.github_portfolio || "",
           terms_event_conditions: loadedData.terms_event_conditions || false,
           newsletter_subscription: loadedData.newsletter_subscription || false,
-          prohibited_items: loadedData.prohibited_items || false,
+          prohibited_items: !isOnlineHackathon ? (loadedData.prohibited_items || false) : false,
         };
         utmSaved = loadedData.utm;
         hackathon_id = loadedData.hackathon_id;
@@ -245,6 +229,14 @@ export function RegisterForm({
     setDataFromLocalStorage();
   }, [hackathon_id]);
 
+  // Reinitialize form when hackathon data is loaded to use correct resolver
+  useEffect(() => {
+    if (hackathon) {
+      const currentValues = form.getValues();
+      form.reset(currentValues);
+    }
+  }, [hackathon, form]);
+
   const onSaveLater = () => {
     const formValues = {
       ...form.getValues(),
@@ -274,6 +266,8 @@ export function RegisterForm({
         languages: data.languages ?? [],
         roles: data.roles ?? [],
         tools: data.tools,
+        // Only include prohibited_items if it's not an online hackathon
+        prohibited_items: !isOnlineHackathon ? data.prohibited_items : false,
       };
 
       await saveProject(finalData);
@@ -307,7 +301,7 @@ export function RegisterForm({
         "name",
         "email",
         "company_name",
-        "dietary",
+        "telegram_user",
         "role",
         "city",
       ];
@@ -325,8 +319,11 @@ export function RegisterForm({
       fieldsToValidate = [
         "newsletter_subscription",
         "terms_event_conditions",
-        "prohibited_items",
       ];
+      // Only validate prohibited_items if it's not an online hackathon
+      if (!isOnlineHackathon) {
+        fieldsToValidate.push("prohibited_items");
+      }
     }
     const isValid = await form.trigger(fieldsToValidate);
     if (isValid) {
@@ -351,7 +348,7 @@ export function RegisterForm({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {step === 1 && <RegisterFormStep1 user={session?.user} />}
           {step === 2 && <RegisterFormStep2 />}
-          {step === 3 && <RegisterFormStep3 />}
+          {step === 3 && <RegisterFormStep3 isOnlineHackathon={isOnlineHackathon} />}
           <Separator className="border-red-300 dark:border-red-300 mt-4" />
           <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="order-2 md:order-1 flex gap-x-4">

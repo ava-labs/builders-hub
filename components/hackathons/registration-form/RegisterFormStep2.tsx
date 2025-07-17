@@ -68,7 +68,7 @@ export function RegisterFormStep2() {
   ];
 
   const formatSelectedValues = (values: string[] | undefined) => {
-    if (!values || values.length === 0) return "Select one or more options";
+    if (!values || values.length === 0) return "Select one or more options (optional)";
 
     return `${values.length} options selected`;
   };
@@ -80,7 +80,7 @@ export function RegisterFormStep2() {
         </h3>
         <p className="text-zinc-600">
           Share your skills and expertise to tailor your experience on Builder
-          Hub.
+          Hub. All questions in this step are optional.
         </p>
         <div className="w-full h-px bg-zinc-300 mt-2" />
       </div>
@@ -95,12 +95,12 @@ export function RegisterFormStep2() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  What is your proficiency with Web3? (Amateur, 5 = Expert)
+                  What is your proficiency with Web3? (Amateur, 5 = Expert) (Optional)
                 </FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="text-zinc-600">
-                      <SelectValue placeholder="Select your Web3 knowledge level" />
+                      <SelectValue placeholder="Select your Web3 knowledge level (optional)" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-zinc-600 rounded-md shadow-md">
@@ -124,7 +124,7 @@ export function RegisterFormStep2() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Which of the following best describes you?
+                  Which of the following best describes you? (Optional)
                 </FormLabel>
                 <Select
                   onValueChange={(value: string) => {
@@ -177,7 +177,7 @@ export function RegisterFormStep2() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  What are you most interested in within Web3?
+                  What are you most interested in within Web3? (Optional)
                 </FormLabel>
                 <Select
                   onValueChange={(value: string) => {
@@ -230,7 +230,7 @@ export function RegisterFormStep2() {
             name="tools"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Which tools are you familiar with?</FormLabel>
+                <FormLabel>Which tools are you familiar with? (Optional)</FormLabel>
                 <Select
                   onValueChange={(value: string) => {
                     const currentValues = Array.isArray(field.value)
@@ -286,7 +286,7 @@ export function RegisterFormStep2() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Which programming languages are you familiar with?
+                  Which programming languages are you familiar with? (Optional)
                 </FormLabel>
                 <Select
                   onValueChange={(value: string) => {
@@ -342,12 +342,12 @@ export function RegisterFormStep2() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Have you participated in any other hackathons before?
+                  Have you participated in any other hackathons before? (Optional)
                 </FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="text-zinc-600">
-                      <SelectValue placeholder="Select an option" />
+                      <SelectValue placeholder="Select an option (optional)" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-black dark:text-zinc-600 rounded-md shadow-md">
@@ -371,11 +371,11 @@ export function RegisterFormStep2() {
             name="github_portfolio"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>What’s your GitHub or Portfolio account?</FormLabel>
+                <FormLabel>What's your GitHub or Portfolio account? (Optional)</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
-                      placeholder="Enter your GitHub or Portfolio link"
+                      placeholder="Enter your GitHub or Portfolio link (optional)"
                       {...field}
                       className="bg-transparent placeholder-zinc-600 pr-10"
                     />
@@ -385,34 +385,13 @@ export function RegisterFormStep2() {
                   </div>
                 </FormControl>
                 <FormMessage className="text-zinc-600">
-                  Provide a link to showcase your past work.
+                  Provide a link to showcase your past work (optional).
                 </FormMessage>
               </FormItem>
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="telegram_user"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Telegram User</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      placeholder="Enter your Telegram user without the @"
-                      {...field}
-                      className="bg-transparent placeholder-zinc-600 pr-10"
-                    />
-                   
-                  </div>
-                </FormControl>
-                <FormMessage className="text-zinc-600">
-                  We can be in touch through telegram.
-                </FormMessage>
-              </FormItem>
-            )}
-          />
+
         </div>
       </div>
     </>

@@ -106,8 +106,8 @@ export const AuthOptions: NextAuthOptions = {
           //   },
           // }
           user = {
-            email, notification_email: email, name: email, image: '', last_login: null, authentication_mode: '', bio: '',
-            custom_attributes: [], id: '', integration: '', notifications: true, profile_privacy: null, social_media: [], telegram_user: '', user_name: ''
+            email, notification_email: email, name: '', image: '', last_login: new Date(), authentication_mode: '', bio: '',
+            custom_attributes: [], id: '', integration: '', notifications: null, profile_privacy: null, social_media: [], telegram_user: '', user_name: '', created_at: new Date()
           }
         }
 
@@ -149,7 +149,7 @@ export const AuthOptions: NextAuthOptions = {
         token.name = dbUser.name ?? '';
         token.email = dbUser.email ?? '';
         token.user_name = dbUser.user_name ?? '';
-        token.is_new_user = dbUser.last_login == null
+        token.is_new_user = dbUser.notifications == null
       }
 
       return token;
