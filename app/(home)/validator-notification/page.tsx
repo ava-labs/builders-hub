@@ -108,8 +108,6 @@ export default function ValidatorsForm() {
         }
       });
 
-      console.log("HubSpot form data after mapping:", hubspotFormData);
-
       const response = await fetch("/api/validator-notification", {
         method: "POST",
         headers: {
@@ -118,16 +116,13 @@ export default function ValidatorsForm() {
         body: JSON.stringify(hubspotFormData),
       });
 
-      console.log("API Response status:", response.status);
       const result = await response.json();
-      console.log("API Response data:", result);
 
       if (!response.ok || !result.success) {
         throw new Error(result.message || "Failed to submit to HubSpot");
       }
 
       setSubmissionStatus("success");
-      alert("Thank you for signing up for validator updates!");
       form.reset();
     } catch (error) {
       setSubmissionStatus("error");
@@ -144,7 +139,6 @@ export default function ValidatorsForm() {
   return (
     <div className="min-h-screen bg-gradient-to-br">
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Header Section */}
         <section className="text-center space-y-8 pt-8 pb-12">
           <div className="flex justify-center mb-8">
             <div className="relative">

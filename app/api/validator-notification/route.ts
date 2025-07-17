@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
-const VALIDATOR_FORM_GUID = "58393642-28a1-492e-9bbd-580f5591290d";
+const VALIDATOR_FORM_GUID = process.env.VALIDATOR_FORM_GUID;
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +18,6 @@ export async function POST(request: Request) {
     let formData;
     try {
       formData = await clonedRequest.json();
-      console.log('Received validator form data:', formData);
     } catch (error) {
       console.error('Error parsing request body:', error);
       return NextResponse.json(
@@ -27,7 +26,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Field mapping for validator form
     const fieldMapping: { [key: string]: string[] } = {
       "email": ["email"],
       "firstname": ["firstname"],
