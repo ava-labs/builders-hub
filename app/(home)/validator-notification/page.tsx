@@ -138,7 +138,7 @@ export default function ValidatorsForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br">
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <section className="text-center space-y-8 pt-8 pb-12">
           <div className="flex justify-center mb-8">
             <div className="relative">
