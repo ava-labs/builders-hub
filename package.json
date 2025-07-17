@@ -87,6 +87,7 @@
     "input-otp": "^1.4.2",
     "katex": "^0.16.21",
     "lucide-react": "^0.483.0",
+    "lunr": "^2.3.9",
     "mermaid": "^11.4.1",
     "new-github-issue-url": "^1.0.0",
     "next": "15.2.4",
