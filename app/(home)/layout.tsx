@@ -6,7 +6,8 @@ import { Footer } from "@/components/navigation/footer";
 import { baseOptions } from "@/app/layout.config";
 import { SessionProvider, useSession } from "next-auth/react";
 import { useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useUTMPreservation } from "@/hooks/use-utm-preservation";
 
 export default function Layout({
   children,
@@ -15,6 +16,7 @@ export default function Layout({
 }): React.ReactElement {
   return (
     <SessionProvider>
+      <UTMPreserver />
       <RedirectIfNewUser />
       <HomeLayout {...baseOptions}>
         {children}
@@ -24,10 +26,16 @@ export default function Layout({
   );
 }
 
+function UTMPreserver() {
+  useUTMPreservation();
+  return null;
+}
+
 function RedirectIfNewUser() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (
@@ -35,9 +43,14 @@ function RedirectIfNewUser() {
       session.user.is_new_user &&
       pathname !== "/profile"
     ) {
+      // Store the original URL with search params (including UTM) in localStorage
+      const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("redirectAfterProfile", originalUrl);
+      }
       router.replace("/profile");
     }
-  }, [session, status, pathname, router]);
+  }, [session, status, pathname, router, searchParams]);
 
   return null;
 }

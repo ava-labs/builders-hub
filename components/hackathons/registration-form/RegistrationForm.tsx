@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
 import { LoadingButton } from "@/components/ui/loading-button";
 import Modal from "@/components/ui/Modal";
 import ProcessCompletedDialog from "./ProcessCompletedDialog";
+import { useUTMPreservation } from "@/hooks/use-utm-preservation";
 
 // Esquema de validación
 const createRegisterSchema = (isOnline: boolean) => z.object({
@@ -70,7 +71,6 @@ export function RegisterForm({
   const [formData, setFormData] = useState({});
   let hackathon_id = searchParams?.hackathon ?? "";
   const utm = searchParams?.utm ?? "";
-  let utmSaved = "";
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [formLoaded, setRegistrationForm] = useState<RegistrationForm | null>(
     null
@@ -78,6 +78,9 @@ export function RegisterForm({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
   const [isSavingLater, setIsSavingLater] = useState(false);
+  
+  // Use UTM preservation hook
+  const { getPreservedUTMs } = useUTMPreservation();
 
   // Determine if hackathon is online based on location
   const isOnlineHackathon = hackathon?.location?.toLowerCase().includes("online") || false;
@@ -118,7 +121,6 @@ export function RegisterForm({
           const parsedData: RegisterFormValues = JSON.parse(savedData);
 
           form.reset(parsedData);
-          utmSaved = utm_local || utmSaved;
           hackathon_id = hackathon_id_local || hackathon_id;
         } catch (err) {
           console.error("Error parsing localStorage data:", err);
@@ -168,7 +170,6 @@ export function RegisterForm({
           newsletter_subscription: loadedData.newsletter_subscription || false,
           prohibited_items: !isOnlineHackathon ? (loadedData.prohibited_items || false) : false,
         };
-        utmSaved = loadedData.utm;
         hackathon_id = loadedData.hackathon_id;
         form.reset(parsedData);
         setRegistrationForm(loadedData);
@@ -238,10 +239,13 @@ export function RegisterForm({
   }, [hackathon, form]);
 
   const onSaveLater = () => {
+    const preservedUTMs = getPreservedUTMs();
+    const effectiveUTM = utm || preservedUTMs.utm || "";
+    
     const formValues = {
       ...form.getValues(),
       hackathon_id: hackathon_id,
-      utm: utm != "" ? utm : utmSaved,
+      utm: effectiveUTM,
     };
     if (typeof window !== "undefined") {
       localStorage.setItem(
@@ -258,10 +262,13 @@ export function RegisterForm({
       setStep(step + 1);
     } else {
       setFormData((prevData) => ({ ...prevData, ...data }));
+      const preservedUTMs = getPreservedUTMs();
+      const effectiveUTM = utm || preservedUTMs.utm || "";
+      
       const finalData = {
         ...data,
         hackathon_id: hackathon_id,
-        utm: utm != "" ? utm : utmSaved,
+        utm: effectiveUTM,
         interests: data.interests ?? [],
         languages: data.languages ?? [],
         roles: data.roles ?? [],
