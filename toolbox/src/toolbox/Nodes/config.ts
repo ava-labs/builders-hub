@@ -3,7 +3,6 @@
 import versions from "../../versions.json";
 
 // Constants
-export const AVALANCHEGO_VERSION = "v1.13.2-r";
 export const SUBNET_EVM_VM_ID = "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy";
 export const C_CHAIN_ID = "C";
 
@@ -132,7 +131,7 @@ export const generateDockerCommand = (
 
   // Add the appropriate image based on whether it's Primary Network or L1
   if (isPrimaryNetwork) {
-    chunks.push(`avaplatform/avalanchego:${AVALANCHEGO_VERSION}`);
+    chunks.push(`avaplatform/avalanchego:${versions['avaplatform/avalanchego']}`);
   } else {
     chunks.push(`avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`);
   }
