@@ -321,14 +321,14 @@ async function main(): Promise<void> {
     },
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/platformvm/config/config.md",
-      outputPath: "content/docs/nodes/configure/chain-configs/p-chain.mdx",
+      outputPath: "content/docs/nodes/chain-configs/p-chain.mdx",
       title: "P-Chain Configurations",
       description: "This page describes the configuration options available for the P-Chain.",
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/config/",
     },
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/avm/config.md",
-      outputPath: "content/docs/nodes/configure/chain-configs/x-chain.mdx",
+      outputPath: "content/docs/nodes/chain-configs/x-chain.mdx",
       title: "X-Chain Configurations",
       description: "This page describes the configuration options available for the X-Chain.",
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/avm/",
