@@ -13,7 +13,7 @@ import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/Va
 import poaManagerAbi from '../../../../contracts/icm-contracts/compiled/PoAManager.json';
 import { packL1ValidatorRegistration } from '../../../coreViem/utils/convertWarp';
 import { getValidationIdHex } from '../../../coreViem/hooks/getValidationID';
-import { useAvaCloudSDK } from '../../../stores/useAvaCloudSDK';
+import { useAvalancheSDK } from '../../../hooks/useAvalancheSDK';
 
 interface CompleteValidatorRegistrationProps {
   subnetIdL1: string;
@@ -41,7 +41,7 @@ const CompleteValidatorRegistration: React.FC<CompleteValidatorRegistrationProps
   ownerType,
 }) => {
   const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
-  const { aggregateSignature } = useAvaCloudSDK();
+  const { aggregateSignature } = useAvalancheSDK();
   const viemChain = useViemChainStore();
   const [pChainTxIdState, setPChainTxId] = useState(pChainTxId || '');
 

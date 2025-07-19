@@ -10,11 +10,11 @@ import InputChainId from "../../components/InputChainId";
 import InputSubnetId from "../../components/InputSubnetId";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import { ResultField } from "../../components/ResultField";
-import { useAvaCloudSDK } from "../../stores/useAvaCloudSDK";
+import { useAvalancheSDK } from "../../hooks/useAvalancheSDK";
 
 export default function CollectConversionSignatures() {
     const { coreWalletClient } = useWalletStore();
-    const { aggregateSignature } = useAvaCloudSDK();
+    const { aggregateSignature } = useAvalancheSDK();
     const [isConverting, setIsConverting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [chainID, setChainID] = useState("");
