@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { SiGithub } from '@icons-pack/react-simple-icons';
-import { UserButton } from '@/components/login/user-button/UserButton';
+import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
 
 export const integrationsMenu: LinkItemType = {
   type: 'menu',
@@ -473,7 +473,7 @@ const bridgeLink: LinkItemType = {
 
 const userMenu: LinkItemType = {
   type: 'custom',
-  children: <UserButton />,
+  children: <UserButtonWrapper />,
   secondary: true
 };
 
