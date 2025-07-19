@@ -5,9 +5,8 @@ import type { ReactNode } from "react";
 import { Footer } from "@/components/navigation/footer";
 import { baseOptions } from "@/app/layout.config";
 import { SessionProvider, useSession } from "next-auth/react";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useUTMPreservation } from "@/hooks/use-utm-preservation";
 
 export default function Layout({
   children,
@@ -16,19 +15,15 @@ export default function Layout({
 }): React.ReactElement {
   return (
     <SessionProvider>
-      <UTMPreserver />
-      <RedirectIfNewUser />
+      <Suspense fallback={null}>
+        <RedirectIfNewUser />
+      </Suspense>
       <HomeLayout {...baseOptions}>
         {children}
         <Footer />
       </HomeLayout>
     </SessionProvider>
   );
-}
-
-function UTMPreserver() {
-  useUTMPreservation();
-  return null;
 }
 
 function RedirectIfNewUser() {
