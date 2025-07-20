@@ -51,6 +51,7 @@ model User {
   memberships         Member[]
   registrations       RegisterForm?
   hackathons          Hackathon[]
+  badges              UserBadge[]
 }
 
 model VerificationToken {
@@ -135,4 +136,27 @@ model Member {
   project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
   user       User?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+}
+
+model Badge {
+  id  String  @id @default(uuid())
+  name String
+  description String
+  points Int
+  image_path String
+  category String
+  metadata Json   @default("{}")
+  users     UserBadge[]
+}
+
+
+model UserBadge {
+  id        String      @id @default(uuid())
+  user      User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id    String
+  badge     Badge       @relation(fields: [badge_id], references: [id], onDelete: Cascade)
+  badge_id   String
+  awarded_at DateTime    @default(now())
+  awarded_by String?     
+  @@unique([user_id, badge_id])
 }
