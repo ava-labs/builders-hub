@@ -1,0 +1,138 @@
+---
+title: Custom Precompiles
+description: In this tutorial, we are going to walk through how we can generate a stateful precompile from scratch. Before we start, let's brush up on what a precompile is, what a stateful precompile is, and why this is extremely useful.
+---
+
+## Background
+
+### Precompiled Contracts
+
+Ethereum uses precompiles to efficiently implement cryptographic primitives within the EVM instead of re-implementing the same primitives in Solidity. The following precompiles are currently included: ecrecover, sha256, blake2f, ripemd-160, Bn256Add, Bn256Mul, Bn256Pairing, the identity function, and modular exponentiation.
+
+We can see these [precompile](https://github.com/ethereum/go-ethereum/blob/v1.11.1/core/vm/contracts.go#L82) mappings from address to function here in the Ethereum VM:
+
+```go
+// PrecompiledContractsBerlin contains the default set of pre-compiled Ethereum
+// contracts used in the Berlin release.
+var PrecompiledContractsBerlin = map[common.Address]PrecompiledContract{
+	common.BytesToAddress([]byte{1}): &ecrecover{},
+	common.BytesToAddress([]byte{2}): &sha256hash{},
+	common.BytesToAddress([]byte{3}): &ripemd160hash{},
+	common.BytesToAddress([]byte{4}): &dataCopy{},
+	common.BytesToAddress([]byte{5}): &bigModExp{eip2565: true},
+	common.BytesToAddress([]byte{6}): &bn256AddIstanbul{},
+	common.BytesToAddress([]byte{7}): &bn256ScalarMulIstanbul{},
+	common.BytesToAddress([]byte{8}): &bn256PairingIstanbul{},
+	common.BytesToAddress([]byte{9}): &blake2F{},
+}
+```
+
+These precompile addresses start from `0x0000000000000000000000000000000000000001` and increment by 1.
+
+A [precompile](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/core/vm/contracts.go#L54-L57) follows this interface:
+
+```go
+// PrecompiledContract is the basic interface for native Go contracts. The implementation
+// requires a deterministic gas count based on the input size of the Run method of the
+// contract.
+type PrecompiledContract interface {
+	RequiredGas(input []byte) uint64  // RequiredPrice calculates the contract gas use
+	Run(input []byte) ([]byte, error) // Run runs the precompiled contract
+}
+```
+
+Here is an example of the [sha256 precompile](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/core/vm/contracts.go#L237-L250) function.
+
+```go
+type sha256hash struct{}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+//
+// This method does not require any overflow checking as the input size gas costs
+// required for anything significant is so high it's impossible to pay for.
+func (c *sha256hash) RequiredGas(input []byte) uint64 {
+	return uint64(len(input)+31)/32*params.Sha256PerWordGas + params.Sha256BaseGas
+}
+
+func (c *sha256hash) Run(input []byte) ([]byte, error) {
+	h := sha256.Sum256(input)
+	return h[:], nil
+}
+```
+
+The CALL opcode (CALL, STATICCALL, DELEGATECALL, and CALLCODE) allows us to invoke this precompile.
+
+The function signature of CALL in the EVM is as follows:
+
+```go
+ Call(
+ 	caller ContractRef,
+ 	addr common.Address,
+ 	input []byte,
+ 	gas uint64,
+ 	value *big.Int,
+)(ret []byte, leftOverGas uint64, err error)
+```
+
+Precompiles are a shortcut to execute a function implemented by the EVM itself, rather than an actual contract. A precompile is associated with a fixed address defined in the EVM. There is no byte code associated with that address.
+
+When a precompile is called, the EVM checks if the input address is a precompile address, and if so it executes the precompile. Otherwise, it loads the smart contract at the input address and runs it on the EVM interpreter with the specified input data.
+
+### Stateful Precompiled Contracts
+
+A stateful precompile builds on a precompile in that it adds state access. Stateful precompiles are not available in the default EVM, and are specific to Avalanche EVMs such as [Coreth](https://github.com/ava-labs/coreth) and [Subnet-EVM](https://github.com/ava-labs/subnet-evm).
+
+A stateful precompile follows this [interface](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/precompile/contract/interfaces.go#L17-L20):
+
+```go
+// StatefulPrecompiledContract is the interface for executing a precompiled contract
+type StatefulPrecompiledContract interface {
+	// Run executes the precompiled contract.
+	Run(accessibleState PrecompileAccessibleState,
+	caller common.Address,
+	addr  common.Address,
+	input []byte,
+	suppliedGas uint64,
+	readOnly bool)
+	(ret []byte, remainingGas uint64, err error)
+}
+```
+
+A stateful precompile injects state access through the `PrecompileAccessibleState` interface to provide access to the EVM state including the ability to modify balances and read/write storage.
+
+This way we can provide even more customization of the EVM through Stateful Precompiles than we can with the original precompile interface!
+
+### AllowList
+
+The AllowList enables a precompile to enforce permissions on addresses. The AllowList is not a contract itself, but a helper structure to provide a control mechanism for wrapping contracts. It provides an `AllowListConfig` to the precompile so that it can take an initial configuration from genesis/upgrade. It also provides functions to set/read the permissions. In this tutorial, we used `IAllowList` interface to provide permission control to the `HelloWorld` precompile. `IAllowList` is defined in Subnet-EVM under [`./contracts/contracts/interfaces/IAllowList.sol`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/contracts/contracts/interfaces/IAllowList.sol). The interface is as follows:
+
+```go
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+interface IAllowList {
+  event RoleSet(
+    uint256 indexed role,
+    address indexed account,
+    address indexed sender,
+    uint256 oldRole
+  );
+
+  // Set [addr] to have the admin role over the precompile contract.
+  function setAdmin(address addr) external;
+
+  // Set [addr] to be enabled on the precompile contract.
+  function setEnabled(address addr) external;
+
+  // Set [addr] to have the manager role over the precompile contract.
+  function setManager(address addr) external;
+
+  // Set [addr] to have no role for the precompile contract.
+  function setNone(address addr) external;
+
+  // Read the status of [addr].
+  function readAllowList(address addr) external view returns (uint256 role);
+}
+```
+
+You can find more information about the AllowList interface [here](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#allowlist-interface).

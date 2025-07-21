@@ -1,0 +1,10 @@
+{
+  "title": "Chain Specific Configs",
+  "pages": [
+    "overview",
+    "subnet-evm",
+    "p-chain",
+    "x-chain",
+    "c-chain"
+  ]
+}

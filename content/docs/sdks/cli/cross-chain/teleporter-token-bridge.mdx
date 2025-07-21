@@ -1,0 +1,136 @@
+---
+title: Teleporter Token Bridge
+description: Deploy an example Teleporter Token Bridge on the local network.
+---
+
+Teleporter Token Bridge enables users to transfer tokens between Avalanche L1s. The bridge is a set of 
+smart contracts that are deployed across multiple Avalanche L1s, and leverages Teleporter for cross-chain 
+communication.
+
+For more information on Teleporter Token Bridge, check:
+
+- [Teleporter Token Bridge README](https://github.com/ava-labs/teleporter-token-bridge)
+
+## How to Deploy Teleporter Token Bridge on a Local Network
+
+This how-to guide focuses on deploying Teleporter Token Bridge on a local Avalanche network.
+
+After this tutorial, you would have learned how to transfer an ERC-20 token between two 
+Teleporter-enabled Avalanche L1s and between C-Chain and a Teleporter-enabled Avalanche L1.
+
+## Prerequisites
+
+For our example, you will first need to create and deploy a Teleporter-enabled Avalanche L1 in Local
+Network. We will name our Avalanche L1 `testblockchain`.
+
+- To create a Teleporter-enabled Avalanche L1 configuration, [visit here](/docs/tooling/cross-chain/teleporter-local-network#create-subnet-configurations)
+- To deploy a Teleporter-enabled Avalanche L1, [visit here](/docs/tooling/cross-chain/teleporter-local-network#deploy-the-subnets-to-local-network)
+
+## Deploy ERC-20 Token in C-Chain
+
+First, let's create an ERC-20 Token and deploy it to C-Chain. For our example, it will be called 
+TOK. 
+
+Sample script to deploy the ERC-20 Token can be found [here](https://github.com/ava-labs/avalanche-cli/blob/main/cmd/contractcmd/deploy_erc20.go). 
+
+
+To deploy the ERC-20 Token to C-Chain, we will call: 
+
+```bash
+avalanche contract deploy erc20
+```
+
+When the command is run, our EWOQ address `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` would have 
+received 100000 TOK tokens in C-Chain. 
+
+Note that `0x5DB9A7629912EBF95876228C24A848de0bfB43A9` is our ERC-20 Token address, which we will 
+use in our next command.
+
+## Deploy Teleporter Token Bridge 
+
+Next, we will now deploy Teleporter Token Bridge to our Local Network, where we will deploy
+the Home Contract to C-Chain and the Remote Contract to our Avalanche L1.
+
+```bash
+avalanche teleporter bridge deploy 
+✔ Local Network
+✔ C-Chain
+✔ Deploy a new Home for the token
+✔ An ERC-20 token
+Enter the address of the ERC-20 Token: 0x5DB9A7629912EBF95876228C24A848de0bfB43A9
+✔ Subnet testblockchain
+Downloading Bridge Contracts
+Compiling Bridge
+
+Home Deployed to http://127.0.0.1:9650/ext/bc/C/rpc
+Home Address: 0x4Ac1d98D9cEF99EC6546dEd4Bd550b0b287aaD6D
+
+Remote Deployed to http://127.0.0.1:9650/ext/bc/2TnSWd7odhkDWKYFDZHqU7CvtY8G6m46gWxUnhJRNYu4bznrrc/rpc
+Remote Address: 0x7DD1190e6F6CE8eE13C08F007FdAEE2f881B45D0
+```
+
+Before we transfer our ERC-20 token from C-Chain to our Avalanche L1, we will first call `avalanche key
+list` command to check our initial balances in C-Chain and Avalanche L1. 
+
+We will inquire the balances of our ERC-20 Token TOK both in C-Chain and our Avalanche L1, which has the 
+address of `0x5DB9A7629912EBF95876228C24A848de0bfB43A9` in the C-Chain and address of
+`0x7DD1190e6F6CE8eE13C08F007FdAEE2f881B45D0` in our Avalanche L1 `testblockchain`.
+
+```bash
+`avalanche key list --local --keys ewoq,blockchain_airdrop --subnets c,testblockchain --tokens 0x5DB9A7629912EBF95876228C24A848de0bfB43A9,0x7DD1190e6F6CE8eE13C08F007FdAEE2f881B45D0`
++--------+--------------------+------------+--------------------------------------------+---------------+-----------------+---------------+
+|  KIND  |        NAME        | SUBNET     |                  ADDRESS                   |     TOKEN     |     BALANCE     |    NETWORK    |
++--------+--------------------+---------+--------------------------------------------+---------------+-----------------+---------------+
+| stored | ewoq               | testblockchain | 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC | TOK (0x7DD1.) |               0 | Local Network |
++        +                    +---------+--------------------------------------------+---------------+-----------------+---------------+
+|        |                    | C-Chain    | 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC | TOK (0x5DB9.) | 100000.000000000| Local Network |
++        +--------------------+---------+--------------------------------------------+---------------+-----------------+---------------+
+|        | blockchain  | testblockchain | 0x5a4601D594Aa3848cA5EE0770b7883d3DBC666f6 | TOK (0x7DD1.) |               0 | Local Network |
++        + _airdrop           +---------+--------------------------------------------+---------------+-----------------+---------------+
+|        |                    | C-Chain    | 0x5a4601D594Aa3848cA5EE0770b7883d3DBC666f6 | TOK (0x5DB9.) |               0 | Local Network |
++--------+--------------------+------------+--------------------------------------------+---------------+-----------------+---------------+
+```
+
+## Transfer the Token from C-Chain to Our Avalanche L1
+
+Now we will transfer 100 TOK tokens from our `ewoq` address in C-Chain to blockchain_airdrop
+address in our Avalanche L1 `testblockchain`. Note that we will be using the Home contract address `0x4Ac1d98D9cEF99EC6546dEd4Bd550b0b287aaD6D`
+and Remote contract address `0x7DD1190e6F6CE8eE13C08F007FdAEE2f881B45D0`.
+
+```bash
+avalanche key transfer
+✔ Local Network
+✔ C-Chain
+✔ Subnet testblockchain
+Enter the address of the Bridge on c-chain: 0x4Ac1d98D9cEF99EC6546dEd4Bd550b0b287aaD6D
+Enter the address of the Bridge on testblockchain: 0x7DD1190e6F6CE8eE13C08F007FdAEE2f881B45D0
+✔ ewoq
+✔ Key
+✔ blockchain_airdrop
+Amount to send (TOKEN units): 100
+```
+
+## Verify That Transfer Is Successful
+
+We will call `avalanche key list` command again to verify that the transfer is successful.
+
+`blockchain_airdrop` should now have 100 TOK tokens in our Avalanche L1 `testblockchain` and our EWOQ
+account now has 99900 TOK tokens in C-Chain.
+
+```bash
+avalanche key list --local --keys ewoq,blockchain_airdrop --subnets c,testblockchain --tokens 0x5DB9A7629912EBF95876228C24A848de0bfB43A9,0x7DD1190e6F6CE8eE13C08F007FdAEE2f881B45D0
++--------+--------------------+------------+--------------------------------------------+---------------+-----------------+---------------+
+|  KIND  |        NAME        | SUBNET     |                  ADDRESS                   |     TOKEN     |     BALANCE     |    NETWORK    |
++--------+--------------------+---------+--------------------------------------------+---------------+-----------------+---------------+
+| stored | ewoq               | testblockchain | 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC | TOK (0x7DD1.) |               0 | Local Network |
++        +                    +---------+--------------------------------------------+---------------+-----------------+---------------+
+|        |                    | C-Chain    | 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC | TOK (0x5DB9.) | 99900.000000000 | Local Network |
++        +--------------------+---------+--------------------------------------------+---------------+-----------------+---------------+
+|        | blockchain  | testblockchain | 0x5a4601D594Aa3848cA5EE0770b7883d3DBC666f6 | TOK (0x7DD1.) |   100.000000000 | Local Network |
++        + _airdrop           +---------+--------------------------------------------+---------------+-----------------+---------------+
+|        |                    | C-Chain    | 0x5a4601D594Aa3848cA5EE0770b7883d3DBC666f6 | TOK (0x5DB9.) |               0 | Local Network |
++--------+--------------------+------------+--------------------------------------------+---------------+-----------------+---------------+
+```
+
+And that's it! You have now successfully completed your first transfer from C-Chain to Avalanche L1 
+using Teleporter Token Bridge!

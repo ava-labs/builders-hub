@@ -1,0 +1,369 @@
+---
+title: Using Docker
+description: Learn how to run an Avalanche L1 node using Docker containers.
+---
+
+Running Avalanche L1 nodes with Docker provides a clean, isolated environment that's easy to manage and deploy. This guide shows you how to set up L1 tracking using containerized AvalancheGo.
+
+## Prerequisites
+
+- **Docker**: Installed and running ([installation guide](https://docs.docker.com/get-docker/))
+- **Docker Compose**: For advanced setups (usually included with Docker)
+- Basic knowledge of Docker commands
+
+### Verify Docker Installation
+
+```bash
+docker --version
+docker-compose --version
+```
+
+## Quick Start with Pre-Built Image
+
+The fastest way to get started is using the official AvalancheGo Docker image:
+
+```bash
+# Pull the latest AvalancheGo image
+docker pull avaplatform/avalanchego:latest
+
+# Create directories for persistent data
+mkdir -p ~/.avalanchego/plugins
+mkdir -p ~/.avalanchego/db
+mkdir -p ~/.avalanchego/logs
+```
+
+## Step 1: Prepare VM Binary
+
+### Download Subnet-EVM Binary
+
+Download the VM binary for your platform and place it in the plugins directory:
+
+```bash
+# Create plugins directory
+mkdir -p ~/.avalanchego/plugins
+
+# Download Subnet-EVM (replace VERSION with latest)
+curl -sSfL https://github.com/ava-labs/subnet-evm/releases/latest/download/subnet-evm_VERSION_linux_amd64.tar.gz -o subnet-evm.tar.gz
+tar -xvf subnet-evm.tar.gz
+
+# Copy with VMID as filename (example for WAGMI L1)
+cp subnet-evm ~/.avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+```
+
+## Step 2: Create Configuration
+
+Create a configuration file for L1 tracking:
+
+```bash
+# Create config.json for WAGMI L1 example
+cat > ~/.avalanchego/config.json << EOF
+{
+  "track-subnets": "28nrH5T2BMvNrWecFcV3mfccjs6axM1TVyqe79MCv2Mhs8kxiY",
+  "log-level": "info"
+}
+EOF
+```
+
+## Step 3: Run with Docker
+
+### Basic Docker Run
+
+```bash
+docker run -d \
+  --name avalanche-l1-node \
+  -p 9650:9650 \
+  -p 9651:9651 \
+  -v ~/.avalanchego:/root/.avalanchego \
+  avaplatform/avalanchego:latest \
+  /avalanchego/build/avalanchego \
+  --config-file=/root/.avalanchego/config.json \
+  --network-id=fuji \
+  --http-host=0.0.0.0
+```
+
+### Run for Mainnet
+
+```bash
+docker run -d \
+  --name avalanche-l1-node-mainnet \
+  -p 9650:9650 \
+  -p 9651:9651 \
+  -v ~/.avalanchego:/root/.avalanchego \
+  avaplatform/avalanchego:latest \
+  /avalanchego/build/avalanchego \
+  --config-file=/root/.avalanchego/config.json \
+  --http-host=0.0.0.0
+```
+
+## Step 4: Docker Compose Setup
+
+For more complex setups, use Docker Compose:
+
+<Tabs>
+<Tab title="docker-compose.yml" value="basic">
+```yaml
+version: '3.8'
+
+services:
+  avalanche-l1:
+    image: avaplatform/avalanchego:latest
+    container_name: avalanche-l1-node
+    ports:
+      - "9650:9650"  # HTTP API
+      - "9651:9651"  # P2P networking
+    volumes:
+      - ~/.avalanchego:/root/.avalanchego
+      - ./logs:/var/log/avalanchego
+    command: >
+      /avalanchego/build/avalanchego
+      --config-file=/root/.avalanchego/config.json
+      --network-id=fuji
+      --http-host=0.0.0.0
+      --log-dir=/var/log/avalanchego
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9650/ext/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+```
+</Tab>
+
+<Tab title="Multiple L1s" value="multiple">
+```yaml
+version: '3.8'
+
+services:
+  avalanche-multi-l1:
+    image: avaplatform/avalanchego:latest
+    container_name: avalanche-multi-l1-node
+    ports:
+      - "9650:9650"
+      - "9651:9651"
+    volumes:
+      - ~/.avalanchego:/root/.avalanchego
+      - ./logs:/var/log/avalanchego
+    environment:
+      - AVALANCHEGO_TRACK_SUBNETS=subnet1,subnet2,subnet3
+    command: >
+      /avalanchego/build/avalanchego
+      --config-file=/root/.avalanchego/config.json
+      --network-id=fuji
+      --http-host=0.0.0.0
+      --log-dir=/var/log/avalanchego
+    restart: unless-stopped
+```
+</Tab>
+</Tabs>
+
+### Start with Docker Compose
+
+```bash
+# Start the service
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the service
+docker-compose down
+```
+
+## Step 5: Verify Setup
+
+### Check Container Status
+
+```bash
+# List running containers
+docker ps
+
+# Check logs
+docker logs avalanche-l1-node
+
+# Execute commands in container
+docker exec -it avalanche-l1-node /bin/sh
+```
+
+### Test API Access
+
+```bash
+# Check node health
+curl -X POST --data '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"health.health"
+}' -H 'content-type:application/json;' http://localhost:9650/ext/health
+
+# Check if L1 is bootstrapped
+curl -X POST --data '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"info.isBootstrapped",
+    "params": {
+        "chain":"[ChainID]"
+    }
+}' -H 'content-type:application/json;' http://localhost:9650/ext/info
+```
+
+## Advanced Configuration
+
+### Custom VM Docker Image
+
+Create a Dockerfile for custom VMs:
+
+```dockerfile
+FROM avaplatform/avalanchego:latest
+
+# Copy custom VM binary
+COPY your-custom-vm /avalanchego/plugins/[YOUR_VMID]
+
+# Set permissions
+RUN chmod +x /avalanchego/plugins/[YOUR_VMID]
+
+# Expose ports
+EXPOSE 9650 9651
+
+# Default command
+CMD ["/avalanchego/build/avalanchego"]
+```
+
+Build and run:
+
+```bash
+# Build image
+docker build -t my-custom-l1 .
+
+# Run container
+docker run -d \
+  --name my-l1-node \
+  -p 9650:9650 \
+  -p 9651:9651 \
+  -v ~/.avalanchego:/root/.avalanchego \
+  my-custom-l1 \
+  --config-file=/root/.avalanchego/config.json \
+  --network-id=fuji
+```
+
+### Environment Variables
+
+Configure using environment variables:
+
+```bash
+docker run -d \
+  --name avalanche-l1-node \
+  -p 9650:9650 \
+  -p 9651:9651 \
+  -e AVALANCHEGO_NETWORK_ID=fuji \
+  -e AVALANCHEGO_HTTP_HOST=0.0.0.0 \
+  -e AVALANCHEGO_LOG_LEVEL=info \
+  -v ~/.avalanchego:/root/.avalanchego \
+  avaplatform/avalanchego:latest
+```
+
+## Production Deployment
+
+### Resource Limits
+
+```yaml
+services:
+  avalanche-l1:
+    image: avaplatform/avalanchego:latest
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 8G
+        reservations:
+          cpus: '1.0'
+          memory: 4G
+```
+
+### Backup Strategy
+
+```bash
+# Backup node data
+docker run --rm \
+  -v ~/.avalanchego:/data \
+  -v $(pwd)/backup:/backup \
+  alpine:latest \
+  tar czf /backup/avalanche-backup-$(date +%Y%m%d).tar.gz -C /data .
+```
+
+### Monitoring
+
+```yaml
+# Add to docker-compose.yml
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+```
+
+## RPC Endpoints
+
+Access your L1 through these endpoints:
+
+| Service | Docker URL |
+|---------|------------|
+| **L1 RPC** | `http://localhost:9650/ext/bc/[ChainID]/rpc` |
+| **Health Check** | `http://localhost:9650/ext/health` |
+| **Info API** | `http://localhost:9650/ext/info` |
+| **Primary Network** | `http://localhost:9650/ext/bc/{P,X,C}` |
+
+## Troubleshooting
+
+### Common Issues
+
+**Container Won't Start:**
+```bash
+# Check logs
+docker logs avalanche-l1-node
+
+# Verify image
+docker images | grep avalanchego
+```
+
+**Port Conflicts:**
+```bash
+# Check what's using port 9650
+lsof -i :9650
+
+# Use different ports
+docker run -p 19650:9650 -p 19651:9651 ...
+```
+
+**VM Not Loading:**
+```bash
+# Verify VM binary in container
+docker exec avalanche-l1-node ls -la /root/.avalanchego/plugins/
+
+# Check permissions
+docker exec avalanche-l1-node chmod +x /root/.avalanchego/plugins/[VMID]
+```
+
+### Performance Tuning
+
+```bash
+# Increase container resources
+docker run --cpus="2.0" --memory="8g" ...
+
+# Optimize disk I/O
+docker run --storage-opt size=100G ...
+```
+
+## Next Steps
+
+- [Monitor node performance](/docs/nodes/maintain/bootstrapping) and health
+- [Set up automated backups](/docs/nodes/maintain/bootstrapping) for your data
+- [Add as validator](/docs/nodes/validate/node-validator) to participate in consensus
+- Scale to [multiple L1s](/docs/avalanche-l1s/run-a-node/overview) tracking 

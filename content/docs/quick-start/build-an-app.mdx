@@ -1,0 +1,249 @@
+---
+title: Build an App
+description: Deploy your first dApp on Avalanche with smart contracts and frontend integration
+---
+
+# Build an App on Avalanche
+
+Build and deploy your first decentralized application (dApp) on Avalanche. This guide covers everything from smart contract development to frontend integration.
+
+## What You'll Build
+
+By the end of this guide, you'll have:
+- A deployed smart contract on Avalanche C-Chain
+- A frontend application that interacts with your contract
+- Understanding of Avalanche's development ecosystem
+
+## Prerequisites
+
+- Basic knowledge of Solidity and JavaScript/TypeScript
+- Node.js and npm installed
+- A wallet like Core or MetaMask
+
+## Step 1: Set Up Your Development Environment
+
+### Install Required Tools
+
+```bash
+# Install Hardhat for smart contract development
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+
+# Initialize a new Hardhat project
+npx hardhat init
+```
+
+### Configure Network Settings
+
+Add Avalanche networks to your `hardhat.config.js`:
+
+```javascript
+require("@nomicfoundation/hardhat-toolbox");
+
+module.exports = {
+  solidity: "0.8.19",
+  networks: {
+    fuji: {
+      url: "https://api.avax-test.network/ext/bc/C/rpc",
+      accounts: ["YOUR_PRIVATE_KEY"], // Use environment variables in production
+      chainId: 43113
+    },
+    mainnet: {
+      url: "https://api.avax.network/ext/bc/C/rpc",
+      accounts: ["YOUR_PRIVATE_KEY"],
+      chainId: 43114
+    }
+  }
+};
+```
+
+## Step 2: Write Your Smart Contract
+
+Create a simple contract in `contracts/MyFirstApp.sol`:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+contract MyFirstApp {
+    string public message;
+    address public owner;
+    
+    event MessageUpdated(string newMessage, address updatedBy);
+    
+    constructor(string memory _initialMessage) {
+        message = _initialMessage;
+        owner = msg.sender;
+    }
+    
+    function updateMessage(string memory _newMessage) public {
+        message = _newMessage;
+        emit MessageUpdated(_newMessage, msg.sender);
+    }
+    
+    function getMessage() public view returns (string memory) {
+        return message;
+    }
+}
+```
+
+## Step 3: Deploy Your Contract
+
+### Get Test Funds
+
+1. Visit the [Avalanche Faucet](https://faucet.avax.network/)
+2. Enter your wallet address
+3. Request test AVAX for Fuji testnet
+
+### Deploy Script
+
+Create `scripts/deploy.js`:
+
+```javascript
+async function main() {
+  const MyFirstApp = await ethers.getContractFactory("MyFirstApp");
+  const myFirstApp = await MyFirstApp.deploy("Hello, Avalanche!");
+  
+  await myFirstApp.deployed();
+  
+  console.log("MyFirstApp deployed to:", myFirstApp.address);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+Deploy to Fuji testnet:
+
+```bash
+npx hardhat run scripts/deploy.js --network fuji
+```
+
+## Step 4: Build the Frontend
+
+### Set Up React Application
+
+```bash
+npx create-react-app my-avalanche-app
+cd my-avalanche-app
+npm install ethers
+```
+
+### Create Contract Interaction Component
+
+```jsx
+import { useState, useEffect } from 'react';
+import { ethers } from 'ethers';
+
+const CONTRACT_ADDRESS = "YOUR_DEPLOYED_CONTRACT_ADDRESS";
+const CONTRACT_ABI = [
+  "function getMessage() public view returns (string memory)",
+  "function updateMessage(string memory _newMessage) public",
+  "event MessageUpdated(string newMessage, address updatedBy)"
+];
+
+function App() {
+  const [message, setMessage] = useState("");
+  const [newMessage, setNewMessage] = useState("");
+  const [contract, setContract] = useState(null);
+  const [account, setAccount] = useState("");
+
+  useEffect(() => {
+    connectWallet();
+  }, []);
+
+  const connectWallet = async () => {
+    if (window.ethereum) {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = provider.getSigner();
+      const address = await signer.getAddress();
+      setAccount(address);
+
+      const contractInstance = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        CONTRACT_ABI,
+        signer
+      );
+      setContract(contractInstance);
+      
+      // Get initial message
+      const currentMessage = await contractInstance.getMessage();
+      setMessage(currentMessage);
+    }
+  };
+
+  const updateContractMessage = async () => {
+    if (contract && newMessage) {
+      try {
+        const tx = await contract.updateMessage(newMessage);
+        await tx.wait();
+        setMessage(newMessage);
+        setNewMessage("");
+      } catch (error) {
+        console.error("Error updating message:", error);
+      }
+    }
+  };
+
+  return (
+    <div className="App">
+      <h1>My First Avalanche dApp</h1>
+      <p>Connected Account: {account}</p>
+      <p>Current Message: {message}</p>
+      
+      <div>
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          placeholder="Enter new message"
+        />
+        <button onClick={updateContractMessage}>Update Message</button>
+      </div>
+    </div>
+  );
+}
+
+export default App;
+```
+
+## Step 5: Test Your dApp
+
+1. Start your React application: `npm start`
+2. Connect your wallet to Fuji testnet
+3. Interact with your deployed contract
+4. Verify transactions on [Snowtrace](https://testnet.snowtrace.io/)
+
+## Next Steps
+
+Now that you've built your first dApp, explore:
+
+<Cards>
+<Card title="Smart Contract Development" description="Advanced Solidity patterns and best practices" href="/docs/dapps/smart-contract-dev" />
+<Card title="Frontend Integration" description="Advanced wallet integration and state management" href="/docs/dapps/toolchains" />
+<Card title="Deploy to Mainnet" description="Production deployment considerations" href="/docs/dapps/smart-contract-dev/deploy-with-remix-ide" />
+<Card title="Contract Verification" description="Verify your contracts on block explorers" href="/docs/dapps/verify-contract" />
+</Cards>
+
+## Troubleshooting
+
+### Common Issues
+
+**MetaMask Connection Issues**
+- Ensure you've added Avalanche networks to MetaMask
+- Check that you're connected to the correct network
+
+**Transaction Failures**
+- Verify you have sufficient AVAX for gas fees
+- Check contract address and ABI are correct
+
+**RPC Errors**
+- Try alternative RPC endpoints from our [RPC & Faucets guide](/docs/quick-start/rpc-and-faucets)
+
+## Resources
+
+- [Avalanche dApp Documentation](/docs/dapps)
+- [Smart Contract Examples](https://github.com/ava-labs/avalanche-smart-contract-quickstart)
+- [Avalanche Developer Community](https://discord.gg/avalanche) 

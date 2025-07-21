@@ -1,0 +1,14 @@
+{
+    "title": "Avalanche CLI",
+    "description": "Avalanche CLI reference",
+    "icon": "Code",
+    "root": true,
+    "pages": [
+      "get-avalanche-cli",
+      "create-avalanche-nodes",
+      "create-deploy-avalanche-l1s",
+      "cross-chain",
+      "transactions",
+      "upgrade"
+    ]
+  }

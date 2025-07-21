@@ -1,0 +1,315 @@
+---
+title: Launch a Token
+description: Create and deploy your own ERC-20 token on Avalanche C-Chain
+---
+
+# Launch a Token on Avalanche
+
+Create, deploy, and manage your own ERC-20 token on Avalanche. This guide covers everything from token contract development to adding liquidity and distribution.
+
+## What You'll Create
+
+By the end of this guide, you'll have:
+- A custom ERC-20 token deployed on Avalanche
+- Understanding of token economics and distribution
+- Knowledge of how to add liquidity and list your token
+
+## Prerequisites
+
+- Basic understanding of blockchain and tokens
+- MetaMask or Core wallet setup
+- Some AVAX for gas fees (get from [faucet](https://faucet.avax.network/) for testnet)
+
+## Step 1: Design Your Token
+
+### Token Planning Checklist
+
+Before creating your token, define:
+- **Name**: The full name (e.g., "My Awesome Token")
+- **Symbol**: 3-5 character ticker (e.g., "MAT")
+- **Total Supply**: How many tokens will exist
+- **Decimals**: Usually 18 for ERC-20 tokens
+- **Use Case**: What problem does your token solve?
+
+### Token Economics (Tokenomics)
+
+Consider your token distribution:
+- Team allocation (typically 10-20%)
+- Community rewards (20-40%)
+- Liquidity provision (10-20%)
+- Treasury/Development (10-30%)
+- Public sale (remaining percentage)
+
+## Step 2: Create Your Token Contract
+
+### Option 1: Use OpenZeppelin (Recommended)
+
+Create a secure token using battle-tested contracts:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+
+contract MyToken is ERC20, Ownable, ERC20Burnable {
+    constructor(
+        string memory name,
+        string memory symbol,
+        uint256 totalSupply,
+        address owner
+    ) ERC20(name, symbol) {
+        _mint(owner, totalSupply * 10**decimals());
+        _transferOwnership(owner);
+    }
+    
+    function mint(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
+    }
+}
+```
+
+### Option 2: Use Token Creator Tools
+
+For non-developers, use these tools:
+- [Remix IDE](https://remix.ethereum.org/) with templates
+- [OpenZeppelin Wizard](https://wizard.openzeppelin.com/)
+- [Avalanche Token Creator](https://snowtrace.io/token-creator) (coming soon)
+
+## Step 3: Deploy Your Token
+
+### Set Up Development Environment
+
+```bash
+npm install -g @remix-project/remixd
+# Or use Hardhat for local development
+npm install --save-dev hardhat
+```
+
+### Deploy with Remix (Easiest)
+
+1. Go to [Remix IDE](https://remix.ethereum.org/)
+2. Create new file: `MyToken.sol`
+3. Paste your token contract code
+4. Install OpenZeppelin:
+   ```
+   npm install @openzeppelin/contracts
+   ```
+5. Compile your contract
+6. Connect MetaMask to Avalanche Fuji Testnet
+7. Deploy with parameters:
+   - Name: "My Awesome Token"
+   - Symbol: "MAT"
+   - Total Supply: 1000000 (will be 1M tokens with 18 decimals)
+   - Owner: Your wallet address
+
+### Deploy with Hardhat
+
+Create `scripts/deploy-token.js`:
+
+```javascript
+async function main() {
+  const [deployer] = await ethers.getSigners();
+  
+  console.log("Deploying token with account:", deployer.address);
+  
+  const MyToken = await ethers.getContractFactory("MyToken");
+  const token = await MyToken.deploy(
+    "My Awesome Token",  // name
+    "MAT",              // symbol
+    1000000,            // total supply (before decimals)
+    deployer.address    // owner
+  );
+  
+  await token.deployed();
+  
+  console.log("Token deployed to:", token.address);
+  console.log("Total supply:", await token.totalSupply());
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+Deploy:
+```bash
+npx hardhat run scripts/deploy-token.js --network fuji
+```
+
+## Step 4: Verify Your Contract
+
+### On Snowtrace
+
+1. Go to [Snowtrace](https://testnet.snowtrace.io/) (or mainnet version)
+2. Search for your contract address
+3. Click "Contract" tab
+4. Click "Verify and Publish"
+5. Upload your contract source code
+
+### Verification Benefits
+- Users can read your contract
+- Builds trust and transparency
+- Enables better integration with tools
+- Required for most DEX listings
+
+## Step 5: Add Metadata and Branding
+
+### Create Token Logo
+
+Requirements:
+- PNG format, transparent background
+- 256x256 pixels recommended
+- Professional design
+
+### Submit to Token Lists
+
+Popular Avalanche token lists:
+- [Avalanche Token List](https://github.com/ava-labs/avalanche-token-list)
+- [Pangolin Token List](https://github.com/pangolindex/tokenlists)
+- [Trader Joe Token List](https://github.com/traderjoe-xyz/joe-tokenlists)
+
+## Step 6: Add Liquidity
+
+### Create a Trading Pair
+
+1. **Choose a DEX**: Trader Joe, Pangolin, or other Avalanche DEXs
+2. **Provide Initial Liquidity**:
+   - Pair your token with AVAX or USDC
+   - Start with small amounts for testing
+   - Consider the initial price carefully
+
+### Example: Adding Liquidity on Trader Joe
+
+```solidity
+// You'll need to interact with the DEX contracts
+// Or use their web interface for easier setup
+```
+
+## Step 7: Token Distribution
+
+### Airdrop Script
+
+```javascript
+// Simple airdrop script
+async function airdrop() {
+  const token = await ethers.getContractAt("MyToken", TOKEN_ADDRESS);
+  
+  const recipients = [
+    "0x1234...", // address 1
+    "0x5678...", // address 2
+    // ... more addresses
+  ];
+  
+  const amount = ethers.utils.parseEther("100"); // 100 tokens each
+  
+  for (const recipient of recipients) {
+    await token.transfer(recipient, amount);
+    console.log(`Sent 100 tokens to ${recipient}`);
+  }
+}
+```
+
+### Multi-Send Tools
+
+For larger airdrops, use:
+- [Disperse.app](https://disperse.app/)
+- [Multisend](https://multisend.org/)
+- Custom multi-send contracts
+
+## Step 8: Monitor and Manage
+
+### Analytics Tools
+
+Track your token with:
+- [Snowtrace](https://snowtrace.io/) - Block explorer
+- [DeFiLlama](https://defillama.com/) - TVL tracking
+- [CoinGecko](https://www.coingecko.com/) - Price tracking
+- [CoinMarketCap](https://coinmarketcap.com/) - Market data
+
+### Security Considerations
+
+- **Audit your contract** before mainnet deployment
+- **Test thoroughly** on Fuji testnet
+- **Use multi-sig wallets** for token treasury
+- **Monitor for unusual activity**
+- **Have an emergency plan**
+
+## Advanced Features
+
+### Add Token Utilities
+
+```solidity
+// Staking rewards
+function stake(uint256 amount) external {
+    // Staking logic
+}
+
+// Governance voting
+function vote(uint256 proposalId, bool support) external {
+    // Voting logic
+}
+
+// Fee distribution
+function distributeFees() external {
+    // Fee distribution logic
+}
+```
+
+### Integration Examples
+
+```javascript
+// Add to wallet programmatically
+async function addTokenToWallet() {
+  await window.ethereum.request({
+    method: 'wallet_watchAsset',
+    params: {
+      type: 'ERC20',
+      options: {
+        address: TOKEN_ADDRESS,
+        symbol: 'MAT',
+        decimals: 18,
+        image: 'https://yoursite.com/token-logo.png',
+      },
+    },
+  });
+}
+```
+
+## Next Steps
+
+<Cards>
+<Card title="Build Token Utilities" description="Add staking, governance, or other features" href="/docs/dapps/smart-contract-dev" />
+<Card title="Create a DAO" description="Build decentralized governance around your token" href="/docs/dapps/advanced-tutorials" />
+<Card title="Launch on L1" description="Deploy your token on a custom Avalanche L1" href="/docs/avalanche-l1s" />
+<Card title="Cross-Chain Bridge" description="Make your token multi-chain with Teleporter" href="/docs/cross-chain" />
+</Cards>
+
+## Legal Considerations
+
+⚠️ **Important**: Token creation may have legal implications:
+- Consult legal experts before launching
+- Understand securities law in your jurisdiction
+- Consider regulatory compliance
+- Implement proper KYC/AML if required
+
+## Common Pitfalls
+
+### Avoid These Mistakes
+
+1. **Unlimited minting** without proper controls
+2. **No burn mechanism** leading to inflation
+3. **Poor tokenomics** that don't incentivize holding
+4. **No utility** beyond speculation
+5. **Inadequate security** audits
+6. **Rushing to mainnet** without thorough testing
+
+## Resources
+
+- [ERC-20 Token Standard](https://eips.ethereum.org/EIPS/eip-20)
+- [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts/)
+- [Avalanche Token Standards](https://docs.avax.network/)
+- [Smart Contract Security](https://consensys.github.io/smart-contract-best-practices/) 

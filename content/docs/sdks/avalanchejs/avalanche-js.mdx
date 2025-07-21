@@ -1,0 +1,145 @@
+---
+title: AvalancheJS
+description: JavaScript library for Avalanche.
+---
+
+AvalancheJS is a JavaScript Library for interfacing with the [Avalanche](/docs/quick-start) Platform. It is built using TypeScript and intended to support both browser and Node.js. The AvalancheJS library allows you to issue commands to the Avalanche node APIs.
+
+The APIs currently supported by default are:
+
+- Admin API
+- Auth API
+- AVM API (X-Chain)
+- EVM API (C-Chain)
+- Health API
+- Index API
+- Info API
+- Keystore API
+- Metrics API
+- PlatformVM API
+- Socket API
+
+We built AvalancheJS with ease of use in mind. With this library, any JavaScript developer is able to interact with a node on the Avalanche Platform who has enabled their API endpoints for the developer's consumption. We keep the library up-to-date with the latest changes in the Avalanche Platform Specification found in the [Platform Chain Specification](/docs/api-reference/p-chain/api), [Exchange Chain (X-Chain) Specification](/docs/api-reference/x-chain/api), [Contract Chain (C-Chain) Specification](/docs/api-reference/c-chain/api).
+
+Using AvalancheJS, developers can:
+
+- Retrieve balances on addresses
+- Get UTXOs for addresses
+- Build and sign transactions
+- Issue signed transactions to the X-Chain, P-Chain, and C-Chain
+- Perform cross-chain swaps between the X, P and C chains
+- Add Validators and Delegators
+- Create Avalanche L1s and Blockchains
+
+Requirements[​](#requirements "Direct link to heading")
+-------------------------------------------------------
+
+AvalancheJS requires Node.js LTS version 20.11.1 or higher to compile.
+
+Installation[​](#installation "Direct link to heading")
+-------------------------------------------------------
+
+### Using the NPM Package[​](#using-the-npm-package "Direct link to heading")
+
+Add AvalancheJS to your project via `npm` or `yarn`.
+
+For installing via `npm`:
+
+```bash
+npm install --save @avalabs/avalanchejs
+```
+
+For installing via `yarn`:
+
+```bash
+yarn add @avalabs/avalanchejs
+```
+
+### Build from Repository[​](#build-from-repository "Direct link to heading")
+
+You can also pull the repo down directly and build it from scratch.
+
+Clone the AvalancheJS repository:
+
+```bash
+git clone https://github.com/ava-labs/avalanchejs.git
+```
+
+Then build it:
+
+```bash
+npm run build
+```
+
+or
+
+```bash
+yarn build
+```
+
+This will generate double builds, one is CommonJS, the other one is ESM. The "avalanchejs" file can then be dropped into any project as a pure JavaScript implementation of Avalanche. The "index.js" file can then be dropped into any project as a pure JavaScript implementation of Avalanche. Depending on the project, the ESM or CommonJS file will be used.
+
+![avalanchejs1](/images/avalanche-js.png)
+
+![avalanchejs2](/images/avalanche-js2.png)
+
+Use AvalancheJS in Projects[​](#use-avalanchejs-in-projects "Direct link to heading")
+-------------------------------------------------------------------------------------
+
+The AvalancheJS library can be imported into your existing project as follows:
+
+```js
+import { avm, pvm, evm } from '@avalabs/avalanchejs';
+```
+
+Importing Essentials[​](#importing-essentials "Direct link to heading")
+-----------------------------------------------------------------------
+
+```js
+import { avm /** X-chain */, pvm /** P-chain */, evm /** C-chain */, utils } from "@avalabs/avalanchejs"
+
+// example calls
+const exportTx = avm.newExportTx(...) // constructs a new export tx from X
+const addValidatorTx = pvm.newAddPermissionlessValidatorTx(...) // constructs a new add validator tx on P
+const importTx = evm.newImportTx(...) // constructs a new import tx to C
+
+const publicKeyBytes = utils.hexToBuffer(publicKeyHex)
+const signature = utils.signHash(bytes, privateKeyBytes)
+```
+
+Run Scripts[​](#run-scripts "Direct link to heading")
+-----------------------------------------------------
+
+When cloning the AvalancheJS repository, there are several handy examples and utils. Because it is using ECMAScript Modules (ESM), and not CommonJS, the following command needs to be ran:
+
+```bash
+node --loader ts-node/esm path/script_name.ts
+```
+
+This command tells Node.js to use the ts-node/esm loader when running a TypeScript script.
+
+<Accordions>
+<Accordion title="Example">
+Let's say that the AvalancheJS repository was cloned. Suppose we want to run `examples/p-chain/export.ts`.
+
+This creates an export transaction from C-Chain to X-Chain.
+
+First, make sure you add the environment variables in a `.env` file at the root of the project. Fill in the private key for your account, and the C-Chain and X-Chain addresses.
+
+To execute the script, we use:
+
+```bash
+node --loader ts-node/esm examples/c-chain/export.ts
+```
+
+It ran successfully, providing the following output:
+
+```bash
+laviniatalpas@Lavinias-MacBook-Pro avalanchejs % node --loader ts-node/esm examples/c-chain/export.ts 
+(node:53180) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("ts-node/esm", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+{ txID: 'QKiNPBoLjAzbVwEoXsmx3XGWuMGZ2Nmt6e4CWvFC41iMEyu6P' }
+```
+</Accordion>
+</Accordions>

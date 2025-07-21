@@ -1,0 +1,111 @@
+---
+title: Send AVAX on C/P-Chain
+description: Learn how to execute a native transfer on the C or P-Chain using the Avalanche CLI.
+---
+
+# Prerequisites
+
+- Install the [Avalanche CLI](/docs/tooling/get-avalanche-cli).
+- Use the CLI to [create a key](/docs/tooling/cli-commands#key-create).
+- Fund the key with AVAX. You can use the [faucet](https://test.core.app/tools/testnet-faucet/?subnet=c&token=c) with coupon code `devrel-avax-0112` to get testnet AVAX. 
+- *Optionally*, you can [export](/docs/tooling/cli-commands#key-export) your private key for use in scripting or other tools. 
+
+## Initiate the `transfer` Command and Walk Through the Prompts
+
+In your terminal, run the following command:
+
+```zsh
+avalanche key transfer
+```
+
+<Callout title="Note">
+
+This command and all of its flags are documented [here](/docs/tooling/cli-commands#key-transfer).
+
+</Callout>
+
+You will be prompted to answer the following questions:
+
+```zsh
+? On what Network do you want to execute the transfer?:
+  ▸ Mainnet
+    Fuji Testnet
+    Devnet
+    Local Network
+```
+<Accordions>
+<Accordion title="Note: Devnet">
+If you select "Devnet", you must input the RPC URL. If your devnet's C-Chain RPC is `https://demo.avax-dev.network/ext/bc/C/rpc`, you should input the URL as: 
+
+```zsh
+✔ Devnet Endpoint: https://demo.avax-dev.network
+```
+
+</Accordion>
+</Accordions>
+
+Select the chain you want to transfer funds from:
+
+```zsh
+? Where are the funds to transfer?:
+  ▸ P-Chain
+    C-Chain
+    My blockchain isn't listed
+```
+
+Select the chain you want to transfer funds to:
+
+```zsh
+? Destination Chain:
+  ▸ P-Chain
+    X-Chain
+```
+
+Select the step of the transfer process you want to execute:
+
+```zsh
+? Step of the transfer:
+  ▸ Send
+    Receive
+```
+
+<Callout title="Note">
+
+If you are performing a native transfer where the sender and receiver address are on the same chain, you only need to complete a "send" transaction. 
+
+If you wish to perform a cross-chain transfer (i.e. from C to P-Chain), you should abort this flow and reinitiate the command as `avalanche key transfer --fund-p-chain` or `avalanche key transfer --fund-x-chain`, completing both the "send" and "receive" flows with keys stored in the CLI.
+You can fund your CLI-stored key with AVAX on the C-Chain using the [faucet](https://test.core.app/tools/testnet-faucet/?subnet=c&token=c) with coupon code `devrel-avax-0112`.
+
+</Callout>
+
+Select the sender address:
+
+```zsh
+? Which key should be used as the sender?:
+  ▸ Use stored key
+    Use ledger
+? Which stored key should be used as the sender address?:
+  ▸ DemoKey
+    MyKey
+    ewoq
+```
+
+Specify the amount to send, input the destination address: 
+  
+```zsh
+✗ Amount to send (AVAX units): 100
+✗ Destination address: P-avax1zgjx8zj7z7zj7z7zj7z7zj7z7zj7zj7zj7zj7e
+```
+
+Review the transaction details and confirm/abort:
+
+```zsh
+this operation is going to:
+- send 100.000000000 AVAX from P-avax1gmuqt8xg9j4h88kj3hyprt23nf50azlfg8txn2 to destination address P-avax1f630gvct4ht35ragcheapnn2n5cv2tkmq73ec0
+- take a fee of 0.001000000 AVAX from source address P-avax1gmuqt8xg9j4h88kj3hyprt23nf50azlfg8txn2
+? Confirm transfer:
+    No
+  ▸ Yes
+```
+
+After a successful transfer, you can check your CLI keys' balances with the [command](/docs/tooling/cli-commands#key-list): `avalanche key list`.

@@ -1,0 +1,67 @@
+---
+title: Virtual Machine
+description: This how-to guide explains how to upgrade the VM of an already-deployed Avalanche L1.
+---
+
+To upgrade a local Avalanche L1, you first need to pause the local network. To do so, run:
+
+```bash
+avalanche network stop
+```
+
+Next, you need to select the new VM to run your Avalanche L1 on. If you're running a Subnet-EVM Avalanche L1, you likely want to bump to the latest released version. If you're running a Custom VM, you'll want to choose another custom binary.
+
+Start the upgrade wizard with:
+
+```bash
+avalanche blockchain upgrade vm <blockchainName>
+```
+
+where you replace `<blockchainName>` with the name of the Avalanche L1 you would like to upgrade.
+
+## Selecting a VM Deployment to Upgrade
+
+After starting the Avalanche L1 Upgrade Wizard, you should see something like this:
+
+```bash
+? What deployment would you like to upgrade:
+  ▸ Update config for future deployments
+    Existing local deployment
+```
+
+If you select the first option, Avalanche-CLI updates your Avalanche L1's config and any future calls to `avalanche blockchain deploy` use the new version you select. However, any existing local deployments continue to use the old version.
+
+If you select the second option, the opposite occurs. The existing local deployment switches to the new VM but subsequent deploys use the original.
+
+## Select a VM to Upgrade To
+
+The next option asks you to select your new virtual machine.
+
+```bash
+? How would you like to update your Avalanche L1's virtual machine:
+  ▸ Update to latest version
+    Update to a specific version
+    Update to a custom binary
+```
+
+If you're using the Subnet-EVM, you'll have the option to upgrade to the latest released version. You can also select a specific version or supply a custom binary. If your Avalanche L1 already uses a custom VM, you need to select another custom binary.
+
+Once you select your VM, you should see something like:
+
+```bash
+Upgrade complete. Ready to restart the network.
+```
+
+## Restart the Network
+
+<Callout title="Note">
+If you are running multiple Avalanche L1s concurrently, you may need to update multiple Avalanche L1s to restart the network. All of your deployed must be using the same RPC Protocol version. You can see more details about this [here](/docs/tooling/maintain/troubleshooting#incompatible-rpc-version-for-custom-vm).
+</Callout>
+
+Finally, restart the network with:
+
+```bash
+avalanche network start
+```
+
+If the network starts correctly, your Avalanche L1 is now running the upgraded VM.
