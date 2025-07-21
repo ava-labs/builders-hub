@@ -1,0 +1,13 @@
+{
+    "title": "Permissioned L1s",
+    "icon": "UserPen",
+    "root": true,
+    "pages": [
+        "index",
+        "---Recap---",
+        "...01-recap",
+        "---Proof of Authority---",
+        "---More coming soon...---",
+        "certificate"
+    ]
+}
