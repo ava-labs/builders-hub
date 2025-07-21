@@ -81,7 +81,7 @@ const AmbasssadorDao = () => {
           <AmbassadorCard
             title="Become a Member"
             description="Reach 70,000+  talent from one single dashboard"
-            link="/"
+            link="https://job-boards.greenhouse.io/avaxambassador/jobs/5022794004"
           />
         )}
         {user?.role !== "AMBASSADOR" && (
