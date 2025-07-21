@@ -22,6 +22,11 @@ function getDateRange() {
 }
 
 async function fetchGlacierChains() {
+  if (!GLACIER_API_KEY) {
+    console.log('WARNING: GLACIER_API_KEY not found. Skipping Glacier chains fetch.');
+    return [];
+  }
+
   try {
     const response = await fetch('https://glacier-api.avax.network/v1/chains', {
       headers: {
