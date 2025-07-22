@@ -531,7 +531,6 @@ export const baseOptions: BaseLayoutProps = {
     // hackathons,
     userMenu,
     // hackathons,
-    //userMenu,
     ambassadorMenu,
     {
       type: "custom",
