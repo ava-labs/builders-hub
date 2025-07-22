@@ -45,7 +45,7 @@ export function RegisterFormStep3({ isOnlineHackathon }: RegisterFormStep3Props)
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel>
-                  I have read and agree to the Event Participation Terms and Conditions.
+                  I have read and agree to the Event Participation <a href="https://assets.website-files.com/602e8e4411398ca20cfcafd3/63fe6be7e0d14da8cbdb9984_Avalanche%20Events%20Participation%20Terms%20and%20Conditions%20(Final_28Feb2023).docx.pdf" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Terms and Conditions.</a>
                 </FormLabel>
                 <FormMessage className="text-zinc-400">
                   You must agree to participate in any Builder Hub events. Event Terms and Conditions.

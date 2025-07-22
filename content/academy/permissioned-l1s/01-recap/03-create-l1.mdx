@@ -1,0 +1,153 @@
+---
+title: L1 Creation Speedrun
+description: A quick review of creating an L1 blockchain on Avalanche - concepts covered in the Avalanche Fundamentals course.
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Zap
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In the Avalanche Fundamentals course, you learned how to create your own L1 blockchain from scratch. This section provides a speedrun review of those concepts, consolidating all the essential steps into one place. If you haven't completed the fundamentals course yet, we recommend going through it first to understand the underlying concepts.
+
+## What You Already Learned
+
+In the fundamentals course, you covered:
+- Setting up Core wallet and funding it with testnet AVAX
+- Understanding the network architecture (P-Chain, Subnets, and L1s)
+- Creating blockchain records on the P-Chain
+- Setting up validator nodes
+- Converting Subnets to L1s
+- Testing your L1 with smart contract deployments
+
+## Speedrun Overview
+
+Let's quickly review the entire L1 creation process. This speedrun assumes you're already familiar with the concepts and just need a refresher or quick reference.
+
+<Steps>
+<Step>
+
+### Connect & Fund Core Wallet
+
+First, ensure you have Core wallet installed and funded with testnet AVAX on the P-Chain. Core is the only wallet that supports P-Chain transactions.
+
+<ToolboxMdxWrapper walletMode="c-chain"/>
+
+**Quick Steps:**
+1. Download Core Wallet if not already installed
+2. Connect your wallet
+3. Use the faucet on the Toolbox below to claim testnet AVAX
+4. Use the P-Chain faucet directly to claim AVAX on the P-Chain
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <Faucet />
+</ToolboxMdxWrapper>
+
+</Step>
+<Step>
+
+### Create Subnet and Blockchain Records
+
+Create the P-Chain records for your L1 by issuing two transactions:
+1. `CreateSubnetTx` - Creates a Subnet identified by the transaction hash
+2. `CreateChainTx` - Adds a blockchain to the Subnet
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <CreateChain />
+</ToolboxMdxWrapper>
+
+**Key Parameters:**
+- **Subnet Owner**: Your P-Chain address (loses privileges after L1 conversion)
+- **Chain Name**: Your blockchain's name
+- **VM ID**: The Virtual Machine type (usually Subnet-EVM)
+- **Genesis Data**: Initial blockchain configuration
+
+</Step>
+<Step>
+
+### Set Up Validator Node
+
+Launch a node to track your Subnet using Docker. This node will become a validator after the L1 conversion.
+
+<ToolboxMdxWrapper walletMode="testnet-mainnet">
+    <AvalancheGoDocker />
+</ToolboxMdxWrapper>
+
+<Callout type="info">
+**Note on Complexity with Localhost**
+
+Running validator nodes on localhost can be complex due to networking constraints, port forwarding requirements, and reliability issues. One of the main challenges is securely opening the required ports for node communication while maintaining security.
+
+For this course use, we strongly recommend using:
+
+- **Self-Hosted Node Tool**: Our upcoming self-hosted solution for running nodes securely
+- **Cloud Providers**: AWS, Google Cloud, Azure, or Digital Ocean for full control
+
+For detailed setup instructions, see the [Avalanche Fundamentals course](/academy/avalanche-fundamentals).
+</Callout>
+
+</Step>
+<Step>
+
+### Convert Subnet to L1
+
+Transform your Subnet into a sovereign L1 by issuing a `ConvertSubnetToL1Tx` transaction. This establishes the validator set and removes Subnet owner privileges.
+
+<ToolboxMdxWrapper walletMode="c-chain">
+  <ConvertToL1 />
+</ToolboxMdxWrapper>
+
+**Conversion Parameters:**
+- **Subnet ID**: From your CreateSubnetTx
+- **Validator Manager Blockchain ID**: Where the validator manager contract lives
+- **Validator Manager Address**: Pre-deployed proxy contract address
+- **Initial Validators**: Your node becomes the first validator
+
+</Step>
+<Step>
+
+### Test Your L1
+
+Deploy a test ERC-20 token to verify your L1 is functioning correctly.
+
+<ToolboxMdxWrapper walletMode="l1">
+    <DeployExampleERC20 />
+</ToolboxMdxWrapper>
+
+</Step>
+<Step>
+
+### Cleanup (Optional)
+
+Stop and remove your node when done testing:
+
+```bash
+# Stop the node
+docker stop avago
+
+# Remove the container (keeps state)
+docker rm avago
+
+# To completely remove state and credentials
+rm -rf ~/.avalanchego
+```
+
+</Step>
+</Steps>
+
+## Key Takeaways
+
+- **P-Chain Registry**: All validators and blockchains are registered on the P-Chain
+- **Subnet to L1**: Converting a Subnet to an L1 makes it sovereign with its own validator set
+- **Validator Management**: After conversion, validators are managed by a smart contract
+- **One-Time Process**: L1 conversion is irreversible and can only be done once
+
+## Next Steps
+
+Now that you've reviewed the L1 creation process, you're ready to explore advanced features like:
+- Customizing validator management contracts
+- Implementing permissioned validator sets
+- Configuring custom tokenomics
+- Setting up cross-chain communication
+
+Remember, this was just a speedrun review. For detailed explanations and troubleshooting, refer back to the full [Avalanche Fundamentals course](/academy/avalanche-fundamentals).
