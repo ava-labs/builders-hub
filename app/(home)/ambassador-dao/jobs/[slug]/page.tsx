@@ -846,12 +846,14 @@ const AmbasssadorDaoSingleJobPage = () => {
             <div className='md:col-span-2 flex flex-col'>
               <JobHeader job={headerData} />
 
-              <div className='border text-[var(--primary-text-color)] border-[var(--default-border-color)] p-4 mb-6 rounded-md'>
-                <h2 className='mb-2 font-medium'>Requirements</h2>
-                <p className='text-[13px] text-[var(--secondary-text-color)] whitespace-pre-line'>
-                  {headerData?.requirements}
-                </p>
-              </div>
+              {headerData?.requirements && (
+                <div className='border text-[var(--primary-text-color)] border-[var(--default-border-color)] p-4 mb-6 rounded-md'>
+                  <h2 className='mb-2 font-medium'>Requirements</h2>
+                  <p className='text-[13px] text-[var(--secondary-text-color)] whitespace-pre-line'>
+                    {headerData?.requirements}
+                  </p>
+                </div>
+              )}
 
               <div className='border text-[var(--primary-text-color)] border-[var(--default-border-color)] p-4 mb-6 rounded-md'>
                 <h2 className='mb-4 font-medium'>Contact Information</h2>

@@ -40,10 +40,6 @@ export const SumbissionReviewDetailsModal = ({
   const { data: submission, isLoading } =
     useFetchSingleListingSubmission(submissionId);
 
-  const { data: userStats } = useFetchUserStatsDataQuery(
-    submission?.submitter.username
-  );
-
   const { data: unclaimedRewards } = useFetchUnclaimedRewards(
     submission?.opportunity.id
   );
@@ -260,110 +256,113 @@ export const SumbissionReviewDetailsModal = ({
                   </div>
                 )}
               </div>
-
-              {selectedAction === "NONE" && (
+              {submission.status !== "REWARDED" && (
                 <>
-                  {" "}
-                  {submission.status !== "ACCEPTED" &&
-                    submission.status !== "REJECTED" && (
-                      <div className='flex gap-2 justify-between mt-6 md:mt-8'>
+                  {selectedAction === "NONE" && (
+                    <>
+                      {" "}
+                      {submission.status !== "ACCEPTED" &&
+                        submission.status !== "REJECTED" && (
+                          <div className='flex gap-2 justify-between mt-6 md:mt-8'>
+                            <CustomButton
+                              variant='outlined'
+                              className='px-4 w-full'
+                              onClick={() => setSelectedAction("REJECT")}
+                            >
+                              Reject Submission
+                            </CustomButton>
+
+                            <CustomButton
+                              variant='danger'
+                              className='px-4 w-full'
+                              onClick={() => setSelectedAction("ACCEPT")}
+                            >
+                              Accept Submission
+                            </CustomButton>
+                          </div>
+                        )}
+                    </>
+                  )}
+
+                  {selectedAction === "ACCEPT" && (
+                    <div className='space-y-4'>
+                      <CustomSelect
+                        id='winner'
+                        label='Select Winner Position'
+                        value={rewardId}
+                        onChange={(e) => setRewardId(e.target.value)}
+                      >
+                        <option value=''>Select position</option>
+                        {unclaimedRewards?.map((reward, idx) => (
+                          <option value={reward.id} key={idx}>
+                            {reward.position === 1
+                              ? `First Prize ($${reward.amount})`
+                              : reward.position === 2
+                              ? `Second Prize ($${reward.amount})`
+                              : reward.position === 3
+                              ? `Third Prize ($${reward.amount})`
+                              : `${reward.position}th Prize ($${reward.amount})`}
+                          </option>
+                        ))}
+                      </CustomSelect>
+                      <div className='flex gap-2 mt-3'>
                         <CustomButton
                           variant='outlined'
-                          className='px-4 w-full'
-                          onClick={() => setSelectedAction("REJECT")}
+                          className='px-4'
+                          onClick={() => setSelectedAction("NONE")}
                         >
-                          Reject Submission
+                          Back
                         </CustomButton>
-
                         <CustomButton
                           variant='danger'
-                          className='px-4 w-full'
-                          onClick={() => setSelectedAction("ACCEPT")}
+                          className='px-4'
+                          disabled={!rewardId}
+                          isLoading={isUpdatingBounty}
+                          onClick={handleContinue}
                         >
-                          Accept Submission
+                          Continue
                         </CustomButton>
                       </div>
-                    )}
-                </>
-              )}
-
-              {selectedAction === "ACCEPT" && (
-                <div className='space-y-4'>
-                  <CustomSelect
-                    id='winner'
-                    label='Select Winner Position'
-                    value={rewardId}
-                    onChange={(e) => setRewardId(e.target.value)}
-                  >
-                    <option value=''>Select position</option>
-                    {unclaimedRewards?.map((reward, idx) => (
-                      <option value={reward.id} key={idx}>
-                        {reward.position === 1
-                          ? `First Prize ($${reward.amount})`
-                          : reward.position === 2
-                          ? `Second Prize ($${reward.amount})`
-                          : reward.position === 3
-                          ? `Third Prize ($${reward.amount})`
-                          : `${reward.position}th Prize ($${reward.amount})`}
-                      </option>
-                    ))}
-                  </CustomSelect>
-                  <div className='flex gap-2 mt-3'>
-                    <CustomButton
-                      variant='outlined'
-                      className='px-4'
-                      onClick={() => setSelectedAction("NONE")}
-                    >
-                      Back
-                    </CustomButton>
-                    <CustomButton
-                      variant='danger'
-                      className='px-4'
-                      disabled={!rewardId}
-                      isLoading={isUpdatingBounty}
-                      onClick={handleContinue}
-                    >
-                      Continue
-                    </CustomButton>
-                  </div>
-                </div>
-              )}
-
-              {selectedAction === "REJECT" && (
-                <div className='space-y-4'>
-                  <div>
-                    <CustomInput
-                      label='Feedback'
-                      placeholder='Enter feedback'
-                      name='feedback'
-                      type='text'
-                      value={feedback}
-                      onChange={(e) => setFeedback(e.target.value)}
-                    />
-                    <div className='text-[var(--secondary-text-color)] text-xs mt-2'>
-                      Please provide feedback for the applicant. This will be
-                      sent to the applicant.
                     </div>
-                  </div>
-                  <div className='flex gap-2 mt-3'>
-                    <CustomButton
-                      variant='outlined'
-                      className='px-4'
-                      onClick={() => setSelectedAction("NONE")}
-                    >
-                      Back
-                    </CustomButton>
-                    <CustomButton
-                      variant='danger'
-                      className='px-4'
-                      disabled={!feedback}
-                      isLoading={isRejecting}
-                      onClick={handleContinue}
-                    >
-                      Continue
-                    </CustomButton>
-                  </div>
-                </div>
+                  )}
+
+                  {selectedAction === "REJECT" && (
+                    <div className='space-y-4'>
+                      <div>
+                        <CustomInput
+                          label='Feedback'
+                          placeholder='Enter feedback'
+                          name='feedback'
+                          type='text'
+                          value={feedback}
+                          onChange={(e) => setFeedback(e.target.value)}
+                        />
+                        <div className='text-[var(--secondary-text-color)] text-xs mt-2'>
+                          Please provide feedback for the applicant. This will
+                          be sent to the applicant.
+                        </div>
+                      </div>
+                      <div className='flex gap-2 mt-3'>
+                        <CustomButton
+                          variant='outlined'
+                          className='px-4'
+                          onClick={() => setSelectedAction("NONE")}
+                        >
+                          Back
+                        </CustomButton>
+                        <CustomButton
+                          variant='danger'
+                          className='px-4'
+                          disabled={!feedback}
+                          isLoading={isRejecting}
+                          onClick={handleContinue}
+                        >
+                          Continue
+                        </CustomButton>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )
