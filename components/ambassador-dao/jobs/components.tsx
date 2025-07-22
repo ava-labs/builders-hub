@@ -68,8 +68,9 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
   const timeLeft = useCountdown(job?.deadline);
   const [openAuthModal, setOpenAuthModal] = useState(false);
 
-  const { data, isLoading } = useCheckJobStatus(job.id);
   const { data: userData } = useFetchUserDataQuery();
+  const { data, isLoading } = useCheckJobStatus(job.id, userData);
+
 
   return (
     <div className='bg-transparent p-4 rounded-md border border-[var(--default-border-color)] sticky top-20'>
