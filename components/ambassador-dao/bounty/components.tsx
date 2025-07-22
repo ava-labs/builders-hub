@@ -167,8 +167,9 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
   const timeLeft = useCountdown(bounty?.deadline);
   const [openAuthModal, setOpenAuthModal] = useState(false);
 
-  const { data, isLoading } = useCheckBountyStatus(bounty.id);
   const { data: userData } = useFetchUserDataQuery();
+  const { data, isLoading } = useCheckBountyStatus(bounty.id, userData);
+
 
   return (
     <div className='bg-transparent p-4 rounded-md border border-[var(--default-border-color)] sticky top-20'>
