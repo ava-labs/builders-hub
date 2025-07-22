@@ -1,0 +1,65 @@
+---
+title: Using Docker
+description: Learn how to run an Avalanche node using Docker.
+---
+
+## Prerequisites
+
+Before beginning, you must ensure that:
+- Docker is installed on your system
+- You need to clone the [AvalancheGo repository](https://github.com/ava-labs/avalanchego)
+- You need to install [GCC](https://gcc.gnu.org/) and [Go](https://go.dev/doc/install)
+- Docker daemon is running on your machine
+
+You can verify your Docker installation by running:
+```bash
+docker --version
+```
+
+## Building the Docker Image
+
+To build the Docker image for the latest `avalanchego` branch:
+
+1. Navigate to the project directory
+2. Execute the build script:
+   ```bash
+   ./scripts/build_image.sh
+   ```
+
+This script will create a Docker image containing the latest version of AvalancheGo.
+
+## Verifying the Build
+
+After the build completes, verify the image was created successfully:
+
+```bash
+docker image ls
+```
+
+You should see an image with:
+- Repository: `avaplatform/avalanchego`
+- Tag: `xxxxxxxx` (where `xxxxxxxx` is the shortened commit hash of the source code used for the build)
+
+## Running AvalancheGo Node
+
+To start an AvalancheGo node, run the following command:
+
+```bash
+docker run -ti -p 9650:9650 -p 9651:9651 avaplatform/avalanchego:xxxxxxxx /avalanchego/build/avalanchego
+```
+
+This command:
+- Creates an interactive container (`-ti`)
+- Maps the following ports:
+  - `9650`: HTTP API port
+  - `9651`: P2P networking port
+- Uses the built AvalancheGo image
+- Executes the AvalancheGo binary inside the container
+
+## Port Configuration
+
+The default ports used by AvalancheGo are:
+- `9650`: HTTP API
+- `9651`: P2P networking
+
+Ensure these ports are available on your host machine and not blocked by firewalls.

@@ -1,0 +1,130 @@
+---
+title: Using Source Code
+description: Learn how to run an Avalanche node from AvalancheGo Source code.
+---
+
+The following steps walk through downloading the AvalancheGo source code and locally building the binary program. If you would like to run your node using a pre-built binary, follow [this](/docs/nodes/run-a-node/using-binary) guide.
+
+## Install Dependencies
+
+- Install [gcc](https://gcc.gnu.org/)
+- Install [go](https://go.dev/doc/install)
+
+## Build the Node Binary
+
+<Steps>
+<Step>Set the `$GOPATH`. You can follow [this](https://github.com/golang/go/wiki/SettingGOPATH) guide.</Step>
+ 
+<Step>
+Create a directory in your `$GOPATH`:
+
+```bash
+mkdir -p $GOPATH/src/github.com/ava-labs
+```
+</Step>
+
+<Step>
+In the `$GOPATH`, clone [AvalancheGo](https://github.com/ava-labs/avalanchego), the consensus engine and node implementation that is the core of the Avalanche Network.
+
+```bash
+cd $GOPATH/src/github.com/ava-labs
+git clone https://github.com/ava-labs/avalanchego.git
+```
+</Step>
+
+<Step>
+From the `avalanchego` directory, run the build script:
+
+```bash
+cd $GOPATH/src/github.com/ava-labs/avalanchego
+./scripts/build.sh
+```
+</Step>
+</Steps>
+
+## Start the Node
+
+<Callout title="Note">
+To be able to make API calls to your node from other machines, include the argument `--http-host=` when starting the node.
+</Callout>
+
+For running a node on the Avalanche Mainnet:
+
+```bash
+cd $GOPATH/src/github.com/ava-labs/avalanchego
+./build/avalanchego
+```
+
+For running a node on the Fuji Testnet:
+
+```bash
+cd $GOPATH/src/github.com/ava-labs/avalanchego
+./build/avalanchego --network-id=fuji
+```
+
+<Callout title="Note">
+To kill the node, press `Ctrl + C`.
+</Callout>
+
+## Bootstrapping
+
+A new node needs to catch up to the latest network state before it can participate in consensus and serve API calls. This process (called bootstrapping) currently takes several days for a new node connected to Mainnet, and a day or so for a new node connected to Fuji Testnet. When a given chain is done bootstrapping, it will print logs like this:
+
+```bash
+[09-09|17:01:45.295] INFO <C Chain> snowman/transitive.go:392 consensus starting {"lastAcceptedBlock": "2qaFwDJtmCCbMKP4jRpJwH8EFws82Q2yC1HhWgAiy3tGrpGFeb"}
+[09-09|17:01:46.199] INFO <P Chain> snowman/transitive.go:392 consensus starting {"lastAcceptedBlock": "2ofmPJuWZbdroCPEMv6aHGvZ45oa8SBp2reEm9gNxvFjnfSGFP"}
+[09-09|17:01:51.628] INFO <X Chain> snowman/transitive.go:334 consensus starting {"lenFrontier": 1}
+```
+
+### Check Bootstrapping Progress[​](#check-bootstrapping-progress "Direct link to heading")
+
+To check if a given chain is done bootstrapping, in another terminal window call [`info.isBootstrapped`](/docs/api-reference/info-api#infoisbootstrapped) by copying and pasting the following command:
+
+```bash
+curl -X POST --data '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"info.isBootstrapped",
+    "params": {
+        "chain":"X"
+    }
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info
+```
+
+If this returns `true`, the chain is bootstrapped; otherwise, it returns `false`. If you make other API calls to a chain that is not done bootstrapping, it will return `API call rejected because chain is not done bootstrapping`. If you are still experiencing issues please contact us on [Discord.](https://chat.avalabs.org/)
+
+<Callout title="Note">
+The 3 chains will bootstrap in the following order: P-chain, X-chain, C-chain.
+</Callout>
+
+Learn more about bootstrapping [here](/docs/nodes/maintain/bootstrapping).
+
+## RPC
+
+When finished bootstrapping, the X, P, and C-Chain RPC endpoints will be:
+
+```bash
+localhost:9650/ext/bc/P
+localhost:9650/ext/bc/X
+localhost:9650/ext/bc/C/rpc
+```
+
+if run locally, or
+
+```bash
+XXX.XX.XX.XXX:9650/ext/bc/P
+XXX.XX.XX.XXX:9650/ext/bc/X
+XXX.XX.XX.XXX:9650/ext/bc/C/rpc
+```
+
+if run on a cloud provider. The “XXX.XX.XX.XXX" should be replaced with the public IP of your EC2 instance.
+
+For more information on the requests available at these endpoints, please see the [AvalancheGo API Reference](/docs/api-reference/p-chain/api) documentation.
+
+## Going Further
+
+Your Avalanche node will perform consensus on its own, but it is not yet a validator on the network. This means that the rest of the network will not query your node when sampling the network during consensus. If you want to add your node as a validator, check out [Add a Validator](/docs/nodes/validate/node-validator) to take it a step further.
+
+Also check out the [Maintain](/docs/nodes/maintain/bootstrapping) section to learn about how to maintain and customize your node to fit your needs.
+
+To track an Avalanche L1 with your node, head to the [Avalanche L1 Node](/docs/nodes/run-a-node/avalanche-l1-nodes) tutorial.

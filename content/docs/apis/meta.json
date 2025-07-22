@@ -1,0 +1,24 @@
+{
+  "title": "APIs",
+  "description": "Complete API reference for Avalanche",
+  "icon": "Settings",
+  "root": true,
+  "pages": [
+    "index",
+    "---AvalancheGo---",
+   "c-chain",
+   "p-chain",
+   "x-chain",
+   "admin-api",
+   "health-api",
+   "index-api",
+   "info-api",
+   "metrics-api",
+   "---Subnet EVM---",
+   "subnet-evm-api",
+   "---Standards---",
+   "standards/avalanche-network-protocol",
+   "standards/cryptographic-primitives",
+   "standards/serialization-primitives"
+  ]
+}

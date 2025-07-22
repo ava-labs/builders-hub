@@ -1,0 +1,186 @@
+---
+title: Using Pre-Built Binaries
+description: Learn how to run an Avalanche L1 node using pre-built binaries.
+---
+
+This guide shows you how to run an Avalanche L1 node using pre-built AvalancheGo binaries and VM binaries. This is the recommended approach for most users.
+
+## Prerequisites
+
+- A running AvalancheGo node (see [Primary Network Node Setup](/docs/primary-network/run-a-node/using-binary))
+- Basic knowledge of command line operations
+
+## Step 1: Download AvalancheGo Binary
+
+If you don't already have AvalancheGo running, download it from the [official releases page](https://github.com/ava-labs/avalanchego/releases).
+
+### For MacOS
+
+```bash
+curl -sSfL https://github.com/ava-labs/avalanchego/releases/latest/download/avalanchego-macos-<VERSION>.zip -o avalanchego-macos.zip
+unzip avalanchego-macos.zip
+```
+
+### For Linux (AMD64)
+
+```bash
+curl -sSfL https://github.com/ava-labs/avalanchego/releases/latest/download/avalanchego-linux-amd64-<VERSION>.tar.gz -o avalanchego-linux.tar.gz
+tar -xvf avalanchego-linux.tar.gz
+```
+
+### For Linux (ARM64)
+
+```bash
+curl -sSfL https://github.com/ava-labs/avalanchego/releases/latest/download/avalanchego-linux-arm64-<VERSION>.tar.gz -o avalanchego-linux-arm64.tar.gz
+tar -xvf avalanchego-linux-arm64.tar.gz
+```
+
+## Step 2: Download VM Binary
+
+For most Avalanche L1s, you'll need the Subnet-EVM binary. Download it from the [Subnet-EVM releases page](https://github.com/ava-labs/subnet-evm/releases).
+
+### Download Subnet-EVM Binary
+
+```bash
+# Create plugins directory
+mkdir -p ~/.avalanchego/plugins
+
+# Download for your platform
+# Linux AMD64
+curl -sSfL https://github.com/ava-labs/subnet-evm/releases/latest/download/subnet-evm_<VERSION>_linux_amd64.tar.gz -o subnet-evm.tar.gz
+
+# macOS
+curl -sSfL https://github.com/ava-labs/subnet-evm/releases/latest/download/subnet-evm_<VERSION>_darwin_amd64.tar.gz -o subnet-evm.tar.gz
+
+# Extract
+tar -xvf subnet-evm.tar.gz
+```
+
+## Step 3: Install VM Binary
+
+Move the VM binary to your plugins directory and name it after the VMID of the L1 you want to track.
+
+<Callout title="Example">
+For the WAGMI Avalanche L1 on Fuji, the VMID is `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`
+</Callout>
+
+```bash
+# Copy the VM binary with the correct VMID name
+cp subnet-evm ~/.avalanchego/plugins/[VMID]
+
+# Example for WAGMI L1:
+cp subnet-evm ~/.avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+```
+
+## Step 4: Configure L1 Tracking
+
+Create a configuration file to specify which L1s to track:
+
+```bash
+cd ~/.avalanchego
+cat > config.json << EOF
+{
+  "track-subnets": "[SubnetID]"
+}
+EOF
+```
+
+<Callout title="Example">
+For the WAGMI Avalanche L1 on Fuji, the SubnetID is `28nrH5T2BMvNrWecFcV3mfccjs6axM1TVyqe79MCv2Mhs8kxiY`
+</Callout>
+
+**Example for WAGMI L1:**
+```bash
+echo '{"track-subnets": "28nrH5T2BMvNrWecFcV3mfccjs6axM1TVyqe79MCv2Mhs8kxiY"}' > ~/.avalanchego/config.json
+```
+
+## Step 5: Start the Node
+
+### For Fuji Testnet
+
+```bash
+# MacOS
+./avalanchego-<VERSION>/build/avalanchego --config-file ~/.avalanchego/config.json --network-id=fuji
+
+# Linux
+./avalanchego-<VERSION>-linux/avalanchego --config-file ~/.avalanchego/config.json --network-id=fuji
+```
+
+### For Mainnet
+
+```bash
+# MacOS  
+./avalanchego-<VERSION>/build/avalanchego --config-file ~/.avalanchego/config.json
+
+# Linux
+./avalanchego-<VERSION>-linux/avalanchego --config-file ~/.avalanchego/config.json
+```
+
+### Alternative: Using Command Line Flags
+
+Instead of a config file, you can use command line flags:
+
+```bash
+./avalanchego --track-subnets 28nrH5T2BMvNrWecFcV3mfccjs6axM1TVyqe79MCv2Mhs8kxiY --network-id=fuji
+```
+
+## Bootstrapping
+
+Your node will first bootstrap to the Primary Network, then to the tracked L1s. This process can take several hours.
+
+### Monitor Bootstrapping Progress
+
+Check if your L1 is done bootstrapping:
+
+```bash
+curl -X POST --data '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"info.isBootstrapped",
+    "params": {
+        "chain":"[ChainID]"
+    }
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info
+```
+
+## RPC Endpoints
+
+Once bootstrapped, your L1 RPC endpoint will be available at:
+
+| Endpoint Type | URL |
+|---------------|-----|
+| **Local** | `localhost:9650/ext/bc/[ChainID]/rpc` |
+| **Remote** | `XXX.XX.XX.XXX:9650/ext/bc/[ChainID]/rpc` |
+
+**Example for WAGMI L1:**
+```bash
+localhost:9650/ext/bc/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/rpc
+```
+
+### Primary Network Endpoints
+
+Your node also provides access to Primary Network endpoints:
+
+| Chain | Endpoint |
+|-------|----------|
+| **P-Chain** | `localhost:9650/ext/bc/P` |
+| **X-Chain** | `localhost:9650/ext/bc/X` |  
+| **C-Chain** | `localhost:9650/ext/bc/C/rpc` |
+
+## Finding L1 Parameters
+
+To track other L1s, find their parameters in the L1 Explorer:
+
+- **Fuji Testnet**: https://subnets-test.avax.network/
+- **Mainnet**: https://subnets.avax.network/
+
+Look for:
+- **SubnetID**: Used in `track-subnets` configuration
+- **VMID**: Used to name the VM binary file
+- **ChainID**: Used in RPC endpoint URLs
+
+## Next Steps
+
+- [Add your node as a validator](/docs/nodes/validate/node-validator) to participate in consensus
+- Explore the [Subnet-EVM API Reference](/docs/api-reference/subnet-evm-api)
+- Learn about [L1 maintenance and monitoring](/docs/nodes/maintain/bootstrapping) 

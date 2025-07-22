@@ -1,0 +1,26 @@
+{
+    "title": "SDKs",
+    "description": "Complete SDK reference for Avalanche",
+    "icon": "Code",
+    "root": true,
+    "pages": [
+      "index",
+      "---Avalanche CLI---",
+      "cli/get-avalanche-cli",
+      "cli/create-avalanche-nodes",
+      "cli/create-deploy-avalanche-l1s",
+      "cli/cross-chain",
+      "cli/transactions",
+      "cli/upgrade",
+      "---AvalancheJS---",
+      "avalanchejs/installation",
+      "avalanchejs/avalanche-js",
+      "---AvalancheGo SDK---",
+      "avalanchego",
+      "---Postman Collection---",
+      "avalanche-postman/add-postman-collection",
+      "avalanche-postman/data-visualization",
+      "avalanche-postman/making-api-calls",
+      "avalanche-postman/variables"
+    ]
+  }

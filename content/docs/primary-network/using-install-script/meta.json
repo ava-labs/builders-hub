@@ -1,0 +1,9 @@
+{
+  "title": "Using Install Script",
+  "pages": [
+    "preparing-environment",
+    "installing-avalanche-go",
+    "managing-avalanche-go",
+    "node-config-maintenance"
+  ]
+}

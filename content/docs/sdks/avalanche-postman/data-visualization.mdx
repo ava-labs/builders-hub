@@ -1,0 +1,102 @@
+---
+title: Data Visualization
+---
+
+Data visualization is available for a number of API calls whose responses are transformed and presented in tabular format for easy reference.
+
+Please check out [Setting up Postman](/docs/tooling/avalanche-postman/add-postman-collection#setup) and [Making API Calls](/docs/tooling/avalanche-postman/making-api-calls) beforehand, as this guide assumes that the user has already gone through these steps.
+
+Data visualizations are available for following API calls:
+
+### C-Chain[​](#c-chain "Direct link to heading")
+
+- [`eth_baseFee`](/docs/api-reference/c-chain/api#eth_basefee)
+- [`eth_blockNumber`](https://www.quicknode.com/docs/ethereum/eth_blockNumber)
+- [`eth_chainId`](https://www.quicknode.com/docs/ethereum/eth_chainId)
+- [`eth_getBalance`](https://www.quicknode.com/docs/ethereum/eth_getBalance)
+- [`eth_getBlockByHash`](https://www.quicknode.com/docs/ethereum/eth_getBlockByHash)
+- [`eth_getBlockByNumber`](https://www.quicknode.com/docs/ethereum/eth_getBlockByNumber)
+- [`eth_getTransactionByHash`](https://www.quicknode.com/docs/ethereum/eth_getTransactionByHash)
+- [`eth_getTransactionReceipt`](https://www.quicknode.com/docs/ethereum/eth_getTransactionReceipt)
+- [`avax.getAtomicTx`](/docs/api-reference/c-chain/api#avaxgetatomictx)
+
+### P-Chain[​](#p-chain "Direct link to heading")
+
+- [`platform.getCurrentValidators`](/docs/api-reference/p-chain/api#platformgetcurrentvalidators)
+
+### X-Chain[​](#x-chain "Direct link to heading")
+
+- [`avm.getAssetDescription`](/docs/api-reference/x-chain/api#avmgetassetdescription)
+- [`avm.getBlock`](/docs/api-reference/x-chain/api#avmgetblock)
+- [`avm.getBlockByHeight`](/docs/api-reference/x-chain/api#avmgetblockbyheight)
+- [`avm.getTx`](/docs/api-reference/x-chain/api#avmgettx)
+
+<YouTube id="2jS5EFWLoGs" fullSize={false}/>
+
+Data Visualization Features[​](#data-visualization-features "Direct link to heading")
+-------------------------------------------------------------------------------------
+
+- The response output is displayed in tabular format, each data category having a different color.
+
+![Data Visualization Feature](/images/visualize1.png)
+
+- Unix timestamps are converted to date and time.
+
+![Data Visualization Feature](/images/visualize2.png)
+
+- Hexadecimal to decimal conversions.
+
+![Data Visualization Feature](/images/visualize3.png)
+
+- Native token amounts shown as AVAX and/or gwei and wei.
+
+![Data Visualization Feature](/images/visualize4.png)
+
+- The name of the transaction type added besides the transaction type ID.
+
+![Data Visualization Feature](/images/visualize5.png)
+
+- Percentages added for the amount of gas used. This percent represents what percentage of gas was used our of the `gasLimit`.
+
+![Data Visualization Feature](/images/visualize6.png)
+
+- Convert the output for atomic transactions from hexadecimal to user readable.
+
+<Callout title="Note">
+Please note that this only works for C-Chain Mainnet, not Fuji.
+</Callout>
+
+![Data Visualization Feature](/images/visualize7.png)
+
+How to Visualize Responses[​](#how-to-visualize-responses "Direct link to heading")
+-----------------------------------------------------------------------------------
+
+1. After [installing Postman](/docs/tooling/avalanche-postman/add-postman-collection#postman-installation) and importing the [Avalanche collection](/docs/tooling/avalanche-postman/add-postman-collection#collection-import), choose an API to make the call. 
+2. Make the call.
+3. Click on the **Visualize** tab.
+4. Now all data from the output is displayed in tabular format.
+
+![Data Visualization Feature](/images/visualize8.png) ![Data Visualization Feature](/images/visualize9.png)
+
+Examples[​](#examples "Direct link to heading")
+-----------------------------------------------
+
+### `eth_getTransactionByHash`[​](#eth_gettransactionbyhash "Direct link to heading")
+
+<YouTube id="M83WhbXq5R0" fullSize={false}/>
+
+### `avm.getBlock`[​](#avmgetblock "Direct link to heading")
+
+<YouTube id="d5E2pHXFInE" fullSize={false}/>
+
+### `platform.getCurrentValidators`[​](#platformgetcurrentvalidators "Direct link to heading")
+
+<YouTube id="Pkf84edkw_0" fullSize={false}/>
+
+### `avax.getAtomicTx`[​](#avaxgetatomictx "Direct link to heading")
+
+<YouTube id="AYIgdQomHqc" fullSize={false}/>
+
+### `eth_getBalance`[​](#eth_getbalance "Direct link to heading")
+
+<YouTube id="M3n7cm1DYLE" fullSize={false}/>

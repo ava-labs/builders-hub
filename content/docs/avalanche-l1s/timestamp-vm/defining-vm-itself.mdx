@@ -1,0 +1,76 @@
+---
+title: Architecture of TimestampVM
+description: After examining several of the data structures and functionalities that TimestampVM relies on, it is time that we examine the architecture of the TimestampVM itself. In addition, we will look at some data structures that TimestampVM utilizes.
+---
+
+## Aside: SnowmanVM
+
+In addition to blocks having to adhere to the `Snowman.Block` interface, VMs which interact with the Snowman Consensus Engine must also implement the `SnowmanVM` interface. In the context of a Rust-based VM, this means that we must satisfy the `ChainVM` trait in `avalanche-types`:
+
+```rust title="avalanche-types/src/subnet/rpc/snowman/block.rs"
+/// ref. <https://pkg.go.dev/github.com/ava-labs/avalanchego/snow/engine/snowman/block#ChainVm>
+#[tonic::async_trait]
+pub trait ChainVm: CommonVm + BatchedChainVm + Getter + Parser {
+    type Block: snowman::Block;
+
+    /// Attempt to create a new block from ChainVm data
+    /// Returns either a block or an error
+    async fn build_block(&self) -> Result<<Self as ChainVm>::Block>;
+
+    /// Issues a transaction to the chain
+    async fn issue_tx(&self) -> Result<<Self as ChainVm>::Block>;
+
+    /// Notify the Vm of the currently preferred block.
+    async fn set_preference(&self, id: Id) -> Result<()>;
+
+    /// Returns ID of last accepted block.
+    async fn last_accepted(&self) -> Result<Id>;
+
+}
+```
+
+## Defining TimestampVM
+
+Below is definition of VM struct which represents TimestampVM:
+
+```rust title="timestampvm/src/vm/mod.rs"
+pub struct Vm<A> {
+   /// Maintains Vm-specific states.
+   pub state: Arc<RwLock<State>>,
+
+   pub app_sender: Option<A>,
+
+   /// A queue not yet proposed into a block.
+   pub mempool: Arc<RwLock<VecDeque<Vec<u8>>>>,
+}
+```
+
+We see following three fields:
+
+- `state`: represents state of VM. Note different than earlier seen State structure.
+- `app_sender`: channel for receiving and sending requests by our VM
+- `mempool`: where proposed blocks are kept before being processed.
+
+We now examine the `state` data structure mentioned earlier:
+
+```rust title="timestampvm/src/vm/mod.rs"
+/// Represents VM-specific states.
+/// Defined separately for interior mutability in [`Vm`](vm).
+/// Protected with 'Arc' and 'RwLock'.
+pub struct State {
+  pub ctx : Option<Context<ValidatorStateClient>>,
+  pub version : Version,
+  pub genesis : Genesis,
+
+  // Persistent Vm state representation 
+  pub state : Option<state::State>,
+  
+  // Preferred block Id 
+  pub preferred : ids::Id,
+  
+  // Channel for messages to snowman consensus engine 
+  pub bootstrapped : bool,
+}
+```
+
+Relationship between State and state - contains alongside other fields relevant to Snowman consensus algorithm.

@@ -1,0 +1,169 @@
+---
+title: On Production Infra
+description: Learn how to deploy an Avalanche L1 on production infrastructure.
+---
+
+After architecting your Avalanche L1 environment on the [local machine](/docs/tooling/create-deploy-avalanche-l1s/deploy-locally), proving the design and testing it out on [the Fuji Testnet](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet), eventually you will need to deploy your Avalanche L1 to production environment.
+
+Running an Avalanche L1 in production is much more involved than local and Testnet deploys, as your Avalanche L1 will have to take care of real world usage, maintaining uptime, upgrades and all of that in a potentially adversarial environment. The purpose of this document is to point out a set of general considerations and propose potential solutions to them.
+
+The architecture of the environment your particular Avalanche L1 will use will be greatly influenced by the type of load and activity your Avalanche L1 is designed to support so your solution will most likely differ from what we propose here. Still, it might be useful to follow along, to build up the intuition for the type of questions you will need to consider.
+
+Node Setup[​](#node-setup "Direct link to heading")
+---------------------------------------------------
+
+Avalanche nodes are essential elements for running your Avalanche L1 in production. At a minimum, your Avalanche L1 will need validator nodes, potentially also nodes that act as RPC servers, indexers or explorers. Running a node is basically running an instance of [AvalancheGo](/docs/nodes) on a server.
+
+### Server OS[​](#server-os "Direct link to heading")
+
+Although AvalancheGo can run on a MacOS or a Windows computer, we strongly recommend running nodes on computers running Linux as they are designed specifically for server loads and all the tools and utilities needed for administering a server are native to Linux.
+
+### Hardware Specification[​](#hardware-specification "Direct link to heading")
+
+For running AvalancheGo as a validator on the Primary Network the recommended configuration is as follows:
+
+- CPU: Equivalent of 8 AWS vCPU
+- RAM: 16 GiB
+- Storage: 1 TiB with at least 3000 IOPS
+- OS: Ubuntu 20.04
+- Network: Reliable IPv4 or IPv6 network connection, with an open public port
+
+That is the configuration sufficient for running a Primary Network node. Any resource requirements for your Avalanche L1 come on top of this, so you should not go below this configuration, but may need to step up the specification if you expect your Avalanche L1 to handle a significant amount of transactions.
+
+Be sure to set up monitoring of resource consumption for your nodes because resource exhaustion may cause your node to slow down or even halt, which may severely impact your Avalanche L1 negatively.
+
+### Server Location[​](#server-location "Direct link to heading")
+
+You can run a node on a physical computer that you own and run, or on a cloud instance. Although running on your own HW may seem like a good idea, unless you have a sizeable DevOps 24/7 staff we recommend using cloud service providers as they generally provide reliable computing resources that you can count on to be properly maintained and monitored.
+
+#### Local Servers[​](#local-servers "Direct link to heading")
+
+If you plan on running nodes on your own hardware, make sure they satisfy the minimum HW specification as outlined earlier. Pay close attention to proper networking setup, making sure the p2p port (9651) is accessible and public IP properly configured on the node. Make sure the node is connected to the network physically (not over Wi-Fi), and that the router is powerful enough to handle a couple of thousands of persistent TCP connections and that network bandwidth can accommodate at least 5Mbps of steady upstream and downstream network traffic.
+
+When installing the AvalancheGo node on the machines, unless you have a dedicated DevOps staff that will take care of node setup and configuration, we recommend using the [installer script](/docs/nodes/using-install-script/installing-avalanche-go) to set up the nodes. It will abstract most of the setup process for you, set up the node as a system service and will enable easy node upgrades.
+
+#### Cloud Providers[​](#cloud-providers "Direct link to heading")
+
+There are a number of different cloud providers. We have documents that show how to set up a node on the most popular ones:
+
+- [Amazon Web Services](/docs/nodes/on-third-party-services/amazon-web-services)
+- [Azure](/docs/nodes/on-third-party-services/microsoft-azure)
+- [Google Cloud Platform](/docs/nodes/on-third-party-services/google-cloud)
+
+There is a whole range of other cloud providers that may offer lower prices or better deals for your particular needs, so it makes sense to shop around.
+
+Once you decide on a provider (or providers), if they offer instances in multiple data centers, it makes sense to spread the nodes geographically since that provides a better resilience and stability against outages.
+
+### Number of Validators[​](#number-of-validators "Direct link to heading")
+
+Number of validators on an Avalanche L1 is a crucial decision you need to make. For stability and decentralization, you should strive to have as many validators as possible.
+
+For stability reasons our recommendation is to have **at least** 5 full validators on your Avalanche L1. If you have less than 5 validators your Avalanche L1 liveness will be at risk whenever a single validator goes offline, and if you have less than 4 even one offline node will halt your Avalanche L1.
+
+You should be aware that 5 is the minimum we recommend. But, from a decentralization standpoint having more validators is always better as it increases the stability of your Avalanche L1 and makes it more resilient to both technical failures and adversarial action. In a nutshell: run as many Avalanche L1 validators as you can.
+
+Considering that at times you will have to take nodes offline, for routine maintenance (at least for node upgrades which happen with some regularity) or unscheduled outages and failures you need to be able to routinely handle at least one node being offline without your Avalanche L1 performance degrading.
+
+### Node Bootstrap[​](#node-bootstrap "Direct link to heading")
+
+Once you set up the server and install AvalancheGo on them, nodes will need to bootstrap (sync with the network). This is a lengthy process, as the nodes need to catch up and replay all the network activity since the genesis up to the present moment. Full bootstrap on a node can take more than a week, but there are ways to shorten that process, depending on your circumstances.
+
+#### State Sync[​](#state-sync "Direct link to heading")
+
+If the nodes you will be running as validators don't need to have the full transaction history, then you can use [state sync](/docs/nodes/chain-configs/c-chain#state-sync-enabled). With this flag enabled, instead of replaying the whole history to get to the current state, nodes simply download only the current state from other network peers, shortening the bootstrap process from multiple days to a couple of hours. If the nodes will be used for Avalanche L1 validation exclusively, you can use the state sync without any issues. Currently, state sync is only available for the C-Chain, but since the bulk of the transactions on the platform happen there it still has a significant impact on the speed of bootstrapping.
+
+#### Database Copy[​](#database-copy "Direct link to heading")
+
+Good way to cut down on bootstrap times on multiple nodes is database copy. Database is identical across nodes, and as such can safely be copied from one node to another. Just make sure to that the node is not running during the copy process, as that can result in a corrupted database. Database copy procedure is explained in detail [here](/docs/nodes/maintain/backup-restore#database).
+
+Please make sure you don't reuse any node's NodeID by accident, especially don't restore another node's ID, see [here](/docs/nodes/maintain/backup-restore#nodeid) for details. Each node must has its own unique NodeID, otherwise, the nodes sharing the same ID will not behave correctly, which will impact your validator's uptime, thus staking rewards, and the stability of your Avalanche L1.
+
+Avalanche L1 Deploy[​](#avalanche-l1-deploy "Direct link to heading")
+---------------------------------------------------------
+
+Once you have the nodes set up you are ready to deploy the actual Avalanche L1. Right now, the recommended tool to do that is [Avalanche-CLI](https://github.com/ava-labs/avalanche-cli).
+
+Instructions for deployment by Avalanche-CLI can be found [here](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-mainnet).
+
+### Ledger Hardware Wallet[​](#ledger-hw-wallet "Direct link to heading")
+
+When creating the Avalanche L1, you will be required to have a private key that will control the administrative functions of the Avalanche L1 (adding validators, managing the configuration). Needless to say, whoever has this private key has complete control over the Avalanche L1 and the way it runs. Therefore, protecting that key is of the utmost operational importance. Which is why we strongly recommend using a hardware wallet such as a [Ledger HW Wallet](https://www.ledger.com/) to store and access that private key.
+
+General instruction on how to use a Ledger device with Avalanche can be found [here](https://support.avax.network/en/articles/6150237-how-to-use-a-ledger-nano-s-or-nano-x-with-avalanche).
+
+### Genesis File[​](#genesis-file "Direct link to heading")
+
+The structure that defines the most important parameters in an Avalanche L1 is found in the genesis file, which is a `json` formatted, human-readable file. Describing the contents and the options available in the genesis file is beyond the scope of this document, and if you're ready to deploy your Avalanche L1 to production you probably have it mapped out already.
+
+If you want to review, we have a description of the genesis file in our document on [customizing EVM Avalanche L1s](/docs/avalanche-l1s/upgrade/customize-avalanche-l1).
+
+Validator Configuration[​](#validator-configuration "Direct link to heading")
+-----------------------------------------------------------------------------
+
+Running nodes as Avalanche L1 validators warrants some additional considerations, above those when running a regular node or a Primary Network-only validator.
+
+### Joining an Avalanche L1[​](#joining-a-avalanche-l1 "Direct link to heading")
+
+For a node to join an Avalanche L1, there are two prerequisites:
+
+- Primary Network validation
+- Avalanche L1 tracking
+
+Primary Network validation means that a node cannot join an Avalanche L1 as a validator before becoming a validator on the Primary Network itself. So, after you add the node to the validator set on the Primary Network, node can join an Avalanche L1. Of course, this is valid only for Avalanche L1 validators, if you need a non-validating Avalanche L1 node, then the node doesn't need to be a validator at all.
+
+To have a node start syncing the Avalanche L1, you need to add the `--track-subnets` command line option, or `track-subnets` key to the node config file (found at `.avalanchego/configs/node.json` for installer-script created nodes). A single node can sync multiple Layer 1s, so you can add them as a comma-separated list of Avalanche L1 IDs (SubnetID).
+
+An example of a node config syncing two Avalanche L1s:
+
+```json
+{
+  "public-ip-resolution-service": "opendns",
+  "http-host": "",
+  "track-subnets": "28nrH5T2BMvNrWecFcV3mfccjs6axM1TVyqe79MCv2Mhs8kxiY,Ai42MkKqk8yjXFCpoHXw7rdTWSHiKEMqh5h8gbxwjgkCUfkrk"
+}
+```
+
+But that is not all. Besides tracking the SubnetID, the node also needs to have the plugin that contains the VM instance the blockchain in the Avalanche L1 will run. You should have already been through that on Testnet and Fuji, but for a refresher, you can refer to [this tutorial](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet).
+
+So, name the VM plugin binary as the `VMID` of the Avalanche L1 chain and place it in the `plugins` directory where the node binary is (for installer-script created nodes that would be `~/avalanche-node/plugins/`).
+
+### Avalanche L1 Bootstrapping[​](#avalanche-l1-bootstrapping "Direct link to heading")
+
+After you have tracked the Avalanche L1 and placed the VM binary in the correct directory, your node is ready to start syncing with the Avalanche L1. Restart the node and monitor the log output. You should notice something similar to:
+
+```bash
+Jul 30 18:26:31 node-fuji avalanchego[1728308]: [07-30|18:26:31.422] INFO chains/manager.go:262 creating chain:
+Jul 30 18:26:31 node-fuji avalanchego[1728308]:     ID: 2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt
+Jul 30 18:26:31 node-fuji avalanchego[1728308]:     VMID:srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+```
+
+That means the node has detected the Avalanche L1, and is attempting to initialize it and start bootstrapping the Avalanche L1. It might take some time (if there are already transactions on the Avalanche L1), and eventually it will finish the bootstrap with a message like:
+
+```bash
+Jul 30 18:27:21 node-fuji avalanchego[1728308]: [07-30|18:27:21.055] INFO <2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt Chain> snowman/transitive.go:333 consensus starting with J5wjmotMCrM2DKxeBTBPfwgCPpvsjtuqWNozLog2TomTjSuGK as the last accepted block
+```
+
+That means the node has successfully bootstrapped the Avalanche L1 and is now in sync. If the node is one of the validators, it will start validating any transactions that get posted to the Avalanche L1.
+
+### Monitoring[​](#monitoring "Direct link to heading")
+
+If you want to inspect the process of Avalanche L1 syncing, you can use the RPC call to check for the [blockchain status](/docs/api-reference/p-chain/api#platformgetblockchainstatus).
+
+For a more in-depth look into Avalanche L1 operation, check out the blockchain log. By default, the log can be found in `~/.avalanchego/logs/ChainID.log` where you replace the `ChainID` with the actual ID of the blockchain in your Avalanche L1.
+
+For an even more thorough (and pretty!) insight into how the node and the Avalanche L1 is behaving, you can install the Prometheus+Grafana monitoring system with the custom dashboards for the regular node operation, as well as a dedicated dashboard for Avalanche L1 data. Check out the [tutorial](/docs/nodes/maintain/monitoring) for information on how to set it up.
+
+### Managing Validation[​](#managing-validation "Direct link to heading")
+
+On Avalanche all validations are limited in time and can range from two weeks up to one year. Furthermore, Avalanche L1 validations are always a subset of the Primary Network validation period (must be shorter or the same). That means that periodically your validators will expire and you will need to submit a new validation transaction for both the Primary Network and your Avalanche L1.
+
+Unless managed properly and in a timely manner, that can be disruptive for your Avalanche L1 (if all validators expire at the same time your Avalanche L1 will halt). To avoid that, keep notes on when a particular validation is set to expire and be ready to renew it as soon as possible. Also, when initially setting up the nodes, make sure to stagger the validator expiry so they don't all expire on the same date. Setting end dates at least a day apart is a good practice, as well as setting reminders for each expiry.
+
+Conclusion[​](#conclusion "Direct link to heading")
+---------------------------------------------------
+
+Hopefully, by reading this document you have a better picture of the requirements and considerations you need to make when deploying your Avalanche L1 to production and you are now better prepared to launch your Avalanche L1 successfully.
+
+Keep in mind, running an Avalanche L1 in production is not a one-and-done kind of situation, it is in fact running a fleet of servers 24/7. And as with any real time service, you should have a robust logging, monitoring and alerting systems to constantly check the nodes and Avalanche L1 health and alert you if anything out of the ordinary happens.
+
+If you have any questions, doubts or would like to chat, please check out our [Discord server](https://chat.avax.network/), where we host a dedicated `#subnet-chat` channel dedicated to talking about all things Avalanche L1.
