@@ -167,6 +167,14 @@ export const AuthOptions: NextAuthOptions = {
       session.user.is_new_user = token.is_new_user ? true : false;
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      // If the URL is relative, convert it to absolute
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // If the URL is from the same domain, allow the redirection
+      if (new URL(url).origin === baseUrl) return url
+      // By default, redirect to the main page
+      return baseUrl
+    },
 
 
   },

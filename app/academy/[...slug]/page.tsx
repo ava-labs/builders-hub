@@ -50,6 +50,7 @@ import RegisterWithHome from '@/toolbox/src/toolbox/ICTT/RegisterWithHome';
 import TestSend from '@/toolbox/src/toolbox/ICTT/TestSend';
 import TeleporterRegistry from '@/toolbox/src/toolbox/ICM/TeleporterRegistry';
 import ICMRelayer from '@/toolbox/src/toolbox/ICM/ICMRelayer';
+import Faucet from '@/toolbox/src/toolbox/Wallet/Faucet';
 
 export const dynamicParams = false;
 
@@ -67,7 +68,8 @@ const toolboxComponents = {
   RegisterWithHome,
   TestSend,
   TeleporterRegistry,
-  ICMRelayer
+  ICMRelayer,
+  Faucet
 }
 
 export default async function Page(props: {

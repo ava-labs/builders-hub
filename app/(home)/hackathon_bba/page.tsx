@@ -259,7 +259,7 @@ export default function HackathonPage() {
           </div>
         </div>
           <div className="flex items-center max-w-xl p-4 mx-auto mt-4 text-sm rounded-lg group" style={{ justifyContent: "center" }}>
-            <Link href="https://t.me/avalancheacademy/4337" className={buttonVariants({ size: 'lg', variant: 'default' })}>
+            <Link href="https://t.me/avalancheacademy" className={buttonVariants({ size: 'lg', variant: 'default' })}>
               Join the Hackathon Chat! →
             </Link>
           </div>

@@ -118,7 +118,12 @@ export const generateDockerCommand = (
   const isCustomVM = vmId !== SUBNET_EVM_VM_ID;
 
   if (isCustomVM && !isPrimaryNetwork) {
-    env.VM_ID = vmId;
+    // Add VM aliases as an environment variable
+    const vmAliases = {
+      [vmId]: [SUBNET_EVM_VM_ID]
+    };
+    const base64Content = btoa(JSON.stringify(vmAliases, null, 2));
+    env.AVAGO_VM_ALIASES_FILE_CONTENT = base64Content;
   }
 
   // Build Docker command
@@ -135,16 +140,6 @@ export const generateDockerCommand = (
     chunks.push(`avaplatform/avalanchego:${AVALANCHEGO_VERSION}`);
   } else {
     chunks.push(`avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`);
-  }
-
-  // Add vm-aliases-file-content parameter for custom VMs
-  if (isCustomVM && !isPrimaryNetwork) {
-    chunks.push("/avalanchego/build/avalanchego");
-    const vmAliases = {
-      [vmId]: [SUBNET_EVM_VM_ID]
-    };
-    const base64Content = btoa(JSON.stringify(vmAliases, null, 2));
-    chunks.push(`--vm-aliases-file-content=${base64Content}`);
   }
 
   return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
