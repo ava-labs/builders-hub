@@ -1,0 +1,44 @@
+---
+title: Source, Message and Destination
+description:  Learn about interoperability and it's importance in multichain systems.
+updated: 2024-05-31
+authors: [martineckardt]
+icon: BookOpen
+---
+
+Interoperability is achieved by enabling blockchains to pass messages to one another. Each message originates from a source chain and is sent to one or more destination chains. These messages encode arbitrary data that can attest some event on the source chains, such as the deposit of an asset or the result of a vote.
+
+<div class="flex space-x-8">
+    <div class="flex-1">
+        ![](/common-images/teleporter/source.png)
+        # Source
+        - Origin of communication
+        - Sender calls contract
+    </div>
+    <div class="flex-1">
+        ![](/common-images/teleporter/message.png)
+        # Message
+        - Contains source, destination, and encoded data
+        - Signature guarantees  authenticity
+    </div>
+    <div class="flex-1">
+        ![](/common-images/teleporter/destination.png)
+        # Destination
+        - Submission of message as transaction
+        - Verifies signatures
+    </div>
+</div>
+
+## Source Chain
+
+The source chain in a cross-blockchain communication system refers to the original blockchain where data, assets, or information originate before being communicated to another blockchain. It acts as the starting point for initiating cross-chain interactions. When a user intends to communicate with another blockchain, they utilize protocols or smart contracts to initiate the communication process from the source chain.
+
+## Message
+
+The message is the data structure that will be sent to to the destination chain. It contains some metadata, the encoded message, and a signature. The signature attests the authenticity of the message, meaning that whatever the message claims has actually happened on the source chain. 
+
+## Destination Chain
+
+Conversely, the destination chain is the recipient blockchain where the communicated data, assets, or instructions will be received and processed. Validators, nodes, or protocols associated with the cross-blockchain communication system on the destination chain receive and authenticate the information relayed from the source chain. Once validated, the destination chain processes the data or executes the specified instructions.
+
+<Quiz quizId="301"/>

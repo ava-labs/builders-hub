@@ -1,0 +1,23 @@
+---
+title: Securing Cross-Chain Communication
+description: Learn about Avalanche Warp Messaging and how it ensures secure communication between blockchains.
+updated: 2024-05-31
+authors: [martineckardt]
+icon: Book
+---
+
+<YouTube id="rJ-G5ri65rs" />
+
+We can achieve interoperability through sending messages across blockchains. In blockchain systems there are often vast amounts of money involved, which can render attacking the systems very profitable. For instance, we've seen bridge hacks where criminals stole billions of dollars in digital assets.
+
+Ensuring the security of the communication between blockchain is critical when building cross-chain dApps. But how can we do that? How can we ensure that a received message is actually from the claimed sender and that no one changed the contents on the way?
+
+This is where Avalanche Warp Messaging comes into play. It is not EVM specific, but rather a general cross-Avalanche L1 communication protocol. In this section you will learn about the underlying cryptographic primitives that make Avalanche Warp Messaging secure.
+
+## What you will learn
+
+In this section, you will go through the following topics:
+
+- **Signature Schemes:** What can be achieved using signature schemes and how do they work?
+- **Multi-Signature Schemes:** How can a group of participants sign a message
+- **Signature Aggregation:** How can we increase the efficiency of multi-signature schemes

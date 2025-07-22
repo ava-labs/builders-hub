@@ -35,7 +35,7 @@ const officialCourses: Course[] = [
         duration: "1 hour",
         languages: [],
         tools: ["L1 Toolbox"],
-        instructors: ["Martin Eckardt", "Ash"],
+        instructors: ["Martin Eckardt", "Ash", "Nicolas Arnedo"],
         category: "Fundamentals"
     },
     {

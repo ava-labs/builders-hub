@@ -1,0 +1,84 @@
+---
+title: BLS Signature Aggregation
+description: Learn how BLS signatures enable efficient and secure cross-chain communication
+updated: 2024-05-31
+authors: [martineckardt]
+icon: Shield
+---
+
+<YouTube id="rJ-G5ri65rs" />
+
+BLS (Boneh-Lynn-Shacham) signature aggregation is the cryptographic foundation that makes Avalanche's native interoperability both secure and efficient. Let's understand how it works and why it's essential for cross-chain communication.
+
+## Digital Signatures: The Foundation
+
+Digital signatures ensure three critical properties for secure messaging:
+
+- **Authenticity**: Proves the message truly came from the claimed sender. A valid signature confirms the signer owns the private key associated with the public key.
+
+- **Non-Repudiation**: The signer cannot deny creating the message. Once signed, it becomes a binding commitment that cannot be refuted.
+
+- **Integrity**: Any tampering with the message, no matter how small, invalidates the signature. This ensures the message arrives exactly as sent.
+
+## The Signature Process
+
+![](/common-images/cryptography/signature-scheme-methods.png)
+
+The process involves three key operations:
+
+1. **Generate Keys**: Creates a private key (kept secret) and public key (shared publicly)
+2. **Sign Message**: Uses the private key to create a signature for the message
+3. **Verify Signature**: Anyone with the public key can verify the signature's validity
+
+## The Challenge: Multiple Validators
+
+In cross-chain communication, hundreds of validators must sign each message. Without optimization:
+
+- Short message = 64 bytes
+- 1 Signature = 96 bytes  
+- 1000 signatures = 96,000 bytes
+
+This creates a massive bottleneck for message transmission and verification.
+
+## BLS Signature Aggregation: The Solution
+
+BLS multi-signatures solve this elegantly by combining multiple signatures into a single compact signature:
+
+![](/common-images/cryptography/signature-aggregation.png)
+
+Key benefits:
+- **Compact Size**: 1000 signatures aggregate to just one 96-byte signature
+- **Efficient Verification**: Verify all signatures with a single operation
+- **Scalable**: Works efficiently regardless of validator count
+
+## How It Works in Avalanche
+
+1. **Message Creation**: A smart contract creates a cross-chain message
+2. **Validator Signing**: Each validator signs with their BLS private key
+3. **Aggregation**: Signatures are combined into one aggregated signature
+4. **Verification**: Destination chain verifies using aggregated public keys
+
+The same aggregation process applies to public keys:
+
+![](/common-images/cryptography/multi-signature-schemes-methods.png)
+
+## Why BLS for Cross-Chain?
+
+BLS signatures are particularly suited for blockchain interoperability:
+
+- **Deterministic**: Same message always produces same signature
+- **Non-malleable**: Signatures cannot be altered without detection
+- **Aggregatable**: Core feature enabling efficient multi-party signing
+- **Fast Verification**: Critical for blockchain performance
+
+## Security Considerations
+
+BLS aggregation maintains security while improving efficiency:
+
+- Requires threshold stake weight (e.g., 67%) to accept messages
+- Cannot forge signatures without controlling private keys
+- Aggregation doesn't weaken individual signature security
+
+This cryptographic foundation enables Avalanche to achieve secure cross-chain communication without introducing new trust assumptions - the same validators securing the blockchain also secure its messages.
+
+<Quiz quizId="309"/> 

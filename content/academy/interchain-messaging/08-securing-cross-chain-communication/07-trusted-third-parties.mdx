@@ -1,0 +1,26 @@
+---
+title: Trusted Third Parties
+description: Learn about the challenges of cross-chain communication.
+updated: 2024-05-31
+authors: [martineckardt]
+icon: BookOpen
+---
+
+# "Cross-chain communication is impossible without a trusted third party, contrary to common beliefs in the blockchain community"
+- A. Zamyatin et al. in [SoK: Communication Across Distributed Ledgers](https://eprint.iacr.org/2019/1128.pdf)
+
+Signature Schemes give us the tool to ensure the authenticity of message, but who will send these messages? Can we build a cross-chain communication protocol that does not introduce additional trust assumption?
+
+The paper [SoK: Communication Across Distributed Ledgers](https://eprint.iacr.org/2019/1128.pdf) looks into this question and states that a CCC protocol must have the following attributes:
+
+- **Effectiveness:** all relevant transactions are posted on their respective chains at the desired time
+- **Atomicity:** either all transactions were posted on their respective chains at the desired time, or no transactions were posted at all 
+- **Timeliness:** all transactions will eventually be posted on their respective chains
+
+It is possible to create a cross-chain communication protocol that adheres to the three attributes mentioned above? Can a correct CCC protocol that is trustless exist?
+
+In SoK, the researchers come to the conclusion that such a trustless, correct CCC protocol is impossible. Using computational complexity theory, the trustless, correct CCC protocol problem can be reduced into the Fair Exchange problem, a problem that has been proven to have no solution.
+
+We see this also in practice. Many bridges and cross-chain communications often rely on some centralized infrastructure that observes the source chain and then delivers the message to the destination chain. Their users need to trust this setup, often involving a set of third-party bridge validators.
+
+However, there might be a smart trick we can use. We'll explore this in the next section about Avalanche Warp Messaging.
