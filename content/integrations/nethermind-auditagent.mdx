@@ -1,0 +1,45 @@
+---
+title: AuditAgent
+category: Developer Tools
+available: ["C-Chain", "All EVM L1s"]
+description: AuditAgent is an AI-powered smart contract security agent that proactively detects vulnerabilities and provides continuous monitoring for Solidity projects.
+logo: /images/auditagent.png
+developer: Nethermind
+website: https://auditagent.nethermind.io/
+documentation: https://docs.auditagent.nethermind.io/
+---
+
+## Overview
+
+AuditAgent is an autonomous, AI-driven security platform from **Nethermind** that helps developers discover and fix vulnerabilities in their smart contracts *before* they go live. Leveraging machine-learning models, symbolic execution, and a continuously-updated knowledge base of exploits, AuditAgent delivers rapid, actionable insights, making secure development a default rather than an after-thought.
+
+## Features
+
+- **AI-Driven Vulnerability Detection** – Combines static analysis, dynamic testing, and large-language-model reasoning to identify re-entrancy, arithmetic errors, access-control flaws, and more.
+- **Continuous Monitoring** – Watches repositories and deployed addresses, rescanning automatically whenever code changes or new bytecode is detected.
+- **Human-Readable Reports** – Generates detailed findings with severity classifications, PoC transactions, and clear remediation guidance.
+- **CI/CD Integrations** – Native GitHub Actions workflow and REST API let teams fail builds on new critical issues and gate deployments behind security checks.
+- **Multi-Chain Support** – Optimised for Avalanche’s C-Chain and any EVM-compatible Layer 1.
+
+## Getting Started
+
+1. **Sign Up / Log In** – Visit the [AuditAgent dashboard](https://auditagent.nethermind.io/) and authenticate with GitHub, GitLab, or email.
+2. **Create a Project** – Point AuditAgent at a public repo, upload Solidity sources, or paste an address to analyse deployed bytecode.
+3. **Run Your First Scan** – Click *Start Scan* and wait a few minutes while AuditAgent performs AI-backed analysis of your codebase.
+4. **Review Findings** – Examine the vulnerability list, severity breakdown, and remediation tips. Export the report as JSON, PDF, or SARIF.
+5. **Automate** – Add AuditAgent to your pipeline using the provided GitHub Action or REST API for on-push security gates.
+
+## Documentation
+
+For full API reference, configuration options, and CI/CD examples, visit the [AuditAgent Docs](https://docs.auditagent.nethermind.io/).
+
+## Use Cases
+
+- **Pre-Audit Preparation** – Catch low-hanging issues early and reduce the cost and turnaround time of formal audits.
+- **Ongoing Security Monitoring** – Continuously track contract changes post-deployment to guard against new risks introduced by upgrades or dependencies.
+- **Developer Education** – Leverage detailed explanations and code snippets to upskill engineers on secure-coding best practices.
+- **Compliance & Reporting** – Export machine-readable SARIF results for governance dashboards and regulatory submissions.
+
+## Conclusion
+
+AuditAgent brings the speed of AI to smart-contract security, giving Avalanche builders instant feedback and continuous protection across the entire development lifecycle. Integrate it into your workflow to ship faster—confident that your contracts are battle-tested and secure.

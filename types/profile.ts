@@ -6,7 +6,7 @@ export type Profile = {
     notification_email: string,
     image: string,
     social_media: string[],
-    notifications: boolean,
+    notifications: boolean | null,
     profile_privacy: string,
     telegram_user: string | undefined
 }

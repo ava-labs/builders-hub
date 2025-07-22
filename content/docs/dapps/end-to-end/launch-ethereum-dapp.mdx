@@ -23,7 +23,7 @@ There are multiple ways of working with the C-Chain.
 ### Through Core
 
 Powered by Avalanche,
-[Core](https://medium.com/avalancheavax/ava-labs-releases-core-an-all-in-one-web3-operating-system-for-avalanche-a844eb822887)
+[Core](https://core.app/en/)
 is an all-in-one operating system bringing together Avalanche apps, Avalanche L1s,
 bridges, and NFTs in one seamless, high-performance browser experience. Putting
 in another way, Core is more than a wallet. It is a curated web3 operating
@@ -298,18 +298,18 @@ available in the explorer, it is final.
 ### Using `eth_newFilter` and Related Calls with the Public API
 
 If you're using the
-[`eth_newFilter`](https://eth.wiki/json-rpc/API#eth_newfilter) API method on the
+[`eth_newFilter`](https://ethereum.org/en/developers/docs/apis/json-rpc/#eth_newfilter) API method on the
 public API server, it may not behave as you expect because the public API is
 actually several nodes behind a load balancer. If you make an `eth_newFilter`
 call, subsequent calls to
-[`eth_getFilterChanges`](https://eth.wiki/json-rpc/API#eth_getfilterchanges) may
+[`eth_getFilterChanges`](https://ethereum.org/en/developers/docs/apis/json-rpc/#eth_getfilterchanges) may
 not end up on the same node as the first call, and you will end up with
 undefined results.
 
 If you need the log filtering functionality, you should use a websocket
 connection, which ensures that your client is always talking to the same node
 behind the load balancer. Alternatively, you can use
-[`eth_getLogs`](https://eth.wiki/json-rpc/API#eth_getlogs), or run your own node
+[`eth_getLogs`](https://ethereum.org/en/developers/docs/apis/json-rpc/#eth_getlogs), or run your own node
 and make API calls to it.
 
 ## Support

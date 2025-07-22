@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
-import { useWalletStore } from "../lib/walletStore"
+import { useWalletStore } from "../stores/walletStore"
 
 export function RemountOnWalletChange({ children }: { children: React.ReactNode }) {
   const isTestnet = useWalletStore(s => s.isTestnet)

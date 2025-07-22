@@ -16,6 +16,10 @@ import { writeContract } from './overrides/writeContract'
 //Warning! This api is not stable yet, it will change in the future
 export { type ConvertToL1Validator } from "./methods/convertToL1"
 import { deployContract } from './overrides/deployContract'
+import { registerL1Validator } from './methods/registerL1Validator'
+import { RegisterL1ValidatorParams } from './methods/registerL1Validator'
+import { setL1ValidatorWeight } from './methods/setL1ValidatorWeight'
+import { SetL1ValidatorWeightParams } from './methods/setL1ValidatorWeight'
 
 export function createCoreWalletClient(account: `0x${string}`) {
     // Check if we're in a browser environment
@@ -48,6 +52,8 @@ export function createCoreWalletClient(account: `0x${string}`) {
         createSubnet: (args: CreateSubnetParams) => createSubnet(client, args),
         createChain: (args: CreateChainParams) => createChain(client, args),
         convertToL1: (args: ConvertToL1Params) => convertToL1(client, args),
+        registerL1Validator: (args: RegisterL1ValidatorParams) => registerL1Validator(client, args),
+        setL1ValidatorWeight: (args: SetL1ValidatorWeightParams) => setL1ValidatorWeight(client, args),
         extractWarpMessageFromPChainTx: (args: ExtractWarpMessageFromTxParams) => extractWarpMessageFromPChainTx(client, args),
         getEthereumChain: () => getEthereumChain(client),
         extractChainInfo: (args: ExtractChainInfoParams) => extractChainInfo(client, args),

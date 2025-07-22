@@ -39,6 +39,11 @@
   )::marker {
   color: #e84142;
 }
+
+div.group\/accordion h3  {
+  margin-top: 0 !important;
+}
+
 /* .light .prose :where(a:not([data-card])):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
   color: #18181B;
 }
@@ -581,6 +586,14 @@ html body[data-scroll-locked] {
 
   .text-shadow-[shadow] {
     text-shadow: var(--shadow);
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
 

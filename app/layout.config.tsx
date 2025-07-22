@@ -29,19 +29,8 @@ import {
   ArrowLeftRight,
 } from 'lucide-react';
 import Image from 'next/image';
-import Preview9000 from '@/public/nav-banner/9000-logo.png';
-import CoursePreview from '@/public/nav-banner/course-preview.png';
-import CodebaseBanner from '@/public/nav-banner/codebase-banner.png';
-import SummitLondonBanner from '@/public/nav-banner/avalanche_summit_london.png';
-import HackathonsBanner from '@/public/nav-banner/hackathons-banner.png';
-import Team1Banner from '@/public/nav-banner/local_events_team1.jpg';
-import L1LauncherPreview from '@/public/nav-banner/l1-launcher-preview.png';
-import L1ToolboxPreview from '@/public/nav-banner/l1-toolbox-preview.png';
 import { SiGithub } from '@icons-pack/react-simple-icons';
-import UserWrapper from '@/components/login/user-button/UserWrapper';
-import CustomButton from "@/components/ambassador-dao/custom-button";
-import { AuthButton } from '@/components/ambassador-dao/auth-button';
-import { UserButton } from '@/components/login/user-button/UserButton';
+import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
 
 export const integrationsMenu: LinkItemType = {
   type: 'menu',
@@ -122,9 +111,11 @@ export const docsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={Preview9000}
-              alt='Preview'
-              className='rounded-t-lg object-cover'
+               src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/customizing-evm-DkMcINMgCwhkuHuumtAZtrPzROU74M.jpg"
+               alt='Preview'
+               width={900}
+               height={400}
+              className='rounded-t-lg object-cover  w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -191,9 +182,11 @@ export const academyMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={CoursePreview}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/avalanche-fundamentals-skz9GZ84gSJ7MPvkSrbiNlnK5F7suB.jpg"}
               alt='Preview'
-              className='rounded-t-lg object-cover'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -254,16 +247,18 @@ export const academyMenu: LinkItemType = {
 export const toolsMenu: LinkItemType = {
   type: 'menu',
   text: 'Tools',
-  url: '/tools',
+  url: '/tools/l1-toolbox',
   items: [
     {
       menu: {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={L1ToolboxPreview}
+              src="/l1toolbox.png"
               alt='L1 Launcher Preview'
-              className='rounded-t-lg object-cover'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -273,7 +268,7 @@ export const toolsMenu: LinkItemType = {
         className: 'md:row-span-2 lg:col-span-1',
       },
       icon: <Waypoints />,
-      text: 'L1 Toolbox (Beta)',
+      text: 'L1 Toolbox',
       description: 'Manage your L1 with a highly granular set of tools.',
       url: '/tools/l1-toolbox',
     },
@@ -284,19 +279,7 @@ export const toolsMenu: LinkItemType = {
         'Set up Interchain Messaging (ICM) for your L1.',
       url: '/tools/l1-toolbox',
       menu: {
-        banner: (
-          <div className='-mx-3 -mt-3'>
-            <Image
-              src={L1LauncherPreview}
-              alt='L1 Launcher Preview'
-              className='rounded-t-lg object-cover'
-              style={{
-                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
-              }}
-            />
-          </div>
-        ),
-        className: 'md:row-span-2 lg:col-span-1',
+        className: 'lg:col-start-2 lg:row-start-1',
       },
     },
     {
@@ -321,7 +304,7 @@ export const toolsMenu: LinkItemType = {
       text: 'Testnet Faucet',
       description:
         'Claim Fuji AVAX tokens from the testnet faucet to test your dApps.',
-      url: 'https://core.app/tools/testnet-faucet/?subnet=c&token=c',
+      url: '/tools/l1-toolbox#faucet',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },
@@ -349,9 +332,11 @@ export const grantsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={CodebaseBanner}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/codebase-banner-VKmQyN5sPojnIOU09p0lCkUgR6YTpQ.png"}
               alt='Preview'
-              className='rounded-t-lg object-cover'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -364,14 +349,14 @@ export const grantsMenu: LinkItemType = {
       text: 'Codebase',
       description:
         'We help transform good ideas into great web3 companies & ambitious builders into extraordinary founders.',
-      url: 'https://codebase.avax.network/',
+      url: '/codebase',
     },
     {
       icon: <Cpu />,
       text: 'InfraBUIDL',
       description:
         "Strengthening Avalanche's infrastructure. Build the foundation for next-gen blockchain applications.",
-      url: 'https://www.avax.network/infrabuidl-program',
+      url: '/grants/infrabuidl',
       menu: {
         className: 'lg:col-start-2',
       },
@@ -381,7 +366,7 @@ export const grantsMenu: LinkItemType = {
       text: 'InfraBUIDL (AI)',
       description:
         'Supports projects that fuse artificial intelligence (AI) with decentralized infrastructure.',
-      url: 'https://www.avax.network/infrabuidl-ai-program',
+      url: '/grants/infrabuidlai',
       menu: {
         className: 'lg:col-start-2',
       },
@@ -391,7 +376,7 @@ export const grantsMenu: LinkItemType = {
       text: 'Retro9000',
       description:
         'Build innovative projects on Avalanche. Get rewarded for your creativity.',
-      url: 'https://retro9000.avax.network/',
+      url: 'https://retro9000.avax.network',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },
@@ -419,9 +404,11 @@ export const eventsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={SummitLondonBanner}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/hackathons-banner-nyqtkzooc3tJ4qcLjfLJijXz6uJ6oH.png"}
               alt='Preview'
-              className='rounded-t-lg object-cover'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -431,31 +418,9 @@ export const eventsMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Ticket />,
-      text: 'Avalanche Summit London',
+      text: 'Hackathons',
       description:
-        'Join us for Avalanche Summit, London, as we explore the world’s original global financial hub through the lens of Web3.',
-      url: 'https://www.avalanchesummitlondon.com/',
-    },
-    {
-      menu: {
-        banner: (
-          <div className='-mx-3 -mt-3'>
-            <Image
-              src={HackathonsBanner}
-              alt='Preview'
-              className='rounded-t-lg object-cover'
-              style={{
-                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
-              }}
-            />
-          </div>
-        ),
-        className: 'md:row-span-2',
-      },
-      icon: <Ticket />,
-      text: 'Join our Hackathons',
-      description:
-        'The hackathons aims to harness the potential of Avalanche’s robust technology stack to address pressing issues and create scalable, practical solutions.',
+        'The hackathons aims to harness the potential of Avalanche´s robust technology stack to address pressing issues and create scalable, practical solutions.',
       url: '/hackathons',
     },
     {
@@ -463,9 +428,35 @@ export const eventsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={Team1Banner}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Avalanche-Event-8wjhXhApK9YGd5Le4Pkcl9tufb5QDA.jpg"}
               alt='Preview'
-              className='rounded-t-lg object-cover'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
+              style={{
+                maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
+              }}
+            />
+          </div>
+        ),
+        className: 'md:row-span-2',
+      },
+      icon: <Ticket />,
+      text: 'Avalanche Calendar',
+      description:
+        'Explore upcoming Avalanche events, meetups, and community gatherings. Stay connected with the latest happenings in the ecosystem.',
+      url: 'https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4',
+    },
+    {
+      menu: {
+        banner: (
+          <div className='-mx-3 -mt-3'>
+            <Image
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"}
+              alt='Preview'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -475,16 +466,23 @@ export const eventsMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Earth />,
-      text: 'Team1 Events',
+      text: 'Community driven events',
       description:
         'Check out and join the global meetups, workshops and events organized by Avalanche Team1',
       url: 'https://lu.ma/Team1?utm_source=builder_hub',
     },
   ],
 };
+
+const bridgeLink: LinkItemType = {
+  type: 'main',
+  text: 'Bridge',
+  url: 'https://core.app/bridge',
+};
+
 const userMenu: LinkItemType = {
   type: 'custom',
-  children: <UserButton />,
+  children: <UserButtonWrapper />,
   secondary: true
 };
 
@@ -516,26 +514,21 @@ export const baseOptions: BaseLayoutProps = {
     title: (
       <>
         {<AvalancheLogo className='size-7' fill='currentColor' />}
-        <span style={{ fontSize: 'large' }}>Builders Hub</span>
+        <span style={{ fontSize: 'large' }}>Builder Hub</span>
       </>
     ),
   },
   links: [
-    docsMenu,
     academyMenu,
+    docsMenu,
+    integrationsMenu,
+    bridgeLink,
     toolsMenu,
     grantsMenu,
-    github,
     eventsMenu,
-    integrationsMenu,
-    // hackathons,
+    github,
     userMenu,
     // hackathons,
     //userMenu,
-    ambassadorMenu,
-    {
-      type: "custom",
-      children: <AuthButton />,
-    },
   ],
 };

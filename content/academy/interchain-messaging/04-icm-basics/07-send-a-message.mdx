@@ -15,10 +15,10 @@ The final step, is to send the message between the two chains. Assuming everythi
 ### Send a Message
 
 ```bash
-cast send --rpc-url local-c --private-key $PK $SENDER_ADDRESS "sendMessage(address,string)" $RECEIVER_ADDRESS "Hello"
+cast send --rpc-url fuji-c --private-key $PK $SENDER_ADDRESS "sendMessage(address,string)" $RECEIVER_ADDRESS "Hello"
 ```
 
-A relayer launched when you deployed the Avalanche L1 will now take the message and deliver it to the destination.
+A relayer will now take the message and deliver it to the destination.
 
 </Step>
 <Step>
@@ -28,7 +28,7 @@ A relayer launched when you deployed the Avalanche L1 will now take the message 
 Now let's check if the "Hello" string sent from our C-chain was actually stored properly on the `lastMessage` variable on our Avalanche L1. Run the following command replacing the receiver contract address.
 
 ```bash
-cast call --rpc-url myblockchain $RECEIVER_ADDRESS "lastMessage()(string)"
+cast call --rpc-url fuji-dispatch $RECEIVER_ADDRESS "lastMessage()(string)"
 ```
 
 If the output says `Hello` then the message was successfully delivered and processed.

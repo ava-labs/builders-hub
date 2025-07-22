@@ -25,6 +25,8 @@ model Hackathon {
   top_most      Boolean?       @default(false)
   organizers    String?
   custom_link   String?
+  created_by    String?
+  created_by_user User?         @relation(fields: [created_by], references: [id])
   projects      Project[]
   registrations RegisterForm[]
 }
@@ -42,11 +44,13 @@ model User {
   notification_email  String?
   profile_privacy     String?       @default("public")
   social_media        String[]
-  notifications       Boolean?      @default(true)
+  notifications       Boolean?
   custom_attributes   String[]
   telegram_user       String?
+  created_at          DateTime      @default(now()) @db.Timestamptz(3)
   memberships         Member[]
   registrations       RegisterForm?
+  hackathons          Hackathon[]
 }
 
 model VerificationToken {

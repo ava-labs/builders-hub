@@ -6,7 +6,14 @@ authors: [0xstt]
 icon: Book
 ---
 
-In addition to supporting basic token transfers, the token transferrer contracts offer a `sendAndCall` interface for bridging tokens and using them in a smart contract interaction all within a single Interchain Messaging message. If the call to the recipient smart contract fails, the transferred tokens are sent to a fallback recipient address on the destination chain of the transfer. The `sendAndCall` interface enables the direct use of transferred tokens in dApps on other chains, such as performing swaps, using the tokens to pay for fees when invoking services, etc.
+In addition to supporting basic token transfers, the token transferrer contracts offer a
+`sendAndCall` interface for bridging tokens and using them in a smart contract interaction all
+within a single Interchain Messaging message. If the call to the recipient smart contract fails, the
+transferred tokens are sent to a fallback recipient address on the destination chain of the
+transfer. The `sendAndCall` interface enables the direct use of transferred tokens in dApps on other
+chains, such as performing swaps, using the tokens to pay for fees when invoking services, etc.
+
+<YouTube id="wGMJCYA7R3g" />
 
 Teleporter Messenger has the ability to receive cross-chain messages on the destination chain and casts related messages to the `TeleporterMessage` struct. It then sends these messages to the Home/Remote Transferrer contract, and handles them as `SEND` or `CALL`, as implemented in `TokenHome.sol` or `TokenRemote.sol`.
 

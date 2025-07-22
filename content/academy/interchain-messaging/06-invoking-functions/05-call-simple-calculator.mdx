@@ -16,7 +16,7 @@ Alright, now let's call our Calculators:
 ### Call the Sender Contract
 
 ```bash 
-cast send --rpc-url local-c --private-key $PK $SENDER_ADDRESS "sendAddMessage(address, uint256, uint256)" $RECEIVER_ADDRESS 2 3
+cast send --rpc-url fuji-c --private-key $PK $SENDER_ADDRESS "sendAddMessage(address, uint256, uint256)" $RECEIVER_ADDRESS 2 3
 ```
 
 We need to call the `sendAddMessage` function on the sender contract with the address of the receiver contract and the two numbers we want to add. If you didn't export the sender and receiver address, you will get an executionr reverted error.
@@ -31,7 +31,7 @@ For this example we will add 2 + 3.
 To check wether the message has been received, we can call the `result_num()` function on the `Receiver` contract. 
 
 ```bash
-cast call --rpc-url myblockchain $RECEIVER_ADDRESS "result_num()(uint)"
+cast call --rpc-url fuji-dispatch $RECEIVER_ADDRESS "result_num()(uint)"
 ```
 
 ```bash

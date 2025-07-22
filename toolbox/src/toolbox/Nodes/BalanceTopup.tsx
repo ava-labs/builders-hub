@@ -2,12 +2,14 @@
 import { useEffect, useState } from "react"
 import { AlertCircle, Loader2, CheckCircle2, ArrowUpRight, RefreshCw } from "lucide-react"
 import { Button } from "../../components/Button"
-import { Container } from "../components/Container"
+import { Container } from "../../components/Container"
 import { Context, pvm, utils } from "@avalabs/avalanchejs"
-import { useWalletStore } from "../../lib/walletStore"
+import { useWalletStore } from "../../stores/walletStore"
 import { bytesToHex } from "viem"
 import { getRPCEndpoint } from "../../coreViem/utils/rpc"
 import { Input } from "../../components/Input"
+import SelectValidationID, { ValidationSelection } from "../../components/SelectValidationID"
+import SelectSubnetId from "../../components/SelectSubnetId"
 
 // Helper function for delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -21,7 +23,8 @@ interface AvalancheResponse {
 export default function ValidatorBalanceIncrease() {
 
   const [amount, setAmount] = useState<string>("")
-  const [validationId, setValidationId] = useState<string>("")
+  const [subnetId, setSubnetId] = useState<string>("")
+  const [validatorSelection, setValidatorSelection] = useState<ValidationSelection>({ validationId: "", nodeId: "" })
   const [pChainBalance, setPChainBalance] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(false)
   const [showConfetti, setShowConfetti] = useState<boolean>(false)
@@ -65,7 +68,7 @@ export default function ValidatorBalanceIncrease() {
 
   // Function to increase validator balance
   const increaseValidatorBalance = async () => {
-    if (!pChainAddress || !validationId || !amount) {
+    if (!pChainAddress || !validatorSelection.validationId || !amount) {
       setError("Missing required information")
       return
     }
@@ -106,7 +109,7 @@ export default function ValidatorBalanceIncrease() {
           feeState,
           fromAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
           utxos,
-          validationId,
+          validationId: validatorSelection.validationId,
         },
         context,
       )
@@ -157,7 +160,8 @@ export default function ValidatorBalanceIncrease() {
   // Helper function to clear form state
   const clearForm = () => {
     setAmount("")
-    setValidationId("")
+    setSubnetId("")
+    setValidatorSelection({ validationId: "", nodeId: "" })
     setError(null)
     setOperationSuccessful(false)
     setValidatorTxId("")
@@ -187,15 +191,27 @@ export default function ValidatorBalanceIncrease() {
                 <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Amount Increased</span>
                 <span className="text-sm font-bold text-blue-700 dark:text-blue-300">{amount} AVAX</span>
               </div>
+              {subnetId && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Subnet ID</span>
+                  <span className="text-sm font-mono text-blue-700 dark:text-blue-300 truncate max-w-[200px]">{subnetId}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Validator ID</span>
-                <span className="text-sm font-mono text-blue-700 dark:text-blue-300 truncate max-w-[200px]">{validationId}</span>
+                <span className="text-sm font-mono text-blue-700 dark:text-blue-300 truncate max-w-[200px]">{validatorSelection.validationId}</span>
               </div>
+              {validatorSelection.nodeId && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Node ID</span>
+                  <span className="text-sm font-mono text-blue-700 dark:text-blue-300 truncate max-w-[200px]">{validatorSelection.nodeId}</span>
+                </div>
+              )}
               {validatorTxId && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Transaction</span>
                   <a
-                    href={`https://subnets-test.avax.network/p-chain/tx/${validatorTxId}`}
+                    href={`https://${isTestnet ? "subnets-test" : "subnets"}.avax.network/p-chain/tx/${validatorTxId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm font-semibold text-red-500 hover:text-red-400 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1"
@@ -217,14 +233,19 @@ export default function ValidatorBalanceIncrease() {
         ) : (
           <div className="space-y-6">
             <div className="space-y-4">
-              <Input
-                label="Validation ID"
-                id="validationId"
-                value={validationId}
-                onChange={setValidationId}
-                placeholder="Enter the L1 Validator's Validation ID (e.g., validation1...)"
-                disabled={loading}
-                error={error && error.toLowerCase().includes("validation id") ? error : undefined}
+              <SelectSubnetId
+                value={subnetId}
+                onChange={setSubnetId}
+                hidePrimaryNetwork={true}
+                error={error && error.toLowerCase().includes("subnet") ? error : undefined}
+              />
+
+              <SelectValidationID
+                value={validatorSelection.validationId}
+                onChange={setValidatorSelection}
+                format="cb58"
+                subnetId={subnetId}
+                error={error && error.toLowerCase().includes("validation") ? error : undefined}
               />
 
               <Input
@@ -278,7 +299,7 @@ export default function ValidatorBalanceIncrease() {
               </div>
             </div>
 
-            {error && !error.toLowerCase().includes("amount") && !error.toLowerCase().includes("balance") && !error.toLowerCase().includes("utxo") && !error.toLowerCase().includes("validation id") && (
+            {error && !error.toLowerCase().includes("amount") && !error.toLowerCase().includes("balance") && !error.toLowerCase().includes("utxo") && !error.toLowerCase().includes("validation") && !error.toLowerCase().includes("subnet") && (
               <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
                 <div className="flex gap-3">
                   <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
@@ -290,7 +311,7 @@ export default function ValidatorBalanceIncrease() {
             <Button
               variant="primary"
               onClick={increaseValidatorBalance}
-              disabled={loading || !validationId || !amount || Number(amount) <= 0 || Number(amount) > pChainBalance}
+              disabled={loading || !validatorSelection.validationId || !amount || Number(amount) <= 0 || Number(amount) > pChainBalance}
               className="w-full py-2 px-4 text-sm font-medium"
             >
               {loading ? (

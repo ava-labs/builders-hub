@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TransferableOutput, addTxSignatures, pvm, utils, Context } from "@avalabs/avalanchejs";
 import { getAuthSession } from '@/lib/auth/authSession';
+import { rateLimit } from '@/lib/rateLimit';
 
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
 const FAUCET_P_CHAIN_ADDRESS = process.env.FAUCET_P_CHAIN_ADDRESS;
-const NETWORK_API = process.env.NETWORK_API || 'https://api.avax-test.network';
+const NETWORK_API = 'https://api.avax-test.network';
 const FIXED_AMOUNT = 2;
 
 if (!SERVER_PRIVATE_KEY || !FAUCET_P_CHAIN_ADDRESS) {
@@ -34,7 +35,6 @@ async function transferPToP(
 
   const feeState = await pvmApi.getFeeState();
   const amountNAvax = BigInt(FIXED_AMOUNT * 1e9);
-
   const tx = pvm.newBaseTx(
     {
       feeState,
@@ -55,50 +55,67 @@ async function transferPToP(
     unsignedTx: tx,
     privateKeys: [utils.hexToBuffer(sourcePrivateKey)],
   });
-  
+
   return pvmApi.issueSignedTx(tx.getSignedTx());
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+async function validateFaucetRequest(request: NextRequest): Promise<NextResponse | null> {
   try {
-    const session = await getAuthSession();   
+    const session = await getAuthSession();    
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Authentication required' },
         { status: 401 }
       );
     }
-
+    
     if (!SERVER_PRIVATE_KEY || !FAUCET_P_CHAIN_ADDRESS) {
       return NextResponse.json(
         { success: false, message: 'Server not properly configured' },
         { status: 500 }
       );
     }
-
+      
     const searchParams = request.nextUrl.searchParams;
     const destinationAddress = searchParams.get('address');
-  
+
     if (!destinationAddress) {
       return NextResponse.json(
         { success: false, message: 'Destination address is required' },
         { status: 400 }
       );
     }
-
+    
     if (destinationAddress === FAUCET_P_CHAIN_ADDRESS) {
       return NextResponse.json(
         { success: false, message: 'Cannot send tokens to the faucet address' },
         { status: 400 }
       );
     }
+    return null;
+  } catch (error) {
+    console.error('Validation failed:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Failed to validate request' 
+      },
+      { status: 500 }
+    );
+  }
+}
 
+async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const destinationAddress = searchParams.get('address')!;
+    
     const tx = await transferPToP(
-      SERVER_PRIVATE_KEY,
-      FAUCET_P_CHAIN_ADDRESS,
+      SERVER_PRIVATE_KEY!,
+      FAUCET_P_CHAIN_ADDRESS!,
       destinationAddress
     );
-    
+
     const response: TransferResponse = {
       success: true,
       txID: tx.txID,
@@ -106,17 +123,32 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       destinationAddress,
       amount: FIXED_AMOUNT.toString()
     };
-    
+        
     return NextResponse.json(response);
-    
+      
   } catch (error) {
     console.error('Transfer failed:', error);
-    
+        
     const response: TransferResponse = {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to complete transfer'
     };
-    
+        
     return NextResponse.json(response, { status: 500 });
   }
+}
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const validationResponse = await validateFaucetRequest(request);
+
+  if (validationResponse) {
+    return validationResponse;
+  }
+
+  const rateLimitHandler = rateLimit(handleFaucetRequest, {
+    windowMs: 24 * 60 * 60 * 1000,
+    maxRequests: 1
+  });
+ 
+  return rateLimitHandler(request);
 }

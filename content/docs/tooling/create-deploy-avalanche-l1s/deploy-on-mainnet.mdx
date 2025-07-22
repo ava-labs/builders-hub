@@ -8,7 +8,7 @@ Deploying an Avalanche L1 to Mainnet has many risks. Doing so safely requires a 
 This tutorial is an educational resource and provides no guarantees that following it results in a secure deployment. Additionally, this tutorial takes some shortcuts that aid the understanding of the deployment process at the expense of security. The text highlights these shortcuts and they shouldn't be used for a production deployment.
 </Callout>
 
-After managing a successful Avalanche L1 deployment on the `Fuji Testnet`, you're ready to deploy your Avalanche L1 on Mainnet. If you haven't done so, first [Deploy an Avalanche L1 on Testnet](/avalanche-l1s/deploy-a-avalanche-l1/fuji-testnet).
+After managing a successful Avalanche L1 deployment on the `Fuji Testnet`, you're ready to deploy your Avalanche L1 on Mainnet. If you haven't done so, first [Deploy an Avalanche L1 on Testnet](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet).
 
 This tutorial shows how to do the following on `Mainnet`.
 
@@ -24,7 +24,7 @@ All IDs in this article are for illustration purposes only. They are guaranteed 
 - An Avalanche node running and [fully bootstrapped](/docs/nodes) on `Mainnet`
 - [Avalanche-CLI is installed](/docs/tooling/get-avalanche-cli) on each validator node's box
 - A [Ledger](https://www.ledger.com/) device
-- You've [created an Avalanche L1 configuration](/docs/tooling/create-avalanche-l1#create-your-avalanche-l1-configuration) and fully tested a [Fuji Testnet Avalanche L1 deployment](/avalanche-l1s/deploy-a-avalanche-l1/fuji-testnet)
+- You've [created an Avalanche L1 configuration](/docs/tooling/create-avalanche-l1#create-your-avalanche-l1-configuration) and fully tested a [Fuji Testnet Avalanche L1 deployment](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet)
 
 ### Setting up Your Ledger[​](#setting-up-your-ledger "Direct link to heading")
 
@@ -56,9 +56,9 @@ You can use the `key list` command to get any Ledger address in the derivation s
 
 #### Funding the Ledger[​](#funding-the-ledger "Direct link to heading")
 
-A new Ledger device has no funds on the addresses it controls. You'll need to send funds to it by exporting them from C-Chain to the P-Chain using [Core web](https://core.app/) connected to [Core extension](https://join.core.app/extension).
+A new Ledger device has no funds on the addresses it controls. You'll need to send funds to it by exporting them from C-Chain to the P-Chain using [Core web](https://core.app/) connected to [Core extension](https://core.app/).
 
-You can load the Ledger's C-Chain address in Core extension, or load in a different private key to [Core extension](https://join.core.app/extension), and then connect to Core web .
+You can load the Ledger's C-Chain address in Core extension, or load in a different private key to [Core extension](https://core.app/), and then connect to Core web .
 
 You can move test funds from the C-Chain to the P-Chain by clicking Stake on Core web , then Cross-Chain Transfer (find more details on [this tutorial](https://support.avax.network/en/articles/8133713-core-web-how-do-i-make-cross-chain-transfers-in-core-stake)).
 
@@ -72,7 +72,7 @@ To deploy the Avalanche L1, you will need some AVAX on the P-Chain.
 For our Fuji example, we used our local machine as a bootstrap validator. However, since bootstrapping a node to Mainnet will take several hours,
 we will use an Avalanche node set up on an AWS server that is already bootstrapped to Mainnet for this example.
 
-To check if the Avalanche node is done bootstrapping, ssh into the node and call [`info.isBootstrapped`](/api-reference/info-api#infoisbootstrapped) by copying and pasting the following command:
+To check if the Avalanche node is done bootstrapping, ssh into the node and call [`info.isBootstrapped`](/docs/api-reference/info-api#infoisbootstrapped) by copying and pasting the following command:
 
 ```bash
 curl -X POST --data '{

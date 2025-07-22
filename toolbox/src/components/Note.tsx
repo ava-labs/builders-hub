@@ -18,7 +18,7 @@ export const Note = ({ children, variant = 'default', className }: NoteProps) =>
     return (
         <div className={cn("border-l-4 p-4 rounded-md my-4", variantClasses[variant], className)}>
             <div className="ml-3">
-                <div className="text-sm font-medium">
+                <div className="text-sm">
                     {children}
                 </div>
             </div>

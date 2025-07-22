@@ -1,19 +1,20 @@
 "use client";
 
-import { useWalletStore } from "../../lib/walletStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useEffect, useState } from "react";
-import { networkIDs } from "@avalabs/avalanchejs";
 import { Button } from "../../components/Button";
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
 import { CodeHighlighter } from "../../components/CodeHighlighter";
-import { Container } from "../components/Container";
+import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
-import InputChainId from "../components/InputChainId";
+import InputChainId from "../../components/InputChainId";
+import InputSubnetId from "../../components/InputSubnetId";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
-import { ResultField } from "../components/ResultField";
+import { ResultField } from "../../components/ResultField";
+import { useAvaCloudSDK } from "../../stores/useAvaCloudSDK";
 
 export default function CollectConversionSignatures() {
     const { coreWalletClient } = useWalletStore();
+    const { aggregateSignature } = useAvaCloudSDK();
     const [isConverting, setIsConverting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [chainID, setChainID] = useState("");
@@ -45,21 +46,12 @@ export default function CollectConversionSignatures() {
         setIsConverting(true);
 
         try {
-            const { message, justification, signingSubnetId, networkId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionID });
+            const { message, signingSubnetId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionID });
 
-            const { signedMessage } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
-                network: networkId === networkIDs.FujiID ? "fuji" : "mainnet",
-                signatureAggregatorRequest: {
-                    message: message,
-                    justification: justification,
-                    signingSubnetId: signingSubnetId,
-                    quorumPercentage: 67, // Default threshold for subnet validation
-                },
-            }, {
-                retries: {
-                    strategy: "backoff",
-                    backoff: { initialInterval: 1000, maxInterval: 10000, exponent: 1.5, maxElapsedTime: 30 * 1000 },
-                }
+            const { signedMessage } = await aggregateSignature({
+                message: message,
+                signingSubnetId: signingSubnetId,
+                quorumPercentage: 67,
             });
 
             setL1ConversionSignature(signedMessage);
@@ -81,10 +73,9 @@ export default function CollectConversionSignatures() {
                     onChange={setChainID}
                     error={chainIdError}
                 />
-                <Input
-                    label="Subnet ID"
+                <InputSubnetId
                     value={subnetId}
-                    disabled={true}
+                    onChange={setSubnetId}
                 />
                 <Input
                     label="Conversion ID"

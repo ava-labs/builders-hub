@@ -6,14 +6,17 @@ import { Calendar, MapPin, Users } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import HackathonStatus from "../HackathonStatus";
+import JoinButton from "../JoinButton";
 
 type Props = {
   id: string;
   hackathon: HackathonHeader;
   isTopMost: boolean;
+  isRegistered: boolean;
+  utm?: string;
 };
 
-export default function OverviewBanner({ hackathon, id, isTopMost }: Props) {
+export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered, utm = "" }: Props) {
   const startDate = new Date(hackathon.start_date);
   const endDate = new Date(hackathon.end_date);
 
@@ -42,24 +45,26 @@ export default function OverviewBanner({ hackathon, id, isTopMost }: Props) {
         >
           ${hackathon.total_prizes.toLocaleString("en-US")}
         </h2>
-        <Button
-          variant={"secondary"}
-          className="w-full mb-12 bg-red-500 border-none text-zinc-100 rounded-md hidden xl:block"
-        >
-          <Link
-            href={
-              hackathon.content.join_custom_link
-                ? hackathon.content.join_custom_link
-                : `/hackathons/registration-form?hackathon=${id}`
-            }
-            target={hackathon.content.join_custom_link ? "_blank" : "_self"}
-          >
-            {" "}
-            {isTopMost
-              ? "LEARN MORE"
-              : hackathon.content.join_custom_text ?? "Join now"}{" "}
-          </Link>
-        </Button>
+        <div className="pointer-events-auto w-full mb-12 hidden xl:block">
+          {isTopMost ? (
+            <Button asChild variant="secondary" className="w-full bg-red-500 border-none text-zinc-100 rounded-md">
+              <Link href={`/hackathons/${id}`}>
+                LEARN MORE
+              </Link>
+            </Button>
+          ) : (
+            <JoinButton
+              isRegistered={isRegistered}
+              hackathonId={id}
+              customLink={hackathon.content.join_custom_link}
+              customText={hackathon.content.join_custom_text}
+              className="w-full bg-red-500 border-none text-zinc-100 rounded-md"
+              variant="secondary"
+              allowNavigationWhenRegistered={true}
+              utm={utm}
+            />
+          )}
+        </div>
         <div className="flex flex-col">
           <div className="hidden md:flex flex-col gap-2 max-w-[60%] md:max-w-[45%] xl:max-w-[60%]">
             <div className="flex justify-between gap-2 text-gray-400">

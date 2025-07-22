@@ -1,3 +1,7 @@
+/*
+  This file is a shim to allow us to see components similar to the main website.
+*/
+
 @import 'tailwindcss';
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';

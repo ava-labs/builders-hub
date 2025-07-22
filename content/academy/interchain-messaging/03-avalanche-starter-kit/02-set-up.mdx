@@ -1,13 +1,121 @@
 ---
-title: Set Up Avalanche Starter Kit
-description: Environment Setup
+title: Initial Setup
+description: Environment and Wallet Setup
 updated: 2024-05-31
 authors: [martineckardt]
 icon: Terminal
 ---
 
-import SetUp from "@/content/common/avalanche-starter-kit/set-up.mdx";
+import Link from 'next/link';
+import { cn } from '@/utils/cn';
+import { buttonVariants } from '@/components/ui/button.tsx'
+import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-import defaultMdxComponents from "fumadocs-ui/mdx";
+The Avalanche Starter Kit contains everything you need to get started quickly with Avalanche. The kit provides a self-contained environment with Foundry so you can follow the course without the need of installing anything else other than launching the environment.
 
-<SetUp components={defaultMdxComponents}/>
+In this course we will run the Avalanche Starter Kit in a hosted environment on Github. This is the quickest way to get started.
+
+<Steps>
+<Step>
+
+### Create a Codespace
+
+The quickest way to get started is using GitHub Codespaces, which provides a pre-configured development environment:
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=interchain-messaging&repo=769886086&machine=standardLinux32gb)
+
+Wait a few minutes for the environment to build. You must be logged into GitHub to use Codespaces.
+
+Alternatively, you can clone the repository:
+
+<Link
+    href="https://github.com/ava-labs/avalanche-starter-kit/tree/interchain-messaging"
+    className={cn(
+    buttonVariants({ variant: 'default', className: 'mt-4' }),
+    )}
+    target='_blank'
+>Open Avalanche Starter Kit</Link>
+
+</Step>
+<Step>
+
+### Install Dependencies
+
+Once your Codespace is ready, install the project dependencies:
+
+```bash
+forge install
+
+# Optional: Mute Foundry nightly warning
+export FOUNDRY_DISABLE_NIGHTLY_WARNING=1
+```
+
+</Step>
+<Step>
+
+### Set Up Core Wallet
+
+1. Install Core wallet:
+   - Visit [Core wallet website](https://core.app/download)
+   - Download and install for your OS
+   - Create a new wallet or import existing one
+
+<Callout type="warn" title="If you created your wallet account with gmail or any other auth provider you will not have a private key" />
+
+2. Get your [wallet credentials](https://support.avax.network/en/articles/8832783-core-extension-how-do-i-export-my-private-key):
+   - Open Core wallet
+   - Click your account name (top right)
+   - Select "View Private Key"
+   - Enter your password
+   - Copy your:
+     - Account address (0x...)
+     - Private key (0x...)
+
+<Callout type="warn" title="The private key is for testing only. Never use it in production or share it with anyone. Do not use a private key holding real funds on testnet, separate mainnet and testnet keys!" />
+
+</Step>
+<Step>
+
+### Configure Environment
+
+1. Create your environment file:
+```bash
+cp .env.example .env
+```
+
+2. Add your Core wallet credentials to `.env`:
+```bash
+# Your private key for signing transactions (for testing only, never use in production)
+PK=your_private_key_here
+
+# Your funded address (the address derived from your private key)
+FUNDED_ADDRESS=your_funded_address_here
+
+# Teleporter and chain configuration
+# Fuji C-Chain, Dispatch & Echo have the same address, but this might no be the case for other L1s
+TELEPORTER_REGISTRY_FUJI_DISPATCH=0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228
+TELEPORTER_REGISTRY_FUJI_C_CHAIN=0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228
+
+# Blockchain IDs pre-filled
+FUJI_DISPATCH_BLOCKCHAIN_ID_HEX=0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7
+FUJI_C_CHAIN_BLOCKCHAIN_ID_HEX=0x31233cae135e3974afa396e90f465aa28027de5f97f729238c310d2ed2f71902
+
+# Incentevize a Relayer
+FEE_TOKEN_ADDRESS=your_example_erc20_address
+```
+
+3. Load the environment:
+```bash
+source .env
+```
+
+4. Verify your configuration:
+```bash
+# Should show your wallet address
+echo $FUNDED_ADDRESS
+```
+
+<Callout type="warn" title="The private key is for testing only. Never use it in production or share it with anyone. Do not use a private key holding real funds on testnet, separate mainnet and testnet keys!" />
+
+</Step>
+</Steps>

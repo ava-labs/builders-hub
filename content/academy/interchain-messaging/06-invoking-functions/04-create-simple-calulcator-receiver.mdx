@@ -8,20 +8,20 @@ icon: Terminal
 
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-On our Avalanche L1, we need to create the receiver part of our cross-chain calculator. It will receive two numbers and store the result. 
+On the Dispatch test L1, we need to create the receiver part of our cross-chain calculator. It will receive two numbers and store the result. 
 
 <Steps>
 <Step>
 
 ### Create Receiver Contract
 
-```solidity title="contracts/interchain-messaging/invoking-functions/SimpleCalculatorReceiverOnSubnet.sol"
+```solidity title="contracts/interchain-messaging/invoking-functions/SimpleCalculatorReceiverOnDispatch.sol"
 pragma solidity ^0.8.18;
 
 import "@teleporter/ITeleporterMessenger.sol";
 import "@teleporter/ITeleporterReceiver.sol";
 
-contract SimpleCalculatorReceiverOnSubnet is ITeleporterReceiver {
+contract SimpleCalculatorReceiverOnDispatch is ITeleporterReceiver {
     ITeleporterMessenger public immutable teleporterMessenger =
         ITeleporterMessenger(0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf);
 
@@ -30,7 +30,7 @@ contract SimpleCalculatorReceiverOnSubnet is ITeleporterReceiver {
     function receiveTeleporterMessage(bytes32, address, bytes calldata message) external {
         // Only the Interchain Messaging receiver can deliver a message.
         require(
-            msg.sender == address(teleporterMessenger), "CalculatorReceiverOnSubnet: unauthorized TeleporterMessenger"
+            msg.sender == address(teleporterMessenger), "CalculatorReceiverOnDispatch: unauthorized TeleporterMessenger"
         );
 
         (uint256 a, uint256 b) = abi.decode(message, (uint256, uint256)); // [!code highlight:2]
@@ -49,10 +49,10 @@ contract SimpleCalculatorReceiverOnSubnet is ITeleporterReceiver {
 
 ### Deploy the Receiver Contract
 
-Deploy the receiver contract on your Avalanche L1:
+Deploy the receiver contract on the Dispatch test L1:
 
 ```bash
-forge create --rpc-url myblockchain --private-key $PK contracts/interchain-messaging/invoking-functions/SimpleCalculatorReceiverOnSubnet.sol:SimpleCalculatorReceiverOnSubnet --broadcast
+forge create --rpc-url fuji-dispatch --private-key $PK contracts/interchain-messaging/invoking-functions/SimpleCalculatorReceiverOnDispatch.sol:SimpleCalculatorReceiverOnDispatch --broadcast
 ```
 
 ```
@@ -60,8 +60,8 @@ forge create --rpc-url myblockchain --private-key $PK contracts/interchain-messa
 [⠒] Compiling 1 files with Solc 0.8.18
 [⠢] Solc 0.8.18 finished in 44.12ms
 Compiler run successful!
-Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-Deployed to: 0x5DB9A7629912EBF95876228C24A848de0bfB43A9 // [!code highlight]
+Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC // [$FUNDED_ADDRESS]
+Deployed to: 0x5DB9A7629912EBF95876228C24A848de0bfB43A9 // [$RECEIVER_ADDRESS]
 Transaction hash: 0x2d40c53b493556463a28c458e40bc455a248df69a10679bef84145974b7424f3
 ```
 
@@ -73,7 +73,7 @@ Transaction hash: 0x2d40c53b493556463a28c458e40bc455a248df69a10679bef84145974b74
 Overwrite the `RECEIVER_ADDRESS` environment variable with the new address:
 
 ```bash
-export RECEIVER_ADDRESS=0x5DB9A7629912EBF95876228C24A848de0bfB43A9
+export RECEIVER_ADDRESS={your-receiver-address}
 ```
 </Step>
 </Steps>

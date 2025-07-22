@@ -1,17 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useWalletStore } from "../../lib/walletStore";
-import { useViemChainStore } from "../toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
+import { useViemChainStore } from "../../stores/toolboxStore";
 import { Button } from "../../components/Button";
-import { Container } from "../components/Container";
+import { Container } from "../../components/Container";
 import { Input } from "../../components/Input";
 import { Success } from "../../components/Success";
-import { AllowlistComponent } from "../components/AllowListComponents";
+import { AllowlistComponent } from "../../components/AllowListComponents";
 import warpMessengerAbi from "../../../contracts/precompiles/WarpMessenger.json";
 import { RadioGroup } from "../../components/RadioGroup";
 import { avalancheFuji } from 'viem/chains';
 import { createPublicClient, http } from 'viem';
+import { CheckPrecompile } from "../../components/CheckPrecompile";
 
 // Default Warp Messenger address
 const DEFAULT_WARP_MESSENGER_ADDRESS =
@@ -20,7 +21,7 @@ const DEFAULT_WARP_MESSENGER_ADDRESS =
 type MessageDirection = "CtoL1" | "L1toC";
 
 export default function WarpMessenger() {
-  const { coreWalletClient, walletEVMAddress } = useWalletStore();
+  const { coreWalletClient, walletEVMAddress, isTestnet } = useWalletStore();
   const viemChain = useViemChainStore();
   const [messagePayload, setMessagePayload] = useState<string>("");
   const [blockIndex, setBlockIndex] = useState<string>("");
@@ -163,7 +164,10 @@ export default function WarpMessenger() {
   const destinationChainText = messageDirection === "CtoL1" ? "Subnet (L1)" : "C-Chain";
 
   return (
-    <div className="space-y-6">
+    <CheckPrecompile
+      configKey="warpConfig"
+      precompileName="Warp Messenger"
+    >
       <Container
         title="Warp Messenger"
         description="Send and verify cross-chain messages using the Warp protocol."
@@ -296,9 +300,9 @@ export default function WarpMessenger() {
                 label="Transaction Successful"
                 value={txHash}
               />
-              {txHash && (
+              {txHash && messageDirection === "CtoL1" && (
                 <a
-                  href={`https://subnets-test.avax.network/${messageDirection === "CtoL1" ? "c-chain" : viemChain?.name?.toLowerCase()}/tx/${txHash}`}
+                  href={`https://${isTestnet ? "subnets-test" : "subnets"}.avax.network/c-chain/tx/${txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-blue-500 hover:underline"
@@ -311,12 +315,10 @@ export default function WarpMessenger() {
         </div>
       </Container>
 
-      <div className="w-full">
-        <AllowlistComponent
-          precompileAddress={DEFAULT_WARP_MESSENGER_ADDRESS}
-          precompileType="Warp Messenger"
-        />
-      </div>
-    </div>
+      <AllowlistComponent
+        precompileAddress={DEFAULT_WARP_MESSENGER_ADDRESS}
+        precompileType="Warp Messenger"
+      />
+    </CheckPrecompile>
   );
 }

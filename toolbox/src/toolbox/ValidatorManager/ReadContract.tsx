@@ -1,16 +1,16 @@
 "use client"
 
-import { useSelectedL1 } from "../toolboxStore"
-import { useWalletStore } from "../../lib/walletStore"
+import { useSelectedL1 } from "../../stores/l1ListStore"
+import { useWalletStore } from "../../stores/walletStore"
 import { useErrorBoundary } from "react-error-boundary"
 import type { AbiEvent } from "viem"
 import { useEffect, useState } from "react"
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json"
 import { Button } from "../../components/Button"
-import { Container } from "../components/Container"
+import { Container } from "../../components/Container"
 import { ChevronDown, ChevronRight } from "lucide-react"
 import { getSubnetInfo } from "../../coreViem/utils/glacier"
-import { EVMAddressInput } from "../components/EVMAddressInput"
+import { EVMAddressInput } from "../../components/EVMAddressInput"
 
 type ViewData = {
   [key: string]: any
@@ -44,7 +44,7 @@ export default function ReadContract() {
       try {
         const subnetId = selectedL1?.subnetId;
         if (!subnetId) {
-          throw new Error("No subnet ID found, this should never happen");
+          return;
         }
         const info = await getSubnetInfo(subnetId);
         const newProxyAddress = info.l1ValidatorManagerDetails?.contractAddress || "";

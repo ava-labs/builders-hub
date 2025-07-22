@@ -1,5 +1,5 @@
 "use client";
-import { Search } from "lucide-react";
+import { Search, Building2 } from "lucide-react";
 import { Input } from "../ui/input";
 import {
   Select,
@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Separator } from "../ui/separator";
+import { useSession } from 'next-auth/react';
 import {
   Pagination,
   PaginationContent,
@@ -26,6 +27,7 @@ import {
 import OverviewBanner from "./hackathon/sections/OverviewBanner";
 import Link from "next/link";
 import Image from "next/image";
+
 
 function buildQueryString(
   filters: HackathonsFilters,
@@ -56,6 +58,7 @@ function buildQueryString(
 type Props = {
   initialPastHackathons: HackathonHeader[];
   initialUpcomingHackathons: HackathonHeader[];
+  initialOngoingHackathons: HackathonHeader[];
   initialFilters: HackathonsFilters;
   totalPastHackathons: number;
   totalUpcomingHackathons: number;
@@ -64,10 +67,14 @@ type Props = {
 export default function Hackathons({
   initialPastHackathons,
   initialUpcomingHackathons,
+  initialOngoingHackathons,
   initialFilters,
   totalPastHackathons,
   totalUpcomingHackathons,
 }: Props) {
+  const { data: session, status } = useSession();
+  const isHackathonCreator = session?.user?.custom_attributes.includes("hackathonCreator");
+  
   const router = useRouter();
   const pageSize = 4;
 
@@ -77,6 +84,9 @@ export default function Hackathons({
   const [upcomingHackathons, setUpcomingHackathons] = useState<
     HackathonHeader[]
   >(initialUpcomingHackathons);
+  const [ongoingHackathons, setOngoingHackathons] = useState<
+    HackathonHeader[]
+  >(initialOngoingHackathons);
 
   const [filters, setFilters] = useState<HackathonsFilters>(initialFilters);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -121,6 +131,16 @@ export default function Hackathons({
     };
   }, [filters, searchQuery]);
 
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      console.log("User ID:", session.user.id);
+
+      if (session.user.custom_attributes?.includes("hackathonCreator")) {
+        console.log("Este usuario es hackathonCreator");
+      }
+    }
+  }, [session, status]);
+
   const handleFilterChange = (type: keyof HackathonsFilters, value: string) => {
     const newFilters = {
       ...filters,
@@ -161,7 +181,12 @@ export default function Hackathons({
       handleSearchChange(searchValue);
     }
   };
-  const topMostHackathon = upcomingHackathons.find((x) => x.top_most);
+  const topMostHackathon = upcomingHackathons.find((x) => x.top_most) || 
+                          ongoingHackathons.find((x) => x.top_most);
+
+  const addNewHackathon = () => {
+    router.push('/hackathons/edit');
+  };
 
   return (
     <section className="px-8 py-6">
@@ -172,13 +197,14 @@ export default function Hackathons({
               hackathon={topMostHackathon}
               id={topMostHackathon.id}
               isTopMost={true}
+              isRegistered={false} //To keep showing "Learn More" button
             />
             <Link href={`/hackathons/${topMostHackathon.id}`}>
               <Image
                 src={
                   topMostHackathon.banner?.trim().trim().length > 0
                     ? topMostHackathon.banner
-                    : "/hackathon-images/main_banner_img.png"
+                    : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png"
                 }
                 alt="Hackathon background"
                 width={1270}
@@ -188,155 +214,195 @@ export default function Hackathons({
               />
             </Link>
           </div>
-        </div>
-      )}
-
-      <h2
-        className={`font-medium text-3xl text-zinc-900 dark:text-zinc-50 ${
-          topMostHackathon ? "mt-12" : ""
-        }`}
-      >
-        Upcoming
-      </h2>
-      <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-      <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
-        {upcomingHackathons
-          .filter((x) => !x.top_most)
-          .map((hackathon: any) => (
-            <HackathonCard key={hackathon.id} hackathon={hackathon} />
-          ))}
-      </div>
-      <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">
-        Past
-      </h2>
-      <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-      <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
-        <div className="flex items-stretch gap-4 max-w-sm w-full h-9">
-          {/* Input */}
-          <div className="relative flex-grow h-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-zinc-400 stroke-zinc-700" />
-            <Input
-              type="text"
-              onChange={(e) => setSearchValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Search by name, track or location"
-              className="w-full h-full px-3 pl-10 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-md dark:text-zinc-50 text-zinc-900 placeholder-zinc-500"
-            />
           </div>
-          {/* Button */}
-          <button
-            onClick={() => handleSearchChange(searchValue)}
-            className="px-[6px] rounded-md bg-red-500 hover:bg-red-600 transition"
-          >
-            <Search size={24} color="white" />
-          </button>
-        </div>
-        <div className="flex flex-row gap-4 items-center">
-          {/* <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
-            {totalPastHackathons ?? ""}{" "}
-            {totalPastHackathons > 1
-              ? "Hackathons"
-              : totalPastHackathons == 0
-              ? "No Hackathons"
-              : "Hackathon"}{" "}
-            found
-          </h3> */}
-          <Select
-            onValueChange={(value: string) =>
-              handleFilterChange("location", value)
-            }
-            value={filters.location}
-          >
-            <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
-              <SelectValue placeholder="Filter by Location" />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-              <SelectItem value="all">All Locations</SelectItem>
-              <SelectItem value="Online">Online</SelectItem>
-              <SelectItem value="InPerson">In Person</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      {/* <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" color="transparent" /> */}
-      <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2 my-8">
-        {pastHackathons.map((hackathon: any) => (
-          <HackathonCard key={hackathon.id} hackathon={hackathon} />
-        ))}
-      </div>
-      <Pagination className="flex justify-end gap-2">
-        <PaginationContent className="flex-wrap cursor-pointer">
-          {currentPage > 1 && (
-            <PaginationItem
-              onClick={() =>
-                handleFilterChange("page", (currentPage - 1).toString())
+        )}
+        {isHackathonCreator && <><button
+          className={`flex items-center gap-2 font-medium text-3xl text-zinc-900 dark:text-zinc-50 ${topMostHackathon ? "mt-12" : ""} px-4 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 hover:bg-red-500 hover:text-white transition-colors duration-200 cursor-pointer`}
+          onClick={addNewHackathon}
+        >
+          <Building2 className="h-6 w-6" />
+          My Hackathons
+        </button>
+        <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
+        </>}
+        <h2
+          className={`font-medium text-3xl text-zinc-900 dark:text-zinc-50 ${
+            topMostHackathon ? "mt-12" : ""
+          }`}
+        >
+          Upcoming
+        </h2>
+        <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
+        {upcomingHackathons.length > 0 ? (
+          <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
+            {upcomingHackathons
+              .map((hackathon: any) => (
+                <HackathonCard key={hackathon.id} hackathon={hackathon} />
+              ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="max-w-md">
+              <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
+                No upcoming hackathons at the moment. Join our Telegram community to be the first to know about new opportunities!
+              </p>
+              <a
+                href="https://t.me/avalancheacademy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md transition-colors duration-200"
+              >
+                Join Telegram Group
+              </a>
+            </div>
+          </div>
+        )}
+        
+        {ongoingHackathons.length > 0 && (
+          <>
+            <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">
+              Ongoing
+            </h2>
+            <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
+            <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
+              {ongoingHackathons.map((hackathon: any) => (
+                  <HackathonCard key={hackathon.id} hackathon={hackathon} />
+                ))}
+            </div>
+          </>
+        )}
+        
+        <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50 mt-12">
+          Past
+        </h2>
+        <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
+          <div className="flex items-stretch gap-4 max-w-sm w-full h-9">
+            {/* Input */}
+            <div className="relative flex-grow h-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-zinc-400 stroke-zinc-700" />
+              <Input
+                type="text"
+                onChange={(e) => setSearchValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Search by name, track or location"
+                className="w-full h-full px-3 pl-10 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-md dark:text-zinc-50 text-zinc-900 placeholder-zinc-500"
+              />
+            </div>
+            {/* Button */}
+            <button
+              onClick={() => handleSearchChange(searchValue)}
+              className="px-[6px] rounded-md bg-red-500 hover:bg-red-600 transition"
+            >
+              <Search size={24} color="white" />
+            </button>
+          </div>
+          <div className="flex flex-row gap-4 items-center">
+            {/* <h3 className="font-medium text-xl py-5 text-zinc-900 dark:text-zinc-50">
+              {totalPastHackathons ?? ""}{" "}
+              {totalPastHackathons > 1
+                ? "Hackathons"
+                : totalPastHackathons == 0
+                ? "No Hackathons"
+                : "Hackathon"}{" "}
+              found
+            </h3> */}
+            <Select
+              onValueChange={(value: string) =>
+                handleFilterChange("location", value)
               }
+              value={filters.location}
             >
-              <PaginationPrevious />
-            </PaginationItem>
-          )}
-          {Array.from(
-            {
-              length: totalPages > 7 ? 7 : totalPages,
-            },
-            (_, i) =>
-              currentPage +
-              i -
-              (currentPage > 3
-                ? totalPages - currentPage > 3
-                  ? 3
-                  : totalPages - 1 - (totalPages - currentPage)
-                : currentPage - 1)
-          ).map((page) => (
-            <PaginationItem
-              key={page}
-              onClick={() => handleFilterChange("page", page.toString())}
-            >
-              <PaginationLink isActive={page === currentPage}>
-                {page}
-              </PaginationLink>
-            </PaginationItem>
-          ))}
-          {totalPages - currentPage > 3 && (
-            <PaginationItem>
-              <PaginationEllipsis />
-            </PaginationItem>
-          )}
-          {currentPage < totalPages && (
-            <PaginationItem
-              onClick={() =>
-                handleFilterChange("page", (currentPage + 1).toString())
+              <SelectTrigger className="w-[180px] border border-zinc-300 dark:border-zinc-800">
+                <SelectValue placeholder="Filter by Location" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
+                <SelectItem value="all">All Locations</SelectItem>
+                <SelectItem value="Online">Online</SelectItem>
+                <SelectItem value="InPerson">In Person</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {/* <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" color="transparent" /> */}
+        <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2 my-8">
+          {pastHackathons.map((hackathon: any) => (
+              <HackathonCard key={hackathon.id} hackathon={hackathon} />
+            ))}
+        </div>
+        <Pagination className="flex justify-end gap-2">
+          <PaginationContent className="flex-wrap cursor-pointer">
+            {currentPage > 1 && (
+              <PaginationItem
+                onClick={() =>
+                  handleFilterChange("page", (currentPage - 1).toString())
+                }
+              >
+                <PaginationPrevious />
+              </PaginationItem>
+            )}
+            {Array.from(
+              {
+                length: totalPages > 7 ? 7 : totalPages,
+              },
+              (_, i) =>
+                currentPage +
+                i -
+                (currentPage > 3
+                  ? totalPages - currentPage > 3
+                    ? 3
+                    : totalPages - 1 - (totalPages - currentPage)
+                  : currentPage - 1)
+            ).map((page) => (
+              <PaginationItem
+                key={page}
+                onClick={() => handleFilterChange("page", page.toString())}
+              >
+                <PaginationLink isActive={page === currentPage}>
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            {totalPages - currentPage > 3 && (
+              <PaginationItem>
+                <PaginationEllipsis />
+              </PaginationItem>
+            )}
+            {currentPage < totalPages && (
+              <PaginationItem
+                onClick={() =>
+                  handleFilterChange("page", (currentPage + 1).toString())
+                }
+              >
+                <PaginationNext />
+              </PaginationItem>
+            )}
+
+            <p className="mx-2">
+              Page {currentPage} of {totalPages}
+            </p>
+
+            <Select
+              onValueChange={(value: string) =>
+                handleFilterChange("recordsByPage", value)
               }
+              value={String(filters.recordsByPage ?? 4)}
             >
-              <PaginationNext />
-            </PaginationItem>
-          )}
-
-          <p className="mx-2">
-            Page {currentPage} of {totalPages}
-          </p>
-
-          <Select
-            onValueChange={(value: string) =>
-              handleFilterChange("recordsByPage", value)
-            }
-            value={String(filters.recordsByPage ?? 4)}
-          >
-            <SelectTrigger className="border border-zinc-300 dark:border-zinc-800">
-              <SelectValue placeholder="Select track" />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-              {[4, 8, ...Array.from({ length: 5 }, (_, i) => (i + 1) * 12)].map(
-                (option) => (
-                  <SelectItem key={option} value={option.toString()}>
-                    {option}
-                  </SelectItem>
-                )
-              )}
-            </SelectContent>
-          </Select>
-        </PaginationContent>
-      </Pagination>
-    </section>
-  );
+              <SelectTrigger className="border border-zinc-300 dark:border-zinc-800">
+                <SelectValue placeholder="Select track" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
+                {[4, 8, ...Array.from({ length: 5 }, (_, i) => (i + 1) * 12)].map(
+                  (option) => (
+                    <SelectItem key={option} value={option.toString()}>
+                      {option}
+                    </SelectItem>
+                  )
+                )}
+              </SelectContent>
+            </Select>
+          </PaginationContent>
+        </Pagination>
+      </section>
+    );
 }

@@ -35,10 +35,42 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
   const handleAddLink = async () => {
     if (!newLink) return;
 
-    const currentLinks = (form.getValues(name) as string[]) || [];
-    form.setValue(name, [...currentLinks, newLink], { shouldValidate: true });
-    setNewLink("");
+    try {
+      
+      const url = new URL(newLink);
+      
+      
+      if (name === 'demo_link' && (
+        url.hostname.includes('youtube.com') ||
+        url.hostname.includes('youtu.be') ||
+        url.hostname.includes('loom.com')
+      )) {
+        form.setError(name, {
+          type: 'manual',
+          message: 'YouTube and Loom links should be added in the video section'
+        });
+        return;
+      }
 
+      const currentLinks = (form.getValues(name) as string[]) || [];
+      
+      
+      if (currentLinks.includes(newLink)) {
+        form.setError(name, {
+          type: 'manual',
+          message: 'This link has already been added'
+        });
+        return;
+      }
+
+      form.setValue(name, [...currentLinks, newLink], { shouldValidate: true });
+      setNewLink("");
+    } catch (error) {
+      form.setError(name, {
+        type: 'manual',
+        message: 'Please enter a valid URL'
+      });
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

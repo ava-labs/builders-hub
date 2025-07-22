@@ -62,7 +62,7 @@ Each test can populate the fields of the `PrecompileTest` struct to customize th
 
 This is only applicable for direct Subnet-EVM forks as test files are not directly exported in Golang. If you use Precompile-EVM you can skip this step.
 
-VM tests are tests that run the precompile by calling it through the Subnet-EVM. These are the most comprehensive tests that we can run. If your precompile modifies how the Subnet-EVM works, for example changing blockchain rules, you should add a VM test. For example, you can take a look at the `TestRewardManagerPrecompileSetRewardAddress` function in [here](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/plugin/evm/vm_test.go#L2675).
+VM tests are tests that run the precompile by calling it through the Subnet-EVM. These are the most comprehensive tests that we can run. If your precompile modifies how the Subnet-EVM works, for example changing blockchain rules, you should add a VM test. For example, you can take a look at the `TestRewardManagerPrecompileSetRewardAddress` function in [here](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/plugin/evm/vm_test.go#L2772).
 
 For this Hello World example, we don't modify any Subnet-EVM rules, so we don't need to add any VM tests.
 
@@ -186,7 +186,8 @@ contract ExampleHelloWorldTest is AllowListTest {
     example.setGreeting(greeting);
     assertEq(example.sayHello(), greeting);
   }
-}```
+}
+```
 
 </Tab>
 </Tabs>

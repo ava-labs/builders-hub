@@ -6,13 +6,13 @@ authors: [owenwahlgren]
 icon: SearchCheck
 ---
 
-import ToolboxMdxWrapper from "../../../../toolbox/src/toolbox/components/ToolboxMdxWrapper.tsx"
+import ToolboxMdxWrapper from "../../../../toolbox/src/components/ToolboxMdxWrapper.tsx"
 import ReadContract from "../../../../toolbox/src/toolbox/ValidatorManager/ReadContract.tsx"
 
 Here you can double check that the `ValidatorManager` contract has been deployed and initialized correctly.
 
 Specifically, you can check the `totalWeight`, `admin`, `subnetID`, `churnPeriodSeconds`, and `maximumChurnPercentage` variables.
 
-<ToolboxMdxWrapper>
+<ToolboxMdxWrapper  walletMode="l1">
     <ReadContract />
 </ToolboxMdxWrapper>

@@ -55,7 +55,7 @@ interface ITeleporterMessenger {
 
 The `sendCrossChainMessage` function takes `TeleporterMessageInput` struct as an input. In that multiple values are contained: This data will then be included in the payload of the Warp message:
 
-- **`destinationChainID`:** The chainID where the contract that should receive the message is deployed. This is not the EVM chain ID you may know from adding a network to a wallet, but the blockchain ID on the P-Chain. The P-Chain uses the transaction ID of the transaction that created those blockchain on the P-Chain for the chain ID, e.g.: 0xd7cdc6f08b167595d1577e24838113a88b1005b471a6c430d79c48b4c89cfc53
+- **`destinationChainID`:** The blockchainID in hex where the contract that should receive the message is deployed. This is not the EVM chain ID you may know from adding a network to a wallet, but the blockchain ID on the P-Chain. The P-Chain uses the transaction ID of the transaction that created those blockchain on the P-Chain for the chain ID, e.g.: 0xd7cdc6f08b167595d1577e24838113a88b1005b471a6c430d79c48b4c89cfc53
 - **`destinationAddress`:** The address of the contract that should receive the message
 - **`feeInfo`:** A struct consisting of a contract address of an ERC20 which the fee is paid in as well as the amount of tokens to be paid as an incentive for the relayer. We will look at this later in more detail.
 - **`requiredGasLimit`:** The amount of gas the delivery of the message requires. If the relayer provides the required gas, the message will be considered delivered whether or not its execution succeeds, such that the relayer can claim their fee reward.

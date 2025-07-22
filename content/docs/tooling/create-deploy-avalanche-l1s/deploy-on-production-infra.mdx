@@ -3,7 +3,7 @@ title: On Production Infra
 description: Learn how to deploy an Avalanche L1 on production infrastructure.
 ---
 
-After architecting your Avalanche L1 environment on the [local machine](/docs/avalanche-l1s/deploy-a-avalanche-l1/local-network), proving the design and testing it out on [the Fuji Testnet](/docs/avalanche-l1s/deploy-a-avalanche-l1/fuji-testnet), eventually you will need to deploy your Avalanche L1 to production environment.
+After architecting your Avalanche L1 environment on the [local machine](/docs/tooling/create-deploy-avalanche-l1s/deploy-locally), proving the design and testing it out on [the Fuji Testnet](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet), eventually you will need to deploy your Avalanche L1 to production environment.
 
 Running an Avalanche L1 in production is much more involved than local and Testnet deploys, as your Avalanche L1 will have to take care of real world usage, maintaining uptime, upgrades and all of that in a potentially adversarial environment. The purpose of this document is to point out a set of general considerations and propose potential solutions to them.
 
@@ -83,7 +83,7 @@ Avalanche L1 Deploy[​](#avalanche-l1-deploy "Direct link to heading")
 
 Once you have the nodes set up you are ready to deploy the actual Avalanche L1. Right now, the recommended tool to do that is [Avalanche-CLI](https://github.com/ava-labs/avalanche-cli).
 
-Instructions for deployment by Avalanche-CLI can be found [here](/docs/avalanche-l1s/deploy-a-avalanche-l1/avalanche-mainnet).
+Instructions for deployment by Avalanche-CLI can be found [here](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-mainnet).
 
 ### Ledger Hardware Wallet[​](#ledger-hw-wallet "Direct link to heading")
 
@@ -123,7 +123,7 @@ An example of a node config syncing two Avalanche L1s:
 }
 ```
 
-But that is not all. Besides tracking the SubnetID, the node also needs to have the plugin that contains the VM instance the blockchain in the Avalanche L1 will run. You should have already been through that on Testnet and Fuji, but for a refresher, you can refer to [this tutorial](/docs/avalanche-l1s/deploy-a-avalanche-l1/fuji-testnet).
+But that is not all. Besides tracking the SubnetID, the node also needs to have the plugin that contains the VM instance the blockchain in the Avalanche L1 will run. You should have already been through that on Testnet and Fuji, but for a refresher, you can refer to [this tutorial](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet).
 
 So, name the VM plugin binary as the `VMID` of the Avalanche L1 chain and place it in the `plugins` directory where the node binary is (for installer-script created nodes that would be `~/avalanche-node/plugins/`).
 

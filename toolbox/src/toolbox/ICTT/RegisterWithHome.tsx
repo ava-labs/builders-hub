@@ -1,7 +1,8 @@
 "use client";
 
-import { useSelectedL1, useToolboxStore, useViemChainStore, useL1ByChainId } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useL1ByChainId, useSelectedL1 } from "../../stores/l1ListStore";
+import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "../../components/Button";
@@ -10,10 +11,11 @@ import ERC20TokenRemoteABI from "../../../contracts/icm-contracts/compiled/ERC20
 import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import { Abi, createPublicClient, http, PublicClient, zeroAddress } from "viem";
 import { Suggestion } from "../../components/Input";
-import { EVMAddressInput } from "../components/EVMAddressInput";
+import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { utils } from "@avalabs/avalanchejs";
 import { ListContractEvents } from "../../components/ListContractEvents";
-import SelectChainID from "../components/SelectChainID";
+import SelectBlockchainId from "../../components/SelectBlockchainId";
+import { Container } from "../../components/Container";
 
 export default function RegisterWithHome() {
     const { showBoundary } = useErrorBoundary();
@@ -164,89 +166,90 @@ export default function RegisterWithHome() {
     }, [erc20TokenRemoteAddress, nativeTokenRemoteAddress]);
 
     return (
-        <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Register Remote Bridge with Home Bridge</h2>
+        <Container
+            title="Register Remote Contract with Home"
+            description="Register the remote contract with the home contract."
+        >
 
-            <div className="space-y-4">
-                <p>
+            <div>
+                <p className="mt-2">
                     This will call the `registerWithHome` function on the remote contract
                     on the current chain ({selectedL1?.name}). This links the remote bridge back to the home bridge
                     on the source chain.
                 </p>
-
-                <SelectChainID
-                    label="Source Chain (where token home is deployed)"
-                    value={sourceChainId}
-                    onChange={(value) => setSourceChainId(value)}
-                    error={sourceChainError}
-                />
-
-                <EVMAddressInput
-                    label={`Remote Contract Address (on ${selectedL1?.name})`}
-                    value={remoteAddress}
-                    onChange={setRemoteAddress}
-                    disabled={isRegistering}
-                    
-                    suggestions={remoteAddressSuggestions}
-                    helperText={!remoteAddress ? "Please enter a remote contract address" : undefined}
-                />
-
-                {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
-
-                <Button
-                    variant="primary"
-                    onClick={handleRegister}
-                    loading={isRegistering}
-                    disabled={isRegistering || !remoteAddress || !sourceChainId || !!sourceChainError}
-                >
-                    Register Remote with Home
-                </Button>
-
-                {lastTxId && (
-                    <div className="space-y-2">
-                        <Success
-                            label="Registration Transaction ID"
-                            value={lastTxId ?? ""}
-                        />
-                    </div>
-                )}
-
-                {isCheckingRegistration && (
-                    <div className="text-gray-500">
-                        ⏳ Checking registration status...
-                    </div>
-                )}
-
-                {!isCheckingRegistration && isRegistered && (
-                    <div>
-                        ✅ Remote contract is registered with the Home contract
-                    </div>
-                )}
-
-                {!isCheckingRegistration && !isRegistered && sourceChainId && remoteAddress && (
-                    <div>
-                        ⚠️ Remote contract is not yet registered with the Home contract. ICM message needs a few seconds to be processed.
-                        <button
-                            className="underline text-blue-500 px-1 py-0 h-auto"
-                            onClick={fetchSettings}
-                            disabled={isCheckingRegistration}
-                        >
-                            Refresh
-                        </button>
-                    </div>
-                )}
-
-                {homeContractAddress && homeContractClient && (
-                    <div className="mt-8 pt-4 border-t border-gray-200">
-                        <ListContractEvents
-                            contractAddress={homeContractAddress}
-                            contractABI={ERC20TokenHomeABI.abi as Abi}
-                            publicClient={homeContractClient}
-                            title={`Events from Home Contract (on ${sourceL1?.name})`}
-                        />
-                    </div>
-                )}
             </div>
-        </div>
+
+            <SelectBlockchainId
+                label="Source Chain (where token home is deployed)"
+                value={sourceChainId}
+                onChange={(value) => setSourceChainId(value)}
+                error={sourceChainError}
+            />
+
+            <EVMAddressInput
+                label={`Remote Contract Address (on ${selectedL1?.name})`}
+                value={remoteAddress}
+                onChange={setRemoteAddress}
+                disabled={isRegistering}
+                suggestions={remoteAddressSuggestions}
+                helperText={!remoteAddress ? "Please enter a remote contract address" : undefined}
+            />
+
+            {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
+
+            <Button
+                variant="primary"
+                onClick={handleRegister}
+                loading={isRegistering}
+                disabled={isRegistering || !remoteAddress || !sourceChainId || !!sourceChainError || isRegistered || isCheckingRegistration}
+            >
+                Register Remote with Home
+            </Button>
+
+            {lastTxId && (
+                <div className="space-y-2">
+                    <Success
+                        label="Registration Transaction ID"
+                        value={lastTxId ?? ""}
+                    />
+                </div>
+            )}
+
+            {isCheckingRegistration && (
+                <div className="text-gray-500">
+                    ⏳ Checking registration status...
+                </div>
+            )}
+
+            {!isCheckingRegistration && isRegistered && (
+                <div>
+                    ✅ Remote contract is registered with the Home contract
+                </div>
+            )}
+
+            {!isCheckingRegistration && !isRegistered && sourceChainId && remoteAddress && (
+                <div>
+                    ⚠️ Remote contract is not yet registered with the Home contract. ICM message needs a few seconds to be processed.
+                    <button
+                        className="underline text-blue-500 px-1 py-0 h-auto"
+                        onClick={fetchSettings}
+                        disabled={isCheckingRegistration}
+                    >
+                        Refresh
+                    </button>
+                </div>
+            )}
+
+            {homeContractAddress && homeContractClient && (
+                <div className="mt-8 pt-4 border-t border-gray-200">
+                    <ListContractEvents
+                        contractAddress={homeContractAddress}
+                        contractABI={ERC20TokenHomeABI.abi as Abi}
+                        publicClient={homeContractClient}
+                        title={`Events from Home Contract (on ${sourceL1?.name})`}
+                    />
+                </div>
+            )}
+        </Container>
     );
 }

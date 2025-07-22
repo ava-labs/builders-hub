@@ -1,17 +1,18 @@
 "use client";
 
-import { useSelectedL1, useToolboxStore, useViemChainStore } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useSelectedL1 } from "../../stores/l1ListStore";
+import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useEffect, useState } from "react";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
-import { ResultField } from "../components/ResultField";
+import { ResultField } from "../../components/ResultField";
 import { AbiEvent, Log, parseEther } from 'viem';
 import NativeTokenStakingManagerABI from "../../../contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
 
-import { Container } from "../components/Container";
-import { EVMAddressInput } from "../components/EVMAddressInput";
+import { Container } from "../../components/Container";
+import { EVMAddressInput } from "../../components/EVMAddressInput";
 
 export default function Initialize() {
     const selectedL1 = useSelectedL1()();

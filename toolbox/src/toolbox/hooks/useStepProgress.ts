@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { StepStatus } from "../components/StepIndicator";
+import { StepStatus } from "../../components/StepIndicator";
 
 // Define the structure for step configuration (key to label mapping)
 export type StepsConfig<T extends string> = {
@@ -35,7 +35,7 @@ export function useStepProgress<T extends string>(stepsConfig: StepsConfig<T>) {
     }));
     // Clear general error if a step succeeds or starts loading
     if (status === "success" || status === "loading") {
-        setError(null);
+      setError(null);
     }
     // Set general error if a step fails
     if (status === "error" && errorMsg) {
@@ -60,10 +60,10 @@ export function useStepProgress<T extends string>(stepsConfig: StepsConfig<T>) {
 
   // Mark the process as complete
   const completeProcessing = useCallback((successMsg?: string) => {
-      setIsProcessing(true); // Keep processing indicator until user resets
-      setIsProcessComplete(true);
-      setSuccess(successMsg || "Process completed successfully.");
-      setError(null);
+    setIsProcessing(true); // Keep processing indicator until user resets
+    setIsProcessComplete(true);
+    setSuccess(successMsg || "Process completed successfully.");
+    setError(null);
   }, []);
 
   // Handle retrying a step: reset it and subsequent steps, then invoke the action

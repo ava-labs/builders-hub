@@ -68,7 +68,7 @@ create_config_file () {
     echo "  \"state-sync-enabled\": true$commaAdd">>config.json
   fi
   if [ "$stateOpt" = "off" ]; then
-    echo "  \"state-sync-enabled\": false$commaAdd">>config.json
+    echo "  \"state-sync-enabled\": false">>config.json
   fi
   if [ "$archivalOpt" = "true" ]; then
     echo "  \"pruning-enabled\": false">>config.json
@@ -252,6 +252,8 @@ else
   exit 1
 fi
 foundIP="$(dig +short myip.opendns.com @resolver1.opendns.com)"
+[ -z "$foundIP" ] && \
+  foundIP=$(curl -4 icanhazip.com)
 foundArch="$(uname -m)"                         #get system architecture
 if [ "$foundArch" = "aarch64" ]; then
   getArch="arm64"                               #we're running on arm arch (probably RasPi)

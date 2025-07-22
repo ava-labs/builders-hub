@@ -106,8 +106,8 @@ export const AuthOptions: NextAuthOptions = {
           //   },
           // }
           user = {
-            email, notification_email: email, name: email, image: '', last_login: null, authentication_mode: '', bio: '',
-            custom_attributes: [], id: '', integration: '', notifications: true, profile_privacy: null, social_media: [], telegram_user: '', user_name: ''
+            email, notification_email: email, name: '', image: '', last_login: new Date(), authentication_mode: '', bio: '',
+            custom_attributes: [], id: '', integration: '', notifications: null, profile_privacy: null, social_media: [], telegram_user: '', user_name: '', created_at: new Date()
           }
         }
 
@@ -125,7 +125,7 @@ export const AuthOptions: NextAuthOptions = {
         user.id = dbUser.id;
         return true;
       } catch (error) {
-        console.error('Error procesing user:', error);
+        console.error('Error processing user:', error);
         return false;
       }
     },
@@ -149,7 +149,7 @@ export const AuthOptions: NextAuthOptions = {
         token.name = dbUser.name ?? '';
         token.email = dbUser.email ?? '';
         token.user_name = dbUser.user_name ?? '';
-        token.is_new_user = dbUser.last_login == null
+        token.is_new_user = dbUser.notifications == null
       }
 
       return token;
@@ -166,6 +166,14 @@ export const AuthOptions: NextAuthOptions = {
       session.user.email = token.email ?? '';
       session.user.is_new_user = token.is_new_user ? true : false;
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      // If the URL is relative, convert it to absolute
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // If the URL is from the same domain, allow the redirection
+      if (new URL(url).origin === baseUrl) return url
+      // By default, redirect to the main page
+      return baseUrl
     },
 
 

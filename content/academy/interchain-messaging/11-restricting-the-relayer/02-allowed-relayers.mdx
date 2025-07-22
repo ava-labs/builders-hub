@@ -34,8 +34,8 @@ As you can see the `TeleporterMessageInput` allows you to specify an array of ad
 ```solidity
 messenger.sendCrossChainMessage( 
     TeleporterMessageInput({
-        // Replace with blockchainID of your L1 (see instructions in Readme)
-        destinationBlockchainID: 0x3861e061737eaeb8d00f0514d210ad1062bfacdb4bd22d1d1f5ef876ae3a8921,
+        // BlockchainID of Dispatch L1
+        destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7,
         destinationAddress: destinationAddress, 
         feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
         requiredGasLimit: 100000,
@@ -50,8 +50,8 @@ If you want to restrict the message to a certain relayer, you can simply add the
 ```solidity
 messenger.sendCrossChainMessage( 
     TeleporterMessageInput({
-        // Replace with blockchainID of your L1 (see instructions in Readme)
-        destinationBlockchainID: 0x3861e061737eaeb8d00f0514d210ad1062bfacdb4bd22d1d1f5ef876ae3a8921,
+        // BlockchainID of Dispatch L1
+        destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7,
         destinationAddress: destinationAddress, 
         feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
         requiredGasLimit: 100000,

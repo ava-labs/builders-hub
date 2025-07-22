@@ -1,19 +1,22 @@
 "use client";
 
-import { useSelectedL1, useViemChainStore, useCreateChainStore } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useEffect, useState } from "react";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
-import { ResultField } from "../components/ResultField";
+import { ResultField } from "../../components/ResultField";
 import { AbiEvent } from 'viem';
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
 import { utils } from "@avalabs/avalanchejs";
-import SelectSubnetId from "../components/SelectSubnetId";
-import { Container } from "../components/Container";
+import SelectSubnetId from "../../components/SelectSubnetId";
+import { Container } from "../../components/Container";
 import { getSubnetInfo } from "../../coreViem/utils/glacier";
-import { EVMAddressInput } from "../components/EVMAddressInput";
+import { EVMAddressInput } from "../../components/EVMAddressInput";
+import { useViemChainStore } from "../../stores/toolboxStore";
+import { useSelectedL1 } from "../../stores/l1ListStore";
+import { useCreateChainStore } from "../../stores/createChainStore";
+import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
 
 export default function Initialize() {
     const { showBoundary } = useErrorBoundary();
@@ -29,6 +32,8 @@ export default function Initialize() {
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
     const [subnetId, setSubnetId] = useState("");
+    const [subnet, setSubnet] = useState<any>(null);
+    const [isLoadingSubnet, setIsLoadingSubnet] = useState(false);
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
 
     useEffect(() => {
@@ -60,10 +65,15 @@ export default function Initialize() {
 
     useEffect(() => {
         if (!subnetId) return;
+        setIsLoadingSubnet(true);
         getSubnetInfo(subnetId).then((subnetInfo) => {
             setProxyAddress(subnetInfo.l1ValidatorManagerDetails?.contractAddress || "");
+            setSubnet(subnetInfo);
         }).catch((error) => {
             console.error('Error getting subnet info:', error);
+            setSubnet(null);
+        }).finally(() => {
+            setIsLoadingSubnet(false);
         });
     }, [subnetId]);
 
@@ -175,7 +185,7 @@ export default function Initialize() {
             <div className="space-y-4">
                 <div className="space-y-2">
                     <EVMAddressInput
-                        label="Proxy Address"
+                        label="Proxy Address of ValidatorManager"
                         value={proxyAddress}
                         onChange={setProxyAddress}
                         disabled={isInitializing}
@@ -195,7 +205,15 @@ export default function Initialize() {
                 <SelectSubnetId
                     value={subnetId}
                     onChange={setSubnetId}
+                    hidePrimaryNetwork={true}
                 />
+
+                {/* Show subnet details if available */}
+                <BlockchainDetailsDisplay
+                    subnet={subnet}
+                    isLoading={isLoadingSubnet}
+                />
+
                 <Input
                     label={`Subnet ID (Hex), ${utils.hexToBuffer(subnetIDHex).length} bytes`}
                     value={subnetIDHex}

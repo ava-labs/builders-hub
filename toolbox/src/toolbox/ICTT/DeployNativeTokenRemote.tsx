@@ -1,29 +1,31 @@
 "use client";
 
 import NativeTokenRemote from "../../../contracts/icm-contracts/compiled/NativeTokenRemote.json";
-import { useSelectedL1, useToolboxStore, useViemChainStore, getToolboxStore, useL1ByChainId } from "../toolboxStore";
-import { useWalletStore } from "../../lib/walletStore";
+import { useL1ByChainId, useSelectedL1 } from "../../stores/l1ListStore";
+import { useToolboxStore, useViemChainStore, getToolboxStore } from "../../stores/toolboxStore";
+import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "../../components/Button";
 import { Success } from "../../components/Success";
 import { Input } from "../../components/Input";
-import { EVMAddressInput } from "../components/EVMAddressInput";
+import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { createPublicClient, http } from "viem";
 import { Note } from "../../components/Note";
 import { utils } from "@avalabs/avalanchejs";
 import ERC20TokenHomeABI from "../../../contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import ExampleERC20 from "../../../contracts/icm-contracts/compiled/ExampleERC20.json";
-import SelectChainID from "../components/SelectChainID";
-
+import SelectBlockchainId from "../../components/SelectBlockchainId";
+import { CheckPrecompile } from "../../components/CheckPrecompile";
+import { Container } from "../../components/Container";
+import TeleporterRegistryAddressInput from "../../components/TeleporterRegistryAddressInput";
 export default function DeployNativeTokenRemote() {
     const { showBoundary } = useErrorBoundary();
     const {
-        teleporterRegistryAddress,
-        setTeleporterRegistryAddress,
         nativeTokenRemoteAddress,
         setNativeTokenRemoteAddress,
     } = useToolboxStore();
+    const [teleporterRegistryAddress, setTeleporterRegistryAddress] = useState("");
     const { coreWalletClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
@@ -173,18 +175,27 @@ export default function DeployNativeTokenRemote() {
     }
 
     return (
-        <div className="">
-            <h2 className="text-lg font-semibold mb-4">Deploy Native Token Remote Contract</h2>
+        <CheckPrecompile
+            configKey="contractNativeMinterConfig"
+            precompileName="Native Minter"
+            errorMessage="The Native Minter precompile is not activated on this chain. The NativeTokenRemote contract requires the Native Minter precompile to be active in order to mint incoming bridged tokens."
+            docsLink="https://build.avax.network/docs/avalanche-l1s/upgrade/customize-avalanche-l1#network-upgrades-enabledisable-precompiles"
+            docsLinkText="Learn how to activate the Native Minter precompile"
+        >
+            <Container
+                title="Deploy Native Token Remote Contract"
+                description="Deploy the NativeTokenRemote contract for your native token."
+            >
 
-            <div className="space-y-4 mt-4">
-                <div className="">
-                    This deploys a `NativeTokenRemote` contract to the current network ({selectedL1?.name}).
-                    This contract acts as the bridge endpoint for your native token from the source chain.
-                    To mint native tokens, please use the <a href="#precompiles/nativeMinter" className="text-blue-500 hover:text-blue-600 underline">Native Minter Precompile</a>.
+                <div>
+                    <p className="mt-2">
+                        This deploys a `NativeTokenRemote` contract to the current network ({selectedL1?.name}).
+                        This contract acts as the bridge endpoint for your native token from the source chain.
+                        To mint native tokens, please use the <a href="#precompiles/nativeMinter" className="text-blue-500 hover:text-blue-600 underline">Native Minter Precompile</a>.
+                    </p>
                 </div>
 
-                <EVMAddressInput
-                    label="Teleporter Registry Address"
+                <TeleporterRegistryAddressInput
                     value={teleporterRegistryAddress}
                     onChange={setTeleporterRegistryAddress}
                     disabled={isDeploying}
@@ -196,7 +207,7 @@ export default function DeployNativeTokenRemote() {
                     </p>
                 </Note>}
 
-                <SelectChainID
+                <SelectBlockchainId
                     label="Source Chain (where token home is deployed)"
                     value={sourceChainId}
                     onChange={(value) => setSourceChainId(value)}
@@ -292,7 +303,7 @@ export default function DeployNativeTokenRemote() {
                 >
                     {nativeTokenRemoteAddress ? "Re-Deploy Native Token Remote" : "Deploy Native Token Remote"}
                 </Button>
-            </div>
-        </div>
+            </Container>
+        </CheckPrecompile>
     );
 } 
