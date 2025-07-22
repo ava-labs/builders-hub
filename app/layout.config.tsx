@@ -31,6 +31,8 @@ import {
 import Image from 'next/image';
 import { SiGithub } from '@icons-pack/react-simple-icons';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
+import { AuthButton } from '@/components/ambassador-dao/auth-button';
+
 
 export const integrationsMenu: LinkItemType = {
   type: 'menu',
@@ -528,7 +530,13 @@ export const baseOptions: BaseLayoutProps = {
     eventsMenu,
     github,
     userMenu,
+    ambassadorMenu,
+
     // hackathons,
     //userMenu,
+    {
+      type: "custom",
+      children: <AuthButton />,
+    },
   ],
 };
