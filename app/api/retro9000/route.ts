@@ -7,7 +7,7 @@ const RETRO9000_FORM_GUID = process.env.RETRO9000_FORM_GUID;
 export async function POST(request: Request) {
   try {
     if (!HUBSPOT_API_KEY || !HUBSPOT_PORTAL_ID || !RETRO9000_FORM_GUID) {
-      console.error('Missing environment variables: HUBSPOT_API_KEY, HUBSPOT_PORTAL_ID, or HUBSPOT_FORM_GUID');
+      console.error('Missing environment variables: HUBSPOT_API_KEY, HUBSPOT_PORTAL_ID, or RETRO9000_FORM_GUID');
       return NextResponse.json(
         { success: false, message: 'Server configuration error' },
         { status: 500 }
