@@ -1,4 +1,4 @@
-import { FileConfig } from './shared';
+import { FileConfig } from './shared.mts';
 
 export function getCrossChainConfigs(): FileConfig[] {
   return [
