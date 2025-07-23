@@ -19,6 +19,7 @@
     "---Configure a Node---",
     "configure/avalanche-l1-configs",
     "configure/subnet-evm",
+    "subnet-evm/config",
     "---Upgrade an Avalanche L1---",
     "...upgrade",
     "---EVM Configuration---",
@@ -30,8 +31,8 @@
     "evm-configuration/transaction-fees",
     "evm-configuration/warpmessenger",
     "evm-configuration/precompile-upgrades",
-    "---Custom Precompiles---",
     "custom-precompiles",
+
     "---Validator Manager---",
     "validator-manager/poa-vs-pos",
     "validator-manager/contract",

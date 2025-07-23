@@ -145,6 +145,10 @@ package-lock.json
 
 
 
+
+
+
+
 # Remote content output paths
 content/docs/acps/103-dynamic-fees.mdx
 content/docs/acps/108-evm-event-importing.mdx
@@ -183,6 +187,7 @@ content/docs/apis/metrics-api.mdx
 content/docs/apis/p-chain/api.mdx
 content/docs/apis/subnet-evm-api.mdx
 content/docs/apis/x-chain/api.mdx
+content/docs/avalanche-l1s/subnet-evm/config.mdx
 content/docs/avalanche-l1s/validator-manager/contract.mdx
 content/docs/cross-chain/avalanche-warp-messaging/deep-dive.mdx
 content/docs/cross-chain/avalanche-warp-messaging/evm-integration.mdx
@@ -193,7 +198,13 @@ content/docs/cross-chain/teleporter/deep-dive.mdx
 content/docs/cross-chain/teleporter/overview.mdx
 content/docs/cross-chain/teleporter/upgradeability.mdx
 content/docs/primary-network/chain-configs/c-chain.mdx
-content/docs/primary-network/chain-configs/p-chain.mdx
+content/docs/primary-network/chain-configs/p-chain/block-formation-logic.mdx
+content/docs/primary-network/chain-configs/p-chain/chain-time-update.mdx
+content/docs/primary-network/chain-configs/p-chain/genesis.mdx
+content/docs/primary-network/chain-configs/p-chain/mempool-gossiping.mdx
+content/docs/primary-network/chain-configs/p-chain/p-chain.mdx
+content/docs/primary-network/chain-configs/p-chain/subnets.mdx
+content/docs/primary-network/chain-configs/p-chain/validators-versioning.mdx
 content/docs/primary-network/chain-configs/x-chain.mdx
 content/docs/primary-network/configure/avalanche-l1-configs.mdx
 content/docs/primary-network/configure/configs-flags.mdx

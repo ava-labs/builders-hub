@@ -5,14 +5,16 @@
   "root": true,
   "pages": [
     "index",
-    "rpc-and-faucets",
-    "---Quickstart---",
-    "build-an-app",
-    "launch-a-token", 
+    "---Quick Start---",
     "deploy-an-appchain",
     "deploy-smart-contracts",
+    "---Builder Support---",
+    "[Get Funded](https://build.avax.network/grants)",
+    "[Avalanche Discord](https://discord.com/invite/avax)",
+    "[Builder Hub Telegram](https://t.me/avalancheacademy)",
+    "---Build with AI---",
+    "[llms.txt](https://build.avax.network/llms.txt)",
     "---Extras---",
-    "avalanche-community-proposals",
     "disclaimer"
   ]
 }

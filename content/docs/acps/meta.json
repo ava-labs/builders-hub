@@ -18,6 +18,7 @@
     "125-basefee-reduction",
     "113-provable-randomness",
     "103-dynamic-fees",
+    "99-validatorsetmanager-contract",
     "83-dynamic-multidimensional-fees",
     "77-reinventing-subnets",
     "75-acceptance-proofs",
@@ -33,7 +34,6 @@
     "---Best Practices Track ACPs---",
     "118-warp-signature-request",
     "108-evm-event-importing",
-    "99-validatorsetmanager-contract",
     "---Meta Track ACPs---",
     "84-table-preamble"
   ]

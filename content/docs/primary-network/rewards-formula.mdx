@@ -94,20 +94,26 @@ It allows you to specify percentages up to 4 digital positions. To denominate yo
 
 For reference we list below the Primary Network parameters on Mainnet:
 
-- `AssetID = Avax`
-- `InitialSupply = 240_000_000 Avax`
-- `MaximumSupply = 720_000_000 Avax`.
-- `MinConsumptionRate = 0.10 * reward.PercentDenominator`.
-- `MaxConsumptionRate = 0.12 * reward.PercentDenominator`.
-- `Minting Period = 365 * 24 * time.Hour`.
-- `MinValidatorStake = 2_000 Avax`.
-- `MaxValidatorStake = 3_000_000 Avax`.
-- `MinStakeDuration = 2 * 7 * 24 * time.Hour`.
-- `MaxStakeDuration = 365 * 24 * time.Hour`.
-- `MinDelegationFee = 20000`, that is `2%`.
-- `MinDelegatorStake = 25 Avax`.
-- `MaxValidatorWeightFactor = 5`. This is a platformVM parameter rather than a genesis one, so it's shared across networks.
-- `UptimeRequirement = 0.8`, that is `80%`.
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| **AssetID** | `Avax` | Native asset identifier |
+| **InitialSupply** | `240,000,000 AVAX` | Initial token supply |
+| **MaximumSupply** | `720,000,000 AVAX` | Maximum possible token supply |
+| **MinConsumptionRate** | `0.10 * reward.PercentDenominator` | Minimum reward rate (10%) |
+| **MaxConsumptionRate** | `0.12 * reward.PercentDenominator` | Maximum reward rate (12%) |
+| **Minting Period** | `365 * 24 * time.Hour` | One year (reward calculation period) |
+| **MinValidatorStake** | `2,000 AVAX` | Minimum stake required to validate |
+| **MaxValidatorStake** | `3,000,000 AVAX` | Maximum stake allowed per validator |
+| **MinStakeDuration** | `2 * 7 * 24 * time.Hour` | Minimum staking period (2 weeks) |
+| **MaxStakeDuration** | `365 * 24 * time.Hour` | Maximum staking period (1 year) |
+| **MinDelegationFee** | `20000` (2%) | Minimum delegation fee rate |
+| **MinDelegatorStake** | `25 AVAX` | Minimum stake required to delegate |
+| **MaxValidatorWeightFactor** | `5` | Maximum delegation multiplier* |
+| **UptimeRequirement** | `0.8` (80%) | Minimum uptime for rewards |
+
+<Callout type="info">
+*MaxValidatorWeightFactor is a platformVM parameter shared across networks, not a genesis parameter.
+</Callout>
 
 ### Interactive Graph
 

@@ -14,14 +14,17 @@ Staking rewards are sent to your wallet address at the end of the staking term *
 
 ### Mainnet[​](#mainnet "Direct link to heading")
 
-- The minimum amount that a validator must stake is 2,000 AVAX
-- The minimum amount that a delegator must delegate is 25 AVAX
-- The minimum amount of time one can stake funds for validation is 2 weeks
-- The maximum amount of time one can stake funds for validation is 1 year
-- The minimum amount of time one can stake funds for delegation is 2 weeks
-- The maximum amount of time one can stake funds for delegation is 1 year
-- The minimum delegation fee rate is 2%
-- The maximum weight of a validator (their own stake + stake delegated to them) is the minimum of 3 million AVAX and 5 times the amount the validator staked. For example, if you staked 2,000 AVAX to become a validator, only 8000 AVAX can be delegated to your node total (not per delegator)
+| Parameter | Validator | Delegator |
+|-----------|-----------|-----------|
+| **Minimum Stake Amount** | 2,000 AVAX | 25 AVAX |
+| **Minimum Staking Time** | 2 weeks | 2 weeks |
+| **Maximum Staking Time** | 1 year | 1 year |
+| **Minimum Delegation Fee Rate** | 2% | N/A |
+| **Maximum Validator Weight** | 3 million AVAX or 5x validator's own stake (whichever is lower) | N/A |
+
+<Callout type="info">
+**Validator Weight Example**: If you stake 2,000 AVAX as a validator, the maximum total weight (your stake + delegated stake) is 10,000 AVAX (5 × 2,000), so only 8,000 AVAX can be delegated to your node in total.
+</Callout>
 
 A validator will receive a staking reward if they are online and response for more than 80% of their validation period, as measured by a majority of validators, weighted by stake. **You should aim for your validator be online and responsive 100% of the time.**
 
@@ -31,10 +34,10 @@ You can call API method `info.uptime` on your node to learn its weighted uptime 
 
 On Fuji Testnet, all staking parameters are the same as those on Mainnet except the following ones:
 
-- The minimum amount that a validator must stake is 1 AVAX
-- The minimum amount that a delegator must delegate is 1 AVAX
-- The minimum amount of time one can stake funds for validation is 24 hours
-- The minimum amount of time one can stake funds for delegation is 24 hours
+| Parameter | Validator | Delegator |
+|-----------|-----------|-----------|
+| **Minimum Stake Amount** | 1 AVAX | 1 AVAX |
+| **Minimum Staking Time** | 24 hours | 24 hours |
 
 Validators[​](#validators "Direct link to heading")
 ---------------------------------------------------

@@ -30,7 +30,7 @@ async function main(): Promise<void> {
     { name: 'Primary Network', configs: getPrimaryNetworkConfigs() },
     { name: 'Avalanche L1s', configs: getAvalancheL1sConfigs() },
     { name: 'Tooling', configs: getToolingConfigs() },
-    { name: 'ACPs', configs: getAcpsConfigs() },
+    { name: 'ACPs', configs: await getAcpsConfigs() },
     { name: 'SDKS', configs: getSDKSConfigs() },
   ];
 

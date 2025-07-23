@@ -1,205 +1,238 @@
 import { FileConfig } from './shared.mts';
+import axios from 'axios';
+import * as fs from 'fs';
+import * as path from 'path';
 
-export function getAcpsConfigs(): FileConfig[] {
-  return [
-    // ACP Repository Main README as index page
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/README.md",
-      outputPath: "content/docs/acps/index.mdx",
-      title: "Avalanche Community Proposals (ACPs)",
-      description: "Official framework for proposing improvements and gathering consensus around changes to the Avalanche Network",
-      contentUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/",
-    },
+interface GitHubTreeItem {
+  path: string;
+  type: string;
+  mode: string;
+  sha: string;
+}
 
-    // Individual ACPs
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/13-subnet-only-validators/README.md",
-      outputPath: "content/docs/acps/13-subnet-only-validators.mdx",
-      title: "ACP-13: Subnet-Only Validators (SOVs)",
-      description: "Introduce a new type of staker, Subnet-Only Validators (SOVs), that can validate an Avalanche Subnet and participate in Avalanche Warp Messaging (AWM) without syncing or becoming a Validator on the Primary Network.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/13-subnet-only-validators/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/20-ed25519-p2p/README.md",
-      outputPath: "content/docs/acps/20-ed25519-p2p.mdx",
-      title: "ACP-20: Ed25519 P2P",
-      description: "Switch the Primary Network's P2P layer from secp256k1 to Ed25519 signatures.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/20-ed25519-p2p/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/23-p-chain-native-transfers/README.md",
-      outputPath: "content/docs/acps/23-p-chain-native-transfers.mdx",
-      title: "ACP-23: P-Chain Native Transfers",
-      description: "Enable native transfers on the P-Chain to allow direct AVAX transfers without importing/exporting.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/23-p-chain-native-transfers/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/24-shanghai-eips/README.md",
-      outputPath: "content/docs/acps/24-shanghai-eips.mdx",
-      title: "ACP-24: Activate Shanghai EIPs on C-Chain",
-      description: "Activate the Shanghai Ethereum Improvement Proposals on the C-Chain.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/24-shanghai-eips/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/25-vm-application-errors/README.md",
-      outputPath: "content/docs/acps/25-vm-application-errors.mdx",
-      title: "ACP-25: Virtual Machine Application Errors",
-      description: "Enable Virtual Machines to return application-specific error codes to provide better error messaging.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/25-vm-application-errors/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/30-avalanche-warp-x-evm/README.md",
-      outputPath: "content/docs/acps/30-avalanche-warp-x-evm.mdx",
-      title: "ACP-30: Integrate Avalanche Warp Messaging into the EVM",
-      description: "Integrate Avalanche Warp Messaging into the EVM to enable cross-chain communication.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/30-avalanche-warp-x-evm/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/31-enable-subnet-ownership-transfer/README.md",
-      outputPath: "content/docs/acps/31-enable-subnet-ownership-transfer.mdx",
-      title: "ACP-31: Enable Subnet Ownership Transfer",
-      description: "Enable the transfer of Subnet ownership between different control keys.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/31-enable-subnet-ownership-transfer/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/41-remove-pending-stakers/README.md",
-      outputPath: "content/docs/acps/41-remove-pending-stakers.mdx",
-      title: "ACP-41: Remove Pending Stakers",
-      description: "Remove the pending staker concept to simplify validator management.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/41-remove-pending-stakers/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/62-disable-addvalidatortx-and-adddelegatortx/README.md",
-      outputPath: "content/docs/acps/62-disable-addvalidatortx-and-adddelegatortx.mdx",
-      title: "ACP-62: Disable AddValidatorTx and AddDelegatorTx",
-      description: "Disable AddValidatorTx and AddDelegatorTx to prevent new validators and delegators on the Primary Network.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/62-disable-addvalidatortx-and-adddelegatortx/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/75-acceptance-proofs/README.md",
-      outputPath: "content/docs/acps/75-acceptance-proofs.mdx",
-      title: "ACP-75: Acceptance Proofs",
-      description: "Add acceptance proofs to provide cryptographic proof of block acceptance.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/75-acceptance-proofs/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/77-reinventing-subnets/README.md",
-      outputPath: "content/docs/acps/77-reinventing-subnets.mdx",
-      title: "ACP-77: Reinventing Subnets",
-      description: "A comprehensive redesign of Avalanche Subnets to improve scalability and usability.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/77-reinventing-subnets/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/83-dynamic-multidimensional-fees/README.md",
-      outputPath: "content/docs/acps/83-dynamic-multidimensional-fees.mdx",
-      title: "ACP-83: Dynamic Multidimensional Fees for P-Chain and X-Chain",
-      description: "Implement dynamic multidimensional fees for P-Chain and X-Chain transactions.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/83-dynamic-multidimensional-fees/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/84-table-preamble/README.md",
-      outputPath: "content/docs/acps/84-table-preamble.mdx",
-      title: "ACP-84: Table Preamble for ACPs",
-      description: "Standardize the preamble format for ACPs using a table structure.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/84-table-preamble/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/99-validatorsetmanager-contract/README.md",
-      outputPath: "content/docs/acps/99-validatorsetmanager-contract.mdx",
-      title: "ACP-99: Validator Manager Solidity Standard",
-      description: "Define a standard Solidity interface for Validator Manager contracts.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/99-validatorsetmanager-contract/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/103-dynamic-fees/README.md",
-      outputPath: "content/docs/acps/103-dynamic-fees.mdx",
-      title: "ACP-103: Add Dynamic Fees to the X-Chain and P-Chain",
-      description: "Add dynamic fees to the X-Chain and P-Chain based on network utilization.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/103-dynamic-fees/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/108-evm-event-importing/README.md",
-      outputPath: "content/docs/acps/108-evm-event-importing.mdx",
-      title: "ACP-108: EVM Event Importing",
-      description: "Enable importing EVM events across different chains for better interoperability.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/108-evm-event-importing/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/113-provable-randomness/README.md",
-      outputPath: "content/docs/acps/113-provable-randomness.mdx",
-      title: "ACP-113: Provable Virtual Machine Randomness",
-      description: "Add provable randomness capabilities to Virtual Machines.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/113-provable-randomness/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/118-warp-signature-request/README.md",
-      outputPath: "content/docs/acps/118-warp-signature-request.mdx",
-      title: "ACP-118: Standardized P2P Warp Signature Request Interface",
-      description: "Standardize the P2P interface for requesting Warp signatures.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/118-warp-signature-request/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/125-basefee-reduction/README.md",
-      outputPath: "content/docs/acps/125-basefee-reduction.mdx",
-      title: "ACP-125: Reduce C-Chain minimum base fee from 25 nAVAX to 1 nAVAX",
-      description: "Reduce the minimum base fee on the C-Chain to make transactions more affordable.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/125-basefee-reduction/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/131-cancun-eips/README.md",
-      outputPath: "content/docs/acps/131-cancun-eips.mdx",
-      title: "ACP-131: Activate Cancun EIPs on C-Chain and Subnet-EVM chains",
-      description: "Activate the Cancun Ethereum Improvement Proposals on C-Chain and Subnet-EVM chains.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/131-cancun-eips/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/151-use-current-block-pchain-height-as-context/README.md",
-      outputPath: "content/docs/acps/151-use-current-block-pchain-height-as-context.mdx",
-      title: "ACP-151: Use current block P-Chain height as context for state verification",
-      description: "Use the current block P-Chain height as context for state verification to improve security.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/151-use-current-block-pchain-height-as-context/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/176-dynamic-evm-gas-limit-and-price-discovery-updates/README.md",
-      outputPath: "content/docs/acps/176-dynamic-evm-gas-limit-and-price-discovery-updates.mdx",
-      title: "ACP-176: Dynamic EVM Gas Limits and Price Discovery Updates",
-      description: "Implement dynamic EVM gas limits and improved price discovery mechanisms.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/176-dynamic-evm-gas-limit-and-price-discovery-updates/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/181-p-chain-epoched-views/README.md",
-      outputPath: "content/docs/acps/181-p-chain-epoched-views.mdx",
-      title: "ACP-181: P-Chain Epoched Views",
-      description: "Implement epoched views on the P-Chain for improved consensus efficiency.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/181-p-chain-epoched-views/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/191-seamless-l1-creation/README.md",
-      outputPath: "content/docs/acps/191-seamless-l1-creation.mdx",
-      title: "ACP-191: Seamless L1 Creations (CreateL1Tx)",
-      description: "Enable seamless creation of L1 blockchains with the CreateL1Tx transaction type.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/191-seamless-l1-creation/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/194-streaming-asynchronous-execution/README.md",
-      outputPath: "content/docs/acps/194-streaming-asynchronous-execution.mdx",
-      title: "ACP-194: Streaming Asynchronous Execution",
-      description: "Implement streaming asynchronous execution to improve performance and scalability.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/194-streaming-asynchronous-execution/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/204-precompile-secp256r1/README.md",
-      outputPath: "content/docs/acps/204-precompile-secp256r1.mdx",
-      title: "ACP-204: Precompile for secp256r1 Curve Support",
-      description: "Add precompile support for the secp256r1 elliptic curve to enable broader cryptographic compatibility.",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/204-precompile-secp256r1/",
-    },
-    {
-      sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/209-eip7702-style-account-abstraction/README.md",
-      outputPath: "content/docs/acps/209-eip7702-style-account-abstraction.mdx",
-      title: "ACP-209: EIP-7702-style Set Code for EOAs",
-      description: "Implement EIP-7702-style account abstraction for Externally Owned Accounts (EOAs).",
-      contentUrl: "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/209-eip7702-style-account-abstraction/",
-    },
+interface GitHubTreeResponse {
+  tree: GitHubTreeItem[];
+}
+
+interface AcpInfo {
+  number: number;
+  slug: string;
+  title: string;
+  track: string;
+}
+
+/**
+ * Fetch all ACP directories from the GitHub repository
+ */
+async function fetchAllAcps(): Promise<GitHubTreeItem[]> {
+  try {
+    const response = await axios.get<GitHubTreeResponse>(
+      'https://api.github.com/repos/avalanche-foundation/ACPs/git/trees/main:ACPs',
+      {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'Avalanche-Docs-Bot'
+        }
+      }
+    );
+    
+    return response.data.tree.filter(item => 
+      item.type === 'tree' && 
+      item.path.match(/^\d+/) // Only directories starting with numbers (ACP directories)
+    );
+  } catch (error) {
+    console.error('Failed to fetch ACPs from GitHub:', error);
+    throw new Error('Unable to fetch ACPs from GitHub repository');
+  }
+}
+
+/**
+ * Extract ACP number and title from directory name
+ */
+function parseAcpInfo(directoryName: string): { number: string; title: string } {
+  const match = directoryName.match(/^(\d+)-(.+)$/);
+  if (match) {
+    const [, number, titleSlug] = match;
+    const title = titleSlug
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    return { number, title };
+  }
+  return { number: directoryName, title: directoryName };
+}
+
+/**
+ * Parse track information from an ACP file
+ */
+function parseAcpTrack(content: string): string {
+  // Look for the Track field in the table
+  const trackMatch = content.match(/\|\s*\*\*Track\*\*\s*\|\s*([^|]+)\s*\|/);
+  if (trackMatch) {
+    const track = trackMatch[1].trim();
+    
+    // Normalize track names
+    if (track.toLowerCase().includes('standard')) {
+      return 'Standards';
+    } else if (track.toLowerCase().includes('best practices')) {
+      return 'Best Practices';
+    } else if (track.toLowerCase().includes('meta')) {
+      return 'Meta';
+    } else if (track.toLowerCase().includes('informational')) {
+      return 'Informational';
+    }
+    
+    return track;
+  }
+  
+  // Default to Standards if not found
+  return 'Standards';
+}
+
+/**
+ * Analyze ACP files to extract metadata
+ */
+async function analyzeAcpFiles(acpDirectories: GitHubTreeItem[]): Promise<AcpInfo[]> {
+  const acpInfos: AcpInfo[] = [];
+  
+  for (const acpDir of acpDirectories) {
+    try {
+      const { number } = parseAcpInfo(acpDir.path);
+      const sourceUrl = `https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/${acpDir.path}/README.md`;
+      
+      // Fetch the content to parse track information
+      const response = await axios.get(sourceUrl);
+      const content = response.data;
+      
+      const track = parseAcpTrack(content);
+      
+      // Extract title from content
+      const titleMatch = content.match(/\|\s*\*\*Title\*\*\s*\|\s*([^|]+)\s*\|/);
+      const title = titleMatch ? titleMatch[1].trim() : parseAcpInfo(acpDir.path).title;
+      
+      acpInfos.push({
+        number: parseInt(number),
+        slug: acpDir.path,
+        title,
+        track
+      });
+    } catch (error) {
+      console.warn(`Failed to analyze ACP ${acpDir.path}:`, error);
+      // Add with minimal info if analysis fails
+      const { number, title } = parseAcpInfo(acpDir.path);
+      acpInfos.push({
+        number: parseInt(number),
+        slug: acpDir.path,
+        title,
+        track: 'Standards'
+      });
+    }
+  }
+  
+  return acpInfos.sort((a, b) => b.number - a.number); // Sort by number descending (newest first)
+}
+
+/**
+ * Generate meta.json for ACPs organized by track
+ */
+async function generateAcpMeta(acpInfos: AcpInfo[]): Promise<void> {
+  // Group ACPs by track
+  const trackGroups = acpInfos.reduce((groups, acp) => {
+    const trackKey = acp.track;
+    if (!groups[trackKey]) {
+      groups[trackKey] = [];
+    }
+    groups[trackKey].push(acp);
+    return groups;
+  }, {} as Record<string, AcpInfo[]>);
+
+  // Define track order and section headers
+  const trackOrder = [
+    { key: 'Standards', header: 'Standards Track ACPs' },
+    { key: 'Best Practices', header: 'Best Practices Track ACPs' },
+    { key: 'Informational', header: 'Informational Track ACPs' },
+    { key: 'Meta', header: 'Meta Track ACPs' }
   ];
+
+  // Build pages array
+  const pages: string[] = [
+    "---Overview---",
+    "index"
+  ];
+
+  // Add each track section
+  for (const { key, header } of trackOrder) {
+    if (trackGroups[key] && trackGroups[key].length > 0) {
+      pages.push(`---${header}---`);
+      // Sort ACPs within each track by number (descending)
+      const sortedAcps = trackGroups[key].sort((a, b) => b.number - a.number);
+      pages.push(...sortedAcps.map(acp => acp.slug));
+    }
+  }
+
+  // Create meta.json content
+  const metaContent = {
+    title: "ACPs",
+    description: "Official Avalanche Community Proposals (ACPs) for network improvements and best practices",
+    icon: "FileText",
+    root: true,
+    pages
+  };
+
+  // Write meta.json file
+  const metaPath = path.join('content/docs/acps/meta.json');
+  fs.writeFileSync(metaPath, JSON.stringify(metaContent, null, 2));
+  
+  console.log(`Generated meta.json with ${acpInfos.length} ACPs organized by track`);
+  console.log(`Track distribution: ${Object.entries(trackGroups).map(([track, acps]) => `${track}: ${acps.length}`).join(', ')}`);
+}
+
+/**
+ * Generate configurations for all ACPs dynamically
+ */
+async function generateAcpConfigs(): Promise<FileConfig[]> {
+  const acpDirectories = await fetchAllAcps();
+  
+  console.log(`Found ${acpDirectories.length} ACPs to process`);
+  
+  // Analyze ACP files to get metadata
+  const acpInfos = await analyzeAcpFiles(acpDirectories);
+  
+  // Generate meta.json
+  await generateAcpMeta(acpInfos);
+  
+  const configs: FileConfig[] = [];
+
+  // Add main ACP repository README as index page
+  configs.push({
+    sourceUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/README.md",
+    outputPath: "content/docs/acps/index.mdx",
+    title: "Avalanche Community Proposals (ACPs)",
+    description: "Official framework for proposing improvements and gathering consensus around changes to the Avalanche Network",
+    contentUrl: "https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/",
+  });
+
+  // Generate configs for each ACP
+  for (const acpDir of acpDirectories) {
+    const { number, title } = parseAcpInfo(acpDir.path);
+    
+    configs.push({
+      sourceUrl: `https://raw.githubusercontent.com/avalanche-foundation/ACPs/main/ACPs/${acpDir.path}/README.md`,
+      outputPath: `content/docs/acps/${acpDir.path}.mdx`,
+      title: `ACP-${number}: ${title}`,
+      description: `Details for Avalanche Community Proposal ${number}: ${title}`,
+      contentUrl: `https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/${acpDir.path}/`,
+    });
+  }
+
+  return configs.sort((a, b) => {
+    // Sort by ACP number
+    const aNum = parseInt(a.outputPath.match(/acps\/(\d+)/)?.[1] || '0');
+    const bNum = parseInt(b.outputPath.match(/acps\/(\d+)/)?.[1] || '0');
+    return aNum - bNum;
+  });
+}
+
+export async function getAcpsConfigs(): Promise<FileConfig[]> {
+  return await generateAcpConfigs();
 } 

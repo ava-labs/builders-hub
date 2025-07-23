@@ -19,11 +19,11 @@ Avalanche L1 Configs[​](#avalanche-l1-configs "Direct link to heading")
 
 an Avalanche L1 can customized by setting parameters for the following:
 
-- [Validator-only communication to create a private Avalanche L1](/docs/nodes/configure/avalanche-l1-configs#validatoronly-bool)
-- [Consensus](/docs/nodes/configure/avalanche-l1-configs#consensus-parameters)
-- [Gossip](/docs/nodes/configure/avalanche-l1-configs#gossip-configs)
+- [Validator-only communication to create a private Avalanche L1](/docs/avalanche-l1s/evm-configuration/avalanche-l1-configs#validatoronly-bool)
+- [Consensus](/docs/avalanche-l1s/evm-configuration/avalanche-l1-configs#consensus-parameters)
+- [Gossip](/docs/avalanche-l1s/evm-configuration/avalanche-l1-configs#gossip-configs)
 
-See [here](/docs/nodes/configure/avalanche-l1-configs) for more info.
+See [here](/docs/avalanche-l1s/evm-configuration/avalanche-l1-configs) for more info.
 
 Genesis[​](#genesis "Direct link to heading")
 ---------------------------------------------
@@ -80,7 +80,7 @@ The default genesis Subnet-EVM provided below has some well defined parameters:
 
 `chainID`: Denotes the ChainID of to be created chain. Must be picked carefully since a conflict with other chains can cause issues. One suggestion is to check with [chainlist.org](https://chainlist.org/) to avoid ID collision, reserve and publish your ChainID properly.
 
-You can use `eth_getChainConfig` RPC call to get the current chain config. See [here](/docs/api-reference/subnet-evm-api#eth_getchainconfig) for more info.
+You can use `eth_getChainConfig` RPC call to get the current chain config. See [here](/docs/apis/subnet-evm-api#eth_getchainconfig) for more info.
 
 #### Hard Forks[​](#hard-forks "Direct link to heading")
 
@@ -653,7 +653,7 @@ Constantinople: 0 Petersburg: 0 Istanbul: 0, Muir Glacier: 0, Subnet EVM: 0, Fee
 “subnetEVMTimestamp\“:0}, PrecompileUpgrade: {}, UpgradeConfig: {\"precompileUpgrades\":[{\"feeManagerConfig\":{\"adminAddresses\":[\"0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc\"],\"enabledAddresses\":null,\"blockTimestamp\":1668950000}},{\"txAllowListConfig\":{\"adminAddresses\":[\"0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc\"],\"enabledAddresses\":null,\"blockTimestamp\":1668960000}},{\"feeManagerConfig\":{\"adminAddresses\":null,\"enabledAddresses\":null,\"blockTimestamp\":1668970000,\"disable\":true}}]}, Engine: Dummy Consensus Engine}"
 ```
 
-Notice that `precompileUpgrades` entry correctly reflects the changes. You can also check the activated precompiles at a timestamp with the [`eth_getActivePrecompilesAt`](/docs/api-reference/subnet-evm-api#eth_getactiveprecompilesat) RPC method. The [`eth_getChainConfig`](/docs/api-reference/subnet-evm-api#eth_getchainconfig) RPC method will also return the configured upgrades in the response.
+Notice that `precompileUpgrades` entry correctly reflects the changes. You can also check the activated precompiles at a timestamp with the [`eth_getActivePrecompilesAt`](/docs/apis/subnet-evm-api#eth_getactiveprecompilesat) RPC method. The [`eth_getChainConfig`](/docs/apis/subnet-evm-api#eth_getchainconfig) RPC method will also return the configured upgrades in the response.
 
 That's it, your Avalanche L1 is all set and the desired upgrades will be activated at the indicated timestamp!
 
@@ -715,15 +715,15 @@ See every precompile initial configuration in their relevant `Initial Configurat
 AvalancheGo Chain Configs[​](#avalanchego-chain-configs "Direct link to heading")
 ---------------------------------------------------------------------------------
 
-As described in [this doc](/docs/nodes/configure/configs-flags#avalanche-l1-chain-configs), each blockchain of Avalanche L1s can have its own custom configuration. If an Avalanche L1's ChainID is `2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt`, the config file for this chain is located at `{chain-config-dir}/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/config.json`.
+As described in [this doc](/docs/primary-network/configure/configs-flags#avalanche-l1-chain-configs), each blockchain of Avalanche L1s can have its own custom configuration. If an Avalanche L1's ChainID is `2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt`, the config file for this chain is located at `{chain-config-dir}/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/config.json`.
 
-For blockchains created by or forked from Subnet-EVM, most [C-Chain configs](/docs/nodes/chain-configs/c-chain) are applicable except [Avalanche Specific APIs](/docs/nodes/chain-configs/c-chain#enabling-avalanche-specific-apis).
+For blockchains created by or forked from Subnet-EVM, most [C-Chain configs](/docs/primary-network/chain-configs/c-chain) are applicable except [Avalanche Specific APIs](/docs/primary-network/chain-configs/c-chain#enabling-avalanche-specific-apis).
 
 ### Priority Regossip[​](#priority-regossip "Direct link to heading")
 
 A transaction is "regossiped" when the node does not find the transaction in a block after `priority-regossip-frequency` (defaults to `1m`). By default, up to 16 transactions (max 1 per address) are regossiped to validators per minute.
 
-Operators can use "priority regossip" to more aggressively "regossip" transactions for a set of important addresses (like bridge relayers). To do so, you'll need to update your [chain config](/docs/nodes/configure/configs-flags#avalanche-l1-chain-configs) with the following:
+Operators can use "priority regossip" to more aggressively "regossip" transactions for a set of important addresses (like bridge relayers). To do so, you'll need to update your [chain config](/docs/primary-network/configure/configs-flags#avalanche-l1-chain-configs) with the following:
 
 ```json
 {
