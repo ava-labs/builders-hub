@@ -77,12 +77,20 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         icon: <Plus className="w-4 h-4" />
       },
       {
-        id: "avalanchegoDockerL1",
-        label: "L1 Node Setup with Docker",
-        component: lazy(() => import('./Nodes/AvalancheGoDockerL1')),
-        fileNames: ["toolbox/src/toolbox/Nodes/AvalancheGoDockerL1.tsx"],
+        id: "builderHubNode",
+        label: "Builder Hub Node Setup",
+        component: lazy(() => import('./Nodes/BuilderHubNode')),
+        fileNames: ["toolbox/src/toolbox/Nodes/BuilderHubNode.tsx"],
         walletMode: "testnet-mainnet",
-        icon: <Server className="w-4 h-4" />
+        icon: <Zap className="w-4 h-4" />
+      },
+      {
+        id: "nodeStatus",
+        label: "My Builder Hub Nodes",
+        component: lazy(() => import('./Nodes/NodeStatus')),
+        fileNames: ["toolbox/src/toolbox/Nodes/NodeStatus.tsx"],
+        walletMode: "testnet-mainnet",
+        icon: <Activity className="w-4 h-4" />
       },
       {
         id: 'convertToL1',
@@ -91,6 +99,14 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         fileNames: ["toolbox/src/toolbox/L1/ConvertToL1.tsx"],
         walletMode: "c-chain",
         icon: <ArrowUpDown className="w-4 h-4" />
+      },
+      {
+        id: "avalanchegoDockerL1",
+        label: "L1 Node Setup with Docker",
+        component: lazy(() => import('./Nodes/AvalancheGoDockerL1')),
+        fileNames: ["toolbox/src/toolbox/Nodes/AvalancheGoDockerL1.tsx"],
+        walletMode: "testnet-mainnet",
+        icon: <Server className="w-4 h-4" />
       },
       {
         id: "selfHostedExplorer",
