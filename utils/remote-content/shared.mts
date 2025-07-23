@@ -73,20 +73,30 @@ export function replaceRelativeLinks(content: string, sourceBaseUrl: string): st
         return `[${text}](${new URL(markdownLink, sourceBaseUrl).href})`;
       } else if (imgSrc) {
         // Remove quotes if they exist
-        const cleanSrc = imgSrc.replace(/^['"]|['"]$/g, '');
+        let cleanSrc = imgSrc.replace(/^['"]|['"]$/g, '');
+        
+        // Fix malformed URLs with spaces and query parameters
+        cleanSrc = cleanSrc
+          .replace(/\s+/g, '') // Remove all spaces
+          .replace(/\?.*$/, ''); // Remove query parameters that might be malformed
+        
         if (cleanSrc.startsWith("http") || cleanSrc.startsWith("data:")) {
           // Convert GitHub blob URLs to raw URLs for direct image access
           const finalSrc = convertGitHubBlobToRaw(cleanSrc);
           const cleanAttrs = imgAttrs.trim();
-          const spaceBefore = cleanAttrs ? ' ' : '';
-          const spaceAfter = cleanAttrs ? ' ' : '';
-          return `<img${spaceBefore}${cleanAttrs}${spaceAfter}src="${finalSrc}" />`;
+          return `<img${cleanAttrs ? ' ' + cleanAttrs : ''} src="${finalSrc}" />`;
         }
         // Convert img src attribute relative link to absolute link, and properly close the tag as self-closing
-        const cleanAttrs = imgAttrs.trim();
-        const spaceBefore = cleanAttrs ? ' ' : '';
-        const spaceAfter = cleanAttrs ? ' ' : '';
-        return `<img${spaceBefore}${cleanAttrs}${spaceAfter}src="${new URL(cleanSrc, sourceBaseUrl).href}" />`;
+        try {
+          const absoluteUrl = new URL(cleanSrc, sourceBaseUrl).href;
+          const finalSrc = convertGitHubBlobToRaw(absoluteUrl);
+          const cleanAttrs = imgAttrs.trim();
+          return `<img${cleanAttrs ? ' ' + cleanAttrs : ''} src="${finalSrc}" />`;
+        } catch (error) {
+          // If URL construction fails, return original match
+          console.warn(`Failed to process img src: ${cleanSrc}`);
+          return match;
+        }
       }
       return match;
     }
@@ -257,6 +267,23 @@ edit_url: ${safeEditUrl}
     .replace(/<img([^>]*?)\s+\/>\s+\/>/g, '<img$1 />') // Fix double self-closing patterns
     .replace(/<img([^>]*?)>(?!\s*\/>)/g, '<img$1 />') // Make non-self-closing img tags self-closing
     .replace(/<img([^>]*?)\s+\/\s+\/>/g, '<img$1 />') // Fix spaced self-closing patterns
+    // Fix malformed img tags with broken URLs and closing tags
+    .replace(/<img([^>]*?)src="([^"]*?)\?\s*raw="[^>]*?>true"[^>]*?\/>\s*<\/img>/g, (match, attrs, src) => {
+      const cleanSrc = src.replace(/\s+/g, '').replace(/\?.*$/, '');
+      const cleanAttrs = attrs.trim();
+      return `<img${cleanAttrs ? ' ' + cleanAttrs : ''} src="${cleanSrc}" />`;
+    })
+    // Fix other malformed img patterns with invalid closing tags
+    .replace(/<img([^>]*?)\/>\s*[^<]*?<\/img>/g, '<img$1 />')
+    .replace(/\/>\s*true"*\s*\/*\s*\/>/g, ' />') // Fix patterns like />true"/" />
+    .replace(/<img([^>]*?)\/>\s*true"[^>]*?\/\s*\/>/g, '<img$1 />') // Fix />true"/" /> patterns
+    .replace(/<img([^>]*?)\/>\s*true"[^>]*?alt="[^"]*"[^>]*?\/\s*\/>/g, '<img$1 />') // Fix more complex patterns
+    .replace(/"\s*\/>\s*true"[^>]*?\/\s*\/>/g, '" />') // Fix malformed attribute endings
+    .replace(/\/>\s*true"\/"\s*\/>/g, ' />') // Fix specific />true"/" /> pattern
+    .replace(/\/>\s*true""\s*alt="[^"]*"\/\s*\/>/g, ' />') // Fix />true"" alt="..."/ /> pattern
+    .replace(/<\/img>/g, '') // Remove any remaining invalid </img> closing tags
+    // Fix malformed URLs in src attributes
+    .replace(/src="https:\/([^"]+)"/g, 'src="https://$1"') // Fix missing colon in https URLs
     .replace(/<http:\s*\/+/g, '<http://') // Fix broken HTTP URLs in angle brackets
     .replace(/<https:\s*\/+/g, '<https://') // Fix broken HTTPS URLs in angle brackets
     .replace(/\s+\/\s+\/>/g, ' />') // Fix any remaining spaced self-closing patterns
