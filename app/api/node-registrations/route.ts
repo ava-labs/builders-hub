@@ -26,10 +26,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Fetch user's node registrations
-    let nodeRegistrations = [];
+    let nodeRegistrations: any[] = [];
     
     try {
-      nodeRegistrations = await prisma.nodeRegistration.findMany({
+      nodeRegistrations = await (prisma as any).nodeRegistration.findMany({
         where: {
           user_id: userId,
           status: 'active'
