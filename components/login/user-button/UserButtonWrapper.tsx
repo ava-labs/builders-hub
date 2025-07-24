@@ -3,7 +3,12 @@
 import { UserButton } from "./UserButton";
 import { useEffect, useState } from "react";
 
-export function UserButtonWrapper() {
+interface UserButtonWrapperProps {
+  showLoginText?: boolean;
+  loginText?: string;
+}
+
+export function UserButtonWrapper({ showLoginText, loginText }: UserButtonWrapperProps = {}) {
   const [isMounted, setIsMounted] = useState(false);
   
   useEffect(() => {
@@ -15,5 +20,5 @@ export function UserButtonWrapper() {
     return null;
   }
 
-  return <UserButton />;
+  return <UserButton showLoginText={showLoginText} loginText={loginText} />;
 }

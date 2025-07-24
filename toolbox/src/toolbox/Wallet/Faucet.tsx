@@ -2,6 +2,7 @@
 import { useWalletStore } from "../../stores/walletStore";
 import { CChainFaucetButton } from "../../components/ConnectWallet/CChainFaucetButton";
 import { PChainFaucetButton } from "../../components/ConnectWallet/PChainFaucetButton";
+import { UserButtonWrapper } from "../../../../components/login/user-button/UserButtonWrapper";
 import { Droplets, ChevronRight, Layers, UserCheck, Coins, BookOpen, Sparkles, AlertCircle, ExternalLink } from "lucide-react";
 
 interface QuickLinkCardProps {
@@ -85,9 +86,17 @@ export default function Faucet() {
     <div className="max-w-5xl mx-auto space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-sm font-medium mb-4">
-          <Sparkles className="w-4 h-4" />
-          Fuji Testnet Faucet
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex-1"></div>
+          <div className="flex-1 flex justify-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-sm font-medium">
+              <Sparkles className="w-4 h-4" />
+              Fuji Testnet Faucet
+            </div>
+          </div>
+          <div className="flex-1 flex justify-end">
+            <UserButtonWrapper showLoginText={true} />
+          </div>
         </div>
         <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
           Get Test Tokens

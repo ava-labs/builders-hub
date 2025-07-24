@@ -20,15 +20,13 @@ interface JsonRpcResponse {
   id: number;
 }
 
-async function validateBuilderHubNodeRequest(request: NextRequest): Promise<NextResponse | null> {
+async function validateBuilderHubNodeRequest(request: NextRequest): Promise<{ response: NextResponse | null; userId?: string }> {
   try {
-    // Skip authentication in development mode
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    
-    if (!isDevelopment) {
-      const session = await getAuthSession();    
-      if (!session?.user) {
-        return NextResponse.json(
+    // Always require authentication, even in development
+    const session = await getAuthSession();    
+    if (!session?.user?.id) {
+      return {
+        response: NextResponse.json(
           { 
             jsonrpc: "2.0",
             error: {
@@ -38,71 +36,67 @@ async function validateBuilderHubNodeRequest(request: NextRequest): Promise<Next
             id: 1
           },
           { status: 401 }
-        );
-      }
+        )
+      };
     }
       
     const searchParams = request.nextUrl.searchParams;
     const subnetId = searchParams.get('subnetId');
 
     if (!subnetId) {
-      return NextResponse.json(
-        { 
-          jsonrpc: "2.0",
-          error: {
-            code: 400,
-            message: 'Subnet ID is required'
+      return {
+        response: NextResponse.json(
+          { 
+            jsonrpc: "2.0",
+            error: {
+              code: 400,
+              message: 'Subnet ID is required'
+            },
+            id: 1
           },
-          id: 1
-        },
-        { status: 400 }
-      );
+          { status: 400 }
+        )
+      };
     }
 
     // Basic subnet ID format validation (Base58Check format)
     if (subnetId.length < 40 || subnetId.length > 60) {
-      return NextResponse.json(
+      return {
+        response: NextResponse.json(
+          { 
+            jsonrpc: "2.0",
+            error: {
+              code: 400,
+              message: 'Invalid subnet ID format'
+            },
+            id: 1
+          },
+          { status: 400 }
+        )
+      };
+    }
+
+    return { response: null, userId: session.user.id };
+  } catch (error) {
+    console.error('Builder Hub request validation failed:', error);
+    return {
+      response: NextResponse.json(
         { 
           jsonrpc: "2.0",
           error: {
-            code: 400,
-            message: 'Invalid subnet ID format'
+            code: 500,
+            message: error instanceof Error ? error.message : 'Failed to validate request'
           },
           id: 1
         },
-        { status: 400 }
-      );
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Builder Hub request validation failed:', error);
-    return NextResponse.json(
-      { 
-        jsonrpc: "2.0",
-        error: {
-          code: 500,
-          message: error instanceof Error ? error.message : 'Failed to validate request'
-        },
-        id: 1
-      },
-      { status: 500 }
-    );
+        { status: 500 }
+      )
+    };
   }
 }
 
-async function handleBuilderHubNodeRequest(request: NextRequest): Promise<NextResponse> {
+async function handleBuilderHubNodeRequest(request: NextRequest, userId: string): Promise<NextResponse> {
   try {
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    let userId = 'dev-user-id'; // Default for development
-    
-    if (!isDevelopment) {
-      const session = await getAuthSession();
-      if (!session?.user?.id) {
-        throw new Error('User session is required');
-      }
-      userId = session.user.id;
-    }
 
     const searchParams = request.nextUrl.searchParams;
     const subnetId = searchParams.get('subnetId')!;
@@ -138,11 +132,8 @@ async function handleBuilderHubNodeRequest(request: NextRequest): Promise<NextRe
         throw new Error('You already have a node registered for this subnet');
       }
     } catch (dbError) {
-      if (isDevelopment) {
-        console.log('Database check failed in development (continuing anyway):', dbError);
-      } else {
-        throw dbError;
-      }
+      console.error('Database check failed:', dbError);
+      throw new Error('Failed to check existing registrations');
     }
 
     // Make the request to Builder Hub API
@@ -215,11 +206,7 @@ async function handleBuilderHubNodeRequest(request: NextRequest): Promise<NextRe
         console.log('Node registration stored in database with chain name:', chainName);
       } catch (dbError) {
         console.error('Failed to store node registration:', dbError);
-        if (!isDevelopment) {
-          // In production, we might want to fail if we can't store
-          throw new Error('Failed to store node registration');
-        }
-        // In development, continue anyway
+        throw new Error('Failed to store node registration');
       }
 
       const jsonRpcResponse: JsonRpcResponse = {
@@ -249,39 +236,55 @@ async function handleBuilderHubNodeRequest(request: NextRequest): Promise<NextRe
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const validationResponse = await validateBuilderHubNodeRequest(request);
+  const { response: validationResponse, userId } = await validateBuilderHubNodeRequest(request);
 
   if (validationResponse) {
     return validationResponse;
   }
 
-  // Apply rate limiting based on user role/rank (relaxed in development)
+  if (!userId) {
+    return NextResponse.json(
+      { 
+        jsonrpc: "2.0",
+        error: {
+          code: 500,
+          message: 'Internal error: missing user ID'
+        },
+        id: 1
+      },
+      { status: 500 }
+    );
+  }
+
+  // Apply rate limiting - 3 requests per day per user in production, more lenient in development
   const isDevelopment = process.env.NODE_ENV === 'development';
-  const rateLimitHandler = rateLimit(handleBuilderHubNodeRequest, {
+  const rateLimitHandler = rateLimit((req: NextRequest) => handleBuilderHubNodeRequest(req, userId), {
     windowMs: isDevelopment ? 60 * 1000 : 24 * 60 * 60 * 1000, // 1 minute in dev, 24 hours in prod
     maxRequests: isDevelopment ? 100 : 3, // 100 per minute in dev, 3 per day in prod
-    identifier: async (req: NextRequest) => {
-      if (isDevelopment) {
-        // Use IP in development mode
-        const forwarded = req.headers.get('x-forwarded-for');
-        const ip = forwarded ? forwarded.split(',')[0] : req.headers.get('x-real-ip') || 'localhost';
-        return ip;
-      } else {
-        const session = await getAuthSession();
-        if (!session?.user?.id) {
-          throw new Error('Authentication required for rate limiting');
-        }
-        return session.user.id;
-      }
-    }
+    identifier: async () => userId // Always use the authenticated user ID for rate limiting
   });
  
   return rateLimitHandler(request);
 }
 
-// New endpoint to get the original API response for a subnet
-export async function POST(request: NextRequest): Promise<NextResponse> {
+async function handleBuilderHubApiRequest(request: NextRequest): Promise<NextResponse> {
   try {
+    // Always require authentication
+    const session = await getAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { 
+          jsonrpc: "2.0",
+          error: {
+            code: 401,
+            message: 'Authentication required'
+          },
+          id: 1
+        },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { subnetId } = body;
 
@@ -361,4 +364,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 500 }
     );
   }
+}
+
+// POST endpoint to get the original API response for a subnet with rate limiting
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  // Apply rate limiting - same as GET since both hit external API
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const rateLimitHandler = rateLimit(handleBuilderHubApiRequest, {
+    windowMs: isDevelopment ? 60 * 1000 : 60 * 60 * 1000, // 1 minute in dev, 1 hour in prod
+    maxRequests: isDevelopment ? 50 : 10, // 50 per minute in dev, 10 per hour in prod
+    identifier: async () => {
+      const session = await getAuthSession();
+      if (!session?.user?.id) {
+        throw new Error('Authentication required for rate limiting');
+      }
+      return session.user.id;
+    }
+  });
+ 
+  return rateLimitHandler(request);
 } 

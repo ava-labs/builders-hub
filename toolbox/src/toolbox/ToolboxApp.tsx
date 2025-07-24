@@ -77,28 +77,12 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         icon: <Plus className="w-4 h-4" />
       },
       {
-        id: "builderHubNode",
-        label: "Builder Hub Node Setup",
-        component: lazy(() => import('./Nodes/BuilderHubNode')),
-        fileNames: ["toolbox/src/toolbox/Nodes/BuilderHubNode.tsx"],
-        walletMode: "testnet-mainnet",
+        id: "builderHubNodes",
+        label: "Builder Hub Nodes",
+        component: lazy(() => import('./Nodes/BuilderHubNodes')),
+        fileNames: ["toolbox/src/toolbox/Nodes/BuilderHubNodes.tsx"],
+        walletMode: "l1",
         icon: <Zap className="w-4 h-4" />
-      },
-      {
-        id: "nodeStatus",
-        label: "My Builder Hub Nodes",
-        component: lazy(() => import('./Nodes/NodeStatus')),
-        fileNames: ["toolbox/src/toolbox/Nodes/NodeStatus.tsx"],
-        walletMode: "testnet-mainnet",
-        icon: <Activity className="w-4 h-4" />
-      },
-      {
-        id: 'convertToL1',
-        label: "Convert Subnet to L1",
-        component: lazy(() => import('./L1/ConvertToL1')),
-        fileNames: ["toolbox/src/toolbox/L1/ConvertToL1.tsx"],
-        walletMode: "c-chain",
-        icon: <ArrowUpDown className="w-4 h-4" />
       },
       {
         id: "avalanchegoDockerL1",

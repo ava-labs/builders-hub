@@ -14,6 +14,7 @@ interface ContainerProps {
   logoSrc?: string
   logoAlt?: string
   logoColorTheme?: ColorTheme
+  headerActions?: ReactNode
 }
 
 const colorThemeMap: Record<
@@ -117,6 +118,7 @@ export function Container({
   logoSrc = "/small-logo.png",
   logoAlt = "Logo",
   logoColorTheme = "red",
+  headerActions,
 }: ContainerProps) {
   const colorTheme = colorThemeMap[logoColorTheme] || colorThemeMap.red
 
@@ -136,25 +138,34 @@ export function Container({
     >
       {/* Header */}
       <div className="p-6 border-b border-zinc-100 dark:border-zinc-800">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <img 
-              src={logoSrc} 
-              alt={logoAlt} 
-              className="h-8 w-auto brightness-0 dark:invert transition-all duration-200" 
-            />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <img 
+                src={logoSrc} 
+                alt={logoAlt} 
+                className="h-8 w-auto brightness-0 dark:invert transition-all duration-200" 
+              />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-zinc-800 dark:text-white">{title}</h3>
+              {description && (
+                <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                  {description}
+                </div>
+              )}
+              {subDescription && (
+                <p className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">{subDescription}</p>
+              )}
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-zinc-800 dark:text-white">{title}</h3>
-            {description && (
-              <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                {description}
-              </div>
-            )}
-            {subDescription && (
-              <p className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">{subDescription}</p>
-            )}
-          </div>
+          
+          {/* Header Actions */}
+          {headerActions && (
+            <div className="flex items-center">
+              {headerActions}
+            </div>
+          )}
         </div>
       </div>
 

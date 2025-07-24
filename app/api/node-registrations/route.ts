@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
+import { rateLimit } from '@/lib/rateLimit';
 import { prisma } from '@/prisma/prisma';
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+async function handleNodeRegistrationsRequest(request: NextRequest): Promise<NextResponse> {
   try {
+    // Skip authentication in development mode for easier testing
     const isDevelopment = process.env.NODE_ENV === 'development';
-    let userId = 'dev-user-id';
-
+    let userId = 'dev-user-id'; // Default for development
+    
     if (!isDevelopment) {
       const session = await getAuthSession();
       if (!session?.user?.id) {
@@ -41,11 +43,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     } catch (dbError) {
       console.error('Database query failed:', dbError);
       if (isDevelopment) {
-        console.log('Continuing with empty list in development');
+        console.log('Continuing with empty list in development mode');
+        nodeRegistrations = [];
       } else {
         throw new Error('Failed to fetch node registrations');
       }
-      nodeRegistrations = [];
     }
 
     // Calculate time remaining for each node
@@ -96,4 +98,29 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       { status: 500 }
     );
   }
+}
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  // Apply rate limiting - more generous for read operations
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const rateLimitHandler = rateLimit(handleNodeRegistrationsRequest, {
+    windowMs: isDevelopment ? 60 * 1000 : 60 * 1000, // 1 minute window in both dev and prod
+    maxRequests: isDevelopment ? 100 : 60, // 100 per minute in dev, 60 per minute in prod
+    identifier: async (req: NextRequest) => {
+      if (isDevelopment) {
+        // Use IP in development mode for easier testing
+        const forwarded = req.headers.get('x-forwarded-for');
+        const ip = forwarded ? forwarded.split(',')[0] : req.headers.get('x-real-ip') || 'localhost';
+        return ip;
+      } else {
+        const session = await getAuthSession();
+        if (!session?.user?.id) {
+          throw new Error('Authentication required for rate limiting');
+        }
+        return session.user.id;
+      }
+    }
+  });
+ 
+  return rateLimitHandler(request);
 } 
