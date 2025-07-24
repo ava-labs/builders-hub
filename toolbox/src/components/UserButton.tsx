@@ -33,9 +33,8 @@ export function UserButton({
 
   const checkAuthStatus = async () => {
     try {
-      // Try to fetch node registrations as a way to check auth status
-      // This endpoint requires authentication and will return 401 if not logged in
-      const response = await fetch('/api/node-registrations', {
+      // Fetch user session information
+      const response = await fetch('/api/session', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -43,13 +42,14 @@ export function UserButton({
       });
 
       if (response.ok) {
-        // User is authenticated
+        // User is authenticated and we have their session info
+        const sessionData = await response.json();
         setIsAuthenticated(true);
-        // We could extract user info from other APIs, but for now we'll show a generic authenticated state
         setUserInfo({
-          id: 'user',
-          name: 'User',
-          email: 'user@example.com'
+          id: sessionData.user.id,
+          name: sessionData.user.name,
+          email: sessionData.user.email,
+          image: sessionData.user.image
         });
       } else {
         // User is not authenticated
@@ -111,7 +111,7 @@ export function UserButton({
           )}
           {showLoginText && (
             <span className="text-sm font-medium">
-              {userInfo.name || userInfo.email || 'User'}
+              {userInfo.name || userInfo.email?.split('@')[0] || 'User'}
             </span>
           )}
           <ChevronDown className="!h-4 !w-4 stroke-zinc-900 dark:stroke-white" />
@@ -123,10 +123,10 @@ export function UserButton({
             <div className="py-1">
               <div className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-600">
                 <p className="text-sm font-medium text-zinc-900 dark:text-white">
-                  {userInfo.name || 'User'}
+                  {userInfo.name || userInfo.email?.split('@')[0] || 'User'}
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {userInfo.email || 'user@example.com'}
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                  {userInfo.email}
                 </p>
               </div>
               <button
