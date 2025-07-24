@@ -1,0 +1,134 @@
+---
+title: ICM, ICM Contracts & ICTT
+description: Learn how Avalanche implements secure interoperability with ICM, ICM Contracts (Teleporter), and ICTT
+updated: 2025-07-21
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+Avalanche's Native Interoperability relies on the following technologies to achieve secure cross-chain messaging between L1 blockchains.
+
+![Interchain Messaging Layers](/common-images/avalanche-fundamentals/InterchainMessagingLayers.png)
+
+## Interchain Messaging (ICM)
+
+ICM is Avalanche's native cross-chain communication protocol that enables secure messaging between L1 blockchains without third-party intermediaries. Previously known as Avalanche Warp Messaging (AWM), ICM operates at the virtual machine level.
+
+### How ICM Works
+
+ICM provides cryptographic primitives for cross-chain communication through the warp precompile:
+
+1. **Warp Precompile**: A special precompiled contract included in every Avalanche blockchain. Unlike regular smart contracts written in Solidity, this is built-in functionality implemented directly in the node software. The precompile allows smart contracts to:
+   - Create outgoing warp messages
+   - Verify incoming warp messages with BLS signature aggregation
+   - Access validator signatures efficiently
+
+2. **Message Flow**:
+   - **Creation**: A smart contract calls the warp precompile to create an unsigned message
+   - **Event Emission**: The warp precompile emits an event
+   - **Signing**: Off-chain relayers listen for these events and aggregate validator signatures using BLS signature aggregation
+   - **Delivery**: The relayer submits the message and aggregated signature to the destination chain
+   - **Verification**: The destination chain's warp precompile verifies the signature against the source chain's validator set
+
+3. **Message Format**:
+   - Network ID (prevents cross-network replay attacks)
+   - Source blockchain ID
+   - Source address
+   - Message payload
+
+The key innovation is that ICM makes cross-chain messaging a native feature of every Avalanche L1 EVM, requiring no additional trust assumptions beyond the existing validator sets.
+
+## ICM Contracts (Teleporter Messenger)
+
+While ICM provides the low-level primitives, ICM Contracts (also known as Teleporter Messenger) built by Avalabs offer developer-friendly interfaces that abstract away the complexity of signature aggregation and other technical details.
+
+### What ICM Contracts Provide
+
+1. **Simplified Interface**: Developers don't need to interact directly with the warp precompile. Instead, they call simple functions like:
+   ```solidity
+   sendCrossChainMessage(destinationChainID, destinationAddress, message)
+   ```
+
+2. **Additional Properties**:
+   - Protection against message replay and multiple delivery
+   - Relayer incentives and fee handling
+   - Message execution capabilities
+   - Automatic message encoding/decoding
+   - Message tracking and delivery confirmation
+
+3. **Standardized Deployment**: Teleporter Messenger is deployed at the same address on all chains, making it easier for relayers and developers
+
+4. **Message Flow with Teleporter**:
+   - Smart contract calls `sendCrossChainMessage` on Teleporter
+   - Teleporter calls the warp precompile
+   - Relayer aggregates signatures and calls `receiveCrossChainMessage` on destination Teleporter
+   - Destination Teleporter verifies via warp precompile and delivers to recipient contract
+
+### Teleporter Features
+
+Teleporter Messenger provides:
+- A standard messaging interface across all Avalanche L1s
+- Built-in support for relayer fees to ensure reliable message delivery
+- Extensible design for custom applications
+- Required receiver interface for contracts to receive messages
+
+## Interchain Token Transfer (ICTT)
+
+ICTT is a standardized protocol built on top of ICM Contracts for transferring tokens between L1s. It provides a complete solution for moving assets across the Avalanche ecosystem.
+
+### How ICTT Works
+
+1. **Contract Architecture**:
+   - **Token Home**: The contract on the chain where the token originally exists
+   - **Token Remote**: Contracts on other chains that represent the token
+   - One-to-many relationship between homes and remotes
+   - Separate contracts for native tokens and ERC-20 tokens
+
+2. **Transfer Functions**:
+   - **send()**: Basic token transfer to another chain
+   - **sendAndCall()**: Transfer tokens and execute a function on the destination chain
+
+3. **Transfer Process**:
+   - **Lock/Burn**: Tokens are locked in the Token Home or burned on Token Remote
+   - **Message**: ICTT calls `sendCrossChainMessage` on Teleporter, encoding transfer details
+   - **Relay**: Off-chain relayer delivers the message
+   - **Mint/Release**: Destination contract mints wrapped tokens or releases locked tokens
+
+4. **Advanced Features**:
+   - **Send and Call**: Enables composability by allowing token transfers with arbitrary contract calls
+   - **Flexible Representations**: Tokens can be represented differently on each chain
+   - **Multi-hop Transfers**: Tokens can move between remote chains via the home chain
+
+### ICTT Benefits
+
+- **No Liquidity Pools**: Unlike traditional bridges, ICTT doesn't require liquidity providers
+- **Capital Efficient**: Only the exact transferred amount is locked
+- **Permissionless Deployment**: Anyone can deploy Token Remote contracts
+- **Fast Finality**: Transfers complete in seconds
+- **Composability**: Send and call functionality enables complex cross-chain applications
+
+## The Complete Stack
+
+The interoperability stack builds layer by layer:
+
+1. **BLS Signatures** (Foundation): Provides efficient multi-party signing
+2. **ICM with Warp Precompile** (Native Layer): Makes cross-chain messaging native to every blockchain
+3. **ICM Contracts/Teleporter** (Abstraction Layer): Simplifies development with standard interfaces and handles complexity
+4. **ICTT** (Application Layer): Enables seamless token transfers
+5. **Cross-Chain Applications**: Developers can focus on business logic using send and call
+
+
+## Summary
+
+Avalanche's interoperability solution elegantly combines:
+- **Native Support**: Cross-chain messaging built into every L1 via the warp precompile
+- **No Bridge Risk**: Uses existing validator sets for security
+- **Developer Friendly**: High-level contracts abstract complexity
+- **Composable**: Send and call enables unlimited cross-chain functionality
+- **Efficient**: BLS signature aggregation keeps costs low
+
+This architecture enables developers to build truly cross-chain applications without worrying about bridges, wrapped tokens, or complex infrastructure.
+
+For a complete understanding with hands-on examples, please complete the [Academy Interchain Messaging](/academy/interchain-messaging) course.
+
+<Quiz quizId="405"/> 
