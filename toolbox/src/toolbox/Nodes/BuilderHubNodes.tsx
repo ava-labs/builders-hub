@@ -21,7 +21,7 @@ import {
     AlertDialogHeader, 
     AlertDialogTitle 
 } from "../../components/AlertDialog";
-import { UserButtonWrapper } from "../../../../components/login/user-button/UserButtonWrapper";
+import { UserButtonWrapper } from "../../components/UserButtonWrapper";
 import { 
     RefreshCw, 
     Copy, 

@@ -2,7 +2,7 @@
 import { useWalletStore } from "../../stores/walletStore";
 import { CChainFaucetButton } from "../../components/ConnectWallet/CChainFaucetButton";
 import { PChainFaucetButton } from "../../components/ConnectWallet/PChainFaucetButton";
-import { UserButtonWrapper } from "../../../../components/login/user-button/UserButtonWrapper";
+import { UserButtonWrapper } from "../../components/UserButtonWrapper";
 import { Droplets, ChevronRight, Layers, UserCheck, Coins, BookOpen, Sparkles, AlertCircle, ExternalLink } from "lucide-react";
 
 interface QuickLinkCardProps {
