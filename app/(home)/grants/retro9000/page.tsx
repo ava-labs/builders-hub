@@ -1443,7 +1443,9 @@ export default function Retro9000ApplicationForm() {
                                 </label>
                               </div>
                               {field.value?.includes(type) &&
-                                type !== "No Funding" && (
+                                type !== "No Funding" &&
+                                type !== "Self-Funding" &&
+                                type !== "Family & Friends" && (
                                   <div className="mt-2 pl-6">
                                     <FormField
                                       control={form.control}
