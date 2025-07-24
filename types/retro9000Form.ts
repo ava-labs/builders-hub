@@ -384,7 +384,7 @@ export const formSchema = z.object({
   program_referral_check: z.string().min(1, "Referral selection is required"),
   program_referrer: z.string().optional(),
 
-  kyb_willing: z.string().min(1, "KYB willingness is required"),
+  willing_to_kyb_: z.string().min(1, "KYB willingness is required"),
   gdpr: z.boolean().refine((val) => val === true, "You must agree to the privacy policy."),
   marketing_consent: z.boolean().optional(),
 }).refine((data) => {

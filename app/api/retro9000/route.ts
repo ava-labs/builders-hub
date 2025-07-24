@@ -153,7 +153,7 @@ export async function POST(request: Request) {
       "program_referral_check": ["2-44649732/program_referral_check"],
       "program_referrer": ["2-44649732/program_referrer"],
 
-      "kyb_willing": ["kyb_willing"],
+      "willing_to_kyb_": ["willing_to_kyb_"],
       "gdpr": ["gdpr"],
       "marketing_consent": ["marketing_consent"]
     };
