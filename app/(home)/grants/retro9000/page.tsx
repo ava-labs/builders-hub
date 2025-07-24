@@ -107,10 +107,13 @@ export default function Retro9000ApplicationForm() {
   const [showGrantSource, setShowGrantSource] = useState<boolean>(false);
   const [showRetro9000Changes, setShowRetro9000Changes] =
     useState<boolean>(false);
+  const [showCompanyTypeOther, setShowCompanyTypeOther] =
+    useState<boolean>(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      project_name: "Temporary",
       project: "",
       project_type: "",
       project_vertical: "",
@@ -121,6 +124,7 @@ export default function Retro9000ApplicationForm() {
       risks_challenges: "",
       project_company_github: "",
       company_type: "",
+      company_type_other: "",
       project_company_hq: "",
       project_company_continent: "",
       media_kit: "",
@@ -170,26 +174,22 @@ export default function Retro9000ApplicationForm() {
       team_size: "",
       team_member_1_first_name: "",
       team_member_1_last_name: "",
-      team_member_1_pseudonym: "",
       team_member_1_email: "",
       job_role_team_member_1: "",
       team_member_1_x_account: "",
       team_member_1_telegram: "",
       team_member_1_linkedin: "",
       team_member_1_github: "",
-      team_member_1_country: "",
       team_member_1_other: "",
       team_member_1_bio: "",
       team_member_2_first_name: "",
       team_member_2_last_name: "",
-      team_member_2_pseudonym: "",
       team_member_2_email: "",
       job_role_team_member_2: "",
       team_member_2_x_account: "",
       team_member_2_telegram: "",
       team_member_2_linkedin: "",
       team_member_2_github: "",
-      team_member_2_country: "",
       team_member_2_other: "",
       team_member_2_bio: "",
       avalanche_grant_source: "",
@@ -213,6 +213,7 @@ export default function Retro9000ApplicationForm() {
   const watchGrantSource = form.watch("avalanche_grant_source");
   const watchReferralCheck = form.watch("program_referral_check");
   const watchPreviousRetro9000 = form.watch("previous_retro9000_funding");
+  const watchCompanyType = form.watch("company_type");
 
   useEffect(() => {
     setShowTeamMembers(watchTeamSize !== "1" && watchTeamSize !== "");
@@ -232,6 +233,7 @@ export default function Retro9000ApplicationForm() {
     setShowCompetitors(watchDirectCompetitorCheck === "Yes");
     setShowTokenLaunchDetails(watchTokenLaunchCheck === "No");
     setShowReferrer(watchReferralCheck === "Yes");
+    setShowCompanyTypeOther(watchCompanyType === "Other");
   }, [
     watchTeamSize,
     watchProjectVertical,
@@ -246,6 +248,7 @@ export default function Retro9000ApplicationForm() {
     watchGrantSource,
     watchReferralCheck,
     watchPreviousRetro9000,
+    watchCompanyType,
   ]);
 
   async function onSubmit(values: FormValues) {
@@ -540,23 +543,20 @@ export default function Retro9000ApplicationForm() {
                   />
                   <FormField
                     control={form.control}
-                    name="other_resources"
+                    name="applicant_bio"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                          Other Resource(s)
+                          Bio <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormDescription className="text-sm text-slate-500 dark:text-slate-400">
-                          Share any additional links that support your
-                          application. This could include portfolios, websites,
-                          media coverage, case studies, or anything else that
-                          helps illustrate your work or impact.
+                          100 words limit
                         </FormDescription>
                         <FormControl>
                           <div className="relative">
-                            <Link className="absolute left-4 top-4 w-5 h-5 text-slate-400 dark:text-slate-500" />
+                            <BookUser className="absolute left-4 top-4 w-5 h-5 text-slate-400 dark:text-slate-500" />
                             <Textarea
-                              placeholder="Add any relevant links such as portfolios, websites, media coverage, case studies, etc."
+                              placeholder="Provide a brief bio, including your background and experience"
                               className="pl-12 pt-4 min-h-[120px] text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
                               {...field}
                             />
@@ -676,20 +676,23 @@ export default function Retro9000ApplicationForm() {
                   />
                   <FormField
                     control={form.control}
-                    name="applicant_bio"
+                    name="other_resources"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                          Bio <span className="text-red-500">*</span>
+                          Other Resource(s)
                         </FormLabel>
                         <FormDescription className="text-sm text-slate-500 dark:text-slate-400">
-                          100 words limit
+                          Share any additional links that support your
+                          application. This could include portfolios, websites,
+                          media coverage, case studies, or anything else that
+                          helps illustrate your work or impact.
                         </FormDescription>
                         <FormControl>
                           <div className="relative">
-                            <BookUser className="absolute left-4 top-4 w-5 h-5 text-slate-400 dark:text-slate-500" />
+                            <Link className="absolute left-4 top-4 w-5 h-5 text-slate-400 dark:text-slate-500" />
                             <Textarea
-                              placeholder="Provide a brief bio, including your background and experience"
+                              placeholder="Add any relevant links such as portfolios, websites, media coverage, case studies, etc."
                               className="pl-12 pt-4 min-h-[120px] text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
                               {...field}
                             />
@@ -711,6 +714,19 @@ export default function Retro9000ApplicationForm() {
                   subtitle="Tell us about your project"
                 />
                 <div className="space-y-8">
+                  {/* Hidden field for project name */}
+                  <FormField
+                    control={form.control}
+                    name="project_name"
+                    render={({ field }) => (
+                      <FormItem style={{ display: "none" }}>
+                        <FormControl>
+                          <Input type="hidden" {...field} value="Temporary" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="project"
@@ -741,7 +757,8 @@ export default function Retro9000ApplicationForm() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                          Project Type <span className="text-red-500">*</span>
+                          Project/Company Type{" "}
+                          <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
                           <RadioGroup
@@ -788,7 +805,7 @@ export default function Retro9000ApplicationForm() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                          Project Vertical
+                          Project/Company Vertical
                         </FormLabel>
                         <Select
                           onValueChange={(value) => {
@@ -997,11 +1014,15 @@ export default function Retro9000ApplicationForm() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                          Company Type <span className="text-red-500">*</span>
+                          Project/Company Type{" "}
+                          <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
                           <RadioGroup
-                            onValueChange={field.onChange}
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              setShowCompanyTypeOther(value === "Other");
+                            }}
                             defaultValue={field.value}
                             className="flex flex-col space-y-3"
                           >
@@ -1115,6 +1136,32 @@ export default function Retro9000ApplicationForm() {
                       </FormItem>
                     )}
                   />
+
+                  {showCompanyTypeOther && (
+                    <FormField
+                      control={form.control}
+                      name="company_type_other"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
+                            How would you classify your business?{" "}
+                            <span className="text-red-500">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Info className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
+                              <Input
+                                className="pl-12 h-14 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                placeholder="Please specify your company type"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage className="text-red-500 dark:text-red-400" />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <FormField
                     control={form.control}
@@ -1312,23 +1359,42 @@ export default function Retro9000ApplicationForm() {
                                     render={({ field: amountField }) => (
                                       <FormItem>
                                         <FormLabel className="text-xs text-slate-500 dark:text-slate-400">
-                                          Amount for {type}
+                                          {type === "Other"
+                                            ? "Share the name of the funding entity and amount funded."
+                                            : `Amount for ${type}`}
                                         </FormLabel>
                                         <FormControl>
-                                          <div className="relative">
-                                            <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
-                                            <Input
-                                              className="pl-9 h-10 text-sm border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-md"
-                                              placeholder="Enter amount in USD"
-                                              {...amountField}
-                                              value={
-                                                typeof amountField.value ===
-                                                "string"
-                                                  ? amountField.value
-                                                  : ""
-                                              }
-                                            />
-                                          </div>
+                                          {type === "Other" ? (
+                                            <div className="relative">
+                                              <FileText className="absolute left-3 top-3 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                                              <Textarea
+                                                className="pl-9 pt-3 min-h-[80px] text-sm border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-md resize-none"
+                                                placeholder="Share the name of the funding entity and amount funded"
+                                                {...amountField}
+                                                value={
+                                                  typeof amountField.value ===
+                                                  "string"
+                                                    ? amountField.value
+                                                    : ""
+                                                }
+                                              />
+                                            </div>
+                                          ) : (
+                                            <div className="relative">
+                                              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                                              <Input
+                                                className="pl-9 h-10 text-sm border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-md"
+                                                placeholder="Enter amount in USD"
+                                                {...amountField}
+                                                value={
+                                                  typeof amountField.value ===
+                                                  "string"
+                                                    ? amountField.value
+                                                    : ""
+                                                }
+                                              />
+                                            </div>
+                                          )}
                                         </FormControl>
                                         <FormMessage className="text-red-500 dark:text-red-400" />
                                       </FormItem>
@@ -1639,7 +1705,7 @@ export default function Retro9000ApplicationForm() {
                               <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
                               <Input
                                 className="pl-12 h-14 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                placeholder="e.g., $50,000"
+                                placeholder="e.g. 50,000"
                                 {...field}
                               />
                             </div>
@@ -2120,7 +2186,7 @@ export default function Retro9000ApplicationForm() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                                L1 Project Name 1{" "}
+                                Avalanche L1 / Project Name 1{" "}
                                 <span className="text-red-500">*</span>
                               </FormLabel>
                               <FormControl>
@@ -2128,7 +2194,7 @@ export default function Retro9000ApplicationForm() {
                                   <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
                                   <Input
                                     className="pl-12 h-14 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                    placeholder="Enter L1 project name"
+                                    placeholder="Enter Avalanche L1 / Project name"
                                     {...field}
                                   />
                                 </div>
@@ -2143,7 +2209,7 @@ export default function Retro9000ApplicationForm() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                                L1 Project Website 1
+                                Avalanche L1 / Project Website 1
                               </FormLabel>
                               <FormControl>
                                 <div className="relative">
@@ -2167,14 +2233,14 @@ export default function Retro9000ApplicationForm() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                                L1 Project Name 2
+                                Avalanche L1 / Project Name 2
                               </FormLabel>
                               <FormControl>
                                 <div className="relative">
                                   <Building2 className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
                                   <Input
                                     className="pl-12 h-14 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                    placeholder="Enter L1 project name"
+                                    placeholder="Enter Avalanche L1 / Project name"
                                     {...field}
                                   />
                                 </div>
@@ -2189,7 +2255,7 @@ export default function Retro9000ApplicationForm() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                                L1 Project Website 2
+                                Avalanche L1 / Project Website 2
                               </FormLabel>
                               <FormControl>
                                 <div className="relative">
@@ -2778,68 +2844,6 @@ export default function Retro9000ApplicationForm() {
 
                           <FormField
                             control={form.control}
-                            name="team_member_1_pseudonym"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                                  Pseudonym
-                                </FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
-                                    <Input
-                                      className="pl-12 h-14 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                      placeholder="Pseudonym (optional)"
-                                      {...field}
-                                      value={
-                                        typeof field.value === "string"
-                                          ? field.value
-                                          : ""
-                                      }
-                                    />
-                                  </div>
-                                </FormControl>
-                                <FormMessage className="text-red-500 dark:text-red-400" />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="job_role_team_member_1"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                                  Role <span className="text-red-500">*</span>
-                                </FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className="h-14 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
-                                      <SelectValue placeholder="Select job role" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl shadow-xl">
-                                    {jobRoles.map((role) => (
-                                      <SelectItem
-                                        key={role}
-                                        value={role}
-                                        className="text-slate-700 dark:text-slate-300 py-3"
-                                      >
-                                        {role}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage className="text-red-500 dark:text-red-400" />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
                             name="team_member_1_email"
                             render={({ field }) => (
                               <FormItem>
@@ -2962,44 +2966,6 @@ export default function Retro9000ApplicationForm() {
 
                           <FormField
                             control={form.control}
-                            name="team_member_1_country"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                                  Country
-                                </FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  defaultValue={
-                                    typeof field.value === "string"
-                                      ? field.value
-                                      : ""
-                                  }
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className="h-14 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
-                                      <SelectValue placeholder="Select country" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl shadow-xl">
-                                    {countries.map((country) => (
-                                      <SelectItem
-                                        key={country}
-                                        value={country}
-                                        className="text-slate-700 dark:text-slate-300 py-3"
-                                      >
-                                        {country}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage className="text-red-500 dark:text-red-400" />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
                             name="team_member_1_other"
                             render={({ field }) => (
                               <FormItem>
@@ -3102,68 +3068,6 @@ export default function Retro9000ApplicationForm() {
                               )}
                             />
                           </div>
-
-                          <FormField
-                            control={form.control}
-                            name="team_member_2_pseudonym"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                                  Pseudonym
-                                </FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
-                                    <Input
-                                      className="pl-12 h-14 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                      placeholder="Pseudonym (optional)"
-                                      {...field}
-                                      value={
-                                        typeof field.value === "string"
-                                          ? field.value
-                                          : ""
-                                      }
-                                    />
-                                  </div>
-                                </FormControl>
-                                <FormMessage className="text-red-500 dark:text-red-400" />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="job_role_team_member_2"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                                  Role
-                                </FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className="h-14 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
-                                      <SelectValue placeholder="Select job role" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl shadow-xl">
-                                    {jobRoles.map((role) => (
-                                      <SelectItem
-                                        key={role}
-                                        value={role}
-                                        className="text-slate-700 dark:text-slate-300 py-3"
-                                      >
-                                        {role}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage className="text-red-500 dark:text-red-400" />
-                              </FormItem>
-                            )}
-                          />
 
                           <FormField
                             control={form.control}
@@ -3281,44 +3185,6 @@ export default function Retro9000ApplicationForm() {
                                     />
                                   </div>
                                 </FormControl>
-                                <FormMessage className="text-red-500 dark:text-red-400" />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="team_member_2_country"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-slate-700 dark:text-slate-300 font-medium text-base">
-                                  Country
-                                </FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  defaultValue={
-                                    typeof field.value === "string"
-                                      ? field.value
-                                      : ""
-                                  }
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className="h-14 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
-                                      <SelectValue placeholder="Select country" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl shadow-xl">
-                                    {countries.map((country) => (
-                                      <SelectItem
-                                        key={country}
-                                        value={country}
-                                        className="text-slate-700 dark:text-slate-300 py-3"
-                                      >
-                                        {country}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
                                 <FormMessage className="text-red-500 dark:text-red-400" />
                               </FormItem>
                             )}
