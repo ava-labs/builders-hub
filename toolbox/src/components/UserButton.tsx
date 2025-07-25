@@ -164,7 +164,7 @@ export function UserButton({
       size={showLoginText ? "default" : "sm"}
       onClick={handleLogin}
       className={showLoginText 
-        ? "h-10 ml-4 cursor-pointer px-4 py-2 w-auto" 
+        ? "h-10 ml-4 cursor-pointer px-2 py-2 w-auto" 
         : "rounded-full h-10 w-10 ml-4 cursor-pointer p-0 w-auto"
       }
     >

@@ -21,7 +21,6 @@ import {
     AlertDialogHeader, 
     AlertDialogTitle 
 } from "../../components/AlertDialog";
-import { UserButtonWrapper } from "../../components/UserButtonWrapper";
 import { 
     RefreshCw, 
     Copy, 
@@ -80,8 +79,7 @@ export default function BuilderHubNodes() {
     const { avalancheNetworkID, isTestnet } = useWalletStore();
     const { addL1 } = useL1ListStore()();
 
-    // Tab state
-    const [activeTab, setActiveTab] = useState<"create" | "manage">("create");
+    // Remove tab state since we're combining everything into one view
     
     // Shared state
     const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
@@ -110,43 +108,14 @@ export default function BuilderHubNodes() {
     const [loadingApiResponses, setLoadingApiResponses] = useState<Set<string>>(new Set());
     const [connectWalletModalNodeId, setConnectWalletModalNodeId] = useState<string | null>(null);
 
+    // Show create form state
+    const [showCreateForm, setShowCreateForm] = useState(false);
+
     const handleLogin = () => {
         window.location.href = "/login";
     };
 
-    // Tab navigation component
-    const TabNavigation = () => (
-        <div className="border-b border-zinc-200 dark:border-zinc-800 mb-6">
-            <div className="flex -mb-px">
-                <button
-                    onClick={() => setActiveTab("create")}
-                    className={`py-3 px-6 font-medium transition-colors ${
-                        activeTab === "create"
-                            ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400"
-                            : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
-                    }`}
-                >
-                    <div className="flex items-center gap-2">
-                        <Plus className="w-4 h-4" />
-                        Create Node
-                    </div>
-                </button>
-                <button
-                    onClick={() => setActiveTab("manage")}
-                    className={`py-3 px-6 font-medium transition-colors ${
-                        activeTab === "manage"
-                            ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400"
-                            : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
-                    }`}
-                >
-                    <div className="flex items-center gap-2">
-                        <List className="w-4 h-4" />
-                        Manage Nodes
-                    </div>
-                </button>
-            </div>
-        </div>
-    );
+    // Remove TabNavigation component since we don't need it anymore
 
     // Create node logic
     useEffect(() => {
@@ -239,8 +208,8 @@ export default function BuilderHubNodes() {
                 console.log('Builder Hub registration successful:', data.result);
                 setRegistrationResponse(data.result);
                 setFullApiResponse(data);
-                // Switch to manage tab and refresh nodes
-                setActiveTab("manage");
+                // Hide create form and refresh nodes
+                setShowCreateForm(false);
                 fetchNodes();
             } else {
                 throw new Error('Unexpected response format');
@@ -279,6 +248,7 @@ export default function BuilderHubNodes() {
         setAlertDialogTitle("Error");
         setAlertDialogMessage("");
         setIsLoginError(false);
+        setShowCreateForm(false);
     };
 
     // Manage nodes logic
@@ -413,12 +383,10 @@ export default function BuilderHubNodes() {
         }
     };
 
-    // Load nodes when manage tab is active
+    // Load nodes when component mounts
     useEffect(() => {
-        if (activeTab === "manage") {
-            fetchNodes();
-        }
-    }, [activeTab]);
+        fetchNodes();
+    }, []);
 
     const rpcUrl = selectedBlockchainId 
         ? `https://multinode-experimental.solokhin.com/ext/bc/${selectedBlockchainId}/rpc`
@@ -428,8 +396,8 @@ export default function BuilderHubNodes() {
     if (!isTestnet) {
         return (
             <Container
-                title="Builder Hub Nodes"
-                description="Create and manage nodes for your L1s with Builder Hub's managed node infrastructure."
+                title="Hosted L1 Testnet Nodes"
+                description="We recommend using cloud-hosted Avalanche nodes with open ports for testing, as running a node locally can be challenging and may introduce security risks when configuring the required ports. To simplify the process, the Avalanche Builder Hub provides free access to hosted testnet nodes, allowing developers to quickly experiment without managing their own infrastructure. This service is completely free to use, but you'll need to create an Avalanche Builder Account to get started."
             >
                 <div className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 rounded-2xl p-8 text-center">
                     <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
@@ -474,192 +442,167 @@ export default function BuilderHubNodes() {
             </AlertDialog>
 
             <Container
-                title="Builder Hub Nodes"
-                description="Create and manage nodes for your L1s with Builder Hub's managed node infrastructure to get instant RPC access."
-                headerActions={<UserButtonWrapper showLoginText={true} />}
+                title="Hosted L1 Testnet Nodes"
+                description="Free cloud-hosted Avalanche nodes for testing. Create an Avalanche Builder Account to get started."
             >
-                <TabNavigation />
+                {/* Stats Section */}
+                <div className="mb-8 not-prose">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-1">
+                                Layer 1 Nodes
+                            </h2>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                {nodes.length} / 3 active nodes
+                            </p>
+                        </div>
+                        <Button 
+                            onClick={() => setShowCreateForm(true)}
+                            className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 !w-auto"
+                            size="sm"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add a node for a new L1
+                        </Button>
+                    </div>
+                </div>
 
-                {activeTab === "create" ? (
-                    <div>
-                        <Steps>
-                            <Step>
-                                <h3 className="text-xl font-bold mb-4">Select Subnet ID</h3>
-                                <p>Enter the Subnet ID of the blockchain you want to create a node for.</p>
+                {/* Create Node Form */}
+                {showCreateForm && (
+                    <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6 not-prose">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold">Create New Node</h3>
+                            <Button
+                                onClick={() => setShowCreateForm(false)}
+                                variant="outline"
+                                size="sm"
+                                className="!w-auto"
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                        <p className="mb-4">Enter the Subnet ID of the blockchain you want to create a node for.</p>
 
-                                <InputSubnetId
-                                    value={subnetId}
-                                    onChange={setSubnetId}
-                                    error={subnetIdError}
-                                />
+                        <InputSubnetId
+                            value={subnetId}
+                            onChange={setSubnetId}
+                            error={subnetIdError}
+                        />
 
-                                {subnet && subnet.blockchains && subnet.blockchains.length > 0 && (
-                                    <div className="space-y-4">
-                                        {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string; createBlockTimestamp: number; createBlockNumber: string; vmId: string; subnetId: string; evmChainId: number }) => (
-                                            <BlockchainDetailsDisplay
-                                                key={blockchain.blockchainId}
-                                                blockchain={{
-                                                    ...blockchain,
-                                                    isTestnet: avalancheNetworkID === networkIDs.FujiID
-                                                }}
-                                                isLoading={isLoading}
-                                                customTitle={`${blockchain.blockchainName} Blockchain Details`}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                            </Step>
-
-                            {subnetId && blockchainInfo && (
-                                <Step>
-                                    <h3 className="text-xl font-bold mb-4">Create Node</h3>
-                                    <p>Create a node for your subnet with Builder Hub's managed node infrastructure to get instant RPC access.</p>
-
-                                    {!registrationResponse && (
-                                        <Button 
-                                            onClick={handleRegisterSubnet}
-                                            loading={isRegistering}
-                                            className="mt-4"
-                                        >
-                                            Create Node
-                                        </Button>
-                                    )}
-
-                                    {registrationResponse && (
-                                        <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                                            <div className="flex items-center">
-                                                <div className="flex-shrink-0">
-                                                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                    </svg>
-                                                </div>
-                                                <div className="ml-3">
-                                                    <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                                                        Registration Successful
-                                                    </p>
-                                                    <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                                                        Your subnet has been registered with Builder Hub!
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="mt-4 space-y-3">
-                                                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">RPC URL:</p>
-                                                    <code className="text-sm bg-white dark:bg-gray-900 px-2 py-1 rounded border font-mono text-blue-600 dark:text-blue-400 break-all">
-                                                        {rpcUrl}
-                                                    </code>
-                                                </div>
-                                                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">info.getNodeID response:</p>
-                                                    <pre className="text-xs bg-white dark:bg-gray-900 px-3 py-2 rounded border font-mono text-gray-600 dark:text-gray-400 overflow-auto max-h-48">
-                                                        {JSON.stringify(fullApiResponse, null, 2)}
-                                                    </pre>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </Step>
-                            )}
-
-                            {registrationResponse && selectedBlockchainId && (
-                                <Step>
-                                    <AddToWalletStep
-                                        chainId={selectedBlockchainId}
-                                        domain="multinode-experimental.solokhin.com"
-                                        nodeRunningMode="server"
-                                        onChainAdded={setChainAddedToWallet}
+                        {subnet && subnet.blockchains && subnet.blockchains.length > 0 && (
+                            <div className="space-y-4 mt-4">
+                                {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string; createBlockTimestamp: number; createBlockNumber: string; vmId: string; subnetId: string; evmChainId: number }) => (
+                                    <BlockchainDetailsDisplay
+                                        key={blockchain.blockchainId}
+                                        blockchain={{
+                                            ...blockchain,
+                                            isTestnet: avalancheNetworkID === networkIDs.FujiID
+                                        }}
+                                        isLoading={isLoading}
+                                        customTitle={`${blockchain.blockchainName} Blockchain Details`}
                                     />
-                                </Step>
-                            )}
-                        </Steps>
-
-                        {chainAddedToWallet && (
-                            <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0">
-                                        <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <div className="ml-3 flex-1">
-                                        <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                                            Setup Complete!
-                                        </p>
-                                        <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                                            Chain "{chainAddedToWallet}" has been added to your wallet successfully.
-                                        </p>
-                                    </div>
-                                    <div className="ml-4 flex gap-2">
-                                        <Button 
-                                            onClick={handleReset} 
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-green-700 border-green-300 hover:bg-green-100 dark:text-green-300 dark:border-green-600 dark:hover:bg-green-800"
-                                        >
-                                            Start Over
-                                        </Button>
-                                        <Button 
-                                            onClick={() => setActiveTab("manage")} 
-                                            size="sm"
-                                            className="bg-green-600 hover:bg-green-700 text-white"
-                                        >
-                                            View All Nodes
-                                        </Button>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
+                        )}
+
+                        {subnetId && blockchainInfo && (
+                            <Button 
+                                onClick={handleRegisterSubnet}
+                                loading={isRegistering}
+                                className="mt-4 !w-auto"
+                            >
+                                Create Node
+                            </Button>
                         )}
                     </div>
-                ) : (
-                    <div>
-                        {/* Header with Refresh */}
-                        <div className="flex justify-between items-center mb-4">
-                            <button
-                                onClick={fetchNodes}
-                                disabled={isLoadingNodes}
-                                className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 text-xs font-medium text-gray-700 dark:text-gray-300"
-                                title="Refresh nodes"
-                            >
-                                <RefreshCw className={`w-3 h-3 ${isLoadingNodes ? 'animate-spin' : ''}`} />
-                                Refresh
-                            </button>
-                        </div>
+                )}
 
-                        {nodesError && (
-                            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 flex items-start gap-2">
-                                <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                                <div>
-                                    <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error Loading Nodes</h3>
-                                    <p className="text-sm text-red-700 dark:text-red-300">{nodesError}</p>
-                                </div>
+                {/* Success Message */}
+                {registrationResponse && (
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 p-6 mb-6 not-prose">
+                        <div className="flex items-center mb-4">
+                            <div className="flex-shrink-0">
+                                <svg className="h-8 w-8 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
                             </div>
-                        )}
-
-                        {isLoadingNodes ? (
-                            <div className="text-center py-12">
-                                <div className="inline-flex items-center justify-center w-8 h-8 mb-3">
-                                    <div className="w-5 h-5 animate-spin rounded-full border-2 border-solid border-gray-300 border-r-transparent"></div>
-                                </div>
-                                <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">Loading Nodes</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Fetching your node registrations...</p>
-                            </div>
-                        ) : nodes.length === 0 ? (
-                            <div className="text-center py-12">
-                                <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg mb-4">
-                                    <Server className="w-6 h-6 text-gray-400" />
-                                </div>
-                                <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2">No Nodes Found</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-md mx-auto">
-                                    You haven't registered any nodes yet. Create your first node registration to get started.
+                            <div className="ml-3">
+                                <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
+                                    Node Created Successfully!
+                                </h3>
+                                <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                                    Your subnet has been registered with Builder Hub and your node is now running.
                                 </p>
-                                <Button
-                                    onClick={() => setActiveTab("create")}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white"
-                                >
-                                    Create Your First Node
-                                </Button>
                             </div>
-                        ) : (
+                        </div>
+                        <div className="flex gap-3">
+                            <Button 
+                                onClick={handleReset}
+                                variant="outline"
+                                size="sm"
+                                className="text-green-700 border-green-300 hover:bg-green-100 dark:text-green-300 dark:border-green-600 dark:hover:bg-green-800 !w-auto"
+                            >
+                                Create Another Node
+                            </Button>
+                            <Button 
+                                onClick={() => setRegistrationResponse(null)}
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white !w-auto"
+                            >
+                                Close
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Empty State or Nodes List */}
+                <div className="not-prose">
+                    {isLoadingNodes ? (
+                        <div className="text-center py-12">
+                            <div className="inline-flex items-center justify-center w-8 h-8 mb-3">
+                                <div className="w-5 h-5 animate-spin rounded-full border-2 border-solid border-gray-300 border-r-transparent"></div>
+                            </div>
+                            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">Loading Nodes</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Fetching your node registrations...</p>
+                        </div>
+                    ) : nodes.length === 0 ? (
+                        <div className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl p-12 text-center">
+                            <h3 className="text-lg font-medium text-zinc-900 dark:text-white mb-2">
+                                You don't have any hosted Nodes set up
+                            </h3>
+                            <Button 
+                                onClick={() => setShowCreateForm(true)}
+                                className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 !w-auto inline-flex"
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Set Up your first hosted node
+                            </Button>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Header with Refresh */}
+                            <div className="flex justify-between items-center mb-4">
+                                <button
+                                    onClick={fetchNodes}
+                                    disabled={isLoadingNodes}
+                                    className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 text-xs font-medium text-gray-700 dark:text-gray-300"
+                                    title="Refresh nodes"
+                                >
+                                    <RefreshCw className={`w-3 h-3 ${isLoadingNodes ? 'animate-spin' : ''}`} />
+                                    Refresh
+                                </button>
+                            </div>
+
+                            {nodesError && (
+                                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 flex items-start gap-2">
+                                    <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error Loading Nodes</h3>
+                                        <p className="text-sm text-red-700 dark:text-red-300">{nodesError}</p>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="space-y-4">
                                 {nodes.map((node) => {
                                     const statusData = getStatusData(node.time_remaining);
@@ -844,9 +787,9 @@ export default function BuilderHubNodes() {
                                     );
                                 })}
                             </div>
-                        )}
-                    </div>
-                )}
+                        </>
+                    )}
+                </div>
             </Container>
 
             {/* Connect Wallet Modal */}
