@@ -7,9 +7,7 @@ import { Container } from "../../components/Container";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputSubnetId from "../../components/InputSubnetId";
 import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
-import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Button } from "../../components/Button";
-import { AddToWalletStep } from "../../components/AddToWalletStep";
 import { AddChainModal } from "../../components/ConnectWallet/AddChainModal";
 import { useL1ListStore } from "../../stores/l1ListStore";
 import { 
@@ -32,7 +30,6 @@ import {
     ChevronDown,
     ChevronUp,
     Plus,
-    List,
     X,
     Wallet,
 } from "lucide-react";
@@ -95,8 +92,8 @@ export default function BuilderHubNodes() {
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
     const [isRegistering, setIsRegistering] = useState(false);
     const [registrationResponse, setRegistrationResponse] = useState<RegisterSubnetResponse | null>(null);
-    const [fullApiResponse, setFullApiResponse] = useState<any>(null);
-    const [chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
+    const [_fullApiResponse, setFullApiResponse] = useState<any>(null);
+    const [_chainAddedToWallet, setChainAddedToWallet] = useState<string | null>(null);
     const [selectedBlockchainId, setSelectedBlockchainId] = useState<string>("");
 
     // Manage nodes state
@@ -387,10 +384,6 @@ export default function BuilderHubNodes() {
     useEffect(() => {
         fetchNodes();
     }, []);
-
-    const rpcUrl = selectedBlockchainId 
-        ? `https://multinode-experimental.solokhin.com/ext/bc/${selectedBlockchainId}/rpc`
-        : "";
 
     // If not on testnet, show disabled message
     if (!isTestnet) {
