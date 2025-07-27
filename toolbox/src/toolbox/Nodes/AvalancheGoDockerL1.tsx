@@ -253,6 +253,18 @@ export default function AvalanchegoDocker() {
 
                                 <DynamicCodeBlock lang="bash" code={rpcCommand} />
 
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                    For advanced node configuration options, see the{" "}
+                                    <a
+                                        href="https://build.avax.network/docs/nodes/configure/configs-flags"
+                                        target="_blank"
+                                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                                        rel="noreferrer"
+                                    >
+                                        AvalancheGo configuration flags documentation
+                                    </a>.
+                                </p>
+
                                 {isCustomVM && (
                                     <Accordions type="single" className="mt-4">
                                         <Accordion title="Custom VM Configuration">

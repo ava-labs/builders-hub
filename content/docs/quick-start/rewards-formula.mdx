@@ -7,12 +7,10 @@ description: Learn about the rewards formula for the Avalanche Primary Network v
 
 Consider a Primary Network validator which stakes a $Stake$ amount of `AVAX` for $StakingPeriod$ seconds.
 
-At the start of the staking period there is a $Supply$ amount of `AVAX` in the network. The maximum amount of `AVAX` is $MaximumSupply$.
-
-Then at the end of its staking period, a responsive Primary Network validator receives a reward calculated as follows:
+The potential reward is calculated **at the beginning of the staking period**. At the beginning of the staking period there is a $Supply$ amount of `AVAX` in the network. The maximum amount of `AVAX` is $MaximumSupply$. At the end of its staking period, a responsive Primary Network validator receives a reward.
 
 $$
-Reward = \left(MaximumSupply - Supply \right) \times \frac{Stake}{Supply} \times \frac{Staking Period}{Minting Period} \times EffectiveConsumptionRate
+Potential Reward = \left(MaximumSupply - Supply \right) \times \frac{Stake}{Supply} \times \frac{Staking Period}{Minting Period} \times EffectiveConsumptionRate
 $$
 
 where,
