@@ -1,6 +1,7 @@
 import { defineConfig, ConfigEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { execSync } from 'child_process'
+import path from 'path'
 
 // https://vite.dev/config/
 export default ({ mode }: ConfigEnv) => {
@@ -22,6 +23,7 @@ export default ({ mode }: ConfigEnv) => {
     },
     resolve: {
       alias: {
+        '@': path.resolve(__dirname, './src'),
         buffer: 'buffer',
         process: 'process/browser',
         util: 'util',

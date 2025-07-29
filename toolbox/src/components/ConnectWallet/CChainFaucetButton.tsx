@@ -1,14 +1,6 @@
 "use client";
 import { useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../AlertDialog";
+// Temporarily using simple alerts instead of AlertDialog for compatibility
 import { useWalletStore } from "../../stores/walletStore";
 
 const LOW_BALANCE_THRESHOLD = 1;
@@ -24,10 +16,7 @@ export const CChainFaucetButton = ({ className, buttonProps, children }: CChainF
     useWalletStore();
 
   const [isRequestingCTokens, setIsRequestingCTokens] = useState(false);
-  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
-  const [alertDialogTitle, setAlertDialogTitle] = useState("Error");
-  const [alertDialogMessage, setAlertDialogMessage] = useState("");
-  const [isLoginError, setIsLoginError] = useState(false);
+  // Simplified alert handling
   const handleLogin = () => {
     window.location.href = "/login";
   };
@@ -65,6 +54,7 @@ export const CChainFaucetButton = ({ className, buttonProps, children }: CChainF
 
       if (data.success) {
         console.log("C-Chain token request successful, txHash:", data.txHash);
+        alert("Success! 2 AVAX tokens have been sent to your C-Chain address. Your balance will update shortly.");
         setTimeout(() => updateCChainBalance(), 3000);
       } else {
         throw new Error(data.message || "Failed to get tokens");
@@ -74,17 +64,10 @@ export const CChainFaucetButton = ({ className, buttonProps, children }: CChainF
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       if (errorMessage.includes("login") || errorMessage.includes("401")) {
-        setAlertDialogTitle("Authentication Required");
-        setAlertDialogMessage(
-          "You need to be logged in to request free tokens from the C-Chain Faucet."
-        );
-        setIsLoginError(true);
-        setIsAlertDialogOpen(true);
+        alert("Authentication Required: You need to be logged in to request free tokens from the C-Chain Faucet.");
+        handleLogin();
       } else {
-        setAlertDialogTitle("Faucet Request Failed");
-        setAlertDialogMessage(errorMessage);
-        setIsLoginError(false);
-        setIsAlertDialogOpen(true);
+        alert(`Faucet Request Failed: ${errorMessage}`);
       }
     } finally {
       setIsRequestingCTokens(false);
@@ -103,44 +86,14 @@ export const CChainFaucetButton = ({ className, buttonProps, children }: CChainF
   } ${isRequestingCTokens ? "opacity-50 cursor-not-allowed" : ""}`;
 
   return (
-    <>
-      <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{alertDialogTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {alertDialogMessage}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex gap-2">
-            {isLoginError ? (
-              <>
-                <AlertDialogAction
-                  onClick={handleLogin}
-                  className="bg-blue-500 hover:bg-blue-600"
-                >
-                  Login
-                </AlertDialogAction>
-                <AlertDialogAction className="bg-zinc-200 hover:bg-zinc-300 text-zinc-800">
-                  Close
-                </AlertDialogAction>
-              </>
-            ) : (
-              <AlertDialogAction>OK</AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <button
-        {...buttonProps}
-        onClick={handleCChainTokenRequest}
-        disabled={isRequestingCTokens}
-        className={className || defaultClassName}
-        title="Get free C-Chain AVAX"
-      >
-        {isRequestingCTokens ? "Requesting..." : (children || "Faucet")}
-      </button>
-    </>
+    <button
+      {...(buttonProps || {})}
+      onClick={handleCChainTokenRequest}
+      disabled={isRequestingCTokens}
+      className={className || defaultClassName}
+      title="Get free C-Chain AVAX"
+    >
+      {isRequestingCTokens ? "Requesting..." : (children || "Faucet")}
+    </button>
   );
 };

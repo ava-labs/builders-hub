@@ -56,7 +56,7 @@ function QuickLinkCard({ title, description, icon, onClick, href }: QuickLinkCar
   );
 }
 
-export default function Faucet() {
+function Faucet() {
   const { isTestnet } = useWalletStore();
 
   if (!isTestnet) {
@@ -242,3 +242,5 @@ export default function Faucet() {
     </div>
   );
 }
+
+export default Faucet;

@@ -1,14 +1,6 @@
 "use client"
 import { useState } from "react"
-import { 
-    AlertDialog, 
-    AlertDialogAction, 
-    AlertDialogContent, 
-    AlertDialogDescription, 
-    AlertDialogFooter,
-    AlertDialogHeader, 
-    AlertDialogTitle 
-} from "../AlertDialog"
+// Temporarily using simple alerts instead of AlertDialog for compatibility
 import { useWalletStore } from "../../stores/walletStore";
 
 const LOW_BALANCE_THRESHOLD = 0.5
@@ -23,10 +15,7 @@ export const PChainFaucetButton = ({ className, buttonProps, children }: PChainF
     const {pChainAddress, isTestnet, pChainBalance, updatePChainBalance } = useWalletStore();
 
     const [isRequestingPTokens, setIsRequestingPTokens] = useState(false);
-    const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
-    const [alertDialogTitle, setAlertDialogTitle] = useState("Error");
-    const [alertDialogMessage, setAlertDialogMessage] = useState("");
-    const [isLoginError, setIsLoginError] = useState(false);
+    // Simplified alert handling
     const handleLogin = () => {window.location.href = "/login";};
 
     const handlePChainTokenRequest = async () => {
@@ -56,6 +45,7 @@ export const PChainFaucetButton = ({ className, buttonProps, children }: PChainF
 
             if (data.success) {
                 console.log('Token request successful, txID:', data.txID);
+                alert("Success! 2 AVAX tokens have been sent to your P-Chain address. Your balance will update shortly.");
                 setTimeout(() => updatePChainBalance(), 3000);
             } else {
                 throw new Error(data.message || "Failed to get tokens");
@@ -64,15 +54,10 @@ export const PChainFaucetButton = ({ className, buttonProps, children }: PChainF
             console.error("P-Chain token request error:", error);
             const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
             if (errorMessage.includes("login") || errorMessage.includes("401")) {
-                setAlertDialogTitle("Authentication Required");
-                setAlertDialogMessage("You need to be logged in to request free tokens from the P-Chain Faucet.");
-                setIsLoginError(true);
-                setIsAlertDialogOpen(true);
+                alert("Authentication Required: You need to be logged in to request free tokens from the P-Chain Faucet.");
+                handleLogin();
             } else {
-                setAlertDialogTitle("Faucet Request Failed");
-                setAlertDialogMessage(errorMessage);
-                setIsLoginError(false);
-                setIsAlertDialogOpen(true);
+                alert(`Faucet Request Failed: ${errorMessage}`);
             }
         } finally {
             setIsRequestingPTokens(false);
@@ -91,41 +76,14 @@ export const PChainFaucetButton = ({ className, buttonProps, children }: PChainF
     }`;
 
     return (
-        <>
-            <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{alertDialogTitle}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {alertDialogMessage}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="flex gap-2">
-                        {isLoginError ? (
-                            <>
-                                <AlertDialogAction onClick={handleLogin} className="bg-blue-500 hover:bg-blue-600">
-                                    Login
-                                </AlertDialogAction>
-                                <AlertDialogAction className="bg-zinc-200 hover:bg-zinc-300 text-zinc-800">
-                                    Close
-                                </AlertDialogAction>
-                            </>
-                        ) : (
-                            <AlertDialogAction>OK</AlertDialogAction>
-                        )}
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            <button
-                {...buttonProps}
-                onClick={handlePChainTokenRequest}
-                disabled={isRequestingPTokens}
-                className={className || defaultClassName}
-                title="Get free P-Chain AVAX"
-            >
-                {isRequestingPTokens ? "Requesting..." : (children || "Faucet")}
-            </button>
-        </>
+        <button
+            {...(buttonProps || {})}
+            onClick={handlePChainTokenRequest}
+            disabled={isRequestingPTokens}
+            className={className || defaultClassName}
+            title="Get free P-Chain AVAX"
+        >
+            {isRequestingPTokens ? "Requesting..." : (children || "Faucet")}
+        </button>
     );
 };

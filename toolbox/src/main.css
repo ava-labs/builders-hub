@@ -1,3 +1,6 @@
+
+@custom-variant dark (&:is(.dark *));
+
 .shimmer {
     position: relative;
     overflow: hidden;
@@ -42,4 +45,27 @@
 
 div.group\/accordion h3  {
     margin-top: 0 !important;
+}
+
+/* CSS variables are defined in the main app/global.css file */
+
+/* Typography improvements */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-feature-settings: 'rlig' 1, 'calt' 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Consistent button typography */
+button {
+  font-feature-settings: 'rlig' 1, 'calt' 1;
+}
+
+/* Improved readability for small text */
+.text-sm {
+  letter-spacing: 0.025em;
 }
