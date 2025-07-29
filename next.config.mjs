@@ -1,4 +1,8 @@
 import { createMDX } from 'fumadocs-mdx/next';
+import NodePolyfillPlugin from 'node-polyfill-webpack-plugin';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 
 const withMDX = createMDX();
 
@@ -235,6 +239,43 @@ const config = {
         permanent: true,
       }
     ];
+  },
+
+  webpack: (config, { isServer, webpack }) => {
+    config.plugins.push(
+      new webpack.NormalModuleReplacementPlugin(/^node:/, resource => {
+        resource.request = resource.request.replace(/^node:/, '');
+      })
+    );
+  
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        crypto: require.resolve('crypto-browserify'),
+        stream: require.resolve('stream-browserify'),
+        buffer: require.resolve('buffer'),
+        util: require.resolve('util'),
+        process: require.resolve('process/browser'),
+      };
+  
+      config.plugins.push(
+        new webpack.ProvidePlugin({
+          Buffer: ['buffer', 'Buffer'],
+          process: ['process/browser'],
+        }),
+        new NodePolyfillPlugin()
+      );
+    }
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'node:crypto': 'crypto',
+      'node:stream': 'stream-browserify',
+      'node:buffer': 'buffer',
+      'node:util': 'util',
+      'node:process': 'process/browser',
+    };
+  
+    return config;
   },
 };
 

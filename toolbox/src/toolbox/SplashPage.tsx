@@ -237,6 +237,13 @@ const SplashPage = () => {
       icon: <Droplet className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
       href: "#faucet"
+    },
+    {
+      title: "Privacy Tokens (eERC)",
+      description: "Explore privacy tokens and the eERC standard.",
+      icon: <Shield className="w-6 h-6" />,
+      bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
+      href: "#eercIntro"
     }
   ];
 

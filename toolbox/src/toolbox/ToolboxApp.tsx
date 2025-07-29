@@ -8,6 +8,10 @@ import { ErrorFallback } from "../components/ErrorFallback";
 import { ErrorBoundaryWithWarning } from "../components/ErrorBoundaryWithWarning";
 import { OptionalConnectWallet, type WalletMode } from "../components/ConnectWallet/ConnectWallet";
 import SplashPage from "./SplashPage";
+import { WagmiProvider, createConfig, http } from 'wagmi';
+import { avalancheFuji } from 'wagmi/chains';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
 
 import "../main.css";
 import { resetAllStores } from "../stores/reset";
@@ -530,8 +534,53 @@ export const componentGroups: Record<string, ComponentGroupType> = {
       }
     ]
   },
+  "Privacy Tokens (eERC)": {
+    icon: <Shield className="w-5 h-5" />,
+    academy: {
+      text: "Learn about privacy tokens (eERC)",
+      link: "https://github.com/ava-labs/EncryptedERC"
+    },
+    components: [
+      {
+        id: "eercIntro",
+        label: "What is eERC?",
+        component: lazy(() => import('./eerc/Intro')),
+        fileNames: ["toolbox/src/toolbox/eerc/Intro.tsx"],
+        walletMode: "optional",
+      },
+      {
+        id: "converterPrivacyTokenFlow",
+        label: "Converter Privacy Token Flow",
+        component: lazy(() => import('./eerc/Converter')),
+        fileNames: ["toolbox/src/toolbox/eerc/Converter.tsx"],
+        walletMode: "l1",
+      },
+      {
+        id: "standalonePrivacyTokenFlow",
+        label: "Standalone Privacy Token Flow",
+        component: lazy(() => import('./eerc/Standalone')),
+        fileNames: ["toolbox/src/toolbox/eerc/Standalone.tsx"],
+        walletMode: "l1",
+      }
+    ]
+  }
 
 };
+
+const queryClient = new QueryClient();
+
+const wagmiConfig = createConfig({
+  chains: [avalancheFuji],
+  transports: {
+    [avalancheFuji.id]: http(),
+  },
+});
+
+const WAGMI_REQUIRED_TOOL_IDS = [
+  'converterPrivacyTokenFlow',
+  'standalonePrivacyTokenFlow',
+  'eercIntro',
+];
 
 // Loading component for Suspense
 const ComponentLoader = () => (
@@ -754,6 +803,47 @@ export default function ToolboxApp({ embedded = false }: ToolboxAppProps) {
     }
 
     const Component = comp.component;
+
+    // Wrap eERC tools in QueryClientProvider and WagmiProvider
+    if (WAGMI_REQUIRED_TOOL_IDS.includes(comp.id)) {
+      return (
+        React.createElement(
+          QueryClientProvider as any,
+          { client: queryClient },
+          React.createElement(
+            WagmiProvider as any,
+            { config: wagmiConfig },
+            <ErrorBoundary
+              FallbackComponent={ErrorFallback}
+              onReset={() => {
+                window.location.reload();
+              }}
+            >
+              <ErrorBoundaryWithWarning>
+                <OptionalConnectWallet walletMode={comp.walletMode}>
+                  <div className="space-y-4">
+                    <Suspense fallback={<ComponentLoader />}>
+                      <Component />
+                    </Suspense>
+                  </div>
+                  <div className="mt-4 space-y-1 border-t pt-3">
+                    {comp.fileNames.map((fileName, index) => (
+                      <GithubLink
+                        key={index}
+                        user="ava-labs"
+                        repo="builders-hub"
+                        branch={import.meta.env?.VITE_GIT_BRANCH_NAME || "master"}
+                        filePath={fileName}
+                      />
+                    ))}
+                  </div>
+                </OptionalConnectWallet>
+              </ErrorBoundaryWithWarning>
+            </ErrorBoundary>
+          )
+        ) as any
+      );
+    }
 
     return (
       <ErrorBoundary
