@@ -31,8 +31,8 @@ import {
   SidebarMenuItem,
   SidebarFooter,
   SidebarRail,
-} from "../../../components/ui/sidebar"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../../../components/ui/collapsible"
+} from "../../@/components/ui/sidebar"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../../@/components/ui/collapsible"
 
 // Navigation data structure with collapsible groups
 const data = {

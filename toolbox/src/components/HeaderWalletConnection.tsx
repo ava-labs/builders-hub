@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Button } from "../../../components/ui/button"
+import { Button } from "../../@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,8 +9,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../../../components/ui/dropdown-menu"
-import { Badge } from "../../../components/ui/badge"
+} from "../../@/components/ui/dropdown-menu"
+import { Badge } from "../../@/components/ui/badge"
 import { Wallet, ChevronDown, Copy, ExternalLink, LogOut, RefreshCw, Plus, ArrowLeftRight, Globe, Check } from "lucide-react"
 import { useWalletStore } from "../stores/walletStore"
 import { useSelectedL1, useL1ListStore } from "../stores/l1ListStore"

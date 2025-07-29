@@ -1,14 +1,14 @@
 'use client';
 
-import { Button } from "../../../components/ui/button";
+import { Button } from "../../@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../../../components/ui/dropdown-menu";
+} from "../../@/components/ui/dropdown-menu";
 import { CircleUserRound } from 'lucide-react';
-import { Separator } from "../../../components/ui/separator";
+import { Separator } from "../../@/components/ui/separator";
 import { useState } from 'react';
 
 interface UserButtonProps {
@@ -25,8 +25,6 @@ const mockSession = {
 };
 
 export function UserButton({ className }: UserButtonProps) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
   // For demo purposes, we'll assume not authenticated initially
   // In a real implementation, you'd check actual auth state
   const [isAuthenticated, setIsAuthenticated] = useState(false);

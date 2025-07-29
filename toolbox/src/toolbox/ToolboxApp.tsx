@@ -11,8 +11,8 @@ import { AppSidebar } from "../components/AppSidebar";
 import { CategoryTabs } from "../components/CategoryTabs";
 import { HeaderWalletConnection } from "../components/HeaderWalletConnection";
 import { UserButton } from "../components/UserButton";
-import { SidebarProvider, SidebarTrigger } from "../../../components/ui/sidebar";
-import { Button } from "../../../components/ui/button";
+import { SidebarProvider, SidebarTrigger } from "../../@/components/ui/sidebar";
+import { Button } from "../../@/components/ui/button";
 import { Sun, Moon } from "lucide-react";
 
 import "../main.css";
