@@ -1,0 +1,82 @@
+---
+title: What is Proof of Authority?
+description: Understanding Proof of Authority consensus mechanism in Avalanche L1s
+updated: 2025-03-13
+authors: [0xstt]
+icon: ShieldUser
+---
+
+## Overview
+
+Proof of Authority (PoA) is a consensus mechanism that restricts the ability to validate transactions and create blocks to a set of pre-approved accounts, known as validators. Unlike Proof of Stake (PoS) where anyone can become a validator by staking tokens, PoA systems rely on trusted entities to maintain the network.
+
+In the context of Avalanche L1s, PoA provides a permissioned approach to network validation, making it ideal for:
+- Enterprise blockchain deployments
+- Private or consortium networks
+- Development and testing environments
+- Networks requiring strict regulatory compliance
+
+## How PoA Works on Avalanche L1s
+
+### Central Authority Control
+
+In a PoA system on Avalanche, all validator management is controlled by a single admin address through the `PoAValidatorManager` contract. This admin has exclusive rights to:
+
+- Add new validators to the network
+- Remove existing validators
+- Update validator weights (influence in consensus)
+- Manage the overall composition of the validator set
+
+<Callout type="info">
+The admin address doesn't have to be a single wallet - it can be a multisig wallet, a timelock contract, or any other type of smart contract address, providing flexibility in governance models.
+</Callout>
+
+### Validator Operations
+
+The admin manages validators through a two-step process that ensures synchronization between the L1 and the Avalanche P-Chain:
+
+1. **Initiation**: The admin calls functions like `initiateValidatorRegistration()` or `initiateValidatorRemoval()` on the ValidatorManager contract
+2. **Completion**: After the P-Chain acknowledges the operation, the admin calls the corresponding completion function to finalize the change
+
+This two-step process ensures that the validator set remains consistent across both the L1 and the P-Chain, maintaining network integrity.
+
+### No Token Requirements
+
+Unlike Proof of Stake systems, PoA validators don't need to lock up any tokens as collateral. Their authority to validate comes purely from being approved by the admin address. This means:
+
+- No staking requirements
+- No slashing risks
+- No token-based rewards by default
+- Validators are incentivized through other means (reputation, business agreements, etc.)
+
+## Key Characteristics of PoA
+
+### Advantages
+
+1. **High Performance**: With a known set of validators, PoA networks can achieve high transaction throughput and low latency
+2. **Energy Efficiency**: No computational puzzles or large stake requirements
+3. **Predictable Block Production**: Known validators can coordinate block production schedules
+4. **Simple Governance**: Clear authority structure through the admin address
+5. **Ideal for Permissioned Networks**: Perfect for enterprise use cases requiring known validators
+
+### Trade-offs
+
+1. **Centralization**: All power concentrated in the admin address
+2. **Trust Requirements**: Network security depends on trusting the admin and approved validators
+3. **Limited Decentralization**: Not suitable for fully decentralized applications
+4. **Single Point of Failure**: If the admin key is compromised, the entire network is at risk
+
+## PoA Implementation in Avalanche
+
+The `PoAValidatorManager` contract implements the ValidatorManager interface and provides all the necessary functionality for managing a PoA-based L1. Key features include:
+
+- **Churn Rate Limiting**: Prevents rapid changes to the validator set by limiting how much weight can be added or removed in a given period
+- **Validator State Tracking**: Maintains detailed records of all validators including their status, weight, and registration times
+- **Ownership Transfer**: The admin can transfer control to another address or even to a PoS contract for future decentralization
+- **Event Emission**: All validator operations emit events for transparency and monitoring
+
+## Connection to Staking Contracts
+
+While PoA networks don't require staking by design, the architecture of Avalanche's validator management system allows for a seamless transition from PoA to PoS. The `PoAValidatorManager` can be upgraded to a `PoSValidatorManager` (either `NativeTokenStakingManager` or `ERC20TokenStakingManager`) through a proxy upgrade. This flexibility means that networks can start with a permissioned PoA model and gradually transition to a permissionless PoS model as they mature.
+
+In the next section, we'll explore how the post-Etna staking contracts work, including both PoA and PoS implementations, and how they interact with the broader Avalanche ecosystem to manage validators across different consensus models.
