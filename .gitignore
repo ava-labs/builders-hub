@@ -149,6 +149,7 @@ package-lock.json
 
 
 
+
 # Remote content output paths
 content/docs/acps/103-dynamic-fees.mdx
 content/docs/acps/108-evm-event-importing.mdx
@@ -208,6 +209,7 @@ content/docs/primary-network/chain-configs/p-chain/validators-versioning.mdx
 content/docs/primary-network/chain-configs/x-chain.mdx
 content/docs/primary-network/configure/avalanche-l1-configs.mdx
 content/docs/primary-network/configure/configs-flags.mdx
+content/docs/primary-network/configure/cube-signer.mdx
 content/docs/sdks/avalanchejs/installation.mdx
 content/docs/tooling/cli-commands.mdx
 

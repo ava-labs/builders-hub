@@ -20,7 +20,7 @@
     "on-third-party-services",
     "run-a-node/common-errors",
     "---Configure a Node---",
-    "configure/configs-flags",
+    "configure",
     "chain-configs",
     "---Validation & Staking---",
     "validate/validate-vs-delegate",

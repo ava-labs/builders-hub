@@ -38,6 +38,13 @@ export function getPrimaryNetworkConfigs(): FileConfig[] {
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/subnets/",
     },
     {
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/cube-signer-sidecar/main/README.md",
+      outputPath: "content/docs/primary-network/configure/cube-signer.mdx",
+      title: "Cube Signer Sidecar",
+      description: "This page describes how to integrate AvalancheGo nodes with CubeSigner for secure BLS key management.",
+      contentUrl: "https://github.com/ava-labs/cube-signer-sidecar/blob/main/",
+    },
+    {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/platformvm/docs/block_formation_logic.md",
       outputPath: "content/docs/primary-network/chain-configs/p-chain/block-formation-logic.mdx",
       title: "Block Formation Logic",
