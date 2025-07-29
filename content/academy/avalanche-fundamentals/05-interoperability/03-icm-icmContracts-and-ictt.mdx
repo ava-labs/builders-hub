@@ -6,9 +6,21 @@ authors: [nicolasarnedo]
 icon: BookOpen
 ---
 
-Avalanche's Native Interoperability relies on the following technologies to achieve secure cross-chain messaging between L1 blockchains.
+We can look at Avalanche's Native Interoperability with a layered approach, each step guaranteeing that our message is securely sent across systems. 
 
-![Interchain Messaging Layers](/common-images/avalanche-fundamentals/InterchainMessagingLayers.png)
+In order to understand the fundamentals of cross-chain messaging, we must know the 5 key components that enable it:
+
+1. **Secure Signatures** - The foundation that ensures messages can be trusted
+2. **ICM (Interchain Messaging)** - Native blockchain feature that enables cross-chain communication
+3. **ICM Contracts** - Developer-friendly tools that make building cross-chain apps easier
+4. **ICTT (Interchain Token Transfer)** - Ready-to-use solution for moving tokens between chains (not always used)
+5. **Relayers** - service that helps deliver messages between chains by collecting signatures and submitting transactions
+
+![Interchain Messaging Layers](/common-images/avalanche-fundamentals/InterchainMessagingLayers+Relayer.png)
+
+Knowing the components is the first piece of the puzzle, grasping how they interact with each other is the next step. In the next image we can see 
+
+![Interchain Messaging Flow](/common-images/avalanche-fundamentals/InterchainMessagingExampleFlow.png)
 
 ## Interchain Messaging (ICM)
 
@@ -16,19 +28,19 @@ ICM is Avalanche's native cross-chain communication protocol that enables secure
 
 ### How ICM Works
 
-ICM provides cryptographic primitives for cross-chain communication through the warp precompile:
+ICM provides cryptographic primitives for cross-chain communication through the warp precompile, which is a special type of smart contract:
 
-1. **Warp Precompile**: A special precompiled contract included in every Avalanche blockchain. Unlike regular smart contracts written in Solidity, this is built-in functionality implemented directly in the node software. The precompile allows smart contracts to:
+1. **Warp Precompile**: A special precompiled contract included in every Avalanche blockchain. Unlike regular smart contracts written in Solidity, this is built-in functionality implemented directly in the node software (go). The precompile allows smart contracts to:
    - Create outgoing warp messages
-   - Verify incoming warp messages with BLS signature aggregation
+   - Verify incoming signed warp messages 
    - Access validator signatures efficiently
 
 2. **Message Flow**:
    - **Creation**: A smart contract calls the warp precompile to create an unsigned message
    - **Event Emission**: The warp precompile emits an event
-   - **Signing**: Off-chain relayers listen for these events and aggregate validator signatures using BLS signature aggregation
-   - **Delivery**: The relayer submits the message and aggregated signature to the destination chain
-   - **Verification**: The destination chain's warp precompile verifies the signature against the source chain's validator set
+   - **Signing**: Off-chain relayers listen for these events and collect validator signatures
+   - **Delivery**: The relayer submits the message and signatures to the destination chain
+   - **Verification**: The destination chain's warp precompile verifies the signatures against the source chain's validator set
 
 3. **Message Format**:
    - Network ID (prevents cross-network replay attacks)
@@ -40,7 +52,7 @@ The key innovation is that ICM makes cross-chain messaging a native feature of e
 
 ## ICM Contracts (Teleporter Messenger)
 
-While ICM provides the low-level primitives, ICM Contracts (also known as Teleporter Messenger) built by Avalabs offer developer-friendly interfaces that abstract away the complexity of signature aggregation and other technical details.
+While ICM provides the low-level primitives, ICM Contracts (also known as Teleporter Messenger) offers developer-friendly interfaces that abstract away the complexity of signature collection and other technical details.
 
 ### What ICM Contracts Provide
 
@@ -61,7 +73,7 @@ While ICM provides the low-level primitives, ICM Contracts (also known as Telepo
 4. **Message Flow with Teleporter**:
    - Smart contract calls `sendCrossChainMessage` on Teleporter
    - Teleporter calls the warp precompile
-   - Relayer aggregates signatures and calls `receiveCrossChainMessage` on destination Teleporter
+   - Relayer collects signatures and calls `receiveCrossChainMessage` on destination Teleporter
    - Destination Teleporter verifies via warp precompile and delivers to recipient contract
 
 ### Teleporter Features
@@ -107,16 +119,6 @@ ICTT is a standardized protocol built on top of ICM Contracts for transferring t
 - **Fast Finality**: Transfers complete in seconds
 - **Composability**: Send and call functionality enables complex cross-chain applications
 
-## The Complete Stack
-
-The interoperability stack builds layer by layer:
-
-1. **BLS Signatures** (Foundation): Provides efficient multi-party signing
-2. **ICM with Warp Precompile** (Native Layer): Makes cross-chain messaging native to every blockchain
-3. **ICM Contracts/Teleporter** (Abstraction Layer): Simplifies development with standard interfaces and handles complexity
-4. **ICTT** (Application Layer): Enables seamless token transfers
-5. **Cross-Chain Applications**: Developers can focus on business logic using send and call
-
 
 ## Summary
 
@@ -125,9 +127,15 @@ Avalanche's interoperability solution elegantly combines:
 - **No Bridge Risk**: Uses existing validator sets for security
 - **Developer Friendly**: High-level contracts abstract complexity
 - **Composable**: Send and call enables unlimited cross-chain functionality
-- **Efficient**: BLS signature aggregation keeps costs low
+- **Efficient**: Optimized signature schemes keep costs low
 
 This architecture enables developers to build truly cross-chain applications without worrying about bridges, wrapped tokens, or complex infrastructure.
+
+## Understanding the Cryptographic Foundation
+
+Now that we understand the components that go into sending a message from one chain to the other - you might be wondering about the cryptographic mechanisms that make this all possible. How do validators actually sign messages? What makes these signatures secure and efficient? How can we verify that a message truly came from a specific blockchain's validator set?
+
+In the following sections, we'll dive deeper into the signature schemes that power Avalanche's interoperability. We'll explore how validators sign messages, how multiple signatures are combined efficiently, and why this approach provides the security guarantees needed for cross-chain communication.
 
 For a complete understanding with hands-on examples, please complete the [Academy Interchain Messaging](/academy/interchain-messaging) course.
 
