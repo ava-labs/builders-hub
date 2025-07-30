@@ -107,7 +107,7 @@ const officialCourses: Course[] = [
         status: "featured",
         tools: ["Validator Manager", "P-Chain", "ICM"],
         languages: ["Solidity"],
-        instructors: ["Nicolas Arnedo"],
+        instructors: ["Martin Eckardt", "Owen Wahlgren", "Nicolas Arnedo"],
         category: "L1 Development"
     },
     {
