@@ -1,0 +1,94 @@
+---
+title: Validator Manager Deployment Options
+description: Understanding where and how to deploy the Validator Manager contracts
+updated: 2025-01-01
+authors: [nicolasarnedo]
+icon: Globe
+---
+
+## Overview
+
+The Validator Manager contracts can be deployed in multiple locations, each with its own advantages and trade-offs. Understanding these options is crucial for making the right architectural decision for your permissioned L1.
+
+## Deployment Options
+
+### 1. On Your L1
+
+Deploying the Validator Manager directly on your L1 is the most straightforward approach.
+
+**Advantages:**
+- **Self-contained**: All validator management happens within your L1
+- **Lower latency**: No cross-chain messaging delays for initiating operations
+- **Simpler architecture**: Everything runs on one chain
+
+**Disadvantages:**
+- **Bootstrap challenge**: Need initial validators before deploying the contract
+- **Gas costs**: All operations consume your L1's native token
+
+### 2. On the C-Chain
+
+Deploying on Avalanche's C-Chain leverages the existing infrastructure.
+
+**Advantages:**
+- **Established ecosystem**: Access to existing tools, wallets, and infrastructure
+- **AVAX for gas**: Use established token for transaction fees
+- **Multi-L1 management**: Can manage multiple L1s from one location
+
+**Disadvantages:**
+- **Cross-chain complexity**: Every operation requires ICM messages
+- **C-Chain dependency**: Your L1 management depends on C-Chain availability
+
+### 3. On Another L1
+
+You can deploy the Validator Manager on a different L1 within the Avalanche network.
+
+**Advantages:**
+- **Flexibility**: Choose an L1 that best suits your governance needs
+- **Separation of concerns**: Validator management separate from your L1's operations
+- **Shared infrastructure**: Multiple L1s can share validator management
+
+**Disadvantages:**
+- **Additional complexity**: Requires managing another L1
+- **Cross-chain messaging**: All operations go through ICM
+
+## Decision Factors
+
+Consider these factors when choosing where to deploy:
+
+1. **Bootstrap Requirements**: How will you establish initial validators?
+2. **Gas Token Preferences**: What token do you want to use for management operations?
+3. **Operational Complexity**: How much cross-chain complexity can you handle?
+4. **Governance Model**: Where do your administrators operate?
+5. **Multi-L1 Strategy**: Will you manage multiple L1s?
+
+## Architecture Patterns
+
+### Single L1 Pattern
+Deploy the Validator Manager on your L1 for a self-contained system.
+
+### Hub Pattern
+Deploy on C-Chain or a dedicated management L1 to control multiple L1s from one location.
+
+### Federated Pattern
+Each L1 has its own Validator Manager, but they coordinate through a central registry.
+
+## Cross-Chain Communication
+
+Regardless of deployment location, the Validator Manager must communicate with the P-Chain:
+
+1. **Initiation**: Transaction on the deployment chain
+2. **ICM Message**: Sent to P-Chain for processing
+3. **Completion**: Finalization transaction after P-Chain confirmation
+
+<Callout type="info">
+Remember: The P-Chain is always involved in validator management, regardless of where your contracts are deployed. The deployment location only affects where you initiate operations.
+</Callout>
+
+## Next Steps
+
+Once you've decided on a deployment location, you'll need to:
+1. Deploy the proxy contract
+2. Deploy the Validator Manager implementation
+3. Initialize the system with your chosen parameters
+
+We'll cover these steps in the following sections.

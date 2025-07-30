@@ -1,0 +1,171 @@
+---
+title: Initialize Validator Set
+description: Set up the initial validator set when converting a subnet to an L1
+updated: 2025-01-01
+authors: [nicolasarnedo]
+icon: Users
+---
+
+import { ConnectButton } from '@/components/ConnectButton';
+import L1ValidatorManager from '@/components/toolbox/L1ValidatorManager';
+
+## Overview
+
+When converting an existing subnet to an L1 with sovereign validator management, you need to initialize the Validator Manager with the current validator set. This one-time operation establishes the starting point for validator management.
+
+## The Initialization Process
+
+Initialization involves:
+1. Getting the current validator set from the P-Chain
+2. Creating a conversion message with validator data
+3. Calling `initializeValidatorSet` on the Validator Manager
+4. Validators from the subnet become managed by the contract
+
+## Initialize Validator Set
+
+<ConnectButton />
+
+<L1ValidatorManager activeTab="initializeValidatorSet" />
+
+### Required Information
+
+To initialize, you'll need:
+- **Conversion Data**: Current validator information from P-Chain
+- **Message Index**: Position in the Warp message queue
+- **Proper Timing**: Must be done before other operations
+
+<Callout type="warning">
+Initialization can only be done once! Make sure you have the correct validator data before proceeding.
+</Callout>
+
+## Understanding Conversion Data
+
+The conversion data structure contains:
+
+```solidity
+struct ConversionData {
+    bytes32 subnetID;              // Your subnet's ID
+    bytes32 validatorManagerBlockchainID;  // Chain with VM
+    address validatorManagerAddress;       // VM contract address
+    InitialValidator[] initialValidators;  // Current validators
+}
+
+struct InitialValidator {
+    bytes nodeID;      // Validator's node ID
+    bytes blsPublicKey;  // BLS public key
+    uint64 weight;     // Voting weight
+}
+```
+
+## P-Chain Integration
+
+The initialization process leverages Avalanche Warp Messaging:
+
+1. **P-Chain Signs**: Conversion data is signed by P-Chain validators
+2. **Warp Message**: Creates a verifiable message
+3. **Contract Verifies**: Validator Manager verifies the message
+4. **State Updated**: Initial validators are recorded
+
+## Step-by-Step Process
+
+### 1. Prepare Conversion Data
+
+Gather current validator information:
+```javascript
+const conversionData = {
+    subnetID: "0x...",
+    validatorManagerBlockchainID: "0x...",
+    validatorManagerAddress: "0x...",
+    initialValidators: [
+        {
+            nodeID: "NodeID-...",
+            blsPublicKey: "0x...",
+            weight: 100
+        },
+        // More validators...
+    ]
+};
+```
+
+### 2. Get Warp Message
+
+The P-Chain creates a signed Warp message with the conversion data.
+
+### 3. Call Initialize Function
+
+```javascript
+await validatorManager.initializeValidatorSet(
+    conversionData,
+    messageIndex
+);
+```
+
+## Post-Initialization
+
+After successful initialization:
+
+1. **Validators Registered**: All subnet validators are now managed
+2. **Weights Set**: Initial weights are established
+3. **Management Enabled**: Can now add/remove/update validators
+4. **Events Emitted**: Check for initialization events
+
+### Verification Steps
+
+```javascript
+// Check total weight matches
+const totalWeight = await validatorManager.totalWeight();
+console.log("Total weight:", totalWeight);
+
+// Verify validator count
+const validatorCount = await validatorManager.activeValidatorCount();
+console.log("Active validators:", validatorCount);
+
+// Check individual validators
+for (const validator of initialValidators) {
+    const validationID = await validatorManager.getValidationID(validator.nodeID);
+    const details = await validatorManager.getValidator(validationID);
+    console.log("Validator status:", details.status);
+}
+```
+
+## Common Scenarios
+
+### New L1 with Existing Validators
+Most common case - converting a subnet with active validators.
+
+### Fresh L1 Start
+If starting fresh, you may initialize with a minimal validator set.
+
+### Migration from Another System
+Moving validators from a different management system.
+
+## Troubleshooting
+
+### Initialization Failures
+
+1. **Already Initialized**: Can only initialize once
+2. **Invalid Message**: Warp message verification failed
+3. **Wrong Subnet ID**: Mismatch with contract configuration
+4. **Gas Limit**: Increase gas for many validators
+
+### Data Validation
+
+1. **Node ID Format**: Must be valid Avalanche node IDs
+2. **BLS Keys**: Must be valid BLS public keys
+3. **Weight Values**: Must be positive integers
+4. **Message Index**: Must reference valid Warp message
+
+## Security Considerations
+
+1. **Verify Source**: Ensure conversion data is from legitimate P-Chain
+2. **Check Validators**: Verify initial validator list is correct
+3. **One-Time Operation**: Cannot be undone or repeated
+4. **Owner Only**: Only contract owner can initialize
+
+## Next Steps
+
+After initialization:
+1. Query the validator set to verify state
+2. Plan your first validator management operations
+3. Set up monitoring for validator changes
+4. Begin active management of your L1

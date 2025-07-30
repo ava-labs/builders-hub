@@ -1,0 +1,119 @@
+---
+title: Upgrade Proxy
+description: Learn how to point your proxy contract to the Validator Manager implementation
+updated: 2025-01-01
+authors: [nicolasarnedo]
+icon: ArrowUp
+---
+
+import { ConnectButton } from '@/components/ConnectButton';
+import L1ValidatorManager from '@/components/toolbox/L1ValidatorManager';
+
+## Overview
+
+After deploying both the proxy and implementation contracts, you need to link them by upgrading the proxy to point to your Validator Manager implementation.
+
+## The Upgrade Process
+
+Upgrading a proxy involves:
+1. Having admin rights on the proxy contract
+2. Calling the upgrade function with the new implementation address
+3. Verifying the upgrade was successful
+
+## Perform the Upgrade
+
+<ConnectButton />
+
+<L1ValidatorManager activeTab="upgradeProxy" />
+
+### Required Information
+
+To upgrade the proxy, you'll need:
+- **Proxy Address**: Your deployed proxy contract
+- **Implementation Address**: Your ValidatorManager contract
+- **Admin Access**: Must be called by the proxy admin
+
+<Callout type="warning">
+Only the proxy admin can perform upgrades. This is typically the account that deployed the proxy.
+</Callout>
+
+## Understanding Proxy Upgrades
+
+### How It Works
+
+```
+Before Upgrade:
+Proxy → Old Implementation (or none)
+
+After Upgrade:
+Proxy → New ValidatorManager Implementation
+```
+
+### What Happens During Upgrade
+
+1. **Storage Preserved**: All contract state remains in proxy
+2. **Logic Updated**: Calls now delegate to new implementation  
+3. **Address Unchanged**: Proxy address stays the same
+4. **Immediate Effect**: Changes take effect immediately
+
+## Safety Checks
+
+Before upgrading:
+
+1. **Verify Implementation**: Ensure correct contract address
+2. **Check Compatibility**: Implementation must match proxy storage layout
+3. **Test First**: Always test on testnet before mainnet
+4. **Have Rollback Plan**: Know how to revert if needed
+
+## Post-Upgrade Verification
+
+After upgrading, verify:
+
+1. **Implementation Set**: Check proxy points to correct implementation
+2. **Functions Available**: Test calling ValidatorManager functions
+3. **State Intact**: Verify any existing state is preserved
+4. **Events Emitted**: Check for upgrade event emission
+
+### Verification Commands
+
+```javascript
+// Check current implementation
+await proxy.implementation()
+
+// Verify you can call ValidatorManager functions
+await proxy.subnetID()
+await proxy.owner()
+```
+
+## Common Issues
+
+### Upgrade Failures
+
+- **Not Admin**: Only proxy admin can upgrade
+- **Invalid Implementation**: Address must be a valid contract
+- **Gas Issues**: Upgrade transaction ran out of gas
+
+### Post-Upgrade Problems
+
+- **Function Not Found**: Implementation doesn't have expected functions
+- **State Mismatch**: Storage layout incompatibility
+- **Initialization Required**: May need to initialize after upgrade
+
+## Future Upgrades
+
+The same process applies for future upgrades:
+1. Deploy new implementation with fixes/features
+2. Call upgrade on proxy with new address
+3. Verify functionality
+
+<Callout type="info">
+Consider implementing a timelock or multisig for production upgrades to add an extra layer of security and allow time for review.
+</Callout>
+
+## Next Steps
+
+After successfully upgrading the proxy:
+1. Initialize the Validator Manager with your L1 configuration
+2. Set up initial validators
+3. Configure access controls
+4. Begin validator management operations

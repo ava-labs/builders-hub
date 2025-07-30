@@ -1,0 +1,87 @@
+---
+title: Deploy Proxy Contract
+description: Learn how to deploy the proxy contract for upgradeable Validator Manager
+updated: 2025-01-01
+authors: [nicolasarnedo]
+icon: Shield
+---
+
+import { ConnectButton } from '@/components/ConnectButton';
+import L1ValidatorManager from '@/components/toolbox/L1ValidatorManager';
+
+## Overview
+
+The Validator Manager uses the proxy pattern for upgradeability. This allows you to update the implementation while preserving the contract state and address.
+
+## Why Use a Proxy?
+
+1. **Upgradeability**: Fix bugs or add features without losing state
+2. **Consistent Address**: The contract address never changes
+3. **Storage Persistence**: Validator data remains intact through upgrades
+4. **Future-Proofing**: Adapt to protocol changes without disruption
+
+## Prerequisites
+
+Before deploying the proxy contract:
+- Have your L1 running with initial validators
+- Decide on deployment location (L1, C-Chain, or another chain)
+- Have sufficient native tokens for deployment
+- Know which implementation contract you'll use
+
+## Deploy the Proxy
+
+<ConnectButton />
+
+Use the toolbox below to deploy your proxy contract:
+
+<L1ValidatorManager activeTab="deployProxy" />
+
+### Deployment Steps
+
+1. **Connect your wallet** to the desired network
+2. **Verify network**: Ensure you're on the correct chain
+3. **Deploy proxy**: Click deploy and confirm the transaction
+4. **Save the address**: Record the proxy contract address
+
+<Callout type="warning">
+**Important**: Save your proxy contract address! This is the permanent address for your Validator Manager, regardless of implementation upgrades.
+</Callout>
+
+## Understanding the Proxy Pattern
+
+The proxy pattern separates storage from logic:
+
+```
+User → Proxy Contract → Implementation Contract
+         (storage)           (logic)
+```
+
+### Key Components
+
+1. **Proxy Contract**: Holds the state and delegates calls
+2. **Implementation**: Contains the actual Validator Manager logic
+3. **Admin**: Can upgrade the implementation address
+
+### How Upgrades Work
+
+1. Deploy new implementation contract
+2. Call upgrade function on proxy
+3. Proxy now delegates to new implementation
+4. All state remains in the proxy
+
+## Security Considerations
+
+- **Admin Key**: Protect the admin account that can upgrade
+- **Implementation Verification**: Always verify new implementations
+- **Upgrade Testing**: Test upgrades on testnet first
+- **Time Delays**: Consider using timelocks for upgrades
+
+## Next Steps
+
+After deploying the proxy:
+1. Deploy the Validator Manager implementation
+2. Point the proxy to the implementation
+3. Initialize the Validator Manager
+4. Transfer ownership as needed
+
+<Quiz quizId="414" />
