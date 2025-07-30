@@ -45,7 +45,7 @@ The contracts in the [`validator-manager`](https://github.com/ava-labs/icm-contr
 `} />
 ## Deploying
 
-Three concrete `ValidatorManager` contracts are provided - `PoAValidatorManager` which itself implements `ValidatorManager`. These are implemented as [upgradeable](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable) contracts. There are numerous [guides](https://blog.chain.link/upgradable-smart-contracts/) for deploying upgradeable smart contracts, but the general steps are as follows:
+Three concrete `ValidatorManager` contracts are provided - `PoAValidatorManager`, `NativeTokenStakingManager`, and `ERC20TokenStakingManager`. `NativeTokenStakingManager`, and `ERC20TokenStakingManager` implement `PoSValidatorManager`, which itself implements `ValidatorManager`. These are implemented as [upgradeable](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable) contracts. There are numerous [guides](https://blog.chain.link/upgradable-smart-contracts/) for deploying upgradeable smart contracts, but the general steps are as follows:
 <Steps>
 <Step>
 Deploy the implementation contract
