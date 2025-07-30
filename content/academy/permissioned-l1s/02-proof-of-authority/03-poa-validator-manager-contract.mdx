@@ -60,43 +60,6 @@ The `PoAManager` is a separate contract that provides a Proof of Authority inter
 
 This separation of concerns allows the same ValidatorManager to be used with different access control models (PoA, PoS, or custom governance) by simply changing the controlling contract.
 
-## Deploying
-
-The PoA validator management system consists of two main contracts that work together. Both are implemented as [upgradeable](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable) contracts for future flexibility. Here's how to deploy them:
-
-<Steps>
-<Step>
-**Deploy the ValidatorManager Implementation**
-- Deploy the `ValidatorManager` contract implementation
-- This will serve as the logic contract for the upgradeable proxy
-</Step>
-<Step>
-**Deploy the ValidatorManager Proxy**
-- Deploy a proxy contract pointing to the ValidatorManager implementation
-- This allows future upgrades without changing the contract address
-</Step>
-<Step>
-**Initialize the ValidatorManager**
-- Call `initialize()` with `ValidatorManagerSettings`:
-  - `admin`: Address that will own the ValidatorManager
-  - `subnetID`: The ID of the L1 being managed
-  - `churnPeriodSeconds`: Duration of the churn period
-  - `maximumChurnPercentage`: Max percentage of validators that can change per period
-</Step>
-<Step>
-**Deploy the PoAManager**
-- Deploy the `PoAManager` contract with:
-  - `owner`: The address that will control validator operations
-  - `validatorManager`: Address of the deployed ValidatorManager proxy
-</Step>
-<Step>
-**Initialize the Validator Set**
-- Convert your Subnet to an L1 using [`ConvertSubnetTx`](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#setting-a-subnet-manager) on the P-Chain
-- Call `initializeValidatorSet()` on the ValidatorManager with the resulting `ConversionData`
-- This establishes the initial validator set for your PoA L1
-</Step>
-</Steps>
-
 ### PoA Architecture Benefits
 
 The two-contract design provides several advantages:
@@ -107,4 +70,4 @@ The two-contract design provides several advantages:
 - **Security**: Owner permissions are clearly defined and isolated in PoAManager
 
 
-<Quiz quizId="210" />
+<Quiz quizId="413" />

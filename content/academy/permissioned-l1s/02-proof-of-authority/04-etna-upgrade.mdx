@@ -6,7 +6,7 @@ authors: [nicolasarnedo]
 icon: BookOpen
 ---
 
-This section is **not necessary for understanding and running permissioned L1s** but provides an insight on the improvements and evolution of Avalanche, feel free to skip if not interested.
+This section is **not necessary for understanding and running permissioned L1s** but provides an insight on the improvements and evolution of Avalanche, *feel free to skip if not interested*.
 
 ## Etna Upgrade: Making L1s More Accessible
 
@@ -19,6 +19,8 @@ Before Etna, launching a Subnet (now called L1) was prohibitively expensive:
 - **Minimum Validator Costs**: With at least 8 validators recommended, projects needed $560,000+ just to launch
 - **Primary Network Burden**: Validators had to sync and validate the entire Primary Network (X-Chain, P-Chain, and C-Chain), requiring substantial hardware resources
 - **Regulatory Barriers**: Organizations that couldn't validate permissionless chains were completely blocked from participating
+
+![Post Etna Upgrade](/common-images/permissioned-l1s/PostEtnaUpgrade.png)
 
 ### What Etna Changed
 
@@ -61,4 +63,4 @@ ACP-99 fills this gap by defining a standard Solidity contract specification:
 2. **ValidatorManager**: Concrete implementation with owner controls
 3. **Access Control Layer** (like PoAManager): Defines who can manage validators
 
-This progression from ACP-77 (protocol capability) to ACP-99 (standardized implementation) mirrors successful patterns in blockchain development, like how Ethereum's protocol upgrades are followed by standardized contracts (ERC-20, ERC-721, etc.).
+This progression from ACP-77 (protocol capability) to ACP-99 (standardized implementation) mirrors successful patterns in blockchain development.
