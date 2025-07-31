@@ -15,7 +15,9 @@ Each L1 in the Avalanche network has it's own set of validators that is running 
 
 All validators are registered on the P-Chain with a unique node ID, public key, and stake weight, mapped to the blockchain they are validating.
 
-## Platform Chain
+![P-Chain Ledger View](/common-images/permissioned-l1s/PchainLedger.png)
+
+## Platform Chain (P-Chain)
 
 The Platform Chain is the backbone for the native interoperability of the Avalanche network. It is a
 registry of all validators in the Avalanche network. This includes the validators of the Primary
@@ -45,10 +47,9 @@ It's important to understand that a **subnet or l1** is a validator set, while a
 - **Subnet/L1**: A group of validators that can validate multiple blockchains
 - **Chain**: A single blockchain validated by exactly one subnet
 
-While technically one subnet can validate multiple chains (like the Primary Network validating P-Chain, C-Chain, and X-Chain), **in production it's almost always a 1:1 relationship**. We recommend deploying one chain per subnet for:
-- **Simpler management**: Easier to reason about and operate
-- **Resource isolation**: Each application gets dedicated validator resources  
-- **Independent scaling**: Each chain can scale based on its own needs
+While technically one subnet can validate multiple chains (like the Primary Network validating P-Chain, C-Chain, and X-Chain), **in production it's almost always a 1:1 relationship**, and we strongly recommend keeping it as such for:
+- **Simpler management**
+- **Resource isolation**: Each application gets dedicated validator resources, and in the scenario that multiple validators go done, at least only one chain will be affected.  
 
 ## Subnets
 
@@ -56,7 +57,7 @@ Subnets are blockchains validated by a *subset of Primary Network validators*.
 
 Key technical characteristics:
 - Validators must be Primary Network validators (2,000 AVAX stake requirement)
-- Validators sync and validate the entire Primary Network (X, P, C chains)
+- Validators sync and validate the entire Primary Network (X, P, C chains) - takes longer to sync
 - Validator set is constrained to existing Primary Network participants
 
 <img src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/l1-validator-management/primary-network-3Xv3evd1fOAVXXEZ69mmrBI5AFt7AX.png" alt="Primary Network
@@ -68,17 +69,10 @@ L1s are blockchains with *sovereign validator sets* independent of the Primary N
 
 Key technical characteristics:
 - Validators form their own independent validator set
-- Validators pay continuous fees (~1.33 AVAX/month) instead of staking
-- Validators only sync the P-Chain, not the entire Primary Network
+- Validators pay continuous fees (~1.33 AVAX/month)
+- Validators only sync the P-Chain, not the entire Primary Network (faster synce time)
 - No dependency on Primary Network validator participation
 
-L1s are blockchains with a sovereign validator set that is registered on the P-Chain. To create an
-L1 you need to follow these steps:
-
-1. Create a Subnet record on the P-Chain with the `CreateSubnet` transaction
-2. Add one or more chains to the Subnet with the `CreateChain` transaction
-3. Convert the Subnet to an L1 with the `ConvertSubnetToL1` transaction
-
-To learn more about this architecture transition and the ACPs that enabled it, check out the [ETNA upgrade](/academy/etna-upgrade).
+In the next section we will cover how to create an L1 using [Avalanche's Toolbox](https://build.avax.network/tools/l1-toolbox). To learn more about this architecture transition and the ACPs that enabled it, check out the [ETNA upgrade](/academy/etna-upgrade).
 
 
