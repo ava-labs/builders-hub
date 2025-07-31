@@ -1,13 +1,13 @@
 "use client";
 
 import { ErrorBoundary } from "react-error-boundary";
-import { RefreshCw, ChevronDown, ChevronRight, Layers, Users, MessagesSquare, Coins, Settings, Wrench, GraduationCap, Home, Plus, Shield, ArrowUpDown, UserPlus, Weight, UserMinus, GitMerge, DollarSign, Search, RotateCcw, Calculator, Send, FileCode, BookOpen, Server, Globe, Zap, List, Lock, Banknote, Gift, Radio, Droplets, Monitor, Activity, RefreshCcw, Repeat, Moon, Sun, ArrowLeft, Pin, Network } from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronRight, Layers, Users, MessagesSquare, Coins, Settings, Wrench, GraduationCap, Plus, Shield, ArrowUpDown, UserPlus, Weight, UserMinus, GitMerge, DollarSign, Search, RotateCcw, Calculator, Send, FileCode, BookOpen, Server, Globe, Zap, List, Lock, Banknote, Gift, Radio, Droplets, Monitor, Activity, RefreshCcw, Repeat, Moon, Sun, ArrowLeft, Pin, Network } from 'lucide-react';
 import { useState, useEffect, lazy, Suspense } from "react";
 import { GithubLink } from "../components/GithubLink";
 import { ErrorFallback } from "../components/ErrorFallback";
 import { ErrorBoundaryWithWarning } from "../components/ErrorBoundaryWithWarning";
 import { OptionalConnectWallet, type WalletMode } from "../components/ConnectWallet/ConnectWallet";
-import { Home as HomeComponent } from "./Home";
+import Home from "./Home";
 import "../main.css";
 import { resetAllStores } from "../stores/reset";
 
@@ -337,7 +337,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./ICTT/DeployTokenHome')),
         fileNames: ["toolbox/src/toolbox/ICTT/DeployTokenHome.tsx"],
         walletMode: "l1",
-        icon: <Home className="w-4 h-4" />
+        icon: <Coins className="w-4 h-4" />
       },
       {
         id: "deployERC20TokenRemote",
@@ -721,7 +721,7 @@ export default function ToolboxApp({ embedded = false }: ToolboxAppProps) {
         >
           <ErrorBoundaryWithWarning>
             <div className="space-y-4">
-              <HomeComponent />
+              <Home />
             </div>
           </ErrorBoundaryWithWarning>
         </ErrorBoundary>
