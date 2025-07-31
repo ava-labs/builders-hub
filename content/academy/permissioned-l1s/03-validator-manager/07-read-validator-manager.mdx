@@ -6,8 +6,9 @@ authors: [nicolasarnedo]
 icon: Eye
 ---
 
-import { ConnectButton } from '@/components/ConnectButton';
-import L1ValidatorManager from '@/components/toolbox/L1ValidatorManager';
+
+import ToolboxMdxWrapper from "../../../../toolbox/src/components/ToolboxMdxWrapper.tsx"
+import ReadContract from "../../../../toolbox/src/toolbox/ValidatorManager/ReadContract.tsx"
 
 ## Overview
 
@@ -15,9 +16,11 @@ Reading data from the Validator Manager contract is essential for monitoring you
 
 ## Query Contract State
 
-<ConnectButton />
 
-<L1ValidatorManager activeTab="readContract" />
+
+<ToolboxMdxWrapper walletMode="l1">
+    <ReadContract />
+</ToolboxMdxWrapper>
 
 ## Key Read Functions
 

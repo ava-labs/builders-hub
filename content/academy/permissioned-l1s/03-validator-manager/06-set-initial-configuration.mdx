@@ -6,8 +6,9 @@ authors: [nicolasarnedo]
 icon: Settings
 ---
 
-import { ConnectButton } from '@/components/ConnectButton';
-import L1ValidatorManager from '@/components/toolbox/L1ValidatorManager';
+
+import ToolboxMdxWrapper from "../../../../toolbox/src/components/ToolboxMdxWrapper.tsx"
+import Initialize from "../../../../toolbox/src/toolbox/ValidatorManager/Initialize.tsx"
 
 ## Overview
 
@@ -24,9 +25,11 @@ Setting the initial configuration is a critical step that establishes how your V
 
 ## Set Configuration
 
-<ConnectButton />
 
-<L1ValidatorManager activeTab="setConfiguration" />
+
+<ToolboxMdxWrapper walletMode="l1">
+    <Initialize />
+</ToolboxMdxWrapper>
 
 ### Parameter Details
 

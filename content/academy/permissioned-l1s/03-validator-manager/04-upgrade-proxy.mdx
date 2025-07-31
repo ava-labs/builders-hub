@@ -6,8 +6,9 @@ authors: [nicolasarnedo]
 icon: ArrowUp
 ---
 
-import { ConnectButton } from '@/components/ConnectButton';
-import L1ValidatorManager from '@/components/toolbox/L1ValidatorManager';
+
+import ToolboxMdxWrapper from "../../../../toolbox/src/components/ToolboxMdxWrapper.tsx"
+import DeployValidatorManager from "../../../../toolbox/src/toolbox/ValidatorManager/DeployValidatorManager.tsx"
 
 ## Overview
 
@@ -22,9 +23,11 @@ Upgrading a proxy involves:
 
 ## Perform the Upgrade
 
-<ConnectButton />
 
-<L1ValidatorManager activeTab="upgradeProxy" />
+
+<ToolboxMdxWrapper walletMode="l1">
+    <DeployValidatorManager />
+</ToolboxMdxWrapper>
 
 ### Required Information
 

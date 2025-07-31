@@ -6,8 +6,8 @@ authors: [nicolasarnedo]
 icon: Wrench
 ---
 
-import { ConnectButton } from '@/components/ConnectButton';
-import L1ValidatorManager from '@/components/toolbox/L1ValidatorManager';
+import ToolboxMdxWrapper from "../../../../toolbox/src/components/ToolboxMdxWrapper.tsx"
+import DeployValidatorManager from "../../../../toolbox/src/toolbox/ValidatorManager/DeployValidatorManager.tsx"
 
 ## Overview
 
@@ -23,9 +23,11 @@ The Validator Manager implementation:
 
 ## Deploy the Implementation
 
-<ConnectButton />
 
-<L1ValidatorManager activeTab="deployImplementation" />
+
+<ToolboxMdxWrapper walletMode="l1">
+    <DeployValidatorManager />
+</ToolboxMdxWrapper>
 
 ### Deployment Parameters
 

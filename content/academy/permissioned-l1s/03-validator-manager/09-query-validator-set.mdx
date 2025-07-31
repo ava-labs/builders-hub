@@ -6,8 +6,8 @@ authors: [nicolasarnedo]
 icon: Search
 ---
 
-import { ConnectButton } from '@/components/ConnectButton';
-import L1ValidatorManager from '@/components/toolbox/L1ValidatorManager';
+import ToolboxMdxWrapper from "../../../../toolbox/src/components/ToolboxMdxWrapper.tsx"
+import QueryL1ValidatorSet from "../../../../toolbox/src/toolbox/ValidatorManager/QueryL1ValidatorSet.tsx"
 
 ## Overview
 
@@ -15,9 +15,11 @@ Querying the validator set is essential for monitoring your L1's health, plannin
 
 ## Query Tools
 
-<ConnectButton />
 
-<L1ValidatorManager activeTab="queryValidators" />
+
+<ToolboxMdxWrapper walletMode="l1">
+    <QueryL1ValidatorSet />
+</ToolboxMdxWrapper>
 
 ## Query Methods
 

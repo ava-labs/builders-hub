@@ -6,8 +6,9 @@ authors: [nicolasarnedo]
 icon: Users
 ---
 
-import { ConnectButton } from '@/components/ConnectButton';
-import L1ValidatorManager from '@/components/toolbox/L1ValidatorManager';
+
+import ToolboxMdxWrapper from "../../../../toolbox/src/components/ToolboxMdxWrapper.tsx"
+import InitValidatorSet from "../../../../toolbox/src/toolbox/ValidatorManager/InitValidatorSet.tsx"
 
 ## Overview
 
@@ -23,9 +24,11 @@ Initialization involves:
 
 ## Initialize Validator Set
 
-<ConnectButton />
 
-<L1ValidatorManager activeTab="initializeValidatorSet" />
+
+<ToolboxMdxWrapper walletMode="l1">
+    <InitValidatorSet />
+</ToolboxMdxWrapper>
 
 ### Required Information
 
