@@ -1,52 +1,80 @@
 ---
-title: Interchain Messaging
-description: A recap of Avalanche Interchain Messaging (ICM).
+title: Interchain Messaging for Validator Management
+description: How Avalanche's Interchain Messaging (ICM) enables secure validator management.
 updated: 2025-03-13
 authors: [nicolasarnedo]
 icon: BookOpen
 ---
 
 ## Overview
-Interoperability is achieved by enabling blockchains to pass messages to one another. Each message originates from a source chain and is sent to one or more destination chains. These messages encode arbitrary data that can attest some event on the source chains, such as the deposit of an asset or the result of a vote.
+Interchain Messaging (ICM) is the foundation that enables secure communication between blockchains in the Avalanche ecosystem. While ICM is commonly used for cross-chain applications with relayers, validator management uses ICM in a unique way.
 
-<div class="flex space-x-8">
-    <div class="flex-1">
-        ![](/common-images/teleporter/source.png)
-        # Source
-        - Origin of communication
-        - Sender initiates message
-    </div>
-    <div class="flex-1">
-        ![](/common-images/teleporter/message.png)
-        # Message
-        - Contains source, destination, and encoded data
-        - Signature guarantees  authenticity
-    </div>
-    <div class="flex-1">
-        ![](/common-images/teleporter/destination.png)
-        # Destination
-        - Submission of message as transaction
-        - Verifies signatures
-    </div>
-</div>
+## ICM Architecture Layers
 
-At a high level, the flow looks like this:
-<img src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/l1-validator-management/overview-b6mVC2PzaKSt6wvLkfBZgWWiirPgMW.png" alt="Warp Overview" />
-- The developer is responsible for building on top of the ICM protocol to send messages to other chains.
-- A relayer is responsible for submitting messages to the destination chain.
-- The destination chain is responsible for verifying the message and processing it.
+![ICM Layers with VMC](/common-images/permissioned-l1s/ICMLayersVMC.png)
 
-### Signing a Message
+### The Validator Manager Contract (VMC) Layer
 
-Once the source has emitted a Warp message, the relayer will pick up the message and request signatures from the source chain's validators. Each validator will sign the message with their BLS public key and send it to the relayer. 
+The Validator Manager Contract operates at the same architectural layer as other ICM contracts like Teleporter. This positioning is crucial because:
 
-The result is an aggregated BLS signature from the source chain's validators which can be verified by the destination chain.
+- **Direct ICM Access**: VMC can interact directly with the ICM (Warp precompile)
+- **No Middleware Required**: Unlike cross-chain dApps, VMC doesn't need intermediate protocols
+- **Native Integration**: VMC is designed specifically for validator operations
+
+### Key Difference: No Relayers Needed
+
+In typical ICM use cases for cross-chain applications:
+- A relayer monitors for messages
+- The relayer collects validator signatures
+- The relayer submits the message to the destination chain
+
+However, **validator management works differently**:
+- The user directly submits transactions
+- The user signs and manages their own message flow
+- No third-party relayer service is involved
+
+This direct approach makes sense for validator management because:
+1. **Security**: Validator operations are critical and benefit from direct user control
+2. **Simplicity**: No need to trust or pay external relayers
+3. **Deterministic Flow**: The user controls exactly when each step happens
+
+## How ICM Enables Validator Management
+
+The power of ICM in validator management comes from its ability to securely coordinate changes between:
+- **The L1**: Where validator operations are initiated
+- **The P-Chain**: Where validators are officially registered
+- **Back to the L1**: Where the results are confirmed
+
+### Message Security Through Signatures
+
+Just like in other ICM use cases, messages in validator management are secured through BLS signatures:
+
 <img src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/l1-validator-management/signature-yrwRpPl0XdcCFf3cFaQkDCXKbsO9jt.png" alt="Signature from Source Chain" />
 
-### Receiving a Message
+The key difference is that in validator management:
+- The user initiates the signature collection process
+- The signatures prove the L1's validator set agrees on the operation
+- The user then includes these signatures when submitting to the P-Chain
 
-Once the destination chain has received the aggregated signature, it will verify the signature against the P-Chain's record of the source chain's validators then process the message.
+### Message Verification
+
+The P-Chain verifies incoming validator management messages just like any ICM message:
+
 <img src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/l1-validator-management/verification-PrsIawjtM5j85mfZQfWAkBQtqJwfxY.png" alt="Verification of Warp Message" />
+
+This verification ensures that:
+- The message truly came from the specified L1
+- The L1's validators have approved the operation
+- The validator changes are legitimate and authorized
+
+## Summary
+
+Validator management leverages ICM's security guarantees while operating differently from typical cross-chain applications:
+- **Same Layer**: VMC sits alongside other ICM contracts, not above them
+- **Direct Control**: Users manage their own message flow without relayers
+- **Native Integration**: Direct access to the ICM precompile for validator operations
+
+This architecture provides the security of ICM while giving users full control over their validator management operations.
 
 
 
