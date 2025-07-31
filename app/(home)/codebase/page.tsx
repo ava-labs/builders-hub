@@ -192,7 +192,7 @@ export default function Page() {
 
         <section className="relative max-w-[1100px] mx-auto px-4">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-2xl md:text-5xl mb-4">Codebase has impact</h2>
+            <h2 className="text-2xl md:text-5xl mb-4">Codebase by Avalanche® has impact</h2>
             <p className="text-zinc-400 text-md mb-16 max-w-lg">
               Real products, real scale, real-world impact—see what our developers have achieved.
             </p>
@@ -242,7 +242,7 @@ export default function Page() {
 
         <section className="relative max-w-[1100px] mx-auto px-4">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-2xl md:text-5xl mb-16">What Sets Codebase Apart</h2>
+            <h2 className="text-2xl md:text-5xl mb-16">What Sets Codebase by Avalanche® Apart</h2>
 
             <div className="grid md:grid-cols-2 gap-x-12 gap-y-16">
               <div className="space-y-4">

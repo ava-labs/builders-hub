@@ -1,0 +1,82 @@
+---
+title: Private vs Permissioned vs Permissionless
+description: Understanding the fundamental differences between blockchain access control models
+updated: 2025-01-15
+authors: [nicolasarnedo]
+icon: Book
+---
+
+Before diving into what Proof of Authority is, it's crucial to understand the fundamental differences between how blockchains control access, and how we name them according to it. 
+
+*What is the difference between a Private and a Permissioned Blockchain?* 
+
+If you know the difference, you can skip this section. However, if you doubted, it is important you know what seperates them. These distinctions form the foundation for choosing the right blockchain architecture for your use case.
+
+## Private Blockchains
+
+A **private blockchain** is the most restrictive model. Think of it as a closed network where:
+
+- **Read access**: Restricted - Only network participants can view transactions and state
+- **Write access**: Restricted - Only authorized members can submit transactions
+- **Validator management model**: Fixed set - Predetermined group of validators that rarely changes
+- **Governance**: Centralized - Single entity or small group controls all decisions
+
+<Callout type="info">
+**Privacy Control**: Private blockchains provide granular control over data visibility. Even within the network, specific transaction details can be hidden from certain participants based on their permission level, ensuring data is revealed only on a need-to-know basis.
+</Callout>
+
+## Permissioned Blockchains
+
+A **permissioned blockchain** offers a middle ground:
+
+- **Read access**: Public - Transaction data is visible to everyone
+- **Write access**: Configurable - Only authorized entities can submit transactions or deploy contracts
+- **Validator management model**: Permission-based - Validators need approval to join, but the set can change
+- **Governance**: Hybrid - Rules-based system determines participation and changes
+
+
+## Permissionless Blockchains
+
+A **permissionless blockchain** is completely open:
+
+- **Read access**: Public - Anyone can view all transactions and state
+- **Write access**: Open - Anyone can submit transactions (paying gas fees)
+- **Validator management model**: Open participation - Anyone can validate (usually with staking requirements)
+- **Governance**: Decentralized - Token holders or validators vote on changes
+
+## Key Differences at a Glance
+
+![Private vs Permissioned vs Permissionless Blockchain Spectrum](/common-images/permissioned-l1s/PrivateVsPermissionedVsPermissionless.png)
+
+| Aspect | Private | Permissioned | Permissionless |
+|--------|---------|--------------|----------------|
+| **Node Access** | Invitation only | Permission required | Open to all |
+| **Data Visibility** | Restricted | Configurable | Public |
+| **Validator Entry** | Closed set | Approved validators | Anyone (with stake) |
+| **Transaction Submission** | Members only | Authorized users | Anyone |
+| **Governance** | Centralized | Hybrid | Decentralized |
+| **Performance** | High | Medium-High | Lower |
+| **Privacy** | High | Configurable | Low |
+
+
+## Avalanche L1s: Flexible by Design
+
+What makes Avalanche L1s powerful is their flexibility to implement any of these models:
+
+- **Private L1**: Configure validator manager with a fixed set of validators and restrict RPC access
+- **Permissioned L1**: Use Proof of Authority with controlled validator additions
+- **Permissionless L1**: Implement Proof of Stake where anyone can become a validator by staking
+
+The ValidatorManager contract you'll learn about in this course is the key component that enables this flexibility.
+
+## Choosing the Right Model
+
+When deciding between these models, consider:
+
+1. **Regulatory Requirements**: Do you need to comply with KYC/AML regulations?
+2. **Performance Needs**: Private/permissioned typically offer higher throughput
+3. **Trust Model**: Can you trust a closed set of validators, or do you need economic security?
+4. **Transparency Requirements**: Does your use case require public auditability?
+5. **Participant Control**: Do you need to control who can interact with your blockchain?
+
+<Quiz quizId="411"/>

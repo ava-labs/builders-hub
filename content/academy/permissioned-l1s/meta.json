@@ -1,15 +1,16 @@
 {
-    "title": "Permissioned L1s",
-    "icon": "UserPen",
-    "root": true,
-    "pages": [
-        "index",
-        "---Recap---",
-        "...01-recap",
-        "---Proof of Authority---",
-        "---Validator Manager---",
-        "...03-validator-manager",
-        "---More coming soon...---",
-        "certificate"
-    ]
+        "title": "Permissioned L1s",
+        "icon": "UserPen",
+        "root": true,
+        "pages": [
+                "index",
+                "---Recap---",
+                "...01-recap",
+                "---Proof of Authority---",
+                "---Validator Manager---",
+                "...03-validator-manager",
+                "...02-proof-of-authority",
+                "---More coming very soon...---",
+                "certificate"
+        ]
 }

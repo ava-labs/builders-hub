@@ -20,6 +20,7 @@ interface ListL1ValidatorsParams {
     subnetId: string;
     pageToken?: string;
     pageSize?: number;
+    includeInactiveL1Validators?: boolean;
 }
 
 // Types for subnet operations  
@@ -87,12 +88,14 @@ export const useAvaCloudSDK = (customNetwork?: GlobalParamNetwork) => {
         subnetId,
         pageToken,
         pageSize,
+        includeInactiveL1Validators = false,
     }: ListL1ValidatorsParams) => {
         return await sdk.data.primaryNetwork.listL1Validators({
             network: networkName,
             subnetId,
             pageToken,
             pageSize,
+            includeInactiveL1Validators,
         });
     }, [sdk, networkName]);
 
