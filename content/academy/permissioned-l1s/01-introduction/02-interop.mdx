@@ -1,24 +1,22 @@
 ---
-title: Interchain Messaging for Validator Management
+title: ICM for Validator Manager Contracts
 description: How Avalanche's Interchain Messaging (ICM) enables secure validator management.
 updated: 2025-03-13
 authors: [nicolasarnedo]
 icon: BookOpen
 ---
 
-## Overview
-Interchain Messaging (ICM) is the foundation that enables secure communication between blockchains in the Avalanche ecosystem. While ICM is commonly used for cross-chain applications with relayers, validator management uses ICM in a unique way.
+Interchain Messaging (ICM) is the foundation that enables secure communication between blockchains in the Avalanche ecosystem. While ICM is commonly used for cross-chain applications leveraging ICM contracts & Relayers, the Validator Manager Contract (VMC) uses ICM in a unique way. 
 
 ## ICM Architecture Layers
 
+Revisiting the diagram we saw in the [Interoperability](/academy/avalanche-fundamentals/05-interoperability/03-icm-icmContracts-and-ictt) section of the Avalanche Fundamentals course, the Validator Manager is placed at the same level as the ICM contracts are.
+
 ![ICM Layers with VMC](/common-images/permissioned-l1s/ICMLayersVMC.png)
 
-### The Validator Manager Contract (VMC) Layer
-
-The Validator Manager Contract operates at the same architectural layer as other ICM contracts like Teleporter. This positioning is crucial because:
+We place the Validator Manager Contract (VMC) here because it has:
 
 - **Direct ICM Access**: VMC can interact directly with the ICM (Warp precompile)
-- **No Middleware Required**: Unlike cross-chain dApps, VMC doesn't need intermediate protocols
 - **Native Integration**: VMC is designed specifically for validator operations
 
 ### Key Difference: No Relayers Needed
@@ -33,10 +31,7 @@ However, **validator management works differently**:
 - The user signs and manages their own message flow
 - No third-party relayer service is involved
 
-This direct approach makes sense for validator management because:
-1. **Security**: Validator operations are critical and benefit from direct user control
-2. **Simplicity**: No need to trust or pay external relayers
-3. **Deterministic Flow**: The user controls exactly when each step happens
+![VMC & P-Chain Communication Flow](/common-images/permissioned-l1s/VmcPchainFlow.png)
 
 ## How ICM Enables Validator Management
 
@@ -49,8 +44,6 @@ The power of ICM in validator management comes from its ability to securely coor
 
 Just like in other ICM use cases, messages in validator management are secured through BLS signatures:
 
-<img src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/l1-validator-management/signature-yrwRpPl0XdcCFf3cFaQkDCXKbsO9jt.png" alt="Signature from Source Chain" />
-
 The key difference is that in validator management:
 - The user initiates the signature collection process
 - The signatures prove the L1's validator set agrees on the operation
@@ -60,21 +53,10 @@ The key difference is that in validator management:
 
 The P-Chain verifies incoming validator management messages just like any ICM message:
 
-<img src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/l1-validator-management/verification-PrsIawjtM5j85mfZQfWAkBQtqJwfxY.png" alt="Verification of Warp Message" />
-
 This verification ensures that:
 - The message truly came from the specified L1
 - The L1's validators have approved the operation
-- The validator changes are legitimate and authorized
 
-## Summary
-
-Validator management leverages ICM's security guarantees while operating differently from typical cross-chain applications:
-- **Same Layer**: VMC sits alongside other ICM contracts, not above them
-- **Direct Control**: Users manage their own message flow without relayers
-- **Native Integration**: Direct access to the ICM precompile for validator operations
-
-This architecture provides the security of ICM while giving users full control over their validator management operations.
-
+In the next section we will [create an L1](/academy/permissioned-l1s/01-introduction/03-create-l1.mdx) but we recommend going through the [Avalanche Fundamental's L1 creation](/academy/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1) if this is your first time doing so.
 
 
