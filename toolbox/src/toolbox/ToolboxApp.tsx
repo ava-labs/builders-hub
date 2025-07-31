@@ -1,21 +1,15 @@
 "use client";
 
 import { ErrorBoundary } from "react-error-boundary";
+import { RefreshCw, ChevronDown, ChevronRight, Layers, Users, MessagesSquare, Coins, Settings, Wrench, GraduationCap, Home, Plus, Shield, ArrowUpDown, UserPlus, Weight, UserMinus, GitMerge, DollarSign, Search, RotateCcw, Calculator, Send, FileCode, BookOpen, Server, Globe, Zap, List, Lock, Banknote, Gift, Radio, Droplets, Monitor, Activity, RefreshCcw, Repeat, Moon, Sun, ArrowLeft, Pin, Network } from 'lucide-react';
 import { useState, useEffect, lazy, Suspense } from "react";
 import { GithubLink } from "../components/GithubLink";
 import { ErrorFallback } from "../components/ErrorFallback";
 import { ErrorBoundaryWithWarning } from "../components/ErrorBoundaryWithWarning";
-
-import Home from "./Home";
-import { AppSidebar } from "../components/AppSidebar";
-import { CategoryTabs } from "../components/CategoryTabs";
-import { HeaderWalletConnection } from "../components/HeaderWalletConnection";
-import { UserButton } from "../components/UserButton";
-import { SidebarProvider, SidebarTrigger } from "../../@/components/ui/sidebar";
-import { Button } from "../../@/components/ui/button";
-import { Sun, Moon } from "lucide-react";
-
+import { OptionalConnectWallet, type WalletMode } from "../components/ConnectWallet/ConnectWallet";
+import { Home as HomeComponent } from "./Home";
 import "../main.css";
+import { resetAllStores } from "../stores/reset";
 
 // Premium background styles
 const backgroundStyles = `
@@ -40,9 +34,6 @@ if (typeof document !== 'undefined') {
   styleSheet.innerText = backgroundStyles;
   document.head.appendChild(styleSheet);
 }
-
-export type WalletModeRequired = "l1" | "c-chain" | "testnet-mainnet";
-export type WalletMode = "optional" | WalletModeRequired;
 
 export type ComponentType = {
   id: string;
@@ -70,9 +61,10 @@ type ComponentGroupType = {
 
 export const componentGroups: Record<string, ComponentGroupType> = {
   'Create L1': {
+    icon: <Layers className="w-5 h-5" />,
     academy: {
-      text: "Learn L1 Development",
-      link: "https://academy.avax.network/course/customizing-evm"
+      text: "Learn about creating an L1",
+      link: "https://build.avax.network/academy/avalanche-fundamentals"
     },
     components: [
       {
@@ -81,6 +73,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./L1/CreateChain')),
         fileNames: ["toolbox/src/toolbox/L1/CreateChain.tsx"],
         walletMode: "c-chain",
+        icon: <Plus className="w-4 h-4" />
       },
       {
         id: "avalanchegoDockerL1",
@@ -88,6 +81,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./Nodes/AvalancheGoDockerL1')),
         fileNames: ["toolbox/src/toolbox/Nodes/AvalancheGoDockerL1.tsx"],
         walletMode: "testnet-mainnet",
+        icon: <Server className="w-4 h-4" />
       },
       {
         id: 'convertToL1',
@@ -95,6 +89,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./L1/ConvertToL1')),
         fileNames: ["toolbox/src/toolbox/L1/ConvertToL1.tsx"],
         walletMode: "c-chain",
+        icon: <ArrowUpDown className="w-4 h-4" />
       },
       {
         id: "selfHostedExplorer",
@@ -102,16 +97,19 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./L1/SelfHostedExplorer')),
         fileNames: ["toolbox/src/toolbox/Nodes/SelfHostedExplorer.tsx"],
         walletMode: "testnet-mainnet",
+        icon: <Globe className="w-4 h-4" />
       }
     ]
   },
   "Validator Manager": {
+    icon: <Users className="w-5 h-5" />,
     academy: {
-      text: "Learn L1 Validators",
-      link: "https://academy.avax.network/course/l1-validator-management"
+      text: "Learn about managing the validator set of an L1",
+      link: "https://build.avax.network/academy/l1-validator-management"
     },
     subgroups: {
       "Setup": {
+        icon: <Settings className="w-4 h-4" />,
         components: [
           {
             id: "deployProxyContract",
@@ -119,6 +117,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./Proxy/DeployProxyContract')),
             fileNames: ["toolbox/src/toolbox/Proxy/DeployProxyContract.tsx"],
             walletMode: "l1",
+            icon: <Shield className="w-4 h-4" />
           },
           {
             id: "deployValidatorManager",
@@ -126,6 +125,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./ValidatorManager/DeployValidatorManager')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/DeployValidatorManager.tsx"],
             walletMode: "l1",
+            icon: <FileCode className="w-4 h-4" />
           },
           {
             id: "upgradeProxy",
@@ -133,6 +133,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./Proxy/UpgradeProxy')),
             fileNames: ["toolbox/src/toolbox/Proxy/UpgradeProxy.tsx"],
             walletMode: "l1",
+            icon: <RefreshCcw className="w-4 h-4" />
           },
           {
             id: "initialize",
@@ -140,6 +141,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./ValidatorManager/Initialize')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/Initialize.tsx"],
             walletMode: "l1",
+            icon: <Zap className="w-4 h-4" />
           },
           {
             id: "initValidatorSet",
@@ -147,6 +149,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./ValidatorManager/InitValidatorSet')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/InitValidatorSet.tsx"],
             walletMode: "l1",
+            icon: <List className="w-4 h-4" />
           },
           {
             id: 'deployPoAManager',
@@ -154,10 +157,12 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./ValidatorManager/DeployPoAManager')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/DeployPoAManager.tsx"],
             walletMode: "l1",
+            icon: <Lock className="w-4 h-4" />
           }
         ]
       },
       "Operations": {
+        icon: <Wrench className="w-4 h-4" />,
         components: [
           {
             id: "readContract",
@@ -165,6 +170,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./ValidatorManager/ReadContract')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/ReadContract.tsx"],
             walletMode: "l1",
+            icon: <BookOpen className="w-4 h-4" />
           },
           {
             id: "addValidator",
@@ -172,6 +178,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./ValidatorManager/AddValidator/AddValidator')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/AddValidator/AddValidator.tsx"],
             walletMode: "l1",
+            icon: <UserPlus className="w-4 h-4" />
           },
           {
             id: "changeWeight",
@@ -179,6 +186,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./ValidatorManager/ChangeWeight/ChangeWeight')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/ChangeWeight/ChangeWeight.tsx"],
             walletMode: "l1",
+            icon: <Weight className="w-4 h-4" />
           },
           {
             id: "removeValidator",
@@ -186,6 +194,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./ValidatorManager/RemoveValidator/RemoveValidator')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/RemoveValidator/RemoveValidator.tsx"],
             walletMode: "l1",
+            icon: <UserMinus className="w-4 h-4" />
           },
           {
             id: "migrateV1ToV2",
@@ -193,6 +202,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./ValidatorManager/MigrateV1ToV2')),
             fileNames: ["toolbox/src/toolbox//ValidatorManager/MigrateV1ToV2.tsx"],
             walletMode: "l1",
+            icon: <GitMerge className="w-4 h-4" />
           },
           {
             id: 'balanceTopup',
@@ -200,6 +210,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./Nodes/BalanceTopup')),
             fileNames: ["toolbox/src/toolbox/Nodes/BalanceTopup.tsx"],
             walletMode: "c-chain",
+            icon: <DollarSign className="w-4 h-4" />
           },
           {
             id: "queryL1ValidatorSet",
@@ -207,6 +218,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./ValidatorManager/QueryL1ValidatorSet')),
             fileNames: ["toolbox/src/toolbox/ValidatorManager/QueryL1ValidatorSet.tsx"],
             walletMode: "testnet-mainnet",
+            icon: <Search className="w-4 h-4" />
           },
           {
             id: "transferOwnership",
@@ -214,10 +226,12 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./StakingManager/TransferOwnership')),
             fileNames: ["toolbox/src/toolbox/StakingManager/TransferOwnership.tsx"],
             walletMode: "l1",
+            icon: <RotateCcw className="w-4 h-4" />
           }
         ]
       },
       "Staking Manager": {
+        icon: <Coins className="w-4 h-4" />,
         components: [
           {
             id: "deployRewardCalculator",
@@ -225,6 +239,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./StakingManager/DeployRewardCalculator')),
             fileNames: ["toolbox/src/toolbox/StakingManager/DeployRewardCalculator.tsx"],
             walletMode: "l1",
+            icon: <Calculator className="w-4 h-4" />
           },
           {
             id: "deployStakingManager",
@@ -232,6 +247,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./StakingManager/DeployStakingManager')),
             fileNames: ["toolbox/src/toolbox/StakingManager/DeployStakingManager.tsx"],
             walletMode: "l1",
+            icon: <FileCode className="w-4 h-4" />
           },
           {
             id: "initializeStakingManager",
@@ -239,15 +255,17 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./StakingManager/Initialize')),
             fileNames: ["toolbox/src/toolbox/StakingManager/Initialize.tsx"],
             walletMode: "l1",
+            icon: <Zap className="w-4 h-4" />
           },
         ]
       }
     }
   },
   "Interchain Messaging": {
+    icon: <MessagesSquare className="w-5 h-5" />,
     academy: {
-      text: "Learn ICM",
-      link: "https://academy.avax.network/course/interchain-messaging"
+      text: "Learn about cross-L1 interoperability using ICM",
+      link: "https://build.avax.network/academy/interchain-messaging"
     },
     components: [
       {
@@ -256,6 +274,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./ICM/TeleporterMessenger')),
         fileNames: ["toolbox/src/toolbox/ICM/TeleporterMessenger.tsx"],
         walletMode: "l1",
+        icon: <Radio className="w-4 h-4" />
       },
       {
         id: "teleporterRegistry",
@@ -263,6 +282,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./ICM/TeleporterRegistry')),
         fileNames: ["toolbox/src/toolbox/ICM/TeleporterRegistry.tsx"],
         walletMode: "l1",
+        icon: <BookOpen className="w-4 h-4" />
       },
       {
         id: "icmRelayer",
@@ -270,6 +290,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./ICM/ICMRelayer')),
         fileNames: ["toolbox/src/toolbox/ICM/ICMRelayer.tsx"],
         walletMode: "l1",
+        icon: <Repeat className="w-4 h-4" />
       },
       {
         id: "deployICMDemo",
@@ -280,6 +301,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
           "toolbox/contracts/example-contracts/contracts/ICMDemo.sol",
         ],
         walletMode: "l1",
+        icon: <FileCode className="w-4 h-4" />
       },
       {
         id: "sendICMMessage",
@@ -290,13 +312,15 @@ export const componentGroups: Record<string, ComponentGroupType> = {
           "toolbox/contracts/example-contracts/contracts/senderOnCChain.sol",
         ],
         walletMode: "l1",
+        icon: <Send className="w-4 h-4" />
       },
     ]
   },
   "Interchain Token Transfer": {
+    icon: <Coins className="w-5 h-5" />,
     academy: {
-      text: "Learn ICTT",
-      link: "https://academy.avax.network/course/interchain-token-transfer"
+      text: "Learn about setting up bridges between L1s",
+      link: "https://build.avax.network/academy/interchain-token-transfer"
     },
     components: [
       {
@@ -305,6 +329,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./ICTT/DeployExampleERC20')),
         fileNames: ["toolbox/src/toolbox/ICTT/DeployExampleERC20.tsx"],
         walletMode: "l1",
+        icon: <Coins className="w-4 h-4" />
       },
       {
         id: "deployTokenHome",
@@ -312,6 +337,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./ICTT/DeployTokenHome')),
         fileNames: ["toolbox/src/toolbox/ICTT/DeployTokenHome.tsx"],
         walletMode: "l1",
+        icon: <Home className="w-4 h-4" />
       },
       {
         id: "deployERC20TokenRemote",
@@ -319,6 +345,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./ICTT/DeployERC20TokenRemote')),
         fileNames: ["toolbox/src/toolbox/ICTT/DeployERC20TokenRemote.tsx"],
         walletMode: "l1",
+        icon: <Globe className="w-4 h-4" />
       },
       {
         id: "deployNativeTokenRemote",
@@ -326,6 +353,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./ICTT/DeployNativeTokenRemote')),
         fileNames: ["toolbox/src/toolbox/ICTT/DeployNativeTokenRemote.tsx"],
         walletMode: "l1",
+        icon: <Banknote className="w-4 h-4" />
       },
       {
         id: "registerWithHome",
@@ -333,6 +361,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./ICTT/RegisterWithHome')),
         fileNames: ["toolbox/src/toolbox/ICTT/RegisterWithHome.tsx"],
         walletMode: "l1",
+        icon: <BookOpen className="w-4 h-4" />
       },
       {
         id: "addCollateral",
@@ -340,6 +369,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./ICTT/AddCollateral')),
         fileNames: ["toolbox/src/toolbox/ICTT/AddCollateral.tsx"],
         walletMode: "l1",
+        icon: <Shield className="w-4 h-4" />
       },
       {
         id: "testSend",
@@ -347,13 +377,16 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./ICTT/TestSend')),
         fileNames: ["toolbox/src/toolbox/ICTT/TestSend.tsx"],
         walletMode: "l1",
+        icon: <Send className="w-4 h-4" />
       }
     ]
   },
+
   "Precompiles": {
+    icon: <Settings className="w-5 h-5" />,
     academy: {
-      text: "Learn Precompiles",
-      link: "https://academy.avax.network/course/customizing-evm"
+      text: "Learn about Subnet-EVM precompiled contracts",
+      link: "https://build.avax.network/docs/virtual-machines/default-precompiles/rewardmanager"
     },
     components: [
       {
@@ -362,6 +395,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import("./Precompiles/DeployerAllowlist")),
         fileNames: ["toolbox/src/toolbox/Precompiles/DeployerAllowlist.tsx"],
         walletMode: "l1",
+        icon: <List className="w-4 h-4" />
       },
       {
         id: "nativeMinter",
@@ -369,6 +403,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import("./Precompiles/NativeMinter")),
         fileNames: ["toolbox/src/toolbox/Precompiles/NativeMinter.tsx"],
         walletMode: "l1",
+        icon: <Banknote className="w-4 h-4" />
       },
       {
         id: "transactionAllowlist",
@@ -376,6 +411,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import("./Precompiles/TransactionAllowlist")),
         fileNames: ["toolbox/src/toolbox/Precompiles/TransactionAllowlist.tsx"],
         walletMode: "l1",
+        icon: <Lock className="w-4 h-4" />
       },
       {
         id: "feeManager",
@@ -383,6 +419,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import("./Precompiles/FeeManager")),
         fileNames: ["toolbox/src/toolbox/Precompiles/FeeManager.tsx"],
         walletMode: "l1",
+        icon: <DollarSign className="w-4 h-4" />
       },
       {
         id: "rewardManager",
@@ -390,6 +427,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import("./Precompiles/RewardManager")),
         fileNames: ["toolbox/src/toolbox/Precompiles/RewardManager.tsx"],
         walletMode: "l1",
+        icon: <Gift className="w-4 h-4" />
       },
       {
         id: "warpMessenger",
@@ -397,13 +435,16 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import("./Precompiles/WarpMessenger")),
         fileNames: ["toolbox/src/toolbox/Precompiles/WarpMessenger.tsx"],
         walletMode: "l1",
+        icon: <Radio className="w-4 h-4" />
       }
     ]
   },
   "Utils": {
+    icon: <Wrench className="w-5 h-5" />,
     components: [],
     subgroups: {
       "Node": {
+        icon: <Server className="w-4 h-4" />,
         components: [
           {
             id: "rpcMethodsCheck",
@@ -411,6 +452,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./Nodes/RPCMethodsCheck')),
             fileNames: ["toolbox/src/toolbox/Nodes/RPCMethodsCheck.tsx"],
             walletMode: "testnet-mainnet",
+            icon: <Monitor className="w-4 h-4" />
           },
           {
             id: "performanceMonitor",
@@ -418,10 +460,12 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./Nodes/PerformanceMonitor')),
             fileNames: ["toolbox/src/toolbox/Nodes/PerformanceMonitor.tsx"],
             walletMode: "optional",
+            icon: <Activity className="w-4 h-4" />
           }
         ]
       },
       "Conversion": {
+        icon: <RefreshCcw className="w-4 h-4" />,
         components: [
           {
             id: 'formatConverter',
@@ -429,6 +473,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./Conversion/FormatConverter')),
             fileNames: [],
             walletMode: "optional",
+            icon: <Repeat className="w-4 h-4" />
           },
           {
             id: 'unitConverter',
@@ -436,15 +481,17 @@ export const componentGroups: Record<string, ComponentGroupType> = {
             component: lazy(() => import('./Conversion/UnitConverter')),
             fileNames: [],
             walletMode: "optional",
+            icon: <Calculator className="w-4 h-4" />
           }
         ]
       }
     }
   },
   'Primary Network': {
+    icon: <Network className="w-5 h-5" />,
     academy: {
-      text: "Learn L1 Development",
-      link: "https://academy.avax.network/course/customizing-evm"
+      text: "Learn about the Avalanche Primary Network",
+      link: "https://build.avax.network/docs/quick-start/primary-network"
     },
     components: [
       {
@@ -453,6 +500,7 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./Nodes/AvalancheGoDockerPrimaryNetwork')),
         fileNames: ["toolbox/src/toolbox/Nodes/AvalancheGoDockerPrimaryNetwork.tsx"],
         walletMode: "testnet-mainnet",
+        icon: <Server className="w-4 h-4" />
       },
       {
         id: "crossChainTransfer",
@@ -460,28 +508,15 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('../components/CrossChainTransfer')),
         fileNames: ["toolbox/src/components/CrossChainTransfer.tsx"],
         walletMode: "c-chain",
-      }
-    ]
-  },
-  "Home": {
-    academy: {
-      text: "Learn L1 Development",
-      link: "https://academy.avax.network/course/customizing-evm"
-    },
-    components: [
-      {
-        id: "home",
-        label: "Home",
-        component: lazy(() => import('./Home')),
-        fileNames: ["toolbox/src/toolbox/Home.tsx"],
-        walletMode: "optional",
+        icon: <ArrowUpDown className="w-4 h-4" />
       }
     ]
   },
   "Faucet": {
+    icon: <Droplets className="w-5 h-5" />,
     academy: {
-      text: "Learn L1 Development",
-      link: "https://academy.avax.network/course/customizing-evm"
+      text: "Get free testnet tokens to start building",
+      link: "https://build.avax.network/docs/quick-start/fund-test-accounts"
     },
     components: [
       {
@@ -490,9 +525,11 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         component: lazy(() => import('./Wallet/Faucet')),
         fileNames: ["toolbox/src/toolbox/Wallet/Faucet.tsx"],
         walletMode: "c-chain",
+        icon: <Droplets className="w-4 h-4" />
       }
     ]
   },
+
 };
 
 // Loading component for Suspense
@@ -507,21 +544,17 @@ interface ToolboxAppProps {
 }
 
 export default function ToolboxApp({ embedded = false }: ToolboxAppProps) {
-  const defaultTool = embedded ? "" : "home";
+  const defaultTool = embedded ? "" : "splash";
 
-  // Use state from URL hash. Default to home page if hash is empty.
+  // Use state from URL hash. Default to splash page if hash is empty.
   const [selectedTool, setSelectedTool] = useState(
     window.location.hash ? window.location.hash.substring(1) : defaultTool
   );
   
-  // Track last opened tool for each category
-  const [lastOpenedInCategory, setLastOpenedInCategory] = useState<Record<string, string>>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('toolbox-last-opened-in-category');
-      return saved ? JSON.parse(saved) : {};
-    }
-    return {};
-  });
+  // State to track sidebar hover and pin
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const [isSidebarPinned, setIsSidebarPinned] = useState(false);
+  const [_, setShowDarkModeToggle] = useState(false);
   
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -553,19 +586,79 @@ export default function ToolboxApp({ embedded = false }: ToolboxAppProps) {
     }
   }, []);
 
-  // Track initial tool selection
+  // Determine if sidebar should be expanded
+  const isSidebarExpanded = isSidebarHovered || isSidebarPinned;
+
+  // Handle dark mode toggle visibility with delay
   useEffect(() => {
-    if (selectedTool && selectedTool !== "home") {
-      const activeCategory = getActiveCategory(selectedTool);
-      if (activeCategory) {
-        const newLastOpened = { ...lastOpenedInCategory, [activeCategory]: selectedTool };
-        setLastOpenedInCategory(newLastOpened);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('toolbox-last-opened-in-category', JSON.stringify(newLastOpened));
+    let timeoutId: NodeJS.Timeout;
+    
+    if (isSidebarExpanded) {
+      // Delay showing the toggle until transition is complete (300ms)
+      timeoutId = setTimeout(() => {
+        setShowDarkModeToggle(true);
+      }, 300);
+    } else {
+      // Hide immediately when sidebar collapses
+      setShowDarkModeToggle(false);
+    }
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isSidebarExpanded]);
+
+  // Helper function to find which group and subgroup contains a specific tool
+  const findParentGroupAndSubgroup = (toolId: string): { groupName: string | null, subgroupName: string | null } => {
+    for (const [groupName, group] of Object.entries(componentGroups)) {
+      if (group.components?.some(component => component.id === toolId)) {
+        return { groupName, subgroupName: null };
+      }
+      if (group.subgroups) {
+        for (const [subgroupName, subgroup] of Object.entries(group.subgroups)) {
+          if (subgroup.components.some(component => component.id === toolId)) {
+            return { groupName, subgroupName };
+          }
         }
       }
     }
-  }, []); // Only run on initial mount
+    return { groupName: null, subgroupName: null };
+  };
+
+  // Get initial tool from URL hash or default
+  const initialTool = window.location.hash ? window.location.hash.substring(1) : defaultTool;
+  const { groupName: initialParentGroup, subgroupName: initialSubgroup } = findParentGroupAndSubgroup(initialTool);
+
+  // State to track expanded/collapsed groups
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+    Object.keys(componentGroups).reduce((acc, key) => ({
+      ...acc,
+      [key]: key === initialParentGroup // Set parent group of selected tool to expanded
+    }), {})
+  );
+
+  // State to track expanded/collapsed subgroups
+  const [expandedSubgroups, setExpandedSubgroups] = useState<Record<string, boolean>>(
+    initialParentGroup && initialSubgroup 
+      ? { [`${initialParentGroup}-${initialSubgroup}`]: true }
+      : {}
+  );
+
+  // Toggle group expansion
+  const toggleGroup = (groupName: string) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupName]: !prev[groupName]
+    }));
+  };
+
+  // Toggle subgroup expansion
+  const toggleSubgroup = (subgroupKey: string) => {
+    setExpandedSubgroups(prev => ({
+      ...prev,
+      [subgroupKey]: !prev[subgroupKey]
+    }));
+  };
 
   // Listen for URL hash changes (e.g. back/forward navigation)
   useEffect(() => {
@@ -573,141 +666,68 @@ export default function ToolboxApp({ embedded = false }: ToolboxAppProps) {
       const newTool = window.location.hash ? window.location.hash.substring(1) : defaultTool;
       setSelectedTool(newTool);
       
-      // Update last opened tool for the category when navigating via URL
-      const activeCategory = getActiveCategory(newTool);
-      if (activeCategory && newTool !== "home") {
-        const newLastOpened = { ...lastOpenedInCategory, [activeCategory]: newTool };
-        setLastOpenedInCategory(newLastOpened);
-        localStorage.setItem('toolbox-last-opened-in-category', JSON.stringify(newLastOpened));
+      // Auto-expand the parent group and subgroup of the selected tool
+      const { groupName: parentGroup, subgroupName } = findParentGroupAndSubgroup(newTool);
+      if (parentGroup) {
+        setExpandedGroups(prev => ({
+          ...prev,
+          [parentGroup]: true
+        }));
+        
+        if (subgroupName) {
+          setExpandedSubgroups(prev => ({
+            ...prev,
+            [`${parentGroup}-${subgroupName}`]: true
+          }));
+        }
       }
     };
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, [lastOpenedInCategory]);
-
-  // Get the default/first tool for a category
-  const getDefaultToolForCategory = (categoryId: string): string => {
-    // Check if we have a last opened tool for this category
-    if (lastOpenedInCategory[categoryId]) {
-      return lastOpenedInCategory[categoryId];
-    }
-    
-    // Otherwise, return the first tool in the category
-    const categoryToFirstTool: Record<string, string> = {
-      "home": "home",
-      "create-l1": "createChain",
-      "validator-manager": "deployProxyContract",
-      "interchain-messaging": "teleporterMessenger",
-      "interchain-token-transfer": "deployExampleERC20",
-      "precompiles": "deployerAllowlist",
-      "staking-manager": "deployRewardCalculator",
-      "utils": "formatConverter",
-      "primary-network": "avalanchegoDockerPrimaryNetwork",
-      "faucet": "faucet"
-    };
-    
-    return categoryToFirstTool[categoryId] || categoryId;
-  };
+  }, []);
 
   const handleComponentClick = (toolId: string) => {
-    const mainCategories = ["home", "create-l1", "validator-manager", "staking-manager", "interchain-messaging", "interchain-token-transfer", "precompiles", "utils", "primary-network", "faucet"];
-    
-    // If clicking on a main category, open the default tool for that category
-    if (mainCategories.includes(toolId)) {
-      const defaultTool = getDefaultToolForCategory(toolId);
-      toolId = defaultTool;
-    }
-    
-    // Track which category this tool belongs to and save as last opened
-    const activeCategory = getActiveCategory(toolId);
-    if (activeCategory) {
-      const newLastOpened = { ...lastOpenedInCategory, [activeCategory]: toolId };
-      setLastOpenedInCategory(newLastOpened);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('toolbox-last-opened-in-category', JSON.stringify(newLastOpened));
-      }
-    }
-    
     // Update the URL hash
     window.location.hash = toolId;
     // Optionally update local state immediately
     setSelectedTool(toolId);
-  };
-
-  // Determine which main category is active based on the current tool
-  const getActiveCategory = (currentTool: string) => {
-    // Map of tool IDs to their main categories
-    const toolToCategory: Record<string, string> = {
-      // Home
-      home: "home",
-      
-      // Create L1
-      createChain: "create-l1",
-      avalanchegoDockerL1: "create-l1", 
-      convertToL1: "create-l1",
-      selfHostedExplorer: "create-l1",
-      
-      // Validator Manager
-      deployProxyContract: "validator-manager",
-      deployValidatorManager: "validator-manager",
-      upgradeProxy: "validator-manager", 
-      initialize: "validator-manager",
-      initValidatorSet: "validator-manager",
-      deployPoAManager: "validator-manager",
-      readContract: "validator-manager",
-      addValidator: "validator-manager",
-      changeWeight: "validator-manager",
-      removeValidator: "validator-manager", 
-      migrateV1ToV2: "validator-manager",
-      balanceTopup: "validator-manager",
-      queryL1ValidatorSet: "validator-manager",
-      transferOwnership: "validator-manager",
-      deployRewardCalculator: "staking-manager",
-      deployStakingManager: "staking-manager",
-      initializeStakingManager: "staking-manager",
-      
-      // Interchain Messaging
-      teleporterMessenger: "interchain-messaging",
-      teleporterRegistry: "interchain-messaging",
-      icmRelayer: "interchain-messaging",
-      deployICMDemo: "interchain-messaging", 
-      sendICMMessage: "interchain-messaging",
-      
-      // Interchain Token Transfer
-      deployExampleERC20: "interchain-token-transfer",
-      deployTokenHome: "interchain-token-transfer",
-      deployERC20TokenRemote: "interchain-token-transfer",
-      deployNativeTokenRemote: "interchain-token-transfer",
-      registerWithHome: "interchain-token-transfer",
-      addCollateral: "interchain-token-transfer",
-      testSend: "interchain-token-transfer",
-      
-      // Precompiles
-      deployerAllowlist: "precompiles",
-      nativeMinter: "precompiles",
-      transactionAllowlist: "precompiles",
-      feeManager: "precompiles",
-      rewardManager: "precompiles", 
-      warpMessenger: "precompiles",
-      
-      // Utils
-      rpcMethodsCheck: "utils",
-      performanceMonitor: "utils",
-      formatConverter: "utils",
-      unitConverter: "utils",
-      
-      // Primary Network
-      avalanchegoDockerPrimaryNetwork: "primary-network",
-      crossChainTransfer: "primary-network",
-      
-      // Faucet
-      faucet: "faucet"
-    }
     
-    return toolToCategory[currentTool] || ""
+    // Auto-expand the parent group and subgroup of the selected tool
+    const { groupName: parentGroup, subgroupName } = findParentGroupAndSubgroup(toolId);
+    if (parentGroup) {
+      setExpandedGroups(prev => ({
+        ...prev,
+        [parentGroup]: true
+      }));
+      
+      if (subgroupName) {
+        setExpandedSubgroups(prev => ({
+          ...prev,
+          [`${parentGroup}-${subgroupName}`]: true
+        }));
+      }
+    }
   };
 
-  const renderToolComponent = () => {
+  const renderSelectedComponent = () => {
+    // Handle splash page
+    if (selectedTool === "splash") {
+      return (
+        <ErrorBoundary
+          FallbackComponent={ErrorFallback}
+          onReset={() => {
+            window.location.reload();
+          }}
+        >
+          <ErrorBoundaryWithWarning>
+            <div className="space-y-4">
+              <HomeComponent />
+            </div>
+          </ErrorBoundaryWithWarning>
+        </ErrorBoundary>
+      );
+    }
+
     const allComponents: ComponentType[] = [];
     Object.values(componentGroups).forEach(group => {
       if (group.components) {
@@ -729,7 +749,7 @@ export default function ToolboxApp({ embedded = false }: ToolboxAppProps) {
 
     const comp = allComponents.find(c => c.id === selectedTool);
     if (!comp) {
-      return null;
+      return <div>Component not found</div>;
     }
 
     const Component = comp.component;
@@ -742,83 +762,33 @@ export default function ToolboxApp({ embedded = false }: ToolboxAppProps) {
         }}
       >
         <ErrorBoundaryWithWarning>
-          <div className="space-y-4">
-            <Suspense fallback={<ComponentLoader />}>
-              <Component />
-            </Suspense>
-          </div>
-          <div className="mt-4 space-y-1 border-t pt-3">
-            {comp.fileNames.map((fileName, index) => (
-              <GithubLink
-                key={index}
-                user="ava-labs"
-                repo="builders-hub"
-                branch={import.meta.env?.VITE_GIT_BRANCH_NAME || "master"}
-                filePath={fileName}
-              />
-            ))}
-          </div>
+          <OptionalConnectWallet walletMode={comp.walletMode}>
+            <div className="space-y-4">
+              <Suspense fallback={<ComponentLoader />}>
+                <Component />
+              </Suspense>
+            </div>
+            <div className="mt-4 space-y-1 border-t pt-3">
+              {comp.fileNames.map((fileName, index) => (
+                <GithubLink
+                  key={index}
+                  user="ava-labs"
+                  repo="builders-hub"
+                  branch={import.meta.env?.VITE_GIT_BRANCH_NAME || "master"}
+                  filePath={fileName}
+                />
+              ))}
+            </div>
+          </OptionalConnectWallet>
         </ErrorBoundaryWithWarning>
       </ErrorBoundary>
     );
   };
 
-  // Removed unused handleResetState function
-
-  const renderSelectedComponent = () => {
-    const activeCategory = getActiveCategory(selectedTool);
-    
-    // Handle home page
-    if (selectedTool === "home") {
-      return (
-        <ErrorBoundary
-          FallbackComponent={ErrorFallback}
-          onReset={() => {
-            window.location.reload();
-          }}
-        >
-          <ErrorBoundaryWithWarning>
-            <div className="space-y-4">
-              <Home />
-            </div>
-          </ErrorBoundaryWithWarning>
-        </ErrorBoundary>
-      );
-    }
-
-    // Show category tabs when a main category is selected but no specific tool
-    const mainCategories = ["home", "create-l1", "validator-manager", "staking-manager", "interchain-messaging", "interchain-token-transfer", "precompiles", "utils", "primary-network", "faucet"];
-    if (mainCategories.includes(selectedTool)) {
-      return <CategoryTabs selectedCategory={selectedTool} activeItem={selectedTool} onItemSelect={handleComponentClick} />
-    }
-
-    // Show category tabs with active tool when a specific tool is selected
-    if (activeCategory) {
-      return (
-        <div>
-          <CategoryTabs selectedCategory={activeCategory} activeItem={selectedTool} onItemSelect={handleComponentClick} />
-          <div className="mt-8">
-            {renderToolComponent()}
-          </div>
-        </div>
-      )
-    }
-
-    return <div>Component not found</div>;
-  };
-
-  if (embedded) {
-    return (
-      <div className="w-full">
-        {renderSelectedComponent()}
-      </div>
-    );
-  }
-
   return (
-    <SidebarProvider defaultOpen>
-      <div className="min-h-screen flex w-full bg-background">
-        {/* Premium Background */}
+    <div className={embedded ? "" : "container mx-auto flex flex-col md:flex-row relative"}>
+      {/* Premium Background - only show when not embedded */}
+      {!embedded && (
         <div className="fixed inset-0 -z-10">
           <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-[#0A0A0A] dark:via-[#0A0A0A] dark:to-[#0A0A0A]">
             {/* Subtle grid overlay */}
@@ -833,140 +803,261 @@ export default function ToolboxApp({ embedded = false }: ToolboxAppProps) {
             </div>
           </div>
         </div>
+      )}
 
-        <AppSidebar 
-          activeItem={getActiveCategory(selectedTool) || selectedTool}
-          onItemSelect={handleComponentClick}
-        />
-        
-        <main className="flex-1 flex flex-col min-w-0">
-          <header className="flex items-center justify-between gap-4 px-6 py-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 min-h-[64px]">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger />
-              <div className="h-5 w-px bg-sidebar-border" />
-              <div className="flex items-center gap-3">
-              {(() => {
-                const activeCategory = getActiveCategory(selectedTool);
-                const mainCategories = ["home", "create-l1", "validator-manager", "staking-manager", "interchain-messaging", "interchain-token-transfer", "precompiles", "utils", "primary-network", "faucet"];
-                
-                // Category name mapping
-                const categoryNames: Record<string, string> = {
-                  "home": "Home",
-                  "create-l1": "Create L1",
-                  "validator-manager": "Validator Manager", 
-                  "staking-manager": "Staking Manager",
-                  "interchain-messaging": "Interchain Messaging",
-                  "interchain-token-transfer": "Interchain Token Transfer",
-                  "precompiles": "Precompiles",
-                  "utils": "Utils",
-                  "primary-network": "Primary Network",
-                  "faucet": "Faucet"
-                };
-
-                // Tool name mapping
-                const toolNames: Record<string, string> = {
-                  home: "Home",
-                  createChain: "Create Chain",
-                  avalanchegoDockerL1: "Node Setup",
-                  convertToL1: "Convert Subnet",
-                  selfHostedExplorer: "Explorer Setup",
-                  deployProxyContract: "Deploy Proxy Contract",
-                  deployValidatorManager: "Deploy Validator Manager",
-                  upgradeProxy: "Upgrade Proxy",
-                  initialize: "Initialize",
-                  initValidatorSet: "Init Validator Set",
-                  deployPoAManager: "Deploy PoA Manager",
-                  readContract: "Read Contract",
-                  addValidator: "Add Validator",
-                  changeWeight: "Change Weight",
-                  removeValidator: "Remove Validator",
-                  migrateV1ToV2: "Migrate v1 to v2",
-                  balanceTopup: "Balance Topup",
-                  queryL1ValidatorSet: "Query Validator Set",
-                  transferOwnership: "Transfer Ownership",
-                  deployRewardCalculator: "Deploy Reward Calculator",
-                  deployStakingManager: "Deploy Staking Manager",
-                  initializeStakingManager: "Initialize Staking",
-                  teleporterMessenger: "Teleporter Messenger",
-                  teleporterRegistry: "Teleporter Registry",
-                  icmRelayer: "ICM Relayer",
-                  deployICMDemo: "Deploy Demo",
-                  sendICMMessage: "Send Message",
-                  deployExampleERC20: "Deploy ERC20",
-                  deployTokenHome: "Token Home",
-                  deployERC20TokenRemote: "ERC20 Remote",
-                  deployNativeTokenRemote: "Native Remote",
-                  registerWithHome: "Register with Home",
-                  addCollateral: "Add Collateral",
-                  testSend: "Test Send",
-                  deployerAllowlist: "Deployer Allowlist",
-                  nativeMinter: "Native Minter",
-                  transactionAllowlist: "Transaction Allowlist",
-                  feeManager: "Fee Manager",
-                  rewardManager: "Reward Manager",
-                  warpMessenger: "Warp Messenger",
-                  rpcMethodsCheck: "RPC Methods Check",
-                  performanceMonitor: "Performance Monitor",
-                  formatConverter: "Format Converter",
-                  unitConverter: "Unit Converter",
-                  avalanchegoDockerPrimaryNetwork: "Node Setup",
-                  crossChainTransfer: "Cross-Chain Transfer",
-                  faucet: "Get Test Tokens"
-                };
-
-                if (selectedTool === "home") {
-                  return <h1 className="text-lg font-semibold text-foreground">Home</h1>
-                }
-
-                if (mainCategories.includes(selectedTool)) {
-                  return <h1 className="text-lg font-semibold text-foreground">{categoryNames[selectedTool]}</h1>
-                }
-
-                if (activeCategory && toolNames[selectedTool]) {
-                  return (
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="font-medium text-foreground">{categoryNames[activeCategory]}</span>
-                      <span className="text-muted-foreground">›</span>
-                      <span className="font-medium text-foreground">{toolNames[selectedTool]}</span>
-                    </div>
-                  )
-                }
-
-                                 return <h1 className="text-lg font-semibold text-foreground">L1 Toolbox</h1>
-               })()}
+      {!embedded && (
+        <div 
+        className={`fixed left-0 top-0 h-screen bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 z-50 ${
+          isSidebarExpanded ? 'w-80 shadow-xl' : 'w-16 shadow-sm'
+        }`}
+        onMouseEnter={() => !isSidebarPinned && setIsSidebarHovered(true)}
+        onMouseLeave={() => !isSidebarPinned && setIsSidebarHovered(false)}
+      >
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                      <div className={`p-4 border-b border-zinc-100 dark:border-zinc-800 transition-all duration-300 ${isSidebarExpanded ? 'px-6' : 'px-3'}`}>
+            <div className="mb-2 relative">
+              <button
+                onClick={() => {
+                  window.location.hash = "";
+                  setSelectedTool("splash");
+                }}
+                className="flex items-center group transition-all duration-200 cursor-pointer"
+              >
+                <div className="relative">
+                  <img 
+                    src="/small-logo.png" 
+                    alt="Avalanche" 
+                    className="h-8 w-auto brightness-0 dark:invert transition-all duration-200" 
+                  />
+                  <img 
+                    src="/small-logo.png" 
+                    alt="" 
+                    className="absolute inset-0 h-8 w-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    style={{
+                      filter: 'brightness(0) saturate(100%) invert(27%) sepia(96%) saturate(1919%) hue-rotate(213deg) brightness(99%) contrast(107%)'
+                    }}
+                  />
+                </div>
+              </button>
+              
+              {/* Pin and Dark mode toggles - only visible when sidebar is fully expanded */}
+              <div className={`absolute right-0 top-0 flex items-center gap-2 transition-all duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <button
+                  onClick={() => setIsSidebarPinned(!isSidebarPinned)}
+                  className={`p-2 rounded-lg transition-all duration-200 ${
+                    isSidebarPinned 
+                      ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50' 
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                  }`}
+                  title={isSidebarPinned ? "Unpin sidebar" : "Pin sidebar"}
+                  tabIndex={isSidebarExpanded ? 0 : -1}
+                >
+                  <Pin className={`w-5 h-5 transition-transform duration-200 ${isSidebarPinned ? 'rotate-45' : ''}`} />
+                </button>
+                <button
+                  onClick={toggleDarkMode}
+                  className="p-2 rounded-lg text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200"
+                  title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+                  tabIndex={isSidebarExpanded ? 0 : -1}
+                >
+                  {isDarkMode ? (
+                    <Sun className="w-5 h-5" />
+                  ) : (
+                    <Moon className="w-5 h-5" />
+                  )}
+                </button>
               </div>
             </div>
-            
-            <div className="flex items-center gap-3">
-              {/* Dark Mode Toggle */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleDarkMode}
-                className="h-8 w-8"
-              >
-                {isDarkMode ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-              </Button>
-              
-              {/* Wallet Connection - only show when connected or can connect */}
-              <HeaderWalletConnection />
-              
-              {/* User Login Button */}
-              <UserButton />
-            </div>
-          </header>
-          <div className="flex-1 flex flex-col gap-4 p-4 pt-0">
-            <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min p-6">
-              {renderSelectedComponent()}
-            </div>
           </div>
-        </main>
+            
+          <nav className="p-2 space-y-2">
+            {Object.entries(componentGroups).map(([groupName, group]) => {
+              // Special handling for single-component groups (like Faucet)
+              const isSingleComponent = group.components?.length === 1 && !group.subgroups;
+              const singleComponent = isSingleComponent && group.components ? group.components[0] : null;
+              
+              return (
+                <div key={groupName}>
+                  <button
+                    onClick={() => {
+                      if (isSingleComponent && singleComponent) {
+                        handleComponentClick(singleComponent.id);
+                      } else {
+                        toggleGroup(groupName);
+                      }
+                    }}
+                    className={`flex w-full items-center justify-between px-3 py-3 text-left text-base font-semibold text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-all duration-200 border-b border-zinc-100 dark:border-zinc-800 mb-1 group ${
+                      isSingleComponent && singleComponent && selectedTool === singleComponent.id
+                        ? 'bg-blue-50 dark:bg-zinc-700 text-blue-700 dark:text-white border-blue-200 dark:border-zinc-600'
+                        : ''
+                    }`}
+                    title={!isSidebarExpanded ? groupName : undefined}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex-shrink-0">{group.icon}</div>
+                      <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${
+                        isSidebarExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
+                      }`}>{groupName}</span>
+                    </div>
+                    {!isSingleComponent && (
+                      <div className={`flex-shrink-0 transition-all duration-300 ${
+                        isSidebarExpanded ? 'opacity-100 ml-2' : 'opacity-0 ml-0'
+                      }`}>
+                        {expandedGroups[groupName]
+                          ? <ChevronDown className="w-5 h-5 text-zinc-400" />
+                          : <ChevronRight className="w-5 h-5 text-zinc-400" />
+                        }
+                      </div>
+                    )}
+                  </button>
+                  
+                  {!isSingleComponent && expandedGroups[groupName] && (
+                    <div className={`overflow-hidden transition-all duration-300 ${
+                      isSidebarExpanded 
+                        ? 'max-h-[2000px] opacity-100 mt-1' 
+                        : 'max-h-0 opacity-0'
+                    }`}>
+                      {group.academy && (
+                        <a 
+                          href={group.academy.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="block mb-3 mt-2 mx-3 group"
+                          tabIndex={isSidebarExpanded ? 0 : -1}
+                        >
+                          <div className="bg-blue-50 dark:bg-zinc-800 hover:bg-blue-100 dark:hover:bg-zinc-700 hover:shadow-md hover:border-blue-300 dark:hover:border-zinc-600 rounded-lg p-3 border border-blue-200 dark:border-zinc-700 transition-all duration-200 group-hover:scale-[1.02]">
+                            <div className="flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-zinc-200 mb-1 group-hover:text-blue-800 dark:group-hover:text-white transition-colors duration-200">
+                              <GraduationCap className="w-4 h-4 flex-shrink-0" />
+                              <span>Academy</span>
+                            </div>
+                            <p className="text-xs text-blue-600 dark:text-zinc-400 leading-relaxed group-hover:text-blue-700 dark:group-hover:text-zinc-300 transition-colors duration-200">
+                              {group.academy.text}
+                            </p>
+                          </div>
+                        </a>
+                      )}
+
+                      <div className="ml-3 pl-3 border-l-2 border-zinc-100 dark:border-zinc-800">
+                      
+                        {/* Render regular components if they exist */}
+                        {group.components && (
+                          <ul className="space-y-1">
+                            {group.components.map(({ id, label, icon }) => (
+                              <li key={id}>
+                                <a
+                                  href={`#${id}`}
+                                  onClick={() => handleComponentClick(id)}
+                                  className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all duration-200 group ${
+                                    selectedTool === id
+                                      ? 'bg-blue-600 dark:bg-zinc-700 text-white dark:text-white font-medium shadow-sm'
+                                      : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                                  }`}
+                                  title={!isSidebarExpanded ? label : undefined}
+                                  tabIndex={isSidebarExpanded ? 0 : -1}
+                                >
+                                  <div className="flex-shrink-0">{icon}</div>
+                                  <span className={`block leading-relaxed font-medium whitespace-nowrap overflow-hidden transition-all duration-300 ${
+                                    isSidebarExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
+                                  }`}>{label}</span>
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+
+                        {/* Render subgroups if they exist */}
+                        {group.subgroups && Object.entries(group.subgroups).map(([subgroupName, subgroup]) => {
+                          const subgroupKey = `${groupName}-${subgroupName}`;
+                          return (
+                            <div key={subgroupName} className="mt-3">
+                              <button
+                                onClick={() => toggleSubgroup(subgroupKey)}
+                                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-md transition-all duration-200 border-b border-zinc-100 dark:border-zinc-800 mb-1 group"
+                                tabIndex={isSidebarExpanded ? 0 : -1}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="flex-shrink-0">{subgroup.icon}</div>
+                                  <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${
+                                    isSidebarExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
+                                  }`}>{subgroupName}</span>
+                                </div>
+                                <div className={`flex-shrink-0 transition-all duration-300 ${
+                                  isSidebarExpanded ? 'opacity-100 ml-2' : 'opacity-0 ml-0'
+                                }`}>
+                                  {expandedSubgroups[subgroupKey]
+                                    ? <ChevronDown className="w-4 h-4 text-zinc-400" />
+                                    : <ChevronRight className="w-4 h-4 text-zinc-400" />
+                                  }
+                                </div>
+                              </button>
+                            
+                              {expandedSubgroups[subgroupKey] && (
+                                <ul className="mt-1 ml-3 space-y-1">
+                                  {subgroup.components.map(({ id, label, icon }) => (
+                                    <li key={id}>
+                                      <a
+                                        href={`#${id}`}
+                                        onClick={() => handleComponentClick(id)}
+                                        className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all duration-200 group ${
+                                          selectedTool === id
+                                            ? 'bg-blue-600 dark:bg-zinc-700 text-white dark:text-white font-medium shadow-sm'
+                                            : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                                        }`}
+                                        title={!isSidebarExpanded ? label : undefined}
+                                        tabIndex={isSidebarExpanded ? 0 : -1}
+                                      >
+                                        <div className="flex-shrink-0">{icon}</div>
+                                        <span className={`block leading-relaxed font-medium whitespace-nowrap overflow-hidden transition-all duration-300 ${
+                                          isSidebarExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
+                                        }`}>{label}</span>
+                                      </a>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+        
+        <div className={`border-t border-zinc-200 dark:border-zinc-700 p-2 bg-zinc-50 dark:bg-zinc-800/50 transition-all duration-300 ${isSidebarExpanded ? 'px-4' : ''} space-y-2`}>
+          <a
+            href="/"
+            className={`w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 border border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700`}
+          >
+            <ArrowLeft className={`w-4 h-4 transition-all duration-300 ${isSidebarExpanded ? 'mr-2' : 'mr-0'}`} />
+            <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${
+              isSidebarExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0'
+            }`}>Back to Builder Hub</span>
+          </a>
+          <button
+            onClick={() => {
+              if (window.confirm("Are you sure you want to reset the state?")) {
+                resetAllStores();
+              }
+            }}
+            className="w-full flex items-center px-3 py-2 text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-900/50 rounded-lg transition-all duration-200"
+            title={!isSidebarExpanded ? "Reset State" : undefined}
+          >
+            <RefreshCw className="w-4 h-4 flex-shrink-0" />
+            <span className={`ml-2 whitespace-nowrap overflow-hidden transition-all duration-300 ${
+              isSidebarExpanded ? 'opacity-100 max-w-full' : 'opacity-0 max-w-0 ml-0'
+            }`}>Reset State</span>
+          </button>
+        </div>
       </div>
-    </SidebarProvider>
+      )}
+      
+      <div className={embedded ? "w-full" : `flex-1 p-6 min-w-0 transition-all duration-300 ${isSidebarPinned ? 'ml-80' : 'ml-16'}`}>
+        {renderSelectedComponent()}
+      </div>
+    </div>
   );
 }
-

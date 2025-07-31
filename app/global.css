@@ -7,6 +7,15 @@
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
 @plugin 'tailwindcss-animate';
 
+/* Hide scrollbars for flow navigation */
+.scrollbar-hide {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
 @media (min-width: 768px) {
   #nd-sidebar > div:first-child {
     padding-top: calc(var(--spacing) * 3.5);

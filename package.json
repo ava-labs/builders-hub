@@ -101,6 +101,7 @@
     "react": "^19.0.0",
     "react-day-picker": "8.10.1",
     "react-dom": "^19.0.0",
+    "react-error-boundary": "^5.0.0",
     "react-hook-form": "^7.54.2",
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.1",
@@ -140,6 +141,9 @@
     "tailwindcss": "^4.0.9",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.8.2"
+  },
+  "resolutions": {
+    "react-error-boundary": "^5.0.0"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

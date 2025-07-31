@@ -525,24 +525,24 @@ export function HeaderWalletConnection({ className, onConnect }: HeaderWalletCon
           {/* Network Selection Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 px-2 bg-transparent">
-                <div className="flex items-center gap-2">
-                  <div className="flex-shrink-0 w-4 h-4 rounded-md overflow-hidden flex items-center justify-center">
+              <Button variant="outline" size="default" className="h-12 px-3 bg-transparent">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-md overflow-hidden flex items-center justify-center">
                     {currentNetwork.logoUrl ? (
                       <img src={currentNetwork.logoUrl} alt={`${currentNetwork.name} logo`} className="w-full h-full object-cover" />
                     ) : (
-                      <Globe className="w-3 h-3 text-zinc-400 dark:text-zinc-500" />
+                      <Globe className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
                     )}
                   </div>
                   <div className="flex flex-col items-start">
-                    <span className="text-xs font-medium leading-none">
+                    <span className="text-sm font-medium leading-none">
                       {currentNetwork.name}
                     </span>
-                    <span className="text-[10px] text-muted-foreground leading-none mt-0.5">
+                    <span className="text-xs text-muted-foreground leading-none mt-1">
                       {formatBalance(currentNetwork.balance)} {currentNetwork.symbol}
                     </span>
                   </div>
-                  <ChevronDown className="h-3 w-3 opacity-50" />
+                  <ChevronDown className="h-4 w-4 opacity-50" />
                 </div>
               </Button>
             </DropdownMenuTrigger>
@@ -625,13 +625,13 @@ export function HeaderWalletConnection({ className, onConnect }: HeaderWalletCon
           {/* Connected Wallet Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 px-2 bg-transparent">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-3 w-3" />
-                  <span className="text-xs font-medium">
+              <Button variant="outline" size="default" className="h-12 px-3 bg-transparent">
+                <div className="flex items-center gap-3">
+                  <Wallet className="h-4 w-4" />
+                  <span className="text-sm font-medium">
                     {formatAddress(walletEVMAddress)}
                   </span>
-                  <ChevronDown className="h-3 w-3 opacity-50" />
+                  <ChevronDown className="h-4 w-4 opacity-50" />
                 </div>
               </Button>
                           </DropdownMenuTrigger>
@@ -712,9 +712,9 @@ export function HeaderWalletConnection({ className, onConnect }: HeaderWalletCon
           </DropdownMenu>
         </>
       ) : (
-        <Button onClick={onConnect || handleConnect} size="sm" className="h-8">
-          <Wallet className="mr-2 h-3 w-3" />
-          <span className="text-xs">Connect Wallet</span>
+        <Button onClick={onConnect || handleConnect} size="default" className="h-12">
+          <Wallet className="mr-2 h-4 w-4" />
+          <span className="text-sm">Connect Wallet</span>
         </Button>
       )}
       

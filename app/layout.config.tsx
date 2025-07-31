@@ -242,10 +242,10 @@ export const academyMenu: LinkItemType = {
   ],
 };
 
-export const toolsMenu: LinkItemType = {
+export const consoleMenu: LinkItemType = {
   type: 'menu',
-  text: 'Tools',
-  url: '/tools/l1-toolbox',
+  text: 'Console',
+  url: '/console',
   items: [
     {
       menu: {
@@ -266,16 +266,16 @@ export const toolsMenu: LinkItemType = {
         className: 'md:row-span-2 lg:col-span-1',
       },
       icon: <Waypoints />,
-      text: 'L1 Toolbox',
+      text: 'Builder Console',
       description: 'Manage your L1 with a highly granular set of tools.',
-      url: '/tools/l1-toolbox',
+      url: '/console',
     },
     {
       icon: <SendHorizontal />,
       text: 'Interchain Messaging Tools',
       description:
         'Set up Interchain Messaging (ICM) for your L1.',
-      url: '/tools/l1-toolbox',
+      url: '/console/interchain-messaging',
       menu: {
         className: 'lg:col-start-2 lg:row-start-1',
       },
@@ -285,7 +285,7 @@ export const toolsMenu: LinkItemType = {
       text: 'Interchain Token Transfer Tools',
       description:
         'Set up cross-L1 bridges using the Interchain Token Transfer protocol.',
-      url: '/tools/l1-toolbox',
+      url: '/console/interchain-token-transfer',
       menu: {
         className: 'lg:col-start-2 lg:row-start-2',
       },
@@ -295,7 +295,7 @@ export const toolsMenu: LinkItemType = {
       text: 'Testnet Faucet',
       description:
         'Claim Fuji AVAX tokens from the testnet faucet to test your dApps.',
-      url: '/tools/l1-toolbox#faucet',
+      url: '/console/primary-network/faucet',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },
@@ -507,7 +507,7 @@ export const baseOptions: BaseLayoutProps = {
     docsMenu,
     integrationsMenu,
     bridgeLink,
-    toolsMenu,
+    consoleMenu,
     grantsMenu,
     eventsMenu,
     github,

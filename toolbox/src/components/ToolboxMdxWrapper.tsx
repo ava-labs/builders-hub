@@ -20,3 +20,19 @@ export default function ToolboxMdxWrapper({ children, walletMode, enforceChainId
         </ConnectWallet>
     </ErrorBoundary>;
 }
+
+// Simplified wrapper that only provides ErrorBoundary context without wallet functionality
+export function ToolboxErrorBoundary({ children }: { children: React.ReactNode }) {
+    const handleReset = () => {
+        if (typeof window !== 'undefined') {
+            window.location.reload();
+        }
+    };
+
+    return <ErrorBoundary
+        FallbackComponent={ErrorFallback}
+        onReset={handleReset}
+    >
+        {children}
+    </ErrorBoundary>;
+}
