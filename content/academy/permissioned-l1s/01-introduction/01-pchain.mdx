@@ -42,12 +42,12 @@ network, but are not participating in the consensus of the P-Chain.
 
 ## Subnets/L1s vs Chains
 
-It's important to understand that a **subnet or l1** is a validator set, while a **chain** is an individual blockchain instance:
+It's important to understand that a **Subnet or L1** is a validator set, while a **chain** is an individual blockchain instance:
 
 - **Subnet/L1**: A group of validators that can validate multiple blockchains
-- **Chain**: A single blockchain validated by exactly one subnet
+- **Chain**: A single blockchain validated by exactly one Subnet
 
-While technically one subnet can validate multiple chains (like the Primary Network validating P-Chain, C-Chain, and X-Chain), **in production it's almost always a 1:1 relationship**, and we strongly recommend keeping it as such for:
+While technically one Subnet can validate multiple chains (like the Primary Network validating P-Chain, C-Chain, and X-Chain), **in production it's almost always a 1:1 relationship**, and we strongly recommend keeping it as such for:
 - **Simpler management**
 - **Resource isolation**: Each application gets dedicated validator resources, and in the scenario that multiple validators go done, at least only one chain will be affected.  
 

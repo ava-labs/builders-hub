@@ -19,7 +19,7 @@ We place the Validator Manager Contract (VMC) here because it has:
 - **Direct ICM Access**: VMC can interact directly with the ICM (Warp precompile)
 - **Native Integration**: VMC is designed specifically for validator operations
 
-### Key Difference: No Relayers Needed
+### User-Driven Message Relaying
 
 In typical ICM use cases for cross-chain applications:
 - A relayer monitors for messages
@@ -38,7 +38,9 @@ However, **validator management works differently**:
 The power of ICM in validator management comes from its ability to securely coordinate changes between:
 - **The L1**: Where validator operations are initiated
 - **The P-Chain**: Where validators are officially registered
-- **Back to the L1**: Where the results are confirmed
+- **Back to the L1**: Where the validator set changes are confirmed to the Validator Manager Contract
+
+It's crucial to understand that **the P-Chain serves as the single source of truth** for all validator registrations across the Avalanche network. While your Validator Manager contract initiates operations and tracks state changes, the P-Chain ultimately determines which validators are active and recognized by the network. This architecture ensures that no matter where your Validator Manager is deployed or how it operates, all validator changes must be validated and recorded by the P-Chain to be considered official.
 
 ### Message Security Through Signatures
 

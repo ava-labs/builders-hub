@@ -1,7 +1,7 @@
 ---
-title: Private vs Permissioned vs Permissionless
-description: Understanding the fundamental differences between blockchain access control models
-updated: 2025-01-15
+title: Blockchain Permissioning
+description: Understanding the fundamental differences between blockchain permission models
+updated: 2025-07-31
 authors: [nicolasarnedo]
 icon: Book
 ---
@@ -12,20 +12,25 @@ Before diving into what Proof of Authority is, it's crucial to understand the fu
 
 If you know the difference, you can skip this section. However, if you doubted, it is important you know what seperates them. These distinctions form the foundation for choosing the right blockchain architecture for your use case.
 
-## Private Blockchains
+## Permissioned (Private) Blockchains
 
-A **private blockchain** is the most restrictive model. Think of it as a closed network where:
+A permissioned **private blockchain** is the most restrictive model. Think of it as a closed network where:
 
 - **Read access**: Restricted - Only network participants can view transactions and state
 - **Write access**: Restricted - Only authorized members can submit transactions
 - **Validator management model**: Fixed set - Predetermined group of validators that rarely changes
 - **Governance**: Centralized - Single entity or small group controls all decisions
 
-<Callout type="info">
-**Privacy Control**: Private blockchains provide granular control over data visibility. Even within the network, specific transaction details can be hidden from certain participants based on their permission level, ensuring data is revealed only on a need-to-know basis.
-</Callout>
+**Two Types of Privacy**: It's important to understand that "private" can mean two different things in blockchain contexts:
 
-## Permissioned Blockchains
+1. **Access Privacy (Walled Garden)**: The blockchain itself is hidden from the public - only authorized participants can access the RPC endpoints to read any data. This is what we mean by "private blockchain" and is natively supported on Avalanche.
+
+2. **Data Privacy (Encryption)**: The blockchain is publicly accessible, but the actual transaction data is encrypted. Anyone can see that transactions occurred, but the contents are encrypted and only readable by authorized parties. 
+Examples include [Zama's FHE-based confidential smart contracts](https://www.zama.ai/) and [Avalanche's EncryptedERC implementation](https://github.com/ava-labs/EncryptedERC) using zero-knowledge proofs.
+
+Most private blockchains use access privacy, while some public blockchains add data privacy through encryption.
+
+## Permissioned (Public) Blockchains
 
 A **permissioned blockchain** offers a middle ground:
 
@@ -44,27 +49,28 @@ A **permissionless blockchain** is completely open:
 - **Validator management model**: Open participation - Anyone can validate (usually with staking requirements)
 - **Governance**: Decentralized - Token holders or validators vote on changes
 
-## Key Differences at a Glance
+## Key Differences
 
 ![Private vs Permissioned vs Permissionless Blockchain Spectrum](/common-images/permissioned-l1s/PrivateVsPermissionedVsPermissionless.png)
 
-| Aspect | Private | Permissioned | Permissionless |
+| Aspect | Permissioned Private | Permissioned Public | Permissionless |
 |--------|---------|--------------|----------------|
-| **Node Access** | Invitation only | Permission required | Open to all |
-| **Data Visibility** | Restricted | Configurable | Public |
-| **Validator Entry** | Closed set | Approved validators | Anyone (with stake) |
-| **Transaction Submission** | Members only | Authorized users | Anyone |
-| **Governance** | Centralized | Hybrid | Decentralized |
-| **Performance** | High | Medium-High | Lower |
-| **Privacy** | High | Configurable | Low |
+| **RPC Access** | Restricted endpoints | Public endpoints | Public endpoints |
+| **Data Visibility** | Only authorized participants | Anyone | Anyone |
+| **Transaction Submission** | Authorized users | Authorized users / Anyone | Anyone |
+| **Contract Deployment** | Authorized users | Authorized users / Anyone | Anyone |
+| **Validator Entry** | Permission required | Permission required | Anyone (with stake) |
+| **Performance** | High | High | Medium |
+| **Governance** | Centralized/Hybrid | Centralized/Hybrid | Decentralized |
 
+> **Note**: Permissioned Private refers to "Walled Garden" approacg where data visibility is restricted.
 
 ## Avalanche L1s: Flexible by Design
 
 What makes Avalanche L1s powerful is their flexibility to implement any of these models:
 
-- **Private L1**: Configure validator manager with a fixed set of validators and restrict RPC access
-- **Permissioned L1**: Use Proof of Authority with controlled validator additions
+- **Permissioned Private L1**: Configure validator manager with a fixed set of validators and restrict RPC access
+- **Permissioned Public L1**: Use Proof of Authority with controlled validator additions
 - **Permissionless L1**: Implement Proof of Stake where anyone can become a validator by staking
 
 The ValidatorManager contract you'll learn about in this course is the key component that enables this flexibility.
