@@ -139,6 +139,7 @@ package-lock.json
 .env*.local
 
 
+
 # Remote content output paths
 content/docs/api-reference/admin-api.mdx
 content/docs/api-reference/c-chain/api.mdx
@@ -158,11 +159,11 @@ content/docs/cross-chain/teleporter/cli.mdx
 content/docs/cross-chain/teleporter/deep-dive.mdx
 content/docs/cross-chain/teleporter/overview.mdx
 content/docs/cross-chain/teleporter/upgradeability.mdx
+content/docs/nodes/chain-configs/c-chain.mdx
 content/docs/nodes/chain-configs/p-chain.mdx
 content/docs/nodes/configure/avalanche-l1-configs.mdx
 content/docs/nodes/configure/chain-configs/p-chain.mdx
 content/docs/nodes/configure/chain-configs/x-chain.mdx
-content/docs/nodes/configure/chain-configs/c-chain.mdx
 content/docs/nodes/configure/configs-flags.mdx
 content/docs/tooling/cli-commands.mdx
 
