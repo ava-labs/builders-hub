@@ -1,50 +1,48 @@
 ---
-title: PoA Validator Manager Deployment
+title: VMC Deployment Options
 description: Understanding where to deploy the PoA Validator Manager contract
 updated: 2025-07-31
 authors: [nicolasarnedo]
-icon: BookOpen
+icon: Book
 ---
 
-The PoA Validator Manager contract can be deployed on any EVM-compatible chain within the Avalanche ecosystem. Since the contract communicates with the P-Chain through Interchain Messaging (ICM), **the deployment location doesn't affect its core functionality** - validator management operations work the same regardless of where the contract resides.
+While Validator Manager Contract's (VMC) location choice becomes more critical when transitioning to Proof of Stake (PoS) systems due to token staking considetations, it's important to understand these options now because **you'll need to specify the VMC location in the next section when converting your Subnet to an L1**.
 
-## Key Insight: Location Independence
+## Why can it be located anywhere?
+
+The PoA Validator Manager contract can be deployed on any EVM-compatible chain within the Avalanche ecosystem. Since the contract communicates with the P-Chain through Interchain Messaging (ICM), **the deployment location doesn't affect its core functionality** - validator management operations work the same regardless of where the contract resides.
 
 The Validator Manager uses cross-chain communication to interact with the P-Chain for all validator operations:
 - **Registration**: Sends `RegisterL1ValidatorMessage` to P-Chain
 - **Removal**: Sends removal requests via ICM
 - **Acknowledgments**: Receives `L1ValidatorRegistrationMessage` confirmations
 
-This architecture means the contract can manage your L1's validators from any deployment location.
-
 ## Deployment Options
 
 ### 1. Your Own L1
 
 **Advantages:**
-- Lower gas costs for frequent admin operations
 - Direct integration with your L1's operational setup
-- Easier monitoring and tooling integration
 - Can configure native token minting privileges for future PoS migration
-
-**Considerations:**
-- Requires bootstrapping initial validators before contract deployment
 
 ### 2. C-Chain
 
 **Advantages:**
 - Highest security and decentralization (Avalanche's primary network)
 - Can manage multiple L1s from one location (if you are going to setup multiple permissioned L1s)
+- DeFi Composability: Easy integration with the existing DeFi ecosystem on C-Chain for future tokenomics
+- **Decentralization Path**: Ideal for L1s planning to transition to Proof of Stake and leverage C-Chain's established infrastructure
 
 **Considerations:**
 - Higher gas costs compared to L1s
 - Potential congestion during high network usage
 
-### 3. Another L1 (niche)
+### 3. Another L1 (niche setup)
 
 **Advantages:**
 - Multiple L1 management (you might want to deploy on the "central" L1 of your multi-chain architecture system)
 
-<Callout type="info">
-For PoA deployments, **your own L1 is typically preferred** due to lower gas costs for admin operations and better operational alignment. The contract uses OpenZeppelin's `OwnableUpgradeable` pattern, so owner control remains the same regardless of location.
-</Callout>
+## Proof of Authority Recommendation
+
+If you plan to keep your L1 permissioned with PoA, **deploying VMC on it is recommended** for better operational alignment.
+
