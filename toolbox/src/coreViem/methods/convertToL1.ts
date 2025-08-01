@@ -83,7 +83,7 @@ export async function convertToL1(client: WalletClient<any, any, any, CoreWallet
         params: {
             transactionHex: utils.bufferToHex(tx.toBytes()),
             chainAlias: 'P',
-        }
+        } as any
     }) as string;
 
     return transactionID;
