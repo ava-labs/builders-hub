@@ -153,7 +153,7 @@ function ConsoleToolContent({ params }: ConsoleToolPageProps) {
   }
   
   // Dynamically import the component
-  const DynamicComponent = lazy(componentMap[path as keyof typeof componentMap]);
+  const DynamicComponent = lazy(componentMap[path as keyof typeof componentMap] as () => Promise<{ default: React.ComponentType<any> }>);
   
   // Don't render the dynamic component until we're on the client
   if (!isClient) {
