@@ -4,6 +4,7 @@ import { ChevronRight, MoveVertical } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useWalletStore } from "../../../toolbox/src/stores/walletStore";
+import { Suspense } from "react";
 
 interface FlowStep {
   id: string;
@@ -374,7 +375,7 @@ const handleStepClick = (router: any, step: FlowStep | AlternativeStep, currentF
   router.push(path);
 };
 
-export function FlowNavigation({ currentPath }: FlowNavigationProps) {
+function FlowNavigationContent({ currentPath }: FlowNavigationProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isTestnet } = useWalletStore();
@@ -664,5 +665,21 @@ export function FlowNavigation({ currentPath }: FlowNavigationProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+export function FlowNavigation({ currentPath }: FlowNavigationProps) {
+  return (
+    <Suspense fallback={
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex items-center justify-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+          </div>
+        </div>
+      </div>
+    }>
+      <FlowNavigationContent currentPath={currentPath} />
+    </Suspense>
   );
 }

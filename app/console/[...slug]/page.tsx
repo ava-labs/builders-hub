@@ -105,7 +105,7 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
   );
 }
 
-function RedirectIfNewUser() {
+function RedirectLogic() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const router = useRouter();
@@ -127,6 +127,14 @@ function RedirectIfNewUser() {
   }, [session, status, pathname, router, searchParams]);
 
   return null;
+}
+
+function RedirectIfNewUser() {
+  return (
+    <Suspense fallback={null}>
+      <RedirectLogic />
+    </Suspense>
+  );
 }
 
 interface ConsoleToolPageProps {
@@ -195,9 +203,7 @@ function ConsoleToolContent({ params }: ConsoleToolPageProps) {
 export default function ConsoleToolPage({ params }: ConsoleToolPageProps) {
   return (
     <SessionProvider>
-      <Suspense fallback={null}>
-        <RedirectIfNewUser />
-      </Suspense>
+      <RedirectIfNewUser />
       <ConsoleLayout>
         <ConsoleToolContent params={params} />
       </ConsoleLayout>

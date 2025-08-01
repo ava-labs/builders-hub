@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, Suspense } from "react";
 import { ConsoleLayout } from "./components/ConsoleLayout";
 
-function RedirectIfNewUser() {
+function RedirectLogic() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const router = useRouter();
@@ -27,6 +27,14 @@ function RedirectIfNewUser() {
   }, [session, status, pathname, router, searchParams]);
 
   return null;
+}
+
+function RedirectIfNewUser() {
+  return (
+    <Suspense fallback={null}>
+      <RedirectLogic />
+    </Suspense>
+  );
 }
 
 function ConsoleDashboard() {
@@ -99,9 +107,7 @@ function ConsoleDashboard() {
 export default function ConsolePage() {
   return (
     <SessionProvider>
-      <Suspense fallback={null}>
-        <RedirectIfNewUser />
-      </Suspense>
+      <RedirectIfNewUser />
       <ConsoleLayout>
         <ConsoleDashboard />
       </ConsoleLayout>
