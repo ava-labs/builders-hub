@@ -8,6 +8,7 @@ import { ErrorFallback } from "../components/ErrorFallback";
 import { ErrorBoundaryWithWarning } from "../components/ErrorBoundaryWithWarning";
 import { OptionalConnectWallet, type WalletMode } from "../components/ConnectWallet/ConnectWallet";
 import SplashPage from "./SplashPage";
+import { UserButtonWrapper } from "../components/UserButtonWrapper";
 
 import "../main.css";
 import { resetAllStores } from "../stores/reset";
@@ -77,20 +78,20 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         icon: <Plus className="w-4 h-4" />
       },
       {
+        id: "builderHubNodes",
+        label: "Builder Hub Nodes",
+        component: lazy(() => import('./Nodes/BuilderHubNodes')),
+        fileNames: ["toolbox/src/toolbox/Nodes/BuilderHubNodes.tsx"],
+        walletMode: "l1",
+        icon: <Zap className="w-4 h-4" />
+      },
+      {
         id: "avalanchegoDockerL1",
         label: "L1 Node Setup with Docker",
         component: lazy(() => import('./Nodes/AvalancheGoDockerL1')),
         fileNames: ["toolbox/src/toolbox/Nodes/AvalancheGoDockerL1.tsx"],
         walletMode: "testnet-mainnet",
         icon: <Server className="w-4 h-4" />
-      },
-      {
-        id: 'convertToL1',
-        label: "Convert Subnet to L1",
-        component: lazy(() => import('./L1/ConvertToL1')),
-        fileNames: ["toolbox/src/toolbox/L1/ConvertToL1.tsx"],
-        walletMode: "c-chain",
-        icon: <ArrowUpDown className="w-4 h-4" />
       },
       {
         id: "selfHostedExplorer",
@@ -806,6 +807,13 @@ export default function ToolboxApp({ embedded = false }: ToolboxAppProps) {
         </div>
       )}
 
+      {/* User Button - Top Right */}
+      {!embedded && (
+        <div className="fixed top-4 right-4 z-50">
+          <UserButtonWrapper showLoginText={true} />
+        </div>
+      )}
+
       {!embedded && (
         <div 
         className={`fixed left-0 top-0 h-screen bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 z-50 ${
@@ -1056,7 +1064,7 @@ export default function ToolboxApp({ embedded = false }: ToolboxAppProps) {
       </div>
       )}
       
-      <div className={embedded ? "w-full" : `flex-1 p-6 min-w-0 transition-all duration-300 ${isSidebarPinned ? 'ml-80' : 'ml-16'}`}>
+      <div className={embedded ? "w-full" : `flex-1 p-6 pt-16 min-w-0 transition-all duration-300 ${isSidebarPinned ? 'ml-80' : 'ml-16'}`}>
         {renderSelectedComponent()}
       </div>
     </div>

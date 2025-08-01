@@ -51,6 +51,7 @@ model User {
   memberships         Member[]
   registrations       RegisterForm?
   hackathons          Hackathon[]
+  nodeRegistrations   NodeRegistration[]
 }
 
 model VerificationToken {
@@ -135,4 +136,25 @@ model Member {
   project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
   user       User?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+}
+
+model NodeRegistration {
+  id                  String   @id @default(uuid())
+  user_id             String
+  subnet_id           String
+  blockchain_id       String
+  node_id             String
+  public_key          String
+  proof_of_possession String
+  rpc_url             String
+  chain_name          String?
+  status              String   @default("active") // active, expired, terminated
+  created_at          DateTime @default(now()) @db.Timestamptz(3)
+  expires_at          DateTime @db.Timestamptz(3)
+  updated_at          DateTime @updatedAt @db.Timestamptz(3)
+  user                User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, subnet_id])
+  @@index([user_id])
+  @@index([status])
 }
