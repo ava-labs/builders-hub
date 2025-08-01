@@ -2,6 +2,7 @@ import { loader } from 'fumadocs-core/source';
 import { createElement } from 'react';
 import { icons } from 'lucide-react';
 import { createMDXSource } from 'fumadocs-mdx';
+// @ts-expect-error: Unable to resolve '@/.source' in type checking, but present at runtime
 import { meta, docs, guide as guides, course, courseMeta, integrations } from '@/.source';
 import type { InferMetaType, InferPageType } from 'fumadocs-core/source';
 
