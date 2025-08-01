@@ -19,28 +19,47 @@ The Validator Manager uses cross-chain communication to interact with the P-Chai
 
 ## Deployment Options
 
-### 1. Your Own L1
+<Tabs items={['Your L1', 'C-Chain', 'Another L1']} collapsible="true">
 
-**Advantages:**
+<Tab value="Your L1">
+Best for L1's that plan to remain always permissioned with PoA
+
+**Advantages**
 - Direct integration with your L1's operational setup
+- Lower operational costs
 - Can configure native token minting privileges for future PoS migration
 
-### 2. C-Chain
+**Considerations**
+- Requires bootstrapping initial validators before contract deployment
+</Tab>
 
-**Advantages:**
+<Tab value="C-Chain">
+Best for L1s planning future decentralization (PoS) or DeFi integration
+
+**Advantages**
 - Highest security and decentralization (Avalanche's primary network)
-- Can manage multiple L1s from one location (if you are going to setup multiple permissioned L1s)
-- DeFi Composability: Easy integration with the existing DeFi ecosystem on C-Chain for future tokenomics
-- **Decentralization Path**: Ideal for L1s planning to transition to Proof of Stake and leverage C-Chain's established infrastructure
+- Can manage multiple L1s from one location
+- **DeFi Composability**: Easy integration with existing DeFi ecosystem
+- **Decentralization Path**: Ideal for transition to Proof of Stake
 
-**Considerations:**
+**Considerations**
 - Higher gas costs compared to L1s
 - Potential congestion during high network usage
+</Tab>
 
-### 3. Another L1 (niche setup)
+<Tab value="Another L1">
+Best for multi-chain architecture systems owned  by the saeme company
 
-**Advantages:**
-- Multiple L1 management (you might want to deploy on the "central" L1 of your multi-chain architecture system)
+**Advantages**
+- Centralized management across multiple L1s
+- Can leverage a "hub" L1 for coordinated operations
+
+**Considerations**
+- Dependency on external L1 infrastructure
+- Cross-chain complexity for operations
+</Tab>
+
+</Tabs>
 
 ## Proof of Authority Recommendation
 
