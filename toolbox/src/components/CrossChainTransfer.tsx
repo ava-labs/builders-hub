@@ -12,10 +12,6 @@ import { pvmExport } from "../coreViem/methods/pvmExport"
 import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs'
 import { getRPCEndpoint } from '../coreViem/utils/rpc'
 import { useErrorBoundary } from "react-error-boundary"
-import { Success } from './Success'
-
-// Helper function for delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default function CrossChainTransfer({
     suggestedAmount = "0.0",
@@ -33,8 +29,8 @@ export default function CrossChainTransfer({
     const [exportLoading, setExportLoading] = useState<boolean>(false)
     const [importLoading, setImportLoading] = useState<boolean>(false)
     const [exportTxId, setExportTxId] = useState<string>("")
+    const [completedExportTxId, setCompletedExportTxId] = useState<string>("")
     const [importTxId, setImportTxId] = useState<string | null>(null)
-    const [waitingForConfirmation, setWaitingForConfirmation] = useState<boolean>(false)
     const [_, setCurrentStep] = useState<number>(1)
     const [showSourceDropdown, setShowSourceDropdown] = useState<boolean>(false)
     const [showDestinationDropdown, setShowDestinationDropdown] = useState<boolean>(false)
@@ -235,7 +231,9 @@ export default function CrossChainTransfer({
 
                 console.log("Export transaction sent:", response);
                 // Store the export transaction ID to trigger import
-                setExportTxId(response.txID || String(response));
+                const txId = response.txID || String(response);
+                setExportTxId(txId);
+                setCompletedExportTxId(txId);
             } else {
                 // P-Chain to C-Chain export using the pvmExport function
                 const response = await pvmExport(coreWalletClient, {
@@ -244,17 +242,13 @@ export default function CrossChainTransfer({
                 });
 
                 console.log("P-Chain Export transaction sent:", response);
-                setExportTxId(response.txID || String(response));
+                const txId = response.txID || String(response);
+                setExportTxId(txId);
+                setCompletedExportTxId(txId);
             }
 
             await pollForUTXOChanges();
             onBalanceChanged();
-            
-            // Show waiting message
-            setWaitingForConfirmation(true);
-            // Wait for 5 seconds to ensure the export transaction has time to confirm
-            await delay(5000);
-            setWaitingForConfirmation(false);
             
         } catch (error) {
             showBoundary(error);
@@ -345,6 +339,23 @@ export default function CrossChainTransfer({
     // Get the available UTXOs based on current direction
     const availableUTXOs = destinationChain === "p-chain" ? cToP_UTXOs : pToC_UTXOs;
     const totalUtxoAmount = destinationChain === "p-chain" ? totalCToPUtxoAmount : totalPToCUtxoAmount;
+
+    // Auto-switch to direction with pending UTXOs
+    useEffect(() => {
+        if (!exportTxId && !completedExportTxId && !importTxId) {
+            // Only auto-switch when no active transfer
+            if (cToP_UTXOs.length > 0 && pToC_UTXOs.length === 0) {
+                // Only C→P UTXOs, switch to C→P direction
+                setSourceChain("c-chain");
+                setDestinationChain("p-chain");
+            } else if (pToC_UTXOs.length > 0 && cToP_UTXOs.length === 0) {
+                // Only P→C UTXOs, switch to P→C direction
+                setSourceChain("p-chain");
+                setDestinationChain("c-chain");
+            }
+            // If both directions have UTXOs, keep current selection
+        }
+    }, [cToP_UTXOs.length, pToC_UTXOs.length, exportTxId, completedExportTxId, importTxId]);
 
     return (
         <Container
@@ -538,22 +549,75 @@ export default function CrossChainTransfer({
                     )}
                 </div>
 
-                {/* UTXOs Display */}
-                {availableUTXOs.length > 0 && (
-                    <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700">
-                        <h2 className="text-md font-medium text-zinc-900 dark:text-white mb-2">
-                            Pending UTXOs to Import
-                        </h2>
-                        <div className="text-sm text-zinc-700 dark:text-zinc-300 py-3 px-4 bg-zinc-50 dark:bg-zinc-700 rounded-md">
-                            {availableUTXOs.map((utxo, index) => (
-                                <div key={index}>
-                                    {(Number(utxo.output.amt.value()) / 1_000_000_000).toFixed(6)} AVAX
+                {/* Combined Export & Import Card */}
+                {(exportTxId || availableUTXOs.length > 0 || importTxId) && (
+                    <div className="bg-muted/50 p-4 rounded-xl border border-border">
+                        {/* Export Transaction Section */}
+                        {completedExportTxId && (
+                            <div className="mb-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <h3 className="text-md font-medium text-foreground">
+                                        Export Transaction Completed
+                                    </h3>
                                 </div>
-                            ))}
-                            <div className="mt-2 font-medium">
-                                Total: {totalUtxoAmount.toFixed(6)} AVAX
+                                <div className="text-sm text-muted-foreground mb-3">
+                                    Successfully exported from {sourceChain === "c-chain" ? "C-Chain" : "P-Chain"}
+                                </div>
+                                <div className="p-3 bg-background rounded border border-border font-mono text-xs break-all text-foreground">
+                                    {completedExportTxId}
+                                </div>
                             </div>
-                        </div>
+                        )}
+
+                        {/* UTXOs Display with Import Button */}
+                        {availableUTXOs.length > 0 && !importTxId && (
+                            <>
+                                {completedExportTxId && <div className="border-t border-border my-4"></div>}
+                                <div className="text-sm text-muted-foreground mb-4">
+                                    {totalUtxoAmount.toFixed(6)} AVAX available to import to {destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}
+                                </div>
+                                <div className="space-y-2 mb-4">
+                                    {availableUTXOs.map((utxo, index) => (
+                                        <div key={index} className="text-sm font-mono text-foreground bg-background p-3 rounded border border-border">
+                                            {(Number(utxo.output.amt.value()) / 1_000_000_000).toFixed(6)} AVAX
+                                        </div>
+                                    ))}
+                                </div>
+                                <Button
+                                    variant="primary"
+                                    onClick={handleImport}
+                                    disabled={importLoading}
+                                    className="w-full"
+                                >
+                                    {importLoading ? (
+                                        <span className="flex items-center justify-center">
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            Importing...
+                                        </span>
+                                    ) : `Import to ${destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}`}
+                                </Button>
+                            </>
+                        )}
+
+                        {/* Import Transaction Receipt */}
+                        {importTxId && (
+                            <>
+                                {completedExportTxId && <div className="border-t border-border my-4"></div>}
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <h3 className="text-md font-medium text-foreground">
+                                        Import Transaction Completed
+                                    </h3>
+                                </div>
+                                <div className="text-sm text-muted-foreground mb-3">
+                                    Successfully imported to {destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}
+                                </div>
+                                <div className="p-3 bg-background rounded border border-border font-mono text-xs break-all text-foreground">
+                                    {importTxId}
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
 
@@ -565,12 +629,12 @@ export default function CrossChainTransfer({
 
                 {/* Action Buttons */}
                 <div className="space-y-3">
-                    {/* Export Button */}
-                    {(!exportTxId && !importTxId) && (
+                    {/* Export Button - Show when no export has been done yet */}
+                    {!exportTxId && (
                         <Button
                             variant="primary"
                             onClick={handleExport}
-                            disabled={exportLoading || importLoading || waitingForConfirmation || Number(amount) <= 0 || !!error}
+                            disabled={exportLoading || importLoading || Number(amount) <= 0 || !!error}
                             className="w-full py-3 px-4 text-base font-medium text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {exportLoading ? (
@@ -582,33 +646,7 @@ export default function CrossChainTransfer({
                         </Button>
                     )}
 
-                    {/* Import Button */}
-                    {(exportTxId || availableUTXOs.length > 0) && !importTxId && (
-                        <Button
-                            variant="primary"
-                            onClick={handleImport}
-                            disabled={importLoading || availableUTXOs.length === 0}
-                            className="w-full py-3 px-4 text-base font-medium text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {importLoading ? (
-                                <span className="flex items-center justify-center">
-                                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                                    Importing to {destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}...
-                                </span>
-                            ) : `Import to ${destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}`}
-                        </Button>
-                    )}
-
-                    {waitingForConfirmation && (
-                        <div className="flex items-center p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                            <Loader2 className="h-5 w-5 mr-3 animate-spin text-yellow-500" />
-                            <div>
-                                <span className="text-yellow-700 dark:text-yellow-300 text-sm font-medium">Export Successful!</span>
-                                <span className="text-yellow-600 dark:text-yellow-400 text-xs block">Waiting for confirmation before import...</span>
-                            </div>
-                        </div>
-                    )}
-
+                    {/* Import Error Display */}
                     {importError && (
                         <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                             <div className="text-red-700 dark:text-red-300 text-sm">
@@ -617,11 +655,22 @@ export default function CrossChainTransfer({
                         </div>
                     )}
 
+                    {/* Reset Button - Show after successful transfer */}
                     {importTxId && (
-                        <Success
-                            label={`Successfully Bridged from ${sourceChain === "c-chain" ? "C-Chain" : "P-Chain"} to ${destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}`}
-                            value={importTxId}
-                        />
+                        <Button
+                            variant="secondary"
+                            onClick={() => {
+                                setExportTxId("");
+                                setCompletedExportTxId("");
+                                setImportTxId(null);
+                                setAmount("");
+                                setError(null);
+                                setImportError(null);
+                            }}
+                            className="w-full py-3 px-4 text-base font-medium rounded-lg transition-all duration-200"
+                        >
+                            Start New Transfer
+                        </Button>
                     )}
                 </div>
             </div>

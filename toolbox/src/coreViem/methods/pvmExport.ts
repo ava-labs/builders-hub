@@ -48,7 +48,7 @@ export async function pvmExport(client: WalletClient<any, any, any, CoreWalletRp
     const pvmApi = new pvm.PVMApi(platformEndpoint);
     const utxoResponse = await pvmApi.getUTXOs({ addresses: [pChainAddress] });
     const utxos = utxoResponse.utxos;
-
+    const feeState = await pvmApi.getFeeState();
     // Get the Coreth address (C-Chain address in Bech32 format)
     const corethAddress = await getCorethAddress(client);
 
@@ -57,12 +57,7 @@ export async function pvmExport(client: WalletClient<any, any, any, CoreWalletRp
         {
             fromAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
             utxos,
-            feeState: {
-                capacity: 0n,
-                excess: 0n,
-                price: 0n,
-                timestamp: "0",
-            },
+            feeState,
             destinationChainId: context.cBlockchainID,
             outputs: [
                 TransferableOutput.fromNative(
