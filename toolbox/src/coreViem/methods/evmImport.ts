@@ -51,7 +51,7 @@ export async function evmImportTx(client: WalletClient<any, any, any, CoreWallet
     console.log("UTXOs available for import:", utxos);
 
     // Create the C-Chain import transaction
-    const importTx = evm.newImportTx(
+    const importTx = evm.newImportTxFromBaseFee(
         context,
         utils.hexToBuffer(walletEVMAddress),
         [utils.bech32ToBytes(corethAddress)],
@@ -65,7 +65,7 @@ export async function evmImportTx(client: WalletClient<any, any, any, CoreWallet
     console.log("C-Chain Import transaction created:", importTxHex);
 
     // Send transaction using window.avalanche
-    const response = await window.avalanche.request({
+    const response = await (window.avalanche.request as any)({
         method: "avalanche_sendTransaction",
         params: {
             transactionHex: importTxHex,

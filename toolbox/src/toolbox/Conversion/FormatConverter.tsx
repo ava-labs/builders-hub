@@ -260,7 +260,6 @@ export default function FormatConverter() {
     <Container
       title="Format Converter"
       description="Convert between different encodings"
-      logoColorTheme="red"
     >
       <div className="space-y-6">
         {/* Hex to CB58 */}

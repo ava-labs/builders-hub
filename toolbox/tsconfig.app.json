@@ -24,13 +24,16 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": [
     "src",
-    "src/index.ts",
-    "contracts",
-    "src/types"
+    "@",
+    "contracts"
   ],
   "exclude": [
     "node_modules",

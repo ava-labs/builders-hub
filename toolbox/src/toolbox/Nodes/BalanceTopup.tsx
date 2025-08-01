@@ -124,7 +124,7 @@ export default function ValidatorBalanceIncrease() {
 
       // Send the transaction to the wallet for signing and broadcasting
       console.log("Sending transaction to wallet:", unsignedTxHex)
-      const response = await window.avalanche.request({
+      const response = await (window.avalanche.request as any)({
         method: "avalanche_sendTransaction",
         params: {
           transactionHex: unsignedTxHex,
