@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@avalabs/avacloud-sdk": "^0.12.1",
-    "@avalabs/avalanchejs": "^4.1.2-alpha.4",
+    "@avalabs/avalanchejs": "^5.0.0",
     "@radix-ui/react-alert-dialog": "^1.1.13",
     "@radix-ui/react-checkbox": "^1.2.3",
     "@radix-ui/react-collapsible": "^1.1.11",

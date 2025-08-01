@@ -54,17 +54,25 @@ export async function pvmExport(client: WalletClient<any, any, any, CoreWalletRp
 
     // Create the P-Chain export transaction
     const exportTx = pvm.newExportTx(
+        {
+            fromAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
+            utxos,
+            feeState: {
+                capacity: 0n,
+                excess: 0n,
+                price: 0n,
+                timestamp: "0",
+            },
+            destinationChainId: context.cBlockchainID,
+            outputs: [
+                TransferableOutput.fromNative(
+                    context.avaxAssetID,
+                    BigInt(Math.round(Number(amount) * 1e9)), // Convert AVAX to nAVAX
+                    [utils.bech32ToBytes(corethAddress)],
+                ),
+            ],
+        },
         context,
-        context.cBlockchainID,
-        [utils.bech32ToBytes(pChainAddress)],
-        utxos,
-        [
-            TransferableOutput.fromNative(
-                context.avaxAssetID,
-                BigInt(Math.round(Number(amount) * 1e9)), // Convert AVAX to nAVAX
-                [utils.bech32ToBytes(corethAddress)],
-            ),
-        ]
     );
 
     const txBytes = exportTx.toBytes();
@@ -72,7 +80,7 @@ export async function pvmExport(client: WalletClient<any, any, any, CoreWalletRp
     console.log("P-Chain Export transaction created:", txHex);
 
     // Send transaction using window.avalanche
-    const response = await window.avalanche.request({
+    const response = await (window.avalanche.request as any)({
         method: "avalanche_sendTransaction",
         params: {
             transactionHex: txHex,

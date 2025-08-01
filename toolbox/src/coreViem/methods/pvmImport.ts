@@ -2,7 +2,7 @@ import { WalletClient, bytesToHex } from "viem";
 import {
     utils,
     pvm,
-    Context
+    Context,
 } from "@avalabs/avalanchejs";
 import { CoreWalletRpcSchema } from "../rpcSchema";
 import { getRPCEndpoint } from "../utils/rpc";
@@ -44,11 +44,19 @@ export async function pvmImport(client: WalletClient<any, any, any, CoreWalletRp
 
     // Create the P-Chain import transaction
     const importTx = pvm.newImportTx(
+        {
+            fromAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
+            utxos,
+            feeState: {
+                capacity: 0n,
+                excess: 0n,
+                price: 0n,
+                timestamp: "0",
+            },
+            sourceChainId: context.cBlockchainID,
+            toAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
+        },
         context,
-        context.cBlockchainID,
-        utxos,
-        [utils.bech32ToBytes(pChainAddress)],
-        [utils.bech32ToBytes(pChainAddress)],
     );
 
     const importTxBytes = importTx.toBytes();
@@ -56,7 +64,7 @@ export async function pvmImport(client: WalletClient<any, any, any, CoreWalletRp
     console.log("P-Chain Import transaction created:", importTxHex);
 
     // Send transaction using window.avalanche
-    const response = await window.avalanche.request({
+    const response = await (window.avalanche.request as any)({
         method: "avalanche_sendTransaction",
         params: {
             transactionHex: importTxHex,

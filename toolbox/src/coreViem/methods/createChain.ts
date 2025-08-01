@@ -58,7 +58,7 @@ export async function createChain(client: WalletClient<any, any, any, CoreWallet
     }
 
     // If no collision, proceed with sending the transaction
-    const txID = await window.avalanche!.request({
+    const txID = await (window.avalanche!.request as any)({
         method: 'avalanche_sendTransaction',
         params: {
             transactionHex: utils.bufferToHex(tx.toBytes()),
