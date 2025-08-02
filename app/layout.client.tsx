@@ -1,14 +1,31 @@
 'use client';
 import type { ReactNode } from 'react';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { Toaster } from "react-hot-toast";
 
-export function Body({
+const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        refetchOnWindowFocus: true,
+        staleTime: 5 * 60 * 1000,
+      },
+    },
+  });
+
+
+export function ClientProvider({
   children,
 }: {
   children: ReactNode;
 }): React.ReactElement {
   return (
-  <div>
-    {children}
-    </div>
+
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <Toaster />
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
 );
 }
