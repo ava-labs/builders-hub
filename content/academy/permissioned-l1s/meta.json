@@ -8,8 +8,10 @@
         "...01-introduction",
         "---Proof of Authority---",
         "...02-proof-of-authority",
+        "---Create an L1---",
+        "...03-create-an-L1",
         "---Validator Manager---",
-        "...03-validator-manager",
+        "...04-validator-manager",
         "---More coming very soon...---",
         "certificate"
     ]
