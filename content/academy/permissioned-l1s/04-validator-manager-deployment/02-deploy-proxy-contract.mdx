@@ -20,33 +20,6 @@ The Validator Manager uses the proxy pattern for upgradeability. This allows you
 3. **Storage Persistence**: Validator data remains intact through upgrades
 4. **Future-Proofing**: Adapt to protocol changes without disruption
 
-## Prerequisites
-
-Before deploying the proxy contract:
-- Have your L1 running with initial validators
-- Decide on deployment location (L1, C-Chain, or another chain)
-- Have sufficient native tokens for deployment
-- Know which implementation contract you'll use
-
-## Deploy the Proxy
-
-Use the toolbox below to deploy your proxy contract:
-
-<ToolboxMdxWrapper walletMode="l1">
-    <DeployProxyContract />
-</ToolboxMdxWrapper>
-
-### Deployment Steps
-
-1. **Connect your wallet** to the desired network
-2. **Verify network**: Ensure you're on the correct chain
-3. **Deploy proxy**: Click deploy and confirm the transaction
-4. **Save the address**: Record the proxy contract address
-
-<Callout type="warning">
-**Important**: Save your proxy contract address! This is the permanent address for your Validator Manager, regardless of implementation upgrades.
-</Callout>
-
 ## Understanding the Proxy Pattern
 
 The proxy pattern separates storage from logic:
@@ -69,19 +42,23 @@ User → Proxy Contract → Implementation Contract
 3. Proxy now delegates to new implementation
 4. All state remains in the proxy
 
+## Deploy the Proxy
+
+Use the toolbox below to deploy your proxy contract:
+
+<ToolboxMdxWrapper walletMode="l1">
+    <DeployProxyContract />
+</ToolboxMdxWrapper>
+
+<Callout type="warning">
+**Important**: Save your proxy contract address! This is the permanent address for your Validator Manager, regardless of implementation upgrades.
+</Callout>
+
 ## Security Considerations
 
 - **Admin Key**: Protect the admin account that can upgrade
 - **Implementation Verification**: Always verify new implementations
 - **Upgrade Testing**: Test upgrades on testnet first
 - **Time Delays**: Consider using timelocks for upgrades
-
-## Next Steps
-
-After deploying the proxy:
-1. Deploy the Validator Manager implementation
-2. Point the proxy to the implementation
-3. Initialize the Validator Manager
-4. Transfer ownership as needed
 
 <Quiz quizId="414" />

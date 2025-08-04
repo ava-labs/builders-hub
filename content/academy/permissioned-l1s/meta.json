@@ -10,8 +10,10 @@
         "...02-proof-of-authority",
         "---Create an L1---",
         "...03-create-an-L1",
-        "---Validator Manager---",
-        "...04-validator-manager",
+        "---Deploying Validator Manager Contract---",
+        "...04-validator-manager-deployment",
+        "---Deploying PoA Manager Contract---",
+        "...05-poa-manager-deployment",
         "---More coming very soon...---",
         "certificate"
     ]
