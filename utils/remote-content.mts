@@ -334,11 +334,11 @@ async function main(): Promise<void> {
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/avm/",
     },
     {
-      sourceUrl: "https://raw.githubusercontent.com/navillanueva/avalanchego/improve-avalanche-go-flag-docs/config/config.md",
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/improve-avalanche-go-flag-docs/config/config.md",
       outputPath: "content/docs/nodes/configure/configs-flags.mdx",
       title: "AvalancheGo Config Flags",
       description: "This page lists all available configuration options for AvalancheGo nodes.",
-      contentUrl: "https://github.com/navillanueva/avalanchego/blob/improve-avalanche-go-flag-docs/config/",
+      contentUrl: "https://github.com/ava-labs/avalanchego/blob/improve-avalanche-go-flag-docs/config/",
     },
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/subnet-evm/master/plugin/evm/service.md",
