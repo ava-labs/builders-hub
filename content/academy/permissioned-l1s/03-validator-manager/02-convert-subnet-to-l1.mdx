@@ -6,7 +6,9 @@ authors: [nicolasarnedo]
 icon: Terminal
 ---
 
-Now that you understand where to deploy your Validator Manager Contract (VMC), and you created Subnet with at least one validator node (**link create a subnet**) it's time to convert your Subnet into a sovereign L1. This process establishes the VMC as the authority for validator management on your blockchain.
+Now that you understand where to deploy your Validator Manager Contract (VMC), and you [created a Subnet](/academy/permissioned-l1s/01-introduction/03-create-subnet) with at least one validator node, it's time to convert your Subnet into a sovereign L1. 
+
+This process establishes the VMC as the authority for validator management on your blockchain and is **irreversible**, once converted to L1, you cannot revert to Subnet status.
 
 ## Conversion Process
 
@@ -14,50 +16,44 @@ The conversion from Subnet to L1 is a one-time, irreversible process that:
 
 - **Establishes Sovereignty**: Your blockchain becomes independent with its own validator set
 - **Transfers Authority**: Validator management shifts from P-Chain to your VMC
-- **Removes Subnet Owner Privileges**: You lose the ability to modify the Subnet directly
+
+## Key Parameters
+
+1. **Subnet ID**: The unique identifier of your Subnet (from the `CreateSubnetTx` transaction hash)
+
+2. **Validator Manager Blockchain ID**: The blockchain where your VMC will be deployed (Your L1, C-Chain, Another L1)
+
+3. **Validator Manager Address**: The address of the validator manager contract (or proxy) that will manage the L1's validator set. Chains created with Toolbox have a pre-deployed proxy at `0xfacade0000000000000000000000000000000000`. In the [next section](/academy/permissioned-l1s/03-validator-manager/03-deploy-proxy-contract) we will further explain the reason behind this Proxy.
+
+4. **Initial Validators**: The validators that will form your L1's initial validator set.
 
 <ToolboxMdxWrapper walletMode="c-chain">
     <ConvertToL1 />
 </ToolboxMdxWrapper>
 
-## Key Parameters
+You just converted your Subnet to an L1  - **Congratulations!** The following sections will guide you through deploying and configuring your Validator Manager Contract.
 
-### Subnet ID
-The unique identifier of your Subnet (from the `CreateSubnetTx` transaction hash).
+## Appendix: Conversion Flow
 
-### Validator Manager Blockchain ID
-The blockchain where your VMC is deployed:
-- **Your L1**: Use your own blockchain ID (if VMC is deployed there)
-- **C-Chain**: Use `2q9e4r6Mu3Uqs6mSMLHh8v6pK5mKqE8nN` (Avalanche C-Chain)
-- **Another L1**: Use the specific blockchain ID
+<Mermaid
+  chart="
+sequenceDiagram
+    participant User
+    participant PChain as P-Chain
+    participant VMC as VMC Chain
+    participant PChainState as P-Chain State
 
-### Validator Manager Address
-The deployed proxy contract address of your VMC.
+    User->>PChain: ConvertSubnetToL1Tx<br/>Contains: SubnetID, ChainID, Address, Validators, SubnetAuth
+    PChain->>PChain: SyntacticVerify()
+    PChain->>PChain: Verify subnet authorization
+    PChain->>PChain: Calculate fees & validate balance
+    PChain->>VMC: Create L1Validators<br/>For each validator: ValidationID, NodeID, Weight, Balance, etc.
+    VMC->>PChain: SetSubnetToL1Conversion()
+    PChain->>PChainState: Store ConversionID, ChainID, Address mapping
+    PChain->>PChain: Generate ConversionID<br/>Hash of SubnetToL1ConversionData
+    Note right of PChain: No direct call - VMC reads P-Chain state
+    VMC->>PChainState: VMC can query conversion data via P-Chain APIs
+"
+/>
 
-### Initial Validators
-The validators that will form your L1's initial validator set. These must be:
-- Currently validating your Subnet
-- Have sufficient stake (if applicable)
-- Be approved by your VMC's permissioning rules
-
-## Post-Conversion Changes
-
-After successful conversion:
-
-1. **Validator Management**: All validator operations go through your VMC
-2. **P-Chain Communication**: VMC handles all P-Chain interactions via ICM
-3. **Sovereignty**: Your L1 operates independently with its own governance
-4. **No Rollback**: The conversion cannot be undone
-
-<Callout type="warning">
-**Irreversible Process**: Once converted to L1, you cannot revert to Subnet status. Ensure your VMC is properly configured before proceeding.
-</Callout>
-
-## Next Steps
-
-After conversion, you'll need to:
-1. **Deploy VMC** (if not already done)
-2. **Configure Initial Validators** through your VMC
-3. **Test Validator Operations** to ensure everything works correctly
-
-The following sections will guide you through deploying and configuring your Validator Manager Contract. 
+ 

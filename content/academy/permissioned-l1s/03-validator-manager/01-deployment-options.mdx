@@ -12,10 +12,11 @@ While Validator Manager Contract's (VMC) location choice becomes more critical w
 
 The PoA Validator Manager contract can be deployed on any EVM-compatible chain within the Avalanche ecosystem. Since the contract communicates with the P-Chain through Interchain Messaging (ICM), **the deployment location doesn't affect its core functionality** - validator management operations work the same regardless of where the contract resides.
 
-The Validator Manager uses cross-chain communication to interact with the P-Chain for all validator operations:
-- **Registration**: Sends `RegisterL1ValidatorMessage` to P-Chain
-- **Removal**: Sends removal requests via ICM
-- **Acknowledgments**: Receives `L1ValidatorRegistrationMessage` confirmations
+The Validator Manager Contract and P-chain generally follow a **Request-Process-Confirm** flow. The VMC chain initiates cross-chain communication to interact with the P-Chain for all validator operations (e.g: *adding a validator*):
+
+- **Request**: Sends `RegisterL1ValidatorMessage` to P-Chain
+- **Process**: P-Chain verifies signatures and processes the operation  
+- **Confirm**: Receives `L1ValidatorRegistrationMessage` confirmations
 
 ## Deployment Options
 
