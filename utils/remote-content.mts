@@ -337,7 +337,7 @@ async function main(): Promise<void> {
       sourceUrl: "https://raw.githubusercontent.com/navillanueva/avalanchego/improve-avalanche-go-flag-docs/config/config.md",
       outputPath: "content/docs/nodes/configure/configs-flags.mdx",
       title: "AvalancheGo Config Flags",
-      description: "This page lists all available configuration options for AvalancheGo nodes.",
+      description: "This page lists all available configuration options for AvalancheGo nodes",
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/config/",
     },
     {
