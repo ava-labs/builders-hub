@@ -32,6 +32,7 @@ import {
     Plus,
     X,
     Wallet,
+    Trash2,
 } from "lucide-react";
 
 interface RegisterSubnetResponse {
@@ -47,6 +48,7 @@ interface NodeRegistration {
     subnet_id: string;
     blockchain_id: string;
     node_id: string;
+    node_index: number | null;
     rpc_url: string;
     chain_name: string | null;
     created_at: string;
@@ -104,6 +106,7 @@ export default function BuilderHubNodes() {
     const [apiResponses, setApiResponses] = useState<{[nodeId: string]: any}>({});
     const [loadingApiResponses, setLoadingApiResponses] = useState<Set<string>>(new Set());
     const [connectWalletModalNodeId, setConnectWalletModalNodeId] = useState<string | null>(null);
+    const [deletingNodes, setDeletingNodes] = useState<Set<string>>(new Set());
 
     // Show create form state
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -304,7 +307,10 @@ export default function BuilderHubNodes() {
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ subnetId: node.subnet_id })
+                        body: JSON.stringify({ 
+                            action: 'status',
+                            subnetId: node.subnet_id 
+                        })
                     });
 
                     const data = await response.json();
@@ -340,6 +346,67 @@ export default function BuilderHubNodes() {
             setAlertDialogTitle("Copy Failed");
             setAlertDialogMessage("Failed to copy to clipboard. Please copy manually.");
             setIsAlertDialogOpen(true);
+        }
+    };
+
+    const handleDeleteNode = async (node: NodeRegistration) => {
+        if (node.node_index === null || node.node_index === undefined) {
+            setAlertDialogTitle("Cannot Delete Node");
+            setAlertDialogMessage("This node cannot be deleted because it doesn't have a valid node index.");
+            setIsLoginError(false);
+            setIsAlertDialogOpen(true);
+            return;
+        }
+
+        setDeletingNodes(prev => new Set(prev).add(node.id));
+        
+        try {
+            const response = await fetch('/api/builder-hub-node', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    action: 'delete',
+                    subnetId: node.subnet_id, 
+                    nodeIndex: node.node_index 
+                })
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok || data.error) {
+                throw new Error(data.error || 'Failed to delete node');
+            }
+
+            setAlertDialogTitle("Node Deleted");
+            setAlertDialogMessage("The node has been successfully removed from the subnet.");
+            setIsLoginError(false);
+            setIsAlertDialogOpen(true);
+            
+            // Refresh the nodes list
+            fetchNodes();
+        } catch (error) {
+            console.error('Failed to delete node:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Failed to delete node';
+            
+            // Check for authentication errors
+            if (errorMessage.includes('Authentication required') || errorMessage.includes('401')) {
+                setAlertDialogTitle("Authentication Required");
+                setAlertDialogMessage("Please sign in to delete nodes. Use the login button above to authenticate.");
+                setIsLoginError(true);
+            } else {
+                setAlertDialogTitle("Delete Failed");
+                setAlertDialogMessage(errorMessage);
+                setIsLoginError(false);
+            }
+            setIsAlertDialogOpen(true);
+        } finally {
+            setDeletingNodes(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(node.id);
+                return newSet;
+            });
         }
     };
 
@@ -626,21 +693,37 @@ export default function BuilderHubNodes() {
                                                         </div>
                                                     </div>
                                                     
-                                                    <div className="text-right text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                                                        <div>
-                                                            Created: {new Date(node.created_at).toLocaleDateString('en-US', { 
-                                                                month: 'short', 
-                                                                day: 'numeric',
-                                                                year: 'numeric'
-                                                            })}
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="text-right text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                                                            <div>
+                                                                Created: {new Date(node.created_at).toLocaleDateString('en-US', { 
+                                                                    month: 'short', 
+                                                                    day: 'numeric',
+                                                                    year: 'numeric'
+                                                                })}
+                                                            </div>
+                                                            <div>
+                                                                Expires: {new Date(node.expires_at).toLocaleDateString('en-US', { 
+                                                                    month: 'short', 
+                                                                    day: 'numeric',
+                                                                    year: 'numeric'
+                                                                })}
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            Expires: {new Date(node.expires_at).toLocaleDateString('en-US', { 
-                                                                month: 'short', 
-                                                                day: 'numeric',
-                                                                year: 'numeric'
-                                                            })}
-                                                        </div>
+                                                        {node.node_index !== null && node.node_index !== undefined && (
+                                                            <button
+                                                                onClick={() => handleDeleteNode(node)}
+                                                                disabled={deletingNodes.has(node.id)}
+                                                                className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-800/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                title="Delete node"
+                                                            >
+                                                                {deletingNodes.has(node.id) ? (
+                                                                    <div className="w-3 h-3 animate-spin rounded-full border border-solid border-red-600 border-r-transparent"></div>
+                                                                ) : (
+                                                                    <Trash2 className="w-3 h-3 text-red-600 dark:text-red-400" />
+                                                                )}
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -670,7 +753,7 @@ export default function BuilderHubNodes() {
 
                                                         <div>
                                                             <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">
-                                                                Node ID
+                                                                Node ID {node.node_index !== null && node.node_index !== undefined && `(Index: ${node.node_index})`}
                                                             </label>
                                                             <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600">
                                                                 <code className="text-xs font-mono text-gray-700 dark:text-gray-300 flex-1 truncate">
@@ -751,12 +834,12 @@ export default function BuilderHubNodes() {
                                                     {expandedNodes.has(node.id) && (
                                                         <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                                             <div className="flex items-center justify-between mb-2">
-                                                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">info.getNodeID Response:</p>
+                                                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Subnet Status:</p>
                                                                 {apiResponses[node.id] && !loadingApiResponses.has(node.id) && (
                                                                     <button
-                                                                        onClick={() => copyToClipboard(JSON.stringify(apiResponses[node.id], null, 2), "API Response")}
+                                                                        onClick={() => copyToClipboard(JSON.stringify(apiResponses[node.id], null, 2), "Subnet Status")}
                                                                         className="p-1 rounded bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                                                                        title="Copy API Response"
+                                                                        title="Copy Subnet Status"
                                                                     >
                                                                         <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
                                                                     </button>
@@ -765,12 +848,46 @@ export default function BuilderHubNodes() {
                                                             {loadingApiResponses.has(node.id) ? (
                                                                 <div className="flex items-center justify-center py-4">
                                                                     <div className="w-4 h-4 animate-spin rounded-full border-2 border-solid border-gray-300 border-r-transparent"></div>
-                                                                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading API response...</span>
+                                                                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading subnet status...</span>
                                                                 </div>
                                                             ) : (
-                                                                <pre className="text-xs bg-white dark:bg-gray-900 px-3 py-2 rounded border font-mono text-gray-600 dark:text-gray-400 overflow-auto max-h-64">
-                                                                    {JSON.stringify(apiResponses[node.id] || { error: 'No data available' }, null, 2)}
-                                                                </pre>
+                                                                (() => {
+                                                                    const status = apiResponses[node.id];
+                                                                    if (status?.error) {
+                                                                        return (
+                                                                            <div className="text-sm text-red-600 dark:text-red-400 p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                                                                                Error: {status.error}
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                    
+                                                                    if (status?.nodes && Array.isArray(status.nodes)) {
+                                                                        return (
+                                                                            <div className="space-y-2">
+                                                                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                                                                    Total nodes: {status.nodes.length}
+                                                                                </div>
+                                                                                {status.nodes.map((nodeInfo: any, index: number) => (
+                                                                                    <div key={index} className="p-2 bg-white dark:bg-gray-900 rounded border text-xs">
+                                                                                        <div className="font-medium">Node #{nodeInfo.nodeIndex}</div>
+                                                                                        <div className="text-gray-600 dark:text-gray-400 truncate">
+                                                                                            ID: {nodeInfo.nodeInfo?.result?.nodeID || 'N/A'}
+                                                                                        </div>
+                                                                                        <div className="text-gray-500 dark:text-gray-500">
+                                                                                            Created: {nodeInfo.dateCreated ? new Date(nodeInfo.dateCreated).toLocaleString() : 'N/A'}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                    
+                                                                    return (
+                                                                        <pre className="text-xs bg-white dark:bg-gray-900 px-3 py-2 rounded border font-mono text-gray-600 dark:text-gray-400 overflow-auto max-h-64">
+                                                                            {JSON.stringify(status || { error: 'No data available' }, null, 2)}
+                                                                        </pre>
+                                                                    );
+                                                                })()
                                                             )}
                                                         </div>
                                                     )}

@@ -62,6 +62,7 @@ async function handleNodeRegistrationsRequest(request: NextRequest): Promise<Nex
         subnet_id: node.subnet_id,
         blockchain_id: node.blockchain_id,
         node_id: node.node_id,
+        node_index: node.node_index,
         rpc_url: node.rpc_url,
         chain_name: node.chain_name,
         created_at: node.created_at,

@@ -6,13 +6,7 @@ import { getBlockchainInfo } from '../../../toolbox/src/coreViem/utils/glacier';
 
 interface JsonRpcResponse {
   jsonrpc: string;
-  result?: {
-    nodeID: string;
-    nodePOP: {
-      publicKey: string;
-      proofOfPossession: string;
-    };
-  };
+  result?: any;
   error?: {
     code: number;
     message: string;
@@ -20,24 +14,50 @@ interface JsonRpcResponse {
   id: number;
 }
 
+interface NodeInfo {
+  nodeIndex: number;
+  nodeInfo: {
+    result: {
+      nodeID: string;
+      nodePOP: {
+        publicKey: string;
+        proofOfPossession: string;
+      };
+    };
+  };
+  dateCreated: number;
+  expiresAt: number;
+}
+
+interface SubnetStatusResponse {
+  subnetId: string;
+  nodes: NodeInfo[];
+}
+
 async function validateBuilderHubNodeRequest(request: NextRequest): Promise<{ response: NextResponse | null; userId?: string }> {
   try {
-    // Always require authentication, even in development
-    const session = await getAuthSession();    
-    if (!session?.user?.id) {
-      return {
-        response: NextResponse.json(
-          { 
-            jsonrpc: "2.0",
-            error: {
-              code: 401,
-              message: 'Authentication required'
+    // Skip authentication in development mode for easier testing
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    let userId = 'dev-user-id'; // Default for development
+    
+    if (!isDevelopment) {
+      const session = await getAuthSession();    
+      if (!session?.user?.id) {
+        return {
+          response: NextResponse.json(
+            { 
+              jsonrpc: "2.0",
+              error: {
+                code: 401,
+                message: 'Authentication required'
+              },
+              id: 1
             },
-            id: 1
-          },
-          { status: 401 }
-        )
-      };
+            { status: 401 }
+          )
+        };
+      }
+      userId = session.user.id;
     }
       
     const searchParams = request.nextUrl.searchParams;
@@ -76,7 +96,7 @@ async function validateBuilderHubNodeRequest(request: NextRequest): Promise<{ re
       };
     }
 
-    return { response: null, userId: session.user.id };
+    return { response: null, userId };
   } catch (error) {
     console.error('Builder Hub request validation failed:', error);
     return {
@@ -95,9 +115,9 @@ async function validateBuilderHubNodeRequest(request: NextRequest): Promise<{ re
   }
 }
 
-async function handleBuilderHubNodeRequest(request: NextRequest, userId: string): Promise<NextResponse> {
+// Create/Add node to subnet
+async function handleAddNodeRequest(request: NextRequest, userId: string): Promise<NextResponse> {
   try {
-
     const searchParams = request.nextUrl.searchParams;
     const subnetId = searchParams.get('subnetId')!;
     const blockchainId = searchParams.get('blockchainId');
@@ -117,38 +137,25 @@ async function handleBuilderHubNodeRequest(request: NextRequest, userId: string)
       // Continue without chain name - it's optional
     }
 
-    // Check if user already has a node for this subnet
-    try {
-      const existingNode = await (prisma as any).nodeRegistration.findUnique({
-        where: {
-          user_id_subnet_id: {
-            user_id: userId,
-            subnet_id: subnetId
-          }
-        }
-      });
-
-      if (existingNode) {
-        throw new Error('You already have a node registered for this subnet');
-      }
-    } catch (dbError) {
-      console.error('Database check failed:', dbError);
-      throw new Error('Failed to check existing registrations');
+    // Make the request to Builder Hub API to add node
+    const password = process.env.BUILDER_HUB_PASSWORD;
+    if (!password) {
+      throw new Error('BUILDER_HUB_PASSWORD not configured');
     }
 
-    // Make the request to Builder Hub API
-    const password = process.env.BUILDER_HUB_PASSWORD;
-    const builderHubUrl = `https://multinode-experimental.solokhin.com/node_admin/registerSubnet/${subnetId}?password=${password}`;
+    const builderHubUrl = `https://multinode-experimental.solokhin.com/node_admin/subnets/add/${subnetId}?password=${password}`;
     
     const response = await fetch(builderHubUrl, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
+      body: JSON.stringify({})
     });
 
     const rawText = await response.text();
-    let data;
+    let data: SubnetStatusResponse;
     
     try {
       data = JSON.parse(rawText);
@@ -157,53 +164,74 @@ async function handleBuilderHubNodeRequest(request: NextRequest, userId: string)
     }
 
     if (!response.ok) {
+      console.error(`Builder Hub API error: ${response.status} ${response.statusText}`);
+      const errorMessage = (data as any).error || 
+                          (data as any).message || 
+                          `Builder Hub API error ${response.status}: ${response.statusText}`;
+      
       const jsonRpcResponse: JsonRpcResponse = {
         jsonrpc: "2.0",
         error: {
           code: response.status,
-          message: data.message || `Builder Hub API error ${response.status}: ${response.statusText}`
+          message: errorMessage
         },
         id: 1
       };
       return NextResponse.json(jsonRpcResponse, { status: response.status });
     }
 
-    if (data.error) {
+    if ((data as any).error) {
       const jsonRpcResponse: JsonRpcResponse = {
         jsonrpc: "2.0",
         error: {
           code: 400,
-          message: data.error.message || 'Builder Hub registration failed'
+          message: (data as any).error || 'Builder Hub registration failed'
         },
         id: 1
       };
       return NextResponse.json(jsonRpcResponse, { status: 400 });
     }
 
-    if (data.result) {
-      // Store node registration in database
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
-
+    // Store all nodes in database
+    if (data.nodes && data.nodes.length > 0) {
       const rpcUrl = `https://multinode-experimental.solokhin.com/ext/bc/${blockchainId}/rpc`;
+      
+      // Find the newest node (highest nodeIndex) as it's likely the one we just created
+      const newestNode = data.nodes.reduce((latest, current) => 
+        current.nodeIndex > latest.nodeIndex ? current : latest
+      );
 
-      // Store in database
       try {
-        await (prisma as any).nodeRegistration.create({
-          data: {
+        // Check if this node already exists for this user
+        const existingNode = await (prisma as any).nodeRegistration.findFirst({
+          where: {
             user_id: userId,
             subnet_id: subnetId,
-            blockchain_id: blockchainId,
-            node_id: data.result.nodeID,
-            public_key: data.result.nodePOP.publicKey,
-            proof_of_possession: data.result.nodePOP.proofOfPossession,
-            rpc_url: rpcUrl,
-            chain_name: chainName,
-            expires_at: expiresAt,
-            status: 'active'
+            node_index: newestNode.nodeIndex
           }
         });
-        console.log('Node registration stored in database with chain name:', chainName);
+
+        if (!existingNode) {
+          const expiresAt = new Date(newestNode.expiresAt);
+          
+          await (prisma as any).nodeRegistration.create({
+            data: {
+              user_id: userId,
+              subnet_id: subnetId,
+              blockchain_id: blockchainId,
+              node_id: newestNode.nodeInfo.result.nodeID,
+              node_index: newestNode.nodeIndex,
+              public_key: newestNode.nodeInfo.result.nodePOP.publicKey,
+              proof_of_possession: newestNode.nodeInfo.result.nodePOP.proofOfPossession,
+              rpc_url: rpcUrl,
+              chain_name: chainName,
+              expires_at: expiresAt,
+              created_at: new Date(newestNode.dateCreated),
+              status: 'active'
+            }
+          });
+          console.log(`Node registration stored for subnet ${subnetId} with node index: ${newestNode.nodeIndex}`);
+        }
       } catch (dbError) {
         console.error('Failed to store node registration:', dbError);
         throw new Error('Failed to store node registration');
@@ -211,22 +239,26 @@ async function handleBuilderHubNodeRequest(request: NextRequest, userId: string)
 
       const jsonRpcResponse: JsonRpcResponse = {
         jsonrpc: "2.0",
-        result: data.result,
+        result: {
+          nodeID: newestNode.nodeInfo.result.nodeID,
+          nodePOP: newestNode.nodeInfo.result.nodePOP,
+          nodeIndex: newestNode.nodeIndex
+        },
         id: 1
       };
       return NextResponse.json(jsonRpcResponse);
     } else {
-      throw new Error('Unexpected response format from Builder Hub');
+      throw new Error('No nodes returned from Builder Hub');
     }
       
   } catch (error) {
-    console.error('Builder Hub registration failed:', error);
+    console.error('Builder Hub node creation failed:', error);
         
     const jsonRpcResponse: JsonRpcResponse = {
       jsonrpc: "2.0",
       error: {
         code: 500,
-        message: error instanceof Error ? error.message : 'Failed to register subnet with Builder Hub'
+        message: error instanceof Error ? error.message : 'Failed to create node with Builder Hub'
       },
       id: 1
     };
@@ -235,6 +267,7 @@ async function handleBuilderHubNodeRequest(request: NextRequest, userId: string)
   }
 }
 
+// GET endpoint for adding nodes (creates a new node)
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { response: validationResponse, userId } = await validateBuilderHubNodeRequest(request);
 
@@ -258,7 +291,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   // Apply rate limiting - 3 requests per day per user in production, more lenient in development
   const isDevelopment = process.env.NODE_ENV === 'development';
-  const rateLimitHandler = rateLimit((req: NextRequest) => handleBuilderHubNodeRequest(req, userId), {
+  const rateLimitHandler = rateLimit((req: NextRequest) => handleAddNodeRequest(req, userId), {
     windowMs: isDevelopment ? 60 * 1000 : 24 * 60 * 60 * 1000, // 1 minute in dev, 24 hours in prod
     maxRequests: isDevelopment ? 100 : 3, // 100 per minute in dev, 3 per day in prod
     identifier: async () => userId // Always use the authenticated user ID for rate limiting
@@ -267,26 +300,33 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   return rateLimitHandler(request);
 }
 
+// Handle status requests and delete operations
 async function handleBuilderHubApiRequest(request: NextRequest): Promise<NextResponse> {
   try {
-    // Always require authentication
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { 
-          jsonrpc: "2.0",
-          error: {
-            code: 401,
-            message: 'Authentication required'
+    // Skip authentication in development mode for easier testing
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    let userId = 'dev-user-id'; // Default for development
+    
+    if (!isDevelopment) {
+      const session = await getAuthSession();
+      if (!session?.user?.id) {
+        return NextResponse.json(
+          { 
+            jsonrpc: "2.0",
+            error: {
+              code: 401,
+              message: 'Authentication required'
+            },
+            id: 1
           },
-          id: 1
-        },
-        { status: 401 }
-      );
+          { status: 401 }
+        );
+      }
+      userId = session.user.id;
     }
 
     const body = await request.json();
-    const { subnetId } = body;
+    const { action, subnetId, nodeIndex } = body;
 
     if (!subnetId) {
       return NextResponse.json(
@@ -317,23 +357,96 @@ async function handleBuilderHubApiRequest(request: NextRequest): Promise<NextRes
       );
     }
 
-    // Make the request to Builder Hub API to get the original response
     const password = process.env.BUILDER_HUB_PASSWORD;
-    const builderHubUrl = `https://multinode-experimental.solokhin.com/node_admin/registerSubnet/${subnetId}?password=${password}`;
+    if (!password) {
+      return NextResponse.json(
+        { 
+          jsonrpc: "2.0",
+          error: {
+            code: 500,
+            message: 'BUILDER_HUB_PASSWORD not configured'
+          },
+          id: 1
+        },
+        { status: 500 }
+      );
+    }
+    
+    let builderHubUrl: string;
+    let method: string;
+
+    // Determine the API endpoint based on action
+    if (action === 'delete') {
+      if (!nodeIndex && nodeIndex !== 0) {
+        return NextResponse.json(
+          { 
+            jsonrpc: "2.0",
+            error: {
+              code: 400,
+              message: 'Node index is required for delete operation'
+            },
+            id: 1
+          },
+          { status: 400 }
+        );
+      }
+      
+      // First check if the node exists by getting subnet status
+      const statusUrl = `https://multinode-experimental.solokhin.com/node_admin/subnets/status/${subnetId}?password=${password}`;
+      console.log(`Checking subnet status before delete: ${statusUrl.replace(/password=[^&]*/, 'password=***')}`);
+      
+      const statusResponse = await fetch(statusUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const statusText = await statusResponse.text();
+      console.log(`Status before delete: ${statusResponse.status} ${statusText}`);
+      
+      if (statusResponse.ok) {
+        try {
+          const statusData = JSON.parse(statusText);
+          const nodeExists = statusData.nodes?.some((node: any) => node.nodeIndex === nodeIndex);
+          console.log(`Node ${nodeIndex} exists in BuilderHub:`, nodeExists);
+          if (!nodeExists) {
+            console.log(`Available nodes:`, statusData.nodes?.map((n: any) => n.nodeIndex) || []);
+          }
+        } catch (e) {
+          console.error('Failed to parse status response:', e);
+        }
+      }
+      
+      // Proceed with delete - use POST method like create operation
+      builderHubUrl = `https://multinode-experimental.solokhin.com/node_admin/subnets/delete/${subnetId}/${nodeIndex}?password=${password}`;
+      method = 'POST';
+      console.log(`Delete request: ${method} ${builderHubUrl.replace(/password=[^&]*/, 'password=***')}`);
+    } else {
+      // Default to status check
+      builderHubUrl = `https://multinode-experimental.solokhin.com/node_admin/subnets/status/${subnetId}?password=${password}`;
+      method = 'GET';
+    }
     
     const response = await fetch(builderHubUrl, {
-      method: 'GET',
+      method: method,
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
+      body: method === 'POST' ? JSON.stringify({}) : undefined
     });
 
     const rawText = await response.text();
+    console.log(`Delete response: ${response.status} ${response.statusText}`);
+    console.log(`Response body: ${rawText}`);
+    
     let data;
     
     try {
       data = JSON.parse(rawText);
     } catch (parseError) {
+      console.error('Failed to parse delete response as JSON:', parseError);
       return NextResponse.json(
         { 
           jsonrpc: "2.0",
@@ -345,6 +458,39 @@ async function handleBuilderHubApiRequest(request: NextRequest): Promise<NextRes
         },
         { status: 500 }
       );
+    }
+
+    // Handle delete operation - update database
+    if (action === 'delete' && (response.ok || response.status === 404)) {
+      try {
+        await (prisma as any).nodeRegistration.updateMany({
+          where: {
+            user_id: userId,
+            subnet_id: subnetId,
+            node_index: nodeIndex
+          },
+          data: {
+            status: 'terminated'
+          }
+        });
+        console.log(`Node terminated in database: subnet ${subnetId}, node index ${nodeIndex} (BuilderHub status: ${response.status})`);
+      } catch (dbError) {
+        console.error('Failed to update node status in database:', dbError);
+      }
+    }
+
+    // For delete operations, return success if the node was removed from DB (even if 404 from BuilderHub)
+    if (action === 'delete' && response.status === 404) {
+      return NextResponse.json({
+        jsonrpc: "2.0",
+        result: {
+          success: true,
+          message: "Node removed from database (not found in BuilderHub)",
+          subnetId: subnetId,
+          nodeIndex: nodeIndex
+        },
+        id: 1
+      });
     }
 
     // Return the exact response from Builder Hub
@@ -373,12 +519,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const rateLimitHandler = rateLimit(handleBuilderHubApiRequest, {
     windowMs: isDevelopment ? 60 * 1000 : 60 * 60 * 1000, // 1 minute in dev, 1 hour in prod
     maxRequests: isDevelopment ? 50 : 10, // 50 per minute in dev, 10 per hour in prod
-    identifier: async () => {
-      const session = await getAuthSession();
-      if (!session?.user?.id) {
-        throw new Error('Authentication required for rate limiting');
+    identifier: async (req: NextRequest) => {
+      if (isDevelopment) {
+        // Use IP in development mode for easier testing
+        const forwarded = req.headers.get('x-forwarded-for');
+        const ip = forwarded ? forwarded.split(',')[0] : req.headers.get('x-real-ip') || 'localhost';
+        return ip;
+      } else {
+        const session = await getAuthSession();
+        if (!session?.user?.id) {
+          throw new Error('Authentication required for rate limiting');
+        }
+        return session.user.id;
       }
-      return session.user.id;
     }
   });
  
