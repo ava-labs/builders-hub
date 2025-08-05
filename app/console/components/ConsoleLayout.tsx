@@ -8,7 +8,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Sun, Moon, ChevronRight } from "lucide-react";
 import { usePathname } from "next/navigation";
-
+import { useTheme } from "next-themes";
 // Dynamically import HeaderWalletConnection from toolbox
 const HeaderWalletConnection = lazy(() => 
   import("../../../toolbox/src/components/HeaderWalletConnection").then(module => ({
@@ -46,36 +46,18 @@ interface ConsoleLayoutProps {
 
 export function ConsoleLayout({ children }: ConsoleLayoutProps) {
   const pathname = usePathname();
-  
-  // Dark mode state
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark');
-    }
-    return false;
-  });
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    if (typeof document !== 'undefined') {
-      document.documentElement.classList.toggle('dark');
-      setIsDarkMode(!isDarkMode);
-      // Save preference to localStorage
-      localStorage.setItem('theme', !isDarkMode ? 'dark' : 'light');
-    }
-  };
-
-  // Initialize dark mode from localStorage
+  // Ensure component is mounted before showing theme-dependent UI
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-      setIsDarkMode(true);
-    } else if (savedTheme === 'light') {
-      document.documentElement.classList.remove('dark');
-      setIsDarkMode(false);
-    }
+    setMounted(true);
   }, []);
+
+  // Theme toggle function
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
 
   // Get breadcrumb navigation
   const getBreadcrumbs = () => {
@@ -239,14 +221,15 @@ export function ConsoleLayout({ children }: ConsoleLayoutProps) {
                 <HeaderWalletConnection />
               </Suspense>
               
-              {/* Dark Mode Toggle */}
+              {/* Theme Toggle */}
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={toggleDarkMode}
+                onClick={toggleTheme}
                 className="h-12 w-12"
+                disabled={!mounted}
               >
-                {isDarkMode ? (
+                {mounted && theme === 'dark' ? (
                   <Sun className="h-5 w-5" />
                 ) : (
                   <Moon className="h-5 w-5" />
