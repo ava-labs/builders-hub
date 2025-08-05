@@ -391,37 +391,8 @@ async function handleBuilderHubApiRequest(request: NextRequest): Promise<NextRes
         );
       }
       
-      // First check if the node exists by getting subnet status
-      const statusUrl = `https://multinode-experimental.solokhin.com/node_admin/subnets/status/${subnetId}?password=${password}`;
-      console.log(`Checking subnet status before delete: ${statusUrl.replace(/password=[^&]*/, 'password=***')}`);
-      
-      const statusResponse = await fetch(statusUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      const statusText = await statusResponse.text();
-      console.log(`Status before delete: ${statusResponse.status} ${statusText}`);
-      
-      if (statusResponse.ok) {
-        try {
-          const statusData = JSON.parse(statusText);
-          const nodeExists = statusData.nodes?.some((node: any) => node.nodeIndex === nodeIndex);
-          console.log(`Node ${nodeIndex} exists in BuilderHub:`, nodeExists);
-          if (!nodeExists) {
-            console.log(`Available nodes:`, statusData.nodes?.map((n: any) => n.nodeIndex) || []);
-          }
-        } catch (e) {
-          console.error('Failed to parse status response:', e);
-        }
-      }
-      
-      // Proceed with delete - use POST method like create operation
       builderHubUrl = `https://multinode-experimental.solokhin.com/node_admin/subnets/delete/${subnetId}/${nodeIndex}?password=${password}`;
       method = 'POST';
-      console.log(`Delete request: ${method} ${builderHubUrl.replace(/password=[^&]*/, 'password=***')}`);
     } else {
       // Default to status check
       builderHubUrl = `https://multinode-experimental.solokhin.com/node_admin/subnets/status/${subnetId}?password=${password}`;
@@ -438,15 +409,11 @@ async function handleBuilderHubApiRequest(request: NextRequest): Promise<NextRes
     });
 
     const rawText = await response.text();
-    console.log(`Delete response: ${response.status} ${response.statusText}`);
-    console.log(`Response body: ${rawText}`);
-    
     let data;
     
     try {
       data = JSON.parse(rawText);
     } catch (parseError) {
-      console.error('Failed to parse delete response as JSON:', parseError);
       return NextResponse.json(
         { 
           jsonrpc: "2.0",
@@ -473,7 +440,7 @@ async function handleBuilderHubApiRequest(request: NextRequest): Promise<NextRes
             status: 'terminated'
           }
         });
-        console.log(`Node terminated in database: subnet ${subnetId}, node index ${nodeIndex} (BuilderHub status: ${response.status})`);
+        console.log(`Node terminated in database for subnet ${subnetId}, node index ${nodeIndex}`);
       } catch (dbError) {
         console.error('Failed to update node status in database:', dbError);
       }
