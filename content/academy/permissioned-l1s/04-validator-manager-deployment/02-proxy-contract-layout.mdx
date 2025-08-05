@@ -1,13 +1,10 @@
 ---
-title: Deploy Proxy Contract
+title: Proxy Contract
 description: Learn how to deploy the proxy contract for upgradeable Validator Manager
 updated: 2025-07-31
 authors: [nicolasarnedo]
-icon: Terminal
+icon: BookOpen
 ---
-
-import ToolboxMdxWrapper from "../../../../toolbox/src/components/ToolboxMdxWrapper.tsx"
-import DeployProxyContract from "../../../../toolbox/src/toolbox/Proxy/DeployProxyContract.tsx"
 
 ## Overview
 
@@ -42,23 +39,8 @@ User → Proxy Contract → Implementation Contract
 3. Proxy now delegates to new implementation
 4. All state remains in the proxy
 
-## Deploy the Proxy
+## Proxy Contract Deployment
 
-Use the toolbox below to deploy your proxy contract:
-
-<ToolboxMdxWrapper walletMode="l1">
-    <DeployProxyContract />
-</ToolboxMdxWrapper>
-
-<Callout type="warning">
-**Important**: Save your proxy contract address! This is the permanent address for your Validator Manager, regardless of implementation upgrades.
-</Callout>
-
-## Security Considerations
-
-- **Admin Key**: Protect the admin account that can upgrade
-- **Implementation Verification**: Always verify new implementations
-- **Upgrade Testing**: Test upgrades on testnet first
-- **Time Delays**: Consider using timelocks for upgrades
+![VMC Proxy Deployment](/common-images/permissioned-l1s/VMCGenesis.png)
 
 <Quiz quizId="414" />
