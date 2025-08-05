@@ -536,11 +536,14 @@ function FlowNavigationContent({ currentPath }: FlowNavigationProps) {
   
   // Find current step index (including alternatives)
   const currentStepIndex = currentFlow.steps.findIndex(step => {
-    // Check main step
-    if (currentPath.includes(step.id)) return true;
+    // Check main step - use exact path matching
+    const pathParts = currentPath.split('/').filter(Boolean);
+    const currentTool = pathParts[pathParts.length - 1]; // Get the last part of the path
+    
+    if (currentTool === step.id) return true;
     // Check alternatives
     if (step.alternatives) {
-      return step.alternatives.some(alt => currentPath.includes(alt.id));
+      return step.alternatives.some(alt => currentTool === alt.id);
     }
     return false;
   });
@@ -571,7 +574,10 @@ function FlowNavigationContent({ currentPath }: FlowNavigationProps) {
                   {step.alternatives ? (
                     <div className={`flex flex-col gap-3 ${stepSizing} relative`}>
                       {step.alternatives.map((alt, altIndex) => {
-                        const isCurrentAlt = currentPath.includes(alt.id);
+                        // Use exact path matching to prevent both alternatives from being highlighted
+                        const pathParts = currentPath.split('/').filter(Boolean);
+                        const currentTool = pathParts[pathParts.length - 1]; // Get the last part of the path
+                        const isCurrentAlt = currentTool === alt.id;
                         const altStatus = isCurrentAlt ? "current" : "upcoming";
                         
                         // Check if this is BuilderHub Managed Nodes and we're in mainnet mode
@@ -585,19 +591,19 @@ function FlowNavigationContent({ currentPath }: FlowNavigationProps) {
                               size="sm"
                               onClick={() => !isDisabledInMainnet && handleStepClick(router, alt, currentFlow.id)}
                               disabled={isDisabledInMainnet}
-                              className={`relative h-auto p-3 flex flex-col items-start w-full border ${
+                              className={`relative h-auto p-3 flex flex-col items-start w-full border-2 transition-all duration-200 ${
                                 isDisabledInMainnet 
                                   ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700"
                                   : altStatus === "current" 
-                                    ? "bg-sky-100 border-sky-300 text-sky-800 hover:bg-sky-200 dark:bg-sky-900/20 dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900/30" 
-                                    : "border-border hover:border-muted-foreground/30"
+                                    ? "bg-sky-100 border-sky-400 text-sky-800 hover:bg-sky-200 dark:bg-sky-900/30 dark:border-sky-500 dark:text-sky-300 dark:hover:bg-sky-900/40 shadow-md" 
+                                    : "border-gray-200 dark:border-gray-700 hover:border-sky-200 dark:hover:border-sky-800 hover:bg-sky-50/50 dark:hover:bg-sky-950/20"
                               }`}
                             >
                               <div className="flex items-center gap-2 w-full min-w-0">
-                                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                                  isDisabledInMainnet ? "bg-gray-300" :
-                                  altStatus === "current" ? "bg-sky-600 dark:bg-sky-400" :
-                                  "bg-gray-300"
+                                <div className={`w-3 h-3 rounded-full flex-shrink-0 border-2 transition-all duration-200 ${
+                                  isDisabledInMainnet ? "bg-gray-300 border-gray-300" :
+                                  altStatus === "current" ? "bg-sky-600 dark:bg-sky-400 border-sky-600 dark:border-sky-400 shadow-sm" :
+                                  "bg-transparent border-gray-300 dark:border-gray-600"
                                 }`} />
                                 <span className={`${textSizing.title} text-left break-words flex-1 min-w-0 whitespace-normal`}>{alt.title}</span>
                               </div>

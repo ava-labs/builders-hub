@@ -30,7 +30,7 @@ const componentMap = {
   // Layer 1
   "layer-1/create": () => import("../../../toolbox/src/toolbox/L1/CreateChain"),
   "layer-1/node-setup": () => import("../../../toolbox/src/toolbox/Nodes/AvalancheGoDockerL1"),
-  "layer-1/node-setup-managed": () => import("../components/BuilderHubManagedNodes"),
+  "layer-1/node-setup-managed": () => import("../../../toolbox/src/toolbox/Nodes/BuilderHubNodes"),
   "layer-1/rpc-security-check": () => import("../../../toolbox/src/toolbox/Nodes/RPCMethodsCheck"),
   "layer-1/performance-check": () => import("../../../toolbox/src/toolbox/Nodes/PerformanceMonitor"),
   "layer-1/convert-to-l1": () => import("../../../toolbox/src/toolbox/L1/ConvertToL1"),
