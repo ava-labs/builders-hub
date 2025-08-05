@@ -13,13 +13,11 @@
     "---Interoperability---",
     "...05-interoperability",
     "---Virtual Machine Customization---",
-    "...06-vm-customization",
-    "---Independent Tokenomics---",
-    "...06b-independent-tokenomics",
+    "...07b-vm-customization",
     "---Permissioning Users---",
-    "...07-permissioning-users",
+    "...08-permissioning-users",
     "---Permissioning Validators---",
-    "...08-permissioning-validators",
+    "...09-permissioning-validators",
     "---Course Completion---",
     "get-certificate"
   ]

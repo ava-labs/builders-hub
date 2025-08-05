@@ -11,19 +11,20 @@ The contracts in the [`validator-manager`](https://github.com/ava-labs/icm-contr
 
 <Mermaid chart={`classDiagram
     class ValidatorManager {
+        <<abstract>>
         initializeValidatorSet()
+        initializeValidatorRegistration()*
         completeValidatorRegistration()
+        initializeEndValidation()*
         completeEndValidation()
-        
     }
-    <<Abstract>> ValidatorManager
     class PoSValidatorManager {
+        <<abstract>>
         initializeEndValidation()
         completeDelegatorRegistration()
         initializeEndDelegation()
         completeEndDelegation()
     }
-    <<Abstract>> PoSValidatorManager
     class ERC20TokenStakingManager {
         initializeValidatorRegistration()
         initializeDelegatorRegistration()

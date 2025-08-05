@@ -10,8 +10,17 @@
     "...03-payments-use-case",
     "---Signatures---",
     "...04-signatures",
+    "---Transaction Ordering Through Consensus---",
+    "...04-tx-ordering-through-consensus",
+    "---Sybil Protection---",
+    "...05-sybil-protection",
+    "---Smart Contracts---",
+    "...06-smart-contracts",
+    "---Independent Tokenomics---",
+    "...07-independent-tokenomics",
     "---Virtual Machines & Blockchains---",
-    "...05-vms-and-blockchains",
-    "---More Coming Soon!---"
+    "...08-vms-and-blockchains",
+    "---Course Completion---",
+    "get-certificate"
   ]
 }

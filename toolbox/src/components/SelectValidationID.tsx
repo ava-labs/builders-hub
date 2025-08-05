@@ -70,6 +70,7 @@ export default function SelectValidationID({
         const result = await listL1Validators({
           subnetId: subnetId,
           pageSize: 100, // Add reasonable page size
+          includeInactiveL1Validators: true,
         });
 
         // Handle pagination

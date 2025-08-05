@@ -4,10 +4,11 @@
     "root": true,
     "pages": [
         "index",
-        "---Recap---",
-        "...01-recap",
+        "---Introduction---",
+        "...01-introduction",
         "---Proof of Authority---",
-        "---More coming soon...---",
+        "...02-proof-of-authority",
+        "---More coming very soon...---",
         "certificate"
     ]
 }
