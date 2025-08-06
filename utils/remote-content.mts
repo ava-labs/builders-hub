@@ -222,7 +222,7 @@ async function main(): Promise<void> {
       contentUrl: "https://github.com/ava-labs/teleporter/blob/main/",
     },
     {
-      sourceUrl: "https://raw.githubusercontent.com/ava-labs/coreth/master/plugin/evm/config/config.md",
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/coreth/update-config-readme/plugin/evm/config/config.md",
       outputPath: "content/docs/nodes/chain-configs/c-chain.mdx",
       title: "C-Chain Configurations",
       description: "This page describes the configuration options available for the C-Chain.",
