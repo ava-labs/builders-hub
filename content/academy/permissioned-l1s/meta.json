@@ -12,7 +12,7 @@
         "...03-create-an-L1",
         "---Deploying Validator Manager Contract---",
         "...04-validator-manager-deployment",
-        "---Deploying PoA Manager Contract---",
+        "---Deploying PoA Manager Contract (MORE OPINIONATED NAME CHAPTER)---",
         "...05-poa-manager-deployment",
         "---More coming very soon...---",
         "certificate"
