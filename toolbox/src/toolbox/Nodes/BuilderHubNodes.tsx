@@ -867,15 +867,29 @@ export default function BuilderHubNodes() {
                                                                                 <div className="text-sm text-gray-600 dark:text-gray-400">
                                                                                     Total nodes: {status.nodes.length}
                                                                                 </div>
-                                                                                {status.nodes.map((nodeInfo: any, index: number) => (
-                                                                                    <div key={index} className="p-2 bg-white dark:bg-gray-900 rounded border text-xs">
-                                                                                        <div className="font-medium">Node #{nodeInfo.nodeIndex}</div>
-                                                                                        <div className="text-gray-600 dark:text-gray-400 truncate">
-                                                                                            ID: {nodeInfo.nodeInfo?.result?.nodeID || 'N/A'}
-                                                                                        </div>
+                                                                                {status.nodes.map((nodeData: any, index: number) => (
+                                                                                    <div key={index} className="p-2 bg-white dark:bg-gray-900 rounded border text-xs space-y-2">
+                                                                                        <div className="font-medium">Node #{nodeData.nodeIndex}</div>
                                                                                         <div className="text-gray-500 dark:text-gray-500">
-                                                                                            Created: {nodeInfo.dateCreated ? new Date(nodeInfo.dateCreated).toLocaleString() : 'N/A'}
+                                                                                            Created: {nodeData.dateCreated ? new Date(nodeData.dateCreated).toLocaleString() : 'N/A'}
                                                                                         </div>
+                                                                                        {nodeData.nodeInfo && (
+                                                                                            <div className="mt-2">
+                                                                                                <div className="flex items-center justify-between mb-1">
+                                                                                                    <span className="font-medium text-gray-700 dark:text-gray-300">Node Info:</span>
+                                                                                                    <button
+                                                                                                        onClick={() => copyToClipboard(JSON.stringify(nodeData.nodeInfo, null, 2), "Node Info")}
+                                                                                                        className="p-1 rounded bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+                                                                                                        title="Copy Node Info"
+                                                                                                    >
+                                                                                                        <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
+                                                                                                    </button>
+                                                                                                </div>
+                                                                                                <pre className="text-xs bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded border font-mono text-gray-600 dark:text-gray-400 overflow-auto max-h-48">
+                                                                                                    {JSON.stringify(nodeData.nodeInfo, null, 2)}
+                                                                                                </pre>
+                                                                                            </div>
+                                                                                        )}
                                                                                     </div>
                                                                                 ))}
                                                                             </div>
