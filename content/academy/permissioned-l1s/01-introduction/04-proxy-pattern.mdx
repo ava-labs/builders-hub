@@ -143,3 +143,30 @@ Proxy patterns add complexity:
 Proxy patterns represent a powerful tool in the blockchain developer's toolkit, enabling the evolution of smart contracts while maintaining continuity for users. However, they must be implemented thoughtfully, with careful consideration of the trade-offs between flexibility and decentralization. As the blockchain ecosystem matures, proxy patterns continue to evolve, offering new approaches to balance upgradeability with security and trust minimization.
 
 When implementing proxy patterns, always prioritize security, transparency, and user trust. The ability to upgrade should enhance, not compromise, the fundamental principles of blockchain technology.
+
+## Appendix: Proxy Flow
+
+The following diagram illustrates the flow of interactions in a Transparent Proxy pattern, showing how different types of calls are handled:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Admin
+    participant Proxy as "TransparentUpgradeableProxy"
+    participant Impl as Implementation
+
+    User ->> Proxy: call someFunction()
+    Note right of Proxy: msg.sender != admin
+    Proxy ->> Impl: delegatecall(someFunction())
+    Impl -->> Proxy: return result
+    Proxy -->> User: return result
+
+    Admin ->> Proxy: call upgradeToAndCall()
+    Note right of Proxy: msg.sender == admin
+    Proxy ->> Proxy: Handle upgrade
+    Proxy -->> Admin: return success
+
+    Admin ->> Proxy: call someFunction()
+    Note right of Proxy: msg.sender == admin<br/>but non-admin function
+    Proxy -->> Admin: revert ProxyDeniedAdminAccess
+```
