@@ -1,9 +1,9 @@
 
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Globe, Plus, RefreshCw } from "lucide-react";
+import { Globe, LogOut, Plus, RefreshCw, RotateCcw, Telescope, Wallet } from "lucide-react";
 
-export function SwitchEVMChain() {
+export function EVMWallet() {
   const currentNetwork = {
     name: "C-Chain",
     symbol: "AVAX",
@@ -14,19 +14,12 @@ export function SwitchEVMChain() {
     <DropdownMenuTrigger asChild>
       <Button variant="outline" size="sm">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-5 h-5 rounded-md overflow-hidden flex items-center justify-start">
-            {currentNetwork.logoUrl ? (
-              <img src={currentNetwork.logoUrl} alt={`${currentNetwork.name} logo`} className="w-full h-full object-cover" />
-            ) : (
-              <Globe className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
-            )}
+          <div className="flex-shrink-0 w-5 h-5 rounded-md overflow-hidden flex items-center justify-start">    
+              <Wallet className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
           </div>
           <div className="flex gap-2 items-center">
             <span className="text-sm font-medium leading-none">
-              {currentNetwork.name}
-            </span>
-            <span className="text-xs text-muted-foreground leading-none">
-              {formatBalance(currentNetwork.balance)} {currentNetwork.symbol}
+              0x1234...abcd
             </span>
           </div>
         </div>
@@ -34,26 +27,17 @@ export function SwitchEVMChain() {
     </DropdownMenuTrigger>
     <DropdownMenuContent className="w-56">
       <DropdownMenuItem >
-        <Globe className="mr-2 h-3 w-3" />
-        Another L1
-      </DropdownMenuItem>
-      <DropdownMenuItem >
-        <Globe className="mr-2 h-3 w-3" />
-        Another L1
-      </DropdownMenuItem>
-      <DropdownMenuItem >
-        <Globe className="mr-2 h-3 w-3" />
-        Another L1
+        <Telescope className="mr-2 h-3 w-3" />
+        View on Explorer
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem >
-        <Plus className="mr-2 h-3 w-3" />
-        Add Network
+        <LogOut className="mr-2 h-3 w-3" />
+        Disconnect Wallet
       </DropdownMenuItem>
-      <DropdownMenuSeparator />
       <DropdownMenuItem >
-        <RefreshCw className="mr-2 h-3 w-3" />
-        Refresh Balances
+        <RotateCcw className="mr-2 h-3 w-3" />
+        Reset Console
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>);

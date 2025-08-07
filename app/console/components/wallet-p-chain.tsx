@@ -1,7 +1,7 @@
 
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Copy } from "lucide-react";
+import { ArrowLeftRight, Copy, Droplet } from "lucide-react";
 
 export function WalletPChain() {
   return (<DropdownMenu>
@@ -22,14 +22,20 @@ export function WalletPChain() {
         </div>
       </Button>
     </DropdownMenuTrigger>
-    <DropdownMenuContent className="w-56">
+    <DropdownMenuContent className="w-60">
       <DropdownMenuItem >
         <Copy className="mr-2 h-3 w-3" />
         Copy Address
       </DropdownMenuItem>
       <DropdownMenuSeparator />
-      <DropdownMenuItem >Claim P-Chain AVAX from Faucet</DropdownMenuItem>
-      <DropdownMenuItem >Bridge AVAX from C-Chain to P-Chain</DropdownMenuItem>
+      <DropdownMenuItem >
+        <Droplet className="mr-2 h-3 w-3" />
+        Get AVAX from Faucet
+      </DropdownMenuItem>
+      <DropdownMenuItem >
+        <ArrowLeftRight className="mr-2 h-3 w-3" />
+        Bridge AVAX from C-Chain
+      </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>);
 }

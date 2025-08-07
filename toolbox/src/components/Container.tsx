@@ -121,63 +121,22 @@ export function Container({
   const colorTheme = colorThemeMap[logoColorTheme] || colorThemeMap.red
 
   return (
-    <div
-      className={cn(
-        "w-full",
-        "rounded-xl",
-        "bg-white dark:bg-zinc-900",
-        "border border-zinc-200 dark:border-zinc-800",
-        "shadow-md",
-        "overflow-hidden",
-        "mx-auto",
-        "my-8",
-        "relative",
+    <div>
+      <h3 className="text-3xl font-semibold text-foreground">{title}</h3>
+      {description && (
+        <div className="text-sm text-muted-foreground mt-1">
+          {description}
+        </div>
       )}
-    >
-      {/* Header */}
-      <div className="p-6 border-b border-zinc-100 dark:border-zinc-800">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <img 
-              src={logoSrc} 
-              alt={logoAlt} 
-              className="h-8 w-auto brightness-0 dark:invert transition-all duration-200" 
-            />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-zinc-800 dark:text-white">{title}</h3>
-            {description && (
-              <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                {description}
-              </div>
-            )}
-            {subDescription && (
-              <p className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">{subDescription}</p>
-            )}
-          </div>
-        </div>
-      </div>
+      {subDescription && (
+        <p className="text-sm text-muted-foreground mt-1">{subDescription}</p>
+      )}
 
-      {/* Content area with left padding aligned with logo */}
-      <div className="pl-4 pr-6 py-6 space-y-6 text-zinc-900 dark:text-zinc-100">
-        <div className="space-y-6 pb-6 prose">
-          {children}
-        </div>
 
-        <div className="pt-4 mt-6 border-t border-zinc-200 dark:border-zinc-800 text-center">
-          <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-            <span>Explore more</span>
-            <a
-              href="https://build.avax.network/tools/l1-toolbox"
-              target="_blank"
-              rel="noreferrer"
-              className={`inline-flex items-center gap-1 text-zinc-700 ${colorTheme.hover} dark:text-zinc-300 ${colorTheme.darkHover} font-medium transition-colors`}
-            >
-              <img src="/small-logo.png" alt="Avalanche" className="h-3 w-auto" />
-              <span>Avalanche Builder Tooling</span>
-            </a>
-          </div>
-        </div>
+      {/* Content area - matching ConsoleLayout content styling */}
+      
+      <div className="space-y-6 text-foreground prose prose-sm max-w-none dark:prose-invert">
+        {children}
       </div>
     </div>
   )

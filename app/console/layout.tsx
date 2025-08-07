@@ -19,7 +19,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <ConsoleSidebar variant="inset" />
       <SidebarInset className="bg-white">
         <SiteHeader />
-        <div className="flex flex-1 flex-col gap-4 p-4">
+        <div className="flex flex-1 flex-col gap-4 p-8">
             {children}
         </div>
       </SidebarInset>

@@ -11,6 +11,9 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { TestnetMainnetSwitch } from "./testnet-mainnet-switch";
 import { SwitchEVMChain } from "./switch-evm-chain";
 import { WalletPChain } from "./wallet-p-chain";
+import { EVM } from "@avalabs/avalanchejs";
+import { EVMWallet } from "./evm-wallet";
+import { BuilderHubAccountButton } from "./builder-hub-account-button";
 
 
 
@@ -38,8 +41,11 @@ export function SiteHeader() {
           </Breadcrumb>
         <div className="ml-auto flex items-center gap-2">
          <TestnetMainnetSwitch />
+         <EVMWallet />
          <SwitchEVMChain />
          <WalletPChain />
+         <Separator orientation="vertical"/>
+         <BuilderHubAccountButton />
         </div>
       </div>
     </header>

@@ -39,6 +39,7 @@ import {
   SidebarFooter,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 
 
 // Navigation data structure matching user specification
@@ -228,28 +229,13 @@ export function ConsoleSidebar({
   return (
     <Sidebar {...props}>
       <SidebarHeader>
-        <div className="flex items-center justify-between px-2 py-2">
-          <Link
-            href="/console"
-            className="flex flex-col items-center gap-2 group transition-all duration-200"
-          >
-            <div className="relative">
-              <img 
-                src="/logo-white.png" 
-                alt="Avalanche" 
-                className="h-8 w-auto hidden dark:block transition-all duration-200" 
-              />
-              <img 
-                src="/logo-black.png" 
-                alt="Avalanche" 
-                className="h-8 w-auto block dark:hidden transition-all duration-200" 
-              />
-            </div>
-            <div className="flex flex-col items-center leading-none">
-              <span className="text-xs font-medium text-muted-foreground">Builder Console</span>
-            </div>
-          </Link>
-        </div>
+        <Link
+          href="/console"
+          className="flex items-center gap-2 group transition-all duration-200 p-2"
+        >
+          <AvalancheLogo className='size-7' fill='currentColor' />
+          <span className="font-large font-semibold">Builder Console</span>
+        </Link>
       </SidebarHeader>
       
       <SidebarContent>
