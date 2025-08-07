@@ -1,18 +1,14 @@
 ---
 title: Proxy Patterns
 description: Understanding proxy patterns in blockchain - their importance, advantages, and risks.
-updated: 2025-01-10
+updated: 2025-07-08
 authors: [nicolasarnedo]
 icon: BookOpen
 ---
 
-## Introduction to Proxy Patterns
+In blockchain development smart contracts are **immutable by design**, this can be beneficial for users to trust the software they are using will not be altered, but can represent challenges for developers to improve existing software or fix bugs.
 
-In blockchain development, upgradeability presents a fundamental challenge: smart contracts are immutable by design, yet real-world applications often require the ability to fix bugs, add features, or adapt to changing requirements. Proxy patterns offer a solution to this dilemma by separating contract logic from data storage, enabling upgrades while maintaining the same contract address.
-
-<Callout type="info">
-**Proxy patterns are architectural designs that allow smart contracts to be upgraded after deployment without changing their address or losing their state.**
-</Callout>
+Proxy patterns offer a solution to this dilemma by separating contract logic from data storage, enabling upgrades while maintaining the same contract address.
 
 ## How Proxy Patterns Work
 
@@ -23,10 +19,9 @@ At its core, a proxy pattern involves two main components:
 
 When users interact with the proxy contract, it delegates all calls to the implementation contract using the `delegatecall` opcode, executing the implementation's code in the proxy's storage context.
 
-```
-User → Proxy Contract → delegatecall → Implementation Contract
-         (storage)                         (logic)
-```
+When the owner/admin of the proxy wants to upgrade
+
+![Proxy Pattern Basic Flow](/common-images/permissioned-l1s/ProxyBasic.png)
 
 ## Common Proxy Patterns
 
@@ -56,117 +51,12 @@ Beacon proxies enable multiple proxy instances to share the same implementation:
 
 ## Advantages of Proxy Patterns
 
-### 1. **Upgradability Without Address Changes**
-Users and integrations can continue using the same contract address even after upgrades, preserving:
-- User interfaces and bookmarks
-- Exchange listings and integrations
-- Historical transaction references
-
-### 2. **Bug Fixes and Security Patches**
-Critical vulnerabilities can be addressed without requiring users to migrate to a new contract:
-- Rapid response to security incidents
-- Minimal disruption to users
-- Preservation of contract state
-
-### 3. **Feature Addition and Optimization**
-New functionality can be added over time:
-- Gas optimization improvements
-- New features based on user feedback
-- Integration with newer protocols
-
-### 4. **Storage Persistence**
-Contract state remains intact across upgrades:
-- User balances preserved
-- Historical data maintained
-- No migration required
+1. **Upgradability Without Address Changes** - Users and integrations can continue using the same contract address even after upgrades, preserving user interfaces, exchange listings, and historical transaction references.
+2. **Bug Fixes and Security Patches** - Critical vulnerabilities can be addressed without requiring users to migrate to a new contract, enabling rapid response to security incidents with minimal disruption.
+3. **Feature Addition and Optimization** - New functionality can be added over time including gas optimization improvements, new features based on user feedback, and integration with newer protocols.
 
 ## Risks and Considerations
 
-<Callout type="warning">
-**While proxy patterns offer flexibility, they introduce significant risks that must be carefully managed.**
-</Callout>
-
-### 1. **Centralization Risk**
-Upgrade capabilities often rest with a single admin or small group:
-- Single point of failure
-- Trust assumptions contradict decentralization
-- Potential for malicious upgrades
-
-**Mitigation**: Implement time-locks, multi-signature wallets, or decentralized governance
-
-### 2. **Storage Collision**
-Improper storage layout management can corrupt data:
-- New variables must be appended, never inserted
-- Storage slots must align between versions
-- Inheritance changes can break storage layout
-
-**Mitigation**: Use storage gaps and careful upgrade testing
-
-### 3. **Function Selector Clashes**
-Proxy and implementation functions can have matching selectors:
-- Unexpected behavior
-- Security vulnerabilities
-- Upgrade failures
-
-**Mitigation**: Careful function naming and selector verification
-
-### 4. **Complexity and Gas Costs**
-Proxy patterns add complexity:
-- Additional gas costs for delegatecall
-- Harder to audit and verify
-- More potential for implementation errors
-
-## Best Practices
-
-1. **Governance and Access Control**
-   - Implement multi-signature or DAO governance for upgrades
-   - Use time-locks to allow users to exit before upgrades
-   - Consider making contracts eventually immutable
-
-2. **Thorough Testing**
-   - Test upgrades on testnets first
-   - Verify storage layout compatibility
-   - Audit both proxy and implementation contracts
-
-3. **Clear Documentation**
-   - Document upgrade procedures
-   - Maintain upgrade history
-   - Communicate changes to users
-
-4. **Consider Alternatives**
-   - Modular design with replaceable components
-   - Parameter adjustment without code changes
-   - Off-chain computation with on-chain verification
-
-## Conclusion
-
-Proxy patterns represent a powerful tool in the blockchain developer's toolkit, enabling the evolution of smart contracts while maintaining continuity for users. However, they must be implemented thoughtfully, with careful consideration of the trade-offs between flexibility and decentralization. As the blockchain ecosystem matures, proxy patterns continue to evolve, offering new approaches to balance upgradeability with security and trust minimization.
-
-When implementing proxy patterns, always prioritize security, transparency, and user trust. The ability to upgrade should enhance, not compromise, the fundamental principles of blockchain technology.
-
-## Appendix: Proxy Flow
-
-The following diagram illustrates the flow of interactions in a Transparent Proxy pattern, showing how different types of calls are handled:
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Admin
-    participant Proxy as "TransparentUpgradeableProxy"
-    participant Impl as Implementation
-
-    User ->> Proxy: call someFunction()
-    Note right of Proxy: msg.sender != admin
-    Proxy ->> Impl: delegatecall(someFunction())
-    Impl -->> Proxy: return result
-    Proxy -->> User: return result
-
-    Admin ->> Proxy: call upgradeToAndCall()
-    Note right of Proxy: msg.sender == admin
-    Proxy ->> Proxy: Handle upgrade
-    Proxy -->> Admin: return success
-
-    Admin ->> Proxy: call someFunction()
-    Note right of Proxy: msg.sender == admin<br/>but non-admin function
-    Proxy -->> Admin: revert ProxyDeniedAdminAccess
-```
+1. **Centralization Risk** - Upgrade capabilities rest with a single admin or small group, creating a single point of failure and potential for malicious upgrades.
+2. **Function Selector Clashes** - Proxy and implementation functions can have matching selectors, causing unexpected behavior, security vulnerabilities, and upgrade failures.
+3. **Complexity** - Proxy patterns add complexity through additional gas costs for delegatecall operations and make contracts harder to audit and verify.
