@@ -78,7 +78,7 @@ export async function convertToL1(client: WalletClient<any, any, any, CoreWallet
         context,
     );
 
-    const transactionID = await window.avalanche!.request({
+    const transactionID = await (window.avalanche!.request as any)({
         method: 'avalanche_sendTransaction',
         params: {
             transactionHex: utils.bufferToHex(tx.toBytes()),

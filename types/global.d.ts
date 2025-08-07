@@ -4,4 +4,9 @@ interface Window {
         on: (event: string, callback: (...args: any[]) => void) => void;
         removeListener: (event: string, callback: (...args: any[]) => void) => void;
     };
+    avalanche?: {
+        request: <T = any>(args: { method: string; params?: any[] }) => Promise<T>;
+        on: (event: string, callback: (...args: any[]) => void) => void;
+        removeListener: (event: string, callback: (...args: any[]) => void) => void;
+    };
 } 

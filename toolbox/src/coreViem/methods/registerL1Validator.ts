@@ -69,7 +69,7 @@ export async function registerL1Validator(client: WalletClient<any, any, any, Co
     const unsignedRegisterValidatorTxHex = bytesToHex(unsignedRegisterValidatorTxBytes);
 
     // Submit the transaction to the P-Chain using Core Wallet
-    const txID = await window.avalanche!.request({
+    const txID = await (window.avalanche!.request as any)({
         method: "avalanche_sendTransaction",
         params: {
             transactionHex: unsignedRegisterValidatorTxHex,

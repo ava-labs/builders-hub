@@ -49,13 +49,22 @@ export async function evmExport(client: WalletClient<any, any, any, CoreWalletRp
     const baseFee = await evmapi.getBaseFee();
     const txCount = await provider.getTransactionCount(walletEVMAddress);
 
-    const tx = evm.newExportTx(
+    // Check wallet balance to ensure sufficient funds
+    const balance = await provider.getBalance(walletEVMAddress);
+    const exportAmountWei = BigInt(Math.round(Number(amount) * 1e18)); // Convert AVAX to Wei for balance comparison
+    const exportAmountNAvax = BigInt(Math.round(Number(amount) * 1e9)); // Convert AVAX to nAVAX for transaction
+    
+    if (balance < exportAmountWei) {
+        throw new Error(`Insufficient balance. Wallet has ${Number(balance) / 1e18} AVAX, but trying to export ${amount} AVAX`);
+    }
+
+    const tx = evm.newExportTxFromBaseFee(
         context,
-        BigInt(Math.round(Number(amount) * 1e9)), // Convert AVAX to nAVAX
+        baseFee,
+        exportAmountNAvax, // Convert AVAX to nAVAX
         context.pBlockchainID,
         utils.hexToBuffer(walletEVMAddress),
         [utils.bech32ToBytes(pChainAddress)],
-        baseFee,
         BigInt(txCount),
     );
 
@@ -64,7 +73,7 @@ export async function evmExport(client: WalletClient<any, any, any, CoreWalletRp
     console.log("EVM Export transaction created:", txHex);
 
     // Send transaction using window.avalanche
-    const response = await window.avalanche.request({
+    const response = await (window.avalanche.request as any)({
         method: "avalanche_sendTransaction",
         params: {
             transactionHex: txHex,

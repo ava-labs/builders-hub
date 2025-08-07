@@ -56,7 +56,7 @@ export async function setL1ValidatorWeight(client: WalletClient<any, any, any, C
     const setWeightTxHex = bytesToHex(setWeightTxBytes);
 
     // Submit the transaction to the P-Chain using Core Wallet
-    const txID = await window.avalanche!.request({
+    const txID = await (window.avalanche!.request as any)({
         method: "avalanche_sendTransaction",
         params: {
             transactionHex: setWeightTxHex,
