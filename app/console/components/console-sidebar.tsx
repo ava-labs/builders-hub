@@ -22,7 +22,8 @@ import {
   Calculator,
   Coins,
   Box,
-  Globe
+  Globe,
+  ArrowUpDown
 } from "lucide-react";
 
 import {
@@ -73,6 +74,11 @@ const data = {
           title: "C/P-Chain Bridge",
           url: "/console/primary-network/bridge",
           icon: ArrowLeftRight,
+        },
+        {
+          title: "Ethereum Bridge",
+          url: "https://core.app/bridge",
+          icon: ArrowUpDown,
         },
         {
           title: "AVAX Unit Converter",
