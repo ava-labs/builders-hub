@@ -51,6 +51,7 @@
     "react-error-boundary": "^5.0.0",
     "react-syntax-highlighter": "^15.6.1",
     "recharts": "^2.15.1",
+    "shadcn": "^2.10.0",
     "tailwind-merge": "^3.0.1",
     "viem": "^2.23.0",
     "vitest": "^3.0.5",
