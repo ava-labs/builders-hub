@@ -23,7 +23,11 @@ import {
   Coins,
   Box,
   Globe,
-  ArrowUpDown
+  ArrowUpDown,
+  ShieldCheck,
+  ShieldUser,
+  SquareTerminal,
+  Hexagon
 } from "lucide-react";
 
 import {
@@ -137,22 +141,22 @@ const data = {
         {
           title: "Validator Manager Setup",
           url: "/console/permissioned-l1s/validator-manager-setup?flow=validator-manager",
-          icon: Users,
+          icon: SquareTerminal,
         },
         {
           title: "Manage Validators",
           url: "/console/permissioned-l1s/add-validator?flow=manage-validators",
-          icon: Users,
+          icon: Hexagon,
         },
         {
           title: "Contract Deployer Allowlist",
           url: "/console/permissioned-l1s/deployer-allowlist",
-          icon: Shield,
+          icon: ShieldCheck,
         },
         {
           title: "Transactor Allowlist",
           url: "/console/permissioned-l1s/transactor-allowlist",
-          icon: Shield,
+          icon: ShieldUser,
         },
       ],
     },
@@ -168,7 +172,7 @@ const data = {
         {
           title: "Stake & Unstake",
           url: "/console/permissionless-l1s/manage-validators",
-          icon: Users,
+          icon: Hexagon,
           comingSoon: true,
         },
       ],
@@ -180,7 +184,7 @@ const data = {
         {
           title: "Setup",
           url: "/console/icm/setup",
-          icon: Settings,
+          icon: SquareTerminal,
         },
         {
           title: "Send Test Message",
@@ -196,7 +200,7 @@ const data = {
         {
           title: "Bridge Setup",
           url: "/console/ictt/deploy-native-home",
-          icon: ArrowLeftRight,
+          icon: SquareTerminal,
         },
         {
           title: "Token Transfer",
@@ -274,7 +278,7 @@ export function ConsoleSidebar({
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton 
-                        asChild={!item.comingSoon}
+                        asChild
                         isActive={isActive}
                         className={`${item.comingSoon ? 'opacity-50 cursor-not-allowed' : ''}`}
                         disabled={item.comingSoon}
@@ -282,10 +286,10 @@ export function ConsoleSidebar({
 
                         
                         {item.comingSoon ? (
-                          <div className="flex items-center gap-2">
+                          <Link href="#">
                             <item.icon />
                             <span>{item.title} (soon)</span>
-                          </div>
+                          </Link>
                         ) : (
                           <Link href={item.url}>
                             <item.icon />
@@ -303,20 +307,6 @@ export function ConsoleSidebar({
 
 
       </SidebarContent>
-      
-      <SidebarFooter>
-        <SidebarMenu>
-
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => window.location.reload()}>
-              <RefreshCcw />
-              <span>Reset State</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-      
-      <SidebarRail />
     </Sidebar>
   );
 }
