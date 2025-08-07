@@ -173,17 +173,25 @@ export default function Page() {
             </div>
           )}
 
-          {/* Iframe */}
-          <iframe
-            src={selectedUrl}
-            className="w-full border-0 bg-white"
+          {/* Iframe Container with Cropping */}
+          <div
+            className="w-full overflow-hidden"
             style={{ height: "calc(100vh - 120px)" }}
-            onLoad={handleIframeLoad}
-            onError={handleIframeError}
-            title={`${selectedName} Dashboard`}
-            allow="fullscreen"
-            loading="lazy"
-          />
+          >
+            <iframe
+              src={selectedUrl}
+              className="w-full border-0 bg-white"
+              style={{
+                height: "calc(100vh - 120px + 82px + 80px)",
+                marginTop: "-82px",
+              }}
+              onLoad={handleIframeLoad}
+              onError={handleIframeError}
+              title={`${selectedName} Dashboard`}
+              allow="fullscreen"
+              loading="lazy"
+            />
+          </div>
         </div>
       </div>
     </>
