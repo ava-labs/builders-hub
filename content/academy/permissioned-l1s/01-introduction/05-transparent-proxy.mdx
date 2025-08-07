@@ -1,45 +1,10 @@
 ---
 title: Transparent Proxy
-description: In-depth guide of the Transparent Proxy smart contract structure and flows
+description: In-depth guide of the Transparent Proxy smart contract structure flows
 updated: 2025-01-10
 authors: [nicolasarnedo]
 icon: BookOpen
 ---
-
-## Contract Structure
-
-The Transparent Proxy pattern consists of three main contracts that work together to provide secure upgradeability while preventing function selector clashes.
-
-<Mermaid
-  chart="
-classDiagram
-    class TransparentUpgradeableProxy {
-        -address _admin (immutable)
-        +constructor(logic, initialOwner, data)
-        +_fallback()
-        +_dispatchUpgradeToAndCall()
-    }
-
-    class ERC1967Proxy {
-        +constructor(implementation, data)
-        +_implementation()
-    }
-
-    class ProxyAdmin {
-        +upgradeAndCall(proxy, implementation, data)
-        +owner()
-    }
-
-    class Ownable {
-        +onlyOwner()
-        +transferOwnership()
-    }
-
-    TransparentUpgradeableProxy --> ERC1967Proxy
-    TransparentUpgradeableProxy --> ProxyAdmin : creates and manages
-    ProxyAdmin --> Ownable
-"
-/>
 
 **Key Components:**
 - **TransparentUpgradeableProxy**: Main proxy with immutable admin address for gas efficiency

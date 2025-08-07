@@ -11,7 +11,36 @@ The contracts in the [`validator-manager`](https://github.com/ava-labs/icm-contr
 
 For this section we have blurred out some of the contracts, as these are not relevant to the Proof of Authority hierarchy used to create a **permissioned L1**:
 
-![Validator Manager Contract Class Diagram](/common-images/permissioned-l1s/ValidatorManagerContractBlurr.png)
+<div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+  <Mermaid
+    chart="
+classDiagram
+class ACP99Manager {
+    +initializeValidatorSet()
+    +completeValidatorRegistration()
+    +completeValidatorRemoval()
+    +completeValidatorWeightUpdate()
+    -_initiateValidatorRegistration()
+    -_initiateValidatorRemoval()
+    -_initiateValidatorWeightUpdate()
+}
+<<Abstract>> ACP99Manager
+
+class ValidatorManager {
+    +initializeValidatorSet()
+    +completeValidatorRegistration() onlyOwner
+    +completeValidatorRemoval() onlyOwner
+    +completeValidatorWeightUpdate() onlyOwner
+    +initiateValidatorRegistration() onlyOwner
+    +initiateValidatorRemoval() onlyOwner
+    +initiateValidatorWeightUpdate() onlyOwner
+}
+
+ACP99Manager <|-- ValidatorManager
+"
+  />
+</div>
+
 
 ## Understanding Contract Hierarchy
 
