@@ -40,36 +40,37 @@ This direct disabling mechanism is part of ACP-77's design to provide flexibilit
 
 ## Appendix: Direct P-Chain Disable Flow
 
-<Mermaid
-  chart="
-graph TD
-    subgraph PChain [P-Chain]
-        A[Issue DisableL1ValidatorTx]
-        B[Validator Status = Disabled]
-        C[Validator Weight is Preserved]
-        D[Issue IncreaseBalanceTx<br/>(to Reactivate)]
-    end
+<Mermaid chart={`sequenceDiagram
+    participant User as User/Admin
+    participant PChain as P-Chain
+    participant L1Validator as L1 Validator
+    participant L1Manager as L1 Validator Manager (Unaware)
 
-    subgraph L1Contracts [L1 Contracts]
-        E[ValidatorManager Contract]
-        F[No Interaction or State Update]
-    end
+    Note over User,L1Manager: 1. Direct P-Chain Validator Disabling Flow
 
-    subgraph Notes
-        G[Permanent removal still requires<br/>initiateValidatorRemoval()]
-        H[Contract system unaware of disable status]
-        I[Used in emergencies<br/>(as per ACP-77)]
-    end
+    User->>PChain: IssueDisableL1ValidatorTx(validationID)
+    Note right of User: Direct P-Chain transaction<br/>No L1 contract interaction
 
-    A --> B
-    B --> C
-    C --> D
-    A -.-> F
-    B -.-> H
-    D --> C
-    G --> E
-    I --> A
-"
-/>
+    PChain->>PChain: Process DisableL1ValidatorTx
+
+    PChain->>L1Validator: Disable validator
+
+    Note right of L1Validator: Validator becomes inactive<br/>Weight still counts toward total
+
+    Note right of L1Manager: L1 contracts remain unaware<br/>of validator's disabled status
+
+    Note over User,L1Manager: 2. Optional: Re-activation
+
+    User->>PChain: IncreaseBalanceTx(validationID, amount)
+    Note right of User: Anyone can call this<br/>for any validator
+
+    PChain->>PChain: Process IncreaseBalanceTx
+
+    PChain->>L1Validator: Re-activate validator
+
+    Note over User,L1Manager: 3. For Permanent Removal (Separate Flow)
+
+    User->>L1Manager: initiateValidatorRemoval(validationID)
+    Note right of User: Must use contract flow<br/>for permanent removal`} />
 
 
