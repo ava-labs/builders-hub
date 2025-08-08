@@ -1,0 +1,18 @@
+---
+title: Validator Manager Operations
+description: Overview of validator lifecycle operations on a permissioned L1 using the ValidatorManager contract.
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Book
+---
+
+This module covers the end-to-end validator lifecycle on a permissioned L1 managed by the `ValidatorManager` contract:
+
+- Add a validator (initiate on L1, register on P-Chain, complete on L1)
+- Change validator weight (churn-aware updates)
+- Remove a validator (initiate on L1, remove on P-Chain, complete on L1)
+- Disable on P-Chain for emergency/operational purposes
+
+We’ll alternate between theory (what calls happen and why) and practical steps (execute the flow using the Toolbox components).
+
+

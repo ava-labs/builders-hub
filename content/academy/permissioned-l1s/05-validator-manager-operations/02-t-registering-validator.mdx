@@ -1,0 +1,82 @@
+---
+title: Registering a Validator Theory
+description: Theory walkthrough of adding a validator with ValidatorManager owned by an EOA, including L1 and P-Chain calls.
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+## Adding a Validator
+
+You’re adding a validator in a PoA setup where the `ValidatorManager` contract is owned by an EOA. The process has two L1 calls with a P-Chain registration in between.
+
+### Phase 1: Initiation (L1)
+
+The owner calls `initiateValidatorRegistration(nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight)` on `ValidatorManager`.
+
+Under the hood, the contract:
+- Validates sizes and formats (20-byte `nodeID`, 48-byte `blsPublicKey`, owners, churn limits)
+- Builds a `RegisterL1ValidatorMessage` with a bounded expiry
+- Computes a unique `validationID`
+- Stores pending state mapping `nodeID → validationID`
+- Sends the Warp message to the P-Chain
+
+### Phase 2: P-Chain Processing
+
+The P-Chain consumes the warp message, executes a `RegisterL1ValidatorTx`, and upon success signs and returns an `L1ValidatorRegistrationMessage` via Warp.
+
+### Phase 3: Completion (L1)
+
+Anyone calls `completeValidatorRegistration(message)` with the signed message. The contract verifies it, activates the validator, sets the start time, and emits `CompletedValidatorRegistration`.
+
+### What you’ll do next
+
+In the practical section, you will:
+1. Initiate registration from L1
+2. Submit the corresponding P-Chain transaction
+3. Complete registration back on L1 with the signed Warp message
+
+## Appendix: Adding Validator Flow
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant EOA_Owner as EOA Owner
+    participant ValidatorManager as ValidatorManager
+    participant WarpMessenger as WarpMessenger (precompile)
+    participant PChain as P-Chain
+
+    %% Phase 1: Initiation
+    EOA_Owner->>ValidatorManager: initiateValidatorRegistration(nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight)
+
+    ValidatorManager->>ValidatorManager: _initiateValidatorRegistration()
+
+    ValidatorManager->>ValidatorManager: Validate parameters<br/>(BLS key, nodeID, owner structs, weight, churn limits)
+
+    ValidatorManager->>ValidatorManager: Create RegisterL1ValidatorMessage<br/>+ registration expiry
+
+    ValidatorManager->>ValidatorManager: Compute validationID
+
+    ValidatorManager->>ValidatorManager: Update internal state<br/>(_validationPeriods, _registeredValidators,<br/>_pendingRegisterValidationMessages)
+
+    ValidatorManager->>WarpMessenger: sendWarpMessage(message)
+
+    %% Phase 2: P-Chain Processing
+    WarpMessenger->>PChain: Deliver RegisterL1ValidatorMessage
+
+    PChain-->>WarpMessenger: L1ValidatorRegistrationMessage (signed)
+
+    %% Phase 3: Completion
+    participant AnyCaller as Any Caller
+
+    AnyCaller->>ValidatorManager: completeValidatorRegistration(message)
+
+    ValidatorManager->>ValidatorManager: Verify Warp message signature
+
+    ValidatorManager->>ValidatorManager: Update validator status to Active<br/>Set start time
+
+    ValidatorManager-->>AnyCaller: emit CompletedValidatorRegistration
+"
+/>
+
+

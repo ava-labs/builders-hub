@@ -1,0 +1,75 @@
+---
+title: P-Chain Disable Validator
+description: Practical - disable a validator at the P-Chain level.
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Book
+---
+
+## Theory
+
+Yes, you can directly disable a validator on the P-Chain without going through the Validator Manager Contract flow.
+
+### Direct P-Chain Validator Disabling
+
+The P-Chain provides a direct method to disable validators through the `DisableL1ValidatorTx` transaction.
+
+### How It Works
+
+**Direct P-Chain Transaction**: You can issue a `DisableL1ValidatorTx` directly on the P-Chain to disable any validator without interacting with the L1's Validator Manager contract at all.
+
+**Weight Preservation**: When a validator is disabled this way, their weight still counts towards the L1's total weight - they're just inactive.
+
+**Re-activation**: Disabled validators can be re-activated at any time by increasing their balance with an `IncreaseBalanceTx`. Anyone can call this transaction for any validator on the P-Chain.
+
+### Test Example
+
+The codebase includes a test demonstrating this functionality where a validator is disabled directly on the P-Chain.
+
+In this test, the validator is disabled using `IssueDisableL1ValidatorTx()` directly on the P-Chain wallet without any interaction with the L1 contracts.
+
+### Key Differences from Contract Flow
+
+- **No L1 Contract Interaction**: This bypasses the entire Validator Manager contract system
+- **No State Updates**: The L1 contracts remain unaware of the validator's disabled status
+- **Permanent Removal Requires Contract**: To completely and permanently remove a validator from the set, you still need to call `initiateValidatorRemoval()` through the contract flow
+
+### Notes
+
+This direct disabling mechanism is part of ACP-77's design to provide flexibility in validator management, allowing for emergency situations where validators need to be quickly disabled without waiting for L1 contract interactions. However, for proper validator lifecycle management and state consistency, the contract-based flows are generally preferred.
+
+## Appendix: Direct P-Chain Disable Flow
+
+<Mermaid
+  chart="
+graph TD
+    subgraph PChain [P-Chain]
+        A[Issue DisableL1ValidatorTx]
+        B[Validator Status = Disabled]
+        C[Validator Weight is Preserved]
+        D[Issue IncreaseBalanceTx<br/>(to Reactivate)]
+    end
+
+    subgraph L1Contracts [L1 Contracts]
+        E[ValidatorManager Contract]
+        F[No Interaction or State Update]
+    end
+
+    subgraph Notes
+        G[Permanent removal still requires<br/>initiateValidatorRemoval()]
+        H[Contract system unaware of disable status]
+        I[Used in emergencies<br/>(as per ACP-77)]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    A -.-> F
+    B -.-> H
+    D --> C
+    G --> E
+    I --> A
+"
+/>
+
+
