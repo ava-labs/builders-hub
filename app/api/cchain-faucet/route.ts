@@ -7,7 +7,7 @@ import { rateLimit } from '@/lib/rateLimit';
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
 const FAUCET_C_CHAIN_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
-const FIXED_AMOUNT = '2';
+const FIXED_AMOUNT = '4';
 
 if (!SERVER_PRIVATE_KEY || !FAUCET_C_CHAIN_ADDRESS) {
   console.error('necessary environment variables for C-Chain faucet are not set');
