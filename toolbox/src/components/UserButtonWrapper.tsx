@@ -15,10 +15,10 @@ export function UserButtonWrapper({ showLoginText, loginText }: UserButtonWrappe
     setIsMounted(true);
   }, []);
 
-  // Only render after the component is mounted and SessionProvider is available
+  // Only render after the component is mounted
   if (!isMounted) {
     return null;
   }
 
   return <UserButton showLoginText={showLoginText} loginText={loginText} />;
-}
+} 

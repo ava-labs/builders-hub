@@ -11,13 +11,40 @@ import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import SignOutComponent from '../sign-out/SignOut';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CircleUserRound, UserRound } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
-export function UserButton() {
-  const { data: session, status } = useSession() ?? {};
+
+interface UserButtonProps {
+  showLoginText?: boolean;
+  loginText?: string;
+}
+
+export function UserButton({ showLoginText = false, loginText = "Login to Builder Hub" }: UserButtonProps = {}) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const isAuthenticated = status === 'authenticated';
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Always call useSession at the top level
+  let sessionData = null;
+  let sessionStatus = 'loading';
+  let hasSessionProvider = true;
+  
+  try {
+    const sessionResult = useSession();
+    sessionData = sessionResult?.data;
+    sessionStatus = sessionResult?.status || 'loading';
+  } catch (error) {
+    console.warn('SessionProvider not available, falling back to unauthenticated state');
+    sessionStatus = 'unauthenticated';
+    hasSessionProvider = false;
+  }
+
+  const isAuthenticated = isClient && hasSessionProvider && sessionStatus === 'authenticated';
+
   const handleSignOut = (): void => {
     // Clean up any stored redirect URLs before logout
     if (typeof window !== "undefined") {
@@ -33,7 +60,14 @@ export function UserButton() {
     
     signOut();
   };
-  console.debug('session', session, isAuthenticated);
+
+  // Show loading state during client-side hydration or when session is loading
+  if (!isClient || (hasSessionProvider && sessionStatus === 'loading')) {
+    return (
+      <div className="w-10 h-10 ml-4 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
+    );
+  }
+
   return (
     <>
       {isAuthenticated ? (
@@ -44,9 +78,9 @@ export function UserButton() {
               size='icon'
               className='rounded-full h-10 w-10 ml-4 cursor-pointer p-1'
             >
-              {session.user.image ? (
+              {sessionData?.user?.image ? (
                 <Image
-                  src={session.user.image}
+                  src={sessionData.user.image}
                   alt='User Avatar'
                   width={32}
                   height={32}
@@ -67,11 +101,11 @@ export function UserButton() {
           >
             <div className="px-2 py-1.5">
               <p className="text-sm break-words">
-                {session.user.email || 'No email available'}
+                {sessionData?.user?.email || 'No email available'}
               </p>
               
               <p className="text-sm break-words mt-1">
-                {session.user.name || 'No name available'}
+                {sessionData?.user?.name || 'No name available'}
               </p>
             </div>
             <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
@@ -89,15 +123,21 @@ export function UserButton() {
         </DropdownMenu>
       ) : (
         <Button
-          size='icon'
+          size={showLoginText ? 'default' : 'icon'}
           variant='ghost'
-          className='rounded-full h-10 w-10 ml-4 cursor-pointer p-0'
+          className={showLoginText 
+            ? 'h-10 ml-4 cursor-pointer px-4 py-2' 
+            : 'rounded-full h-10 w-10 ml-4 cursor-pointer p-0'
+          }
         >
-          <Link href='/login'>
+          <Link href='/login' className={showLoginText ? 'flex items-center gap-2' : ''}>
             <CircleUserRound
               className='!h-8 !w-8 stroke-zinc-900 dark:stroke-white'
               strokeWidth={0.85}
             />
+            {showLoginText && (
+              <span className="text-sm font-medium">{loginText}</span>
+            )}
           </Link>
         </Button>
       )}
