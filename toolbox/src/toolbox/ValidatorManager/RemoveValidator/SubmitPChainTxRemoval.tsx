@@ -4,7 +4,7 @@ import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
-import { useAvaCloudSDK } from '../../../stores/useAvaCloudSDK';
+import { useAvalancheSDK } from '../../../hooks/useAvalancheSDK';
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
@@ -27,7 +27,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   onError,
 }) => {
   const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
-  const { aggregateSignature } = useAvaCloudSDK();
+  const { aggregateSignature } = useAvalancheSDK();
   const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
