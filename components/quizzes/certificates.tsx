@@ -7,6 +7,8 @@ import quizDataImport from '@/components/quizzes/quizData.json';
 import Quiz from '@/components/quizzes/quiz';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Linkedin, Twitter, Award, Share2 } from 'lucide-react';
+import { BadgeNotification } from './components/BadgeNotification';
+import { AwardBadgeWrapper } from './components/awardBadgeWrapper';
 
 interface CertificatePageProps {
   courseId: string;
@@ -72,6 +74,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
           return response && response.isCorrect ? quiz.id : null;
         })
       );
+  
       setCompletedQuizzes(completed.filter((id): id is string => id !== null));
       setIsLoading(false);
     };
@@ -173,7 +176,9 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       })}
       
       {allQuizzesCompleted && (
+        
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+           <AwardBadgeWrapper courseId={courseId} isCompleted={allQuizzesCompleted} />
           <div className="flex items-center justify-center mb-6">
             <Award className="w-16 h-16 text-green-500 mr-4" />
             <h2 className="text-3xl font-bold text-gray-800 dark:text-white" style={{ fontSize: '2rem', marginTop: '1em'}}>Congratulations!</h2>

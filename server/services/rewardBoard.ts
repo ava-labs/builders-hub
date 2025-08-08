@@ -1,5 +1,5 @@
 import { prisma } from "@/prisma/prisma";
-import { UserBadge, BadgeMetadata } from "@/types/badge";
+import { UserBadge, BadgeMetadata, Badge } from "@/types/badge";
 import { JsonValue } from "@prisma/client/runtime/library";
 
 // Utility function to safely convert JSON metadata
@@ -36,4 +36,29 @@ export async function getRewardBoard(user_id: string): Promise<UserBadge[]> {
     category: userBadge.badge.category,
     metadata: parseBadgeMetadata(userBadge.badge.metadata),
   }));
+}
+
+export async function getBadgeByCourseId(courseId: string): Promise<Badge> {
+  const badge = await prisma.badge.findFirst({
+    where: {
+      metadata: {
+        path: ['course_id'],
+        equals: courseId,
+      },
+    },
+  });
+
+  if (!badge) {
+    throw new Error(`Badge not found for course ID: ${courseId}`);
+  }
+
+  return {
+    id: badge.id,
+    name: badge.name,
+    description: badge.description,
+    points: badge.points,
+    image_path: badge.image_path,
+    category: badge.category,
+    metadata: parseBadgeMetadata(badge.metadata),
+  };
 }
