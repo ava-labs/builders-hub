@@ -17,7 +17,7 @@ export const BadgeNotification = ({
   const ref = useRef<FireworksHandlers>(null);
   const [showFireworks, setShowFireworks] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  
   const [badge, setBadge] = useState<Badge | null>(null);
 
   useEffect(() => {
@@ -30,13 +30,14 @@ export const BadgeNotification = ({
           console.log("Badge awarded");
           setShowFireworks(true);
           setIsModalOpen(true);
-          // Pequeño delay para el fade in
-          setTimeout(() => setIsModalVisible(true), 100);
+          // small delay for fade in
+          
           
           const timer = setTimeout(() => {
             setShowFireworks(false);
-            setIsModalVisible(false);
-          }, 5000);
+            setIsModalOpen(false);
+            handleModalClose();
+          }, 15000);
 
           return () => clearTimeout(timer);
         }
@@ -45,11 +46,12 @@ export const BadgeNotification = ({
   }, [isCompleted, session]);
 
   const handleModalClose = () => {
-    setIsModalVisible(false);
-    // Delay para permitir el fade out antes de cerrar
+    
+    // delay for fade out before closing
     setTimeout(() => {
       setIsModalOpen(false);
       setShowFireworks(false);
+   
     }, 300);
   };
 
@@ -74,11 +76,7 @@ export const BadgeNotification = ({
         onOpenChange={handleModalClose}
         title={""}
         content={
-          <div className={`flex flex-col items-center justify-center transition-all duration-300 ease-in-out ${
-            isModalVisible 
-              ? 'opacity-100 scale-100' 
-              : 'opacity-0 scale-95'
-          }`}>
+          <div className={`flex flex-col items-center justify-center`}>
             <h3 className="text-lg font-bold text-center">
               {"Congratulations!"}
             </h3>
@@ -95,7 +93,7 @@ export const BadgeNotification = ({
             <h3 className="text-lg font-bold text-center">{badge?.name}</h3>
           </div>
         }
-        className="border border-red-500 z-50 w-[20%]! transition-all duration-300 ease-in-out"
+        className="border border-red-500 z-50 w-[20%]! "
       />
     </div>
   );

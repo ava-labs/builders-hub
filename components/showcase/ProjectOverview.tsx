@@ -7,6 +7,7 @@ import Description from "./sections/Description";
 import TeamMembers from "./sections/TeamMembers";
 import { Project } from "@/types/showcase";
 import VideoRenderer from "./DemoVideoRenderer";
+import { TeamBadge } from "./sections/TeamBadge";
 
 type Props = {
   project: Project;
@@ -59,6 +60,7 @@ export default function ProjectOverview({ project }: Props) {
               projectName={project.project_name}
             />
           )}
+          <TeamBadge Badge={[]} />
           {/* {resources && <Resources resources={resources} />} */}
         </div>
       </div>

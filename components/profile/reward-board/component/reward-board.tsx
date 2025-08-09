@@ -68,7 +68,7 @@ export default async function RewardBoard() {
       {academyRewards.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-gray-500 dark:text-gray-400 text-lg">
-            No rewards available yet. Keep contributing to earn rewards!
+          Your contributions matter. Keep going to start earning rewards!
           </div>
         </div>
       ) : (
