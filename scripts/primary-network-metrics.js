@@ -122,41 +122,22 @@ async function fetchValidatorVersions() {
   if (!GLACIER_API_KEY) return {};
 
   try {
-    const allValidators = [];
-    let pageToken = undefined;
-    let pageCount = 0;
+    const response = await fetch('https://glacier-api.avax.network/v1/networks/mainnet', {
+      headers: {
+        'x-glacier-api-key': GLACIER_API_KEY,
+        'Accept': 'application/json',
+      },
+    });
 
-    do {
-      pageCount++;
-      const url = new URL('https://glacier-api.avax.network/v1/networks/mainnet/validators');
-      url.searchParams.set('pageSize', '100');
-      url.searchParams.set('subnetId', PRIMARY_NETWORK_SUBNET_ID);
-      url.searchParams.set('validationStatus', 'active');
-      if (pageToken) url.searchParams.set('pageToken', pageToken);
+    if (!response.ok) return {};
 
-      const response = await fetch(url.toString(), {
-        headers: {
-          'x-glacier-api-key': GLACIER_API_KEY,
-          'Accept': 'application/json',
-        },
-      });
-
-      if (!response.ok) break;
-
-      const data = await response.json();
-      if (data.validators && Array.isArray(data.validators)) {
-        allValidators.push(...data.validators);
-      }
-
-      pageToken = data.nextPageToken;
-      if (pageCount > 50) break;
-    } while (pageToken);
+    const data = await response.json();
+    if (!data?.validatorDetails?.stakingDistributionByVersion) return {};
 
     const versionCounts = {};
-    allValidators.forEach(validator => {
-      if (validator.avalancheGoVersion) {
-        const version = validator.avalancheGoVersion;
-        versionCounts[version] = (versionCounts[version] || 0) + 1;
+    data.validatorDetails.stakingDistributionByVersion.forEach(item => {
+      if (item.version && item.version !== 'offline' && item.validatorCount) {
+        versionCounts[item.version] = item.validatorCount;
       }
     });
 
