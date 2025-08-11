@@ -14,7 +14,7 @@ import { Suggestion } from "../../components/Input";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { utils } from "@avalabs/avalanchejs";
 import { ListContractEvents } from "../../components/ListContractEvents";
-import SelectChainID from "../../components/SelectChainID";
+import SelectBlockchainId from "../../components/SelectBlockchainId";
 import { Container } from "../../components/Container";
 
 export default function RegisterWithHome() {
@@ -179,7 +179,7 @@ export default function RegisterWithHome() {
                 </p>
             </div>
 
-            <SelectChainID
+            <SelectBlockchainId
                 label="Source Chain (where token home is deployed)"
                 value={sourceChainId}
                 onChange={(value) => setSourceChainId(value)}

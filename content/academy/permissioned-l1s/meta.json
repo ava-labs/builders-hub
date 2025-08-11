@@ -1,0 +1,14 @@
+{
+    "title": "Permissioned L1s",
+    "icon": "UserPen",
+    "root": true,
+    "pages": [
+        "index",
+        "---Introduction---",
+        "...01-introduction",
+        "---Proof of Authority---",
+        "...02-proof-of-authority",
+        "---More coming very soon...---",
+        "certificate"
+    ]
+}

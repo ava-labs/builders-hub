@@ -56,7 +56,7 @@ Don't forget to update the actual variable `ContractAddress` in `module.go` to t
 var ContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000000")
 ```
 
-Now when Subnet-EVM sees the `helloworld.ContractAddress` as input when executing [`CALL`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/core/vm/evm.go#L284), [`CALLCODE`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/core/vm/evm.go#L355), [`DELEGATECALL`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/core/vm/evm.go#L396), [`STATICCALL`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/core/vm/evm.go#L445), it can run the precompile if the precompile is enabled.
+Now when Subnet-EVM sees the `helloworld.ContractAddress` as input when executing [`CALL`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/core/vm/evm.go#L251), [`CALLCODE`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/core/vm/evm.go#L341), [`DELEGATECALL`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/core/vm/evm.go#L392), [`STATICCALL`](https://github.com/ava-labs/subnet-evm/blob/helloworld-official-tutorial-v2/core/vm/evm.go#L435), it can run the precompile if the precompile is enabled.
 
 ## Adding Custom Code
 

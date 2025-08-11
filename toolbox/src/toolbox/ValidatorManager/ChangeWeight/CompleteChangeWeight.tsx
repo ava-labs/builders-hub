@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
-import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
 import { bytesToHex, hexToBytes } from 'viem';
-import { networkIDs } from '@avalabs/avalanchejs';
 import validatorManagerAbi from '../../../../contracts/icm-contracts/compiled/ValidatorManager.json';
 import poaManagerAbi from '../../../../contracts/icm-contracts/compiled/PoAManager.json';
 import { GetRegistrationJustification } from '../justification';
 import { packL1ValidatorWeightMessage } from '../../../coreViem/utils/convertWarp';
 import { packWarpIntoAccessList } from '../packWarp';
 import { extractL1ValidatorWeightMessage } from '../../../coreViem/methods/extractL1ValidatorWeightMessage';
+import { useAvaCloudSDK } from '../../../stores/useAvaCloudSDK';
 
 interface CompleteChangeWeightProps {
   subnetIdL1: string;
@@ -41,6 +40,7 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
   ownerType,
 }) => {
   const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
+  const { aggregateSignature } = useAvaCloudSDK();
   const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
 
@@ -54,8 +54,6 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
     nonce: bigint;
     weight: bigint;
   } | null>(null);
-
-  const networkName = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'fuji';
 
   // Determine target contract and ABI based on ownerType
   const useMultisig = ownerType === 'PoAManager';
@@ -143,14 +141,11 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
         "11111111111111111111111111111111LpoYY" // always use P-Chain ID
       );
 
-      const signature = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
-        network: networkName,
-        signatureAggregatorRequest: {
-          message: bytesToHex(changeWeightMessage),
-          justification: bytesToHex(justification),
-          signingSubnetId: signingSubnetId || subnetIdL1,
-          quorumPercentage: 67,
-        },
+      const signature = await aggregateSignature({
+        message: bytesToHex(changeWeightMessage),
+        justification: bytesToHex(justification),
+        signingSubnetId: signingSubnetId || subnetIdL1,
+        quorumPercentage: 67,
       });
 
       setPChainSignature(signature.signedMessage);
@@ -173,7 +168,7 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
       if (finalReceipt.status !== 'success') {
         throw new Error(`Transaction failed with status: ${finalReceipt.status}`);
       }
-      
+
       setTransactionHash(hash);
       const successMsg = `Validator weight changed to ${weightMessageData.weight.toString()}.`;
       setSuccessMessage(successMsg);
@@ -220,14 +215,14 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
           Checking contract ownership...
         </div>
       )}
-      
+
       <div className="text-sm text-zinc-600 dark:text-zinc-400">
         <p><strong>Target Contract:</strong> {useMultisig ? 'PoAManager' : 'ValidatorManager'}</p>
         <p><strong>Contract Address:</strong> {targetContractAddress || 'Not set'}</p>
         <p><strong>Contract Owner:</strong> {
-          isContractOwner === true ? 'You are the owner' : 
-          isContractOwner === false ? `Owned by ${ownerType || 'contract'}` :
-          'Checking...'
+          isContractOwner === true ? 'You are the owner' :
+            isContractOwner === false ? `Owned by ${ownerType || 'contract'}` :
+              'Checking...'
         }</p>
         {extractedData && (
           <div className="mt-2 space-y-1">
@@ -237,19 +232,19 @@ const CompleteChangeWeight: React.FC<CompleteChangeWeightProps> = ({
           </div>
         )}
         {pChainSignature && (
-          <p className="mt-2"><strong>P-Chain Signature:</strong> {pChainSignature.substring(0,50)}...</p>
+          <p className="mt-2"><strong>P-Chain Signature:</strong> {pChainSignature.substring(0, 50)}...</p>
         )}
       </div>
-      
-      <Button 
-        onClick={handleCompleteChangeWeight} 
+
+      <Button
+        onClick={handleCompleteChangeWeight}
         disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig) || isLoadingOwnership}
       >
         {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : 'Sign & Complete Weight Change')}
       </Button>
 
       {transactionHash && (
-        <Success 
+        <Success
           label="Transaction Hash"
           value={transactionHash}
         />

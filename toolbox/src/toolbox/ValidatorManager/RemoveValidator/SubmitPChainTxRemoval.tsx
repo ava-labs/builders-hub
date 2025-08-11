@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '../../../stores/walletStore';
-import { AvaCloudSDK } from '@avalabs/avacloud-sdk';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { AlertCircle } from 'lucide-react';
 import { Success } from '../../../components/Success';
-import { networkIDs } from '@avalabs/avalanchejs';
+import { useAvaCloudSDK } from '../../../stores/useAvaCloudSDK';
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
@@ -27,7 +26,8 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { coreWalletClient, pChainAddress, avalancheNetworkID, publicClient } = useWalletStore();
+  const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
+  const { aggregateSignature } = useAvaCloudSDK();
   const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -40,8 +40,6 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     weight: bigint;
     endTime: bigint;
   } | null>(null);
-
-  const networkName = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
 
   // Update evmTxHash when initialEvmTxHash prop changes
   useEffect(() => {
@@ -77,7 +75,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
 
         console.log("🔍 [SubmitPChainTxRemoval] Transaction receipt:", receipt);
         console.log("🔍 [SubmitPChainTxRemoval] Number of logs:", receipt.logs.length);
-        
+
         // Log all event topics for debugging
         receipt.logs.forEach((log, index) => {
           console.log(`🔍 [SubmitPChainTxRemoval] Log ${index}:`, {
@@ -94,10 +92,10 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
         // This works for both direct and multisig transactions when the warp precompile emits the event
         const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
         const warpPrecompileAddress = "0x0200000000000000000000000000000000000005";
-        
+
         const warpEventLog = receipt.logs.find((log) => {
           return log && log.address && log.address.toLowerCase() === warpPrecompileAddress.toLowerCase() &&
-                 log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
+            log.topics && log.topics[0] && log.topics[0].toLowerCase() === warpMessageTopic.toLowerCase();
         });
 
         if (warpEventLog && warpEventLog.data) {
@@ -129,18 +127,18 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
         // InitiatedValidatorWeightUpdate: when resendValidatorRemovalMessage is used (fallback)
         const removalEventTopic = "0x9e51aa28092b7ac0958967564371c129b31b238c0c0bdb0eb9cb4d1e40d724dc";
         const weightUpdateEventTopic = "0x6e350dd49b060d87f297206fd309234ed43156d890ced0f139ecf704310481d3";
-        
+
         console.log("🔍 [SubmitPChainTxRemoval] Looking for event topics:");
         console.log("🔍 [SubmitPChainTxRemoval] - InitiatedValidatorRemoval:", removalEventTopic);
         console.log("🔍 [SubmitPChainTxRemoval] - InitiatedValidatorWeightUpdate:", weightUpdateEventTopic);
         console.log("🔍 [SubmitPChainTxRemoval] - Warp Message:", warpMessageTopic);
-        
+
         // First try to find the Warp message event from the precompile (already found above)
         let eventLog = warpEventLog;
 
         let isWarpMessageEvent = false;
         let isWeightUpdateEvent = false;
-        
+
         if (eventLog) {
           console.log("🔍 [SubmitPChainTxRemoval] Found Warp message event from precompile");
           isWarpMessageEvent = true;
@@ -218,7 +216,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
             endTime,
           };
         }
-        
+
         console.log("🔍 [SubmitPChainTxRemoval] Parsed event data:", parsedEventData);
         setEventData(parsedEventData);
         setErrorState(null);
@@ -237,7 +235,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   const handleSubmitPChainTx = async () => {
     setErrorState(null);
     setTxSuccess(null);
-    
+
     if (!evmTxHash.trim()) {
       setErrorState("EVM transaction hash is required.");
       onError("EVM transaction hash is required.");
@@ -272,15 +270,12 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     setIsProcessing(true);
     try {
       // Step 1: Sign the warp message
-      const { signedMessage } = await new AvaCloudSDK().data.signatureAggregator.aggregateSignatures({
-        network: networkName,
-        signatureAggregatorRequest: {
-          message: unsignedWarpMessage,
-          signingSubnetId: signingSubnetId || subnetIdL1,
-          quorumPercentage: 67,
-        },
+      const { signedMessage } = await aggregateSignature({
+        message: unsignedWarpMessage,
+        signingSubnetId: signingSubnetId || subnetIdL1,
+        quorumPercentage: 67,
       });
-      
+
       setSignedWarpMessage(signedMessage);
 
       // Step 2: Submit to P-Chain
@@ -293,7 +288,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       onSuccess(pChainTxId, eventData);
     } catch (err: any) {
       let message = err instanceof Error ? err.message : String(err);
-      
+
       // Handle specific error types
       if (message.includes('User rejected')) {
         message = 'Transaction was rejected by user';
@@ -304,7 +299,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       } else if (message.includes('nonce')) {
         message = 'Transaction nonce error. Please try again.';
       }
-      
+
       setErrorState(`P-Chain transaction failed: ${message}`);
       onError(`P-Chain transaction failed: ${message}`);
     } finally {
@@ -340,14 +335,14 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
 
       {unsignedWarpMessage && (
         <div className="text-sm text-zinc-600 dark:text-zinc-400">
-          <p><strong>Unsigned Warp Message:</strong> {unsignedWarpMessage.substring(0,50)}...</p>
+          <p><strong>Unsigned Warp Message:</strong> {unsignedWarpMessage.substring(0, 50)}...</p>
           {signedWarpMessage && (
-            <p><strong>Signed Warp Message:</strong> {signedWarpMessage.substring(0,50)}...</p>
+            <p><strong>Signed Warp Message:</strong> {signedWarpMessage.substring(0, 50)}...</p>
           )}
         </div>
       )}
-      <Button 
-        onClick={handleSubmitPChainTx} 
+      <Button
+        onClick={handleSubmitPChainTx}
         disabled={isProcessing || !evmTxHash.trim() || !unsignedWarpMessage || !eventData || txSuccess !== null}
       >
         {isProcessing ? 'Processing...' : 'Sign & Submit to P-Chain'}
@@ -363,7 +358,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       )}
 
       {txSuccess && (
-        <Success 
+        <Success
           label="Transaction Hash"
           value={txSuccess.replace('P-Chain transaction successful! ID: ', '')}
         />

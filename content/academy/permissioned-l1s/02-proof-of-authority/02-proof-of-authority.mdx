@@ -1,0 +1,53 @@
+---
+title: Proof of Authority
+description: Understanding Proof of Authority as a sybil protection mechanism
+updated: 2025-07-29
+authors: ["nicolasarnedo"]
+icon: BookOpen
+---
+
+## What is Proof of Authority?
+
+Proof of Authority (PoA) is a sybil protection mechanism that centralizes the power of controlling who can validate the network to one account (EoA or multi-sig). 
+
+Instead of requiring validators to stake tokens (like in Proof of Stake) or solve computational puzzles (like in Proof of Work), PoA leverages the real-world identity and reputation of validators.
+
+<Callout type="info">
+**Consensus & Sybil Protection Differences** 
+
+Sybil protection mechanisms (like PoA, PoW, PoS) determine *who* can participate in validation, while consensus mechanisms (like Nakamoto consensus, Snowman) determine *how* validators agree on the blockchain state. 
+
+They work together - PoA decides who validates, then those validators use a consensus mechanism to agree.
+</Callout>
+
+Using Proof of Authority as your sybil protection mechanism will lead to creating, what we know as, private or permissioned blockchains. They are particularly suitable for creating enterprise environments for regulated industries where validators are known entities.
+
+## How Validators Work in PoA
+
+In PoA, validators are selected based on their identity and reputation rather than their economic stake. This fundamental difference creates a unique dynamic:
+
+1. **Known Entities**: Validators are either operated by the company that created the blockchain or by trusted third-party organizations participating in the network.
+2. **Reputation-Based Accountability**: While the blockchain protocol doesn't enforce penalties (like slashing), validators risk damaging their real-world reputation and business relationships if they misbehave.
+
+PoA validators perform the same duties as validators in any other blockchain (producing blocks, validating transactions, maintaining state, and participating in consensus) - they just don't receive rewards or face on-chain penalties for their behavior.
+
+### Weight-Based Influence
+
+In Avalanche's PoA implementation, validators can have different weights:
+- Higher weight = more influence in consensus decisions
+- Admin can adjust weights based on validator performance or trust level
+- Enables flexible governance within the PoA framework
+
+## When to Use PoA
+
+PoA is the ideal sybil protection mechanism when:
+
+- **Known Participants**: All validators can be identified and vetted
+- **Trust Exists**: There's an existing trust relationship or legal framework
+- **Regulatory Compliance**: Regulations require known validator identities
+- **Private Networks**: The blockchain serves a specific consortium or organization
+- **Performance Matters**: High throughput is more important than decentralization
+
+PoA trades decentralization for efficiency and compliance. It's not suitable for public, permissionless networks where trustless operation is required.
+
+<Quiz quizId="412"/>

@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { SiGithub } from '@icons-pack/react-simple-icons';
-import { UserButton } from '@/components/login/user-button/UserButton';
+import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
 
 export const integrationsMenu: LinkItemType = {
   type: 'menu',
@@ -109,7 +109,7 @@ export const docsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-               src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/9000-logo-FYhqyinnspUefGJcGgj9AcT116yq98.png"
+               src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/customizing-evm-DkMcINMgCwhkuHuumtAZtrPzROU74M.jpg"
                alt='Preview'
                width={900}
                height={400}
@@ -180,7 +180,7 @@ export const academyMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/course-preview-wXbIGdEfz2BMNZOht6qEL79OWrUJ2v.png"}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/avalanche-fundamentals-skz9GZ84gSJ7MPvkSrbiNlnK5F7suB.jpg"}
               alt='Preview'
               width={900}
               height={400}
@@ -245,14 +245,14 @@ export const academyMenu: LinkItemType = {
 export const toolsMenu: LinkItemType = {
   type: 'menu',
   text: 'Tools',
-  url: '/tools',
+  url: '/tools/l1-toolbox',
   items: [
     {
       menu: {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/l1-toolbox-preview-can8L21MSIMXmXIfnr78t0qDcpRa52.png"}
+              src="/l1toolbox.png"
               alt='L1 Launcher Preview'
               width={900}
               height={400}
@@ -266,7 +266,7 @@ export const toolsMenu: LinkItemType = {
         className: 'md:row-span-2 lg:col-span-1',
       },
       icon: <Waypoints />,
-      text: 'L1 Toolbox (Beta)',
+      text: 'L1 Toolbox',
       description: 'Manage your L1 with a highly granular set of tools.',
       url: '/tools/l1-toolbox',
     },
@@ -295,7 +295,7 @@ export const toolsMenu: LinkItemType = {
       text: 'Testnet Faucet',
       description:
         'Claim Fuji AVAX tokens from the testnet faucet to test your dApps.',
-      url: 'https://core.app/tools/testnet-faucet/?subnet=c&token=c',
+      url: '/tools/l1-toolbox#faucet',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },
@@ -473,7 +473,7 @@ const bridgeLink: LinkItemType = {
 
 const userMenu: LinkItemType = {
   type: 'custom',
-  children: <UserButton />,
+  children: <UserButtonWrapper />,
   secondary: true
 };
 
@@ -496,10 +496,10 @@ export const baseOptions: BaseLayoutProps = {
   // githubUrl: 'https://github.com/ava-labs/builders-hub',
   nav: {
     title: (
-      <>
-        {<AvalancheLogo className='size-7' fill='currentColor' />}
-        <span style={{ fontSize: 'large' }}>Builder Hub</span>
-      </>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <AvalancheLogo className='size-7' fill='currentColor' />
+        <span style={{ fontSize: 'large', marginTop: '4px' }}>Builder Hub</span>
+      </div>
     ),
   },
   links: [

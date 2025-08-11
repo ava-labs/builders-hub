@@ -7,7 +7,7 @@ Context[​](#context "Direct link to heading")
 
 In previous instances, Avalanche L1s might have been manually created through transaction issuance to node APIs, whether it was done using a local node or public API nodes. However, the current focus is on integrating Avalanche-CLI.
 
-To achieve this integration, this guide demonstrates the process of importing an Avalanche L1 to the Avalanche-CLI to enable better management of the Avalanche L1's configuration. This how-to uses the WAGMI Avalanche L1 deployed on Fuji Testnet as the example Avalanche L1.
+To achieve this integration, this guide demonstrates the process of importing an Avalanche L1 to the Avalanche-CLI to enable better management of the Avalanche L1's configuration. This how-to uses the BEAM Avalanche L1 deployed on Fuji Testnet as the example Avalanche L1.
 
 Requirements[​](#requirements "Direct link to heading")
 -------------------------------------------------------
@@ -70,7 +70,7 @@ If the query succeeded, the wizard jumps to prompt for the Avalanche L1 ID (Subn
 
 ```
 Please provide an API URL of such a node so we can query its VM version (e.g. http://111.22.33.44:5555): http://154.42.240.119:9650
-What is the ID of the subnet?: 28nrH5T2BMvNrWecFcV3mfccjs6axM1TVyqe79MCv2Mhs8kxiY
+What is the ID of the subnet?: ie1wUBR2bQDPkGCRf2CBVzmP55eSiyJsFYqeGXnTYt2r33aKW
 ```
 
 The rest of the wizard is identical to the next section, except that there is no prompt for the VM version anymore.
@@ -83,10 +83,10 @@ You can't know for sure what Avalanche L1 VM versions the validators are running
 
 Thus, at this point the wizard requests the Avalanche L1's ID, without which it can't know what to import. Remember the ID is different on different networks.
 
-From the [Testnet Avalanche L1 Explorer](https://subnets-test.avax.network/WAGMI) you can see that WAGMI's Avalanche L1 ID (SubnetID) is `28nrH5T2BMvNrWecFcV3mfccjs6axM1TVyqe79MCv2Mhs8kxiY`:
+From the [Testnet Avalanche L1 Explorer](https://subnets-test.avax.network/beam) you can see that BEAM's Avalanche L1 ID (SubnetID) is `ie1wUBR2bQDPkGCRf2CBVzmP55eSiyJsFYqeGXnTYt2r33aKW`:
 
 ```
-✔ What is the ID of the subnet?: 28nrH5T2BMvNrWecFcV3mfccjs6axM1TVyqe79MCv2Mhs8kxiY
+✔ What is the ID of the subnet?: ie1wUBR2bQDPkGCRf2CBVzmP55eSiyJsFYqeGXnTYt2r33aKW
 ```
 
 Notice the checkmark at line start, it signals that there is ID format validation.
@@ -95,7 +95,7 @@ If you hit `enter` now, the tool queries the public APIs for the given network, 
 
 ```
 Getting information from the Fuji network...
-Retrieved information. BlockchainID: 2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt, Name: WAGMI, VMID: srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+Retrieved information. BlockchainID: y97omoP2cSyEVfdSztQHXD9EnfnVP9YKjZwAxhUfGbLAPYT9t, Name: BEAM, VMID: kLPs8zGsTVZ28DhP1VefPCFbCgS7o5bDNez8JUxPVw9E6Ubbz
 Use the arrow keys to navigate: ↓ ↑ → ←
 ? What's this VM's type?:
   ▸ Subnet-EVM
@@ -106,7 +106,7 @@ Avalanche-CLI needs to know the VM type, to hit its repository and select what V
 
 Custom VMs aren't supported yet at this point, but are next on the agenda.
 
-As the import is for WAGMI, and you know that it's a Subnet-EVM type, select that.
+As the import is for BEAM, and you know that it's a Subnet-EVM type, select that.
 
 The tool then queries the (GitHub) repository for available releases, and prompts the user to pick the version she wants to use:
 
@@ -129,9 +129,9 @@ If you selected to query an actual Avalanche L1 validator, not the public APIs, 
 
 ```
 ✔ v0.4.5
-Subnet WAGMI imported successfully
+Subnet BEAM imported successfully
 ```
 
-The choice finalizes the wizard, which hopefully signals that the import succeeded. If something went wrong, the error messages provide cause information. This means you can now use Avalanche-CLI to handle the imported Avalanche L1 in the accustomed way. For example, you could deploy the WAGMI Avalanche L1 locally.
+The choice finalizes the wizard, which hopefully signals that the import succeeded. If something went wrong, the error messages provide cause information. This means you can now use Avalanche-CLI to handle the imported Avalanche L1 in the accustomed way. For example, you could deploy the BEAM Avalanche L1 locally.
 
-For a complete description of options, flags, and the command, visit the [command reference](/docs/tooling/avalanche-cli#avalanche-l1-import).
+For a complete description of options, flags, and the command, visit the [command reference](/docs/tooling/cli-commands#avalanche-l1-import).

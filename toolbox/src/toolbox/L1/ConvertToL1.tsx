@@ -9,7 +9,7 @@ import { useErrorBoundary } from "react-error-boundary";
 import { Container } from "../../components/Container";
 import { ValidatorListInput } from "../../components/ValidatorListInput";
 import InputChainId from "../../components/InputChainId";
-import SelectSubnetId from "../../components/SelectSubnetId";
+import SelectSubnet, { SubnetSelection } from "../../components/SelectSubnet";
 import { Callout } from "fumadocs-ui/components/callout";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { getPChainBalance } from "../../coreViem/methods/getPChainbalance";
@@ -25,7 +25,10 @@ export default function ConvertToL1() {
         setConvertToL1TxId,
     } = useCreateChainStore()();
 
-    const [subnetId, setSubnetId] = useState(storeSubnetId);
+    const [selection, setSelection] = useState<SubnetSelection>({
+        subnetId: storeSubnetId,
+        subnet: null
+    });
     const [chainID, setChainID] = useState(storeChainID);
     const [isConverting, setIsConverting] = useState(false);
     const [validators, setValidators] = useState<ConvertToL1Validator[]>([]);
@@ -59,7 +62,7 @@ export default function ConvertToL1() {
         try {
             const txID = await coreWalletClient.convertToL1({
                 managerAddress,
-                subnetId: subnetId,
+                subnetId: selection.subnetId,
                 chainId: chainID,
                 subnetAuth: [0],
                 validators
@@ -79,9 +82,9 @@ export default function ConvertToL1() {
             description="This will convert your Subnet to an L1."
         >
             <div className="space-y-4">
-                <SelectSubnetId
-                    value={subnetId}
-                    onChange={setSubnetId}
+                <SelectSubnet
+                    value={selection.subnetId}
+                    onChange={setSelection}
                     error={null}
                     onlyNotConverted={true}
                 />
@@ -120,10 +123,10 @@ export default function ConvertToL1() {
                 <Button
                     variant="primary"
                     onClick={handleConvertToL1}
-                    disabled={!subnetId || !managerAddress || validators.length === 0}
+                    disabled={!selection.subnetId || !managerAddress || validators.length === 0 || (selection.subnet?.isL1)}
                     loading={isConverting}
                 >
-                    Convert to L1
+                    {selection.subnet?.isL1 ? "Subnet Already Converted to L1" : "Convert to L1"}
                 </Button>
             </div>
 

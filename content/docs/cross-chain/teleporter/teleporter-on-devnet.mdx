@@ -9,7 +9,7 @@ For more information on cross chain messaging through Teleporter and Warp, check
 
 - [Cross Chain References](/docs/cross-chain)
 
-Note that currently only [Subnet-EVM](https://github.com/ava-labs/subnet-evm) and [Subnet-EVM-Based](/docs/virtual-machines/evm-customization/introduction) virtual machines support Teleporter.
+Note that currently only [Subnet-EVM](https://github.com/ava-labs/subnet-evm) and [Subnet-EVM-Based](/docs/virtual-machines/evm-l1-customization) virtual machines support Teleporter.
 
 ## Prerequisites
 
@@ -70,7 +70,7 @@ Notice some details here:
 
 - Two smart contracts are deployed to the Avalanche L1: Teleporter Messenger and Teleporter Registry
 - Both Teleporter smart contracts are also deployed to `C-Chain`
-- [AWM Teleporter Relayer](https://github.com/ava-labs/awm-relayer) is installed and configured as a service into one of the nodes (A Relayer [listens](/docs/cross-chain/teleporter/overview#data-flow) for new messages being generated on a source Avalanche L1 and sends them to the destination Avalanche L1.)
+- [AWM Teleporter Relayer](https://github.com/ava-labs/icm-services/tree/main/relayer is installed and configured as a service into one of the nodes (A Relayer [listens](/docs/cross-chain/teleporter/overview#data-flow) for new messages being generated on a source Avalanche L1 and sends them to the destination Avalanche L1.)
 
 CLI configures the Relayer to enable every Avalanche L1 to send messages to all other Avalanche L1s. If you add more Avalanche L1s to the Devnet, the Relayer will be automatically reconfigured.
 

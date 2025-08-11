@@ -25,13 +25,13 @@ When a block is [accepted](https://github.com/ava-labs/coreth/blob/7242ae2d23559
 
 On the EVM, any smart contract can call the precompile
 
-which returns the warp message and verifies the attached signature. But what is `index`? Where does it get the warp message from?  The answer is, you!  When you send a tx to any contract that eventually calls `getVerifiedWarpMessage`, you **must** pass in the signed warp message as a “predicate”.  It’s called an AccessList, and typically this is an optional field that can be used by the EVM to pre-fetch storage slots that will be accessed, for efficiency and reducing gas costs. But Warp cleverly (ab)uses this feature of the EVM to verify the signature of the warp message, and then make the warp message available during the transactions lifetime, by calling `getVerifiedWarpMessage`. You can pass multiple warp messages which is where the `index` comes in.  (All of this is abstracted away by Teleporter for EVM to EVM comms)
+which returns the warp message and verifies the attached signature. But what is `index`? Where does it get the warp message from?  The answer is, you!  When you send a tx to any contract that eventually calls `getVerifiedWarpMessage`, you **must** pass in the signed warp message as a “predicate”.  It’s called an AccessList, and typically this is an optional field that can be used by the EVM to pre-fetch storage slots that will be accessed, for efficiency and reducing gas costs. But Warp cleverly (ab)uses this feature of the EVM to verify the signature of the warp message, and then make the warp message available during the transactions lifetime, by calling `getVerifiedWarpMessage`. You can pass multiple warp messages which is where the `index` comes in.  (All of this is abstracted away by ICM for EVM to EVM comms)
 
 Details: [Warp README](https://github.com/ava-labs/coreth/blob/7242ae2d235593d2bb14e2496b6ed102aab14c3d/precompile/contracts/warp/README.md)
 
-### Teleporter
+### Interchain Messaging Contracts (ICM)
 
-[Teleporter](https://github.com/ava-labs/teleporter) is a set of smart contracts that implements a rich messaging protocol on top of the Warp Messaging primitive, allowing for verified message passing between EVM chains. 
+[ICM](https://github.com/ava-labs/icm-contracts) is a set of smart contracts that implements a rich messaging protocol on top of the Warp Messaging primitive, allowing for verified message passing between EVM chains. 
 
 <Callout>
 **Only (currently) supports EVM→EVM comms. Not used for EVM→P-Chain**
@@ -45,7 +45,7 @@ Details: [Warp README](https://github.com/ava-labs/coreth/blob/7242ae2d235593d2b
 
 ACP-77 introduces L1-only Validators, that stake no AVAX, and do not validate the X/C chains. They must connect to the Primary Network and track the P-Chain, and also validate their own chain, and pay a small continuous fee in AVAX to the network.
 
-User submits EVM tx to smart contract [NativeTokenStakingManager.sol](https://github.com/ava-labs/teleporter/blob/acp-77-updates/contracts/validator-manager/NativeTokenStakingManager.sol)
+User submits EVM tx to smart contract [NativeTokenStakingManager.sol](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/NativeTokenStakingManager.sol)
 
 ```solidity
 function initializeValidatorRegistration(

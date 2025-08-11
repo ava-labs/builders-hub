@@ -21,8 +21,7 @@ export default function ProcessCompletedDialog(
                         border border-red-500"
     >
       <CardContent className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto p-4">
-        Your application will be reviewed by the AvaLabs staff. We will notify
-        you if you have been approved or not.
+        Your application has been Approved. Join the <a href="https://t.me/avalancheacademy" target="_blank" className="text-blue-500">Telegram group</a> to get all the support you need.
       
         <CardFooter className="flex flex-col gap-2 w-full sm:flex-row sm:gap-4 sm:justify-center">
         <Button

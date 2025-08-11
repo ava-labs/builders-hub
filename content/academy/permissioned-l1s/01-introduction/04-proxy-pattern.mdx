@@ -1,0 +1,62 @@
+---
+title: Proxy Patterns
+description: Understanding proxy patterns in blockchain - their importance, advantages, and risks.
+updated: 2025-07-08
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+In blockchain development smart contracts are **immutable by design**, this can be beneficial for users to trust the software they are using will not be altered, but can represent challenges for developers to improve existing software or fix bugs.
+
+Proxy patterns offer a solution to this dilemma by separating contract logic from data storage, enabling upgrades while maintaining the same contract address.
+
+## How Proxy Patterns Work
+
+At its core, a proxy pattern involves two main components:
+
+1. **Proxy Contract**: Holds the permanent address and stores all contract state
+2. **Implementation Contract**: Contains the actual business logic that can be upgraded
+
+When users interact with the proxy contract, it delegates all calls to the implementation contract using the `delegatecall` opcode, executing the implementation's code in the proxy's storage context.
+
+When the owner/admin of the proxy wants to upgrade
+
+![Proxy Pattern Basic Flow](/common-images/permissioned-l1s/ProxyBasic.png)
+
+## Common Proxy Patterns
+
+### 1. Transparent Proxy Pattern
+
+The Transparent Proxy pattern, developed by OpenZeppelin, ensures clear separation between admin and user interactions:
+
+- Admin calls are handled by the proxy itself
+- User calls are delegated to the implementation
+- Prevents function selector clashes between proxy and implementation
+
+### 2. UUPS (Universal Upgradeable Proxy Standard)
+
+UUPS moves the upgrade logic to the implementation contract itself:
+
+- More gas-efficient than transparent proxies
+- Implementation controls its own upgradeability
+- Requires careful implementation to avoid locking upgrades
+
+### 3. Beacon Proxy Pattern
+
+Beacon proxies enable multiple proxy instances to share the same implementation:
+
+- All proxies point to a single beacon contract
+- Beacon contract holds the implementation address
+- Upgrading the beacon updates all proxy instances simultaneously
+
+## Advantages of Proxy Patterns
+
+1. **Upgradability Without Address Changes** - Users and integrations can continue using the same contract address even after upgrades, preserving user interfaces, exchange listings, and historical transaction references.
+2. **Bug Fixes and Security Patches** - Critical vulnerabilities can be addressed without requiring users to migrate to a new contract, enabling rapid response to security incidents with minimal disruption.
+3. **Feature Addition and Optimization** - New functionality can be added over time including gas optimization improvements, new features based on user feedback, and integration with newer protocols.
+
+## Risks and Considerations
+
+1. **Centralization Risk** - Upgrade capabilities rest with a single admin or small group, creating a single point of failure and potential for malicious upgrades.
+2. **Function Selector Clashes** - Proxy and implementation functions can have matching selectors, causing unexpected behavior, security vulnerabilities, and upgrade failures.
+3. **Complexity** - Proxy patterns add complexity through additional gas costs for delegatecall operations and make contracts harder to audit and verify.

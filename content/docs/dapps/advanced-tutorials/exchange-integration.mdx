@@ -10,12 +10,12 @@ integrate with the EVM-Compatible Avalanche C-Chain.
 
 For teams that already
 support ETH, supporting the C-Chain is as straightforward as spinning up an
-Avalanche node (which has the [same API](https://eth.wiki/json-rpc/API) as
+Avalanche node (which has the [same API](https://ethereum.org/en/developers/docs/apis/json-rpc/) as
 [`go-ethereum`](https://geth.ethereum.org/docs/rpc/server)) and populating
 Avalanche's ChainID (43114) when constructing transactions.
 
 Additionally, Ava Labs maintains an implementation of the [Rosetta
-API](https://www.rosetta-api.org/) for the C-Chain called
+API](https://docs.cdp.coinbase.com/mesh/docs/welcome) for the C-Chain called
 [avalanche-rosetta](https://github.com/ava-labs/avalanche-rosetta). You can
 learn more about this standardized integration path on the attached Rosetta API
 website.
@@ -93,13 +93,13 @@ above config example.
 
 ## Integration Using Rosetta
 
-[Rosetta](https://www.rosetta-api.org/) is an open-source specification and set
+[Rosetta](https://docs.cdp.coinbase.com/mesh/docs/welcome) is an open-source specification and set
 of tools that makes integrating with different blockchain networks easier by
 presenting the same set of APIs for every network. The Rosetta API is made up of
 2 core components, the [Data
-API](https://www.rosetta-api.org/docs/data_api_introduction.html) and the
+API](https://docs.cdp.coinbase.com/mesh/docs/api-data) and the
 [Construction
-API](https://www.rosetta-api.org/docs/construction_api_introduction.html).
+API](https://docs.cdp.coinbase.com/mesh/docs/api-construction).
 
 Together, these APIs allow for anyone to read and write to blockchains in a
 standard format over a standard communication protocol. The specifications for

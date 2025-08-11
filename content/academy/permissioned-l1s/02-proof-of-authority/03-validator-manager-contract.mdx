@@ -1,0 +1,76 @@
+---
+title: Validator Manager Contract 
+description: Understanding PoA validator management contracts
+updated: 2025-07-28
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+The contracts in the [`validator-manager`](https://github.com/ava-labs/icm-contracts/tree/main/contracts/validator-manager) branch define the Validator Manager used to manage Subnet-only Validators. 
+
+For this section we have blurred out some of the contracts, as these are not relevant to the Proof of Authority hierarchy used to create a **permissioned L1**:
+
+<div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+  <Mermaid
+    chart="
+classDiagram
+class ACP99Manager {
+    +initializeValidatorSet()
+    +completeValidatorRegistration()
+    +completeValidatorRemoval()
+    +completeValidatorWeightUpdate()
+    -_initiateValidatorRegistration()
+    -_initiateValidatorRemoval()
+    -_initiateValidatorWeightUpdate()
+}
+<<Abstract>> ACP99Manager
+
+class ValidatorManager {
+    +initializeValidatorSet()
+    +completeValidatorRegistration() onlyOwner
+    +completeValidatorRemoval() onlyOwner
+    +completeValidatorWeightUpdate() onlyOwner
+    +initiateValidatorRegistration() onlyOwner
+    +initiateValidatorRemoval() onlyOwner
+    +initiateValidatorWeightUpdate() onlyOwner
+}
+
+ACP99Manager <|-- ValidatorManager
+"
+  />
+</div>
+
+
+## Understanding Contract Hierarchy
+
+The validator management system follows a layered architecture, with each level adding specific functionality:
+
+### ACP99Manager (Abstract Foundation)
+
+The `ACP99Manager` is the foundational abstract contract that standardizes validator management for EVM-based L1s, as defined in ACP-99. This standard emerged after ACP-77 introduced the protocol-level capability for L1s to manage their own validators. ACP99Manager provides four essential functions that all validator managers must implement:
+
+- **`initializeValidatorSet()`**: Establishes the initial validator set when converting an existing Subnet to an L1
+- **`completeValidatorRegistration()`**: Finalizes validator addition after P-Chain confirmation
+- **`completeValidatorRemoval()`**: Finalizes validator removal after P-Chain confirmation
+- **`completeValidatorWeightUpdate()`**: Finalizes weight changes after P-Chain confirmation
+
+These functions handle the critical interactions with the P-Chain through Warp messages, forming the backbone of cross-chain validator management.
+
+### ValidatorManager (Concrete Implementation)
+
+The `ValidatorManager` extends `ACP99Manager` and adds the complete validator lifecycle management:
+
+**Core Additions:**
+- **`initiateValidatorRegistration()`** (onlyOwner): Starts the process of adding a new validator
+- **`initiateValidatorRemoval()`** (onlyOwner): Begins removing a validator from the active set
+- **`initiateValidatorWeightUpdate()`** (onlyOwner): Initiates changes to a validator's voting weight
+
+**Key Features:**
+- All state-changing functions are protected with `onlyOwner` modifier
+- Implements the two-phase commit pattern: initiate → complete
+- Manages churn rate limiting to prevent rapid validator set changes
+- Tracks validator states throughout their lifecycle
+- Handles Warp message construction and verification
+
+<Quiz quizId="413" />

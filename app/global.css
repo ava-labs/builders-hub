@@ -647,4 +647,14 @@ html body[data-scroll-locked] {
   .animate-infinite-scroll-down {
     animation: infinite-scroll-down 15s linear infinite;
   }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
 }
