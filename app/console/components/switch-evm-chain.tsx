@@ -25,9 +25,6 @@ export function SwitchEVMChain() {
             <span className="text-sm font-medium leading-none">
               {currentNetwork.name}
             </span>
-            <span className="text-xs text-muted-foreground leading-none">
-              {formatBalance(currentNetwork.balance)} {currentNetwork.symbol}
-            </span>
           </div>
         </div>
       </Button>
@@ -57,10 +54,4 @@ export function SwitchEVMChain() {
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>);
-}
-
-const formatBalance = (balance: number | string) => {
-  const num = typeof balance === 'string' ? parseFloat(balance) : balance
-  if (isNaN(num)) return "0"
-  return num.toFixed(2)
 }

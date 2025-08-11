@@ -1,9 +1,25 @@
 
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Globe, LogOut, Plus, RefreshCw, RotateCcw, Telescope, Wallet } from "lucide-react";
+import { LogOut, RotateCcw, Telescope, Wallet } from "lucide-react";
+import { useWalletStore } from "@/stores/walletStore";
+import { useL1ListStore } from "@/stores/l1ListStore";
+import { useState } from "react";
 
 export function EVMWallet() {
+  const { walletChainId } = useWalletStore();
+  const [isAddChainModalOpen, setIsAddChainModalOpen] = useState(false)
+  const { l1List, addL1, removeL1 } = useL1ListStore()();
+  const { coreWalletClient } = useWalletStore();
+  const { showBoundary } = useErrorBoundary();
+
+  const handleSwitchChain = useCallback((chainId: number) => {
+    coreWalletClient.switchChain({
+        id: `0x${chainId.toString(16)}`,
+    }).catch(showBoundary);
+  }, [coreWalletClient, showBoundary]);
+  
+
   const currentNetwork = {
     name: "C-Chain",
     symbol: "AVAX",
@@ -29,10 +45,6 @@ export function EVMWallet() {
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent className="w-56">
-      <DropdownMenuItem >
-        <RefreshCw className="mr-2 h-3 w-3" />
-        Refresh Balance
-      </DropdownMenuItem>
       <DropdownMenuItem >
         <Telescope className="mr-2 h-3 w-3" />
         View on Explorer
