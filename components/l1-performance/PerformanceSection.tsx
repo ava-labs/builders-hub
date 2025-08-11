@@ -11,7 +11,7 @@ const validatorConfigs = [
     type: 'Small Co-located',
     validators: 5,
     location: 'All in the same data center (minimal latency)',
-    gasPerSecond: '175m',
+    gasPerSecond: '85m',
     features: ['Minimal latency', 'Strict state growth control'],
     flag: '🏢',
     testResults: {
@@ -25,7 +25,7 @@ const validatorConfigs = [
     type: 'Large Distributed',
     validators: 30,
     location: 'Globally distributed (higher decentralization)',
-    gasPerSecond: '175m',
+    gasPerSecond: '85m',
     features: ['Global distribution', 'Higher decentralization'],
     flag: '🌍',
     testResults: {

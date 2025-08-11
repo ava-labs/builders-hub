@@ -16,14 +16,6 @@ export const CTASection = () => (
         >
           Get Started
         </Link>
-        <a
-          href="https://github.com/ava-labs/builderkit"
-          className="bg-white dark:bg-black border border-[0.5] border-black/25 dark:border-white/25 dark:hover:border-white/50 hover:border-black/50 dark:text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          GitHub
-        </a>
       </div>
     </div>
   </section>
