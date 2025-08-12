@@ -14,9 +14,11 @@ import {
   Snowflake,
   BriefcaseBusiness,
   MessageSquareQuote,
+  Server,
   Github,
   Waypoints,
   HandCoins,
+  HardDrive,
   Wallet,
   Search,
   Cloud,
@@ -29,6 +31,8 @@ import {
 import Image from 'next/image';
 import { SiGithub } from '@icons-pack/react-simple-icons';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
+import { AuthButton } from '@/components/ambassador-dao/auth-button';
+
 
 export const integrationsMenu: LinkItemType = {
   type: 'menu',
@@ -120,12 +124,12 @@ export const docsMenu: LinkItemType = {
             />
           </div>
         ),
-        className: 'md:row-span-2',
+        className: "md:row-span-2",
       },
       icon: <Sprout />,
-      text: 'Avalanche Protocol',
-      description: 'Learn about the Avalanche Protocol',
-      url: '/docs/quick-start',
+      text: "Avalanche Protocol",
+      description: "Learn about the Avalanche Protocol",
+      url: "/docs/quick-start",
     },
     {
       icon: <Logs />,
@@ -144,7 +148,7 @@ export const docsMenu: LinkItemType = {
         'Learn about hardware requirements, staking mechanisms, rewards, and best practices for running validator infra on Avalanche.',
       url: '/docs/nodes',
       menu: {
-        className: 'lg:col-start-2',
+        className: "lg:col-start-2",
       },
     },
     {
@@ -281,13 +285,20 @@ export const toolsMenu: LinkItemType = {
       },
     },
     {
+      icon: <Server />,
+      text: 'L1 Launcher (Beta)',
+      description:
+        'Launch your self-hosted Testnet or Mainnet L1 on your own infrastructure.',
+      url: '/tools/l1-launcher',
+    },
+    {
       icon: <ArrowLeftRight />,
       text: 'Interchain Token Transfer Tools',
       description:
         'Set up cross-L1 bridges using the Interchain Token Transfer protocol.',
       url: '/tools/l1-toolbox',
       menu: {
-        className: 'lg:col-start-2 lg:row-start-2',
+        className: 'lg:col-start-3 lg:row-start-1',
       },
     },
     {
@@ -492,14 +503,21 @@ const hackathons: LinkItemType = {
   active: 'nested-url',
 };
 
+export const ambassadorMenu: LinkItemType = {
+  text: "Team 1",
+  url: "/ambassador-dao",
+  active: "nested-url",
+};
+  
+
 export const baseOptions: BaseLayoutProps = {
   // githubUrl: 'https://github.com/ava-labs/builders-hub',
   nav: {
     title: (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <AvalancheLogo className='size-7' fill='currentColor' />
-        <span style={{ fontSize: 'large', marginTop: '4px' }}>Builder Hub</span>
-      </div>
+      <>
+        {<AvalancheLogo className='size-7' fill='currentColor' />}
+        <span style={{ fontSize: 'large' }}>Builder Hub</span>
+      </>
     ),
   },
   links: [
@@ -512,5 +530,13 @@ export const baseOptions: BaseLayoutProps = {
     eventsMenu,
     github,
     userMenu,
+    ambassadorMenu,
+
+    // hackathons,
+    //userMenu,
+    {
+      type: "custom",
+      children: <AuthButton />,
+    },
   ],
 };
