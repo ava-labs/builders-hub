@@ -1,0 +1,10 @@
+{
+    "title": "Codebase Entrepreneur Academy",
+    "icon": "Coins",
+    "root": true,
+    "pages": [
+        "index",
+        "---Module 10: Building a Successful Web3 Startup---",
+        "...10-grants"
+    ]
+}

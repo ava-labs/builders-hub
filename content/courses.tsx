@@ -15,6 +15,18 @@ export type Course = {
 
 const officialCourses: Course[] = [
     {
+        name: "Codebase Entrepreneur Academy",
+        description: "Build and scale a Web3 startup with Codebase and Avalanche",
+        slug: "codebase-entrepreneur-academy",
+        icon: <SquareStackIcon />,
+        status: "featured",
+        duration: "2 hours",
+        languages: [],
+        tools: ["Codebase"],
+        instructors: ["Nicolas Arnedo"],
+        category: "Fundamentals"
+    },
+    {
         name: "Blockchain Fundamentals",
         description: "Gain a comprehensive understanding of fundamental blockchain concepts, including how they work, and key components",
         slug: "blockchain-fundamentals",
