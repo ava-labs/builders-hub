@@ -1,0 +1,212 @@
+---
+title: Initialize Validator Set
+description: Set up the initial validator set when converting a subnet to an L1
+updated: 2025-07-31
+authors: [nicolasarnedo]
+icon: Terminal
+---
+import ToolboxMdxWrapper from "../../../../toolbox/src/components/ToolboxMdxWrapper.tsx"
+import InitValidatorSet from "../../../../toolbox/src/toolbox/ValidatorManager/InitValidatorSet.tsx"
+
+When converting an existing subnet to an L1 with sovereign validator management, you need to initialize the Validator Manager with the current validator set. This one-time operation bridges P-Chain subnet creation with L1 validator management using cryptographically verified conversion data.
+
+![Validator Manager Deployment Initialize Validator Set](/common-images/permissioned-l1s/VMCDeploy6.png)
+
+## How initializeValidatorSet Works
+
+### Function Execution Flow
+
+The `initializeValidatorSet` function performs these critical steps:
+
+1. **Validation Checks** - Ensures the validator set hasn't been initialized yet
+2. **Blockchain ID Verification** - Validates the conversion data matches the current chain
+3. **Contract Address Verification** - Confirms the validator manager address is correct
+4. **P-Chain Message Retrieval** - Gets the Warp message with aggregated signatures
+5. **Conversion ID Verification** - Validates the hash of conversion data
+6. **Validator Registration** - Processes each initial validator
+
+### P-Chain Integration & Aggregated Signatures
+
+The initialization leverages Avalanche Warp Messaging for security:
+
+1. **P-Chain Validators Sign** - The subnet's validators collectively sign the conversion data
+2. **Aggregated Signature** - Creates a threshold signature proving consensus
+3. **Warp Precompile Verifies** - The signature is verified before the contract receives it
+4. **Contract Validates** - Additional checks ensure data integrity
+
+The conversion ID is derived through:
+```solidity
+bytes32 conversionID = keccak256(abi.encode(conversionData));
+```
+
+This ID must match the one in the P-Chain signed message, ensuring data hasn't been tampered with.
+
+### Validator Registration Process
+
+For each validator in the conversion data:
+
+1. **Generate Validation ID** - Creates unique ID using `sha256(subnetID + index)`
+2. **Validate Node ID** - Checks format and prevents duplicates
+3. **Store Validator Data** - Records in contract storage with status "Active"
+4. **Update Total Weight** - Accumulates weight for churn calculations
+5. **Emit Events** - Logs the registration for tracking
+
+## Initialize Validator Set
+
+
+
+<ToolboxMdxWrapper walletMode="l1">
+    <InitValidatorSet />
+</ToolboxMdxWrapper>
+
+### Required Information
+
+To initialize, you'll need:
+- **Conversion Data**: Current validator information from P-Chain
+- **Message Index**: Position in the Warp message queue
+- **Proper Timing**: Must be done before other operations
+
+<Callout type="warning">
+Initialization can only be done once! Make sure you have the correct validator data before proceeding.
+</Callout>
+
+## Understanding Conversion Data
+
+The conversion data structure used by the function:
+
+```solidity
+struct ConversionData {
+    bytes32 subnetID;                      // Your L1's subnet identifier
+    bytes32 validatorManagerBlockchainID;  // Blockchain ID where VM is deployed  
+    address validatorManagerAddress;       // This validator manager contract (0xfacade...)
+    InitialValidator[] initialValidators;  // Array of current validators
+}
+
+struct InitialValidator {
+    bytes nodeID;        // Validator's P-Chain node ID (e.g., "NodeID-...")
+    bytes blsPublicKey;  // BLS public key for signature verification
+    uint64 weight;       // Validator's voting weight
+}
+```
+
+<Callout type="info">
+The contract validates that the `validatorManagerAddress` in the conversion data matches its own address, and the `validatorManagerBlockchainID` matches the current chain ID. This prevents using conversion data meant for a different chain or contract.
+</Callout>
+
+
+
+## Step-by-Step Process
+
+### 1. Prepare Conversion Data
+
+Gather current validator information:
+```javascript
+const conversionData = {
+    subnetID: "0x...",
+    validatorManagerBlockchainID: "0x...",
+    validatorManagerAddress: "0x...",
+    initialValidators: [
+        {
+            nodeID: "NodeID-...",
+            blsPublicKey: "0x...",
+            weight: 100
+        },
+        // More validators...
+    ]
+};
+```
+
+### 2. Get Warp Message
+
+The P-Chain creates a signed Warp message with the conversion data.
+
+### 3. Call Initialize Function
+
+```javascript
+await validatorManager.initializeValidatorSet(
+    conversionData,
+    messageIndex
+);
+```
+
+## Post-Initialization
+
+After successful initialization:
+
+1. **Validators Registered**: All subnet validators are now managed
+2. **Weights Set**: Initial weights are established
+3. **Management Enabled**: Can now add/remove/update validators
+4. **Events Emitted**: Check for initialization events
+
+### Verification Steps
+
+```javascript
+// Check total weight matches
+const totalWeight = await validatorManager.totalWeight();
+console.log("Total weight:", totalWeight);
+
+// Verify validator count
+const validatorCount = await validatorManager.activeValidatorCount();
+console.log("Active validators:", validatorCount);
+
+// Check individual validators
+for (const validator of initialValidators) {
+    const validationID = await validatorManager.getValidationID(validator.nodeID);
+    const details = await validatorManager.getValidator(validationID);
+    console.log("Validator status:", details.status);
+}
+```
+
+## Common Scenarios
+
+### New L1 with Existing Validators
+Most common case - converting a subnet with active validators.
+
+### Fresh L1 Start
+If starting fresh, you may initialize with a minimal validator set.
+
+### Migration from Another System
+Moving validators from a different management system.
+
+## Troubleshooting
+
+### Initialization Failures
+
+1. **Already Initialized**: Can only initialize once
+2. **Invalid Message**: Warp message verification failed
+3. **Wrong Subnet ID**: Mismatch with contract configuration
+4. **Gas Limit**: Increase gas for many validators
+
+### Data Validation
+
+1. **Node ID Format**: Must be valid Avalanche node IDs
+2. **BLS Keys**: Must be valid BLS public keys
+3. **Weight Values**: Must be positive integers
+4. **Message Index**: Must reference valid Warp message
+
+## Security Considerations
+
+### Contract-Level Validations
+
+The `initializeValidatorSet` function enforces multiple security checks:
+
+1. **Single Initialization** - Can only be called once (checked via `_initializedValidatorSet` flag)
+2. **Chain ID Match** - Conversion data must target this specific blockchain
+3. **Contract Address Match** - Prevents using data meant for another validator manager
+4. **Warp Message Verification** - Aggregated signatures must be valid
+5. **Owner Only** - Caller must be the contract owner
+
+### Data Integrity
+
+1. **Conversion ID Hash** - Ensures data hasn't been tampered with
+2. **Node ID Validation** - Each validator must have valid 32-byte node ID
+3. **No Duplicates** - Prevents registering the same node ID twice
+4. **Weight Validation** - Total weight must meet minimum requirements
+
+## Next Steps
+
+After initialization:
+1. Query the validator set to verify state
+2. Plan your first validator management operations
+3. Set up monitoring for validator changes
+4. Begin active management of your L1

@@ -13,17 +13,11 @@ The genesis file defines the very first block of your Subnet-EVM chain and its i
 
 Additionally, in the context of Avalanche, it is **set by default to pre-deploy well-known contracts**. Lets take a look at which ones:
 
-#### Warp messaging configuration - REWORD
-
-Avalanche Warp Messaging (AWM) lets chains trustlessly send messages to each other.
-
-- **warpConfig.blockTimestamp**: `1754660049` — earliest time when Warp verification is considered active on this chain (matches the genesis timestamp).
-- **warpConfig.requirePrimaryNetworkSigners**: `true` — Warp proofs must be signed by the Primary Network validator set.
-- **warpConfig.quorumNumerator**: `67` — 67% signature threshold (by stake) required for Warp message validity.
-
 ## Predeployed Contracts & Allocation
 
-The `alloc` section seeds balances and deploys bytecode at fixed addresses before block 0, so they exist from the first block.
+The `alloc` section seeds balances and deploys bytecode at fixed addresses before block 0, so they exist from the first block. 
+
+Additional contracts are also deployed by default (*multicall3, create2, wrapped native tokens...*), but we will not dive into them in this guide as they are not essential for understanding permissioned L1s.
 
 - **BLOCKCHAIN_DEPLOYER_ADDRESS** - Subnet Owner Balance: `0xd3c21bcecceda1000000` wei = 1,000,000 native tokens (1e6 × 1e18) useful for funded deployer/faucet account
 
@@ -33,17 +27,13 @@ The `alloc` section seeds balances and deploys bytecode at fixed addresses befor
 
 - **Proxy Admin** *(0xdad00...00)* — Owns and manages upgrades of the proxy at `0xfacade…`
 
-- **CREATE2 Deployer** *(0x914d7fEc6AaC8cD542e72bcA78B30650D45643D7)* — Minimal factory used for deterministic deployments (reproducible addresses across chains)
-
-- **Multicall3** *(0xCa11bde05977b3631167028862be2a173976CA11)* —  used to batch multiple read calls into one RPC request and to perform aggregate calls
-
-- **Wrapped Native Token (WNT)** *(0x111...111)* — ERC‑20 wrapper for the native token of this Subnet so users can deposit native token to receive WNT and withdraw to unwrap.
-
-- **ICM contracts (Teleporter)** *(0x253b2784c75E510Dd0Ff1Da844684a1aC0Aa5fCF)* — Core messaging contract for Avalanche Warp Messaging; handles sending/verification and accounting of cross‑chain messages.
-
-- **ICM (Teleporter Manager/Router AWM)** *(0x13B0d85ccB8Bf860B6B79Af3029fcA081Ae9bEF2)* — Higher‑level management around Teleporter (message queues, fees, guards). Bytecode strings reference `TeleporterMessenger`, reentrancy guards, and SafeERC20 operations.
+<div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+  <img src="/common-images/permissioned-l1s/VMCGenesis.png" alt="VMC Proxy Deployment" style={{ width: '60%', height: 'auto' }} />
+</div>
 
 ### Predeployed Contracts Structure
+
+Here you can see the contracts we just mentioned and how they relate:
 
 <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0', width: '100%' }}>
   <div style={{ width: '90%', maxWidth: '1200px' }}>
@@ -52,18 +42,20 @@ The `alloc` section seeds balances and deploys bytecode at fixed addresses befor
 graph TD
   A[facade - TransparentUpgradeableProxy] --> B[0x1212... implementation placeholder]
   C[dad... ProxyAdmin] --> A
-  D[Teleporter Messenger] --> E[Other chains]
-  F[Teleporter Manager] --> D
   G[CREATE2 Deployer] --> H[User contracts]
   I[Multicall3] --> H
   J[WNT] <--> K[Native token]
   
   A -.->|delegatecall| B
   C -.->|admin-of| A
-  D -.->|AWM messages| E
-  F -.->|controls/fees| D
   G -.->|deterministic deploys| H
   I -.->|batch read/exec| H
+  
+  classDef proxyStyle fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+  classDef utilityStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+  
+  class A,B,C proxyStyle
+  class G,I,J,K utilityStyle
 "
     />
   </div>
@@ -71,7 +63,6 @@ graph TD
 
 ### Key Takeaways
 
-- You can immediately use WNT at `0x1111…` and Multicall3 at `0xca11…` in tooling.
-- Cross‑chain messaging is ready out‑of‑the‑box through the ICM contracts (teleporter).
 - Upgradable app logic can be wired by upgrading the proxy at `0xfacade…` via the admin `0xdad…` to point to a real implementation.
+- CREATE2 deployer, Multicall3 and Wrapped Native Tokens for basic out-of-the-box use of blockchains.
 

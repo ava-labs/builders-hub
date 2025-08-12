@@ -5,57 +5,71 @@ updated: 2025-07-31
 authors: [nicolasarnedo]
 icon: Terminal
 ---
-
-
 import ToolboxMdxWrapper from "../../../../toolbox/src/components/ToolboxMdxWrapper.tsx"
 import Initialize from "../../../../toolbox/src/toolbox/ValidatorManager/Initialize.tsx"
 
-## Overview
+Setting the initial configuration is a critical step that establishes how your Validator Manager will operate. This process involves calling the `initialize` function through the TransparentUpgradeableProxy, which forwards the call to your ValidatorManager implementation.
 
-Setting the initial configuration is a critical step that establishes how your Validator Manager will operate. These parameters control validator management behavior and security.
+![Validator Manager Deployment Initialize](/common-images/permissioned-l1s/VMCDeploy5.png)
+
+## How Initialization Works
+
+### The Initialize Function
+
+The configuration is set by calling `initialize()` with a `ValidatorManagerSettings` struct. This call:
+- Goes through the proxy at `0xfacade...` (not directly to the implementation)
+- Can only be called once due to OpenZeppelin's `initializer` modifier
+- Sets up the ownership structure and operational parameters
 
 ## Configuration Parameters
 
-### Essential Settings
+The `ValidatorManagerSettings` struct contains four essential parameters:
 
-1. **Admin Address**: Who controls the Validator Manager
-2. **Subnet ID**: Your L1's unique identifier  
-3. **Churn Period**: Time window for tracking changes
-4. **Maximum Churn**: Percentage limit on changes
+### 1. Admin Address
+- **Purpose**: The account that controls validator management operations
+- **Typical value**: Your wallet, multisig, or governance contract
+- **Can be changed**: Yes, through ownership transfer
+
+### 2. Subnet ID  
+- **Purpose**: Links the Validator Manager to your specific L1
+- **Format**: 32-byte identifier from the P-Chain
+- **Immutable**: Cannot be changed after initialization
+
+### 3. Churn Period Seconds
+- **Purpose**: Time window for tracking validator set changes
+- **Validation**: Must be ≤ 86400 seconds (1 day)
+- **Typical values**: 0 (no limit) to 86400 (24 hours)
+
+### 4. Maximum Churn Percentage
+- **Purpose**: Limits how much validator weight can change per period
+- **Validation**: Must be 1-20% (protocol maximum)
+- **Example**: 20% means max 1/5 of total weight can change
+
+## Validation Rules
+
+The contract enforces these limits during initialization:
+- Churn percentage: Between 1% and 20%
+- Churn period: Maximum 1 day (86400 seconds)
+- Admin address: Cannot be zero address
+- Subnet ID: Must be valid 32-byte value
 
 ## Set Configuration
-
-
 
 <ToolboxMdxWrapper walletMode="l1">
     <Initialize />
 </ToolboxMdxWrapper>
 
-### Parameter Details
-
-#### Admin Address
-- **Purpose**: Account that can manage validators
-- **Recommendation**: Use a secure multisig or hardware wallet
-- **Can be changed**: Yes, through ownership transfer
-
-#### Subnet ID
-- **Purpose**: Links Validator Manager to your L1
-- **Format**: 32-byte identifier from P-Chain
-- **Immutable**: Cannot be changed after initialization
-
-#### Churn Period Seconds
-- **Purpose**: Anti-spam and stability mechanism
-- **Typical values**: 3600 (1 hour) to 86400 (24 hours)
-- **Trade-off**: Shorter = more flexible, longer = more stable
-
-#### Maximum Churn Percentage
-- **Purpose**: Limits validator set changes per period
-- **Typical values**: 10-20% of total stake
-- **Example**: 20% means max 1/5 of validators can change
-
 <Callout type="warning">
 Choose churn parameters carefully! Too restrictive limits operational flexibility, while too permissive risks network instability.
 </Callout>
+
+## Security Considerations
+
+### Initialize Once Only
+The `initialize` function uses OpenZeppelin's `initializer` modifier, preventing re-initialization attacks. Once called, the function cannot be executed again, even by the admin.
+
+### Storage Safety
+Configuration is stored using ERC-7201 storage slots to avoid conflicts in upgradeable contracts. This ensures future upgrades won't accidentally overwrite your settings.
 
 ## Example Configurations
 

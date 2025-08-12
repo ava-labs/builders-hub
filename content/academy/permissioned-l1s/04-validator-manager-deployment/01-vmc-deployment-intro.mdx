@@ -6,10 +6,22 @@ authors: [nicolasarnedo]
 icon: Book
 ---
 
-- Explain the current state of the infrastructure we have set up (and how the process in this guide is for deploying the VMC on your won L1 as recommended in the 02-deployment-options)
+## Current Infrastructure State
 
-- Include image that cna be updated at the end of the chapter with all of the added contracts (right now just shows what we have)
+By now, we have:
+- **Created a Subnet-EVM L1** with its genesis file
+- **Pre-deployed proxy infrastructure** at addresses `0xfacade...` (proxy) and `0xdad...` (admin)
+- **Placeholder implementation** at `0x1212...` waiting to be upgraded
 
-- Explain the deployment steps and why they are done this way
+If we were to look at our L1, it would like something like this:
 
-- Appendix: Flow diagram full deployment calls
+![Validator Manager Deployment Layout](/common-images/permissioned-l1s/VMCDeploy1.png)
+
+## Deployment Flow
+
+The deployment process follows a specific sequence designed for safety and clarity:
+
+1. **Deploy the Validator Manager implementation** - Create the actual contract with validation logic
+2. **Upgrade the proxy** - Point `0xfacade...` to our new implementation via the admin at `0xdad...`
+3. **Initialize the configuration** - Set up the initial validator set and permissions
+4. **Activate validation** - Enable the contract to start managing validators on the P-Chain
