@@ -8,7 +8,9 @@ icon: Terminal
 import ToolboxMdxWrapper from "../../../../toolbox/src/components/ToolboxMdxWrapper.tsx"
 import Initialize from "../../../../toolbox/src/toolbox/ValidatorManager/Initialize.tsx"
 
-Setting the initial configuration is a critical step that establishes how your Validator Manager will operate. This process involves calling the `initialize` function through the TransparentUpgradeableProxy, which forwards the call to your ValidatorManager implementation.
+Setting the initial configuration is a critical step that establishes how your Validator Manager will operate. 
+
+This process involves calling the `initialize` function through the **TransparentUpgradeableProxy**, which forwards the call to your ValidatorManager implementation.
 
 ![Validator Manager Deployment Initialize](/common-images/permissioned-l1s/VMCDeploy5.png)
 
@@ -25,146 +27,14 @@ The configuration is set by calling `initialize()` with a `ValidatorManagerSetti
 
 The `ValidatorManagerSettings` struct contains four essential parameters:
 
-### 1. Admin Address
-- **Purpose**: The account that controls validator management operations
-- **Typical value**: Your wallet, multisig, or governance contract
-- **Can be changed**: Yes, through ownership transfer
-
-### 2. Subnet ID  
-- **Purpose**: Links the Validator Manager to your specific L1
-- **Format**: 32-byte identifier from the P-Chain
-- **Immutable**: Cannot be changed after initialization
-
-### 3. Churn Period Seconds
-- **Purpose**: Time window for tracking validator set changes
-- **Validation**: Must be ≤ 86400 seconds (1 day)
-- **Typical values**: 0 (no limit) to 86400 (24 hours)
-
-### 4. Maximum Churn Percentage
-- **Purpose**: Limits how much validator weight can change per period
-- **Validation**: Must be 1-20% (protocol maximum)
-- **Example**: 20% means max 1/5 of total weight can change
-
-## Validation Rules
-
-The contract enforces these limits during initialization:
-- Churn percentage: Between 1% and 20%
-- Churn period: Maximum 1 day (86400 seconds)
-- Admin address: Cannot be zero address
-- Subnet ID: Must be valid 32-byte value
+1. **Admin Address**: The account that controls validator management operations (your connected wallet). Can be changed through ownership transfer.
+2. **Subnet ID**: Links the Validator Manager to your specific L1 & can't be changed after initialization.
+3. **Churn Period Seconds**:Time window for tracking validator set changes (must be ≤ 86400 seconds)
+4. **Maximum Churn Percentage**: Limits how much validator weight can change per period (1-20% protocol maximum). 
+*Example*: 20% means max 1/5 of total weight can change
 
 ## Set Configuration
 
 <ToolboxMdxWrapper walletMode="l1">
     <Initialize />
 </ToolboxMdxWrapper>
-
-<Callout type="warning">
-Choose churn parameters carefully! Too restrictive limits operational flexibility, while too permissive risks network instability.
-</Callout>
-
-## Security Considerations
-
-### Initialize Once Only
-The `initialize` function uses OpenZeppelin's `initializer` modifier, preventing re-initialization attacks. Once called, the function cannot be executed again, even by the admin.
-
-### Storage Safety
-Configuration is stored using ERC-7201 storage slots to avoid conflicts in upgradeable contracts. This ensures future upgrades won't accidentally overwrite your settings.
-
-## Example Configurations
-
-### High Security Setup
-```javascript
-{
-  admin: "0xMultisigAddress...",
-  subnetID: "0xYourSubnetID...",
-  churnPeriodSeconds: 86400,  // 24 hours
-  maximumChurnPercentage: 10   // 10% max change
-}
-```
-
-### Development Setup
-```javascript
-{
-  admin: "0xYourWalletAddress...",
-  subnetID: "0xYourSubnetID...",
-  churnPeriodSeconds: 3600,   // 1 hour
-  maximumChurnPercentage: 50   // 50% max change
-}
-```
-
-### Enterprise Setup
-```javascript
-{
-  admin: "0xGovernanceContract...",
-  subnetID: "0xYourSubnetID...",
-  churnPeriodSeconds: 43200,  // 12 hours
-  maximumChurnPercentage: 20   // 20% max change
-}
-```
-
-## Getting Your Subnet ID
-
-Your subnet ID comes from the L1 creation process:
-
-1. **From L1 Creation**: Saved during subnet/chain creation
-2. **From P-Chain**: Query P-Chain for your subnet info
-3. **From Explorer**: Check Avalanche explorer
-
-### Format
-- 32-byte hex string
-- Starts with "0x"
-- Example: `0x1234567890abcdef...`
-
-## Best Practices
-
-### Security
-1. **Admin Key Security**: Use hardware wallet or multisig
-2. **Parameter Review**: Double-check before initialization
-3. **Test First**: Always test on testnet
-
-### Operational
-1. **Document Settings**: Record chosen parameters
-2. **Plan for Growth**: Consider future validator additions
-3. **Monitor Usage**: Track churn consumption
-
-## Churn Calculation Example
-
-With 20% maximum churn over 24 hours:
-- Total weight: 1000 units
-- Maximum change: 200 units per day
-- Can add validator with 150 weight ✓
-- Cannot add validator with 250 weight ✗
-
-## Post-Configuration
-
-After setting configuration:
-1. **Verify Settings**: Read back configuration
-2. **Document**: Save parameters for reference
-3. **Plan Operations**: Schedule validator changes within limits
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Invalid Subnet ID**: Ensure correct format and value
-2. **Churn Too Restrictive**: Increase percentage or reduce period
-3. **Wrong Admin**: Double-check wallet address
-
-### Configuration Checks
-
-```javascript
-// Verify configuration
-const config = await validatorManager.getConfiguration();
-console.log("Admin:", config.admin);
-console.log("Subnet ID:", config.subnetID);
-console.log("Churn Period:", config.churnPeriodSeconds);
-console.log("Max Churn:", config.maximumChurnPercentage);
-```
-
-## Next Steps
-
-With configuration complete:
-1. Read and verify the Validator Manager state
-2. Initialize the validator set
-3. Begin managing validators
