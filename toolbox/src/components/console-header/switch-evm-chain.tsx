@@ -1,34 +1,25 @@
-
+'use client'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { AddChainModal } from "@/components/ConnectWallet/AddChainModal";
-import { Globe, Plus, RefreshCw } from "lucide-react";
+import { Globe, Plus } from "lucide-react";
 import { useL1ListStore } from "@/stores/l1ListStore";
+import { useState } from "react";
 import { useWalletStore } from "@/stores/walletStore";
-import { useState, useCallback } from "react";
-import { useErrorBoundary } from "react-error-boundary";
 
-export function SwitchEVMChain({ enforceChainId }: { enforceChainId?: number }) {
-
-  const { walletChainId } = useWalletStore();
-  const { l1List, addL1, removeL1 } = useL1ListStore()();
-  const { coreWalletClient } = useWalletStore();
-  const { showBoundary } = useErrorBoundary();
-  
+export function SwitchEVMChain({}: { enforceChainId?: number }) {
+  const { l1List, addL1 } = useL1ListStore()();
+  const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
+  const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const [isAddChainModalOpen, setIsAddChainModalOpen] = useState(false);
 
-  const handleSwitchChain = useCallback((chainId: number) => {
-    coreWalletClient.switchChain({
-      id: `0x${chainId.toString(16)}`,
-    }).catch(showBoundary);
-  }, [coreWalletClient, showBoundary]);
+  const walletChainId = useWalletStore((s) => s.walletChainId);
+  const currentNetwork = l1List.find((l) => l.evmChainId === walletChainId) || {
+    name: "EVM Network",
+    logoUrl: "",
+  } as any;
+  if (!walletEVMAddress) return null;
 
-  const currentNetwork = {
-    name: "C-Chain",
-    symbol: "AVAX",
-    balance: 136.78,
-    logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
-  };
   return (<>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -50,12 +41,15 @@ export function SwitchEVMChain({ enforceChainId }: { enforceChainId?: number }) 
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">
-        {l1List.map((chain) =>
-          <DropdownMenuItem >
+        {l1List.map((chain) => (
+          <DropdownMenuItem
+            key={chain.id}
+            onClick={() => coreWalletClient.switchChain({ id: chain.evmChainId })}
+          >
             <Globe className="mr-2 h-3 w-3" />
             {chain.name}
           </DropdownMenuItem>
-        )}
+        ))}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => setIsAddChainModalOpen(true)}>
           <Plus className="mr-2 h-3 w-3" />

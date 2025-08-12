@@ -1,3 +1,4 @@
+"use client";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,11 +9,13 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { TestnetMainnetSwitch } from "./testnet-mainnet-switch";
-import { SwitchEVMChain } from "./switch-evm-chain";
-import { WalletPChain } from "./wallet-p-chain";
+import dynamic from "next/dynamic";
 import { EVM } from "@avalabs/avalanchejs";
-import { EVMWallet } from "./evm-wallet";
+const TestnetMainnetSwitch = dynamic(() => import("@console-header/testnet-mainnet-switch").then(m => m.TestnetMainnetSwitch), { ssr: false });
+const SwitchEVMChain = dynamic(() => import("@console-header/switch-evm-chain").then(m => m.SwitchEVMChain), { ssr: false });
+const WalletPChain = dynamic(() => import("@console-header/wallet-p-chain").then(m => m.WalletPChain), { ssr: false });
+const EVMWallet = dynamic(() => import("@console-header/evm-wallet").then(m => m.EVMWallet), { ssr: false });
+const DarkModeToggle = dynamic(() => import("@console-header/dark-mode-toggle").then(m => m.DarkModeToggle), { ssr: false });
 import { BuilderHubAccountButton } from "./builder-hub-account-button";
 
 
@@ -41,9 +44,10 @@ export function SiteHeader() {
         </Breadcrumb>
         <div className="ml-auto flex items-center gap-2">
           <TestnetMainnetSwitch />
-          <EVMWallet />
-          <SwitchEVMChain />
           <WalletPChain />
+          <SwitchEVMChain />
+          <EVMWallet />
+          <DarkModeToggle />
           <Separator
           orientation="vertical"
           className="h-4!"
