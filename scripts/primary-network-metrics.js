@@ -134,14 +134,17 @@ async function fetchValidatorVersions() {
     const data = await response.json();
     if (!data?.validatorDetails?.stakingDistributionByVersion) return {};
 
-    const versionCounts = {};
+    const versionData = {};
     data.validatorDetails.stakingDistributionByVersion.forEach(item => {
       if (item.version && item.version !== 'offline' && item.validatorCount) {
-        versionCounts[item.version] = item.validatorCount;
+        versionData[item.version] = {
+          validatorCount: item.validatorCount,
+          amountStaked: item.amountStaked
+        };
       }
     });
 
-    return versionCounts;
+    return versionData;
   } catch (error) {
     return {};
   }

@@ -213,6 +213,8 @@ interface VersionCount {
   version: string;
   count: number;
   percentage: number;
+  amountStaked: number; // in AVAX
+  stakingPercentage: number;
 }
 
 export default function PrimaryNetworkMetrics() {
@@ -225,7 +227,6 @@ export default function PrimaryNetworkMetrics() {
     []
   );
   const [versionsError, setVersionsError] = useState<string | null>(null);
-  const [activeVersion, setActiveVersion] = React.useState<string>("");
 
   const parseCSV = (csvText: string): PrimaryNetworkMetrics | null => {
     const lines = csvText.trim().split("\n");
@@ -329,10 +330,12 @@ export default function PrimaryNetworkMetrics() {
           );
 
           const versionArray: VersionCount[] = Object.entries(versionsData)
-            .map(([version, count]) => ({
+            .map(([version, data]: [string, any]) => ({
               version,
-              count: count as number,
+              count: data.validatorCount,
               percentage: 0,
+              amountStaked: parseInt(data.amountStaked) / 1e9, // Convert to AVAX
+              stakingPercentage: 0,
             }))
             .sort((a, b) => b.count - a.count);
 
@@ -340,16 +343,19 @@ export default function PrimaryNetworkMetrics() {
             (sum, item) => sum + item.count,
             0
           );
+          const totalStaked = versionArray.reduce(
+            (sum, item) => sum + item.amountStaked,
+            0
+          );
+
           versionArray.forEach((item) => {
             item.percentage =
               totalValidators > 0 ? (item.count / totalValidators) * 100 : 0;
+            item.stakingPercentage =
+              totalStaked > 0 ? (item.amountStaked / totalStaked) * 100 : 0;
           });
 
           setValidatorVersions(versionArray);
-
-          if (versionArray.length > 0 && !activeVersion) {
-            setActiveVersion(versionArray[0].version);
-          }
         } catch (err) {
           setVersionsError(
             `Failed to parse validator versions data: ${
@@ -465,6 +471,8 @@ export default function PrimaryNetworkMetrics() {
       version: version.version,
       count: version.count,
       percentage: version.percentage,
+      amountStaked: version.amountStaked,
+      stakingPercentage: version.stakingPercentage,
       fill: `var(--color-version-${index})`,
     }));
   };
@@ -490,16 +498,6 @@ export default function PrimaryNetworkMetrics() {
 
   const pieChartData = getPieChartData();
   const versionsChartConfig = getVersionsChartConfig();
-
-  const activeIndex = React.useMemo(
-    () => pieChartData.findIndex((item) => item.version === activeVersion),
-    [activeVersion, pieChartData]
-  );
-
-  const versions = React.useMemo(
-    () => pieChartData.map((item) => item.version),
-    [pieChartData]
-  );
 
   const chartConfigs = [
     {
@@ -742,134 +740,198 @@ export default function PrimaryNetworkMetrics() {
           })}
         </div>
 
-        {/* Interactive Pie Chart for Validator Versions */}
+        {/* Validator Version Distribution Charts */}
         {validatorVersions.length > 0 && (
-          <Card data-chart="pie-interactive" className="flex flex-col">
-            <ChartStyle id="pie-interactive" config={versionsChartConfig} />
-            <CardHeader className="flex-row items-start space-y-0 pb-0">
-              <div className="grid gap-1">
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
-                  Validator Version Distribution
-                </CardTitle>
-                <CardDescription>
-                  Interactive view of AvalancheGo versions across validators
-                </CardDescription>
-              </div>
-              <Select value={activeVersion} onValueChange={setActiveVersion}>
-                <SelectTrigger
-                  className="ml-auto h-7 w-[200px] rounded-lg pl-2.5"
-                  aria-label="Select a version"
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* By Validator Count */}
+            <Card data-chart="pie-count" className="flex flex-col">
+              <ChartStyle id="pie-count" config={versionsChartConfig} />
+              <CardHeader className="flex-row items-start space-y-0 pb-0">
+                <div className="grid gap-1">
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
+                    By Validator Count
+                  </CardTitle>
+                  <CardDescription>
+                    Distribution by number of validators
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="flex flex-1 justify-center pb-0">
+                <ChartContainer
+                  id="pie-count"
+                  config={versionsChartConfig}
+                  className="mx-auto aspect-square w-full max-w-[350px]"
                 >
-                  <SelectValue placeholder="Select version" />
-                </SelectTrigger>
-                <SelectContent align="end" className="rounded-xl">
-                  {versions.map((version, index) => {
-                    const versionData = validatorVersions.find(
-                      (v) => v.version === version
-                    );
-
-                    if (!versionData) {
-                      return null;
-                    }
-
-                    return (
-                      <SelectItem
-                        key={version}
-                        value={version}
-                        className="rounded-lg [&_span]:flex"
-                      >
-                        <div className="flex items-center gap-2 text-xs">
-                          <span
-                            className="flex h-3 w-3 shrink-0 rounded-xs"
-                            style={{
-                              backgroundColor: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`,
-                            }}
-                          />
-                          <span className="truncate max-w-[160px]">
-                            {versionData.version}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </CardHeader>
-            <CardContent className="flex flex-1 justify-center pb-0">
-              <ChartContainer
-                id="pie-interactive"
-                config={versionsChartConfig}
-                className="mx-auto aspect-square w-full max-w-[450px]"
-              >
-                <PieChart>
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent hideLabel />}
-                  />
-                  <Pie
-                    data={pieChartData}
-                    dataKey="count"
-                    nameKey="version"
-                    innerRadius={90}
-                    strokeWidth={5}
-                    activeIndex={activeIndex}
-                    activeShape={({
-                      outerRadius = 0,
-                      ...props
-                    }: PieSectorDataItem) => (
-                      <g>
-                        <Sector {...props} outerRadius={outerRadius + 10} />
-                        <Sector
-                          {...props}
-                          outerRadius={outerRadius + 25}
-                          innerRadius={outerRadius + 12}
-                        />
-                      </g>
-                    )}
-                  >
-                    <Label
-                      content={({ viewBox }) => {
-                        if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                          const activeData = pieChartData[activeIndex];
+                  <PieChart>
+                    <ChartTooltip
+                      cursor={false}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
                           return (
-                            <text
-                              x={viewBox.cx}
-                              y={viewBox.cy}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                            >
-                              <tspan
-                                x={viewBox.cx}
-                                y={viewBox.cy}
-                                className="fill-foreground text-3xl font-bold"
-                              >
-                                {activeData?.count?.toLocaleString() || "0"}
-                              </tspan>
-                              <tspan
-                                x={viewBox.cx}
-                                y={(viewBox.cy || 0) + 24}
-                                className="fill-muted-foreground"
-                              >
-                                Validators
-                              </tspan>
-                              <tspan
-                                x={viewBox.cx}
-                                y={(viewBox.cy || 0) + 44}
-                                className="fill-muted-foreground text-sm"
-                              >
-                                {activeData?.percentage?.toFixed(1) || "0"}%
-                              </tspan>
-                            </text>
+                            <div className="rounded-lg border bg-background p-2 shadow-sm">
+                              <div className="grid gap-2">
+                                <div className="flex flex-col">
+                                  <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                    {data.version}
+                                  </span>
+                                  <span className="font-bold text-muted-foreground">
+                                    {data.count} validators (
+                                    {data.percentage.toFixed(1)}%)
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
                           );
                         }
+                        return null;
                       }}
                     />
-                  </Pie>
-                </PieChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+                    <Pie
+                      data={pieChartData}
+                      dataKey="count"
+                      nameKey="version"
+                      innerRadius={70}
+                      strokeWidth={5}
+                    >
+                      <Label
+                        content={({ viewBox }) => {
+                          if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                            const totalValidators = pieChartData.reduce(
+                              (sum, item) => sum + item.count,
+                              0
+                            );
+                            return (
+                              <text
+                                x={viewBox.cx}
+                                y={viewBox.cy}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                              >
+                                <tspan
+                                  x={viewBox.cx}
+                                  y={viewBox.cy}
+                                  className="fill-foreground text-2xl font-bold"
+                                >
+                                  {totalValidators.toLocaleString()}
+                                </tspan>
+                                <tspan
+                                  x={viewBox.cx}
+                                  y={(viewBox.cy || 0) + 24}
+                                  className="fill-muted-foreground text-sm"
+                                >
+                                  Total Validators
+                                </tspan>
+                              </text>
+                            );
+                          }
+                        }}
+                      />
+                    </Pie>
+                  </PieChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            {/* By Stake Weight */}
+            <Card data-chart="pie-stake" className="flex flex-col">
+              <ChartStyle id="pie-stake" config={versionsChartConfig} />
+              <CardHeader className="flex-row items-start space-y-0 pb-0">
+                <div className="grid gap-1">
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
+                    By Stake Weight
+                  </CardTitle>
+                  <CardDescription>
+                    Distribution by amount staked
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="flex flex-1 justify-center pb-0">
+                <ChartContainer
+                  id="pie-stake"
+                  config={versionsChartConfig}
+                  className="mx-auto aspect-square w-full max-w-[350px]"
+                >
+                  <PieChart>
+                    <ChartTooltip
+                      cursor={false}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="rounded-lg border bg-background p-2 shadow-sm">
+                              <div className="grid gap-2">
+                                <div className="flex flex-col">
+                                  <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                    {data.version}
+                                  </span>
+                                  <span className="font-bold text-muted-foreground">
+                                    {data.amountStaked.toLocaleString(
+                                      undefined,
+                                      { maximumFractionDigits: 0 }
+                                    )}{" "}
+                                    AVAX ({data.stakingPercentage.toFixed(1)}%)
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Pie
+                      data={pieChartData}
+                      dataKey="amountStaked"
+                      nameKey="version"
+                      innerRadius={70}
+                      strokeWidth={5}
+                    >
+                      <Label
+                        content={({ viewBox }) => {
+                          if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                            const totalStaked = pieChartData.reduce(
+                              (sum, item) => sum + item.amountStaked,
+                              0
+                            );
+                            return (
+                              <text
+                                x={viewBox.cx}
+                                y={viewBox.cy}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                              >
+                                <tspan
+                                  x={viewBox.cx}
+                                  y={viewBox.cy}
+                                  className="fill-foreground text-lg font-bold"
+                                >
+                                  {(totalStaked / 1000000).toLocaleString(
+                                    undefined,
+                                    { maximumFractionDigits: 1 }
+                                  )}
+                                  M
+                                </tspan>
+                                <tspan
+                                  x={viewBox.cx}
+                                  y={(viewBox.cy || 0) + 24}
+                                  className="fill-muted-foreground text-sm"
+                                >
+                                  AVAX Staked
+                                </tspan>
+                              </text>
+                            );
+                          }
+                        }}
+                      />
+                    </Pie>
+                  </PieChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Validator Software Versions */}
@@ -914,25 +976,30 @@ export default function PrimaryNetworkMetrics() {
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-muted-foreground">
-                            Count:
+                            Validators:
                           </span>
                           <span className="font-semibold">
-                            {versionInfo.count}
+                            {versionInfo.count} (
+                            {versionInfo.percentage.toFixed(1)}%)
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-muted-foreground">
-                            Share:
+                            Staked:
                           </span>
                           <span className="font-semibold">
-                            {versionInfo.percentage.toFixed(1)}%
+                            {versionInfo.amountStaked.toLocaleString(
+                              undefined,
+                              { maximumFractionDigits: 0 }
+                            )}{" "}
+                            AVAX ({versionInfo.stakingPercentage.toFixed(1)}%)
                           </span>
                         </div>
                         <div className="w-full bg-muted rounded-full h-2">
                           <div
                             className="h-2 rounded-full"
                             style={{
-                              width: `${versionInfo.percentage}%`,
+                              width: `${versionInfo.stakingPercentage}%`,
                               backgroundColor: "#40c9ff",
                               opacity: 0.7 + (index === 0 ? 0.3 : -index * 0.1),
                             }}
