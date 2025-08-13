@@ -61,9 +61,18 @@ graph TD
   </div>
 </div>
 
+### Why Proxy Contracts as Predeployed?
+
+The `convertSubnetToL1` process has limited transaction capacity during conversion. By predeploying proxy contracts, we ensure that essential infrastructure is available immediately after conversion without needing to deploy them in the constrained environment.
+
+This approach makes the conversion process viable by:
+- Providing immediate access to upgradable app logic through the proxy at `0xfacade…`
+- Allowing the admin at `0xdad…` to wire up real implementations after conversion
+- Ensuring basic blockchain functionality is available from day one
+
 ### Key Takeaways
 
 - Upgradable app logic can be wired by upgrading the proxy at `0xfacade…` via the admin `0xdad…` to point to a real implementation.
 - CREATE2 deployer, Multicall3 and Wrapped Native Tokens for basic out-of-the-box use of blockchains.
-- We use proxy as predeployed contract to make `convertSubnetToL1` work smoothly, since the txn capacity of this operation is limited, we benefit from already including the data to deploy this before in the *genesis.json*
+- Proxy contracts are predeployed to overcome limited transaction capacity during `convertSubnetToL1`.
 
