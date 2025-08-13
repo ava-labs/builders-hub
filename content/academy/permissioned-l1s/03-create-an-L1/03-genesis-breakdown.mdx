@@ -1,11 +1,10 @@
 ---
 title: Genesis Breakdown
-description: Deep dive into the genesis file structure - understand how Subnet-EVM chains initialize with predeployed contracts, fee configurations, and cross-chain messaging setup for permissioned L1s.
+description: Deep dive into the genesis file structure & why we need to initialize the chain with predeployed contracts
 updated: 2025-03-19
 authors: [nicolasarnedo]
 icon: BookOpen
 ---
-
 
 ### What is a genesis file?
 
@@ -16,8 +15,6 @@ Additionally, in the context of Avalanche, it is **set by default to pre-deploy 
 ## Predeployed Contracts & Allocation
 
 The `alloc` section seeds balances and deploys bytecode at fixed addresses before block 0, so they exist from the first block. 
-
-Additional contracts are also deployed by default (*multicall3, create2, wrapped native tokens...*), but we will not dive into them in this guide as they are not essential for understanding permissioned L1s.
 
 - **BLOCKCHAIN_DEPLOYER_ADDRESS** - Subnet Owner Balance: `0xd3c21bcecceda1000000` wei = 1,000,000 native tokens (1e6 × 1e18) useful for funded deployer/faucet account
 
@@ -31,11 +28,15 @@ Additional contracts are also deployed by default (*multicall3, create2, wrapped
   <img src="/common-images/permissioned-l1s/VMCGenesis.png" alt="VMC Proxy Deployment" style={{ width: '60%', height: 'auto' }} />
 </div>
 
-### 
+Additional contracts are also deployed by default (*multicall3, create2, wrapped native tokens...*), but we will not dive into them in this guide as they are not essential for understanding permissioned L1s.
 
-### Why Pre-Deploy Proxy Contracts
+## Why Pre-Deploy Proxy Contracts
 
-The proxy at `0xfacade…` must be deployed **before** the `convertSubnetToL1` transaction because the transaction itself requires the Validator Manager address as a parameter:
+Deploying the proxy contract in genesis provides three critical benefits:
+
+#### 1. Known Address Requirement
+
+By deploying in genesis, we can set an arbitrary contract address (`0xfacade…`). This is essential because the `convertSubnetToL1` transaction requires the Validator Manager address as a parameter:
 
 ```solidity
 type ConvertSubnetToL1Tx struct {
@@ -45,16 +46,17 @@ type ConvertSubnetToL1Tx struct {
 }
 ```
 
-The proxy will later be upgraded to point to the actual VMC implementation after conversion, but more on this in the [Validator Manager Deployment](/academy/permissioned-l1s/04-validator-manager-deployment/01-vmc-deployment-intro) section
+#### 2. P-Chain Transaction Size Limits
 
-Additionally, the `convertSubnetToL1` process has limited transaction capacity during conversion. By predeploying proxy contracts, we ensure that essential infrastructure is available immediately after conversion without needing to deploy them in the constrained environment.
+Contracts are pre-deployed by including their bytecode in the genesis file, which is recorded as part of the `CreateChainTx` on the P-Chain. All P-Chain transactions have a size limit (to prevent DoS attacks) making space precious. 
 
-## Key Takeaways
+While we could deploy the full Validator Manager directly in genesis, it would consume significant space. The proxy contract is much smaller, leaving room for other essential contracts.
 
-- **Proxy at `0xfacade…`** is the Validator Manager address required by `convertSubnetToL1` - must exist before conversion
-- **ProxyAdmin at `0xdad…`** controls upgrades to wire the actual VMC implementation post-conversion
-- **Utility contracts** (CREATE2, Multicall3, WNT) provide essential blockchain functionality from genesis
-- **Predeployment strategy** overcomes transaction capacity limits during subnet-to-L1 conversion
+#### 3. Upgradability
+
+The proxy pattern enables updating the Validator Manager implementation if bugs are discovered. Since the subnet owner address on the P-Chain cannot be changed after conversion, using a proxy is the only way to update the implementation without requiring a full network upgrade.
+
+The proxy will later be upgraded to point to the actual VMC implementation after conversion—more on this in the [Validator Manager Deployment](/academy/permissioned-l1s/04-validator-manager-deployment/01-vmc-deployment-intro) section.
 
 ### Appendix: Predeployed Contracts Structure
 

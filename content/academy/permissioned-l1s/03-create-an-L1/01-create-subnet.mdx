@@ -1,6 +1,6 @@
 ---
 title: Subnet Creation
-description: A quick review of creating a Subnet blockchain on Avalanche - the foundation for our permissioned L1.
+description: A quick review of creating a Subnet on Avalanche - the foundation for our permissioned L1
 updated: 2025-03-19
 authors: [nicolasarnedo]
 icon: Terminal
@@ -21,8 +21,8 @@ Let's create a fresh new Subnet that we can use during this course to test all o
 
 1. [Download Core Wallet](https://core.app/) if not already installed
 2. Connect your wallet and set to Tesnet mode (upper-right toggle button)
-3. Use the faucet button in this wallet component (below your C-chain balance) to claim test AVAX
-4. Use the same button (but below P-Chain balance) to claim test AVAX on the P-Chain
+3. Use the **faucet button** in this wallet component (below your C-chain balance) to claim **test AVAX on the C-Chain**
+4. Use the same button (but below P-Chain balance) to claim **test AVAX on the P-Chain**
 
 <ToolboxMdxWrapper walletMode="c-chain"/>
 
@@ -48,7 +48,7 @@ On **Step 2: Create a Chain** select the *Genesis JSON* tab to the right and ski
 **Key Parameters:**
 - **Subnet Owner**: P-chain address of your connected wallet
 - **Chain Name**: Your blockchain's name
-- **VM ID**: Default value srEX...Dy when creating with an uncustomized VM
+- **VM ID**: Default value `srEX...Dy` when creating with an uncustomized VM
 - **Genesis Data**: Initial blockchain configuration
 
 </Step>
@@ -68,5 +68,3 @@ Launch a node to track your Subnet using Docker. This node will become a validat
 
 - **P-Chain Registry**: All validators and blockchains are registered on the P-Chain
 - **Subnet Foundation**: Your Subnet provides the blockchain infrastructure necessary for this course
-
-Up next we will understand what is the starting point of our blockchain (*genesis.json*) and convert our Subnet to an L1.
