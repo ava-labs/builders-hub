@@ -67,7 +67,7 @@ const data = {
       items: [
         {
           title: "Node Setup",
-          url: "/console/primary-network/node-setup?flow=node-setup",
+          url: "/console/primary-network/node-setup",
           icon: Server,
         },
         {
@@ -140,12 +140,12 @@ const data = {
       items: [
         {
           title: "Validator Manager Setup",
-          url: "/console/permissioned-l1s/validator-manager-setup?flow=validator-manager",
+          url: "/console/permissioned-l1s/validator-manager-setup",
           icon: SquareTerminal,
         },
         {
           title: "Manage Validators",
-          url: "/console/permissioned-l1s/add-validator?flow=manage-validators",
+          url: "/console/permissioned-l1s/manage-validators",
           icon: Hexagon,
         },
         {
@@ -166,8 +166,9 @@ const data = {
       items: [
         {
           title: "Migrate from Permissioned L1",
-          url: "/console/permissionless-l1s/deploy-reward-manager?flow=migrate",
+          url: "/console/permissionless-l1s/deploy-reward-manager",
           icon: GitMerge,
+          comingSoon: true,
         },
         {
           title: "Stake & Unstake",
@@ -275,17 +276,18 @@ export function ConsoleSidebar({
               <SidebarMenu>
                 {group.items.map((item) => {
                   const isActive = pathname === item.url;
+                  const isComingSoon = 'comingSoon' in item && (item as any).comingSoon;
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton 
                         asChild
                         isActive={isActive}
-                        className={`${item.comingSoon ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        disabled={item.comingSoon}
+                        className={`${isComingSoon ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={isComingSoon}
                       >
 
                         
-                        {item.comingSoon ? (
+                        {isComingSoon ? (
                           <Link href="#">
                             <item.icon />
                             <span>{item.title} (soon)</span>

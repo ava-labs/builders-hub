@@ -6,6 +6,7 @@ import { Globe, Plus } from "lucide-react";
 import { useL1ListStore } from "@/stores/l1ListStore";
 import { useState } from "react";
 import { useWalletStore } from "@/stores/walletStore";
+import { avalanche, avalancheFuji } from "viem/chains";
 
 export function SwitchEVMChain({}: { enforceChainId?: number }) {
   const { l1List, addL1 } = useL1ListStore()();
@@ -14,10 +15,33 @@ export function SwitchEVMChain({}: { enforceChainId?: number }) {
   const [isAddChainModalOpen, setIsAddChainModalOpen] = useState(false);
 
   const walletChainId = useWalletStore((s) => s.walletChainId);
-  const currentNetwork = l1List.find((l) => l.evmChainId === walletChainId) || {
-    name: "EVM Network",
-    logoUrl: "",
-  } as any;
+
+  // Determine current network details with logo support
+  const currentNetwork = (() => {
+    const fromList = l1List.find((l) => l.evmChainId === walletChainId);
+    if (fromList) return fromList as any;
+
+    // Handle Avalanche C-Chain (mainnet and Fuji) explicitly
+    if (walletChainId === avalanche.id) {
+      return {
+        name: "C-Chain Mainnet",
+        logoUrl:
+          "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
+      } as any;
+    }
+    if (walletChainId === avalancheFuji.id) {
+      return {
+        name: "Fuji C-Chain",
+        logoUrl:
+          "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
+      } as any;
+    }
+
+    return {
+      name: "EVM Network",
+      logoUrl: "",
+    } as any;
+  })();
   if (!walletEVMAddress) return null;
 
   return (<>
@@ -46,7 +70,13 @@ export function SwitchEVMChain({}: { enforceChainId?: number }) {
             key={chain.id}
             onClick={() => coreWalletClient.switchChain({ id: chain.evmChainId })}
           >
-            <Globe className="mr-2 h-3 w-3" />
+            <span className="mr-2 inline-flex items-center justify-center w-4 h-4 rounded overflow-hidden">
+              {chain.logoUrl ? (
+                <img src={chain.logoUrl} alt={`${chain.name} logo`} className="w-full h-full object-cover" />
+              ) : (
+                <Globe className="h-3 w-3 text-zinc-400 dark:text-zinc-500" />
+              )}
+            </span>
             {chain.name}
           </DropdownMenuItem>
         ))}
