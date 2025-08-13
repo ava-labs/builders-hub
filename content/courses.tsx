@@ -10,7 +10,7 @@ export type Course = {
     languages: string[];
     tools: string[];
     instructors: string[];
-    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability";
+    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability" | "Codebase";
 };
 
 const officialCourses: Course[] = [
@@ -23,8 +23,8 @@ const officialCourses: Course[] = [
         duration: "2 hours",
         languages: [],
         tools: ["Codebase"],
-        instructors: ["Nicolas Arnedo"],
-        category: "Fundamentals"
+        instructors: ["Martin Eckardt", "Owen Wahlgren", "Nicolas Arnedo"],
+        category: "Codebase"
     },
     {
         name: "Blockchain Fundamentals",
