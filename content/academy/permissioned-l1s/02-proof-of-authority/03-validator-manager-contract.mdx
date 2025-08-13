@@ -11,7 +11,36 @@ The contracts in the [`validator-manager`](https://github.com/ava-labs/icm-contr
 
 For this section we have blurred out some of the contracts, as these are not relevant to the Proof of Authority hierarchy used to create a **permissioned L1**:
 
-![Validator Manager Contract Class Diagram](/common-images/permissioned-l1s/ValidatorManagerContractBlurr.png)
+<div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+  <Mermaid
+    chart="
+classDiagram
+class ACP99Manager {
+    +initializeValidatorSet()
+    +completeValidatorRegistration()
+    +completeValidatorRemoval()
+    +completeValidatorWeightUpdate()
+    -_initiateValidatorRegistration()
+    -_initiateValidatorRemoval()
+    -_initiateValidatorWeightUpdate()
+}
+<<Abstract>> ACP99Manager
+
+class ValidatorManager {
+    +initializeValidatorSet()
+    +completeValidatorRegistration() onlyOwner
+    +completeValidatorRemoval() onlyOwner
+    +completeValidatorWeightUpdate() onlyOwner
+    +initiateValidatorRegistration() onlyOwner
+    +initiateValidatorRemoval() onlyOwner
+    +initiateValidatorWeightUpdate() onlyOwner
+}
+
+ACP99Manager <|-- ValidatorManager
+"
+  />
+</div>
+
 
 ## Understanding Contract Hierarchy
 
@@ -43,31 +72,5 @@ The `ValidatorManager` extends `ACP99Manager` and adds the complete validator li
 - Manages churn rate limiting to prevent rapid validator set changes
 - Tracks validator states throughout their lifecycle
 - Handles Warp message construction and verification
-
-### PoAManager (Access Control Layer)
-
-The `PoAManager` is a separate contract that provides a Proof of Authority interface to the ValidatorManager:
-
-**Architecture Pattern:**
-- Uses composition rather than inheritance (has a ValidatorManager, doesn't extend it)
-- Acts as an access control proxy to the ValidatorManager
-- Separates ownership concerns from core validator logic
-
-**Key Functions:**
-- **Initiate functions** (onlyOwner): Only the PoA owner can start validator operations
-- **Complete functions** (no restrictions): Anyone can complete pending operations once initiated
-- **`transferValidatorManagerOwnership()`** (onlyOwner): Allows transferring control of the underlying ValidatorManager
-
-This separation of concerns allows the same ValidatorManager to be used with different access control models (PoA, PoS, or custom governance) by simply changing the controlling contract.
-
-### PoA Architecture Benefits
-
-The two-contract design provides several advantages:
-
-- **Separation of Concerns**: Core validator logic is separate from access control
-- **Upgradeability**: ValidatorManager can be upgraded without affecting PoAManager
-- **Flexibility**: Different access control models can be implemented without changing the core
-- **Security**: Owner permissions are clearly defined and isolated in PoAManager
-
 
 <Quiz quizId="413" />

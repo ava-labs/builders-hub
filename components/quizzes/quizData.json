@@ -1139,18 +1139,18 @@
       "chapter": "Proof of Authority"
     },
     "413": {
-      "question": "In the PoA validator management architecture, why is the PoAManager a separate contract that uses composition rather than inheritance?",
+      "question": "What is the key architectural relationship between ACP99Manager and ValidatorManager in the validator management system?",
       "options": [
-        "To reduce gas costs during deployment",
-        "To make the code more complex and secure",
-        "To separate access control from core validator logic, allowing the same ValidatorManager to work with different consensus models",
-        "To comply with Solidity language limitations"
+        "ValidatorManager uses composition to access ACP99Manager functions",
+        "ValidatorManager extends ACP99Manager through inheritance, implementing the abstract base contract",
+        "ACP99Manager delegates all operations to ValidatorManager",
+        "Both contracts are independent and don't interact with each other"
       ],
       "correctAnswers": [
-        2
+        1
       ],
-      "hint": "Think about how this design pattern enables flexibility in access control models.",
-      "explanation": "The PoAManager uses composition (has a ValidatorManager) rather than inheritance to create a clean separation between access control and core validator logic. This allows the same ValidatorManager implementation to be controlled by different access models (PoA with single owner, PoS with staking-based control, or custom governance) simply by changing the controlling contract, without modifying the core validator management functionality.",
+      "hint": "Think about the inheritance pattern shown in the class diagram.",
+      "explanation": "ValidatorManager extends ACP99Manager through inheritance, implementing the abstract base contract. This design pattern allows ValidatorManager to inherit the standardized validator management functions defined in ACP99Manager while adding its own concrete implementation of the initiate functions. The inheritance relationship ensures that all validator managers follow the same interface defined by ACP99Manager, providing consistency across different implementations.",
       "chapter": "Validator Manager Contract"
     }
   }
