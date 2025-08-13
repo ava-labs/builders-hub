@@ -103,7 +103,7 @@ const data = {
         },
         {
           title: "L1 Node Setup",
-          url: "/console/layer-1/node-setup?flow=node-setup",
+          url: "/console/layer-1/l1-node-setup",
           icon: Server,
         },
         {
