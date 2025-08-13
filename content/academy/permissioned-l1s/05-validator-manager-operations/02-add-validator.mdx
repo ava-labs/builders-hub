@@ -1,6 +1,6 @@
 ---
-title: Registering a Validator Theory
-description: Theory walkthrough of adding a validator with ValidatorManager owned by an EOA, including L1 and P-Chain calls.
+title: Add Validator
+description: Theory walkthrough of adding a validator with ValidatorManager
 updated: 2025-03-19
 authors: [nicolasarnedo]
 icon: BookOpen
@@ -8,33 +8,28 @@ icon: BookOpen
 
 ## Adding a Validator
 
-You’re adding a validator in a PoA setup where the `ValidatorManager` contract is owned by an EOA. The process has two L1 calls with a P-Chain registration in between.
+We’re adding a validator in a PoA setup where the `ValidatorManager` contract is owned by your connected wallet and deployed on your L1. The process has two L1 calls with a P-Chain registration in between.
 
 ### Phase 1: Initiation (L1)
 
-The owner calls `initiateValidatorRegistration(nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight)` on `ValidatorManager`.
+First we will call `initiateValidatorRegistration(nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight)` on `ValidatorManager`.
 
 Under the hood, the contract:
 - Validates sizes and formats (20-byte `nodeID`, 48-byte `blsPublicKey`, owners, churn limits)
 - Builds a `RegisterL1ValidatorMessage` with a bounded expiry
 - Computes a unique `validationID`
 - Stores pending state mapping `nodeID → validationID`
-- Sends the Warp message to the P-Chain
+- Interacts with ICOM to create a warp message that can be submitted to the P-Chain
 
 ### Phase 2: P-Chain Processing
 
-The P-Chain consumes the warp message, executes a `RegisterL1ValidatorTx`, and upon success signs and returns an `L1ValidatorRegistrationMessage` via Warp.
+We then will sign and submit the `RegisterL1ValidatorMessage` warped response we got from the last step to the P-Chain, this executes a `RegisterL1ValidatorTx`, and upon success signs and returns an `L1ValidatorRegistrationMessage` warped response.
 
 ### Phase 3: Completion (L1)
 
-Anyone calls `completeValidatorRegistration(message)` with the signed message. The contract verifies it, activates the validator, sets the start time, and emits `CompletedValidatorRegistration`.
+We finally will call the `completeValidatorRegistration(message)`, where we will sign and submit as the message the response we recieved in step 2. The contract verifies it, activates the validator, sets the start time, and emits `CompletedValidatorRegistration`.
 
-### What you’ll do next
-
-In the practical section, you will:
-1. Initiate registration from L1
-2. Submit the corresponding P-Chain transaction
-3. Complete registration back on L1 with the signed Warp message
+Anyone calls `completeValidatorRegistration(message)` with the signed message.
 
 ## Appendix: Adding Validator Flow
 
