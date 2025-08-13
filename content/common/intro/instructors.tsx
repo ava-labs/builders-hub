@@ -78,7 +78,23 @@ const instructors: Instructor[] = [
         twitter: "https://x.com/navilla_eth",
         linkedin: "https://www.linkedin.com/in/nicolasarnedo/",
         github: "https://github.com/navillanueva",
-    }
+    },
+    {
+        name: "Michael Martin",
+        title: "Codebase Director",
+
+        twitter: "https://x.com/mmartinxyz",
+        linkedin: "https://www.linkedin.com/in/michaeltmartin/",
+        github: "",
+    },
+    {
+        name: "Doro Unger-Lee",
+        title: "Senior Developer Relations",
+
+        twitter: "https://x.com/doroungerlee",
+        linkedin: "https://www.linkedin.com/in/doro-unger-lee/",
+        github: "",
+    },
 ];
 
 export function getInstructorsByNames(names: string[]): Instructor[] {

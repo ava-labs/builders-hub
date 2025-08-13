@@ -15,18 +15,6 @@ export type Course = {
 
 const officialCourses: Course[] = [
     {
-        name: "Codebase Entrepreneur Academy",
-        description: "Build and scale a Web3 startup with Codebase and Avalanche",
-        slug: "codebase-entrepreneur-academy",
-        icon: <SquareStackIcon />,
-        status: "featured",
-        duration: "2 hours",
-        languages: [],
-        tools: ["Codebase"],
-        instructors: ["Martin Eckardt", "Owen Wahlgren", "Nicolas Arnedo"],
-        category: "Codebase"
-    },
-    {
         name: "Blockchain Fundamentals",
         description: "Gain a comprehensive understanding of fundamental blockchain concepts, including how they work, and key components",
         slug: "blockchain-fundamentals",
@@ -169,6 +157,18 @@ const officialCourses: Course[] = [
         languages: ["Solidity"],
         instructors: ["Martin Eckardt", "Andrea Vargas", "Ash"],
         category: "Interoperability"
+    },
+    {
+        name: "Codebase Entrepreneur Academy",
+        description: "Build and scale a Web3 startup with Codebase and Avalanche",
+        slug: "codebase-entrepreneur-academy",
+        icon: <SquareStackIcon />,
+        status: "featured",
+        duration: "1 hour",
+        languages: [],
+        tools: ["Codebase"],
+        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
+        category: "Codebase"
     },
 
     /*{
