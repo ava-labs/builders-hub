@@ -41,13 +41,13 @@ export function WalletPChain() {
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={updatePChainBalance}>
-          <RefreshCw className="mr-2 h-3 w-3" />
-          Refresh Balance
-        </DropdownMenuItem>
         <DropdownMenuItem onClick={copy}>
           <Copy className="mr-2 h-3 w-3" />
           Copy Address
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={updatePChainBalance}>
+          <RefreshCw className="mr-2 h-3 w-3" />
+          Refresh Balance
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem>
