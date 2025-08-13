@@ -200,7 +200,7 @@ const data = {
       items: [
         {
           title: "Bridge Setup",
-          url: "/console/ictt/deploy-native-home",
+          url: "/console/ictt/setup",
           icon: SquareTerminal,
         },
         {
