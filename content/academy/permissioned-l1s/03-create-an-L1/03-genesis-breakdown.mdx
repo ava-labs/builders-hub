@@ -65,4 +65,5 @@ graph TD
 
 - Upgradable app logic can be wired by upgrading the proxy at `0xfacade…` via the admin `0xdad…` to point to a real implementation.
 - CREATE2 deployer, Multicall3 and Wrapped Native Tokens for basic out-of-the-box use of blockchains.
+- We use proxy as predeployed contract to make `convertSubnetToL1` work smoothly, since the txn capacity of this operation is limited, we benefit from already including the data to deploy this before in the *genesis.json*
 
