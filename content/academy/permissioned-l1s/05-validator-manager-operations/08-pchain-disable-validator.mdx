@@ -47,8 +47,8 @@ This is all you will need to know in order to **manage the validator set of your
     PChain->>PChain: Process DisableL1ValidatorTx<br/>Remove keys from disk
     PChain->>L1Validator: Disable validator
 
-    Note right of L1Validator: Validator becomes inactive<br/>Weight still counts toward total<br/>Keys no longer on disk
-    Note over User,L1Manager: 2. Optional: Re-activation
+    Note left of L1Validator: Validator becomes inactive<br/>Weight still counts toward total<br/>Keys no longer on disk
+    Note over User,L1Validator: 2. Optional: Re-activation
 
     User->>PChain: IncreaseBalanceTx(validationID, amount)
     Note right of User: Anyone can call this<br/>for any validator
