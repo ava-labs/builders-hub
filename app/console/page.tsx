@@ -134,7 +134,7 @@ function ConsoleDashboard() {
       {/* Call to Action Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {/* Primary Network Actions */}
-        <Link href="/console/primary-network/node-setup?flow=node-setup" className="group block">
+        <Link href="/console/primary-network/node-setup" className="group block">
           <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
             <div className="flex items-start justify-between mb-4">
               <div className="p-2 rounded-lg bg-muted">
