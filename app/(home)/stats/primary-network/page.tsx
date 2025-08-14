@@ -248,16 +248,21 @@ export default function PrimaryNetworkMetrics() {
 
       if (primaryNetworkData.validator_versions) {
         try {
+          console.log(
+            "Raw validator_versions data:",
+            primaryNetworkData.validator_versions
+          );
           const versionsData = JSON.parse(
             primaryNetworkData.validator_versions
           );
+          console.log("Parsed validator versions data:", versionsData);
 
           const versionArray: VersionCount[] = Object.entries(versionsData)
             .map(([version, data]: [string, any]) => ({
               version,
               count: data.validatorCount,
               percentage: 0,
-              amountStaked: Number.parseInt(data.amountStaked) / 1e9, // Convert to AVAX
+              amountStaked: Number(data.amountStaked) / 1e9,
               stakingPercentage: 0,
             }))
             .sort((a, b) => b.count - a.count);

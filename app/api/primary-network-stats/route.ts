@@ -308,8 +308,11 @@ export async function GET() {
       fetchValidatorVersions()
     ]);
 
+    const validatorVersionsJson = JSON.stringify(validatorVersions);
+    console.log('Validator versions JSON:', validatorVersionsJson);
+
     const metrics: PrimaryNetworkMetrics = {
-      validator_versions: JSON.stringify(validatorVersions),
+      validator_versions: validatorVersionsJson,
     } as PrimaryNetworkMetrics;
 
     for (let i = 1; i <= 30; i++) {
