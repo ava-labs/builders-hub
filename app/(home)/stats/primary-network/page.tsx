@@ -567,8 +567,8 @@ export default function PrimaryNetworkMetrics() {
 
         <section className="space-y-6">
           <div className="space-y-2">
-            <h2 className="text-2xl font-light text-left">Historical Trends</h2>
-            <p className="text-muted-foreground text-left">
+            <h2 className="text-2xl font-medium text-left">Historical Trends</h2>
+            <p className="text-zinc-400 text-md text-left">
               Track network growth and validator activity over time
             </p>
           </div>
@@ -733,8 +733,8 @@ export default function PrimaryNetworkMetrics() {
 
         <section className="space-y-6">
           <div className="space-y-2">
-            <h2 className="text-2xl font-light text-left">Software Versions</h2>
-            <p className="text-muted-foreground text-left">
+            <h2 className="text-2xl font-medium text-left">Software Versions</h2>
+            <p className="text-zinc-400 text-md text-left">
               Distribution of AvalancheGo versions across validators
             </p>
           </div>
