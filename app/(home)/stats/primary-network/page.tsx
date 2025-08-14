@@ -24,6 +24,8 @@ import {
   ChartStyle,
   ChartTooltip,
   ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
 } from "@/components/ui/chart";
 import {
   Select,
@@ -399,7 +401,7 @@ export default function PrimaryNetworkMetrics() {
       percentage: version.percentage,
       amountStaked: version.amountStaked,
       stakingPercentage: version.stakingPercentage,
-      fill: `var(--color-version-${index})`,
+      fill: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`, // Direct color values
     }));
   };
 
@@ -412,8 +414,7 @@ export default function PrimaryNetworkMetrics() {
     };
 
     validatorVersions.forEach((version, index) => {
-      const key = `version-${index}`;
-      config[key] = {
+      config[version.version] = {
         label: version.version,
         color: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`, // Blue variations
       };
@@ -522,7 +523,7 @@ export default function PrimaryNetworkMetrics() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl md:text-5xl mb-4">
-                Primary Network Metrics
+                Primary Network Validator Metrics
               </h1>
               <p className="text-zinc-400 text-md text-left">
                 Real-time insights into the Avalanche Primary Network
@@ -567,7 +568,9 @@ export default function PrimaryNetworkMetrics() {
 
         <section className="space-y-6">
           <div className="space-y-2">
-            <h2 className="text-2xl font-medium text-left">Historical Trends</h2>
+            <h2 className="text-2xl font-medium text-left">
+              Historical Trends
+            </h2>
             <p className="text-zinc-400 text-md text-left">
               Track network growth and validator activity over time
             </p>
@@ -733,7 +736,9 @@ export default function PrimaryNetworkMetrics() {
 
         <section className="space-y-6">
           <div className="space-y-2">
-            <h2 className="text-2xl font-medium text-left">Software Versions</h2>
+            <h2 className="text-2xl font-medium text-left">
+              Software Versions
+            </h2>
             <p className="text-zinc-400 text-md text-left">
               Distribution of AvalancheGo versions across validators
             </p>
@@ -745,25 +750,20 @@ export default function PrimaryNetworkMetrics() {
               {/* By Validator Count */}
               <Card data-chart="pie-count" className="flex flex-col">
                 <ChartStyle id="pie-count" config={versionsChartConfig} />
-                <CardHeader className="flex-row items-start space-y-0 pb-0">
-                  <div className="grid gap-1">
-                    <CardTitle className="flex items-center gap-2">
-                      <Shield
-                        className="h-5 w-5"
-                        style={{ color: "#40c9ff" }}
-                      />
-                      By Validator Count
-                    </CardTitle>
-                    <CardDescription>
-                      Distribution by number of validators
-                    </CardDescription>
-                  </div>
+                <CardHeader className="items-center pb-0">
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
+                    By Validator Count
+                  </CardTitle>
+                  <CardDescription>
+                    Distribution by number of validators
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-1 justify-center pb-0">
+                <CardContent className="flex-1 pb-0">
                   <ChartContainer
                     id="pie-count"
                     config={versionsChartConfig}
-                    className="mx-auto aspect-square w-full max-w-[350px]"
+                    className="mx-auto aspect-square max-h-[300px]"
                   >
                     <PieChart>
                       <ChartTooltip
@@ -794,43 +794,11 @@ export default function PrimaryNetworkMetrics() {
                         data={pieChartData}
                         dataKey="count"
                         nameKey="version"
-                        innerRadius={70}
-                        strokeWidth={5}
-                      >
-                        <Label
-                          content={({ viewBox }) => {
-                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                              const totalValidators = pieChartData.reduce(
-                                (sum, item) => sum + item.count,
-                                0
-                              );
-                              return (
-                                <text
-                                  x={viewBox.cx}
-                                  y={viewBox.cy}
-                                  textAnchor="middle"
-                                  dominantBaseline="middle"
-                                >
-                                  <tspan
-                                    x={viewBox.cx}
-                                    y={viewBox.cy}
-                                    className="fill-foreground text-2xl font-bold"
-                                  >
-                                    {totalValidators.toLocaleString()}
-                                  </tspan>
-                                  <tspan
-                                    x={viewBox.cx}
-                                    y={(viewBox.cy || 0) + 24}
-                                    className="fill-muted-foreground text-sm"
-                                  >
-                                    Total Validators
-                                  </tspan>
-                                </text>
-                              );
-                            }
-                          }}
-                        />
-                      </Pie>
+                      />
+                      <ChartLegend
+                        content={<ChartLegendContent nameKey="version" />}
+                        className="-translate-y-2 flex-wrap gap-2 *:basis-1/4 *:justify-center"
+                      />
                     </PieChart>
                   </ChartContainer>
                 </CardContent>
@@ -839,25 +807,20 @@ export default function PrimaryNetworkMetrics() {
               {/* By Stake Weight */}
               <Card data-chart="pie-stake" className="flex flex-col">
                 <ChartStyle id="pie-stake" config={versionsChartConfig} />
-                <CardHeader className="flex-row items-start space-y-0 pb-0">
-                  <div className="grid gap-1">
-                    <CardTitle className="flex items-center gap-2">
-                      <Shield
-                        className="h-5 w-5"
-                        style={{ color: "#40c9ff" }}
-                      />
-                      By Stake Weight
-                    </CardTitle>
-                    <CardDescription>
-                      Distribution by amount staked
-                    </CardDescription>
-                  </div>
+                <CardHeader className="items-center pb-0">
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
+                    By Stake Weight
+                  </CardTitle>
+                  <CardDescription>
+                    Distribution by amount staked
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-1 justify-center pb-0">
+                <CardContent className="flex-1 pb-0">
                   <ChartContainer
                     id="pie-stake"
                     config={versionsChartConfig}
-                    className="mx-auto aspect-square w-full max-w-[350px]"
+                    className="mx-auto aspect-square max-h-[300px]"
                   >
                     <PieChart>
                       <ChartTooltip
@@ -892,47 +855,11 @@ export default function PrimaryNetworkMetrics() {
                         data={pieChartData}
                         dataKey="amountStaked"
                         nameKey="version"
-                        innerRadius={70}
-                        strokeWidth={5}
-                      >
-                        <Label
-                          content={({ viewBox }) => {
-                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                              const totalStaked = pieChartData.reduce(
-                                (sum, item) => sum + item.amountStaked,
-                                0
-                              );
-                              return (
-                                <text
-                                  x={viewBox.cx}
-                                  y={viewBox.cy}
-                                  textAnchor="middle"
-                                  dominantBaseline="middle"
-                                >
-                                  <tspan
-                                    x={viewBox.cx}
-                                    y={viewBox.cy}
-                                    className="fill-foreground text-lg font-bold"
-                                  >
-                                    {(totalStaked / 1000000).toLocaleString(
-                                      undefined,
-                                      { maximumFractionDigits: 1 }
-                                    )}
-                                    M
-                                  </tspan>
-                                  <tspan
-                                    x={viewBox.cx}
-                                    y={(viewBox.cy || 0) + 24}
-                                    className="fill-muted-foreground text-sm"
-                                  >
-                                    AVAX Staked
-                                  </tspan>
-                                </text>
-                              );
-                            }
-                          }}
-                        />
-                      </Pie>
+                      />
+                      <ChartLegend
+                        content={<ChartLegendContent nameKey="version" />}
+                        className="-translate-y-2 flex-wrap gap-2 *:basis-1/4 *:justify-center"
+                      />
                     </PieChart>
                   </ChartContainer>
                 </CardContent>
