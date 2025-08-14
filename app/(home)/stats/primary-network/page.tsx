@@ -43,6 +43,7 @@ import {
   Monitor,
   HandCoins,
 } from "lucide-react";
+import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 
 interface PrimaryNetworkMetrics {
   // Validator versions JSON string
@@ -967,6 +968,11 @@ export default function PrimaryNetworkMetrics() {
               )}
             </CardContent>
           </Card>
+        </section>
+
+        {/* Global Validator Distribution Map */}
+        <section className="space-y-6">
+          <ValidatorWorldMap />
         </section>
       </div>
     </div>
