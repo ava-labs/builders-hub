@@ -36,10 +36,12 @@ export function SiteHeader() {
         <Breadcrumb>
           <BreadcrumbList>
             {breadcrumbs.map((breadcrumb, index) => (
-              <div key={breadcrumb.href} className="flex items-center">
+              <div key={`${breadcrumb.href}-${index}`} className="flex items-center">
                 <BreadcrumbItem className="hidden md:block">
                   {breadcrumb.isCurrentPage ? (
                     <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
+                  ) : breadcrumb.href === "#" ? (
+                    <span className="text-muted-foreground">{breadcrumb.label}</span>
                   ) : (
                     <BreadcrumbLink href={breadcrumb.href}>
                       {breadcrumb.label}

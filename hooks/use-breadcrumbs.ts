@@ -30,20 +30,24 @@ export function useBreadcrumbs(routeMetadata: RouteMetadata): BreadcrumbItem[] {
       return generateFallbackBreadcrumbs(pathname);
     }
 
-    // Generate breadcrumb items with proper hrefs
+    // Generate breadcrumb items - only the first (Console) and last (current page) are clickable
     const breadcrumbs: BreadcrumbItem[] = [];
     
     for (let i = 0; i < breadcrumbLabels.length; i++) {
       const label = breadcrumbLabels[i];
+      const isFirst = i === 0;
       const isLast = i === breadcrumbLabels.length - 1;
       
       let href: string;
-      if (i === 0) {
-        // First item is always console root
+      if (isFirst) {
+        // First item always links to console root
         href = "/console";
+      } else if (isLast) {
+        // Last item links to current page
+        href = pathname;
       } else {
-        // Build href by finding the path segments up to this point
-        href = buildHrefFromSegments(pathname, i, breadcrumbLabels.length);
+        // Middle items are not clickable (no intermediate pages exist)
+        href = "#";
       }
 
       breadcrumbs.push({
@@ -59,6 +63,7 @@ export function useBreadcrumbs(routeMetadata: RouteMetadata): BreadcrumbItem[] {
 
 /**
  * Generate fallback breadcrumbs from pathname when no metadata exists
+ * Only generates Console > Current Page (no intermediate levels)
  */
 function generateFallbackBreadcrumbs(pathname: string): BreadcrumbItem[] {
   const segments = pathname.split("/").filter(Boolean);
@@ -67,41 +72,25 @@ function generateFallbackBreadcrumbs(pathname: string): BreadcrumbItem[] {
     return [{ label: "Console", href: "/console", isCurrentPage: pathname === "/console" }];
   }
 
-  const breadcrumbs: BreadcrumbItem[] = [];
-  let currentPath = "";
+  // For fallback, just show Console > Current Page
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: "Console", href: "/console", isCurrentPage: false }
+  ];
 
-  segments.forEach((segment, index) => {
-    currentPath += `/${segment}`;
-    const isLast = index === segments.length - 1;
-    
-    // Convert segment to readable label
-    const label = segment
+  if (pathname !== "/console") {
+    // Convert the last segment to a readable label for the current page
+    const currentPageSegment = segments[segments.length - 1];
+    const currentPageLabel = currentPageSegment
       .split("-")
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
 
     breadcrumbs.push({
-      label,
-      href: currentPath,
-      isCurrentPage: isLast,
+      label: currentPageLabel,
+      href: pathname,
+      isCurrentPage: true,
     });
-  });
+  }
 
   return breadcrumbs;
-}
-
-/**
- * Build href for a breadcrumb item based on its position in the breadcrumb chain
- */
-function buildHrefFromSegments(fullPath: string, currentIndex: number, totalBreadcrumbs: number): string {
-  const pathSegments = fullPath.split("/").filter(Boolean);
-  
-  if (currentIndex === 0) {
-    return "/console";
-  }
-  
-  // Calculate how many path segments this breadcrumb represents
-  const segmentsForThisBreadcrumb = Math.ceil((pathSegments.length * currentIndex) / (totalBreadcrumbs - 1));
-  
-  return "/" + pathSegments.slice(0, segmentsForThisBreadcrumb).join("/");
 }
