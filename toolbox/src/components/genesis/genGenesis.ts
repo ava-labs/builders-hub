@@ -101,16 +101,29 @@ export function generateGenesis({ evmChainId, tokenAllocations, txAllowlistConfi
     if (preinstallConfig?.multicall3) {
         allocations[MULTICALL3_ADDRESS.slice(2).toLowerCase()] = {
             balance: "0x0",
-            code: (Multicall3.deployedBytecode as any).object,
+            code: Multicall3.deployedBytecode.object,
             nonce: "0x1",
         };
     }
 
     if (preinstallConfig?.icmMessenger) {
+        // TeleporterMessenger storage layout:
+        // Inherits from ReentrancyGuards first, so its storage comes first:
+        // Slot 0: _sendEntered (uint256) - from ReentrancyGuards, must be 1 (_NOT_ENTERED)
+        // Slot 1: _receiveEntered (uint256) - from ReentrancyGuards, must be 1 (_NOT_ENTERED)
+        // Then TeleporterMessenger's storage:
+        // Slot 2: blockchainID (bytes32) - will be initialized on first use
+        // Slot 3: messageNonce (uint256) - starts at 0
         allocations[ICM_MESSENGER_ADDRESS.slice(2).toLowerCase()] = {
             balance: "0x0",
-            code: (TeleporterMessenger.deployedBytecode as any).object,
+            code: TeleporterMessenger.deployedBytecode.object,
             nonce: "0x1",
+            storage: {
+                // Slot 0: _sendEntered - Initialize to 1 (_NOT_ENTERED)
+                "0x0000000000000000000000000000000000000000000000000000000000000000": "0x0000000000000000000000000000000000000000000000000000000000000001",
+                // Slot 1: _receiveEntered - Initialize to 1 (_NOT_ENTERED)
+                "0x0000000000000000000000000000000000000000000000000000000000000001": "0x0000000000000000000000000000000000000000000000000000000000000001"
+            }
         };
     }
 
