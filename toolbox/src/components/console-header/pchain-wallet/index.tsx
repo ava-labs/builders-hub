@@ -2,8 +2,9 @@
 
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftRight, Copy, Droplet, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, Copy, RefreshCw } from "lucide-react";
 import { useWalletStore } from "@/stores/walletStore";
+import { PChainFaucetMenuItem } from "./components/PChainFaucetMenuItem";
 
 export function WalletPChain() {
   const pChainAddress = useWalletStore((s) => s.pChainAddress);
@@ -50,11 +51,8 @@ export function WalletPChain() {
           Refresh Balance
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <Droplet className="mr-2 h-3 w-3" />
-          Get AVAX from Faucet
-        </DropdownMenuItem>
-        <DropdownMenuItem>
+        <PChainFaucetMenuItem />
+        <DropdownMenuItem onClick={() => window.location.href = '/console/primary-network/bridge'}>
           <ArrowLeftRight className="mr-2 h-3 w-3" />
           Bridge AVAX from C-Chain
         </DropdownMenuItem>
