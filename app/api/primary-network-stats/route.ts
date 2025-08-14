@@ -238,9 +238,13 @@ async function getValidatorWeight30Days() {
 }
 
 async function fetchValidatorVersions() {
-  if (!GLACIER_API_KEY) return {};
+  if (!GLACIER_API_KEY) {
+    console.error('GLACIER_API_KEY is missing');
+    return {};
+  }
 
   try {
+    console.log('Fetching validator versions from Glacier API...');
     const response = await fetch('https://glacier-api.avax.network/v1/networks/mainnet', {
       headers: {
         'x-glacier-api-key': GLACIER_API_KEY,
@@ -250,18 +254,22 @@ async function fetchValidatorVersions() {
 
     if (!response.ok) {
       console.error(`Glacier API failed with status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
       return {};
     }
 
     const data = await response.json();
-    console.log('Glacier API response received:', {
-      validatorCount: data?.validatorDetails?.validatorCount,
-      totalAmountStaked: data?.validatorDetails?.totalAmountStaked,
-      versionsCount: data?.validatorDetails?.stakingDistributionByVersion?.length
-    });
+    console.log('Full Glacier API response:', JSON.stringify(data, null, 2));
+
+    if (!data?.validatorDetails) {
+      console.error('No validatorDetails found in response');
+      return {};
+    }
 
     if (!data?.validatorDetails?.stakingDistributionByVersion) {
-      console.error('No stakingDistributionByVersion found in response');
+      console.error('No stakingDistributionByVersion found in validatorDetails');
+      console.log('Available validatorDetails keys:', Object.keys(data.validatorDetails));
       return {};
     }
 
@@ -272,8 +280,11 @@ async function fetchValidatorVersions() {
           validatorCount: item.validatorCount,
           amountStaked: item.amountStaked
         };
+        console.log(`Added version: ${item.version} with ${item.validatorCount} validators`);
       }
     });
+
+    console.log('Final version data:', versionData);
     return versionData;
   } catch (error) {
     console.error('Error fetching validator versions:', error);

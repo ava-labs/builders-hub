@@ -34,17 +34,14 @@ import {
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
-  Activity,
-  Users,
-  Weight,
+  Landmark,
   Shield,
   Loader2,
   TrendingUp,
-  MapPin,
-  RefreshCw,
+  Monitor,
+  HandCoins,
 } from "lucide-react";
 
-// Simplified interface for Primary Network metrics (no chain metadata)
 interface PrimaryNetworkMetrics {
   // Validator versions JSON string
   validator_versions: string;
@@ -431,7 +428,7 @@ export default function PrimaryNetworkMetrics() {
   const chartConfigs = [
     {
       title: "Validator Count",
-      icon: Shield,
+      icon: Monitor,
       metricPrefix: "validator_count",
       description: `Number of active validators over the past ${timeRange === "7d" ? "7" : "30"} days`,
       chartConfig: {
@@ -443,7 +440,7 @@ export default function PrimaryNetworkMetrics() {
     },
     {
       title: "Validator Weight",
-      icon: Weight,
+      icon: Landmark,
       metricPrefix: "validator_weight",
       description: `Total validator weight over the past ${timeRange === "7d" ? "7" : "30"} days`,
       chartConfig: {
@@ -455,7 +452,7 @@ export default function PrimaryNetworkMetrics() {
     },
     {
       title: "Delegator Count",
-      icon: Users,
+      icon: HandCoins,
       metricPrefix: "delegator_count",
       description: `Number of active delegators over the past ${timeRange === "7d" ? "7" : "30"} days`,
       chartConfig: {
@@ -467,7 +464,7 @@ export default function PrimaryNetworkMetrics() {
     },
     {
       title: "Delegator Weight",
-      icon: Activity,
+      icon: Landmark,
       metricPrefix: "delegator_weight",
       description: `Total delegator weight over the past ${timeRange === "7d" ? "7" : "30"} days`,
       chartConfig: {
@@ -520,45 +517,24 @@ export default function PrimaryNetworkMetrics() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto p-6 space-y-12">
+      <div className="container mx-auto mt-4 p-6 space-y-12">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-light text-left">
+              <h1 className="text-2xl md:text-5xl mb-4">
                 Primary Network Metrics
               </h1>
-              <p className="text-muted-foreground text-left">
+              <p className="text-zinc-400 text-md text-left">
                 Real-time insights into the Avalanche Primary Network
                 performance and validator distribution
               </p>
-            </div>
-            <div className="flex items-center gap-4">
-              {lastUpdated && (
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Last updated</p>
-                  <p className="text-sm font-medium">{lastUpdated}</p>
-                </div>
-              )}
-              <button
-                onClick={fetchData}
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <RefreshCw
-                  className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
-                />
-                Refresh
-              </button>
             </div>
           </div>
         </div>
 
         <section className="space-y-6">
           <div className="space-y-2">
-            <h2 className="text-2xl font-light text-left">Network Overview</h2>
-            <p className="text-muted-foreground text-left">
-              Current state of the Avalanche Primary Network
-            </p>
+            <h2 className="text-2xl font-medium text-left">Network Overview</h2>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
