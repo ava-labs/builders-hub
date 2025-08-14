@@ -215,7 +215,7 @@ export default function StepFlow({
         </ol>
       </nav>
 
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
+      <div className="p-4">
         <div className="min-h-[200px]">
           <CurrentComponent />
         </div>
