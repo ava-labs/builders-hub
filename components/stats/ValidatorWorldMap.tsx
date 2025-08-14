@@ -73,11 +73,15 @@ export function ValidatorWorldMap() {
   };
 
   const formatStaked = (staked: string) => {
-    const num = parseFloat(staked);
-    if (num >= 1e9) return `${(num / 1e9).toFixed(1)}B`;
-    if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M`;
-    if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
-    return num.toString();
+    // Convert to AVAX by dividing by 10^9
+    const rawAmount = parseFloat(staked);
+    const avaxAmount = rawAmount / 1e9;
+
+    if (avaxAmount >= 1e6) return `${(avaxAmount / 1e6).toFixed(1)}M`;
+    if (avaxAmount >= 1e3) return `${(avaxAmount / 1e3).toFixed(1)}K`;
+    if (avaxAmount >= 100) return `${avaxAmount.toFixed(0)}`;
+    if (avaxAmount >= 1) return `${avaxAmount.toFixed(1)}`;
+    return avaxAmount.toFixed(3);
   };
 
   const getMarkerSize = (country: CountryData, maxValue: number) => {
@@ -87,7 +91,8 @@ export function ValidatorWorldMap() {
 
     switch (visualMode) {
       case "stake":
-        value = parseFloat(country.totalStaked);
+        // Convert to AVAX by dividing by 10^9
+        value = parseFloat(country.totalStaked) / 1e9;
         break;
       case "heatmap":
         value = country.percentage;
@@ -109,7 +114,8 @@ export function ValidatorWorldMap() {
 
     switch (visualMode) {
       case "stake":
-        value = parseFloat(country.totalStaked);
+        // Convert to AVAX by dividing by 10^9
+        value = parseFloat(country.totalStaked) / 1e9;
         break;
       case "heatmap":
         value = country.percentage;
@@ -140,7 +146,8 @@ export function ValidatorWorldMap() {
   const getMaxValue = () => {
     switch (visualMode) {
       case "stake":
-        return Math.max(...geoData.map((d) => parseFloat(d.totalStaked)));
+        // Convert to AVAX by dividing by 10^9
+        return Math.max(...geoData.map((d) => parseFloat(d.totalStaked) / 1e9));
       case "heatmap":
         return Math.max(...geoData.map((d) => d.percentage));
       default:
@@ -157,7 +164,8 @@ export function ValidatorWorldMap() {
             Global Validator Distribution
           </CardTitle>
           <CardDescription>
-            Geographic distribution of Avalanche Primary Network validators worldwide
+            Geographic distribution of Avalanche Primary Network validators
+            worldwide
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[500px] flex items-center justify-center">
@@ -176,7 +184,8 @@ export function ValidatorWorldMap() {
             Global Validator Distribution
           </CardTitle>
           <CardDescription>
-            Geographic distribution of Avalanche Primary Network validators worldwide
+            Geographic distribution of Avalanche Primary Network validators
+            worldwide
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[500px] flex items-center justify-center">
@@ -228,7 +237,8 @@ export function ValidatorWorldMap() {
               Global Validator Distribution
             </CardTitle>
             <CardDescription>
-              Geographic distribution of Avalanche Primary Network validators worldwide
+              Geographic distribution of Avalanche Primary Network validators
+              worldwide
             </CardDescription>
           </div>
           <div className="flex gap-2">
