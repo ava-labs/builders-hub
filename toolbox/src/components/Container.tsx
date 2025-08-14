@@ -25,21 +25,25 @@ export function Container({
 }: ContainerProps) {
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h3 className="text-2xl font-semibold leading-tight text-foreground">{title}</h3>
-        {description && (
-          <div className="text-sm text-muted-foreground">
-            {description}
-          </div>
-        )}
-        {subDescription && (
-          <p className="text-sm text-muted-foreground">{subDescription}</p>
-        )}
+    <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-background mb-8">
+      <div className="border-b border-zinc-200 dark:border-zinc-800 p-6 md:p-8">
+        <div className="space-y-3">
+          <h3 className="text-xl md:text-2xl font-semibold leading-tight text-foreground">{title}</h3>
+          {description && (
+            <div className="text-sm text-muted-foreground leading-relaxed">
+              {description}
+            </div>
+          )}
+          {subDescription && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{subDescription}</p>
+          )}
+        </div>
       </div>
 
-      <div className="space-y-6 text-foreground">
-        {children}
+      <div className="p-6 md:p-8">
+        <div className="space-y-8 text-foreground [&_.steps>li:not(:last-child)]:mb-12 [&_.step]:pb-8 [&_button]:mb-4 [&_.steps]:space-y-12 [&_p]:leading-relaxed [&_p]:mb-4 [&_div]:leading-relaxed [&_.step_h3]:mb-3 [&_.step_div]:space-y-3">
+          {children}
+        </div>
       </div>
     </div>
   )
