@@ -10,12 +10,9 @@ import {
   Label,
   Pie,
   PieChart,
-  Sector,
 } from "recharts";
-import { PieSectorDataItem } from "recharts/types/polar/Pie";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -43,6 +40,8 @@ import {
   Shield,
   Loader2,
   TrendingUp,
+  MapPin,
+  RefreshCw,
 } from "lucide-react";
 
 // Simplified interface for Primary Network metrics (no chain metadata)
@@ -228,96 +227,20 @@ export default function PrimaryNetworkMetrics() {
   );
   const [versionsError, setVersionsError] = useState<string | null>(null);
 
-  const parseCSV = (csvText: string): PrimaryNetworkMetrics | null => {
-    const lines = csvText.trim().split("\n");
-    if (lines.length < 2) return null;
-
-    const headers = lines[0].split(",");
-
-    // Since we only have one row of data (Primary Network only), parse the second line
-    const dataLine = lines[1];
-    const values: string[] = [];
-    let current = "";
-    let inQuotes = false;
-    let i = 0;
-
-    while (i < dataLine.length) {
-      const char = dataLine[i];
-
-      if (char === '"') {
-        if (inQuotes && i + 1 < dataLine.length && dataLine[i + 1] === '"') {
-          // Handle escaped quote ("")
-          current += '"';
-          i += 2; // Skip both quotes
-        } else {
-          // Toggle quote mode
-          inQuotes = !inQuotes;
-          i++;
-        }
-      } else if (char === "," && !inQuotes) {
-        values.push(current);
-        current = "";
-        i++;
-      } else {
-        current += char;
-        i++;
-      }
-    }
-    values.push(current);
-
-    console.log("Parsed CSV values count:", values.length);
-    console.log("Headers count:", headers.length);
-    console.log("Last few values:", values.slice(-3));
-
-    if (values.length >= headers.length) {
-      const rowData: any = {};
-      headers.forEach((header, index) => {
-        const cleanHeader = header.trim();
-        let rawValue = values[index] || "";
-
-        // Special handling for validator_versions (keep as JSON string)
-        if (cleanHeader === "validator_versions") {
-          console.log(
-            "Raw validator_versions field from CSV:",
-            JSON.stringify(rawValue)
-          );
-          console.log("Raw validator_versions length:", rawValue.length);
-
-          // The enhanced CSV parser should have already handled the quotes properly
-          // Just store the value as-is
-          rowData[cleanHeader] = rawValue;
-          return;
-        }
-
-        rawValue = rawValue.replace(/"/g, "");
-        let value: string | number = rawValue;
-        if (rawValue !== "N/A" && rawValue !== "" && !isNaN(Number(rawValue))) {
-          value = Number(rawValue);
-        }
-        rowData[cleanHeader] = value;
-      });
-
-      return rowData as PrimaryNetworkMetrics;
-    }
-
-    return null;
-  };
-
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/data/primary-network-stats.csv");
+      const response = await fetch("/api/primary-network-stats");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const csvText = await response.text();
-      const primaryNetworkData = parseCSV(csvText);
+      const primaryNetworkData = await response.json();
 
       if (!primaryNetworkData) {
-        throw new Error("Primary Network data not found in CSV");
+        throw new Error("Primary Network data not found");
       }
 
       setMetrics(primaryNetworkData);
@@ -334,7 +257,7 @@ export default function PrimaryNetworkMetrics() {
               version,
               count: data.validatorCount,
               percentage: 0,
-              amountStaked: parseInt(data.amountStaked) / 1e9, // Convert to AVAX
+              amountStaked: Number.parseInt(data.amountStaked) / 1e9, // Convert to AVAX
               stakingPercentage: 0,
             }))
             .sort((a, b) => b.count - a.count);
@@ -358,9 +281,7 @@ export default function PrimaryNetworkMetrics() {
           setValidatorVersions(versionArray);
         } catch (err) {
           setVersionsError(
-            `Failed to parse validator versions data: ${
-              err instanceof Error ? err.message : "Unknown error"
-            }`
+            `Failed to parse validator versions data: ${err instanceof Error ? err.message : "Unknown error"}`
           );
         }
       }
@@ -377,27 +298,29 @@ export default function PrimaryNetworkMetrics() {
 
   const formatNumber = (num: number | string): string => {
     if (num === "N/A" || num === "") return "N/A";
-    const numValue = typeof num === "string" ? parseFloat(num) : num;
+    const numValue = typeof num === "string" ? Number.parseFloat(num) : num;
     if (isNaN(numValue)) return "N/A";
     return numValue.toLocaleString();
   };
 
   const formatWeight = (weight: number | string): string => {
     if (weight === "N/A" || weight === "") return "N/A";
-    const numValue = typeof weight === "string" ? parseFloat(weight) : weight;
+    const numValue =
+      typeof weight === "string" ? Number.parseFloat(weight) : weight;
     if (isNaN(numValue)) return "N/A";
 
-    // Format large numbers in a more readable way
-    if (numValue >= 1e12) {
-      return `${(numValue / 1e12).toFixed(2)}T`;
-    } else if (numValue >= 1e9) {
-      return `${(numValue / 1e9).toFixed(2)}B`;
-    } else if (numValue >= 1e6) {
-      return `${(numValue / 1e6).toFixed(2)}M`;
-    } else if (numValue >= 1e3) {
-      return `${(numValue / 1e3).toFixed(2)}K`;
+    const avaxValue = numValue / 1e9;
+
+    if (avaxValue >= 1e12) {
+      return `${(avaxValue / 1e12).toFixed(2)}T AVAX`;
+    } else if (avaxValue >= 1e9) {
+      return `${(avaxValue / 1e9).toFixed(2)}B AVAX`;
+    } else if (avaxValue >= 1e6) {
+      return `${(avaxValue / 1e6).toFixed(2)}M AVAX`;
+    } else if (avaxValue >= 1e3) {
+      return `${(avaxValue / 1e3).toFixed(2)}K AVAX`;
     }
-    return numValue.toLocaleString();
+    return `${avaxValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} AVAX`;
   };
 
   const getChartData = (metricPrefix: string): ChartDataPoint[] => {
@@ -415,7 +338,8 @@ export default function PrimaryNetworkMetrics() {
       const dayKey =
         `${metricPrefix}_day${daysToShow - i}` as keyof PrimaryNetworkMetrics;
       const value = metrics[dayKey];
-      const numValue = typeof value === "string" ? parseFloat(value) : value;
+      const numValue =
+        typeof value === "string" ? Number.parseFloat(value) : value;
 
       chartData.push({
         day: dayLabel,
@@ -442,11 +366,11 @@ export default function PrimaryNetworkMetrics() {
 
     const current =
       typeof metrics[currentKey] === "string"
-        ? parseFloat(metrics[currentKey] as string)
+        ? Number.parseFloat(metrics[currentKey] as string)
         : metrics[currentKey];
     const previous =
       typeof metrics[previousKey] === "string"
-        ? parseFloat(metrics[previousKey] as string)
+        ? Number.parseFloat(metrics[previousKey] as string)
         : metrics[previousKey];
 
     if (
@@ -558,7 +482,7 @@ export default function PrimaryNetworkMetrics() {
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-muted-foreground">
-                Loading Primary Network metrics...
+                Fetching real-time Primary Network data...
               </p>
             </div>
           </div>
@@ -591,484 +515,551 @@ export default function PrimaryNetworkMetrics() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto p-6 space-y-8">
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {chartConfigs.map((config, index) => {
-            const chartData = getChartData(config.metricPrefix);
-            const currentValue = getCurrentValue(config.metricPrefix);
-            const { change, isPositive } = getValueChange(config.metricPrefix);
-            const Icon = config.icon;
+      <div className="container mx-auto p-6 space-y-12">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-light text-left">
+                Primary Network Metrics
+              </h1>
+              <p className="text-muted-foreground text-left">
+                Real-time insights into the Avalanche Primary Network
+                performance and validator distribution
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              {lastUpdated && (
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Last updated</p>
+                  <p className="text-sm font-medium">{lastUpdated}</p>
+                </div>
+              )}
+              <button
+                onClick={fetchData}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
 
-            return (
-              <Card key={config.metricPrefix} className="w-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Icon className="h-5 w-5" style={{ color: "#40c9ff" }} />
+        <section className="space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-light text-left">Network Overview</h2>
+            <p className="text-muted-foreground text-left">
+              Current state of the Avalanche Primary Network
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {chartConfigs.map((config) => {
+              const currentValue = getCurrentValue(config.metricPrefix);
+              const Icon = config.icon;
+
+              return (
+                <div
+                  key={config.metricPrefix}
+                  className="text-center p-6 rounded-lg bg-card border"
+                >
+                  <Icon
+                    className="h-8 w-8 mx-auto mb-3"
+                    style={{ color: "#40c9ff" }}
+                  />
+                  <p className="text-sm text-muted-foreground mb-1">
                     {config.title}
-                  </CardTitle>
-                  <CardDescription>{config.description}</CardDescription>
-                  <CardAction>
-                    <ToggleGroup
-                      type="single"
-                      value={timeRange}
-                      onValueChange={setTimeRange}
-                      variant="outline"
-                      className="hidden sm:flex"
-                    >
-                      <ToggleGroupItem value="30d">
-                        Last 30 days
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value="7d">Last 7 days</ToggleGroupItem>
-                    </ToggleGroup>
-                    <Select value={timeRange} onValueChange={setTimeRange}>
-                      <SelectTrigger
-                        className="w-40 sm:hidden"
-                        size="sm"
-                        aria-label="Select a value"
-                      >
-                        <SelectValue placeholder="Last 30 days" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        <SelectItem value="30d" className="rounded-lg">
-                          Last 30 days
-                        </SelectItem>
-                        <SelectItem value="7d" className="rounded-lg">
-                          Last 7 days
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </CardAction>
-                </CardHeader>
-                <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="text-2xl font-bold">
-                      {config.metricPrefix.includes("weight")
-                        ? formatWeight(currentValue)
-                        : formatNumber(currentValue)}
-                    </div>
-                    {change > 0 && (
-                      <div
-                        className={`flex items-center gap-1 text-sm ${
-                          isPositive ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        <TrendingUp
-                          className={`h-4 w-4 ${
-                            isPositive ? "" : "rotate-180"
-                          }`}
-                        />
-                        {change.toFixed(1)}%
+                  </p>
+                  <p className="text-xl font-semibold">
+                    {config.metricPrefix.includes("weight")
+                      ? formatWeight(currentValue)
+                      : formatNumber(currentValue)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-light text-left">Historical Trends</h2>
+            <p className="text-muted-foreground text-left">
+              Track network growth and validator activity over time
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {chartConfigs.map((config, index) => {
+              const chartData = getChartData(config.metricPrefix);
+              const currentValue = getCurrentValue(config.metricPrefix);
+              const { change, isPositive } = getValueChange(
+                config.metricPrefix
+              );
+              const Icon = config.icon;
+
+              return (
+                <Card key={config.metricPrefix} className="w-full">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <CardTitle className="flex items-center gap-2">
+                          <Icon
+                            className="h-5 w-5"
+                            style={{ color: "#40c9ff" }}
+                          />
+                          {config.title}
+                        </CardTitle>
+                        <CardDescription>{config.description}</CardDescription>
                       </div>
-                    )}
-                  </div>
-                  <ChartContainer
-                    config={config.chartConfig}
-                    className="aspect-auto h-[250px] w-full"
-                  >
-                    <AreaChart data={chartData}>
-                      <defs>
-                        <linearGradient
-                          id={`fill-${config.metricPrefix}`}
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
+                      {/* Replaced CardAction with direct div and moved controls to header */}
+                      <div className="flex items-center gap-2">
+                        <ToggleGroup
+                          type="single"
+                          value={timeRange}
+                          onValueChange={setTimeRange}
+                          variant="outline"
+                          className="hidden sm:flex"
                         >
-                          <stop
-                            offset="5%"
-                            stopColor={`var(--color-value)`}
-                            stopOpacity={0.8}
+                          <ToggleGroupItem value="30d">
+                            Last 30 days
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="7d">
+                            Last 7 days
+                          </ToggleGroupItem>
+                        </ToggleGroup>
+                        <Select value={timeRange} onValueChange={setTimeRange}>
+                          <SelectTrigger
+                            className="w-40 sm:hidden"
+                            size="sm"
+                            aria-label="Select a value"
+                          >
+                            <SelectValue placeholder="Last 30 days" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="30d" className="rounded-lg">
+                              Last 30 days
+                            </SelectItem>
+                            <SelectItem value="7d" className="rounded-lg">
+                              Last 7 days
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="text-2xl font-bold">
+                        {config.metricPrefix.includes("weight")
+                          ? formatWeight(currentValue)
+                          : formatNumber(currentValue)}
+                      </div>
+                      {change > 0 && (
+                        <div
+                          className={`flex items-center gap-1 text-sm ${
+                            isPositive ? "text-green-600" : "text-red-600"
+                          }`}
+                        >
+                          <TrendingUp
+                            className={`h-4 w-4 ${isPositive ? "" : "rotate-180"}`}
                           />
-                          <stop
-                            offset="95%"
-                            stopColor={`var(--color-value)`}
-                            stopOpacity={0.1}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid vertical={false} />
-                      <XAxis
-                        dataKey="day"
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={8}
-                        minTickGap={32}
-                        tickFormatter={(value) => {
-                          const date = new Date(value);
-                          return date.toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          });
-                        }}
+                          {change.toFixed(1)}%
+                        </div>
+                      )}
+                    </div>
+                    <ChartContainer
+                      config={config.chartConfig}
+                      className="aspect-auto h-[250px] w-full"
+                    >
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient
+                            id={`fill-${config.metricPrefix}`}
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="5%"
+                              stopColor={`var(--color-value)`}
+                              stopOpacity={0.8}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor={`var(--color-value)`}
+                              stopOpacity={0.1}
+                            />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="day"
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                          minTickGap={32}
+                          tickFormatter={(value) => {
+                            const date = new Date(value);
+                            return date.toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            });
+                          }}
+                        />
+                        <ChartTooltip
+                          cursor={false}
+                          content={
+                            <ChartTooltipContent
+                              labelFormatter={(value) => {
+                                return new Date(value).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                  }
+                                );
+                              }}
+                              indicator="dot"
+                              formatter={(value) => [
+                                config.metricPrefix.includes("weight")
+                                  ? formatWeight(value as number)
+                                  : formatNumber(value as number),
+                                config.title,
+                              ]}
+                            />
+                          }
+                        />
+                        <Area
+                          dataKey="value"
+                          type="natural"
+                          fill={`url(#fill-${config.metricPrefix})`}
+                          stroke={`var(--color-value)`}
+                          strokeWidth={2}
+                        />
+                      </AreaChart>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-light text-left">Software Versions</h2>
+            <p className="text-muted-foreground text-left">
+              Distribution of AvalancheGo versions across validators
+            </p>
+          </div>
+
+          {/* Version Distribution Charts */}
+          {validatorVersions.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* By Validator Count */}
+              <Card data-chart="pie-count" className="flex flex-col">
+                <ChartStyle id="pie-count" config={versionsChartConfig} />
+                <CardHeader className="flex-row items-start space-y-0 pb-0">
+                  <div className="grid gap-1">
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield
+                        className="h-5 w-5"
+                        style={{ color: "#40c9ff" }}
                       />
+                      By Validator Count
+                    </CardTitle>
+                    <CardDescription>
+                      Distribution by number of validators
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex flex-1 justify-center pb-0">
+                  <ChartContainer
+                    id="pie-count"
+                    config={versionsChartConfig}
+                    className="mx-auto aspect-square w-full max-w-[350px]"
+                  >
+                    <PieChart>
                       <ChartTooltip
                         cursor={false}
-                        content={
-                          <ChartTooltipContent
-                            labelFormatter={(value) => {
-                              return new Date(value).toLocaleDateString(
-                                "en-US",
-                                {
-                                  month: "short",
-                                  day: "numeric",
-                                }
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="rounded-lg border bg-background p-2 shadow-sm">
+                                <div className="grid gap-2">
+                                  <div className="flex flex-col">
+                                    <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                      {data.version}
+                                    </span>
+                                    <span className="font-bold text-muted-foreground">
+                                      {data.count} validators (
+                                      {data.percentage.toFixed(1)}%)
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Pie
+                        data={pieChartData}
+                        dataKey="count"
+                        nameKey="version"
+                        innerRadius={70}
+                        strokeWidth={5}
+                      >
+                        <Label
+                          content={({ viewBox }) => {
+                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                              const totalValidators = pieChartData.reduce(
+                                (sum, item) => sum + item.count,
+                                0
                               );
-                            }}
-                            indicator="dot"
-                            formatter={(value) => [
-                              config.metricPrefix.includes("weight")
-                                ? formatWeight(value as number)
-                                : formatNumber(value as number),
-                              config.title,
-                            ]}
-                          />
-                        }
-                      />
-                      <Area
-                        dataKey="value"
-                        type="natural"
-                        fill={`url(#fill-${config.metricPrefix})`}
-                        stroke={`var(--color-value)`}
-                        strokeWidth={2}
-                      />
-                    </AreaChart>
+                              return (
+                                <text
+                                  x={viewBox.cx}
+                                  y={viewBox.cy}
+                                  textAnchor="middle"
+                                  dominantBaseline="middle"
+                                >
+                                  <tspan
+                                    x={viewBox.cx}
+                                    y={viewBox.cy}
+                                    className="fill-foreground text-2xl font-bold"
+                                  >
+                                    {totalValidators.toLocaleString()}
+                                  </tspan>
+                                  <tspan
+                                    x={viewBox.cx}
+                                    y={(viewBox.cy || 0) + 24}
+                                    className="fill-muted-foreground text-sm"
+                                  >
+                                    Total Validators
+                                  </tspan>
+                                </text>
+                              );
+                            }
+                          }}
+                        />
+                      </Pie>
+                    </PieChart>
                   </ChartContainer>
                 </CardContent>
               </Card>
-            );
-          })}
-        </div>
 
-        {/* Validator Version Distribution Charts */}
-        {validatorVersions.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* By Validator Count */}
-            <Card data-chart="pie-count" className="flex flex-col">
-              <ChartStyle id="pie-count" config={versionsChartConfig} />
-              <CardHeader className="flex-row items-start space-y-0 pb-0">
-                <div className="grid gap-1">
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
-                    By Validator Count
-                  </CardTitle>
-                  <CardDescription>
-                    Distribution by number of validators
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="flex flex-1 justify-center pb-0">
-                <ChartContainer
-                  id="pie-count"
-                  config={versionsChartConfig}
-                  className="mx-auto aspect-square w-full max-w-[350px]"
-                >
-                  <PieChart>
-                    <ChartTooltip
-                      cursor={false}
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div className="rounded-lg border bg-background p-2 shadow-sm">
-                              <div className="grid gap-2">
-                                <div className="flex flex-col">
-                                  <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                    {data.version}
-                                  </span>
-                                  <span className="font-bold text-muted-foreground">
-                                    {data.count} validators (
-                                    {data.percentage.toFixed(1)}%)
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Pie
-                      data={pieChartData}
-                      dataKey="count"
-                      nameKey="version"
-                      innerRadius={70}
-                      strokeWidth={5}
-                    >
-                      <Label
-                        content={({ viewBox }) => {
-                          if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                            const totalValidators = pieChartData.reduce(
-                              (sum, item) => sum + item.count,
-                              0
-                            );
-                            return (
-                              <text
-                                x={viewBox.cx}
-                                y={viewBox.cy}
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                              >
-                                <tspan
-                                  x={viewBox.cx}
-                                  y={viewBox.cy}
-                                  className="fill-foreground text-2xl font-bold"
-                                >
-                                  {totalValidators.toLocaleString()}
-                                </tspan>
-                                <tspan
-                                  x={viewBox.cx}
-                                  y={(viewBox.cy || 0) + 24}
-                                  className="fill-muted-foreground text-sm"
-                                >
-                                  Total Validators
-                                </tspan>
-                              </text>
-                            );
-                          }
-                        }}
+              {/* By Stake Weight */}
+              <Card data-chart="pie-stake" className="flex flex-col">
+                <ChartStyle id="pie-stake" config={versionsChartConfig} />
+                <CardHeader className="flex-row items-start space-y-0 pb-0">
+                  <div className="grid gap-1">
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield
+                        className="h-5 w-5"
+                        style={{ color: "#40c9ff" }}
                       />
-                    </Pie>
-                  </PieChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-
-            {/* By Stake Weight */}
-            <Card data-chart="pie-stake" className="flex flex-col">
-              <ChartStyle id="pie-stake" config={versionsChartConfig} />
-              <CardHeader className="flex-row items-start space-y-0 pb-0">
-                <div className="grid gap-1">
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
-                    By Stake Weight
-                  </CardTitle>
-                  <CardDescription>
-                    Distribution by amount staked
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="flex flex-1 justify-center pb-0">
-                <ChartContainer
-                  id="pie-stake"
-                  config={versionsChartConfig}
-                  className="mx-auto aspect-square w-full max-w-[350px]"
-                >
-                  <PieChart>
-                    <ChartTooltip
-                      cursor={false}
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div className="rounded-lg border bg-background p-2 shadow-sm">
-                              <div className="grid gap-2">
-                                <div className="flex flex-col">
-                                  <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                    {data.version}
-                                  </span>
-                                  <span className="font-bold text-muted-foreground">
-                                    {data.amountStaked.toLocaleString(
-                                      undefined,
-                                      { maximumFractionDigits: 0 }
-                                    )}{" "}
-                                    AVAX ({data.stakingPercentage.toFixed(1)}%)
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Pie
-                      data={pieChartData}
-                      dataKey="amountStaked"
-                      nameKey="version"
-                      innerRadius={70}
-                      strokeWidth={5}
-                    >
-                      <Label
-                        content={({ viewBox }) => {
-                          if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                            const totalStaked = pieChartData.reduce(
-                              (sum, item) => sum + item.amountStaked,
-                              0
-                            );
-                            return (
-                              <text
-                                x={viewBox.cx}
-                                y={viewBox.cy}
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                              >
-                                <tspan
-                                  x={viewBox.cx}
-                                  y={viewBox.cy}
-                                  className="fill-foreground text-lg font-bold"
-                                >
-                                  {(totalStaked / 1000000).toLocaleString(
-                                    undefined,
-                                    { maximumFractionDigits: 1 }
-                                  )}
-                                  M
-                                </tspan>
-                                <tspan
-                                  x={viewBox.cx}
-                                  y={(viewBox.cy || 0) + 24}
-                                  className="fill-muted-foreground text-sm"
-                                >
-                                  AVAX Staked
-                                </tspan>
-                              </text>
-                            );
-                          }
-                        }}
-                      />
-                    </Pie>
-                  </PieChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Validator Software Versions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
-              Validator Software Versions
-            </CardTitle>
-            <CardDescription>
-              Distribution of AvalancheGo versions across Primary Network
-              validators
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {versionsError ? (
-              <div className="text-center py-8">
-                <p className="text-destructive mb-4">Error: {versionsError}</p>
-                <button
-                  onClick={fetchData}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-                >
-                  Retry
-                </button>
-              </div>
-            ) : validatorVersions.length > 0 ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {validatorVersions.map((versionInfo, index) => (
-                    <div
-                      key={versionInfo.version}
-                      className="p-4 rounded-lg border bg-muted/30"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-sm">
-                          {versionInfo.version || "Unknown Version"}
-                        </h4>
-                        <span className="text-xs text-muted-foreground">
-                          #{index + 1}
-                        </span>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">
-                            Validators:
-                          </span>
-                          <span className="font-semibold">
-                            {versionInfo.count} (
-                            {versionInfo.percentage.toFixed(1)}%)
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">
-                            Staked:
-                          </span>
-                          <span className="font-semibold">
-                            {versionInfo.amountStaked.toLocaleString(
-                              undefined,
-                              { maximumFractionDigits: 0 }
-                            )}{" "}
-                            AVAX ({versionInfo.stakingPercentage.toFixed(1)}%)
-                          </span>
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div
-                            className="h-2 rounded-full"
-                            style={{
-                              width: `${versionInfo.stakingPercentage}%`,
-                              backgroundColor: "#40c9ff",
-                              opacity: 0.7 + (index === 0 ? 0.3 : -index * 0.1),
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {validatorVersions.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No version information available</p>
+                      By Stake Weight
+                    </CardTitle>
+                    <CardDescription>
+                      Distribution by amount staked
+                    </CardDescription>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No validator versions data available</p>
-                <button
-                  onClick={fetchData}
-                  className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-                >
-                  Reload Data
-                </button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Summary Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">Primary Network Summary</CardTitle>
-            <CardDescription>
-              Current state of the Avalanche Primary Network
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {chartConfigs.map((config) => {
-                const currentValue = getCurrentValue(config.metricPrefix);
-                const Icon = config.icon;
-
-                return (
-                  <div
-                    key={config.metricPrefix}
-                    className="text-center p-4 rounded-lg bg-muted/50"
+                </CardHeader>
+                <CardContent className="flex flex-1 justify-center pb-0">
+                  <ChartContainer
+                    id="pie-stake"
+                    config={versionsChartConfig}
+                    className="mx-auto aspect-square w-full max-w-[350px]"
                   >
-                    <Icon
-                      className="h-6 w-6 mx-auto mb-2"
-                      style={{ color: "#40c9ff" }}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      {config.title}
-                    </p>
-                    <p className="text-lg font-semibold">
-                      {config.metricPrefix.includes("weight")
-                        ? formatWeight(currentValue)
-                        : formatNumber(currentValue)}
-                    </p>
-                  </div>
-                );
-              })}
+                    <PieChart>
+                      <ChartTooltip
+                        cursor={false}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="rounded-lg border bg-background p-2 shadow-sm">
+                                <div className="grid gap-2">
+                                  <div className="flex flex-col">
+                                    <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                      {data.version}
+                                    </span>
+                                    <span className="font-bold text-muted-foreground">
+                                      {data.amountStaked.toLocaleString(
+                                        undefined,
+                                        { maximumFractionDigits: 0 }
+                                      )}{" "}
+                                      AVAX ({data.stakingPercentage.toFixed(1)}
+                                      %)
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Pie
+                        data={pieChartData}
+                        dataKey="amountStaked"
+                        nameKey="version"
+                        innerRadius={70}
+                        strokeWidth={5}
+                      >
+                        <Label
+                          content={({ viewBox }) => {
+                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                              const totalStaked = pieChartData.reduce(
+                                (sum, item) => sum + item.amountStaked,
+                                0
+                              );
+                              return (
+                                <text
+                                  x={viewBox.cx}
+                                  y={viewBox.cy}
+                                  textAnchor="middle"
+                                  dominantBaseline="middle"
+                                >
+                                  <tspan
+                                    x={viewBox.cx}
+                                    y={viewBox.cy}
+                                    className="fill-foreground text-lg font-bold"
+                                  >
+                                    {(totalStaked / 1000000).toLocaleString(
+                                      undefined,
+                                      { maximumFractionDigits: 1 }
+                                    )}
+                                    M
+                                  </tspan>
+                                  <tspan
+                                    x={viewBox.cx}
+                                    y={(viewBox.cy || 0) + 24}
+                                    className="fill-muted-foreground text-sm"
+                                  >
+                                    AVAX Staked
+                                  </tspan>
+                                </text>
+                              );
+                            }
+                          }}
+                        />
+                      </Pie>
+                    </PieChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
+          )}
+
+          {/* Detailed Version Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
+                Detailed Version Breakdown
+              </CardTitle>
+              <CardDescription>
+                Complete overview of validator software versions and their
+                network impact
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {versionsError ? (
+                <div className="text-center py-8">
+                  <p className="text-destructive mb-4">
+                    Error: {versionsError}
+                  </p>
+                  <button
+                    onClick={fetchData}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : validatorVersions.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {validatorVersions.map((versionInfo, index) => (
+                      <div
+                        key={versionInfo.version}
+                        className="p-4 rounded-lg border bg-muted/30"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-sm">
+                            {versionInfo.version || "Unknown Version"}
+                          </h4>
+                          <span className="text-xs text-muted-foreground">
+                            #{index + 1}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">
+                              Validators:
+                            </span>
+                            <span className="font-semibold">
+                              {versionInfo.count} (
+                              {versionInfo.percentage.toFixed(1)}%)
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">
+                              Staked:
+                            </span>
+                            <span className="font-semibold">
+                              {versionInfo.amountStaked.toLocaleString(
+                                undefined,
+                                { maximumFractionDigits: 0 }
+                              )}{" "}
+                              AVAX ({versionInfo.stakingPercentage.toFixed(1)}%)
+                            </span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div
+                              className="h-2 rounded-full"
+                              style={{
+                                width: `${versionInfo.stakingPercentage}%`,
+                                backgroundColor: "#40c9ff",
+                                opacity:
+                                  0.7 + (index === 0 ? 0.3 : -index * 0.1),
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {validatorVersions.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No version information available</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No validator versions data available</p>
+                  <button
+                    onClick={fetchData}
+                    className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                  >
+                    Reload Data
+                  </button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
       </div>
     </div>
   );
