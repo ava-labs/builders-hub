@@ -60,7 +60,7 @@ const learningPaths: CourseNode[] = [
     category: "L1 Development",
     dependencies: ["avalanche-fundamentals"],
     position: { x: 40, y: 350 },
-    mobileOrder: 4
+    mobileOrder: 5
   },
   {
     id: "l1-tokenomics",
@@ -70,7 +70,7 @@ const learningPaths: CourseNode[] = [
     category: "L1 Tokenomics",
     dependencies: ["avalanche-fundamentals"],
     position: { x: 65, y: 350 },
-    mobileOrder: 5
+    mobileOrder: 4
   },
   {
     id: "customizing-evm",
