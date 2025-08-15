@@ -16,7 +16,7 @@ import { PChainExplorerButton } from "./PChainExplorerButton";
 import { ChainSelector } from "./ChainSelector";
 import { PChainFaucetButton } from "./PChainFaucetButton";
 import { CChainFaucetButton } from "./CChainFaucetButton";
-import { PChainBridgeButton } from "./PChainBridgeButton";
+import { BridgeButton } from "./BridgeButton";
 import { L1DetailsModal } from "./L1DetailsModal";
 import { L1FaucetButton } from "./L1FaucetButton";
 import { TestnetMainnetSwitch } from "./TestnetMainnetSwitch";
@@ -431,7 +431,7 @@ export const ConnectWallet = ({
                   address={pChainAddress || "Not available for this wallet"}
                   buttons={[
                     <PChainFaucetButton key="pchain-faucet" />,
-                    <PChainBridgeButton key="pchain-bridge" />,
+                    <BridgeButton key="bridge" />,
                     <PChainExplorerButton key="pchain-explorer" />,
                   ]}
                 />
