@@ -60,7 +60,7 @@ const learningPaths: CourseNode[] = [
     category: "L1 Development",
     dependencies: ["avalanche-fundamentals"],
     position: { x: 40, y: 350 },
-    mobileOrder: 5
+    mobileOrder: 7
   },
   {
     id: "l1-tokenomics",
@@ -70,7 +70,7 @@ const learningPaths: CourseNode[] = [
     category: "L1 Tokenomics",
     dependencies: ["avalanche-fundamentals"],
     position: { x: 65, y: 350 },
-    mobileOrder: 4
+    mobileOrder: 6
   },
   {
     id: "customizing-evm",
@@ -80,7 +80,7 @@ const learningPaths: CourseNode[] = [
     category: "VM Customization",
     dependencies: ["avalanche-fundamentals"],
     position: { x: 90, y: 350 },
-    mobileOrder: 6
+    mobileOrder: 8
   },
 
   // Fourth Layer - Advanced topics (adjusted for no overlap)
@@ -92,7 +92,7 @@ const learningPaths: CourseNode[] = [
     category: "Interoperability",
     dependencies: ["interchain-messaging"],
     position: { x: 5, y: 550 },
-    mobileOrder: 7
+    mobileOrder: 4
   },
   {
     id: "icm-chainlink",
@@ -102,7 +102,7 @@ const learningPaths: CourseNode[] = [
     category: "Interoperability",
     dependencies: ["interchain-messaging"],
     position: { x: 35, y: 550 },
-    mobileOrder: 8
+    mobileOrder: 5
   },
 ];
 

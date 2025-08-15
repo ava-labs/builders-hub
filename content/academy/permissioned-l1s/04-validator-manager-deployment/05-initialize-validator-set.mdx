@@ -14,16 +14,40 @@ When converting an existing subnet to an L1 with sovereign validator management,
 
 ## How initializeValidatorSet Works
 
-### Function Execution Flow
+### Function Implementation
 
-The `initializeValidatorSet` function performs these critical steps:
+You can view the full source code of the `initializeValidatorSet` function here: [ValidatorManager.sol#L211](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L211)
 
-1. **Validation Checks** - Ensures the validator set hasn't been initialized yet
-2. **Blockchain ID Verification** - Validates the conversion data matches the current chain
-3. **Contract Address Verification** - Confirms the validator manager address is correct
-4. **P-Chain Message Retrieval** - Gets the Warp message with aggregated signatures
-5. **Conversion ID Verification** - Validates the hash of conversion data
-6. **Validator Registration** - Processes each initial validator
+Here you will find pseudo-code that covers the main logic in the function:
+```
+initializeValidatorSet(conversionData, messageIndex):
+    // 1. Validation Checks
+    CHECK validator set not already initialized
+    VERIFY blockchain ID matches current chain
+    VERIFY validator manager address is correct
+    
+    // 2. P-Chain Message Verification
+    GET conversion ID from P-Chain Warp message at messageIndex
+    COMPUTE hash of provided conversion data
+    VERIFY hashes match (ensures data integrity)
+    
+    // 3. Process Initial Validators
+    totalWeight = 0
+    FOR each validator in conversionData.initialValidators:
+        validationID = sha256(subnetID + validator_index)
+        
+        VALIDATE node ID format and check for duplicates
+        REGISTER validator with "Active" status
+        STORE validation period data (weight, start time, etc.)
+        ADD to total weight
+        EMIT registration event
+    
+    // 4. Final Validation
+    ENSURE total weight meets minimum churn requirements
+    
+    // 5. Complete Initialization
+    MARK validator set as initialized (permanent flag)
+```
 
 ### P-Chain Integration & Aggregated Signatures
 
@@ -40,17 +64,6 @@ bytes32 conversionID = keccak256(abi.encode(conversionData));
 ```
 
 This ID must match the one in the P-Chain signed message, ensuring data hasn't been tampered with.
-
-### Validator Registration Process
-
-For each validator in the conversion data:
-
-1. **Generate Validation ID** - Creates unique ID using `sha256(subnetID + index)`
-2. **Validate Node ID** - Checks format and prevents duplicates
-3. **Store Validator Data** - Records in contract storage with status "Active"
-4. **Update Total Weight** - Accumulates weight for churn calculations
-5. **Emit Events** - Logs the registration for tracking
-
 
 ## Understanding Conversion Data
 
@@ -70,7 +83,6 @@ struct InitialValidator {
     uint64 weight;       // Validator's voting weight
 }
 ```
-
 
 ### Required Information
 
