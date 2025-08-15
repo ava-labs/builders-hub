@@ -12,7 +12,7 @@ You're removing an existing Active validator in a PoA setup where the `Validator
 
 ### Phase 1: Initiation (L1)
 
-The owner calls `initiateValidatorRemoval(validationID)` on `ValidatorManager`.
+The owner calls [`initiateValidatorRemoval(validationID)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L518) on `ValidatorManager`.
 
 Under the hood, the contract:
 - Ensures the validator is currently Active
@@ -25,11 +25,34 @@ Under the hood, the contract:
 
 We then will sign and submit the `L1ValidatorWeightMessage` warped response we got from the last step to the P-Chain, this executes a `SetL1ValidatorWeightTx`. Upon successful processing, it acknowledges the validator exit by signing and returns an `L1ValidatorRegistrationMessage` with `valid = 0` warped response.
 
+The P-Chain processes the weight message (with weight set to 0 for removal):
+
+```go
+type L1ValidatorWeight struct {
+	payload
+
+	ValidationID ids.ID `serialize:"true" json:"validationID"`
+	Nonce        uint64 `serialize:"true" json:"nonce"`
+	Weight       uint64 `serialize:"true" json:"weight"` // Set to 0 for removal
+}
+```
+
+And returns a registration message acknowledging the removal:
+
+```go
+type L1ValidatorRegistrationMessage struct {
+	payload
+
+	ValidationID ids.ID `serialize:"true" json:"validationID"`
+	Valid        bool   `serialize:"true" json:"valid"` // Set to false for removal
+}
+```
+
 ### Phase 3: Completion (L1)
 
-We finally will call the `completeValidatorRemoval(message)`, where we will sign and submit as the message the response we received in step 2. The contract verifies the Warp message, confirms the registration status is false, updates the validator's status to Completed (if previously `PendingRemoved`), removes the node from the registered mapping, persists updates, and emits `CompletedValidatorRemoval`.
+We finally will call the [`completeValidatorRemoval(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L573), where we will pass the message index of the response we received in step 2. The contract verifies the Warp message, confirms the registration status is false, updates the validator's status to Completed (if previously `PendingRemoved`), removes the node from the registered mapping, persists updates, and emits `CompletedValidatorRemoval`.
 
-Anyone can call the `completeValidatorRemoval(message)` with the signed message.
+Anyone can call the `completeValidatorRemoval(messageIndex)` with the signed message.
 
 ### Sequence Diagram
 

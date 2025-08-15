@@ -12,7 +12,7 @@ We’re adding a validator in a PoA setup where the `ValidatorManager` contract 
 
 ### Phase 1: Initiation (L1)
 
-First we will call `initiateValidatorRegistration(nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight)` on `ValidatorManager`.
+First we will call [`initiateValidatorRegistration(nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L328) on `ValidatorManager`.
 
 Under the hood, the contract:
 - Validates sizes and formats (20-byte `nodeID`, 48-byte `blsPublicKey`, owners, churn limits)
@@ -25,11 +25,28 @@ Under the hood, the contract:
 
 We then will sign and submit the `RegisterL1ValidatorMessage` warped response we got from the last step to the P-Chain, this executes a `RegisterL1ValidatorTx`, and upon success signs and returns an `L1ValidatorRegistrationMessage` warped response.
 
+The P-Chain processes the following message structure:
+
+```go
+// RegisterL1Validator adds a validator to the subnet.
+type RegisterL1Validator struct {
+	payload
+
+	SubnetID              ids.ID                 `serialize:"true" json:"subnetID"`
+	NodeID                types.JSONByteSlice    `serialize:"true" json:"nodeID"`
+	BLSPublicKey          [bls.PublicKeyLen]byte `serialize:"true" json:"blsPublicKey"`
+	Expiry                uint64                 `serialize:"true" json:"expiry"`
+	RemainingBalanceOwner PChainOwner            `serialize:"true" json:"remainingBalanceOwner"`
+	DisableOwner          PChainOwner            `serialize:"true" json:"disableOwner"`
+	Weight                uint64                 `serialize:"true" json:"weight"`
+}
+```
+
 ### Phase 3: Completion (L1)
 
-We finally will call the `completeValidatorRegistration(message)`, where we will sign and submit as the message the response we recieved in step 2. The contract verifies it, activates the validator, sets the start time, and emits `CompletedValidatorRegistration`.
+We finally will call the [`completeValidatorRegistration(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L425), where we will pass the message index of the response we received in step 2. The contract verifies it, activates the validator, sets the start time, and emits `CompletedValidatorRegistration`.
 
-Anyone calls `completeValidatorRegistration(message)` with the signed message.
+Anyone can call `completeValidatorRegistration(messageIndex)` with the signed message.
 
 ## Appendix: Adding Validator Flow
 
