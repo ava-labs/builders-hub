@@ -42,7 +42,7 @@ export async function getBadgeByCourseId(courseId: string): Promise<Badge> {
   const badge = await prisma.badge.findFirst({
     where: {
       metadata: {
-        path: ['course_id'],
+        path: ["course_id"],
         equals: courseId,
       },
     },
@@ -62,3 +62,5 @@ export async function getBadgeByCourseId(courseId: string): Promise<Badge> {
     metadata: parseBadgeMetadata(badge.metadata),
   };
 }
+
+
