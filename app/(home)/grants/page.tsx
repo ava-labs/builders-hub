@@ -1,10 +1,20 @@
-'use client'
+"use client";
 
-import Image from 'next/image'
-import { Button } from "@/components/ui/button"
-import { ArrowRight, Zap, Cpu, Code, Coins, Bot } from 'lucide-react'
-import Link from 'next/link'
-import { HeroBackground } from '@/components/landing/hero'
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import {
+  ArrowRight,
+  Zap,
+  Cpu,
+  Code,
+  Coins,
+  Bot,
+  Gamepad2,
+  CreditCard,
+  Shield,
+} from "lucide-react";
+import Link from "next/link";
+import { HeroBackground } from "@/components/landing/hero";
 
 interface ProgramCardProps {
   title: string;
@@ -24,7 +34,7 @@ function ProgramCard({ title, description, icon }: ProgramCardProps) {
       <h3 className="text-xl font-semibold">{title}</h3>
       <p className="text-muted-foreground text-sm">{description}</p>
     </div>
-  )
+  );
 }
 
 export default function Page() {
@@ -132,6 +142,55 @@ export default function Page() {
                 title="InfraBUIDL (AI)"
                 description="Support projects that combine artificial intelligence with decentralized infrastructure."
                 icon={<Bot className="w-6 h-6 text-foreground" />}
+              />
+            </a>
+          </div>
+        </section>
+
+        {/* Partner Programs Section */}
+        <section className="space-y-12 mt-24">
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold">Partner Programs</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Exclusive programs in partnership with leading organizations in
+              the Avalanche ecosystem.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <a
+              href="https://www.helika.io/helika-avalanche-accelerator"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block hover:no-underline"
+            >
+              <ProgramCard
+                title="Game Accelerator Program"
+                description="Support and fast-track for promising gaming studios and projects building on Avalanche, in partnership with Helika."
+                icon={<Gamepad2 className="w-6 h-6 text-foreground" />}
+              />
+            </a>
+            <a
+              href="https://spaceandtimedb.notion.site/Space-and-Time-x-Avalanche-Builder-Credit-Grant-Program-239af37755f580b4929ff9328584f347?pvs=74"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block hover:no-underline"
+            >
+              <ProgramCard
+                title="Developer Credits Program"
+                description="Access credits to build data-suites and vibe-code new projects on the Avalanche C-Chain, in partnership with Space & Time."
+                icon={<CreditCard className="w-6 h-6 text-foreground" />}
+              />
+            </a>
+            <a
+              href="https://hexagate.typeform.com/HexagateForAva?typeform-source=t.co"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block hover:no-underline"
+            >
+              <ProgramCard
+                title="Hexgate Security Program"
+                description="Onchain security for Avalanche builders, delivering real-time threat detection for smart contracts and protocols."
+                icon={<Shield className="w-6 h-6 text-foreground" />}
               />
             </a>
           </div>
