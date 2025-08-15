@@ -1,0 +1,86 @@
+---
+title: Changing Weight
+description: Theory walkthrough of changing a validator's weight with ValidatorManager owned by an EOA, including L1 and P-Chain calls.
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+## Changing a Validator’s Weight
+
+You’re changing an existing validator’s weight in a PoA setup where the `ValidatorManager` contract is owned by an EOA. The process mirrors registration: initiation on L1, processing on the P-Chain, and completion on L1.
+
+### Phase 1: Initiation (L1)
+
+The owner calls [`initiateValidatorWeightUpdate(validationID, newWeight)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L658) on `ValidatorManager`.
+
+Under the hood, the contract:
+- Ensures the validator is currently Active
+- Enforces churn constraints so the delta does not exceed the configured maximum churn percentage
+- Increments the validator's sent nonce
+- Updates the pending weight in storage and constructs a weight message
+- Sends a Warp message to the P-Chain
+
+### Phase 2: P-Chain Processing
+
+We then will sign and submit the `L1ValidatorWeightMessage` warped response we got from the last step to the P-Chain, this executes a `SetL1ValidatorWeightTx`, and upon success signs and returns an `L1ValidatorWeightMessage` warped response.
+
+The P-Chain processes the following message structure:
+
+```go
+type L1ValidatorWeight struct {
+	payload
+
+	ValidationID ids.ID `serialize:"true" json:"validationID"`
+	Nonce        uint64 `serialize:"true" json:"nonce"`
+	Weight       uint64 `serialize:"true" json:"weight"`
+}
+```
+
+### Phase 3: Completion (L1)
+
+We finally will call the [`completeValidatorWeightUpdate(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L690), where we will pass the message index of the response we received in step 2. The contract verifies the Warp message and nonce correspondence, updates the received nonce, and emits `CompletedValidatorWeightUpdate`.
+
+Anyone can call the `completeValidatorWeightUpdate(messageIndex)` with the signed message.
+
+### Sequence Diagram
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant EOA_Owner as EOA Owner
+    participant ValidatorManager as ValidatorManager
+    participant WarpMessenger as WarpMessenger (precompile)
+    participant PChain as P-Chain
+
+    %% Phase 1: Initiation
+    EOA_Owner->>ValidatorManager: initiateValidatorWeightUpdate(validationID, newWeight)
+
+    ValidatorManager->>ValidatorManager: _initiateValidatorWeightUpdate()
+
+    ValidatorManager->>ValidatorManager: Validate: isActive + churn rate
+
+    ValidatorManager->>ValidatorManager: Increment sent nonce
+
+    ValidatorManager->>ValidatorManager: Update weight in storage
+
+    ValidatorManager->>WarpMessenger: sendWarpMessage(packL1ValidatorWeightMessage)
+
+    %% Phase 2: P-Chain Processing
+    WarpMessenger->>PChain: Deliver L1ValidatorWeightMessage
+
+    PChain-->>WarpMessenger: Signed L1ValidatorWeightMessage (ack)
+
+    %% Phase 3: Completion
+    participant AnyCaller as Any Caller
+
+    AnyCaller->>ValidatorManager: completeValidatorWeightUpdate(message)
+
+    ValidatorManager->>ValidatorManager: Verify Warp message + nonce match
+
+    ValidatorManager->>ValidatorManager: Update received nonce
+
+    ValidatorManager-->>AnyCaller: emit CompletedValidatorWeightUpdate
+"
+/>
+

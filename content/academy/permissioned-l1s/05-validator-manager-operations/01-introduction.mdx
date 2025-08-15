@@ -1,0 +1,22 @@
+---
+title: Introduction
+description: Outline of chapter contents
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Book
+---
+
+This chapters covers the end-to-end validator lifecycle on a permissioned L1 managed by the `ValidatorManager` contract. For this, we will learn all of the operations available, understand the theory and demo it using the [Toolbox](https://build.avax.network/tools/l1-toolbox):
+
+- Add a validator (initiate on L1, register on P-Chain, complete on L1)
+- Change validator weight (churn-aware updates)
+- Remove a validator (initiate on L1, remove on P-Chain, complete on L1)
+- Disable on P-Chain for emergency/operational purposes
+
+In order to fully understand these operations, it is a good reminder to see this diagram again, from the [ICM for Validator Manager Contracts](/academy/permissioned-l1s/01-introduction/02-interop), as we will dive deep into why and how these communication flows actually work/
+
+![VMC & P-Chain Communication Flow](/common-images/permissioned-l1s/VmcPchainFlow.png)
+
+## Key Concept Reminder
+
+The **P-Chain** serves as the **single source of truth for all validator** operations across the Avalanche network. While your Validator Manager contract initiates operations and tracks state changes, the P-Chain ultimately determines which validators are active and recognized by the network. 

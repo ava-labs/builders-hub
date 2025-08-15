@@ -1,0 +1,99 @@
+---
+title: Removing Validator
+description: Theory walkthrough of removing a validator with ValidatorManager owned by an EOA, including L1 and P-Chain calls.
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+## Removing a Validator
+
+You're removing an existing Active validator in a PoA setup where the `ValidatorManager` contract is owned by an EOA. The flow has two L1 calls with P-Chain processing in between.
+
+### Phase 1: Initiation (L1)
+
+The owner calls [`initiateValidatorRemoval(validationID)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L518) on `ValidatorManager`.
+
+Under the hood, the contract:
+- Ensures the validator is currently Active
+- Sets the validator status to `PendingRemoved`
+- Sets the end time of the current validation period to the current timestamp
+- Persists updates and constructs a weight message with `weight = 0`
+- Sends a Warp message to the P-Chain (removal is encoded as a weight update to zero)
+
+### Phase 2: P-Chain Processing
+
+We then will sign and submit the `L1ValidatorWeightMessage` warped response we got from the last step to the P-Chain, this executes a `SetL1ValidatorWeightTx`. Upon successful processing, it acknowledges the validator exit by signing and returns an `L1ValidatorRegistrationMessage` with `valid = 0` warped response.
+
+The P-Chain processes the weight message (with weight set to 0 for removal):
+
+```go
+type L1ValidatorWeight struct {
+	payload
+
+	ValidationID ids.ID `serialize:"true" json:"validationID"`
+	Nonce        uint64 `serialize:"true" json:"nonce"`
+	Weight       uint64 `serialize:"true" json:"weight"` // Set to 0 for removal
+}
+```
+
+And returns a registration message acknowledging the removal:
+
+```go
+type L1ValidatorRegistrationMessage struct {
+	payload
+
+	ValidationID ids.ID `serialize:"true" json:"validationID"`
+	Valid        bool   `serialize:"true" json:"valid"` // Set to false for removal
+}
+```
+
+### Phase 3: Completion (L1)
+
+We finally will call the [`completeValidatorRemoval(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/ce85313c71f90282b390e685cb652e9b0150a4ae/contracts/validator-manager/ValidatorManager.sol#L573), where we will pass the message index of the response we received in step 2. The contract verifies the Warp message, confirms the registration status is false, updates the validator's status to Completed (if previously `PendingRemoved`), removes the node from the registered mapping, persists updates, and emits `CompletedValidatorRemoval`.
+
+Anyone can call the `completeValidatorRemoval(messageIndex)` with the signed message.
+
+### Sequence Diagram
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant EOA_Owner as EOA Owner
+    participant ValidatorManager as ValidatorManager
+    participant WarpMessenger as WarpMessenger (precompile)
+    participant PChain as P-Chain
+
+    %% Phase 1: Initiation
+    EOA_Owner->>ValidatorManager: initiateValidatorRemoval(validationID)
+
+    ValidatorManager->>ValidatorManager: _initiateValidatorRemoval()
+
+    ValidatorManager->>ValidatorManager: Validate Active status
+
+    ValidatorManager->>ValidatorManager: Set status = PendingRemoved<br/>Set validation end time
+
+    ValidatorManager->>ValidatorManager: Save validator updates
+
+    ValidatorManager->>WarpMessenger: sendWarpMessage(weightMessage(weight=0))
+
+    %% Phase 2: P-Chain Processing
+    WarpMessenger->>PChain: Deliver L1ValidatorWeightMessage(weight=0)
+
+    PChain-->>WarpMessenger: Signed L1ValidatorRegistrationMessage(valid=0)
+
+    %% Phase 3: Completion
+    participant AnyCaller as Any Caller
+
+    AnyCaller->>ValidatorManager: completeValidatorRemoval(message)
+
+    ValidatorManager->>ValidatorManager: Verify Warp message<br/>Check valid == false
+
+    ValidatorManager->>ValidatorManager: Set status = Completed<br/>Remove from registered validators
+
+    ValidatorManager-->>AnyCaller: emit CompletedValidatorRemoval
+
+    %% Optional: Resend
+    EOA_Owner-->>ValidatorManager: resendValidatorRemovalMessage(validationID)
+"
+/>
