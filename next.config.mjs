@@ -36,6 +36,10 @@ const config = {
         protocol: 'https',
         hostname: 'images.ctfassets.net',
       },
+      {
+        protocol: 'https',
+        hostname: 'cdn.prod.website-files.com',
+      },
     ],
   },
   async rewrites() {

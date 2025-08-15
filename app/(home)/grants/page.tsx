@@ -3,7 +3,6 @@
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Zap, Cpu, Code, Coins, Bot } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { HeroBackground } from '@/components/landing/hero'
 
@@ -55,7 +54,8 @@ export default function Page() {
             Grants & Programs
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Empowering innovators to build the future of blockchain technology with scalable and sustainable solutions.
+            Empowering innovators to build the future of blockchain technology
+            with scalable and sustainable solutions.
           </p>
           <Link href="#programs">
             <Button className="mt-8 rounded-lg px-6 py-3">
@@ -72,11 +72,10 @@ export default function Page() {
                 💰 Total Funding Available
               </div>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold">
-              $250M+ in Grants
-            </h2>
+            <h2 className="text-4xl md:text-5xl font-bold">$250M+ in Grants</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Funding innovation across all programs based on project impact and potential.
+              Funding innovation across all programs based on project impact and
+              potential.
             </p>
           </div>
         </section>
@@ -90,7 +89,12 @@ export default function Page() {
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
-            <a href="https://retro9000.avax.network" target="_blank" rel="noopener noreferrer" className="block hover:no-underline">
+            <a
+              href="https://retro9000.avax.network"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block hover:no-underline"
+            >
               <ProgramCard
                 title="Retro9000"
                 description="Build innovative projects on Avalanche and get rewarded for your creativity and impact."
@@ -106,12 +110,17 @@ export default function Page() {
             </a>
             <a href="/codebase" className="block hover:no-underline">
               <ProgramCard
-                title="Codebase"
+                title="Codebase by Avalanche™"
                 description="Empower developers to create innovative blockchain solutions and turn visions into reality."
                 icon={<Code className="w-6 h-6 text-foreground" />}
               />
             </a>
-            <a href="https://www.blizzard.fund/" target="_blank" rel="noopener noreferrer" className="block hover:no-underline">
+            <a
+              href="https://www.blizzard.fund/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block hover:no-underline"
+            >
               <ProgramCard
                 title="Blizzard Fund"
                 description="A $200M+ fund investing in promising Avalanche projects with institutional support."
@@ -131,9 +140,13 @@ export default function Page() {
         {/* CTA Section */}
         <section className="mt-24">
           <div className="px-6 py-16 text-center space-y-6 rounded-lg border border-border bg-card">
-            <h2 className="text-2xl md:text-3xl font-bold">Security Bug Bounty</h2>
+            <h2 className="text-2xl md:text-3xl font-bold">
+              Security Bug Bounty
+            </h2>
             <p className="text-muted-foreground max-w-3xl mx-auto">
-              Help secure the Avalanche network. Security researchers who identify critical vulnerabilities can earn bounties up to <strong>$100,000 USD</strong>.
+              Help secure the Avalanche network. Security researchers who
+              identify critical vulnerabilities can earn bounties up to{" "}
+              <strong>$100,000 USD</strong>.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="https://immunefi.com/bug-bounty/avalanche/information/">
@@ -151,5 +164,5 @@ export default function Page() {
         </section>
       </main>
     </>
-  )
+  );
 }
