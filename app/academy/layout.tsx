@@ -18,8 +18,8 @@ const academyOptions : DocsLayoutProps = {
   },
   tree: academy.pageTree,
   links: [
-    docsMenu,
     toolsMenu,
+    docsMenu,
     integrationsMenu
   ],
 };

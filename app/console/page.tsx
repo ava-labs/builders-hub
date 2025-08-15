@@ -1,6 +1,6 @@
 "use client";
 
-import { SessionProvider, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, Suspense } from "react";
 import { ChevronRight, Layers, Users, MessagesSquare, ArrowUpDown, Settings, Droplets, Shield, Zap, Building2, Wrench } from "lucide-react";
@@ -277,9 +277,9 @@ function ConsoleDashboard() {
 
 export default function ConsolePage() {
   return (
-    <SessionProvider>
+    <>
       <RedirectIfNewUser />
-        <ConsoleDashboard />
-    </SessionProvider>
+      <ConsoleDashboard />
+    </>
   );
 }
