@@ -88,6 +88,7 @@ export function useNetworkData() {
 
   // Determine current network and balance
   const currentNetwork = React.useMemo(() => {
+    // If wallet is connected but chainId is not set yet (during account switching), default to C-Chain
     const isActuallyCChainSelected =
       walletChainId === avalanche.id || walletChainId === avalancheFuji.id
 
@@ -115,15 +116,43 @@ export function useNetworkData() {
       }
     }
 
-    return {
-      id: 'no-network',
-      name: 'No Network',
-      symbol: 'N/A',
-      logoUrl: null as any,
-      balance: 0,
-      color: 'bg-gray-500',
+    // If wallet is connected but we don't have a proper chainId or network selected yet,
+    // default to C-Chain to avoid showing "No Network" during account switching
+    if (walletEVMAddress && (!walletChainId || walletChainId === 0)) {
+      const defaultCChainNetwork = availableNetworks.find(
+        (net) => net.type === 'avalanche' && net.chainId === (isTestnet ? avalancheFuji.id : avalanche.id)
+      )
+      return {
+        ...defaultCChainNetwork,
+        name: 'C-Chain',
+        symbol: 'AVAX',
+        balance: cChainBalance,
+      }
     }
-  }, [availableNetworks, walletChainId, isTestnet, cChainBalance, selectedL1, l1Balance])
+
+    // Only show "No Network" if no wallet is connected
+    if (!walletEVMAddress) {
+      return {
+        id: 'no-network',
+        name: 'No Network',
+        symbol: 'N/A',
+        logoUrl: null as any,
+        balance: 0,
+        color: 'bg-gray-500',
+      }
+    }
+
+    // For any other case where wallet is connected, default to C-Chain
+    const fallbackCChainNetwork = availableNetworks.find(
+      (net) => net.type === 'avalanche' && net.chainId === (isTestnet ? avalancheFuji.id : avalanche.id)
+    )
+    return {
+      ...fallbackCChainNetwork,
+      name: 'C-Chain',
+      symbol: 'AVAX',
+      balance: cChainBalance,
+    }
+  }, [availableNetworks, walletChainId, isTestnet, cChainBalance, selectedL1, l1Balance, walletEVMAddress])
 
   const getNetworkBalance = (network: (typeof availableNetworks)[0]) => {
     if (network.type === 'avalanche') {

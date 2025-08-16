@@ -43,7 +43,12 @@ export function WalletBootstrap() {
 
     const handleAccountsChanged = async (accounts: string[]) => {
       if (!accounts || accounts.length === 0) {
+        // Wallet is locked or disconnected - clear all wallet state
         setWalletEVMAddress('')
+        setPChainAddress('')
+        setCoreEthAddress('')
+        setWalletChainId(0)
+        // Keep network settings (isTestnet, avalancheNetworkID) as they are user preferences
         return
       }
       if (accounts.length > 1) {

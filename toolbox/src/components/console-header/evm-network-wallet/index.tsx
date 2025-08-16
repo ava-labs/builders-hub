@@ -4,6 +4,11 @@ import * as React from 'react'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 import { useL1ListStore } from '@/stores/l1ListStore'
 import { AddChainModal } from '@/components/ConnectWallet/AddChainModal'
+import { Button } from '@/components/ui/button'
+import { Wallet } from 'lucide-react'
+import { useWalletStore } from '@/stores/walletStore'
+import { createCoreWalletClient } from '@/coreViem'
+import { networkIDs } from '@avalabs/avalanchejs'
 
 import { useNetworkData } from './hooks/useNetworkData'
 import { useNetworkActions } from './hooks/useNetworkActions'
@@ -34,8 +39,83 @@ export function EvmNetworkWallet({ className }: { className?: string }) {
     updateAllBalances,
   } = useNetworkActions()
 
+  // Wallet connection functions
+  const {
+    setWalletEVMAddress,
+    setWalletChainId,
+    setPChainAddress,
+    setCoreEthAddress,
+    setCoreWalletClient,
+    setAvalancheNetworkID,
+    setIsTestnet,
+    setEvmChainName,
+  } = useWalletStore()
+
+  const handleConnect = async () => {
+    if (typeof window === 'undefined') return
+
+    try {
+      if (!window.avalanche?.request) {
+        return
+      }
+
+      const accounts = await window.avalanche.request<string[]>({
+        method: 'eth_requestAccounts',
+      })
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts returned from wallet')
+      }
+
+      const account = accounts[0] as `0x${string}`
+      const client = createCoreWalletClient(account)
+      if (!client) return
+
+      setCoreWalletClient(client)
+      setWalletEVMAddress(account)
+
+      try {
+        const [pAddr, cAddr, chainInfo, chainId] = await Promise.all([
+          client.getPChainAddress().catch(() => ''),
+          client.getCorethAddress().catch(() => ''),
+          client.getEthereumChain().catch(() => ({ isTestnet: undefined as any, chainName: '' } as any)),
+          client.getChainId().catch(() => 0),
+        ])
+        if (pAddr) setPChainAddress(pAddr)
+        if (cAddr) setCoreEthAddress(cAddr)
+        if (chainId) {
+          const numericId = typeof chainId === 'string' ? parseInt(chainId as any, 16) : chainId
+          setWalletChainId(numericId)
+        }
+        if (typeof chainInfo?.isTestnet === 'boolean') {
+          setIsTestnet(chainInfo.isTestnet)
+          setAvalancheNetworkID(chainInfo.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID)
+          setEvmChainName(chainInfo.chainName)
+        }
+      } catch {}
+
+      // Initial balance refresh after connecting
+      try { updateAllBalances() } catch {}
+    } catch (error) {
+      console.error('Error connecting wallet:', error)
+    }
+  }
+
   const handleAddNetwork = () => {
     setIsAddNetworkModalOpen(true)
+  }
+
+  // Show connect wallet button if no wallet is connected
+  if (!walletEVMAddress) {
+    return (
+      <Button 
+        onClick={handleConnect} 
+        className={`h-9 px-3 ${className || ''}`}
+      >
+        <Wallet className="mr-2 h-4 w-4" />
+        <span className="text-sm">Connect Wallet</span>
+      </Button>
+    )
   }
   return (
     <>
