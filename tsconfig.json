@@ -24,7 +24,14 @@
         "./.source/index.ts"
       ],
       "@/*": [
-        "./*"
+        "./*",
+        "toolbox/src/*"
+      ],
+      "@/stores/*": [
+        "toolbox/src/stores/*"
+      ],
+      "@console-header/*": [
+        "toolbox/src/components/console-header/*"
       ]
     },
     "plugins": [
