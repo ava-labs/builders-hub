@@ -10,7 +10,7 @@ export type Course = {
     languages: string[];
     tools: string[];
     instructors: string[];
-    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability";
+    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability" | "Codebase";
 };
 
 const officialCourses: Course[] = [
@@ -157,6 +157,18 @@ const officialCourses: Course[] = [
         languages: ["Solidity"],
         instructors: ["Martin Eckardt", "Andrea Vargas", "Ash"],
         category: "Interoperability"
+    },
+    {
+        name: "Codebase Entrepreneur Academy",
+        description: "Build and scale a Web3 startup with Codebase and Avalanche",
+        slug: "codebase-entrepreneur-academy",
+        icon: <SquareStackIcon />,
+        status: "featured",
+        duration: "1 hour",
+        languages: [],
+        tools: ["Codebase"],
+        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
+        category: "Codebase"
     },
 
     /*{

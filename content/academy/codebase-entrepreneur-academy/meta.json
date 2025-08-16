@@ -1,0 +1,10 @@
+{
+    "title": "Codebase Entrepreneur Academy",
+    "icon": "Coins",
+    "root": true,
+    "pages": [
+        "index",
+        "---Grant Applications---",
+        "...10-grants"
+    ]
+}
