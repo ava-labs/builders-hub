@@ -2,7 +2,7 @@ import { WalletClient, bytesToHex } from "viem";
 import {
     utils,
     pvm,
-    Context
+    Context,
 } from "@avalabs/avalanchejs";
 import { CoreWalletRpcSchema } from "../rpcSchema";
 import { getRPCEndpoint } from "../utils/rpc";
@@ -37,18 +37,29 @@ export async function pvmImport(client: WalletClient<any, any, any, CoreWalletRp
     
     // Get UTXOs from the C-Chain that can be imported to P-Chain
     const pvmApi = new pvm.PVMApi(platformEndpoint);
-    const { utxos } = await pvmApi.getUTXOs({ 
+    const utxoResponse = await pvmApi.getUTXOs({ 
         sourceChain: 'C', 
         addresses: [pChainAddress] 
     });
+    const utxos = utxoResponse.utxos;
+    const feeState = await pvmApi.getFeeState();
+    // Check if there are any UTXOs available for import
+    if (!utxos || utxos.length === 0) {
+        throw new Error("No UTXOs available for import from C-Chain. Make sure you have exported AVAX from C-Chain to P-Chain first.");
+    }
+
+    console.log("UTXOs available for import:", utxos);
 
     // Create the P-Chain import transaction
     const importTx = pvm.newImportTx(
+        {
+            fromAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
+            utxos,
+            feeState,
+            sourceChainId: context.cBlockchainID,
+            toAddressesBytes: [utils.bech32ToBytes(pChainAddress)],
+        },
         context,
-        context.cBlockchainID,
-        utxos,
-        [utils.bech32ToBytes(pChainAddress)],
-        [utils.bech32ToBytes(pChainAddress)],
     );
 
     const importTxBytes = importTx.toBytes();
@@ -56,7 +67,7 @@ export async function pvmImport(client: WalletClient<any, any, any, CoreWalletRp
     console.log("P-Chain Import transaction created:", importTxHex);
 
     // Send transaction using window.avalanche
-    const response = await window.avalanche.request({
+    const response = await (window.avalanche.request as any)({
         method: "avalanche_sendTransaction",
         params: {
             transactionHex: importTxHex,
