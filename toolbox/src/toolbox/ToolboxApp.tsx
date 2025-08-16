@@ -85,6 +85,14 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         icon: <Server className="w-4 h-4" />
       },
       {
+        id: "builderHubNodes",
+        label: "Builder Hub Nodes",
+        component: lazy(() => import('./Nodes/BuilderHubNodes')),
+        fileNames: ["toolbox/src/toolbox/Nodes/BuilderHubNodes.tsx"],
+        walletMode: "testnet-mainnet",
+        icon: <Server className="w-4 h-4" />
+      },
+      {
         id: 'convertToL1',
         label: "Convert Subnet to L1",
         component: lazy(() => import('./L1/ConvertToL1')),
