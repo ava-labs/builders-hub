@@ -29,7 +29,7 @@ export function TestnetMainnetSwitch() {
   if (!walletEVMAddress) return null;
 
   return (
-    <div className="rounded-full overflow-hidden flex bg-zinc-100 dark:bg-zinc-800/70 p-0.5">
+    <div className="rounded-full overflow-hidden flex bg-zinc-100 dark:bg-black p-0.5">
       <button
         onClick={() => safelySwitch(avalancheFuji.id, true)}
         className={`px-4 py-1 text-sm rounded-full transition-colors ${isTestnet
