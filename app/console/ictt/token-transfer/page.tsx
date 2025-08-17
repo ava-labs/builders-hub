@@ -1,6 +1,6 @@
 "use client";
 
-import StepFlow, { type StepDefinition } from "../../components/step-flow";
+import StepFlow, { type StepDefinition } from "../../../../components/console/step-flow";
 import ToolboxConsoleWrapper from "../../../../toolbox/src/components/ToolboxConsoleWrapper";
 
 import AddCollateral from "../../../../toolbox/src/toolbox/ICTT/AddCollateral";

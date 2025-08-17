@@ -16,7 +16,7 @@ import { NetworkList } from './components/NetworkList'
 import { NetworkActions } from './components/NetworkActions'
 import { WalletInfo } from './components/WalletInfo'
 
-export function EvmNetworkWallet({ className }: { className?: string }) {
+export function EvmNetworkWallet() {
   const [isAddNetworkModalOpen, setIsAddNetworkModalOpen] = React.useState(false)
 
   const l1ListStore = useL1ListStore()
@@ -110,7 +110,7 @@ export function EvmNetworkWallet({ className }: { className?: string }) {
     return (
       <Button 
         onClick={handleConnect} 
-        className={`h-9 px-3 ${className || ''}`}
+        size="sm"
       >
         <Wallet className="mr-2 h-4 w-4" />
         <span className="text-sm">Connect Wallet</span>
@@ -121,7 +121,7 @@ export function EvmNetworkWallet({ className }: { className?: string }) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={`inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 ${className || ''}`}>
+          <button className={`inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3`}>
             <div className="flex items-center gap-3">
               <div className="flex-shrink-0 w-5 h-5 rounded-md overflow-hidden flex items-center justify-start">
                 {currentNetwork && (currentNetwork as any).logoUrl ? (

@@ -1,8 +1,8 @@
 "use client";
 
 import { ReactNode } from "react"
-import { ConsoleSidebar } from "./components/console-sidebar"
-import { SiteHeader } from "./components/site-header"
+import { ConsoleSidebar } from "../../components/console/console-sidebar"
+import { SiteHeader } from "../../components/console/site-header"
 import {
   SidebarInset,
   SidebarProvider,
@@ -21,7 +21,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         }
       >
         <ConsoleSidebar variant="inset" />
-        <SidebarInset className="bg-background">
+        <SidebarInset className="bg-white dark:bg-gray-800">
           <SiteHeader />
           <div className="flex flex-1 flex-col gap-4 p-8">
               {children}
