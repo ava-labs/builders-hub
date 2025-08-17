@@ -1,4 +1,4 @@
-export const routeMetadata = {
+export const pathToBreadcrumb = {
   // Console root
   "/console": ["Console"],
   

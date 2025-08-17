@@ -10,18 +10,21 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import dynamic from "next/dynamic";
+import { ThemeToggle } from "fumadocs-ui/components/layout/theme-toggle";
+
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
-import { routeMetadata } from "../../app/console/route-metadata";
+import { pathToBreadcrumb } from "./breadcrumbs-mapping";
+import { BuilderHubAccountButton } from "./builder-hub-account-button";
+
 const TestnetMainnetSwitch = dynamic(() => import("@console-header/testnet-mainnet-switch").then(m => m.TestnetMainnetSwitch), { ssr: false });
 const WalletPChain = dynamic(() => import("@console-header/pchain-wallet").then(m => m.WalletPChain), { ssr: false });
 const EvmNetworkWallet = dynamic(() => import("@console-header/evm-network-wallet/index").then(m => m.EvmNetworkWallet), { ssr: false });
 const WalletBootstrap = dynamic(() => import("@console-header/wallet-bootstrap").then(m => m.WalletBootstrap), { ssr: false });
-import { BuilderHubAccountButton } from "./builder-hub-account-button";
-import { ThemeToggle } from "fumadocs-ui/components/layout/theme-toggle";
+
 
 
 export function SiteHeader() {
-  const breadcrumbs = useBreadcrumbs(routeMetadata);
+  const breadcrumbs = useBreadcrumbs(pathToBreadcrumb);
 
   return (
     <header className="sticky top-0 z-50 flex h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur  transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) rounded-t-2xl">
