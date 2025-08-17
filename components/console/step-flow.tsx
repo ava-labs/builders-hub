@@ -163,7 +163,7 @@ export default function StepFlow({
                     ) : null}
                   </button>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-center gap-2">
                     {s.options.map((opt, optIdx) => {
                       const isActive = isActiveStep && (branchSelections[s.key] || s.options[0]?.key) === opt.key;
                       const isDone = isDoneStep;
@@ -215,7 +215,7 @@ export default function StepFlow({
         </ol>
       </nav>
 
-      <div className="p-4">
+      <div className="border-t-2 py-8">
         <div className="min-h-[200px]">
           <CurrentComponent />
         </div>
