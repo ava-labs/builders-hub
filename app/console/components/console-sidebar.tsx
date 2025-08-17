@@ -77,7 +77,7 @@ const data = {
         },
         {
           title: "C/P-Chain Bridge",
-          url: "/console/primary-network/bridge",
+          url: "/console/primary-network/c-p-bridge",
           icon: ArrowLeftRight,
         },
         {

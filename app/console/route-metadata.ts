@@ -5,7 +5,7 @@ export const routeMetadata = {
   // Primary Network
   "/console/primary-network/node-setup": ["Console", "Primary Network", "Node Setup"],
   "/console/primary-network/faucet": ["Console", "Primary Network", "Testnet Faucet"],
-  "/console/primary-network/bridge": ["Console", "Primary Network", "C/P-Chain Bridge"],
+  "/console/primary-network/c-p-bridge": ["Console", "Primary Network", "C/P-Chain Bridge"],
   "/console/primary-network/unit-converter": ["Console", "Primary Network", "AVAX Unit Converter"],
   
   // Layer 1
