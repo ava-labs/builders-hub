@@ -85,10 +85,10 @@ export const componentGroups: Record<string, ComponentGroupType> = {
         icon: <Server className="w-4 h-4" />
       },
       {
-        id: "builderHubNodes",
-        label: "Builder Hub Nodes",
-        component: lazy(() => import('./Nodes/BuilderHubNodes')),
-        fileNames: ["toolbox/src/toolbox/Nodes/BuilderHubNodes.tsx"],
+        id: "managedTestnetNodes",
+        label: "Managed Testnet Nodes",
+        component: lazy(() => import('./Nodes/BuilderHubNodes/BuilderHubNodes')),
+        fileNames: ["toolbox/src/toolbox/Nodes/BuilderHubNodes/BuilderHubNodes.tsx"],
         walletMode: "testnet-mainnet",
         icon: <Server className="w-4 h-4" />
       },

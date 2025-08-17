@@ -51,7 +51,7 @@ model User {
   memberships         Member[]
   registrations       RegisterForm?
   hackathons          Hackathon[]
-  nodeRegistrations   NodeRegistration[]
+  managedTestnetNodes NodeRegistration[]
 }
 
 model VerificationToken {
