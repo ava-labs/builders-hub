@@ -319,16 +319,9 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
   }
 }
 
-interface RouteParams {
-  params: {
-    subnetId: string;
-    nodeIndex: string;
-  };
-}
-
 export async function GET(
   request: NextRequest,
-  { params }: RouteParams
+  { params }: { params: { subnetId: string; nodeIndex: string } }
 ): Promise<NextResponse> {
   const { subnetId, nodeIndex } = params;
   
@@ -361,7 +354,7 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: RouteParams
+  { params }: { params: { subnetId: string; nodeIndex: string } }
 ): Promise<NextResponse> {
   const { subnetId, nodeIndex } = params;
   
