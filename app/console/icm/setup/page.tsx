@@ -11,29 +11,27 @@ export default function Page() {
   const steps: StepDefinition[] = [
     {
       type: "single",
-      key: "teleporter-messenger",
-      title: "Deploy TeleporterMessenger",
+      key: "icm-messenger-deployment",
+      title: "Deploy ICM Messenger",
       component: TeleporterMessenger,
     },
     {
       type: "single",
-      key: "teleporter-registry",
-      title: "Deploy Teleporter Registry",
+      key: "icm-registry-deployment",
+      title: "Deploy ICM Registry",
       component: TeleporterRegistry,
     },
     {
       type: "single",
       key: "icm-relayer",
-      title: "Configure ICM Relayer",
+      title: "Setup ICM Relayer",
       component: ICMRelayer,
     },
   ];
 
   return (
     <ToolboxConsoleWrapper>
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
         <StepFlow steps={steps} />
-      </div>
     </ToolboxConsoleWrapper>
   );
 }

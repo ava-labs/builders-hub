@@ -29,8 +29,8 @@ export default function Page() {
       title: "Set Up a Node",
       description: "Choose how you want to run your node.",
       options: [
-        { key: "avalanchego", label: "AvalancheGo Docker", component: AvalancheGoDockerL1 },
-        { key: "builderhub", label: "BuilderHub Node (coming soon)", component: BuilderHubNodePlaceholder },
+        { key: "avalanchego", label: "L1 Node Setup with Docker", component: AvalancheGoDockerL1 },
+        { key: "builderhub", label: "Managed Testnet L1 Nodes (coming soon)", component: BuilderHubNodePlaceholder },
       ],
     },
     {
@@ -44,9 +44,7 @@ export default function Page() {
 
   return (
     <ToolboxConsoleWrapper>
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
         <StepFlow steps={steps} />
-      </div>
     </ToolboxConsoleWrapper>
   );
 }
