@@ -1,12 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, ReactNode, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import axios from 'axios';
 
-// Types simplificados sin ownership
+
 export interface ProjectState {
   id: string | null;
   hackathonId: string | null;
@@ -14,18 +14,26 @@ export interface ProjectState {
   isEditing: boolean;
   status: 'idle' | 'loading' | 'editing' | 'saving' | 'error';
   error: string | null;
+  teamName: string;
+  openJoinTeam: boolean;
+  openCurrentProject: boolean;
+  openInvalidInvitation: boolean;
 }
 
 export interface ProjectContextType {
   state: ProjectState;
+  dispatch: React.Dispatch<ProjectAction>;
   actions: {
     initializeProject: (hackathonId: string, invitationId?: string) => Promise<void>;
     saveProject: (data: any) => Promise<boolean>;
     resetProject: () => void;
+    setTeamName: (name: string) => void;
+    setOpenJoinTeam: (open: boolean) => void;
+    setOpenCurrentProject: (open: boolean) => void;
+    setOpenInvalidInvitation: (open: boolean) => void;
   };
 }
 
-// Action Types simplificados sin ownership
 type ProjectAction =
   | { type: 'SET_PROJECT_ID'; payload: string }
   | { type: 'SET_HACKATHON_ID'; payload: string }
@@ -33,9 +41,12 @@ type ProjectAction =
   | { type: 'SET_EDITING'; payload: boolean }
   | { type: 'SET_STATUS'; payload: ProjectState['status'] }
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'RESET_STATE' };
+  | { type: 'RESET_STATE' }
+  | { type: 'SET_TEAM_NAME'; payload: string }
+  | { type: 'SET_OPEN_JOIN_TEAM'; payload: boolean }
+  | { type: 'SET_OPEN_CURRENT_PROJECT'; payload: boolean }
+  | { type: 'SET_OPEN_INVALID_INVITATION'; payload: boolean };
 
-// Initial State simplificado sin ownership
 const initialState: ProjectState = {
   id: null,
   hackathonId: null,
@@ -43,9 +54,13 @@ const initialState: ProjectState = {
   isEditing: false,
   status: 'idle',
   error: null,
+  teamName: '',
+  openJoinTeam: false,
+  openCurrentProject: false,
+  openInvalidInvitation: false,
 };
 
-// Reducer simplificado sin ownership
+
 function projectReducer(state: ProjectState, action: ProjectAction): ProjectState {
   switch (action.type) {
     case 'SET_PROJECT_ID':
@@ -60,6 +75,14 @@ function projectReducer(state: ProjectState, action: ProjectAction): ProjectStat
       return { ...state, status: action.payload };
     case 'SET_ERROR':
       return { ...state, error: action.payload };
+    case 'SET_TEAM_NAME':
+      return { ...state, teamName: action.payload };
+    case 'SET_OPEN_JOIN_TEAM':
+      return { ...state, openJoinTeam: action.payload };
+    case 'SET_OPEN_CURRENT_PROJECT':
+      return { ...state, openCurrentProject: action.payload };
+    case 'SET_OPEN_INVALID_INVITATION':
+      return { ...state, openInvalidInvitation: action.payload };
     case 'RESET_STATE':
       return initialState;
     default:
@@ -67,25 +90,24 @@ function projectReducer(state: ProjectState, action: ProjectAction): ProjectStat
   }
 }
 
-// Context
+
 const ProjectSubmissionContext = createContext<ProjectContextType | undefined>(undefined);
 
-// Provider Component simplificado sin ownership
 export function ProjectSubmissionProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(projectReducer, initialState);
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-
-  // Auto-initialize cuando el componente se monta
+  const hasInitialized = useRef(false);
   useEffect(() => {
     const hackathonId = searchParams.get('hackathon');
     const invitationId = searchParams.get('invitation');
     
-    if (hackathonId && !state.hackathonId) {
+    if (hackathonId && !state.hackathonId && session?.user?.id && !hasInitialized.current) {
+      hasInitialized.current = true; 
       initializeProject(hackathonId, invitationId || undefined);
     }
-  }, [searchParams, state.hackathonId]);
+  }, [searchParams, state.hackathonId, session?.user?.id]); 
 
   const initializeProject = useCallback(async (hackathonId: string, invitationId?: string) => {
     try {
@@ -94,21 +116,22 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
       
       if (invitationId) {
         dispatch({ type: 'SET_INVITATION_ID', payload: invitationId });
-        
-        // Validar invitación y obtener proyecto (sin validación de ownership)
         const response = await axios.get(`/api/project/check-invitation`, {
           params: { invitation: invitationId, user_id: session?.user?.id }
         });
         
-        if (response.data?.invitation?.exists && response.data?.project) {
-          const project = response.data.project;
-          
-          // No validar ownership - solo establecer el proyecto
-          dispatch({ type: 'SET_PROJECT_ID', payload: project.project_id });
+        if (response.data?.invitation?.exists) {
+          const invitation = response.data.invitation;
+
+          dispatch({ type: 'SET_OPEN_JOIN_TEAM', payload: invitation.isConfirming ?? false });
+          dispatch({ type: 'SET_OPEN_CURRENT_PROJECT', payload: invitation.hasConfirmedProject ?? false });
           dispatch({ type: 'SET_EDITING', payload: true });
+        } else {
+          dispatch({ type: 'SET_OPEN_INVALID_INVITATION', payload: !response.data?.invitation?.isValid });
+          dispatch({ type: 'SET_EDITING', payload: false });
         }
       } else {
-        // Nuevo proyecto
+
         dispatch({ type: 'SET_EDITING', payload: true });
       }
       
@@ -129,15 +152,15 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
     try {
       dispatch({ type: 'SET_STATUS', payload: 'saving' });
       
-      // Validar estado básico
+  
       if (!state.hackathonId) {
         throw new Error('No hackathon selected');
       }
       
-      // Preparar datos para API
+     
       const projectData = {
         ...data,
-        hackathon_id: state.hackathonId,
+        hackaton_id: state.hackathonId, 
         user_id: session?.user?.id,
         id: state.id || undefined,
       };
@@ -175,12 +198,33 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
     dispatch({ type: 'RESET_STATE' });
   }, []);
 
+  const setTeamName = useCallback((name: string) => {
+    dispatch({ type: 'SET_TEAM_NAME', payload: name });
+  }, []);
+
+  const setOpenJoinTeam = useCallback((open: boolean) => {
+    dispatch({ type: 'SET_OPEN_JOIN_TEAM', payload: open });
+  }, []);
+
+  const setOpenCurrentProject = useCallback((open: boolean) => {
+    dispatch({ type: 'SET_OPEN_CURRENT_PROJECT', payload: open });
+  }, []);
+
+  const setOpenInvalidInvitation = useCallback((open: boolean) => {
+    dispatch({ type: 'SET_OPEN_INVALID_INVITATION', payload: open });
+  }, []);
+
   const contextValue: ProjectContextType = {
     state,
+    dispatch, 
     actions: {
       initializeProject,
       saveProject,
       resetProject,
+      setTeamName,
+      setOpenJoinTeam,
+      setOpenCurrentProject,
+      setOpenInvalidInvitation,
     },
   };
 
@@ -191,7 +235,6 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
   );
 }
 
-// Custom Hook
 export function useProjectSubmission() {
   const context = useContext(ProjectSubmissionContext);
   if (context === undefined) {

@@ -6,8 +6,7 @@ import axios from 'axios';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { useProjectSubmission } from '../context/ProjectSubmissionContext';
-
-// Definir el schema y tipos localmente para evitar problemas de importación
+import { useRouter } from 'next/navigation';
 export const FormSchema = z.object({
   project_name: z.string().min(2).max(60),
   short_description: z.string().min(30).max(280),
@@ -22,6 +21,12 @@ export const FormSchema = z.object({
   logoFile: z.any().optional(),
   coverFile: z.any().optional(),
   screenshots: z.array(z.any()).optional(),
+  logo_url: z.string().optional(),
+  cover_url: z.string().optional(),
+  hackaton_id: z.string().optional(),
+  user_id: z.string().optional(),
+  is_winner: z.boolean().optional(),
+  isDraft: z.boolean().optional(),
 });
 
 export type SubmissionForm = z.infer<typeof FormSchema>;
@@ -30,6 +35,7 @@ export const useSubmissionFormSecure = () => {
   const { data: session } = useSession();
   const { toast } = useToast();
   const { state, actions } = useProjectSubmission();
+  const router = useRouter();
   
   const [originalImages, setOriginalImages] = useState<{
     logoFile?: string;
@@ -50,10 +56,8 @@ export const useSubmissionFormSecure = () => {
     },
   });
 
-  // Solo verificar que el proyecto esté inicializado
   const canSubmit = state.isEditing && state.hackathonId;
 
-  // Funciones de carga de archivos con validación básica
   const uploadFile = useCallback(async (file: File): Promise<string> => {
     if (!state.hackathonId) {
       throw new Error('No hackathon selected');
@@ -61,7 +65,7 @@ export const useSubmissionFormSecure = () => {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('hackathon_id', state.hackathonId);
+    formData.append('hackaton_id', state.hackathonId);
     formData.append('user_id', session?.user?.id || '');
 
     try {
@@ -97,7 +101,7 @@ export const useSubmissionFormSecure = () => {
       await axios.delete('/api/file', { 
         params: { 
           fileName,
-          hackathon_id: state.hackathonId,
+          hackaton_id: state.hackathonId,
           user_id: session?.user?.id 
         } 
       });
@@ -147,15 +151,13 @@ export const useSubmissionFormSecure = () => {
     }
   }, [state.hackathonId, session?.user?.id, toast]);
 
-  // Función de guardado simplificada que usa el contexto
   const saveProject = useCallback(async (data: SubmissionForm): Promise<boolean> => {
     try {
-      // Validar estado básico antes de proceder
+   
       if (!canSubmit) {
         throw new Error('Project is not ready for submission');
       }
 
-      // Manejar carga de archivos
       const uploadedFiles = {
         logoFileUrl:
           data.logoFile &&
@@ -206,19 +208,17 @@ export const useSubmissionFormSecure = () => {
             : [],
       };
 
-      // Actualizar formulario con URLs de archivos cargados
+ 
       form.setValue('logoFile', uploadedFiles.logoFileUrl);
       form.setValue('coverFile', uploadedFiles.coverFileUrl);
       form.setValue('screenshots', uploadedFiles.screenshotsUrls);
-
-      // Actualizar estado de imágenes originales
       setOriginalImages({
         logoFile: uploadedFiles.logoFileUrl ?? undefined,
         coverFile: uploadedFiles.coverFileUrl ?? undefined,
         screenshots: uploadedFiles.screenshotsUrls,
       });
 
-      // Preparar datos finales
+   
       const finalData = {
         ...data,
         logo_url: uploadedFiles.logoFileUrl ?? '',
@@ -227,14 +227,10 @@ export const useSubmissionFormSecure = () => {
         github_repository: data.github_repository?.join(',') ?? "",
         demo_link: data.demo_link?.join(',') ?? "",
         is_winner: false,
+        hackaton_id: state.hackathonId,
+        user_id: session?.user?.id,
       };
-
-      // Usar contexto para guardar proyecto
       const success = await actions.saveProject(finalData);
-      
-      // No necesitamos actualizar el formulario con un ID que no existe en el schema
-      // El contexto ya maneja el projectId internamente
-
       return success;
     } catch (error: any) {
       console.error('Error in saveProject:', error);
@@ -253,30 +249,40 @@ export const useSubmissionFormSecure = () => {
     deleteImage,
     form,
     actions,
+    state.hackathonId, 
+    session?.user?.id, 
     state.id,
     toast
   ]);
 
-  // Guardar sin navegación
+
   const handleSaveWithoutRoute = useCallback(async (): Promise<void> => {
     try {
       const currentValues = form.getValues();
       const saveData = { ...currentValues, isDraft: true };
       await saveProject(saveData);
+ 
+      toast({
+        title: 'Project saved',
+        description: 'Your project has been saved successfully.',
+      });
     } catch (error) {
       console.error('Error in handleSaveWithoutRoute:', error);
       throw error;
     }
-  }, [form, saveProject]);
+  }, [form, saveProject, toast]); 
 
-  // Guardar con navegación
+
   const handleSave = useCallback(async (): Promise<void> => {
     try {
       await handleSaveWithoutRoute();
       toast({
         title: 'Project saved',
-        description: 'Your project has been successfully saved.',
+        description: 'Your project has been successfully saved. You will be redirected to the hackathon page.',
       });
+      // ✅ RESTORE: Redirect after 3 seconds like in the original implementation
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      router.push(`/hackathons/${state.hackathonId}`);
     } catch (error) {
       console.error('Error in handleSave:', error);
       toast({
@@ -285,9 +291,9 @@ export const useSubmissionFormSecure = () => {
         variant: 'destructive',
       });
     }
-  }, [handleSaveWithoutRoute, toast]);
+  }, [handleSaveWithoutRoute, toast, router, state.hackathonId]);
 
-  // Establecer datos del formulario desde proyecto existente
+
   const setFormData = useCallback((project: any) => {
     if (!project || !state.isEditing) return;
 
@@ -314,12 +320,13 @@ export const useSubmissionFormSecure = () => {
     });
   }, [form, state.isEditing]);
 
-  // Resetear formulario y contexto
+
   const resetForm = useCallback(() => {
     form.reset();
     setOriginalImages({});
     actions.resetProject();
   }, [form, actions]);
+
 
   return {
     form,

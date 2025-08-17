@@ -34,13 +34,13 @@ export const useHackathonProject = (hackathonId: string,invitationid:string) => 
     try {
       const response = await axios.get(`/api/project`, {
         params: {
-          hackathon_id: hackathonId,
-          user_id: session?.user?.id,
-          invitation_id: invitationid,
+          hackathon_id: hackathonId,        
+          user_id: session?.user?.id,       
+          invitation_id: invitationid,      
         },
       });
       if (response.data.project) {
-        setProject(response.data.project);
+        setProject(response.data.project);  
       }
     } catch (err) {
       console.error("Error fetching project:", err);
