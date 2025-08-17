@@ -13,8 +13,8 @@ export default function Page() {
   const steps: StepDefinition[] = [
     {
       type: "single",
-      key: "deploy-example-erc20",
-      title: "Deploy Example ERC20",
+      key: "deploy-test-erc20",
+      title: "Deploy Test ERC20",
       component: DeployExampleERC20,
     },
     {

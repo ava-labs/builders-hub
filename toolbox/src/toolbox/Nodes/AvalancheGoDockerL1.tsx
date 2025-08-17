@@ -152,7 +152,7 @@ export default function AvalanchegoDocker() {
     return (
         <>
             <Container
-                title="Node Setup with Docker"
+                title="L1 Node Setup with Docker"
                 description="This will start a Docker container running an RPC or validator node that tracks your L1."
             >
                 <Steps>

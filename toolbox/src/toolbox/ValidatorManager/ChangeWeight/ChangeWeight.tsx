@@ -91,7 +91,7 @@ const ChangeWeightStateless: React.FC = () => {
   };
 
   return (
-    <Container title="Change Validator Weight" description="Modify a validator's weight by following these steps in order.">
+    <Container title="Change Consensus Weight of Validators" description="Modify a validator's consensus weight by following these steps in order. The consensus weight determines the validator's influence in the network. On average a validator will produce blocks proportional to its weight in relation to the total weight of all validators.">
       <div className="space-y-6">
         {globalError && (
           <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">

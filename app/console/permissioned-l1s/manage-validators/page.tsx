@@ -28,7 +28,7 @@ export default function Page() {
       <Tabs defaultValue="add" className="w-full gap-6">
         <TabsList className="self-center">
           <TabsTrigger value="add">Add Validator</TabsTrigger>
-          <TabsTrigger value="weight">Change Weight</TabsTrigger>
+          <TabsTrigger value="weight">Change Consensus Weight</TabsTrigger>
           <TabsTrigger value="remove">Remove Validator</TabsTrigger>
         </TabsList>
 
