@@ -242,7 +242,7 @@ export const academyMenu: LinkItemType = {
   ],
 };
 
-export const toolsMenu: LinkItemType = {
+export const consoleMenu: LinkItemType = {
   type: 'menu',
   text: 'Console',
   url: '/console',
@@ -299,17 +299,7 @@ export const toolsMenu: LinkItemType = {
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },
-    },
-    {
-      icon: <Github />,
-      text: 'Avalanche Starter Kit',
-      description:
-        'Spin up short-lived test environments for building dApps using interoperability features like ICM and ICTT.',
-      url: 'https://github.com/ava-labs/avalanche-starter-kit',
-      menu: {
-        className: 'lg:col-start-3 lg:row-start-2',
-      },
-    },
+    }
   ],
 };
 
@@ -498,7 +488,7 @@ export const baseOptions: BaseLayoutProps = {
   },
   links: [
     academyMenu,
-    toolsMenu,
+    consoleMenu,
     docsMenu,
     eventsMenu,
     grantsMenu,

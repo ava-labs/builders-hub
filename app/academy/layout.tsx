@@ -1,6 +1,6 @@
 import { DocsLayout, type DocsLayoutProps } from 'fumadocs-ui/layouts/notebook';
 import type { ReactNode } from 'react';
-import { baseOptions, docsMenu, toolsMenu, integrationsMenu } from '@/app/layout.config';
+import { baseOptions, docsMenu, consoleMenu, integrationsMenu } from '@/app/layout.config';
 import { academy } from '@/lib/source';
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 
@@ -18,7 +18,7 @@ const academyOptions : DocsLayoutProps = {
   },
   tree: academy.pageTree,
   links: [
-    toolsMenu,
+    consoleMenu,
     docsMenu,
     integrationsMenu
   ],
