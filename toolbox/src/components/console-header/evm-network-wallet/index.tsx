@@ -27,13 +27,11 @@ export function EvmNetworkWallet() {
     currentNetwork,
     getNetworkBalance,
     isNetworkActive,
-    isTestnet,
     walletEVMAddress,
   } = useNetworkData()
 
   const {
     handleNetworkChange,
-    handleTestnetToggle,
     copyAddress,
     openExplorer,
     updateAllBalances,
@@ -153,8 +151,6 @@ export function EvmNetworkWallet() {
           />
 
           <NetworkActions
-            isTestnet={isTestnet || false}
-            onTestnetToggle={handleTestnetToggle}
             onAddNetwork={handleAddNetwork}
           />
 

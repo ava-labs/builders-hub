@@ -2,12 +2,10 @@ import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdow
 import { Plus } from 'lucide-react'
 
 interface NetworkActionsProps {
-  isTestnet: boolean
-  onTestnetToggle: () => void
   onAddNetwork: () => void
 }
 
-export function NetworkActions({ isTestnet, onTestnetToggle, onAddNetwork }: NetworkActionsProps) {
+export function NetworkActions({ onAddNetwork }: NetworkActionsProps) {
   return (
     <>
       <DropdownMenuSeparator />
