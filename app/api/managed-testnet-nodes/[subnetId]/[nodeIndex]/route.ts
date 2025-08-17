@@ -321,9 +321,9 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { subnetId: string; nodeIndex: string } }
+  { params }: { params: Promise<{ subnetId: string; nodeIndex: string }> }
 ): Promise<NextResponse> {
-  const { subnetId, nodeIndex } = params;
+  const { subnetId, nodeIndex } = await params;
   
   const nodeIndexValidation = validateNodeIndex(nodeIndex);
   if (!nodeIndexValidation.valid) {
@@ -354,9 +354,9 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { subnetId: string; nodeIndex: string } }
+  { params }: { params: Promise<{ subnetId: string; nodeIndex: string }> }
 ): Promise<NextResponse> {
-  const { subnetId, nodeIndex } = params;
+  const { subnetId, nodeIndex } = await params;
   
   const nodeIndexValidation = validateNodeIndex(nodeIndex);
   if (!nodeIndexValidation.valid) {
