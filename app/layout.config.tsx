@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { SiGithub } from '@icons-pack/react-simple-icons';
+import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
 
 export const integrationsMenu: LinkItemType = {
   type: 'menu',
@@ -477,6 +478,12 @@ const bridgeLink: LinkItemType = {
   url: 'https://core.app/bridge',
 };
 
+const userMenu: LinkItemType = {
+  type: 'custom',
+  children: <UserButtonWrapper />,
+  secondary: true,
+};
+
 const github: LinkItemType = {
   type: 'icon',
   icon: <SiGithub />,
@@ -512,5 +519,6 @@ export const baseOptions: BaseLayoutProps = {
     grantsMenu,
     eventsMenu,
     github,
+    userMenu,
   ],
 };
