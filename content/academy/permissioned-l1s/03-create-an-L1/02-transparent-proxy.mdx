@@ -6,7 +6,9 @@ authors: [nicolasarnedo]
 icon: BookOpen
 ---
 
-**Key Components:**
+Before we get into understanding the *genesis.json* we have deployed, it is important we fully understand this proxy pattern, as it plays an important role in updating and using the **Validator Manager contract**.
+
+### Key Components
 - **TransparentUpgradeableProxy**: Main proxy with immutable admin address for gas efficiency
 - **ProxyAdmin**: Administrative contract managing upgrades through ownership transfer capability
 - **Implementation**: Contains actual business logic, upgradeable via ProxyAdmin

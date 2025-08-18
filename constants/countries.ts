@@ -1,4 +1,4 @@
-export const countries = [
+const countriesRaw = [
   { value: "afghanistan", label: "Afghanistan" },
   { value: "albania", label: "Albania" },
   { value: "algeria", label: "Algeria" },
@@ -194,5 +194,27 @@ export const countries = [
   { value: "yemen", label: "Yemen" },
   { value: "zambia", label: "Zambia" },
   { value: "zimbabwe", label: "Zimbabwe" },
+  // Additional aliases from the reference list to ensure all display names are available
+  { value: "antigua_and_deps", label: "Antigua & Deps" },
+  { value: "bermuda", label: "Bermuda" },
+  { value: "burkina", label: "Burkina" },
+  { value: "cape_verde", label: "Cape Verde" },
+  { value: "congo", label: "Congo" },
+  { value: "democratic_republic_of_the_congo", label: "Democratic Republic of the Congo" },
+  { value: "east_timor", label: "East Timor" },
+  { value: "ivory_coast", label: "Ivory Coast" },
+  { value: "north_korea", label: "North Korea" },
+  { value: "south_korea", label: "South Korea" },
+  { value: "kosovo", label: "Kosovo" },
+  { value: "macedonia", label: "Macedonia" },
+  { value: "st_kitts_and_nevis", label: "St Kitts & Nevis" },
+  { value: "st_lucia", label: "St Lucia" },
+  { value: "saint_vincent_and_the_grenadines", label: "Saint Vincent & the Grenadines" },
+  { value: "sao_tome_and_principe_alt", label: "Sao Tome & Principe" },
+  { value: "swaziland", label: "Swaziland" },
+  { value: "united_arab_emirates_uae", label: "United Arab Emirates (UAE)" },
+  { value: "trinidad_and_tobago_alt", label: "Trinidad & Tobago" },
   { value: "other", label: "Other" },
-]; 
+];
+
+export const countries = [...countriesRaw].sort((a, b) => a.label.localeCompare(b.label));

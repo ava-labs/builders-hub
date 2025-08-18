@@ -18,6 +18,7 @@ import { RegisterFormValues } from "./RegistrationForm";
 import { useFormContext } from "react-hook-form";
 import { User } from "next-auth";
 import { countries } from "@/constants/countries";
+import { hsEmploymentRoles } from "@/constants/hs_employment_role";
 
 interface Step1Props {
   user?: User; // Optional User prop
@@ -113,17 +114,24 @@ export default function RegisterFormStep1({ user }: Step1Props) {
             control={form.control}
             name="role"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>Role at Company</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Your role"
-                    {...field}
-                    className="bg-transparent placeholder-zinc-600"
-                  />
-                </FormControl>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="text-zinc-600">
+                      <SelectValue placeholder="Select your role" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-zinc-600 text-zinc-600 rounded-md shadow-md max-h-60 overflow-y-auto">
+                    {hsEmploymentRoles.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.label}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage className="text-zinc-600">
-                  This name will be used for your profile and communications.
+                  Select the option that best matches your role.
                 </FormMessage>
               </FormItem>
             )}
