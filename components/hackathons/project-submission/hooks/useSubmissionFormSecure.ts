@@ -7,27 +7,155 @@ import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { useProjectSubmission } from '../context/ProjectSubmissionContext';
 import { useRouter } from 'next/navigation';
-export const FormSchema = z.object({
-  project_name: z.string().min(2).max(60),
-  short_description: z.string().min(30).max(280),
-  full_description: z.string().min(30),
-  tech_stack: z.string().min(30),
-  github_repository: z.array(z.string()).min(1),
-  explanation: z.string().optional(),
-  demo_link: z.array(z.string()).min(1),
-  is_preexisting_idea: z.boolean(),
-  demo_video_link: z.string().optional(),
-  tracks: z.array(z.string()).min(1),
-  logoFile: z.any().optional(),
-  coverFile: z.any().optional(),
-  screenshots: z.array(z.any()).optional(),
-  logo_url: z.string().optional(),
-  cover_url: z.string().optional(),
-  hackaton_id: z.string().optional(),
-  user_id: z.string().optional(),
-  is_winner: z.boolean().optional(),
-  isDraft: z.boolean().optional(),
-});
+export const FormSchema = z
+  .object({
+    project_name: z
+      .string()
+      .min(2, { message: 'Project Name must be at least 2 characters' })
+      .max(60, { message: 'Max 60 characters allowed' }),
+    short_description: z
+      .string()
+      .min(30, { message: 'Short description must be at least 30 characters' })
+      .max(280, { message: 'Max 280 characters allowed' }),
+    full_description: z
+      .string()
+      .min(30, { message: 'Full description must be at least 30 characters' }),
+    tech_stack: z
+      .string()
+      .min(30, { message: 'Tech stack must be at least 30 characters' }),
+    github_repository: z.preprocess(
+      (val) => {
+        if (!val) return [];
+        if (typeof val === 'string') return [];
+        return val;
+      },
+      z.array(
+        z.string()
+          .min(1, { message: 'GitHub repository is required' })
+      )
+      .min(1, { message: 'At least one GitHub repository is required' })
+      .refine(
+        (links) => {
+          const uniqueLinks = new Set(links);
+          return uniqueLinks.size === links.length;
+        },
+        { message: 'Duplicate GitHub repositories are not allowed' }
+      )
+      .transform((val) => {
+        const invalidRepos = val.filter(repo => {
+          if (repo.startsWith('http')) {
+            try {
+              const url = new URL(repo);
+              return !(
+                url.hostname === 'github.com' &&
+                url.pathname.split('/').length >= 2 &&
+                url.pathname.split('/')[1].length > 0
+              );
+            } catch {
+              return true;
+            }
+          }
+          
+          const parts = repo.split('/');
+          return !(
+            parts.length === 2 &&
+            parts[0].length > 0 &&
+            !parts[0].includes(' ') &&
+            parts[1].length > 0 &&
+            !parts[1].includes(' ')
+          );
+        });
+        
+        if (invalidRepos.length > 0) {
+          throw new z.ZodError([
+            {
+              code: 'custom',
+              message: 'Please enter a valid GitHub URL (e.g., https://github.com/username/repo) or username/repo format',
+              path: ['github_repository']
+            }
+          ]);
+        }
+        return val;
+      })
+    ),
+    explanation: z.string().optional(),
+    demo_link: z.preprocess(
+      (val) => {
+        if (!val) return [];
+        if (typeof val === 'string') return [];
+        return val;
+      },
+      z.array(
+        z.string()
+          .min(1, { message: 'Demo link cannot be empty' })
+      )
+      .min(1, { message: 'At least one demo link is required' })
+      .refine(
+        (links) => {
+          const uniqueLinks = new Set(links);
+          return uniqueLinks.size === links.length;
+        },
+        { message: 'Duplicate demo links are not allowed' }
+      )
+      .refine(
+        (links) => {
+          return links.every(url => {
+            try {
+              new URL(url);
+              return true;
+            } catch {
+              return false;
+            }
+          });
+        },
+        { message: 'Please enter a valid URL' }
+      )
+    ),
+    is_preexisting_idea: z.boolean(),
+    logoFile: z.any().optional(),
+    coverFile: z.any().optional(),
+    screenshots: z.any().optional(),
+    demo_video_link: z
+      .string()
+      .url({ message: 'Please enter a valid URL' })
+      .optional()
+      .or(z.literal(''))
+      .refine(
+        (val) => {
+          if (!val) return true;
+          try {
+            const url = new URL(val);
+            return (
+              url.hostname.includes('youtube.com') ||
+              url.hostname.includes('youtu.be') ||
+              url.hostname.includes('loom.com')
+            );
+          } catch {
+            return false;
+          }
+        },
+        { message: 'Please enter a valid YouTube or Loom URL' }
+      ),
+    tracks: z.array(z.string()).min(1, 'track are required'),
+    logo_url: z.string().optional(),
+    cover_url: z.string().optional(),
+    hackaton_id: z.string().optional(),
+    user_id: z.string().optional(),
+    is_winner: z.boolean().optional(),
+    isDraft: z.boolean().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.is_preexisting_idea) {
+        return data.explanation && data.explanation.length >= 2;
+      }
+      return true;
+    },
+    {
+      message: 'explanation is required when the idea is pre-existing',
+      path: ['explanation'],
+    }
+  );
 
 export type SubmissionForm = z.infer<typeof FormSchema>;
 
@@ -57,18 +185,16 @@ export const useSubmissionFormSecure = () => {
   });
 
   const canSubmit = state.isEditing && state.hackathonId;
-
-  // ✅ REACTIVE VALIDATION: Auto-validate fields as user types
-  // useEffect(() => {
-  //   const subscription = form.watch((value, { name, type }) => {
-  //     if (type === 'change' && name) {
-  //       // ✅ Validate specific field that changed
-  //       form.trigger(name as keyof SubmissionForm);
-  //     }
-  //   });
+ 
+  useEffect(() => {
+    const subscription = form.watch((value, { name, type }) => {
+      if (type === 'change' && name) {
+        form.trigger(name as keyof SubmissionForm);
+      }
+    });
     
-  //   return () => subscription.unsubscribe();
-  // }, [form]);
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   const uploadFile = useCallback(async (file: File): Promise<string> => {
     if (!state.hackathonId) {
