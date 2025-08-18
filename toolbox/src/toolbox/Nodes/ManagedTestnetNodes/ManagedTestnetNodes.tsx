@@ -28,7 +28,7 @@ import CreateNodeForm from "./CreateNodeForm";
 import SuccessMessage from "./SuccessMessage";
 import NodesList from "./NodesList";
 
-export default function BuilderHubNodes() {
+export default function ManagedTestnetNodes() {
     const { avalancheNetworkID, isTestnet } = useWalletStore();
     const { addL1 } = useL1ListStore()();
 

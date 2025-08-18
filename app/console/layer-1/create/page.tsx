@@ -5,14 +5,7 @@ import ToolboxConsoleWrapper from "../../../../toolbox/src/components/ToolboxCon
 import CreateChain from "../../../../toolbox/src/toolbox/L1/CreateChain";
 import AvalancheGoDockerL1 from "../../../../toolbox/src/toolbox/Nodes/AvalancheGoDockerL1";
 import ConvertToL1 from "../../../../toolbox/src/toolbox/L1/ConvertToL1";
-
-function BuilderHubNodePlaceholder() {
-  return (
-    <div className="flex items-center justify-center py-12 text-zinc-600 dark:text-zinc-300">
-      BuilderHub Node setup coming soon.
-    </div>
-  );
-}
+import ManagedTestnetNodes from "@/toolbox/src/toolbox/Nodes/ManagedTestnetNodes";
 
 export default function Page() {
   const steps: StepDefinition[] = [
@@ -29,8 +22,8 @@ export default function Page() {
       title: "Set Up a Node",
       description: "Choose how you want to run your node.",
       options: [
-        { key: "avalanchego", label: "L1 Node Setup with Docker", component: AvalancheGoDockerL1 },
-        { key: "builderhub", label: "Managed Testnet L1 Nodes (coming soon)", component: BuilderHubNodePlaceholder },
+        { key: "l1-node-setup", label: "L1 Node Setup with Docker", component: AvalancheGoDockerL1 },
+        { key: "managed-testnet-l1-nodes", label: "Managed Testnet L1 Nodes (coming soon)", component: ManagedTestnetNodes },
       ],
     },
     {
