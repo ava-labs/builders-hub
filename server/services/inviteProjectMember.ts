@@ -147,59 +147,63 @@ async function sendInvitationEmail(
 }
 
 async function createProject(hackathonId: string, userId: string) {
-  const existingProject = await prisma.project.findFirst({
-    where: {
-      hackaton_id: hackathonId,
-      members: {
-        some: {
-          user_id: userId,
-          status: {
-            in: ["Confirmed"],
+  //  Atomic transaction to prevent race conditions during invitations
+  return await prisma.$transaction(async (tx) => {
+    // Find existing project WITHIN transaction
+    const existingProject = await tx.project.findFirst({
+      where: {
+        hackaton_id: hackathonId,
+        members: {
+          some: {
+            user_id: userId,
+            status: {
+              in: ["Confirmed"],
+            },
           },
         },
       },
-    },
-  });
+    });
 
-  if (existingProject) {
+    if (existingProject) {
+      // Return existing project
+      return existingProject;
+    }
     
-    return existingProject;
-  }
-  
-  const project = await prisma.project.create({
-    data: {
-      hackaton_id: hackathonId,
-      project_name: "Untitled Project",
-      short_description: "",
-      full_description: "",
-      tech_stack: "",
-      github_repository: "",
-      demo_link: "",
-      is_preexisting_idea: false,
-      logo_url: "",
-      cover_url: "",
-      demo_video_link: "",
-      screenshots: [],
-      tracks: [],
-      explanation: "",
-    },
-  });
+    // Create project AND member atomically
+    const project = await tx.project.create({
+      data: {
+        hackaton_id: hackathonId,
+        project_name: "Untitled Project",
+        short_description: "",
+        full_description: "",
+        tech_stack: "",
+        github_repository: "",
+        demo_link: "",
+        is_preexisting_idea: false,
+        logo_url: "",
+        cover_url: "",
+        demo_video_link: "",
+        screenshots: [],
+        tracks: [],
+        explanation: "",
+        // Member created together with project
+        members: {
+          create: {
+            user_id: userId,
+            role: "Member",
+            status: "Confirmed",
+            email: (await tx.user.findUnique({
+              where: { id: userId },
+            }))?.email ?? "",
+          },
+        },
+      },
+    });
 
-  const user = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
+    return project;
+  }, {
+    // Transaction configuration for better performance
+    maxWait: 5000, // Maximum 5 seconds waiting for lock
+    timeout: 10000, // Maximum 10 seconds executing transaction
   });
-
-  await prisma.member.create({
-    data: {
-      user_id: userId,
-      project_id: project.id,
-      role: "Member",
-      status: "Confirmed",
-      email: user?.email ?? "",
-    },
-  });
-
-  return project;
 }
