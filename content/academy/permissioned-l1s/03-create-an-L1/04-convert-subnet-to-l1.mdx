@@ -1,0 +1,59 @@
+---
+title: Convert Subnet to L1
+description: Transform your Subnet into a sovereign L1 with Validator Manager contract integration
+updated: 2025-07-31
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+Now that you understand where to deploy your Validator Manager Contract (VMC), and you [created a Subnet](/academy/permissioned-l1s/03-create-an-L1/01-create-subnet) with at least one validator node, it's time to convert your Subnet into a sovereign L1. 
+
+This process establishes the VMC as the authority for validator management on your blockchain and is **irreversible**, once converted to L1, you cannot revert to Subnet status.
+
+## Conversion Process
+
+The conversion from Subnet to L1 is a one-time, irreversible process that:
+
+- **Establishes Sovereignty**: Your blockchain becomes independent with its own validator set
+- **Transfers Authority**: Validator management shifts from P-Chain to your VMC
+
+## Key Parameters
+
+1. **Subnet ID**: The unique identifier of your Subnet (from the `CreateSubnetTx` transaction hash)
+
+2. **Validator Manager Blockchain ID**: The blockchain where your VMC will be deployed (Your L1, C-Chain, Another L1)
+
+3. **Validator Manager Address**: The address of the validator manager contract (or proxy) that will manage the L1's validator set. Chains created with Developer Console have a pre-deployed proxy at `0xfacade0000000000000000000000000000000000`.
+
+4. **Initial Validators**: The validators that will form your L1's initial validator set. Add the validator we just spun up in the Create a Subnet section.
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <ConvertToL1 />
+</ToolboxMdxWrapper>
+
+You just converted your Subnet to an L1  - **Congratulations!** The following sections will guide you through deploying and configuring your Validator Manager Contract.
+
+## Appendix: Conversion Flow
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant User
+    participant PChain as P-Chain
+    participant VMC as VMC Chain
+    participant PChainState as P-Chain State
+
+    User->>PChain: ConvertSubnetToL1Tx<br/>Contains: SubnetID, ChainID, Address, Validators, SubnetAuth
+    PChain->>PChain: SyntacticVerify()
+    PChain->>PChain: Verify subnet authorization
+    PChain->>PChain: Calculate fees & validate balance
+    PChain->>VMC: Create L1Validators<br/>For each validator: ValidationID, NodeID, Weight, Balance, etc.
+    VMC->>PChain: SetSubnetToL1Conversion()
+    PChain->>PChainState: Store ConversionID, ChainID, Address mapping
+    PChain->>PChain: Generate ConversionID<br/>Hash of SubnetToL1ConversionData
+    Note right of PChain: No direct call - VMC reads P-Chain state
+    VMC->>PChainState: VMC can query conversion data via P-Chain APIs
+"
+/>
+
+ 

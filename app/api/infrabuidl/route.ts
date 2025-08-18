@@ -18,7 +18,6 @@ export async function POST(request: Request) {
     let formData;
     try {
       formData = await clonedRequest.json();
-      console.log('Received form data:', formData);
     } catch (error) {
       console.error('Error parsing request body:', error);
       return NextResponse.json(
@@ -37,22 +36,47 @@ export async function POST(request: Request) {
       }
     });
     
+    // Handle conditional fields with defaults
     processedFormData["2-44649732/project_type_ai"] = formData.project_type || "N/A";
     processedFormData["2-44649732/project_type_other"] = formData.project_type_other || "N/A";
     processedFormData["2-44649732/token_launch_other"] = formData.token_launch_other || "N/A";
-    processedFormData["2-44649732/funding_round"] = formData.funding_round || "N/A";
     processedFormData["2-44649732/direct_competitor_1"] = formData.direct_competitor_1 || "N/A";
     processedFormData["2-44649732/applicant_job_role_other"] = formData.applicant_job_role_other || "N/A";
     processedFormData["2-44649732/avalanche_l1_project_benefited_1"] = formData.avalanche_l1_project_benefited_1 || "N/A";
     processedFormData["2-44649732/previous_avalanche_project_info"] = formData.previous_avalanche_project_info || "N/A";
-    processedFormData["2-44649732/funding_amount"] = formData.funding_amount || "N/A";
     processedFormData["2-44649732/direct_competitor_1_website"] = formData.direct_competitor_1_website || "N/A";
     processedFormData["2-44649732/program_referrer"] = formData.program_referrer || "N/A";
-    processedFormData["2-44649732/funding_entity"] = formData.funding_entity || "N/A";
     processedFormData["2-44649732/multichain_chains"] = formData.multichain_chains || "N/A";
     processedFormData["2-44649732/avalanche_l1_project_benefited_1_website"] = formData.avalanche_l1_project_benefited_1_website || "N/A";   
     processedFormData["2-44649732/applicant_first_name"] = formData.firstname;
     processedFormData["2-44649732/applicant_last_name"] = formData.lastname;
+    
+    // Handle old field structure for backward compatibility
+    processedFormData["2-44649732/funding_round"] = "N/A"; // Removed field
+    processedFormData["2-44649732/funding_amount"] = "N/A"; // Removed field
+    processedFormData["2-44649732/funding_entity"] = "N/A"; // Removed field
+    processedFormData["2-44649732/requested_funding_range"] = formData.requested_funding_range_milestone || "N/A";
+    
+    // Handle new funding amount fields
+    processedFormData["2-44649732/previous_funding_amount_codebase"] = formData.funding_amount_codebase || "0";
+    processedFormData["2-44649732/previous_funding_amount_infrabuidl"] = formData.funding_amount_infrabuidl || "0";
+    processedFormData["2-44649732/previous_funding_amount_infrabuidl_ai"] = formData.funding_amount_infrabuidl_ai || "0";
+    processedFormData["2-44649732/retro9000_previous_funding_amount"] = formData.funding_amount_retro9000 || "0";
+    processedFormData["2-44649732/previous_funding_amount_blizzard"] = formData.funding_amount_blizzard || "0";
+    processedFormData["2-44649732/previous_funding_amount_ava_labs"] = formData.funding_amount_ava_labs || "0";
+    processedFormData["2-44649732/previous_funding_amount_entity_other"] = formData.funding_amount_other_avalanche || "0";
+    
+    // Handle previous funding non-avalanche fields
+    const previousFunding = Array.isArray(formData.previous_funding) ? formData.previous_funding : [formData.previous_funding];
+    processedFormData["2-44649732/previous_funding_non_avalanche_grant"] = previousFunding.includes("Grant") ? "Yes" : "No";
+    processedFormData["2-44649732/previous_funding_non_avalanche___angel_investment"] = previousFunding.includes("Angel Investment") ? "Yes" : "No";
+    processedFormData["2-44649732/previous_funding_non_avalanche___pre_seed"] = previousFunding.includes("Pre-Seed") ? "Yes" : "No";
+    processedFormData["2-44649732/previous_funding_non_avalanche___seed"] = previousFunding.includes("Seed") ? "Yes" : "No";
+    processedFormData["2-44649732/previous_funding_non_avalanche___series_a"] = previousFunding.includes("Series A") ? "Yes" : "No";
+    
+    // Handle similar project fields
+    processedFormData["2-44649732/similar_project_name_1"] = formData.similar_project_name_1 || "N/A";
+    processedFormData["2-44649732/similar_project_website_1"] = formData.similar_project_website_1 || "N/A";
      
     const fields = Object.entries(processedFormData).map(([name, value]) => {
       let formattedValue: any;
@@ -107,9 +131,6 @@ export async function POST(request: Request) {
         }
       };
     }
-  
-    console.log('HubSpot payload fields count:', hubspotPayload.fields.length);
-    console.log('project_type_ai field:', processedFormData["2-44649732/project_type_ai"]);
     
     const hubspotResponse = await fetch(
       `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${HUBSPOT_INFRABUIDL_FORM_GUID}`,
@@ -138,9 +159,6 @@ export async function POST(request: Request) {
       console.error('Error reading HubSpot response:', error);
       hubspotResult = { status: 'error', message: 'Could not read HubSpot response' };
     }
-    
-    console.log('HubSpot response status:', hubspotResponse.status);
-    console.log('HubSpot response:', hubspotResult);
     
     if (!hubspotResponse.ok) {
       return NextResponse.json(
