@@ -127,16 +127,6 @@ export default function GeneralSecureComponent({
   };
 
   const onSubmit = async (data: any) => {
-    if (!canSubmit) {
-      toast({
-        title: "Cannot submit project",
-        description:
-          "Project is not ready for submission. Please ensure you have proper permissions.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       const success = await saveProject(data);
       if (success) {

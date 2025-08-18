@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -57,6 +57,18 @@ export const useSubmissionFormSecure = () => {
   });
 
   const canSubmit = state.isEditing && state.hackathonId;
+
+  // ✅ REACTIVE VALIDATION: Auto-validate fields as user types
+  // useEffect(() => {
+  //   const subscription = form.watch((value, { name, type }) => {
+  //     if (type === 'change' && name) {
+  //       // ✅ Validate specific field that changed
+  //       form.trigger(name as keyof SubmissionForm);
+  //     }
+  //   });
+    
+  //   return () => subscription.unsubscribe();
+  // }, [form]);
 
   const uploadFile = useCallback(async (file: File): Promise<string> => {
     if (!state.hackathonId) {
