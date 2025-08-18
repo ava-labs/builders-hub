@@ -26,21 +26,66 @@ interface PrimaryNetworkMetrics {
 }
 
 let cachedData: { data: PrimaryNetworkMetrics; timestamp: number } | null = null;
-const CACHE_DURATION = 5 * 60 * 1000;
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 1 day for regular data
+const ALL_TIME_CACHE_DURATION = 24 * 60 * 60 * 1000; // 1 day for all-time data
 
-async function getTimeSeriesData(metricType: string, pageSize: number = 365): Promise<TimeSeriesDataPoint[]> {
+async function getTimeSeriesData(metricType: string, pageSize: number = 365, fetchAllPages: boolean = false): Promise<TimeSeriesDataPoint[]> {
   try {
-    const url = `https://metrics.avax.network/v2/networks/mainnet/metrics/${metricType}?pageSize=${pageSize}&subnetId=${PRIMARY_NETWORK_SUBNET_ID}`;
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-    });
+    let allResults: any[] = [];
+    let nextPageToken: string | null = null;
+    let pageCount = 0;
+    const maxPages = 50; // Safety limit to prevent infinite loops
+    
+    do {
+      // Build URL with pagination token if available
+      let url = `https://metrics.avax.network/v2/networks/mainnet/metrics/${metricType}?pageSize=${pageSize}&subnetId=${PRIMARY_NETWORK_SUBNET_ID}`;
+      if (nextPageToken) {
+        url += `&pageToken=${encodeURIComponent(nextPageToken)}`;
+      }
+      
+      console.log(`Fetching ${metricType} page ${pageCount + 1}${nextPageToken ? ` with token: ${nextPageToken.substring(0, 20)}...` : ''}`);
+      
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+      });
 
-    if (!response.ok) return [];
+      if (!response.ok) {
+        console.error(`HTTP error for ${metricType} page ${pageCount + 1}: ${response.status}`);
+        break;
+      }
 
-    const data = await response.json();
-    if (!data?.results || !Array.isArray(data.results)) return [];
+      const data = await response.json();
+      if (!data?.results || !Array.isArray(data.results)) {
+        console.log(`No results found for ${metricType} page ${pageCount + 1}`);
+        break;
+      }
 
-    return data.results
+      // Add results to our collection
+      allResults = allResults.concat(data.results);
+      
+      // Update pagination info
+      nextPageToken = data.nextPageToken || null;
+      pageCount++;
+      
+      console.log(`Fetched ${data.results.length} records for ${metricType} page ${pageCount}. Total so far: ${allResults.length}`);
+      
+      // For single page requests, don't continue pagination
+      if (!fetchAllPages) {
+        break;
+      }
+      
+      // Safety check to prevent infinite loops
+      if (pageCount >= maxPages) {
+        console.warn(`Reached maximum page limit (${maxPages}) for ${metricType}`);
+        break;
+      }
+      
+    } while (nextPageToken && fetchAllPages);
+    
+    console.log(`Completed fetching ${metricType}: ${allResults.length} total records across ${pageCount} pages`);
+
+    // Sort and transform all results
+    return allResults
       .sort((a: any, b: any) => b.timestamp - a.timestamp)
       .map((result: any) => ({
         timestamp: result.timestamp,
@@ -147,20 +192,30 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const timeRange = searchParams.get('timeRange') || '30d';
     
-    if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
+    // Use different cache duration based on request type
+    const currentCacheDuration = timeRange === 'all' ? ALL_TIME_CACHE_DURATION : CACHE_DURATION;
+    
+    if (cachedData && Date.now() - cachedData.timestamp < currentCacheDuration) {
       // Filter cached data by requested time range
       const filteredData = filterCachedDataByTimeRange(cachedData.data, timeRange);
       return NextResponse.json(filteredData, {
         headers: {
-          'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+          'Cache-Control': `public, max-age=${Math.floor(currentCacheDuration / 1000)}, stale-while-revalidate=300`,
           'X-Data-Source': 'cache',
           'X-Cache-Timestamp': new Date(cachedData.timestamp).toISOString(),
           'X-Time-Range': timeRange,
+          'X-Cache-Duration': `${currentCacheDuration / 1000}s`,
         }
       });
     }
     
     const startTime = Date.now();
+
+    // Determine if we need to fetch all pages for comprehensive data
+    const fetchAllPages = timeRange === 'all';
+    const pageSize = fetchAllPages ? 1000 : 365; // Larger page size for efficiency when fetching all data
+    
+    console.log(`Fetching data for time range: ${timeRange}, fetchAllPages: ${fetchAllPages}, pageSize: ${pageSize}`);
 
     const [
       validatorCountData,
@@ -169,10 +224,10 @@ export async function GET(request: Request) {
       delegatorWeightData,
       validatorVersions
     ] = await Promise.all([
-      getTimeSeriesData('validatorCount', 365),
-      getTimeSeriesData('validatorWeight', 365),
-      getTimeSeriesData('delegatorCount', 365),
-      getTimeSeriesData('delegatorWeight', 365),
+      getTimeSeriesData('validatorCount', pageSize, fetchAllPages),
+      getTimeSeriesData('validatorWeight', pageSize, fetchAllPages),
+      getTimeSeriesData('delegatorCount', pageSize, fetchAllPages),
+      getTimeSeriesData('delegatorWeight', pageSize, fetchAllPages),
       fetchValidatorVersions()
     ]);
 
@@ -196,13 +251,21 @@ export async function GET(request: Request) {
     const filteredData = filterCachedDataByTimeRange(metrics, timeRange);
     const fetchTime = Date.now() - startTime;
 
+    // Log performance metrics for all-time requests
+    if (fetchAllPages) {
+      console.log(`All-time data fetch completed in ${fetchTime}ms`);
+      console.log(`Data points fetched - Validator Count: ${validatorCountData.length}, Validator Weight: ${validatorWeightData.length}, Delegator Count: ${delegatorCountData.length}, Delegator Weight: ${delegatorWeightData.length}`);
+    }
+
     return NextResponse.json(filteredData, {
       headers: {
-        'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+        'Cache-Control': `public, max-age=${Math.floor(currentCacheDuration / 1000)}, stale-while-revalidate=300`,
         'X-Data-Source': 'fresh',
         'X-Fetch-Time': `${fetchTime}ms`,
         'X-Cache-Timestamp': new Date().toISOString(),
         'X-Time-Range': timeRange,
+        'X-All-Pages': fetchAllPages.toString(),
+        'X-Total-Data-Points': `${validatorCountData.length + validatorWeightData.length + delegatorCountData.length + delegatorWeightData.length}`,
       }
     });
   } catch (error) {
@@ -211,13 +274,15 @@ export async function GET(request: Request) {
     if (cachedData) {
       const { searchParams } = new URL(request.url);
       const timeRange = searchParams.get('timeRange') || '30d';
+      const currentCacheDuration = timeRange === 'all' ? ALL_TIME_CACHE_DURATION : CACHE_DURATION;
       const filteredData = filterCachedDataByTimeRange(cachedData.data, timeRange);
       return NextResponse.json(filteredData, {
         headers: {
-          'Cache-Control': 'public, max-age=30, stale-while-revalidate=300',
+          'Cache-Control': `public, max-age=${Math.floor(currentCacheDuration / 2000)}, stale-while-revalidate=300`, // Half cache time on error
           'X-Data-Source': 'cache-fallback',
           'X-Cache-Timestamp': new Date(cachedData.timestamp).toISOString(),
           'X-Error': 'true',
+          'X-Time-Range': timeRange,
         }
       });
     }

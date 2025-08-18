@@ -10,6 +10,7 @@ import {
   Label,
   Pie,
   PieChart,
+  ReferenceLine,
 } from "recharts";
 import {
   Card,
@@ -249,6 +250,86 @@ export default function PrimaryNetworkMetrics() {
             : point.value,
       }))
       .reverse(); // Reverse to show oldest to newest
+  };
+
+  // Helper function to get year boundaries for vertical separators
+  const getYearBoundaries = (data: ChartDataPoint[]): string[] => {
+    if (timeRange !== "all" || data.length === 0) return [];
+
+    const yearMap = new Map<number, string>();
+
+    // Find the first occurrence of each year
+    data.forEach((point) => {
+      const date = new Date(point.day);
+      const year = date.getFullYear();
+      if (!yearMap.has(year)) {
+        yearMap.set(year, point.day);
+      }
+    });
+
+    // Sort years and return boundaries (skip the first year to avoid line at beginning)
+    const sortedYears = Array.from(yearMap.keys()).sort((a, b) => a - b);
+    return sortedYears.slice(1).map((year) => yearMap.get(year)!);
+  };
+
+  // Helper function to format dates based on time range
+  const formatDateLabel = (dateString: string): string => {
+    const date = new Date(dateString);
+
+    if (timeRange === "all") {
+      // For all-time data, show year and month for better context
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      });
+    } else {
+      // For shorter periods, show just month/day
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+    }
+  };
+
+  // Helper function to format tooltip dates with more detail
+  const formatTooltipDate = (dateString: string): string => {
+    const date = new Date(dateString);
+
+    if (timeRange === "all") {
+      // For all-time data, show full date
+      return date.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+    } else {
+      // For shorter periods, show month/day/year
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+  };
+
+  // Helper function to format tooltip values with context-specific labels
+  const formatTooltipValue = (value: number, metricKey: string): string => {
+    switch (metricKey) {
+      case "validator_count":
+        return `${formatNumber(value)} Validators`;
+
+      case "validator_weight":
+        return `${formatWeight(value)} Staked`;
+
+      case "delegator_count":
+        return `${formatNumber(value)} Delegators`;
+
+      case "delegator_weight":
+        return `${formatWeight(value)} Delegated Stake`;
+
+      default:
+        return formatNumber(value);
+    }
   };
 
   const getCurrentValue = (
@@ -506,7 +587,7 @@ export default function PrimaryNetworkMetrics() {
                 performance and validator distribution
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-2">
               <ToggleGroup
                 type="single"
                 value={timeRange}
@@ -521,18 +602,34 @@ export default function PrimaryNetworkMetrics() {
                     setTimeRange(value);
                   }
                 }}
-                className="border border-border/50 rounded-lg p-1"
+                className="bg-gray-100 dark:bg-gray-800 border-0 rounded-full p-0.5 shadow-sm"
               >
-                <ToggleGroupItem value="7d" size="sm" className="text-xs px-3">
+                <ToggleGroupItem
+                  value="7d"
+                  size="sm"
+                  className="text-xs px-4 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.5rem]"
+                >
                   7d
                 </ToggleGroupItem>
-                <ToggleGroupItem value="30d" size="sm" className="text-xs px-3">
+                <ToggleGroupItem
+                  value="30d"
+                  size="sm"
+                  className="text-xs px-4 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.5rem]"
+                >
                   30d
                 </ToggleGroupItem>
-                <ToggleGroupItem value="90d" size="sm" className="text-xs px-3">
+                <ToggleGroupItem
+                  value="90d"
+                  size="sm"
+                  className="text-xs px-4 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.5rem]"
+                >
                   90d
                 </ToggleGroupItem>
-                <ToggleGroupItem value="all" size="sm" className="text-xs px-3">
+                <ToggleGroupItem
+                  value="all"
+                  size="sm"
+                  className="text-xs px-4 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.5rem]"
+                >
                   All
                 </ToggleGroupItem>
               </ToggleGroup>
@@ -605,7 +702,7 @@ export default function PrimaryNetworkMetrics() {
                         <CardDescription>{config.description}</CardDescription>
                       </div>
                       {/* Replaced CardAction with direct div and moved controls to header */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 px-2">
                         <ToggleGroup
                           type="single"
                           value={timeRange}
@@ -620,13 +717,32 @@ export default function PrimaryNetworkMetrics() {
                               setTimeRange(value);
                             }
                           }}
-                          variant="outline"
-                          className="hidden sm:flex"
+                          className="hidden sm:flex bg-gray-100 dark:bg-gray-800 border-0 rounded-full p-0.5 shadow-sm mx-2"
                         >
-                          <ToggleGroupItem value="7d">7d</ToggleGroupItem>
-                          <ToggleGroupItem value="30d">30d</ToggleGroupItem>
-                          <ToggleGroupItem value="90d">90d</ToggleGroupItem>
-                          <ToggleGroupItem value="all">All</ToggleGroupItem>
+                          <ToggleGroupItem
+                            value="7d"
+                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
+                          >
+                            7d
+                          </ToggleGroupItem>
+                          <ToggleGroupItem
+                            value="30d"
+                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
+                          >
+                            30d
+                          </ToggleGroupItem>
+                          <ToggleGroupItem
+                            value="90d"
+                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
+                          >
+                            90d
+                          </ToggleGroupItem>
+                          <ToggleGroupItem
+                            value="all"
+                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
+                          >
+                            All
+                          </ToggleGroupItem>
                         </ToggleGroup>
                         <Select
                           value={timeRange}
@@ -642,24 +758,36 @@ export default function PrimaryNetworkMetrics() {
                           }}
                         >
                           <SelectTrigger
-                            className="w-40 sm:hidden"
+                            className="w-20 h-6 sm:hidden bg-gray-100 dark:bg-gray-800 border-0 rounded-full text-gray-700 dark:text-gray-300 shadow-sm font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-md hover:scale-102 transition-all duration-200 ease-out text-xs px-4 min-w-[2.5rem]"
                             size="sm"
                             aria-label="Select a value"
                           >
-                            <SelectValue placeholder="Last 30 days" />
+                            <SelectValue placeholder="30d" />
                           </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                            <SelectItem value="7d" className="rounded-lg">
-                              Last 7 days
+                          <SelectContent className="rounded-2xl bg-white dark:bg-gray-800 border-0 shadow-lg p-1 w-32">
+                            <SelectItem
+                              value="7d"
+                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
+                            >
+                              7d
                             </SelectItem>
-                            <SelectItem value="30d" className="rounded-lg">
-                              Last 30 days
+                            <SelectItem
+                              value="30d"
+                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
+                            >
+                              30d
                             </SelectItem>
-                            <SelectItem value="90d" className="rounded-lg">
-                              Last 90 days
+                            <SelectItem
+                              value="90d"
+                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
+                            >
+                              90d
                             </SelectItem>
-                            <SelectItem value="all" className="rounded-lg">
-                              All time
+                            <SelectItem
+                              value="all"
+                              className="rounded-full text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
+                            >
+                              All
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -723,37 +851,40 @@ export default function PrimaryNetworkMetrics() {
                           axisLine={false}
                           tickMargin={8}
                           minTickGap={32}
-                          tickFormatter={(value) => {
-                            const date = new Date(value);
-                            return date.toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            });
-                          }}
+                          tickFormatter={(value) => formatDateLabel(value)}
                         />
                         <ChartTooltip
                           cursor={false}
                           content={
                             <ChartTooltipContent
-                              labelFormatter={(value) => {
-                                return new Date(value).toLocaleDateString(
-                                  "en-US",
-                                  {
-                                    month: "short",
-                                    day: "numeric",
-                                  }
-                                );
-                              }}
+                              labelFormatter={(value) =>
+                                formatTooltipDate(value)
+                              }
                               indicator="dot"
                               formatter={(value) => [
-                                config.metricKey.includes("weight")
-                                  ? formatWeight(value as number)
-                                  : formatNumber(value as number),
-                                config.title,
+                                formatTooltipValue(
+                                  value as number,
+                                  config.metricKey
+                                ),
+                                "", // Empty string for cleaner tooltip (removes duplicate title)
                               ]}
                             />
                           }
                         />
+                        {/* Year separator lines for all-time data */}
+                        {timeRange === "all" &&
+                          getYearBoundaries(chartData).map(
+                            (yearBoundary, idx) => (
+                              <ReferenceLine
+                                key={`year-${idx}`}
+                                x={yearBoundary}
+                                stroke="#d1d5db"
+                                strokeWidth={1}
+                                strokeDasharray="3 3"
+                                opacity={0.6}
+                              />
+                            )
+                          )}
                         <Area
                           dataKey="value"
                           type="natural"
