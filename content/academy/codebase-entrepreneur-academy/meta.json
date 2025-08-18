@@ -4,7 +4,12 @@
     "root": true,
     "pages": [
         "index",
+        "---Module 9---",
+        "...09-module",
         "---Grant Applications---",
-        "...10-grants"
+        "...10-grants",
+        "---Module 11---",
+        "...11-module",
+        "---More coming very soon...---"
     ]
 }
