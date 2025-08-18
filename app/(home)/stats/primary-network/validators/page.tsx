@@ -45,133 +45,26 @@ import {
 } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 
+interface TimeSeriesDataPoint {
+  timestamp: number;
+  value: number | string;
+  date: string; // ISO date string for easy formatting
+}
+
+interface TimeSeriesMetric {
+  data: TimeSeriesDataPoint[];
+  current_value: number | string;
+  change_24h: number;
+  change_percentage_24h: number;
+}
+
 interface PrimaryNetworkMetrics {
-  // Validator versions JSON string
+  validator_count: TimeSeriesMetric;
+  validator_weight: TimeSeriesMetric;
+  delegator_count: TimeSeriesMetric;
+  delegator_weight: TimeSeriesMetric;
   validator_versions: string;
-  // 30 days of delegator count
-  delegator_count_day1: number | string;
-  delegator_count_day2: number | string;
-  delegator_count_day3: number | string;
-  delegator_count_day4: number | string;
-  delegator_count_day5: number | string;
-  delegator_count_day6: number | string;
-  delegator_count_day7: number | string;
-  delegator_count_day8: number | string;
-  delegator_count_day9: number | string;
-  delegator_count_day10: number | string;
-  delegator_count_day11: number | string;
-  delegator_count_day12: number | string;
-  delegator_count_day13: number | string;
-  delegator_count_day14: number | string;
-  delegator_count_day15: number | string;
-  delegator_count_day16: number | string;
-  delegator_count_day17: number | string;
-  delegator_count_day18: number | string;
-  delegator_count_day19: number | string;
-  delegator_count_day20: number | string;
-  delegator_count_day21: number | string;
-  delegator_count_day22: number | string;
-  delegator_count_day23: number | string;
-  delegator_count_day24: number | string;
-  delegator_count_day25: number | string;
-  delegator_count_day26: number | string;
-  delegator_count_day27: number | string;
-  delegator_count_day28: number | string;
-  delegator_count_day29: number | string;
-  delegator_count_day30: number | string;
-  // 30 days of delegator weight
-  delegator_weight_day1: number | string;
-  delegator_weight_day2: number | string;
-  delegator_weight_day3: number | string;
-  delegator_weight_day4: number | string;
-  delegator_weight_day5: number | string;
-  delegator_weight_day6: number | string;
-  delegator_weight_day7: number | string;
-  delegator_weight_day8: number | string;
-  delegator_weight_day9: number | string;
-  delegator_weight_day10: number | string;
-  delegator_weight_day11: number | string;
-  delegator_weight_day12: number | string;
-  delegator_weight_day13: number | string;
-  delegator_weight_day14: number | string;
-  delegator_weight_day15: number | string;
-  delegator_weight_day16: number | string;
-  delegator_weight_day17: number | string;
-  delegator_weight_day18: number | string;
-  delegator_weight_day19: number | string;
-  delegator_weight_day20: number | string;
-  delegator_weight_day21: number | string;
-  delegator_weight_day22: number | string;
-  delegator_weight_day23: number | string;
-  delegator_weight_day24: number | string;
-  delegator_weight_day25: number | string;
-  delegator_weight_day26: number | string;
-  delegator_weight_day27: number | string;
-  delegator_weight_day28: number | string;
-  delegator_weight_day29: number | string;
-  delegator_weight_day30: number | string;
-  // 30 days of validator count
-  validator_count_day1: number | string;
-  validator_count_day2: number | string;
-  validator_count_day3: number | string;
-  validator_count_day4: number | string;
-  validator_count_day5: number | string;
-  validator_count_day6: number | string;
-  validator_count_day7: number | string;
-  validator_count_day8: number | string;
-  validator_count_day9: number | string;
-  validator_count_day10: number | string;
-  validator_count_day11: number | string;
-  validator_count_day12: number | string;
-  validator_count_day13: number | string;
-  validator_count_day14: number | string;
-  validator_count_day15: number | string;
-  validator_count_day16: number | string;
-  validator_count_day17: number | string;
-  validator_count_day18: number | string;
-  validator_count_day19: number | string;
-  validator_count_day20: number | string;
-  validator_count_day21: number | string;
-  validator_count_day22: number | string;
-  validator_count_day23: number | string;
-  validator_count_day24: number | string;
-  validator_count_day25: number | string;
-  validator_count_day26: number | string;
-  validator_count_day27: number | string;
-  validator_count_day28: number | string;
-  validator_count_day29: number | string;
-  validator_count_day30: number | string;
-  // 30 days of validator weight
-  validator_weight_day1: number | string;
-  validator_weight_day2: number | string;
-  validator_weight_day3: number | string;
-  validator_weight_day4: number | string;
-  validator_weight_day5: number | string;
-  validator_weight_day6: number | string;
-  validator_weight_day7: number | string;
-  validator_weight_day8: number | string;
-  validator_weight_day9: number | string;
-  validator_weight_day10: number | string;
-  validator_weight_day11: number | string;
-  validator_weight_day12: number | string;
-  validator_weight_day13: number | string;
-  validator_weight_day14: number | string;
-  validator_weight_day15: number | string;
-  validator_weight_day16: number | string;
-  validator_weight_day17: number | string;
-  validator_weight_day18: number | string;
-  validator_weight_day19: number | string;
-  validator_weight_day20: number | string;
-  validator_weight_day21: number | string;
-  validator_weight_day22: number | string;
-  validator_weight_day23: number | string;
-  validator_weight_day24: number | string;
-  validator_weight_day25: number | string;
-  validator_weight_day26: number | string;
-  validator_weight_day27: number | string;
-  validator_weight_day28: number | string;
-  validator_weight_day29: number | string;
-  validator_weight_day30: number | string;
+  last_updated: number;
 }
 
 interface ChartDataPoint {
@@ -221,7 +114,9 @@ export default function PrimaryNetworkMetrics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = React.useState("30d");
+  const [timeRange, setTimeRange] = React.useState<
+    "7d" | "30d" | "90d" | "all"
+  >("30d");
   const [validatorVersions, setValidatorVersions] = useState<VersionCount[]>(
     []
   );
@@ -232,7 +127,9 @@ export default function PrimaryNetworkMetrics() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/primary-network-stats");
+      const response = await fetch(
+        `/api/primary-network-stats?timeRange=${timeRange}`
+      );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -286,7 +183,9 @@ export default function PrimaryNetworkMetrics() {
           setValidatorVersions(versionArray);
         } catch (err) {
           setVersionsError(
-            `Failed to parse validator versions data: ${err instanceof Error ? err.message : "Unknown error"}`
+            `Failed to parse validator versions data: ${
+              err instanceof Error ? err.message : "Unknown error"
+            }`
           );
         }
       }
@@ -299,7 +198,7 @@ export default function PrimaryNetworkMetrics() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [timeRange]);
 
   const formatNumber = (num: number | string): string => {
     if (num === "N/A" || num === "") return "N/A";
@@ -325,71 +224,109 @@ export default function PrimaryNetworkMetrics() {
     } else if (avaxValue >= 1e3) {
       return `${(avaxValue / 1e3).toFixed(2)}K AVAX`;
     }
-    return `${avaxValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} AVAX`;
+    return `${avaxValue.toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+    })} AVAX`;
   };
 
-  const getChartData = (metricPrefix: string): ChartDataPoint[] => {
-    if (!metrics) return [];
+  const getChartData = (
+    metricKey: keyof Pick<
+      PrimaryNetworkMetrics,
+      | "validator_count"
+      | "validator_weight"
+      | "delegator_count"
+      | "delegator_weight"
+    >
+  ): ChartDataPoint[] => {
+    if (!metrics || !metrics[metricKey]?.data) return [];
 
-    const today = new Date();
-    const chartData: ChartDataPoint[] = [];
-    const daysToShow = timeRange === "7d" ? 7 : 30;
-
-    for (let i = daysToShow - 1; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dayLabel = date.toISOString().split("T")[0]; // Use ISO format for consistency
-
-      const dayKey =
-        `${metricPrefix}_day${daysToShow - i}` as keyof PrimaryNetworkMetrics;
-      const value = metrics[dayKey];
-      const numValue =
-        typeof value === "string" ? Number.parseFloat(value) : value;
-
-      chartData.push({
-        day: dayLabel,
-        value: isNaN(numValue as number) ? 0 : (numValue as number),
-      });
-    }
-
-    return chartData;
+    return metrics[metricKey].data
+      .map((point: TimeSeriesDataPoint) => ({
+        day: point.date,
+        value:
+          typeof point.value === "string"
+            ? parseFloat(point.value)
+            : point.value,
+      }))
+      .reverse(); // Reverse to show oldest to newest
   };
 
-  const getCurrentValue = (metricPrefix: string): number | string => {
-    if (!metrics) return "N/A";
-    const currentKey = `${metricPrefix}_day1` as keyof PrimaryNetworkMetrics;
-    return metrics[currentKey] || "N/A";
+  const getCurrentValue = (
+    metricKey: keyof Pick<
+      PrimaryNetworkMetrics,
+      | "validator_count"
+      | "validator_weight"
+      | "delegator_count"
+      | "delegator_weight"
+    >
+  ): number | string => {
+    if (!metrics || !metrics[metricKey]) return "N/A";
+    return metrics[metricKey].current_value;
   };
 
   const getValueChange = (
-    metricPrefix: string
+    metricKey: keyof Pick<
+      PrimaryNetworkMetrics,
+      | "validator_count"
+      | "validator_weight"
+      | "delegator_count"
+      | "delegator_weight"
+    >
   ): { change: number; isPositive: boolean } => {
-    if (!metrics) return { change: 0, isPositive: true };
-
-    const currentKey = `${metricPrefix}_day1` as keyof PrimaryNetworkMetrics;
-    const previousKey = `${metricPrefix}_day2` as keyof PrimaryNetworkMetrics;
-
-    const current =
-      typeof metrics[currentKey] === "string"
-        ? Number.parseFloat(metrics[currentKey] as string)
-        : metrics[currentKey];
-    const previous =
-      typeof metrics[previousKey] === "string"
-        ? Number.parseFloat(metrics[previousKey] as string)
-        : metrics[previousKey];
-
     if (
-      isNaN(current as number) ||
-      isNaN(previous as number) ||
-      previous === 0
+      !metrics ||
+      !metrics[metricKey]?.data ||
+      metrics[metricKey].data.length === 0
     ) {
       return { change: 0, isPositive: true };
     }
 
-    const change =
-      (((((current as number) - previous) as number) / previous) as number) *
-      100;
-    return { change: Math.abs(change), isPositive: change >= 0 };
+    const data = metrics[metricKey].data;
+    const currentValue = data[0]; // Most recent value
+
+    // Calculate comparison point based on time range
+    let comparisonIndex = 1; // Default to 1 day ago
+    switch (timeRange) {
+      case "7d":
+        comparisonIndex = Math.min(7, data.length - 1);
+        break;
+      case "30d":
+        comparisonIndex = Math.min(30, data.length - 1);
+        break;
+      case "90d":
+        comparisonIndex = Math.min(90, data.length - 1);
+        break;
+      case "all":
+        comparisonIndex = data.length - 1; // Compare to oldest available data
+        break;
+    }
+
+    if (comparisonIndex >= data.length) {
+      return { change: 0, isPositive: true };
+    }
+
+    const comparisonValue = data[comparisonIndex];
+
+    const currentVal =
+      typeof currentValue.value === "string"
+        ? parseFloat(currentValue.value)
+        : currentValue.value;
+    const comparisonVal =
+      typeof comparisonValue.value === "string"
+        ? parseFloat(comparisonValue.value)
+        : comparisonValue.value;
+
+    if (isNaN(currentVal) || isNaN(comparisonVal) || comparisonVal === 0) {
+      return { change: 0, isPositive: true };
+    }
+
+    const changePercentage =
+      ((currentVal - comparisonVal) / comparisonVal) * 100;
+
+    return {
+      change: Math.abs(changePercentage),
+      isPositive: changePercentage >= 0,
+    };
   };
 
   // Prepare pie chart data
@@ -431,8 +368,10 @@ export default function PrimaryNetworkMetrics() {
     {
       title: "Validator Count",
       icon: Monitor,
-      metricPrefix: "validator_count",
-      description: `Number of active validators over the past ${timeRange === "7d" ? "7" : "30"} days`,
+      metricKey: "validator_count" as const,
+      description: `Number of active validators over the past ${getTimeRangeLabel(
+        timeRange
+      )}`,
       chartConfig: {
         value: {
           label: "Validator Count",
@@ -443,8 +382,10 @@ export default function PrimaryNetworkMetrics() {
     {
       title: "Validator Weight",
       icon: Landmark,
-      metricPrefix: "validator_weight",
-      description: `Total validator weight over the past ${timeRange === "7d" ? "7" : "30"} days`,
+      metricKey: "validator_weight" as const,
+      description: `Total validator weight over the past ${getTimeRangeLabel(
+        timeRange
+      )}`,
       chartConfig: {
         value: {
           label: "Validator Weight",
@@ -455,8 +396,10 @@ export default function PrimaryNetworkMetrics() {
     {
       title: "Delegator Count",
       icon: HandCoins,
-      metricPrefix: "delegator_count",
-      description: `Number of active delegators over the past ${timeRange === "7d" ? "7" : "30"} days`,
+      metricKey: "delegator_count" as const,
+      description: `Number of active delegators over the past ${getTimeRangeLabel(
+        timeRange
+      )}`,
       chartConfig: {
         value: {
           label: "Delegator Count",
@@ -467,8 +410,10 @@ export default function PrimaryNetworkMetrics() {
     {
       title: "Delegator Weight",
       icon: Landmark,
-      metricPrefix: "delegator_weight",
-      description: `Total delegator weight over the past ${timeRange === "7d" ? "7" : "30"} days`,
+      metricKey: "delegator_weight" as const,
+      description: `Total delegator weight over the past ${getTimeRangeLabel(
+        timeRange
+      )}`,
       chartConfig: {
         value: {
           label: "Delegator Weight",
@@ -477,6 +422,36 @@ export default function PrimaryNetworkMetrics() {
       } satisfies ChartConfig,
     },
   ];
+
+  function getTimeRangeLabel(range: string): string {
+    switch (range) {
+      case "7d":
+        return "7 days";
+      case "30d":
+        return "30 days";
+      case "90d":
+        return "90 days";
+      case "all":
+        return "all time";
+      default:
+        return "30 days";
+    }
+  }
+
+  function getComparisonPeriodLabel(range: string): string {
+    switch (range) {
+      case "7d":
+        return "7 days ago";
+      case "30d":
+        return "30 days ago";
+      case "90d":
+        return "90 days ago";
+      case "all":
+        return "the beginning of the dataset";
+      default:
+        return "30 days ago";
+    }
+  }
 
   if (loading) {
     return (
@@ -531,6 +506,37 @@ export default function PrimaryNetworkMetrics() {
                 performance and validator distribution
               </p>
             </div>
+            <div className="flex items-center gap-2">
+              <ToggleGroup
+                type="single"
+                value={timeRange}
+                onValueChange={(value) => {
+                  if (
+                    value &&
+                    (value === "7d" ||
+                      value === "30d" ||
+                      value === "90d" ||
+                      value === "all")
+                  ) {
+                    setTimeRange(value);
+                  }
+                }}
+                className="border border-border/50 rounded-lg p-1"
+              >
+                <ToggleGroupItem value="7d" size="sm" className="text-xs px-3">
+                  7d
+                </ToggleGroupItem>
+                <ToggleGroupItem value="30d" size="sm" className="text-xs px-3">
+                  30d
+                </ToggleGroupItem>
+                <ToggleGroupItem value="90d" size="sm" className="text-xs px-3">
+                  90d
+                </ToggleGroupItem>
+                <ToggleGroupItem value="all" size="sm" className="text-xs px-3">
+                  All
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
           </div>
         </div>
 
@@ -541,12 +547,12 @@ export default function PrimaryNetworkMetrics() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {chartConfigs.map((config) => {
-              const currentValue = getCurrentValue(config.metricPrefix);
+              const currentValue = getCurrentValue(config.metricKey);
               const Icon = config.icon;
 
               return (
                 <div
-                  key={config.metricPrefix}
+                  key={config.metricKey}
                   className="text-center p-6 rounded-lg bg-card border"
                 >
                   <Icon
@@ -557,7 +563,7 @@ export default function PrimaryNetworkMetrics() {
                     {config.title}
                   </p>
                   <p className="text-xl font-semibold">
-                    {config.metricPrefix.includes("weight")
+                    {config.metricKey.includes("weight")
                       ? formatWeight(currentValue)
                       : formatNumber(currentValue)}
                   </p>
@@ -579,15 +585,13 @@ export default function PrimaryNetworkMetrics() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {chartConfigs.map((config, index) => {
-              const chartData = getChartData(config.metricPrefix);
-              const currentValue = getCurrentValue(config.metricPrefix);
-              const { change, isPositive } = getValueChange(
-                config.metricPrefix
-              );
+              const chartData = getChartData(config.metricKey);
+              const currentValue = getCurrentValue(config.metricKey);
+              const { change, isPositive } = getValueChange(config.metricKey);
               const Icon = config.icon;
 
               return (
-                <Card key={config.metricPrefix} className="w-full">
+                <Card key={config.metricKey} className="w-full">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
@@ -605,18 +609,38 @@ export default function PrimaryNetworkMetrics() {
                         <ToggleGroup
                           type="single"
                           value={timeRange}
-                          onValueChange={setTimeRange}
+                          onValueChange={(value) => {
+                            if (
+                              value &&
+                              (value === "7d" ||
+                                value === "30d" ||
+                                value === "90d" ||
+                                value === "all")
+                            ) {
+                              setTimeRange(value);
+                            }
+                          }}
                           variant="outline"
                           className="hidden sm:flex"
                         >
-                          <ToggleGroupItem value="30d">
-                            Last 30 days
-                          </ToggleGroupItem>
-                          <ToggleGroupItem value="7d">
-                            Last 7 days
-                          </ToggleGroupItem>
+                          <ToggleGroupItem value="7d">7d</ToggleGroupItem>
+                          <ToggleGroupItem value="30d">30d</ToggleGroupItem>
+                          <ToggleGroupItem value="90d">90d</ToggleGroupItem>
+                          <ToggleGroupItem value="all">All</ToggleGroupItem>
                         </ToggleGroup>
-                        <Select value={timeRange} onValueChange={setTimeRange}>
+                        <Select
+                          value={timeRange}
+                          onValueChange={(value: string) => {
+                            if (
+                              value === "7d" ||
+                              value === "30d" ||
+                              value === "90d" ||
+                              value === "all"
+                            ) {
+                              setTimeRange(value);
+                            }
+                          }}
+                        >
                           <SelectTrigger
                             className="w-40 sm:hidden"
                             size="sm"
@@ -625,11 +649,17 @@ export default function PrimaryNetworkMetrics() {
                             <SelectValue placeholder="Last 30 days" />
                           </SelectTrigger>
                           <SelectContent className="rounded-xl">
+                            <SelectItem value="7d" className="rounded-lg">
+                              Last 7 days
+                            </SelectItem>
                             <SelectItem value="30d" className="rounded-lg">
                               Last 30 days
                             </SelectItem>
-                            <SelectItem value="7d" className="rounded-lg">
-                              Last 7 days
+                            <SelectItem value="90d" className="rounded-lg">
+                              Last 90 days
+                            </SelectItem>
+                            <SelectItem value="all" className="rounded-lg">
+                              All time
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -639,7 +669,7 @@ export default function PrimaryNetworkMetrics() {
                   <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
                     <div className="flex items-center gap-4 mb-4">
                       <div className="text-2xl font-bold">
-                        {config.metricPrefix.includes("weight")
+                        {config.metricKey.includes("weight")
                           ? formatWeight(currentValue)
                           : formatNumber(currentValue)}
                       </div>
@@ -648,9 +678,14 @@ export default function PrimaryNetworkMetrics() {
                           className={`flex items-center gap-1 text-sm ${
                             isPositive ? "text-green-600" : "text-red-600"
                           }`}
+                          title={`Change compared to ${getComparisonPeriodLabel(
+                            timeRange
+                          )}`}
                         >
                           <TrendingUp
-                            className={`h-4 w-4 ${isPositive ? "" : "rotate-180"}`}
+                            className={`h-4 w-4 ${
+                              isPositive ? "" : "rotate-180"
+                            }`}
                           />
                           {change.toFixed(1)}%
                         </div>
@@ -663,7 +698,7 @@ export default function PrimaryNetworkMetrics() {
                       <AreaChart data={chartData}>
                         <defs>
                           <linearGradient
-                            id={`fill-${config.metricPrefix}`}
+                            id={`fill-${config.metricKey}`}
                             x1="0"
                             y1="0"
                             x2="0"
@@ -711,7 +746,7 @@ export default function PrimaryNetworkMetrics() {
                               }}
                               indicator="dot"
                               formatter={(value) => [
-                                config.metricPrefix.includes("weight")
+                                config.metricKey.includes("weight")
                                   ? formatWeight(value as number)
                                   : formatNumber(value as number),
                                 config.title,
@@ -722,7 +757,7 @@ export default function PrimaryNetworkMetrics() {
                         <Area
                           dataKey="value"
                           type="natural"
-                          fill={`url(#fill-${config.metricPrefix})`}
+                          fill={`url(#fill-${config.metricKey})`}
                           stroke={`var(--color-value)`}
                           strokeWidth={2}
                         />

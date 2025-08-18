@@ -3,238 +3,88 @@ import { NextResponse } from 'next/server';
 const GLACIER_API_KEY = process.env.GLACIER_API_KEY;
 const PRIMARY_NETWORK_SUBNET_ID = "11111111111111111111111111111111LpoYY";
 
+interface TimeSeriesDataPoint {
+  timestamp: number;
+  value: number | string;
+  date: string; // ISO date string for easy formatting
+}
+
+interface TimeSeriesMetric {
+  data: TimeSeriesDataPoint[];
+  current_value: number | string;
+  change_24h: number;
+  change_percentage_24h: number;
+}
+
 interface PrimaryNetworkMetrics {
+  validator_count: TimeSeriesMetric;
+  validator_weight: TimeSeriesMetric;
+  delegator_count: TimeSeriesMetric;
+  delegator_weight: TimeSeriesMetric;
   validator_versions: string;
-  delegator_count_day1: number | string;
-  delegator_count_day2: number | string;
-  delegator_count_day3: number | string;
-  delegator_count_day4: number | string;
-  delegator_count_day5: number | string;
-  delegator_count_day6: number | string;
-  delegator_count_day7: number | string;
-  delegator_count_day8: number | string;
-  delegator_count_day9: number | string;
-  delegator_count_day10: number | string;
-  delegator_count_day11: number | string;
-  delegator_count_day12: number | string;
-  delegator_count_day13: number | string;
-  delegator_count_day14: number | string;
-  delegator_count_day15: number | string;
-  delegator_count_day16: number | string;
-  delegator_count_day17: number | string;
-  delegator_count_day18: number | string;
-  delegator_count_day19: number | string;
-  delegator_count_day20: number | string;
-  delegator_count_day21: number | string;
-  delegator_count_day22: number | string;
-  delegator_count_day23: number | string;
-  delegator_count_day24: number | string;
-  delegator_count_day25: number | string;
-  delegator_count_day26: number | string;
-  delegator_count_day27: number | string;
-  delegator_count_day28: number | string;
-  delegator_count_day29: number | string;
-  delegator_count_day30: number | string;
-  delegator_weight_day1: number | string;
-  delegator_weight_day2: number | string;
-  delegator_weight_day3: number | string;
-  delegator_weight_day4: number | string;
-  delegator_weight_day5: number | string;
-  delegator_weight_day6: number | string;
-  delegator_weight_day7: number | string;
-  delegator_weight_day8: number | string;
-  delegator_weight_day9: number | string;
-  delegator_weight_day10: number | string;
-  delegator_weight_day11: number | string;
-  delegator_weight_day12: number | string;
-  delegator_weight_day13: number | string;
-  delegator_weight_day14: number | string;
-  delegator_weight_day15: number | string;
-  delegator_weight_day16: number | string;
-  delegator_weight_day17: number | string;
-  delegator_weight_day18: number | string;
-  delegator_weight_day19: number | string;
-  delegator_weight_day20: number | string;
-  delegator_weight_day21: number | string;
-  delegator_weight_day22: number | string;
-  delegator_weight_day23: number | string;
-  delegator_weight_day24: number | string;
-  delegator_weight_day25: number | string;
-  delegator_weight_day26: number | string;
-  delegator_weight_day27: number | string;
-  delegator_weight_day28: number | string;
-  delegator_weight_day29: number | string;
-  delegator_weight_day30: number | string;
-  validator_count_day1: number | string;
-  validator_count_day2: number | string;
-  validator_count_day3: number | string;
-  validator_count_day4: number | string;
-  validator_count_day5: number | string;
-  validator_count_day6: number | string;
-  validator_count_day7: number | string;
-  validator_count_day8: number | string;
-  validator_count_day9: number | string;
-  validator_count_day10: number | string;
-  validator_count_day11: number | string;
-  validator_count_day12: number | string;
-  validator_count_day13: number | string;
-  validator_count_day14: number | string;
-  validator_count_day15: number | string;
-  validator_count_day16: number | string;
-  validator_count_day17: number | string;
-  validator_count_day18: number | string;
-  validator_count_day19: number | string;
-  validator_count_day20: number | string;
-  validator_count_day21: number | string;
-  validator_count_day22: number | string;
-  validator_count_day23: number | string;
-  validator_count_day24: number | string;
-  validator_count_day25: number | string;
-  validator_count_day26: number | string;
-  validator_count_day27: number | string;
-  validator_count_day28: number | string;
-  validator_count_day29: number | string;
-  validator_count_day30: number | string;
-  validator_weight_day1: number | string;
-  validator_weight_day2: number | string;
-  validator_weight_day3: number | string;
-  validator_weight_day4: number | string;
-  validator_weight_day5: number | string;
-  validator_weight_day6: number | string;
-  validator_weight_day7: number | string;
-  validator_weight_day8: number | string;
-  validator_weight_day9: number | string;
-  validator_weight_day10: number | string;
-  validator_weight_day11: number | string;
-  validator_weight_day12: number | string;
-  validator_weight_day13: number | string;
-  validator_weight_day14: number | string;
-  validator_weight_day15: number | string;
-  validator_weight_day16: number | string;
-  validator_weight_day17: number | string;
-  validator_weight_day18: number | string;
-  validator_weight_day19: number | string;
-  validator_weight_day20: number | string;
-  validator_weight_day21: number | string;
-  validator_weight_day22: number | string;
-  validator_weight_day23: number | string;
-  validator_weight_day24: number | string;
-  validator_weight_day25: number | string;
-  validator_weight_day26: number | string;
-  validator_weight_day27: number | string;
-  validator_weight_day28: number | string;
-  validator_weight_day29: number | string;
-  validator_weight_day30: number | string;
+  last_updated: number;
 }
 
 let cachedData: { data: PrimaryNetworkMetrics; timestamp: number } | null = null;
 const CACHE_DURATION = 5 * 60 * 1000;
-async function getDelegatorCount30Days() {
+
+async function getTimeSeriesData(metricType: string, pageSize: number = 365): Promise<TimeSeriesDataPoint[]> {
   try {
-    const url = `https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorCount?pageSize=30&subnetId=${PRIMARY_NETWORK_SUBNET_ID}`;
+    const url = `https://metrics.avax.network/v2/networks/mainnet/metrics/${metricType}?pageSize=${pageSize}&subnetId=${PRIMARY_NETWORK_SUBNET_ID}`;
     const response = await fetch(url, {
       headers: { 'Accept': 'application/json' },
     });
 
-    if (!response.ok) return Array(30).fill("N/A");
+    if (!response.ok) return [];
 
     const data = await response.json();
-    if (!data?.results || !Array.isArray(data.results)) return Array(30).fill("N/A");
+    if (!data?.results || !Array.isArray(data.results)) return [];
 
-    const sortedResults = data.results
+    return data.results
       .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .slice(0, 30);
-
-    const values = Array(30).fill("N/A");
-    for (let i = 0; i < Math.min(30, sortedResults.length); i++) {
-      values[i] = sortedResults[i].value || "N/A";
-    }
-
-    return values;
+      .map((result: any) => ({
+        timestamp: result.timestamp,
+        value: result.value || 0,
+        date: new Date(result.timestamp * 1000).toISOString().split('T')[0]
+      }));
   } catch (error) {
-    return Array(30).fill("N/A");
+    console.error(`Error fetching ${metricType}:`, error);
+    return [];
   }
 }
 
-async function getDelegatorWeight30Days() {
-  try {
-    const url = `https://metrics.avax.network/v2/networks/mainnet/metrics/delegatorWeight?pageSize=30&subnetId=${PRIMARY_NETWORK_SUBNET_ID}`;
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-    });
-
-    if (!response.ok) return Array(30).fill("N/A");
-
-    const data = await response.json();
-    if (!data?.results || !Array.isArray(data.results)) return Array(30).fill("N/A");
-
-    const sortedResults = data.results
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .slice(0, 30);
-
-    const values = Array(30).fill("N/A");
-    for (let i = 0; i < Math.min(30, sortedResults.length); i++) {
-      values[i] = sortedResults[i].value || "N/A";
-    }
-
-    return values;
-  } catch (error) {
-    return Array(30).fill("N/A");
+function createTimeSeriesMetric(data: TimeSeriesDataPoint[]): TimeSeriesMetric {
+  if (data.length === 0) {
+    return {
+      data: [],
+      current_value: 'N/A',
+      change_24h: 0,
+      change_percentage_24h: 0
+    };
   }
+
+  const current = data[0];
+  const previous = data.length > 1 ? data[1] : current;
+  
+  const currentVal = typeof current.value === 'string' ? parseFloat(current.value) : current.value;
+  const previousVal = typeof previous.value === 'string' ? parseFloat(previous.value) : previous.value;
+  
+  const change = currentVal - previousVal;
+  const changePercentage = previousVal !== 0 ? (change / previousVal) * 100 : 0;
+
+  return {
+    data,
+    current_value: current.value,
+    change_24h: change,
+    change_percentage_24h: changePercentage
+  };
 }
 
-async function getValidatorCount30Days() {
-  try {
-    const url = `https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?pageSize=30&subnetId=${PRIMARY_NETWORK_SUBNET_ID}`;
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-    });
-
-    if (!response.ok) return Array(30).fill("N/A");
-
-    const data = await response.json();
-    if (!data?.results || !Array.isArray(data.results)) return Array(30).fill("N/A");
-
-    const sortedResults = data.results
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .slice(0, 30);
-
-    const values = Array(30).fill("N/A");
-    for (let i = 0; i < Math.min(30, sortedResults.length); i++) {
-      values[i] = sortedResults[i].value || "N/A";
-    }
-
-    return values;
-  } catch (error) {
-    return Array(30).fill("N/A");
-  }
-}
-
-async function getValidatorWeight30Days() {
-  try {
-    const url = `https://metrics.avax.network/v2/networks/mainnet/metrics/validatorWeight?pageSize=30&subnetId=${PRIMARY_NETWORK_SUBNET_ID}`;
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-    });
-
-    if (!response.ok) return Array(30).fill("N/A");
-
-    const data = await response.json();
-    if (!data?.results || !Array.isArray(data.results)) return Array(30).fill("N/A");
-
-    const sortedResults = data.results
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .slice(0, 30);
-
-    const values = Array(30).fill("N/A");
-    for (let i = 0; i < Math.min(30, sortedResults.length); i++) {
-      values[i] = sortedResults[i].value || "N/A";
-    }
-
-    return values;
-  } catch (error) {
-    return Array(30).fill("N/A");
-  }
+function filterDataByTimeRange(data: TimeSeriesDataPoint[], days: number): TimeSeriesDataPoint[] {
+  if (days === 0) return data; // All time
+  
+  const cutoffTimestamp = Date.now() / 1000 - (days * 24 * 60 * 60);
+  return data.filter(point => point.timestamp >= cutoffTimestamp);
 }
 
 async function fetchValidatorVersions() {
@@ -292,30 +142,37 @@ async function fetchValidatorVersions() {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const timeRange = searchParams.get('timeRange') || '30d';
+    
     if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
-      return NextResponse.json(cachedData.data, {
+      // Filter cached data by requested time range
+      const filteredData = filterCachedDataByTimeRange(cachedData.data, timeRange);
+      return NextResponse.json(filteredData, {
         headers: {
           'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
           'X-Data-Source': 'cache',
           'X-Cache-Timestamp': new Date(cachedData.timestamp).toISOString(),
+          'X-Time-Range': timeRange,
         }
       });
     }
+    
     const startTime = Date.now();
 
     const [
-      delegatorCounts,
-      delegatorWeights,
-      validatorCounts,
-      validatorWeights,
+      validatorCountData,
+      validatorWeightData,
+      delegatorCountData,
+      delegatorWeightData,
       validatorVersions
     ] = await Promise.all([
-      getDelegatorCount30Days(),
-      getDelegatorWeight30Days(),
-      getValidatorCount30Days(),
-      getValidatorWeight30Days(),
+      getTimeSeriesData('validatorCount', 365),
+      getTimeSeriesData('validatorWeight', 365),
+      getTimeSeriesData('delegatorCount', 365),
+      getTimeSeriesData('delegatorWeight', 365),
       fetchValidatorVersions()
     ]);
 
@@ -323,48 +180,39 @@ export async function GET() {
     console.log('Validator versions JSON:', validatorVersionsJson);
 
     const metrics: PrimaryNetworkMetrics = {
+      validator_count: createTimeSeriesMetric(validatorCountData),
+      validator_weight: createTimeSeriesMetric(validatorWeightData),
+      delegator_count: createTimeSeriesMetric(delegatorCountData),
+      delegator_weight: createTimeSeriesMetric(delegatorWeightData),
       validator_versions: validatorVersionsJson,
-    } as PrimaryNetworkMetrics;
-
-    for (let i = 1; i <= 30; i++) {
-      (metrics as any)[`delegator_count_day${i}`] = delegatorCounts[i - 1] === "N/A" ? "N/A" : delegatorCounts[i - 1];
-    }
-
-    for (let i = 1; i <= 30; i++) {
-      (metrics as any)[`delegator_weight_day${i}`] = delegatorWeights[i - 1] === "N/A" ? "N/A" : delegatorWeights[i - 1];
-    }
-
-    for (let i = 1; i <= 30; i++) {
-      (metrics as any)[`validator_count_day${i}`] = validatorCounts[i - 1] === "N/A" ? "N/A" : validatorCounts[i - 1];
-    }
-
-    for (let i = 1; i <= 30; i++) {
-      (metrics as any)[`validator_weight_day${i}`] = validatorWeights[i - 1] === "N/A" ? "N/A" : validatorWeights[i - 1];
-    }
+      last_updated: Date.now()
+    };
 
     cachedData = {
       data: metrics,
       timestamp: Date.now()
     };
 
+    const filteredData = filterCachedDataByTimeRange(metrics, timeRange);
     const fetchTime = Date.now() - startTime;
 
-    return NextResponse.json(metrics, {
+    return NextResponse.json(filteredData, {
       headers: {
         'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
-        'X-Data-Source': 'fresh-exact-script',
+        'X-Data-Source': 'fresh',
         'X-Fetch-Time': `${fetchTime}ms`,
-        'X-Validator-Count-Day1': validatorCounts[0]?.toString() || 'N/A',
-        'X-Delegator-Count-Day1': delegatorCounts[0]?.toString() || 'N/A',
-        'X-Cache-Timestamp': new Date(cachedData.timestamp).toISOString(),
+        'X-Cache-Timestamp': new Date().toISOString(),
+        'X-Time-Range': timeRange,
       }
     });
-
   } catch (error) {
-    console.error('Error in Primary Network API:', error);
+    console.error('Error in primary-network-stats API:', error);
     
     if (cachedData) {
-      return NextResponse.json(cachedData.data, {
+      const { searchParams } = new URL(request.url);
+      const timeRange = searchParams.get('timeRange') || '30d';
+      const filteredData = filterCachedDataByTimeRange(cachedData.data, timeRange);
+      return NextResponse.json(filteredData, {
         headers: {
           'Cache-Control': 'public, max-age=30, stale-while-revalidate=300',
           'X-Data-Source': 'cache-fallback',
@@ -375,8 +223,32 @@ export async function GET() {
     }
     
     return NextResponse.json(
-      { error: 'Failed to fetch Primary Network metrics' },
+      { error: 'Failed to fetch primary network stats' },
       { status: 500 }
     );
   }
+}
+
+function filterCachedDataByTimeRange(data: PrimaryNetworkMetrics, timeRange: string): PrimaryNetworkMetrics {
+  const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 0;
+  
+  return {
+    ...data,
+    validator_count: {
+      ...data.validator_count,
+      data: filterDataByTimeRange(data.validator_count.data, days)
+    },
+    validator_weight: {
+      ...data.validator_weight,
+      data: filterDataByTimeRange(data.validator_weight.data, days)
+    },
+    delegator_count: {
+      ...data.delegator_count,
+      data: filterDataByTimeRange(data.delegator_count.data, days)
+    },
+    delegator_weight: {
+      ...data.delegator_weight,
+      data: filterDataByTimeRange(data.delegator_weight.data, days)
+    }
+  };
 }
