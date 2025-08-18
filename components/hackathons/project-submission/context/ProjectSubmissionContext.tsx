@@ -167,8 +167,8 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
       
       const response = await axios.post('/api/project', projectData);
       
-      if (response.data?.id) {
-        dispatch({ type: 'SET_PROJECT_ID', payload: response.data.id });
+      if (response.data?.project?.id) {
+        dispatch({ type: 'SET_PROJECT_ID', payload: response.data.project.id });
         dispatch({ type: 'SET_STATUS', payload: 'editing' });
         
         toast({
@@ -178,7 +178,7 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
         
         return true;
       }
-      
+
       return false;
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
