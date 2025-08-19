@@ -52,7 +52,7 @@ export function WalletPChain() {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <PChainFaucetMenuItem />
-        <DropdownMenuItem onClick={() => window.location.href = '/console/primary-network/bridge'}>
+        <DropdownMenuItem onClick={() => window.location.href = '/console/primary-network/c-p-bridge'}>
           <ArrowLeftRight className="mr-2 h-3 w-3" />
           Bridge AVAX from C-Chain
         </DropdownMenuItem>
