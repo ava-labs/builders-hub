@@ -61,7 +61,7 @@ export default function NodeCard({
                 setLoadingApiResponse(true);
                 
                 try {
-                    const response = await fetch('/api/builder-hub-node', {
+                    const response = await fetch('/api/managed-testnet-nodes', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
