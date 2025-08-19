@@ -110,7 +110,7 @@ const data = {
           title: "Explorer Setup",
           url: "/console/layer-1/explorer-setup",
           icon: Telescope,
-        }
+        },
       ],
     },
     {
@@ -142,6 +142,11 @@ const data = {
           title: "Validator Manager Setup",
           url: "/console/permissioned-l1s/validator-manager-setup",
           icon: SquareTerminal,
+        },
+        {
+          title: "Query Validator Set",
+          url: "/console/layer-1/validator-set",
+          icon: Hexagon,
         },
         {
           title: "Add Validator",
