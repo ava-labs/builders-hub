@@ -37,8 +37,7 @@ export function Container({
       )}
     </div>
 
-
-    <div className="p-6 md:p-8">
+    <div className="p-6 md:p-8 prose">
       <div className="space-y-8 text-foreground [&_.steps>li:not(:last-child)]:mb-12 [&_.step]:pb-8 [&_button]:mb-4 [&_.steps]:space-y-12 [&_p]:leading-relaxed [&_p]:mb-4 [&_div]:leading-relaxed [&_.step_h3]:mb-3 [&_.step_div]:space-y-3">
         {children}
       </div>
