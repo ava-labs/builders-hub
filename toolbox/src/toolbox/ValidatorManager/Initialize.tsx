@@ -16,7 +16,6 @@ import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { useViemChainStore } from "../../stores/toolboxStore";
 import { useSelectedL1 } from "../../stores/l1ListStore";
 import { useCreateChainStore } from "../../stores/createChainStore";
-import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
 
 export default function Initialize() {
     const { showBoundary } = useErrorBoundary();
@@ -183,24 +182,23 @@ export default function Initialize() {
             description="This will initialize the ValidatorManager contract with the initial configuration."
         >
             <div className="space-y-4">
-                <div className="space-y-2">
-                    <EVMAddressInput
-                        label="Proxy Address of ValidatorManager"
-                        value={proxyAddress}
-                        onChange={setProxyAddress}
-                        disabled={isInitializing}
-                    />
-                    <Button
-                        variant="secondary"
-                        onClick={checkIfInitialized}
-                        loading={isChecking}
-                        disabled={!proxyAddress}
-                        size="sm"
-                        stickLeft
-                    >
-                        Check Status
-                    </Button>
-                </div>
+                
+                <EVMAddressInput
+                    label="Proxy Address of ValidatorManager"
+                    value={proxyAddress}
+                    onChange={setProxyAddress}
+                    disabled={isInitializing}
+                />
+
+
+                <Button
+                    onClick={checkIfInitialized}
+                    loading={isChecking}
+                    disabled={!proxyAddress}
+                    size="sm"
+                >
+                    Check Status
+                </Button>
 
                 <SelectSubnetId
                     value={subnetId}
@@ -208,19 +206,11 @@ export default function Initialize() {
                     hidePrimaryNetwork={true}
                 />
 
-                {/* Show subnet details if available */}
-                <BlockchainDetailsDisplay
-                    subnet={subnet}
-                    isLoading={isLoadingSubnet}
-                />
-
                 <Input
                     label={`Subnet ID (Hex), ${utils.hexToBuffer(subnetIDHex).length} bytes`}
                     value={subnetIDHex}
                     disabled
                 />
-
-
 
                 <div className="space-y-4">
                     <Input
