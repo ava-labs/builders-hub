@@ -1,69 +1,131 @@
 import Link from 'next/link';
-import { guide } from '@/lib/source';
-import { buttonVariants } from '@/components/ui/button';
-import { Twitter } from 'lucide-react';
+import { blog } from '@/lib/source';
+import { HeroBackground } from '@/components/landing/hero';
+import { ArrowRight, Twitter } from 'lucide-react';
 
 export default function Page(): React.ReactElement {
-    const guides = [...guide.getPages()].sort(
+    const blogs = [...blog.getPages()].sort(
         (a, b) =>
             new Date(b.data.date ?? b.file.name).getTime() -
             new Date(a.data.date ?? a.file.name).getTime(),
     );
 
+    const [featured, ...others] = blogs;
+
     return (
-        <main className="py-12 sm:py-24">
-            <div className="mx-auto max-w-7xl px-6 lg:px-8">
-                <div className="mx-auto w-full lg:mx-0">
-                    <h2 className="text-center text-5xl font-bold tracking-tight sm:text-10xl">Avalanche Builder Blog</h2>
-                    <p className="m-12 text-center text-lg leading-8 text-muted-foreground">
-                        Takeaways and tutorials from building a network of fast, efficient, highly-optimized chains.
-                    </p>
-                </div>
-                <div className="flex flex-col gap-5">
-                    {guides.map((guide) => (
-                        <Link
-                            key={guide.url}
-                            href={guide.url}
-                            className="flex flex-col gap-2 bg-card p-4 rounded-lg transition-shadow shadow-sm hover:shadow-lg dark:bg-card-dark dark:border dark:border-slate-500"
-                        >
-                            <p className="text-xs text-muted-foreground">
-                                {new Date(guide.data.date ?? guide.file.name).toDateString()}
-                            </p>
+        <>
+            <HeroBackground />
+            <main className="py-12 sm:py-20">
+                <div className="mx-auto max-w-7xl px-6 lg:px-8">
+                    {/* Header */}
+                    <section className="mx-auto w-full lg:mx-0 text-center">
+                        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tighter">
+                            <span className="bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-white">
+                                Avalanche Builder Blog
+                            </span>
+                        </h1>
+                        <p className="mt-6 text-base sm:text-lg leading-7 text-muted-foreground">
+                            Takeaways and tutorials from building a network of fast, efficient, highly-optimized chains.
+                        </p>
+                    </section>
 
-                            <h3 className="text-xl">{guide.data.title}</h3>
-
-                            <p className="text-sm text-muted-foreground">
-                                {guide.data.description}
-                            </p>
-
-                            
-
-                            <div className="flex flex-wrap items-center gap-4 text-xs">
-                                {guide.data.topics.map(topic => (
-                                    <span key={topic}
-                                        className="relative z-10 rounded-full bg-fd-accent px-3 py-1.5 font-medium text-muted-foreground"
-                                    >
-                                        {topic}
-                                    </span>
-                                ))}
-                            </div>
-
-                            <div className="col-span-2 flex gap-2">
-                                {guide.data.authors.map(author => (
-                                    <div
-                                        key={author}
-                                        className="text-sm text-muted-foreground transition-colors flex flex-row items-center gap-2 group"
-                                    >
-                                        <Twitter size={12} />
-                                        <span className="grow truncate">{author}</span>
+                    {/* Featured Post */}
+                    {featured && (
+                        <section className="mt-12 sm:mt-16">
+                            <Link
+                                href={featured.url}
+                                className="group block overflow-hidden rounded-xl border border-white/20 bg-card/80 p-6 sm:p-8 shadow-sm transition hover:shadow-lg dark:bg-card-dark/80"
+                            >
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs text-muted-foreground">
+                                            {new Date(featured.data.date ?? featured.file.name).toDateString()}
+                                        </p>
+                                        <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                                            Featured
+                                        </span>
                                     </div>
+
+                                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                                        {featured.data.title}
+                                    </h2>
+
+                                    <p className="text-sm sm:text-base text-muted-foreground max-w-3xl">
+                                        {featured.data.description}
+                                    </p>
+
+                                    <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+                                        {featured.data.topics.map((topic: string) => (
+                                            <span
+                                                key={topic}
+                                                className="rounded-full bg-fd-accent px-3 py-1.5 font-medium text-muted-foreground"
+                                            >
+                                                {topic}
+                                            </span>
+                                        ))}
+                                    </div>
+
+                                    <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                                        {featured.data.authors.map((author: string) => (
+                                            <span key={author} className="inline-flex items-center gap-2">
+                                                <Twitter size={12} />
+                                                <span className="truncate">{author}</span>
+                                            </span>
+                                        ))}
+                                        <span className="ml-auto inline-flex items-center gap-1 text-primary">
+                                            Read article <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+                                        </span>
+                                    </div>
+                                </div>
+                            </Link>
+                        </section>
+                    )}
+
+                    {/* All Posts */}
+                    {others.length > 0 && (
+                        <section className="mt-12 sm:mt-16">
+                            <h3 className="mb-6 text-lg font-semibold tracking-tight text-foreground/90">
+                                Latest posts
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                {others.map((g) => (
+                                    <Link
+                                        key={g.url}
+                                        href={g.url}
+                                        className="flex flex-col gap-2 rounded-lg border border-white/20 bg-card p-4 shadow-sm transition hover:shadow-lg dark:bg-card-dark"
+                                    >
+                                        <p className="text-xs text-muted-foreground">
+                                            {new Date(g.data.date ?? g.file.name).toDateString()}
+                                        </p>
+                                        <h4 className="text-xl font-semibold tracking-tight">{g.data.title}</h4>
+                                        <p className="text-sm text-muted-foreground line-clamp-3">
+                                            {g.data.description}
+                                        </p>
+                                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                                            {g.data.topics.map((topic: string) => (
+                                                <span
+                                                    key={topic}
+                                                    className="rounded-full bg-fd-accent px-3 py-1.5 font-medium text-muted-foreground"
+                                                >
+                                                    {topic}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                                            {g.data.authors.map((author: string) => (
+                                                <span key={author} className="inline-flex items-center gap-2">
+                                                    <Twitter size={12} />
+                                                    <span className="truncate">{author}</span>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </Link>
                                 ))}
                             </div>
-
-                        </Link>
-                    ))}
+                        </section>
+                    )}
                 </div>
-            </div>
-        </main>
+            </main>
+        </>
     );
 }
