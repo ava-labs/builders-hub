@@ -214,7 +214,7 @@ export default function StepFlow({
         </ol>
       </nav>
 
-      <div className="border-t-2 py-8">
+      <div className="border-t py-8">
         <div className="min-h-[200px]">
           <CurrentComponent />
         </div>
