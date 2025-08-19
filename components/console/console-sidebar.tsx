@@ -162,7 +162,13 @@ const data = {
           title: "Change Validator Weight",
           url: "/console/permissioned-l1s/change-validator-weight",
           icon: SlidersVertical,
-        },
+        }
+      ],
+    },
+    {
+      title: "L1 Access Restrictions",
+      icon: Shield,
+      items: [
         {
           title: "Contract Deployer Allowlist",
           url: "/console/permissioned-l1s/deployer-allowlist",

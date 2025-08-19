@@ -8,6 +8,7 @@ import DeployTokenHome from "../../../../toolbox/src/toolbox/ICTT/DeployTokenHom
 import DeployERC20TokenRemote from "../../../../toolbox/src/toolbox/ICTT/DeployERC20TokenRemote";
 import DeployNativeTokenRemote from "../../../../toolbox/src/toolbox/ICTT/DeployNativeTokenRemote";
 import RegisterWithHome from "../../../../toolbox/src/toolbox/ICTT/RegisterWithHome";
+import AddCollateral from "../../../../toolbox/src/toolbox/ICTT/AddCollateral";
 
 export default function Page() {
   const steps: StepDefinition[] = [
@@ -37,6 +38,12 @@ export default function Page() {
       key: "register-with-home",
       title: "Register With Home",
       component: RegisterWithHome,
+    },
+    {
+      type: "single",
+      key: "add-collateral",
+      title: "Add Collateral",
+      component: AddCollateral,
     },
   ];
 
