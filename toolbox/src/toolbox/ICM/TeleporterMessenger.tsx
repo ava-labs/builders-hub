@@ -142,6 +142,10 @@ export default function TeleporterMessenger() {
             </div>
             <Steps>
                 <Step>
+                    <h2 className="text-lg font-semibold">Check if Deployer Address Balance is sufficient</h2>
+                    <p className="text-sm text-gray-500">
+                        Enter the parameters for your new chain.
+                    </p>
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -187,9 +191,10 @@ export default function TeleporterMessenger() {
                     </div>
                 </Step>
                 <Step>
+                    <h2 className="text-lg font-semibold">Deploy ICM Messenger</h2>
                     {isDeployed ? (
                         <div className="py-4">
-                            <h3 className="font-semibold">Contract Already Deployed</h3>
+                            <p className="text-md">Contract Already Deployed</p>
                             <p>The TeleporterMessenger contract is already deployed at the expected address.</p>
                         </div>
                     ) : (
