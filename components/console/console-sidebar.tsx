@@ -27,7 +27,10 @@ import {
   ShieldCheck,
   ShieldUser,
   SquareTerminal,
-  Hexagon
+  Hexagon,
+  SlidersVertical,
+  SquareMinus,
+  SquarePlus
 } from "lucide-react";
 
 import {
@@ -144,9 +147,19 @@ const data = {
           icon: SquareTerminal,
         },
         {
-          title: "Manage Validators",
-          url: "/console/permissioned-l1s/manage-validators",
-          icon: Hexagon,
+          title: "Add Validator",
+          url: "/console/permissioned-l1s/add-validator",
+          icon: SquarePlus,
+        },
+        {
+          title: "Remove Validator",
+          url: "/console/permissioned-l1s/remove-validator",
+          icon: SquareMinus,
+        },
+        {
+          title: "Change Validator Weight",
+          url: "/console/permissioned-l1s/change-validator-weight",
+          icon: SlidersVertical,
         },
         {
           title: "Contract Deployer Allowlist",

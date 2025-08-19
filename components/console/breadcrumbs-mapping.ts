@@ -20,7 +20,9 @@ export const pathToBreadcrumb = {
   
   // Permissioned L1s
   "/console/permissioned-l1s/deployer-allowlist": ["Console", "Permissioned L1s", "Deployer Allowlist"],
-  "/console/permissioned-l1s/manage-validators": ["Console", "Permissioned L1s", "Manage Validators"],
+  "/console/permissioned-l1s/add-validator": ["Console", "Permissioned L1s", "Add Validator"],
+  "/console/permissioned-l1s/remove-validator": ["Console", "Permissioned L1s", "Remove Validator"],
+  "/console/permissioned-l1s/change-validator-weight": ["Console", "Permissioned L1s", "Change Validator Weight"],
   "/console/permissioned-l1s/transactor-allowlist": ["Console", "Permissioned L1s", "Transactor Allowlist"],
   "/console/permissioned-l1s/validator-manager-setup": ["Console", "Permissioned L1s", "Validator Manager Setup"],
   
