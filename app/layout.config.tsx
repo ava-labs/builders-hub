@@ -488,8 +488,8 @@ export const baseOptions: BaseLayoutProps = {
   },
   links: [
     academyMenu,
-    consoleMenu,
     docsMenu,
+    consoleMenu,
     eventsMenu,
     grantsMenu,
     integrationsMenu,
