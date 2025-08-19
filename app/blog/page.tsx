@@ -19,7 +19,7 @@ export default function Page(): React.ReactElement {
                 <div className="mx-auto max-w-7xl px-6 lg:px-8">
                     {/* Header */}
                     <section className="mx-auto w-full lg:mx-0 text-center">
-                        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tighter">
+                        <h1 className="text-4xl sm:text-5xl font-bold tracking-tighter">
                             <span className="bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-white">
                                 Avalanche Builder Blog
                             </span>
