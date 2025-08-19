@@ -241,9 +241,7 @@ const config = {
         source: "/academy/l1-validator-management",
         destination: "/academy/permissioned-l1s",
         permanent: true,
-      }, {
-        source: "/docs/tooling/avalanche-cli#network-status",
-      }
+      },
     ];
   },
 };
