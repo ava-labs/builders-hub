@@ -74,6 +74,11 @@ const config = {
         destination: '/academy/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1',
         permanent: true,
       },
+      {
+        source: '/guides',
+        destination: '/blog',
+        permanent: true,
+      },
       // Redirects from old VM paths
       {
         source: '/docs/virtual-machines/default-precompiles/index',

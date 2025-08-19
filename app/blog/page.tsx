@@ -14,18 +14,9 @@ export default function Page(): React.ReactElement {
         <main className="py-12 sm:py-24">
             <div className="mx-auto max-w-7xl px-6 lg:px-8">
                 <div className="mx-auto w-full lg:mx-0">
-                    <h2 className="text-center text-5xl font-bold tracking-tight sm:text-10xl">Guides</h2>
+                    <h2 className="text-center text-5xl font-bold tracking-tight sm:text-10xl">Avalanche Builder Blog</h2>
                     <p className="m-12 text-center text-lg leading-8 text-muted-foreground">
-                        Check out our end-to-end guides on how to build on Avalanche.
-                    </p>
-                    <p className="m-12 text-center ">
-                        <Link
-                            href="https://github.com/ava-labs/builders-hub/tree/master/content/guides"
-                            target='_blank'
-                            className={buttonVariants({ size: 'lg', variant: 'default' })}
-                        >
-                            Add a Guide
-                        </Link>
+                        Takeaways and tutorials from building a network of fast, efficient, highly-optimized chains.
                     </p>
                 </div>
                 <div className="flex flex-col gap-5">
