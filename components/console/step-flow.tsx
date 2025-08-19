@@ -143,6 +143,7 @@ export default function StepFlow({
                         : isDoneStep
                         ? "border-green-500 text-green-600 dark:text-green-400"
                         : "border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300",
+                      "optional" in s && s.optional ? "border-dashed" : ""
                     ].join(" ")}
                   >
                     <span
@@ -153,14 +154,12 @@ export default function StepFlow({
                           : isDoneStep
                           ? "bg-green-600 text-white"
                           : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200",
+                        
                       ].join(" ")}
                     >
                       {stepIdx + 1}
                     </span>
                     <span>{s.title}</span>
-                    {"optional" in s && s.optional ? (
-                      <span className="ml-1 text-xs text-zinc-500">(optional)</span>
-                    ) : null}
                   </button>
                 ) : (
                   <div className="flex flex-col items-center gap-2">

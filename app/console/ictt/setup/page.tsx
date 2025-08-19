@@ -16,6 +16,7 @@ export default function Page() {
       type: "single",
       key: "deploy-test-erc20",
       title: "Deploy Test ERC20",
+      optional: true,
       component: DeployExampleERC20,
     },
     {
