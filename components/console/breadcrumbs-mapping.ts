@@ -28,7 +28,7 @@ export const pathToBreadcrumb = {
   
   // ICM (Interchain Messaging)
   "/console/icm/setup": ["Console", "ICM", "Setup"],
-  "/console/icm/send-test-message": ["Console", "ICM", "Send Test Message"],
+  "/console/icm/test-connection": ["Console", "ICM", "Test Connection"],
   
   // ICTT (Interchain Token Transfer)
   "/console/ictt/setup": ["Console", "ICTT", "Setup"],

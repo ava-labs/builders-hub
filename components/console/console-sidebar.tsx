@@ -209,8 +209,8 @@ const data = {
           icon: SquareTerminal,
         },
         {
-          title: "Send Test Message",
-          url: "/console/icm/send-test-message",
+          title: "Test Connection",
+          url: "/console/icm/test-connection",
           icon: MessagesSquare,
         },
       ],
