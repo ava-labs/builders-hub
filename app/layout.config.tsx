@@ -512,7 +512,6 @@ export const baseOptions: BaseLayoutProps = {
   links: [
     academyMenu,
     docsMenu,
-    blogMenu,
     integrationsMenu,
     bridgeLink,
     toolsMenu,
@@ -520,5 +519,6 @@ export const baseOptions: BaseLayoutProps = {
     eventsMenu,
     github,
     userMenu,
+    blogMenu,
   ],
 };
