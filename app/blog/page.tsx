@@ -34,7 +34,7 @@ export default function Page(): React.ReactElement {
                         <section className="mt-12 sm:mt-16">
                             <Link
                                 href={featured.url}
-                                className="group block overflow-hidden rounded-xl border border-white/20 bg-card/80 p-6 sm:p-8 shadow-sm transition hover:shadow-lg dark:bg-card-dark/80"
+                                className="group block overflow-hidden rounded-xl border border-white/20 bg-card/80 p-6 sm:p-8 shadow-sm transition duration-300 hover:border-[#E84142]/60 hover:shadow-[0_0_0_1px_rgba(232,65,66,0.6),0_0_30px_6px_rgba(232,65,66,0.35)] dark:bg-card-dark/80"
                             >
                                 <div className="flex flex-col gap-4">
                                     <div className="flex items-center justify-between">
@@ -92,7 +92,7 @@ export default function Page(): React.ReactElement {
                                     <Link
                                         key={g.url}
                                         href={g.url}
-                                        className="flex flex-col gap-2 rounded-lg border border-white/20 bg-card p-4 shadow-sm transition hover:shadow-lg dark:bg-card-dark"
+                                        className="flex flex-col gap-2 rounded-lg border border-white/20 bg-card p-4 shadow-sm transition duration-300 hover:border-[#E84142]/60 hover:shadow-[0_0_0_1px_rgba(232,65,66,0.6),0_0_24px_5px_rgba(232,65,66,0.3)] dark:bg-card-dark"
                                     >
                                         <p className="text-xs text-muted-foreground">
                                             {new Date(g.data.date ?? g.file.name).toDateString()}
