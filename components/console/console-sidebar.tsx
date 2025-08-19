@@ -5,15 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   Home, 
-  Layers, 
-  Users, 
+  Layers,  
   MessagesSquare,
-  Settings, 
   Wrench, 
   Droplets, 
   ArrowLeft,
   Shield,
-  RefreshCcw,
   Network,
   GitMerge,
   Server,
