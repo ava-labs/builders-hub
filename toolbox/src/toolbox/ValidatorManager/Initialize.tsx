@@ -11,7 +11,6 @@ import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/Valid
 import { utils } from "@avalabs/avalanchejs";
 import SelectSubnetId from "../../components/SelectSubnetId";
 import { Container } from "../../components/Container";
-import { getSubnetInfo } from "../../coreViem/utils/glacier";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { useViemChainStore } from "../../stores/toolboxStore";
 import { useSelectedL1 } from "../../stores/l1ListStore";
@@ -31,8 +30,6 @@ export default function Initialize() {
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
     const [subnetId, setSubnetId] = useState("");
-    const [subnet, setSubnet] = useState<any>(null);
-    const [isLoadingSubnet, setIsLoadingSubnet] = useState(false);
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
 
     useEffect(() => {
@@ -55,27 +52,6 @@ export default function Initialize() {
     } catch (error) {
         console.error('Error decoding subnetId:', error);
     }
-
-    useEffect(() => {
-        if (proxyAddress) {
-            checkIfInitialized();
-        }
-    }, [proxyAddress]);
-
-    useEffect(() => {
-        if (!subnetId) return;
-        setIsLoadingSubnet(true);
-        getSubnetInfo(subnetId).then((subnetInfo) => {
-            setProxyAddress(subnetInfo.l1ValidatorManagerDetails?.contractAddress || "");
-            setSubnet(subnetInfo);
-        }).catch((error) => {
-            console.error('Error getting subnet info:', error);
-            setSubnet(null);
-        }).finally(() => {
-            setIsLoadingSubnet(false);
-        });
-    }, [subnetId]);
-
 
 
     async function checkIfInitialized() {
