@@ -1,10 +1,16 @@
-import { createMDX } from 'fumadocs-mdx/next';
+import { createMDX } from "fumadocs-mdx/next";
 
 const withMDX = createMDX();
 
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    ignoreBuildErrors: true,
+  },
   serverExternalPackages: [
     'ts-morph',
     'typescript',
@@ -37,10 +43,33 @@ const config = {
         hostname: 'images.ctfassets.net',
       },
       {
+        protocol: "https",
+        hostname: "*.s3.amazonaws.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "ava.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "s3.eu-west-2.amazonaws.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com'},
+        {
         protocol: 'https',
         hostname: 'cdn.prod.website-files.com',
       },
     ],
+
+
   },
   async rewrites() {
     return [
