@@ -3,12 +3,12 @@ import remarkGfm from 'remark-gfm';
 import remarkMdx from 'remark-mdx';
 import remarkMath from 'remark-math';
 import type { InferPageType } from 'fumadocs-core/source';
-import type { documentation, academy, guide, integration } from '@/lib/source';
+import type { documentation, academy, blog, integration } from '@/lib/source';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
 // Create a union type for all possible page types
-type AnyPage = InferPageType<typeof documentation> | InferPageType<typeof academy> | InferPageType<typeof guide> | InferPageType<typeof integration>;
+type AnyPage = InferPageType<typeof documentation> | InferPageType<typeof academy> | InferPageType<typeof blog> | InferPageType<typeof integration>;
 
 const processor = remark()
   .use(remarkMdx)
@@ -23,9 +23,9 @@ export async function getLLMText(page: AnyPage) {
     if (page.url.startsWith('/integrations/')) {
       // Integration pages need the integrations directory prefix
       filePath = join(process.cwd(), 'content', 'integrations', page.file.path);
-    } else if (page.url.startsWith('/guides/')) {
-      // Guide pages need the guides directory prefix
-      filePath = join(process.cwd(), 'content', 'guides', page.file.path);
+    } else if (page.url.startsWith('/blog/')) {
+      // Blog pages need the blog directory prefix
+      filePath = join(process.cwd(), 'content', 'blog', page.file.path);
     } else if (page.url.startsWith('/academy/')) {
       // Academy pages need the academy directory prefix
       filePath = join(process.cwd(), 'content', 'academy', page.file.path);

@@ -2,8 +2,8 @@ import { loader } from 'fumadocs-core/source';
 import { createElement } from 'react';
 import { icons } from 'lucide-react';
 import { createMDXSource } from 'fumadocs-mdx';
-// @ts-expect-error: Unable to resolve '@/.source' in type checking, but present at runtime
 import { meta, docs, guide as guides, course, courseMeta, integrations } from '@/.source';
+
 import type { InferMetaType, InferPageType } from 'fumadocs-core/source';
 
 export const documentation = loader({
@@ -24,9 +24,9 @@ export const academy = loader({
   source: createMDXSource(course, courseMeta),
 });
 
-export const guide = loader({
-  baseUrl: '/guides',
-  source: createMDXSource(guides, []),
+export const blog = loader({
+  baseUrl: '/blog',
+  source: createMDXSource(blogs, []),
 });
 
 export const integration = loader({

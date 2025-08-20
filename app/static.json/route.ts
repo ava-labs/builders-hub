@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { documentation, guide, academy, integration } from '@/lib/source';
+import { documentation, blog, academy, integration } from '@/lib/source';
 import { type TrieveDocument } from 'trieve-fumadocs-adapter/search/sync';
 
 export const revalidate = false;
@@ -32,16 +32,16 @@ export async function GET() {
         url: page.url,
         _id: page.url,
         structured: loadedData.structuredData,
-        tag: 'ig'
+        tag: 'integrations'
       }
     }),
-    ...guide.getPages().map((page) => {
+      ...blog.getPages().map((page) => {
       return {
         title: page.data.title,
         url: page.url,
         _id: page.url,
         structured: page.data.structuredData,
-        tag: 'ig'
+        tag: 'blog'
       }
     })
   ]);
