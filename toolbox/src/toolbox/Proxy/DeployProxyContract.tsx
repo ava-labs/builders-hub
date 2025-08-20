@@ -87,19 +87,21 @@ export default function DeployProxyContract() {
             title="Deploy Proxy Contracts"
             description="Deploy ProxyAdmin and TransparentUpgradeableProxy contracts to the EVM network."
         >
-            <Callout type="info" className="mb-8">
-                <p className="mb-3">
-                    <a href="https://github.com/OpenZeppelin/openzeppelin-contracts/tree/release-v4.9/contracts/proxy/transparent"
-                        target="_blank"
-                        rel="noopener noreferrer">
-                        OpenZeppelin's Transparent Proxy Pattern
-                    </a> enables upgradeability of smart contracts while preserving state and contract addresses.
-                </p>
-
-                <p className="mb-3"><strong>How It Works:</strong> The proxy contract stores state and forwards function calls, while the implementation contract contains only the logic. The proxy admin manages implementation upgrades securely.</p>
-
-                <p className="mb-3"><strong>For <code>ValidatorManager</code> and <code>StakingManager</code>:</strong> These critical contracts manage validator operations and staking in Avalanche's consensus system. Using transparent proxies allows upgrading contract logic without disrupting the network or losing state.</p>
+            <Callout type="warn" className="mb-8">
+                If you have created the L1 that you want to deploy the Validator Manager for with the Builder Console, a proxy contract is pre-deployed with the Genesis at the address <code>0xfacade...</code> and you can skip this step. You only need this tool if you want to use the validator manager on a different L1 or if you want to deploy a new proxy contract for any reason.
             </Callout>
+            <p className="mb-3">
+                <a href="https://github.com/OpenZeppelin/openzeppelin-contracts/tree/release-v4.9/contracts/proxy/transparent"
+                    target="_blank"
+                    rel="noopener noreferrer">
+                    OpenZeppelin's Transparent Proxy Pattern
+                </a> enables upgradeability of smart contracts while preserving state and contract addresses.
+            </p>
+
+            <p className="mb-3"><strong>How It Works:</strong> The proxy contract stores state and forwards function calls, while the implementation contract contains only the logic. The proxy admin manages implementation upgrades securely.</p>
+
+            <p className="mb-3"><strong>For <code>ValidatorManager</code> and <code>StakingManager</code>:</strong> These critical contracts manage validator operations and staking in Avalanche's consensus system. Using transparent proxies allows upgrading contract logic without disrupting the network or losing state.</p>
+
 
             <Steps>
                 <Step>

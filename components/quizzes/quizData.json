@@ -22,6 +22,16 @@
         "117"
       ]
     },
+    "codebase-entrepreneur-academy": {
+      "title": "Codebase Entrepreneur Academy",
+      "quizzes": [
+        "901",
+        "902",
+        "903",
+        "904",
+        "905"
+      ]
+    },
     "l1-tokenomics": {
       "title": "L1 Tokenomics",
       "quizzes": [
@@ -95,6 +105,81 @@
     }
   },
   "quizzes": {
+    "901": {
+      "question": "What is the primary focus of Avalanche Foundation grants?",
+      "options": [
+        "Monetary returns for the foundation",
+        "Creating ecosystem impact",
+        "Supporting only DeFi projects",
+        "Short-term growth metrics"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Grants prioritize ecosystem value over ROI.",
+      "explanation": "Avalanche Foundation grants prioritize creating ecosystem impact rather than financial returns.",
+      "chapter": "Grants Process"
+    },
+    "902": {
+      "question": "Which of these is NOT one of the four key areas the foundation evaluates in applications?",
+      "options": [
+        "Problem identification and ecosystem fit",
+        "Proof of ability to deliver",
+        "Logo design",
+        "Long-term ecosystem impact"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Focus areas are execution, fit, traction, and impact.",
+      "explanation": "Logo design is not part of the evaluation criteria; reviewers focus on ecosystem fit, delivery capability, traction, and long-term impact.",
+      "chapter": "Grants Process"
+    },
+    "903": {
+      "question": "What is a common mistake applicants make when applying for grants?",
+      "options": [
+        "Including too much quantitative data",
+        "Building too much before applying",
+        "Under-explaining ecosystem impact",
+        "Being too specific about grant usage"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Reviewers need to see clear ecosystem value.",
+      "explanation": "A frequent mistake is under-explaining ecosystem impact; applications should clearly articulate the value to Avalanche.",
+      "chapter": "Grants Process"
+    },
+    "904": {
+      "question": "Beyond funding, what is a valuable resource the foundation provides to grantees?",
+      "options": [
+        "Office space",
+        "Business development connections",
+        "Guaranteed future funding",
+        "Legal services"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think ecosystem support and network access.",
+      "explanation": "Business development connections are a key non-monetary benefit offered by the foundation.",
+      "chapter": "Grants Process"
+    },
+    "905": {
+      "question": "What stage should your project ideally be at when applying for a foundation grant?",
+      "options": [
+        "Just an idea with no team",
+        "Beyond MVP with a committed team",
+        "Already launched with significant traction",
+        "After securing VC funding"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Reviewers look for execution readiness and commitment.",
+      "explanation": "Projects beyond MVP with a committed team are best positioned for a successful grant application.",
+      "chapter": "Grants Process"
+    },
     "101": {
       "question": "What is the underlying principle of the Avalanche Consensus family?",
       "options": [
