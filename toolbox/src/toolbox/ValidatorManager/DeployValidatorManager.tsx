@@ -110,54 +110,53 @@ export default function DeployValidatorContracts() {
             <div className="space-y-4">
                 <Steps>
                     <Step>
-                        <div className="flex flex-col gap-2">
-                            <h3 className="text-lg font-bold">Deploy Validator Messages Library</h3>
-                            <div className="text-sm">
-                                This will deploy the <code>ValidatorMessages</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ValidatorMessages</code> is a library required by the <code>ValidatorManager</code> family of contracts.
-                            </div>
-                            <Button
-                                variant="primary"
-                                onClick={deployValidatorMessages}
-                                loading={isDeployingMessages}
-                                disabled={isDeployingMessages || !!validatorMessagesLibAddress}
-                            >
-                                Deploy Library
-                            </Button>
+                        <h2 className="text-lg font-semibold">Deploy Validator Messages Library</h2>
+                        <p className="text-sm text-gray-500">
+                            This will deploy the <code>ValidatorMessages</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ValidatorMessages</code> is a library required by the <code>ValidatorManager</code> family of contracts.
+                        </p>
 
-                            {validatorMessagesLibAddress && (
-                                <Success
-                                    label="ValidatorMessages Library Deployed"
-                                    value={validatorMessagesLibAddress}
-                                />
-                            )}
-                        </div>
+                        <Button
+                            variant="primary"
+                            onClick={deployValidatorMessages}
+                            loading={isDeployingMessages}
+                            disabled={isDeployingMessages || !!validatorMessagesLibAddress}
+                        >
+                            Deploy Library
+                        </Button>
 
+                        <p>Deployment Status: <code>{validatorMessagesLibAddress || "Not deployed"}</code></p>
+
+                        {validatorMessagesLibAddress && (
+                            <Success
+                                label="ValidatorMessages Library Deployed"
+                                value={validatorMessagesLibAddress}
+                            />
+                        )}
                     </Step>
 
                     <Step>
-                        <div className="flex flex-col gap-2">
-                            <h3 className="text-lg font-bold">Deploy Validator Manager Contract</h3>
-                            <div className="text-sm">
-                                This will deploy the <code>ValidatorManager</code> contract to the EVM network <code>{viemChain?.id}</code>.
-                                The contract requires the <code>ValidatorMessages</code> library at address: <code>{validatorMessagesLibAddress || "Not deployed"}</code>
-                            </div>
-                            <Button
-                                variant="primary"
-                                onClick={deployValidatorManager}
-                                loading={isDeployingManager}
-                                disabled={isDeployingManager || !validatorMessagesLibAddress || !!validatorManagerAddress}
-                                className="mt-1"
-                            >
-                                Deploy Manager Contract
-                            </Button>
+                        <h2 className="text-lg font-semibold">Deploy Validator Manager Contract</h2>
+                        <p className="text-sm text-gray-500">
+                            This will deploy the <code>ValidatorManager</code> contract to the EVM network <code>{viemChain?.id}</code>. It is the interface for managing the validators for it's L1. The contract emits the ICM messages to change the L1s validator set on the P-Chain.
+                        </p>
 
-                            {validatorManagerAddress && (
-                                <Success
-                                    label="ValidatorManager Address"
-                                    value={validatorManagerAddress}
-                                />
-                            )}
-                        </div>
+                        <Button
+                            variant="primary"
+                            onClick={deployValidatorManager}
+                            loading={isDeployingManager}
+                            disabled={isDeployingManager || !validatorMessagesLibAddress || !!validatorManagerAddress}
+                            className="mt-1"
+                        >
+                            Deploy Manager Contract
+                        </Button>
+
+                        {validatorManagerAddress && (
+                            <Success
+                                label="ValidatorManager Address"
+                                value={validatorManagerAddress}
+                            />
+                        )}
+
                     </Step>
                 </Steps>
             </div>

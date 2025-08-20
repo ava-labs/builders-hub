@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { type ReactElement } from 'react';
 import Link from 'next/link';
-import { guide } from '@/lib/source';
+import { blog } from '@/lib/source';
 import { createMetadata } from '@/utils/metadata';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, Cards } from 'fumadocs-ui/components/card';
@@ -33,11 +33,11 @@ export default async function Page(props: {
   params: Promise<{ slug: string[] }>;
 }): Promise<ReactElement> {
     const params = await props.params;
-    const page = guide.getPage(params.slug);
+    const page = blog.getPage(params.slug);
     if (!page) notFound();
 
     const MDX = page.data.body;
-    const path = `content/guides/${page.file.path}`;
+    const path = `content/blog/${page.file.path}`;
     const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
 
     return (
@@ -59,7 +59,7 @@ export default async function Page(props: {
                 </h1>
                 <p className="mb-4 text-white/80">{page.data.description}</p>
                 <Link
-                    href="/guides"
+                    href="/blog"
                     className={buttonVariants({ size: 'sm', variant: 'secondary' })}
                 >
                     Back
@@ -84,7 +84,7 @@ export default async function Page(props: {
                 <Feedback
                     path={path}
                     title={page.data.title}
-                    pagePath={`/guides/${page.slugs.join('/')}`}
+                    pagePath={`/blog/${page.slugs.join('/')}`}
                     editUrl={editUrl}
                     onRateAction={async (url, feedback) => {
                     'use server';
@@ -134,7 +134,7 @@ export default async function Page(props: {
 }
 
 export async function generateStaticParams() {
-  return guide.getPages().map((page) => ({
+  return blog.getPages().map((page) => ({
     slug: page.slugs,
   }));
 }
@@ -143,7 +143,7 @@ export async function generateMetadata(props: {
   params: Promise<{ slug: string[] }>;
 }): Promise<Metadata> {
   const params = await props.params;
-  const page = guide.getPage(params.slug);
+  const page = blog.getPage(params.slug);
 
   if (!page) notFound();
 
@@ -156,7 +156,7 @@ export async function generateMetadata(props: {
 
   const image = {
     alt: 'Banner',
-    url: `/api/og/guides/${params.slug[0]}?${imageParams.toString()}`,
+    url: `/api/og/blog/${params.slug[0]}?${imageParams.toString()}`,
     width: 1200,
     height: 630,
   };
@@ -165,7 +165,7 @@ export async function generateMetadata(props: {
     title: page.data.title,
     description,
     openGraph: {
-      url: `/guides/${page.slugs.join('/')}`,
+      url: `/blog/${page.slugs.join('/')}`,
       images: image,
     },
     twitter: {

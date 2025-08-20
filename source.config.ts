@@ -70,9 +70,9 @@ export const integrations = defineCollections({
   }),
 });
 
-export const guide = defineCollections({
+export const blog = defineCollections({
   type: 'doc',
-  dir: 'content/guides',
+  dir: 'content/blog',
   schema: frontmatterSchema.extend({
     authors: z.array(z.string()),
     topics: z.array(z.string()),
