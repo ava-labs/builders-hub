@@ -14,16 +14,26 @@ const generateReverseProxyCommand = (domain: string) => {
     domain = nipify(domain);
 
     const caddyfile = `${domain} {
-    reverse_proxy localhost:9650
-    
-    header {
-        Access-Control-Allow-Origin *
+    # Always add CORS headers to response
+    header /* {
+        Access-Control-Allow-Origin "*"
         Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
         Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+        Access-Control-Max-Age "86400"
+        defer
     }
     
+    # Handle preflight OPTIONS requests
     @options method OPTIONS
     respond @options 204
+    
+    # Proxy to AvalancheGo with CORS disabled
+    reverse_proxy localhost:9650 {
+        header_down -Access-Control-Allow-Origin
+        header_down -Access-Control-Allow-Methods
+        header_down -Access-Control-Allow-Headers
+        header_down -Access-Control-Allow-Credentials
+    }
 }`;
 
     const base64Config = btoa(caddyfile);

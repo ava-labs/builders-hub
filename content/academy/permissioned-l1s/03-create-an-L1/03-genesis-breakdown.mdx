@@ -1,0 +1,84 @@
+---
+title: Genesis Breakdown
+description: Deep dive into the genesis file structure & why we need to initialize the chain with predeployed contracts
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+### What is a genesis file?
+
+The genesis file defines the very first block of your Subnet-EVM chain and its initial state. It enables EVM features, sets economic parameters (fees and gas), fixes the start time, etc...
+
+Additionally, in the context of Avalanche, it is **set by default to pre-deploy well-known contracts**. Lets take a look at which ones:
+
+## Predeployed Contracts & Allocation
+
+The `alloc` section seeds balances and deploys bytecode at fixed addresses before block 0, so they exist from the first block. 
+
+- **BLOCKCHAIN_DEPLOYER_ADDRESS** - Subnet Owner Balance: `0xd3c21bcecceda1000000` wei = 1,000,000 native tokens (1e6 × 1e18) useful for funded deployer/faucet account
+
+- **TransparentUpgradeableProxy** *(0xfacade00...00)* — Proxy bytecode that delegates calls to an implementation and is controlled by an admin. Storage slots (EIP‑1967) predefined in the contract:
+    - `0x3608…bbc` (implementation): `0x1212121212121212121212121212121212121212` (placeholder implementation address)
+    - `0xb531…103` (admin): `0xdad0000000000000000000000000000000000000` (the Proxy Admin address below).
+
+- **Proxy Admin** *(0xdad00...00)* — Owns and manages upgrades of the proxy at `0xfacade…`
+
+<div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+  <img src="/common-images/permissioned-l1s/VMCGenesis.png" alt="VMC Proxy Deployment" style={{ width: '60%', height: 'auto' }} />
+</div>
+
+Additional contracts are also deployed by default (*multicall3, create2, wrapped native tokens...*), but we will not dive into them in this guide as they are not essential for understanding permissioned L1s.
+
+## Why Pre-Deploy Proxy Contracts
+
+Deploying the proxy contract in genesis provides three critical benefits:
+
+#### 1. Known Address Requirement
+
+By deploying in genesis, we can set an arbitrary contract address (`0xfacade…`). This is essential because the `convertSubnetToL1` transaction requires the Validator Manager address as a parameter:
+
+```solidity
+type ConvertSubnetToL1Tx struct {
+    // ...other fields...
+    // Address of the Subnet manager (the proxy at 0xfacade...)
+    Address types.JSONByteSlice `serialize:"true" json:"address"`
+}
+```
+
+#### 2. P-Chain Transaction Size Limits
+
+Contracts are pre-deployed by including their bytecode in the genesis file, which is recorded as part of the `CreateChainTx` on the P-Chain. All P-Chain transactions have a size limit (to prevent DoS attacks) making space precious. 
+
+While we could deploy the full Validator Manager directly in genesis, it would consume significant space. The proxy contract is much smaller, leaving room for other essential contracts.
+
+#### 3. Upgradability
+
+The proxy pattern enables updating the Validator Manager implementation if bugs are discovered. Since the subnet owner address on the P-Chain cannot be changed after conversion, using a proxy is the only way to update the implementation without requiring a full network upgrade.
+
+The proxy will later be upgraded to point to the actual VMC implementation after conversion—more on this in the [Validator Manager Deployment](/academy/permissioned-l1s/04-validator-manager-deployment/01-vmc-deployment-intro) section.
+
+### Appendix: Predeployed Contracts Structure
+
+Here you can see the contracts we just mentioned and how they relate:
+
+<div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0', width: '100%' }}>
+  <div style={{ width: '90%', maxWidth: '1200px' }}>
+    <Mermaid
+      chart="
+graph TD
+  A[facade - TransparentUpgradeableProxy] --> B[0x1212... implementation placeholder]
+  C[dad... ProxyAdmin] --> A
+  G[CREATE2 Deployer] --> H[User contracts]
+  I[Multicall3] --> H
+  J[WNT] <--> K[Native token]
+  
+  A -.->|delegatecall| B
+  C -.->|admin-of| A
+  G -.->|deterministic deploys| H
+  I -.->|batch read/exec| H
+"
+    />
+  </div>
+</div>
+

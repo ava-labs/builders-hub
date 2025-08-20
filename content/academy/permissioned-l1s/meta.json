@@ -1,14 +1,20 @@
 {
-    "title": "Permissioned L1s",
-    "icon": "UserPen",
-    "root": true,
-    "pages": [
-        "index",
-        "---Introduction---",
-        "...01-introduction",
-        "---Proof of Authority---",
-        "...02-proof-of-authority",
-        "---More coming very soon...---",
-        "certificate"
-    ]
+        "title": "Permissioned L1s",
+        "icon": "UserPen",
+        "root": true,
+        "pages": [
+                "index",
+                "---Introduction---",
+                "...01-introduction",
+                "---Proof of Authority---",
+                "...02-proof-of-authority",
+                "---Create an L1---",
+                "...03-create-an-L1",
+                "---Validator Manager Deployment---",
+                "...04-validator-manager-deployment",
+                "---Validator Manager Operations---",
+                "...05-validator-manager-operations",
+                "---More coming soon...---",
+                "certificate"
+        ]
 }
