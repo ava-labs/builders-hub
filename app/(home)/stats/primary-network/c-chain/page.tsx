@@ -603,10 +603,9 @@ export default function CChainMetrics() {
         timeRange
       )}`,
       chartConfig: {
-        incomingCount: { label: "ICM Messages", color: "#40c9ff" },
-        outgoingCount: { label: "Outgoing Messages", color: "#10b981" },
+        messageCount: { label: "ICM Messages", color: "#40c9ff" },
       } satisfies ChartConfig,
-      isStackedBar: true,
+      isStackedBar: false,
     },
   ];
 
@@ -1063,7 +1062,7 @@ export default function CChainMetrics() {
                           <Icon
                             className="h-5 w-5"
                             style={{
-                              color: config.chartConfig.incomingCount.color,
+                              color: config.chartConfig.messageCount.color,
                             }}
                           />
                           {config.title}
@@ -1210,38 +1209,25 @@ export default function CChainMetrics() {
                           cursor={false}
                           content={({ active, payload, label }) => {
                             if (active && payload && payload.length) {
+                              const messageCount =
+                                payload[0]?.payload?.messageCount || 0;
                               return (
                                 <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                                   <div className="grid gap-2">
                                     <div className="font-medium">
                                       {formatTooltipDate(label)}
                                     </div>
-                                    {payload.map((entry: any) => (
+                                    <div className="flex items-center gap-2 text-sm">
                                       <div
-                                        key={entry.dataKey}
-                                        className="flex items-center gap-2 text-sm"
-                                      >
-                                        <div
-                                          className="w-3 h-3 rounded-sm"
-                                          style={{
-                                            backgroundColor: entry.color,
-                                          }}
-                                        />
-                                        <span>
-                                          {entry.name}:{" "}
-                                          {formatNumber(entry.value)}
-                                        </span>
-                                      </div>
-                                    ))}
-                                    <div className="border-t pt-1 mt-1 font-medium text-sm">
-                                      Total:{" "}
-                                      {formatNumber(
-                                        payload[0]?.payload?.messageCount ||
-                                          (payload[0]?.payload?.incomingCount ||
-                                            0) +
-                                            (payload[1]?.payload
-                                              ?.outgoingCount || 0)
-                                      )}
+                                        className="w-3 h-3 rounded-sm"
+                                        style={{
+                                          backgroundColor: "#40c9ff",
+                                        }}
+                                      />
+                                      <span>
+                                        ICM Messages:{" "}
+                                        {formatNumber(messageCount)}
+                                      </span>
                                     </div>
                                   </div>
                                 </div>
@@ -1251,16 +1237,9 @@ export default function CChainMetrics() {
                           }}
                         />
                         <Bar
-                          dataKey="incomingCount"
-                          stackId="icm"
-                          fill={config.chartConfig.incomingCount.color}
-                          radius={[0, 0, 4, 4]}
-                        />
-                        <Bar
-                          dataKey="outgoingCount"
-                          stackId="icm"
-                          fill={config.chartConfig.outgoingCount.color}
-                          radius={[4, 4, 0, 0]}
+                          dataKey="messageCount"
+                          fill={config.chartConfig.messageCount.color}
+                          radius={[4, 4, 4, 4]}
                         />
                       </BarChart>
                     </ChartContainer>
