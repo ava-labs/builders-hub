@@ -29,7 +29,12 @@
         "902",
         "903",
         "904",
-        "905"
+        "905",
+        "906",
+        "907",
+        "908",
+        "909",
+        "910"
       ]
     },
     "l1-tokenomics": {
@@ -179,6 +184,81 @@
       "hint": "Reviewers look for execution readiness and commitment.",
       "explanation": "Projects beyond MVP with a committed team are best positioned for a successful grant application.",
       "chapter": "Grants Process"
+    },
+    "906": {
+      "question": "What is the minimum recommended runway to have before starting your fundraising process?",
+      "options": [
+        "1 month",
+        "3 months",
+        "6 months",
+        "12 months"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "You need enough time to negotiate from a position of strength.",
+      "explanation": "Having at least 6 months of runway allows you to negotiate from a position of strength and maintain maximum leverage during fundraising.",
+      "chapter": "Fundraising"
+    },
+    "907": {
+      "question": "Which of the following is NOT recommended for cold outreach to investors?",
+      "options": [
+        "Personalizing based on their investment thesis",
+        "Sending a short, punchy introduction",
+        "Following up with humor to stand out",
+        "Sending a comprehensive 20-page deck"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Initial outreach should be concise and compelling.",
+      "explanation": "Sending a comprehensive 20-page deck in cold outreach overwhelms investors. Start with a teaser deck of 3-5 slides instead.",
+      "chapter": "Fundraising"
+    },
+    "908": {
+      "question": "How should you think about fundraising timing in relation to your company's formation?",
+      "options": [
+        "Wait until you need money to start talking to investors",
+        "Fundraising starts the day you start your business",
+        "Only approach investors after achieving product-market fit",
+        "Focus exclusively on revenue before considering investment"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Building relationships takes time and should start early.",
+      "explanation": "Fundraising starts the day you start your business because it's fundamentally about building relationships, which requires time and consistency.",
+      "chapter": "Fundraising"
+    },
+    "909": {
+      "question": "What percentage of your company should you typically expect to sell in a seed round?",
+      "options": [
+        "1-5%",
+        "50% or more",
+        "25-40%",
+        "It depends"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "There's no one-size-fits-all answer to dilution.",
+      "explanation": "The amount of equity sold in a seed round depends on multiple factors including valuation, capital needs, and investor requirements - there's no standard percentage.",
+      "chapter": "Fundraising"
+    },
+    "910": {
+      "question": "Which of the following should be included in a monthly investor update?",
+      "options": [
+        "Only positive news to maintain investor confidence",
+        "Technical details about your product implementation",
+        "Metrics, recent wins/challenges, and specific asks",
+        "Complaints about difficulties in the market"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Transparency and actionable information build trust.",
+      "explanation": "Monthly investor updates should include metrics, recent wins AND challenges, plus specific asks for help. Transparency about challenges builds trust with investors.",
+      "chapter": "Fundraising"
     },
     "101": {
       "question": "What is the underlying principle of the Avalanche Consensus family?",
