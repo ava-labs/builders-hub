@@ -1,5 +1,4 @@
 import { useWalletStore } from '@/stores/walletStore'
-import { avalanche, avalancheFuji } from 'viem/chains'
 import { networkIDs } from '@avalabs/avalanchejs'
 
 export function useNetworkActions() {
@@ -48,27 +47,6 @@ export function useNetworkActions() {
     }
   }
 
-  const handleTestnetToggle = async () => {
-    const newIsTestnet = !isTestnet
-    setIsTestnet(newIsTestnet)
-    setAvalancheNetworkID(newIsTestnet ? networkIDs.FujiID : networkIDs.MainnetID)
-
-    const targetChainId = newIsTestnet ? avalancheFuji.id : avalanche.id
-    if (window.avalanche?.request) {
-      try {
-        await window.avalanche.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: `0x${targetChainId.toString(16)}` }],
-        })
-        setTimeout(() => updateCChainBalance(), 800)
-      } catch (error) {
-        console.debug('Failed to switch network in wallet:', error)
-      }
-    } else {
-      updateAllBalances()
-    }
-  }
-
   const copyAddress = async () => {
     if (walletEVMAddress) await navigator.clipboard.writeText(walletEVMAddress)
   }
@@ -81,7 +59,6 @@ export function useNetworkActions() {
 
   return {
     handleNetworkChange,
-    handleTestnetToggle,
     copyAddress,
     openExplorer,
     updateAllBalances,
