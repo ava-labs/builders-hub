@@ -4,7 +4,7 @@ import { useWalletStore } from "@/stores/walletStore";
 import { avalanche, avalancheFuji } from "viem/chains";
 import { networkIDs } from "@avalabs/avalanchejs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 
 export function TestnetMainnetSwitch() {
   const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
