@@ -159,8 +159,8 @@ const officialCourses: Course[] = [
         category: "Interoperability"
     },
     {
-        name: "Codebase Entrepreneur Academy",
-        description: "Build and scale a Web3 startup with Codebase and Avalanche",
+        name: "Foundations of a Web3 Venture",
+        description: "Pending...",
         slug: "codebase-entrepreneur-academy",
         icon: <SquareStackIcon />,
         status: "featured",
@@ -170,6 +170,43 @@ const officialCourses: Course[] = [
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
         category: "Codebase"
     },
+    {
+        name: "Go-To-Market Strategist",
+        description: "Pending...",
+        slug: "codebase-entrepreneur-academy",
+        icon: <SquareStackIcon />,
+        status: "featured",
+        duration: "1 hour",
+        languages: [],
+        tools: ["Codebase"],
+        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
+        category: "Codebase"
+    },
+    {
+        name: "Web3 Community Architect",
+        description: "Pending...",
+        slug: "codebase-entrepreneur-academy",
+        icon: <SquareStackIcon />,
+        status: "featured",
+        duration: "1 hour",
+        languages: [],
+        tools: ["Codebase"],
+        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
+        category: "Codebase"
+    },
+    {
+        name: "Fundraising & Finance Pro",
+        description: "Pending...",
+        slug: "codebase-entrepreneur-academy",
+        icon: <SquareStackIcon />,
+        status: "featured",
+        duration: "1 hour",
+        languages: [],
+        tools: ["Codebase"],
+        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
+        category: "Codebase"
+    },
+
 
     /*{
         name:"Chainlink VRF with Interchain Messaging ",
