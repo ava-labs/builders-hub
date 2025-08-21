@@ -924,7 +924,7 @@ export default function CChainMetrics() {
                   </CardHeader>
                   <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
                     <div className="flex items-center gap-4 mb-4">
-                      <div className="text-2xl font-bold">
+                      <div className="text-2xl font-mono">
                         {formatTooltipValue(
                           typeof currentValue === "string"
                             ? parseFloat(currentValue)
@@ -952,7 +952,7 @@ export default function CChainMetrics() {
                     </div>
                     <ChartContainer
                       config={config.chartConfig}
-                      className="aspect-auto h-[250px] w-full"
+                      className="aspect-auto h-[250px] w-full font-mono"
                     >
                       <AreaChart data={chartData}>
                         <defs>
@@ -983,6 +983,10 @@ export default function CChainMetrics() {
                           tickMargin={8}
                           minTickGap={32}
                           tickFormatter={(value) => formatDateLabel(value)}
+                          tick={{
+                            fontFamily:
+                              'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          }}
                         />
                         <ChartTooltip
                           cursor={false}
@@ -999,6 +1003,7 @@ export default function CChainMetrics() {
                                 ),
                                 "",
                               ]}
+                              className="font-mono"
                             />
                           }
                         />
@@ -1159,7 +1164,7 @@ export default function CChainMetrics() {
                   </CardHeader>
                   <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
                     <div className="flex items-center gap-4 mb-4">
-                      <div className="text-2xl font-bold">
+                      <div className="text-2xl font-mono">
                         {formatNumber(currentValue)} Messages
                       </div>
                       {change > 0 && (
@@ -1182,7 +1187,7 @@ export default function CChainMetrics() {
                     </div>
                     <ChartContainer
                       config={config.chartConfig}
-                      className="aspect-auto h-[300px] w-full"
+                      className="aspect-auto h-[300px] w-full font-mono"
                     >
                       <BarChart
                         data={icmChartData}
@@ -1196,13 +1201,17 @@ export default function CChainMetrics() {
                           tickMargin={8}
                           minTickGap={32}
                           tickFormatter={(value) => formatDateLabel(value)}
+                          tick={{
+                            fontFamily:
+                              'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          }}
                         />
                         <ChartTooltip
                           cursor={false}
                           content={({ active, payload, label }) => {
                             if (active && payload && payload.length) {
                               return (
-                                <div className="rounded-lg border bg-background p-2 shadow-sm">
+                                <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                                   <div className="grid gap-2">
                                     <div className="font-medium">
                                       {formatTooltipDate(label)}
