@@ -5,7 +5,7 @@ interface NetworkMenuItemProps {
   network: {
     id: string
     name: string
-    symbol: string
+    coinName: string
     logoUrl?: string
   }
   balance: number | string
@@ -40,7 +40,7 @@ export function NetworkMenuItem({ network, balance, isActive, onSelect }: Networ
         <div className="flex flex-col">
           <span className="font-medium">{network.name}</span>
           <span className="text-xs text-muted-foreground">
-            Balance: {formatBalance(balance)} {network.symbol}
+            Balance: {formatBalance(balance)} {network.coinName}
           </span>
         </div>
       </div>

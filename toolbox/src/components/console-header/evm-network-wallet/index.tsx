@@ -1,6 +1,6 @@
 'use client'
 
-import * as React from 'react'
+import { useState } from 'react'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 import { useL1ListStore } from '@/stores/l1ListStore'
 import { AddChainModal } from '@/components/ConnectWallet/AddChainModal'
@@ -17,18 +17,19 @@ import { NetworkActions } from './components/NetworkActions'
 import { WalletInfo } from './components/WalletInfo'
 
 export function EvmNetworkWallet() {
-  const [isAddNetworkModalOpen, setIsAddNetworkModalOpen] = React.useState(false)
+  const [isAddNetworkModalOpen, setIsAddNetworkModalOpen] = useState(false)
 
   const l1ListStore = useL1ListStore()
   const addL1 = l1ListStore((s) => s.addL1)
 
   const {
-    availableNetworks,
     currentNetwork,
     getNetworkBalance,
     isNetworkActive,
     walletEVMAddress,
   } = useNetworkData()
+
+  const l1List = l1ListStore((s) => s.l1List)
 
   const {
     handleNetworkChange,
@@ -135,7 +136,7 @@ export function EvmNetworkWallet() {
               <div className="flex gap-2 items-center">
                 <span className="text-sm font-medium leading-none">{currentNetwork.name}</span>
                 <span className="text-xs text-muted-foreground leading-none">
-                  {typeof currentNetwork.balance === 'string' ? parseFloat(currentNetwork.balance).toFixed(4) : (currentNetwork.balance || 0).toFixed(4)} {currentNetwork.symbol}
+                  {typeof currentNetwork.balance === 'string' ? parseFloat(currentNetwork.balance).toFixed(4) : (currentNetwork.balance || 0).toFixed(4)} {(currentNetwork as any).coinName}
                 </span>
               </div>
             </div>
@@ -144,7 +145,7 @@ export function EvmNetworkWallet() {
 
         <DropdownMenuContent align="end" className="w-60">
           <NetworkList
-            availableNetworks={availableNetworks}
+            availableNetworks={l1List || []}
             getNetworkBalance={getNetworkBalance}
             isNetworkActive={isNetworkActive}
             onNetworkSelect={handleNetworkChange}

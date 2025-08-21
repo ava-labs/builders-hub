@@ -14,32 +14,31 @@ export function useNetworkActions() {
 
   const handleNetworkChange = async (network: any) => {
     try {
-      if (network.type === 'avalanche') {
-        if (network.isTestnet !== isTestnet) {
-          setIsTestnet(network.isTestnet)
-          setAvalancheNetworkID(
-            network.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID
-          )
-        }
+      if (network.isTestnet !== isTestnet) {
+        setIsTestnet(network.isTestnet)
+        setAvalancheNetworkID(
+          network.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID
+        )
+      }
 
-        if (window.avalanche?.request) {
+      if (window.avalanche?.request && network.evmChainId) {
+        try {
           await window.avalanche.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${network.chainId.toString(16)}` }],
+            params: [{ chainId: `0x${network.evmChainId.toString(16)}` }],
           })
-          setTimeout(() => updateCChainBalance(), 800)
-        }
-      } else if (network.type === 'l1' && network.l1Data) {
-        if (window.avalanche?.request && network.chainId) {
-          try {
-            await window.avalanche.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: `0x${network.chainId.toString(16)}` }],
-            })
-            setTimeout(() => updateL1Balance(), 800)
-          } catch (error) {
-            console.debug('Failed to switch to L1 chain in wallet:', error)
-          }
+          
+          // Determine if this is C-Chain for appropriate balance update
+          const isCChain = network.evmChainId === 43114 || network.evmChainId === 43113
+          setTimeout(() => {
+            if (isCChain) {
+              updateCChainBalance()
+            } else {
+              updateL1Balance()
+            }
+          }, 800)
+        } catch (error) {
+          console.debug('Failed to switch chain in wallet:', error)
         }
       }
     } catch (error) {
