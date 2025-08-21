@@ -9,6 +9,7 @@ import SubmitStep2 from "./SubmissionStep2";
 import SubmitStep3 from "./SubmissionStep3";
 import { useSubmissionFormSecure } from "../hooks/useSubmissionFormSecure";
 import { useHackathonProject } from "../hooks/useHackathonProject";
+import { useDebounce } from "../hooks/useDebounce";
 import { ProgressBar } from "../components/ProgressBar";
 import { StepNavigation } from "../components/StepNavigation";
 import { Tag, Users, Pickaxe, Image, AlertCircle } from "lucide-react";
@@ -28,6 +29,8 @@ export default function GeneralSecureComponent({
 }) {
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(0);
+
+  const debouncedProgress = useDebounce(progress, 300); 
 
   const { data: session } = useSession();
   const currentUser = session?.user;
@@ -73,45 +76,56 @@ export default function GeneralSecureComponent({
       "tracks",
     ];
   };
+  
+  const calculateProgress = () => {
+    const formValues = form.getValues();
+    const allFields = getAllFields();
+    const totalFields = allFields.length;
+    let completedFields = 0;
 
+    allFields.forEach((field) => {
+      const fieldValue = formValues[field as keyof typeof formValues];
+      if (Array.isArray(fieldValue)) {
+        if (fieldValue && fieldValue.length > 0) {
+          completedFields++;
+        }
+      } else if (
+        typeof fieldValue === "string" &&
+        fieldValue.trim() !== ""
+      ) {
+        completedFields++;
+      } else if (typeof fieldValue === "boolean" && fieldValue === true) {
+        completedFields++;
+      } else if (
+        fieldValue !== undefined &&
+        fieldValue !== null &&
+        fieldValue !== "" &&
+        fieldValue !== false
+      ) {
+        completedFields++;
+      }
+    });
+
+    return Math.round((completedFields / totalFields) * 100);
+  };
+  
   useEffect(() => {
     const subscription = form.watch(
       (value: any, { name, type }: { name?: string; type?: string }) => {
         if (type === "change") {
-          const formValues = form.getValues();
-          const allFields = getAllFields();
-          const totalFields = allFields.length;
-          let completedFields = 0;
-
-          allFields.forEach((field) => {
-            const fieldValue = formValues[field as keyof typeof formValues];
-            if (Array.isArray(fieldValue)) {
-              if (fieldValue && fieldValue.length > 0) {
-                completedFields++;
-              }
-            } else if (
-              typeof fieldValue === "string" &&
-              fieldValue.trim() !== ""
-            ) {
-              completedFields++;
-            } else if (typeof fieldValue === "boolean" && fieldValue === true) {
-              completedFields++;
-            } else if (
-              fieldValue !== undefined &&
-              fieldValue !== null &&
-              fieldValue !== "" &&
-              fieldValue !== false
-            ) {
-              completedFields++;
-            }
-          });
-
-          setProgress(Math.round((completedFields / totalFields) * 100));
+          setProgress(calculateProgress());
         }
       }
     );
     return () => subscription.unsubscribe();
   }, [form]);
+
+  useEffect(() => {
+    if (project && isEditing) {
+      setProgress(calculateProgress());
+    }
+  }, [project, isEditing, form, calculateProgress]);
+
   useEffect(() => {
     if (project && isEditing) {
       setFormData(project);
@@ -188,7 +202,7 @@ export default function GeneralSecureComponent({
         </p>
       </div>
 
-      <ProgressBar progress={progress} timeLeft={timeLeft} />
+      <ProgressBar progress={debouncedProgress} timeLeft={timeLeft} />
 
       <div className="flex flex-col sm:flex-row mt-6 gap-4 sm:gap-4 sm:space-x-12">
         {/* Sidebar para móvil */}
