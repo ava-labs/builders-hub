@@ -13,7 +13,7 @@ import generateName from 'boring-name-generator'
 import { Success } from "../../components/Success";
 import { RadioGroup } from "../../components/RadioGroup";
 import InputSubnetId from "../../components/InputSubnetId";
-import { SUBNET_EVM_VM_ID } from "../Nodes/AvalanchegoDocker";
+import { SUBNET_EVM_VM_ID } from "../Nodes/config";
 
 const generateRandomName = () => {
     //makes sure the name doesn't contain a dash

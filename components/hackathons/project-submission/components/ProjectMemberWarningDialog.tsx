@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 import axios from "axios";
 
 interface ProjectMemberWarningDialogProps {
@@ -25,22 +26,48 @@ export const ProjectMemberWarningDialog: React.FC<
   ProjectMemberWarningDialogProps
 > = ({ open, onOpenChange, projectName, hackathonId, setLoadData }) => {
   const router = useRouter();
+  const { toast } = useToast();
+  const wasActionTaken = useRef(false);
+
+  // Reset the flag when modal opens
+  useEffect(() => {
+    if (open) {
+      wasActionTaken.current = false;
+    }
+  }, [open]);
+
   const handleAcceptInvite = () => {
+    wasActionTaken.current = true; // Mark that an action was taken
     setLoadData(true);
     onOpenChange(false);
   };
 
   const handleRejectInvite = () => {
+    wasActionTaken.current = true; // Mark that an action was taken
     setLoadData(false);
     onOpenChange(false);
   };
 
-  const handleCloseModal = () => {
-    onOpenChange(false);
-    router.push(`/hackathons/${hackathonId}`);
-  }
+  const handleClose = (open: boolean) => {
+    // If modal is closing and no action was taken, show toast and redirect
+    if (!open && !wasActionTaken.current) {
+      toast({
+        title: "Redirecting...",
+        description: "You will be redirected to hackathon",
+        duration: 3000,
+      });
+      
+      // Small delay to show the toast before redirecting
+      setTimeout(() => {
+        router.push(`/hackathons/${hackathonId}`);
+      }, 1000);
+    }
+    
+    onOpenChange(open);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
         hideCloseButton={true}
         className="dark:bg-zinc-900 dark:text-white rounded-lg p-6 w-full max-w-md border border-zinc-400 px-4"
@@ -50,7 +77,10 @@ export const ProjectMemberWarningDialog: React.FC<
             variant="ghost"
             size="icon"
             className="absolute top-6 right-4 dark:text-white hover:text-red-400 p-0 h-6 w-6"
-            onClick={handleCloseModal}
+            onClick={() => {
+              // This will trigger handleClose with open=false
+              onOpenChange(false);
+            }}
           >
             ✕
           </Button>
@@ -63,7 +93,7 @@ export const ProjectMemberWarningDialog: React.FC<
         <Card className="border border-red-500 dark:bg-zinc-800 rounded-md">
           <div className="flex flex-col px-4">
             <p className="text-md  text-red-500">
-              You are currently a member of {projectName}.
+              You are currently a member of <b>{projectName.toUpperCase()}</b>.
             </p>
             <p className="text-md  text-red-500">
               If you accept this invitation, you will be removed from your

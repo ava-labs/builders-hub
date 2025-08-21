@@ -22,14 +22,18 @@ export const formSchema = z.object({
   
   // Financial Overview
   previous_funding: z.array(z.string()).min(1, "At least one funding option must be selected"),
-  funding_entity: z.string().optional(),
-  funding_amount: z.string().optional(),
-  funding_round: z.string().optional(),
+  funding_details: z.string().optional(),
   previous_avalanche_funding_grants: z.array(z.string()).min(1, "At least one option must be selected"),
-  requested_funding_range: z.string().min(1, "Funding range is required"),
+  funding_amount_codebase: z.string().optional(),
+  funding_amount_infrabuidl: z.string().optional(),
+  funding_amount_infrabuidl_ai: z.string().optional(),
+  funding_amount_retro9000: z.string().optional(),
+  funding_amount_blizzard: z.string().optional(),
+  funding_amount_ava_labs: z.string().optional(),
+  funding_amount_other_avalanche: z.string().optional(),
   
   // Grant Budget Structure & Milestones
-  upfront_payment_requested: z.number().min(0, "Upfront payment must be a positive number"),
+  requested_funding_range_milestone: z.string().min(1, "Funding range is required"),
   milestone_name_1: z.string().min(1, "Milestone name is required"),
   milestone_1_description: z.string().min(10, "Please provide a more detailed milestone description"),
   milestone_1_deliverables_kpi: z.string().min(10, "Please provide more detailed deliverables and KPIs"),
@@ -97,6 +101,7 @@ export const formSchema = z.object({
   applicant_job_role_other: z.string().optional(),
   applicant_bio: z.string().min(10, "Please provide a more detailed bio"),
   applicant_country: z.string().optional(),
+  university_affiliation: z.string().min(1, "Please select an option"),
   x_account: z.string().min(1, "X account is required"),
   telegram: z.string().min(1, "Telegram is required"),
   linkedin: z.string().optional(),
@@ -132,6 +137,7 @@ export const formSchema = z.object({
   other_resource_s__team_member_2: z.string().optional(),
   
   // Other
+  kyb_willingness: z.string().min(1, "Please select an option"),
   avalanche_grant_source: z.string().min(1, "Please select an option"),
   avalanche_grant_source_other: z.string().optional(),
   program_referral_check: z.string().min(1, "Please select an option"),

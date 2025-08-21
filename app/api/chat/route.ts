@@ -1,6 +1,7 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
+import lunr from 'lunr';
 
 export const runtime = 'edge';
 
@@ -113,7 +114,20 @@ function validateAndFixUrls(content: string, validUrls: Set<string>): string {
   });
 }
 
+// Cache for sections and Lunr index
+let sectionsCache: Array<{ id: string; title: string; url: string; content: string }> | null = null;
+let lunrIndex: lunr.Index | null = null;
+let sectionsCacheTimestamp: number = 0;
+const SECTIONS_CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+
 async function loadLLMsContent() {
+  const now = Date.now();
+  
+  // Return cached sections if still valid
+  if (sectionsCache && lunrIndex && (now - sectionsCacheTimestamp) < SECTIONS_CACHE_DURATION) {
+    return sectionsCache;
+  }
+  
   try {
     const response = await fetch(new URL('/llms.txt', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'));
     const llmsContent = await response.text();
@@ -121,18 +135,112 @@ async function loadLLMsContent() {
     // Parse the content into sections
     const sections = llmsContent.split('\n\n').filter(section => section.trim());
     
-    const contentSections = sections.map(section => {
+    const contentSections = sections.map((section, idx) => {
       const lines = section.split('\n');
       const titleLine = lines.find(line => line.startsWith('# '));
       const urlLine = lines.find(line => line.startsWith('URL: '));
       
       return {
+        id: idx.toString(), // Add ID for Lunr
         title: titleLine ? titleLine.replace('# ', '') : '',
         url: urlLine ? urlLine.replace('URL: ', '') : '',
         content: section
       };
     }).filter(s => s.title && s.url);
     
+    // Build Lunr index
+    const index = lunr(function(this: lunr.Builder) {
+      this.ref('id');
+      this.field('title', { boost: 15 });
+      this.field('content', { boost: 5 });
+      this.field('url', { boost: 2 });
+      
+      // Custom token processor for synonyms
+      const synonymExpander = function(token: lunr.Token) {
+        const synonyms: { [key: string]: string[] } = {
+          'l1': ['subnet', 'layer1', 'blockchain'],
+          'subnet': ['l1', 'layer1', 'blockchain'],
+          'icm': ['interchain', 'messaging', 'teleporter'],
+          'ictt': ['interchain', 'token', 'transfer', 'bridge'],
+          'avax': ['avalanche', 'token'],
+          'avalanche': ['avax'],
+          'faucet': ['testnet', 'tokens', 'fuji'],
+          'validator': ['node', 'staking'],
+          'node': ['validator', 'server'],
+          'deploy': ['create', 'launch', 'build'],
+          'create': ['deploy', 'make', 'build'],
+          'tutorial': ['guide', 'howto', 'example'],
+          'guide': ['tutorial', 'documentation'],
+          'error': ['issue', 'problem', 'troubleshoot'],
+          'bridge': ['transfer', 'cross-chain', 'ictt']
+        };
+        
+        const term = token.toString().toLowerCase();
+        
+        // Lunr expects a single token to be returned, not an array
+        // So we'll just return the original token and handle synonyms differently
+        return token;
+      };
+      
+      // Register the function
+      lunr.Pipeline.registerFunction(synonymExpander, 'synonymExpander');
+      
+      // Configure pipeline
+      this.pipeline.remove(lunr.stopWordFilter);
+      this.pipeline.add(synonymExpander);
+      this.pipeline.add(lunr.stemmer);
+      
+      // Add documents with metadata and expand synonyms at index time
+      contentSections.forEach(doc => {
+        // Expand content with synonyms for better matching
+        const synonyms: { [key: string]: string[] } = {
+          'l1': ['subnet', 'layer1', 'blockchain'],
+          'subnet': ['l1', 'layer1', 'blockchain'],
+          'icm': ['interchain messaging', 'teleporter'],
+          'ictt': ['interchain token transfer', 'token bridge'],
+          'avax': ['avalanche', 'token'],
+          'avalanche': ['avax'],
+          'faucet': ['testnet tokens', 'fuji avax'],
+          'validator': ['node', 'staking'],
+          'node': ['validator', 'server'],
+          'deploy': ['create', 'launch', 'build'],
+          'create': ['deploy', 'make', 'build'],
+          'tutorial': ['guide', 'howto', 'example'],
+          'guide': ['tutorial', 'documentation'],
+          'error': ['issue', 'problem', 'troubleshoot'],
+          'bridge': ['transfer', 'cross-chain', 'ictt']
+        };
+        
+        let expandedContent = doc.content;
+        let expandedTitle = doc.title;
+        
+        // Add synonym terms to content for better matching
+        Object.entries(synonyms).forEach(([key, values]) => {
+          const regex = new RegExp(`\\b${key}\\b`, 'gi');
+          if (expandedContent.match(regex)) {
+            expandedContent += ` ${values.join(' ')} `;
+          }
+          if (expandedTitle.toLowerCase().includes(key)) {
+            expandedTitle += ` ${values.join(' ')} `;
+          }
+        });
+        
+        const enhancedDoc = {
+          ...doc,
+          title: expandedTitle,
+          content: expandedContent,
+          // Extract key terms from title for better matching
+          titleKeywords: doc.title.toLowerCase().split(/\s+/).join(' ')
+        };
+        this.add(enhancedDoc);
+      });
+    });
+    
+    sectionsCache = contentSections;
+    lunrIndex = index;
+    sectionsCacheTimestamp = now;
+    
+    console.log(`Cached ${contentSections.length} sections and built Lunr index`);
     return contentSections;
   } catch (error) {
     console.error('Error loading llms.txt:', error);
@@ -140,8 +248,83 @@ async function loadLLMsContent() {
   }
 }
 
-function searchContent(query: string, sections: Array<{ title: string; url: string; content: string }>) {
+function searchContent(query: string, sections: Array<{ id: string; title: string; url: string; content: string }>) {
+  if (!lunrIndex) {
+    console.error('Lunr index not available');
+    return [];
+  }
+  
+  // Advanced query processing
   const queryLower = query.toLowerCase();
+  const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 0);
+  
+  // Build sophisticated Lunr query
+  let lunrQuery = '';
+  
+  // 1. Exact phrase match (highest priority)
+  if (queryTerms.length > 1) {
+    lunrQuery += `"${query}" `;
+  }
+  
+  // 2. Individual terms with boosts
+  queryTerms.forEach(term => {
+    // Title field boost
+    lunrQuery += `title:${term}^10 `;
+    // Content field
+    lunrQuery += `${term}^5 `;
+    // Wildcards for partial matches
+    lunrQuery += `${term}*^2 `;
+    // Fuzzy matching for typos
+    if (term.length > 3) {
+      lunrQuery += `${term}~1 `;
+    }
+  });
+  
+  // 3. Required terms for important keywords
+  const importantTerms = ['deploy', 'create', 'error', 'tutorial', 'guide', 'l1', 'validator', 'icm', 'ictt'];
+  queryTerms.forEach(term => {
+    if (importantTerms.includes(term)) {
+      lunrQuery += `+${term} `;
+    }
+  });
+  
+  let lunrResults: lunr.Index.Result[] = [];
+  
+  try {
+    lunrResults = lunrIndex!.search(lunrQuery.trim());
+  } catch (e) {
+    // Fallback to simple query if advanced query fails
+    console.warn('Advanced query failed, falling back to simple search:', e);
+    lunrResults = lunrIndex!.search(queryTerms.join(' '));
+  }
+  
+  // If no results, try individual terms
+  if (lunrResults.length === 0) {
+    queryTerms.forEach(term => {
+      try {
+        const termResults = lunrIndex!.search(`${term} ${term}*`);
+        lunrResults.push(...termResults);
+      } catch (e) {
+        console.warn(`Failed to search for term ${term}:`, e);
+      }
+    });
+    
+    // Deduplicate results
+    const seen = new Set<string>();
+    lunrResults = lunrResults.filter(r => {
+      if (seen.has(r.ref)) return false;
+      seen.add(r.ref);
+      return true;
+    });
+  }
+  
+  // Get all sections if Lunr returns nothing (fallback to custom scoring)
+  const candidateSections = lunrResults.length > 0
+    ? lunrResults.map((result: lunr.Index.Result) => {
+        const section = sections.find(s => s.id === result.ref);
+        return section ? { ...section, lunrScore: result.score } : null;
+      }).filter(Boolean) as Array<{ id: string; title: string; url: string; content: string; lunrScore: number }>
+    : sections.map(s => ({ ...s, lunrScore: 0 }));
   
   // Extract words but be smarter about filtering
   // Keep words that are 2+ chars, or are important short words like "is"
@@ -233,195 +416,100 @@ function searchContent(query: string, sections: Array<{ title: string; url: stri
     'faucet', 'avax', 'fuji', 'test', 'tokens', 'fund', 'funding', 'gas'
   ]);
   
-  // Score each section based on relevance
-  const scored = sections.map(section => {
-    let score = 0;
+  // Enhanced scoring with more factors
+  const scored = candidateSections.map(section => {
+    let score = section.lunrScore * 20; // Increased weight for Lunr score
+    
     const contentLower = section.content.toLowerCase();
     const titleLower = section.title.toLowerCase();
+    const urlLower = section.url.toLowerCase();
     
-    // Query type specific scoring
-    if (queryType === 'definition') {
-      // For "what is X" queries, heavily boost exact title matches
-      if (mainSubject && titleLower === mainSubject) {
-        score += 100;
-      } else if (mainSubject && titleLower.includes(mainSubject)) {
-        score += 50;
-      }
-      // Boost overview sections
-      if (contentLower.includes('## overview') || contentLower.includes('# overview')) {
-        score += 20;
-      }
-    } else if (queryType === 'tutorial') {
-      // For "how to" queries, boost tutorial/guide content
-      if (section.url.includes('/guides/') || section.url.includes('/academy/')) {
-        score += 30;
-      }
-      // Boost step-by-step content
-      if (contentLower.match(/step\s+\d+|getting\s+started|how\s+to|tutorial|guide/gi)) {
+    // URL path matching bonus
+    queryTerms.forEach(term => {
+      if (urlLower.includes(term)) {
         score += 25;
       }
-    } else if (queryType === 'troubleshooting') {
-      // Boost troubleshooting sections
-      if (contentLower.match(/troubleshoot|common\s+errors|debugging|solution|fix/gi)) {
-        score += 25;
-      }
-    } else if (queryType === 'feature-check') {
-      // Boost feature lists and capability descriptions
-      if (contentLower.match(/features|capabilities|supports|compatible|includes/gi)) {
-        score += 20;
-      }
-    } else if (queryType === 'comparison') {
-      // Boost comparison content
-      if (contentLower.match(/comparison|difference|versus|compared\s+to|unlike/gi)) {
-        score += 20;
-      }
-    } else if (queryType === 'requirements') {
-      // Heavily boost requirements documentation
-      if (titleLower.includes('requirements') || titleLower.includes('specifications')) {
-        score += 60;
-      }
-      if (section.url.includes('requirements') || section.url.includes('specifications')) {
-        score += 40;
-      }
-      // Boost content with requirement details
-      if (contentLower.match(/\b(cpu|ram|memory|storage|disk|ssd|hdd|operating system|os|ubuntu|macos|windows):/gi)) {
-        score += 35;
-      }
-    } else if (queryType === 'faucet') {
-      // For faucet queries, slightly reduce doc priority since Toolbox is preferred
-      // But still include faucet-related documentation
-      if (titleLower.includes('faucet') || contentLower.includes('faucet')) {
-        score += 30;
-      }
-      if (contentLower.match(/test.*tokens?|fuji.*avax|testnet.*fund/gi)) {
-        score += 20;
-      }
-    }
-    
-    // Special boost for fundamental/reference documentation
-    if (queryLower.match(/requirement|specification|minimum|hardware|system/)) {
-      // Boost system requirements and specification pages
-      if (section.url.includes('/system-requirements') || 
-          section.url.includes('/specifications') ||
-          section.url.includes('/requirements') ||
-          titleLower.includes('requirements') ||
-          titleLower.includes('specifications')) {
-        score += 50;
-      }
-      
-      // Boost content that contains requirement tables or lists
-      if (contentLower.match(/cpu:|ram:|memory:|storage:|disk:|operating system:|os:/gi)) {
-        score += 30;
-      }
-    }
-    
-    // Boost node-specific documentation when asking about nodes
-    if (queryLower.includes('node')) {
-      if (section.url.includes('/nodes/') || titleLower.includes('node')) {
-        score += 25;
-      }
-    }
-    
-    // Split content into paragraphs for better context matching
-    const paragraphs = contentLower.split('\n\n');
-    
-    // Calculate word relevance scores
-    words.forEach(word => {
-      const isImportant = importantKeywords.has(word);
-      const wordWeight = isImportant ? 2 : 1;
-      
-      // Title matches are weighted heavily
-      if (titleLower.includes(word)) {
-        score += 15 * wordWeight;
-      }
-      
-      // Check if word appears in headers (lines starting with #)
-      const headerMatches = section.content.match(new RegExp(`^#+.*${word}.*$`, 'gmi'));
-      if (headerMatches) {
-        score += 8 * wordWeight * headerMatches.length;
-      }
-      
-      // Content matches with proximity bonus
-      const contentMatches = (contentLower.match(new RegExp(`\\b${word}\\b`, 'g')) || []).length;
-      score += Math.min(contentMatches * wordWeight, 50); // Cap to prevent spam matches
-      
-      // Bonus for words appearing close together in paragraphs
-      paragraphs.forEach(paragraph => {
-        if (paragraph.includes(word)) {
-          const wordsInParagraph = words.filter(w => paragraph.includes(w)).length;
-          if (wordsInParagraph > 1) {
-            score += wordsInParagraph * 3;
-          }
-        }
-      });
     });
     
-    // Boost score for exact phrase matches
-    if (contentLower.includes(queryLower)) {
-      score += 40;
+    // Title exact match super boost
+    if (titleLower === queryLower) {
+      score += 300;
+    } else if (titleLower.includes(queryLower)) {
+      score += 150;
     }
     
-    // Special boost for integration pages when asking about specific tools/services
-    if (section.url.startsWith('/integrations/')) {
-      // Always give integrations a base boost since they're often very relevant
-      score += 15;
-      
-      if (mainSubject && (titleLower.includes(mainSubject) || contentLower.includes(mainSubject))) {
-        score += 30;
-      }
-      
-      // Boost integrations for common use cases
-      const integrationKeywords = ['deploy', 'build', 'monitor', 'analyze', 'bridge', 'oracle', 'indexer', 'api', 'sdk', 'wallet', 'explorer', 'node', 'rpc'];
-      integrationKeywords.forEach(keyword => {
-        if (queryLower.includes(keyword) && contentLower.includes(keyword)) {
-          score += 10;
-        }
-      });
+    // Check for question patterns in content
+    if (queryType === 'definition' && contentLower.match(/what\s+is\s+[a-z0-9]+/gi)) {
+      score += 30;
     }
     
-    // Boost for beginner-friendly content
-    const beginnerTerms = ['getting started', 'introduction', 'basics', 'tutorial', 'quick start', 'first', 'simple', 'overview', 'beginner'];
-    beginnerTerms.forEach(term => {
-      if (contentLower.includes(term)) score += 5;
-    });
-    
-    // Boost for code examples
-    if (section.content.includes('```')) {
-      score += 10;
+    // Code example bonus
+    const codeBlocks = (section.content.match(/```/g) || []).length / 2;
+    if (codeBlocks > 0) {
+      score += Math.min(codeBlocks * 15, 60);
     }
     
-    // Penalty for very technical/advanced content (unless specifically asked for)
-    if (!queryLower.includes('advanced') && !queryLower.includes('deep')) {
-      const advancedTerms = ['advanced', 'expert', 'deep dive', 'internals', 'architecture'];
-      advancedTerms.forEach(term => {
-        if (contentLower.includes(term)) score -= 5;
-      });
+    // Recency bonus (if mentioned)
+    if (contentLower.match(/\b(2024|2023|recent|latest|new|updated)\b/gi)) {
+      score += 20;
     }
     
-    // Boost recent/updated content (if mentioned)
-    if (contentLower.match(/updated|recent|latest|new\s+in/gi)) {
-      score += 5;
+    // Section-specific bonuses
+    if (queryLower.includes('integration') && section.url.startsWith('/integrations/')) {
+      score += 100;
+    }
+    if (queryLower.includes('academy') && section.url.startsWith('/academy/')) {
+      score += 100;
+    }
+    if (queryLower.includes('guide') && section.url.startsWith('/guides/')) {
+      score += 100;
+    }
+    
+    // Penalize very short content (likely navigation pages)
+    if (section.content.length < 500) {
+      score *= 0.5;
+    }
+    
+    // Boost comprehensive content
+    if (section.content.length > 3000) {
+      score *= 1.3;
     }
     
     return { ...section, score };
   });
   
-  // Return top 10 most relevant sections, but ensure minimum score threshold
-  const filtered = scored.filter(s => s.score > 5); // Increased minimum score threshold
+  // Smart filtering and result curation
+  const sortedResults = scored.sort((a, b) => b.score - a.score);
   
-  // If we have many high-scoring results, be more selective
-  if (filtered.length > 20) {
-    const topScore = filtered[0]?.score || 0;
-    // Keep only results that are at least 20% of the top score
-    return filtered
-      .filter(s => s.score >= topScore * 0.2)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+  // Dynamic threshold based on top score
+  const topScore = sortedResults[0]?.score || 0;
+  const threshold = Math.max(topScore * 0.15, 30); // At least 15% of top score or 30
+  
+  const filtered = sortedResults.filter(s => s.score >= threshold);
+  
+  // Ensure diversity in results
+  const diverseResults: typeof filtered = [];
+  const seenSections = new Set<string>();
+  
+  for (const result of filtered) {
+    const section = result.url.split('/')[1]; // Get main section (docs, academy, etc.)
+    
+    // Always include top 5 results regardless of section
+    if (diverseResults.length < 5) {
+      diverseResults.push(result);
+      seenSections.add(section);
+    } 
+    // For remaining results, ensure diversity but be more permissive
+    else if (diverseResults.length < 25) { // Increased from 15 to 25
+      // Limit same section to 5 results max (increased from 3)
+      const sectionCount = diverseResults.filter(r => r.url.startsWith(`/${section}/`)).length;
+      if (sectionCount < 5) {
+        diverseResults.push(result);
+      }
+    }
   }
   
-  return filtered
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10);
+  return diverseResults;
 }
 
 // Define Toolbox tools structure for the AI
@@ -430,7 +518,7 @@ const TOOLBOX_TOOLS = {
     description: 'Tools for creating and managing Avalanche L1 blockchains',
     tools: [
       { name: 'Create Chain', id: 'createChain', description: 'Create a new L1 blockchain' },
-      { name: 'Node Setup with Docker', id: 'avalanchegoDocker', description: 'Set up an Avalanche node using Docker' },
+      { name: 'Node Setup with Docker', id: 'avalanchegoDockerL1', description: 'Set up an Avalanche node for your L1 using Docker' },
       { name: 'Convert Subnet to L1', id: 'convertToL1', description: 'Convert an existing subnet to an L1' },
       { name: 'Self-Hosted Explorer', id: 'selfHostedExplorer', description: 'Deploy your own blockchain explorer' }
     ]
@@ -469,6 +557,13 @@ const TOOLBOX_TOOLS = {
       { name: 'RPC Methods Check', id: 'rpcMethodsCheck', description: 'Verify RPC endpoint functionality' },
       { name: 'AVAX Unit Converter', id: 'unitConverter', description: 'Convert between AVAX units' }
     ]
+  },
+  'Primary Network': {
+    description: 'Tools for working with the Avalanche Primary Network',
+    tools: [
+      { name: 'Primary Network Node Setup with Docker', id: 'avalanchegoDockerPrimaryNetwork', description: 'Set up a Docker container running a validator or RPC node for the Avalanche Primary Network (P-Chain, X-Chain, and C-Chain)' },
+      { name: 'Cross-Chain Transfer', id: 'crossChainTransfer', description: 'Transfer AVAX between P-Chain, X-Chain, and C-Chain on the Primary Network' }
+    ]
   }
 };
 
@@ -490,26 +585,42 @@ export async function POST(req: Request) {
     console.log(`Query: "${lastUserMessage.content}"`);
     console.log(`Found ${relevantSections.length} relevant sections`);
     if (relevantSections.length > 0) {
-      console.log('Top 3 results:');
-      relevantSections.slice(0, 3).forEach((section, i) => {
+      console.log('Top 5 results:'); // Changed from top 3
+      relevantSections.slice(0, 5).forEach((section, i) => {
         console.log(`  ${i + 1}. ${section.title} (score: ${section.score})`);
       });
     }
     
     if (relevantSections.length > 0) {
-      relevantContext = '\n\n=== AVAILABLE DOCUMENTATION CONTEXT ===\n';
-      relevantContext += 'The following information is from the official Avalanche documentation:\n\n';
+      relevantContext = '\n\n=== COMPREHENSIVE DOCUMENTATION CONTEXT ===\n';
+      relevantContext += `Found ${relevantSections.length} relevant documents. Providing extensive context for confident, accurate answers.\n\n`;
       
-      relevantSections.forEach((section, index) => {
+      // Provide full context for top documents
+      const detailedDocs = Math.min(relevantSections.length, 12); // Increased from implicit 10
+      
+      relevantSections.slice(0, detailedDocs).forEach((section, index) => {
         const fullUrl = `https://build.avax.network${section.url}`;
-        relevantContext += `--- Document ${index + 1} ---\n`;
+        relevantContext += `--- Document ${index + 1} of ${detailedDocs} ---\n`;
         relevantContext += `Title: ${section.title}\n`;
         relevantContext += `Source URL: ${fullUrl}\n`;
-        relevantContext += `Relevance Score: ${section.score}\n`;
-        relevantContext += `Content:\n`;
+        relevantContext += `Relevance Score: ${section.score}`;
+        
+        // Add score interpretation
+        if (section.score > 200) {
+          relevantContext += ' (EXACT MATCH - Highest Relevance)\n';
+        } else if (section.score > 100) {
+          relevantContext += ' (HIGH Relevance)\n';
+        } else if (section.score > 50) {
+          relevantContext += ' (GOOD Relevance)\n';
+        } else {
+          relevantContext += ' (MODERATE Relevance)\n';
+        }
+        
+        relevantContext += `Section: ${section.url.split('/')[1]}\n`; // Add section info
+        relevantContext += `Content Preview:\n`;
         
         // Significantly increase content length for better context
-        const contentLength = 3000; // Doubled from 1500
+        const contentLength = 6000; // Doubled from 3000
         const fullContent = section.content;
         
         if (fullContent.length > contentLength) {
@@ -549,15 +660,43 @@ export async function POST(req: Request) {
       
       // Add a summary of what was found
       relevantContext += '=== SEARCH SUMMARY ===\n';
-      relevantContext += `Found ${relevantSections.length} relevant documents for your query.\n`;
-      if (relevantSections.length > 5) {
-        relevantContext += `Showing the top ${Math.min(relevantSections.length, 10)} most relevant results.\n`;
-        relevantContext += 'Additional related documents:\n';
-        relevantSections.slice(5, 10).forEach((section) => {
-          relevantContext += `- ${section.title}: https://build.avax.network${section.url}\n`;
+      relevantContext += `Found ${relevantSections.length} highly relevant documents for your query.\n`;
+      
+      // Add confidence indicator based on scores
+      const topScore = relevantSections[0].score;
+      if (topScore > 200) {
+        relevantContext += 'CONFIDENCE: VERY HIGH - Found exact matches and comprehensive documentation.\n';
+      } else if (topScore > 100) {
+        relevantContext += 'CONFIDENCE: HIGH - Found relevant documentation with good coverage.\n';
+      } else if (topScore > 50) {
+        relevantContext += 'CONFIDENCE: MODERATE - Found related documentation that should help.\n';
+      } else {
+        relevantContext += 'CONFIDENCE: LOW - Found potentially related documentation.\n';
+      }
+      
+      if (relevantSections.length > detailedDocs) {
+        relevantContext += `\nAdditional ${relevantSections.length - detailedDocs} related documents for reference:\n`;
+        relevantSections.slice(detailedDocs).forEach((section) => {
+          relevantContext += `- ${section.title} (Score: ${section.score}): https://build.avax.network${section.url}\n`;
         });
       }
-      relevantContext += '=== END OF DOCUMENTATION CONTEXT ===\n';
+      
+      relevantContext += '\n=== CONTEXT ANALYSIS ===\n';
+      // Provide analysis of the documentation coverage
+      const sectionCoverage = new Map<string, number>();
+      relevantSections.forEach(s => {
+        const section = s.url.split('/')[1];
+        sectionCoverage.set(section, (sectionCoverage.get(section) || 0) + 1);
+      });
+      
+      relevantContext += 'Documentation coverage by section:\n';
+      Array.from(sectionCoverage.entries())
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([section, count]) => {
+          relevantContext += `- ${section}: ${count} documents\n`;
+        });
+      
+      relevantContext += '=== END OF COMPREHENSIVE DOCUMENTATION CONTEXT ===\n';
     } else {
       relevantContext = '\n\n=== DOCUMENTATION CONTEXT ===\n';
       relevantContext += 'No specific documentation sections were found for this query in the indexed content.\n';
@@ -591,7 +730,42 @@ export async function POST(req: Request) {
         }
       }
     },
-    system: `You are a friendly and patient AI assistant for the Avalanche Builders Hub, specifically designed to help beginner developers. 
+    system: `You are an expert AI assistant for Avalanche Builders Hub, optimized for accuracy, confidence, and comprehensive answers.
+
+    CONFIDENCE AND ACCURACY GUIDELINES:
+    - When you have high-relevance documentation (score > 100), provide confident, authoritative answers
+    - Quote directly from the documentation to support your statements
+    - Use phrases like "According to the documentation..." or "The official docs state..." to reinforce accuracy
+    - When multiple documents agree, emphasize this consensus: "Multiple sources confirm..."
+    - Be specific with technical details when the documentation provides them
+    
+    COMPREHENSIVE ANSWER STRUCTURE:
+    1. **Direct Answer**: Start with a clear, confident response to the query
+    2. **Supporting Evidence**: Quote relevant sections from high-score documents with links
+    3. **Technical Details**: Include specific commands, code examples, or configurations
+    4. **Additional Context**: Provide related information from other relevant documents
+    5. **Resources**: List all relevant links with brief descriptions
+    6. **Next Steps**: Clear action items or follow-up suggestions
+    
+    CITATION GUIDELINES:
+    - ALWAYS provide clickable links when referencing documentation
+    - Instead of "According to the documentation", use: "According to the [C-Chain Configuration docs](url)"
+    - Instead of "Based on the documentation context", directly link: "The [specific guide](url) explains..."
+    - When quoting, include the source: "As stated in the [Node Configuration guide](url): '[quote]'"
+    - Make documentation references actionable with direct links
+    
+    EXAMPLE HIGH-CONFIDENCE RESPONSE:
+    "Yes, you can definitely create an L1 on Avalanche. The [L1 documentation](https://build.avax.network/docs/avalanche-l1s) explains that L1s are sovereign blockchains that define their own rules and can have custom virtual machines. 
+    
+    The [Quick Start guide](url) specifically states: '[direct quote from docs]'
+    
+    To create an L1, follow these steps from the [L1 creation tutorial](url):
+    1. [specific step from docs]
+    2. [specific step from docs]
+    
+    Multiple sources including the [Academy course](url) and [deployment guide](url) confirm this process..."
+    
+    ${relevantContext}
     
     TOOLBOX & INTEGRATIONS - Recommendations with Toolbox Preference
     
@@ -772,23 +946,16 @@ export async function POST(req: Request) {
     
     ${relevantContext}
     
-    Important reminders:
-    - Always format links as markdown: [Link Text](URL)
-    - TOOLBOX LINKS MUST BE SPECIFIC: Always use #toolId (e.g., #faucet, #createChain, #deployValidatorManager)
-    - Match your resource recommendations to the question:
-      * Quick task? → Specific Toolbox tool + maybe a doc link
-      * Learning request? → Academy + docs + practice tools
-      * Building something? → Docs + Toolbox + relevant integrations
-    - Give slight preference to Toolbox tools when they solve the problem
-    - Don't oversell - present options naturally
-    - Toolbox is great for: quick tasks, visual interfaces, common operations
-    - Integrations excel at: monitoring, infrastructure, specialized features
-    - Use code blocks with syntax highlighting when appropriate
-    - Cite sources when using documentation
-    - Be helpful even when documentation is incomplete
-    - Guide users to additional resources when needed
-    - ALWAYS include the follow-up questions section at the end of EVERY response
-    - Quality over quantity - 2-3 highly relevant links beats 5+ loosely related ones
+    CRITICAL REMINDERS FOR CONFIDENT ANSWERS:
+    - Use the relevance scores internally to gauge your confidence level
+    - When scores are high, be authoritative and comprehensive
+    - Include specific technical details, commands, and code examples
+    - Cross-reference multiple high-scoring documents for complete answers
+    - Always support claims with documentation quotes or references
+    - If you have the information, don't hedge unnecessarily - be confident!
+    - NEVER mention relevance scores in your responses - use them only for internal confidence assessment
+    - ALWAYS link to documentation sources instead of just mentioning them
+    - Make every documentation reference clickable with proper markdown links
     
     Additional Resources to mention when relevant:
     - GitHub: https://github.com/ava-labs

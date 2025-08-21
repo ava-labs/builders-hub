@@ -1,4 +1,4 @@
-import { ChevronRight, Droplet, Code, Wrench, Server, Github, FileText, ExternalLink, Plus, UserPlus, Radio, Banknote, Shield, FileCode, Zap, Calculator, Repeat } from 'lucide-react';
+import { ChevronRight, Droplet, Code, Wrench, Server, Github, FileText, ExternalLink, Plus, UserPlus, Radio, Banknote, Shield, FileCode, Zap, Repeat, ArrowUpDown } from 'lucide-react';
 
 const SplashPage = () => {
   // Primary tier - Most important partnerships (larger display)
@@ -211,11 +211,11 @@ const SplashPage = () => {
       href: "#formatConverter"
     },
     {
-      title: "AVAX Unit Converter",
-      description: "Convert between AVAX units",
-      icon: <Calculator className="w-6 h-6" />,
+      title: "Cross-Chain Transfer",
+      description: "Transfer AVAX between P-Chain and C-Chain on the Primary Network",
+      icon: <ArrowUpDown className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
-      href: "#unitConverter"
+      href: "#crossChainTransfer"
     },
     {
       title: "RPC Methods Check",
@@ -225,11 +225,11 @@ const SplashPage = () => {
       href: "#rpcMethodsCheck"
     },
     {
-      title: "Node Setup with Docker",
+      title: "L1 Node Setup with Docker",
       description: "Set up node infrastructure with Docker",
       icon: <Server className="w-6 h-6" />,
       bgColor: "bg-zinc-50 dark:bg-zinc-800/50",
-      href: "#avalanchegoDocker"
+      href: "#avalanchegoDockerL1"
     },
     {
       title: "Faucet",

@@ -10,7 +10,7 @@ import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay"
 import versions from "../../versions.json";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
-import { nodeConfigBase64 } from "../Nodes/AvalanchegoDocker";
+import { nodeConfigBase64 } from "../Nodes/config";
 import { useL1ByChainId } from "../../stores/l1ListStore";
 import { Success } from "../../components/Success";
 import { nipify, HostInput } from "../../components/HostInput";
@@ -18,7 +18,7 @@ import { RadioGroup } from "../../components/RadioGroup";
 import { RPCURLInput } from "../../components/RPCURLInput";
 import { useWalletStore } from "../../stores/walletStore";
 import { DockerInstallation } from "../../components/DockerInstallation";
-import { NodeReadinessValidator } from "../../components/NodeReadinessValidator";
+import { NodeBootstrapCheck } from "../../components/NodeBootstrapCheck";
 import { Checkbox } from "../../components/Checkbox";
 import { Button } from "../../components/Button";
 
@@ -553,7 +553,7 @@ export default function BlockScout() {
               <p>Before launching your BlockScout explorer, please confirm the following:</p>
 
               {rpcOption === 'local' && (
-                <NodeReadinessValidator
+                <NodeBootstrapCheck
                   chainId={chainId}
                   domain={domain || "127.0.0.1:9650"}
                 />

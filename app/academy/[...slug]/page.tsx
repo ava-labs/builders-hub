@@ -38,7 +38,7 @@ import posthog from 'posthog-js';
 
 import ToolboxMdxWrapper from "@/toolbox/src/components/ToolboxMdxWrapper"
 import CrossChainTransfer from "@/toolbox/src/components/CrossChainTransfer"
-import AvalancheGoDocker from '@/toolbox/src/toolbox/Nodes/AvalanchegoDocker';
+import AvalancheGoDocker from '@/toolbox/src/toolbox/Nodes/AvalancheGoDockerL1';
 import CreateSubnet from "@/toolbox/src/toolbox/L1/CreateSubnet"
 import CreateChain from "@/toolbox/src/toolbox/L1/CreateChain"
 import ConvertToL1 from "@/toolbox/src/toolbox/L1/ConvertToL1"
@@ -50,6 +50,7 @@ import RegisterWithHome from '@/toolbox/src/toolbox/ICTT/RegisterWithHome';
 import TestSend from '@/toolbox/src/toolbox/ICTT/TestSend';
 import TeleporterRegistry from '@/toolbox/src/toolbox/ICM/TeleporterRegistry';
 import ICMRelayer from '@/toolbox/src/toolbox/ICM/ICMRelayer';
+import Faucet from '@/toolbox/src/toolbox/Wallet/Faucet';
 
 export const dynamicParams = false;
 
@@ -67,7 +68,8 @@ const toolboxComponents = {
   RegisterWithHome,
   TestSend,
   TeleporterRegistry,
-  ICMRelayer
+  ICMRelayer,
+  Faucet
 }
 
 export default async function Page(props: {

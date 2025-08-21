@@ -1,0 +1,66 @@
+---
+title: Etna Upgrade (optional)
+description: Understanding ACP77 & ACP99
+updated: 2025-07-28
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+This section is **not necessary for understanding and running permissioned L1s** but provides an insight on the improvements and evolution of Avalanche, *feel free to skip if not interested*.
+
+## Etna Upgrade: Making L1s More Accessible
+
+The Etna upgrade, implemented through [ACP-77](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets), represents a fundamental shift in how Avalanche approaches network creation and validation costs.
+
+### Why Etna Was Necessary
+
+Before Etna, launching a Subnet (now called L1) was prohibitively expensive:
+- **High Capital Requirements**: Each validator needed to stake 2,000 AVAX (approximately $70,000 at the time)
+- **Minimum Validator Costs**: With at least 8 validators recommended, projects needed $560,000+ just to launch
+- **Primary Network Burden**: Validators had to sync and validate the entire Primary Network (X-Chain, P-Chain, and C-Chain), requiring substantial hardware resources
+- **Regulatory Barriers**: Organizations that couldn't validate permissionless chains were completely blocked from participating
+
+![Post Etna Upgrade](/common-images/permissioned-l1s/PostEtnaUpgrade.png)
+
+### What Etna Changed
+
+The upgrade introduced a continuous fee model that dramatically reduces costs:
+- **Reduced Running Costs**: Validators now pay approximately 1.33 AVAX per month instead of staking 2,000 AVAX
+- **No Primary Network Validation**: L1 validators only need to sync the P-Chain, significantly reducing hardware requirements
+- **Pay-As-You-Go**: The continuous fee adjusts based on network usage, similar to cloud services
+- **Regulatory Flexibility**: Organizations can now run L1s without validating the permissionless C-Chain
+
+This transformation makes it feasible for startups, enterprises, and institutions to launch their own sovereign blockchains on Avalanche, opening the door to a new wave of innovation in permissioned and regulated blockchain applications.
+
+## Evolution: From ACP-77 to ACP-99
+
+While ACP-77 revolutionized how L1s work at the protocol level, it left one important question unanswered: How should smart contracts actually implement validator management? This is where ACP-99 comes in.
+
+### The Gap ACP-77 Left
+
+ACP-77 provided:
+- **Protocol-level capabilities**: New P-Chain transactions and Warp message formats
+- **The mechanism**: How L1s can send messages to update their validator sets
+- **The foundation**: Basic rules for validator management
+
+But it didn't specify:
+- How to structure the smart contracts
+- What functions and events to expose
+- How to handle the complexity in a standardized way
+
+### ACP-99: The Standardization Layer
+
+ACP-99 fills this gap by defining a standard Solidity contract specification:
+
+**Why Standardization Matters:**
+- **Reduced Development Time**: L1 creators don't need to design from scratch
+- **Security**: One audited implementation can benefit many L1s
+- **Interoperability**: Tools and services can work with any ACP-99 compliant L1
+- **Best Practices**: Encodes lessons learned into a reusable standard
+
+**The Three-Layer Architecture:**
+1. **ACP99Manager**: Abstract contract defining the standard interface
+2. **ValidatorManager**: Concrete implementation with owner controls
+3. **Access Control Layer** (like PoAManager): Defines who can manage validators
+
+This progression from ACP-77 (protocol capability) to ACP-99 (standardized implementation) mirrors successful patterns in blockchain development.

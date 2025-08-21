@@ -7,23 +7,24 @@ icon: Book
 ---
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 
-The contracts in the [`validator-manager`](https://github.com/ava-labs/teleporter/tree/validator-manager/contracts/validator-manager) branch define the Validator Manager used to manage Subnet-only Validators, as defined in [ACP-77](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets). `ValidatorManager.sol` is the top-level abstract contract that provides the basic functionality. The other contracts are related as follows:
+The contracts in the [`validator-manager`](https://github.com/ava-labs/icm-contracts/tree/main/contracts/validator-manager) branch define the Validator Manager used to manage Subnet-only Validators, as defined in [ACP-77](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets). `ValidatorManager.sol` is the top-level abstract contract that provides the basic functionality. The other contracts are related as follows:
 
 <Mermaid chart={`classDiagram
     class ValidatorManager {
+        <<abstract>>
         initializeValidatorSet()
+        initializeValidatorRegistration()*
         completeValidatorRegistration()
+        initializeEndValidation()*
         completeEndValidation()
-        
     }
-    <<Abstract>> ValidatorManager
     class PoSValidatorManager {
+        <<abstract>>
         initializeEndValidation()
         completeDelegatorRegistration()
         initializeEndDelegation()
         completeEndDelegation()
     }
-    <<Abstract>> PoSValidatorManager
     class ERC20TokenStakingManager {
         initializeValidatorRegistration()
         initializeDelegatorRegistration()

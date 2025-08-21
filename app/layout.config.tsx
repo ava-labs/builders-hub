@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { SiGithub } from '@icons-pack/react-simple-icons';
-import { UserButton } from '@/components/login/user-button/UserButton';
+import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
 
 export const integrationsMenu: LinkItemType = {
   type: 'menu',
@@ -295,7 +295,7 @@ export const toolsMenu: LinkItemType = {
       text: 'Testnet Faucet',
       description:
         'Claim Fuji AVAX tokens from the testnet faucet to test your dApps.',
-      url: 'https://core.app/tools/testnet-faucet/?subnet=c&token=c',
+      url: '/tools/l1-toolbox#faucet',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },
@@ -473,7 +473,7 @@ const bridgeLink: LinkItemType = {
 
 const userMenu: LinkItemType = {
   type: 'custom',
-  children: <UserButton />,
+  children: <UserButtonWrapper />,
   secondary: true
 };
 
