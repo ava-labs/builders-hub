@@ -28,7 +28,7 @@ export const useWalletStore = create(
         avalancheNetworkID: networkIDs.FujiID as typeof networkIDs.FujiID | typeof networkIDs.MainnetID,
         pChainAddress: "",
         coreEthAddress: "",
-        isTestnet: undefined as boolean | undefined,//Even though it can be undefined, the components will never use it as undefined
+        isTestnet: undefined as boolean | undefined, //Even though it can be undefined, the components will never use it as undefined
         evmChainName: "",
         pChainBalance: 0,
         l1Balance: 0,

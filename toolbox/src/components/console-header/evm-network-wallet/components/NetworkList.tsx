@@ -10,7 +10,6 @@ interface NetworkListProps {
 
 export function NetworkList({ 
   availableNetworks, 
-  getNetworkBalance, 
   isNetworkActive, 
   onNetworkSelect 
 }: NetworkListProps) {
@@ -23,7 +22,6 @@ export function NetworkList({
         <NetworkMenuItem
           key={network.id}
           network={network}
-          balance={getNetworkBalance(network)}
           isActive={isNetworkActive(network)}
           onSelect={onNetworkSelect}
         />

@@ -8,17 +8,12 @@ interface NetworkMenuItemProps {
     coinName: string
     logoUrl?: string
   }
-  balance: number | string
   isActive: boolean
   onSelect: (network: any) => void
 }
 
-export function NetworkMenuItem({ network, balance, isActive, onSelect }: NetworkMenuItemProps) {
-  const formatBalance = (balance: number | string) => {
-    const num = typeof balance === 'string' ? parseFloat(balance) : balance
-    if (isNaN(num)) return '0'
-    return num.toFixed(4)
-  }
+export function NetworkMenuItem({ network, isActive, onSelect }: NetworkMenuItemProps) {
+ 
 
   return (
     <DropdownMenuItem
@@ -39,9 +34,6 @@ export function NetworkMenuItem({ network, balance, isActive, onSelect }: Networ
         </div>
         <div className="flex flex-col">
           <span className="font-medium">{network.name}</span>
-          <span className="text-xs text-muted-foreground">
-            Balance: {formatBalance(balance)} {network.coinName}
-          </span>
         </div>
       </div>
       {isActive && (

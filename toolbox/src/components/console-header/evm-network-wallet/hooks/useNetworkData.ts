@@ -16,30 +16,6 @@ export function useNetworkData() {
   const l1ListStore = useL1ListStore()
   const l1List = l1ListStore((s) => s.l1List)
 
-  // External per-L1 balances (fetched directly from each L1 RPC)
-  const [externalBalances, setExternalBalances] = useState<Record<number, string>>({})
-
-  useEffect(() => {
-    let cancelled = false
-    async function fetchBalances() {
-      if (!walletEVMAddress) return
-      const promises = (l1List || []).map(async (l1) => {
-        try {
-          const client = createPublicClient({ transport: http(l1.rpcUrl) })
-          const balance = await client.getBalance({ address: walletEVMAddress as `0x${string}` })
-          if (!cancelled) {
-            setExternalBalances((prev) => ({ ...prev, [l1.evmChainId]: formatEther(balance) }))
-          }
-        } catch {}
-      })
-      await Promise.allSettled(promises)
-    }
-    fetchBalances()
-    return () => {
-      cancelled = true
-    }
-  }, [walletEVMAddress, l1List])
-
   // Determine current network and balance
   const currentNetwork = useMemo(() => {
     // Only show "No Network" if no wallet is connected
@@ -90,15 +66,8 @@ export function useNetworkData() {
     if (isCChain) {
       return cChainBalance
     } else {
-      // Prefer externally fetched balance for each L1, fallback to current l1Balance if connected
-      const ext = externalBalances[network.evmChainId]
-      if (typeof ext !== 'undefined') {
-        return ext
-      } else if (walletChainId === network.evmChainId) {
+
         return l1Balance
-      } else {
-        return 0
-      }
     }
   }
 
@@ -108,7 +77,6 @@ export function useNetworkData() {
 
   return {
     currentNetwork,
-    externalBalances,
     getNetworkBalance,
     isNetworkActive,
     walletChainId,
