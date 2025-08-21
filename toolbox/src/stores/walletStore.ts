@@ -1,118 +1,197 @@
 import { create } from 'zustand'
-import { combine } from 'zustand/middleware'
 import { networkIDs } from "@avalabs/avalanchejs";
 import { createCoreWalletClient } from '../coreViem';
 import { createPublicClient, custom, http } from 'viem';
-import { avalancheFuji, avalanche } from 'viem/chains';
+import { avalancheFuji } from 'viem/chains';
 import { zeroAddress } from 'viem';
-import { getPChainBalance, getNativeTokenBalance, getChains } from '../coreViem/utils/glacier';
-import debounce from 'debounce';
 import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components";
+import { balanceService } from '../services/balanceService';
 
-let indexedChainsPromise: Promise<Number[]> | null = null;
-function getIndexedChains() {
-    if (!indexedChainsPromise) {
-        indexedChainsPromise = getChains().then(chains => chains.map(chain => parseInt(chain.chainId)));
-    }
-    return indexedChainsPromise as Promise<Number[]>;
+// Types for better type safety
+interface WalletState {
+  // Core wallet state
+  coreWalletClient: ReturnType<typeof createCoreWalletClient>;
+  publicClient: ReturnType<typeof createPublicClient>;
+  
+  // Wallet connection data
+  walletChainId: number;
+  walletEVMAddress: string;
+  pChainAddress: string;
+  coreEthAddress: string;
+  
+  // Network state
+  avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID;
+  isTestnet: boolean | undefined;
+  evmChainName: string;
+  
+  // Balance state - simplified to single loading state
+  balances: {
+    pChain: number;
+    l1: number;
+    cChain: number;
+  };
+  isLoading: Record<'pChain' | 'l1' | 'cChain', boolean>;
 }
 
-export const useWalletStore = create(
-    combine({
-        coreWalletClient: createCoreWalletClient(zeroAddress) as ReturnType<typeof createCoreWalletClient>,
-        publicClient: createPublicClient({
-            transport: typeof window !== 'undefined' && window.avalanche ? custom(window.avalanche) : http(avalancheFuji.rpcUrls.default.http[0]),
-        }) as ReturnType<typeof createPublicClient>,
-        walletChainId: 0,
-        walletEVMAddress: "",
-        avalancheNetworkID: networkIDs.FujiID as typeof networkIDs.FujiID | typeof networkIDs.MainnetID,
-        pChainAddress: "",
-        coreEthAddress: "",
-        isTestnet: undefined as boolean | undefined, //Even though it can be undefined, the components will never use it as undefined
-        evmChainName: "",
-        pChainBalance: 0,
-        l1Balance: 0,
-        cChainBalance: 0,
-        isPChainBalanceLoading: false,
-        isL1BalanceLoading: false,
-        isCChainBalanceLoading: false,
-    }, (set, get) => {
-        const _updatePChainBalance = async () => {
-            if (get().isPChainBalanceLoading) return; //  Return if already loading
-            let newBalance = 0;
-            set({ isPChainBalanceLoading: true });
-            try {
-                const response = await getPChainBalance(get().isTestnet ? "testnet" : "mainnet", get().pChainAddress);
-                newBalance = Number(response.balances.unlockedUnstaked[0].amount) / 1e9;
-            } finally {
-                set({ pChainBalance: newBalance, isPChainBalanceLoading: false });
-            }
-        };
+interface WalletActions {
+  // Simplified setters - group related updates
+  updateWalletConnection: (data: {
+    coreWalletClient?: ReturnType<typeof createCoreWalletClient>;
+    walletEVMAddress?: string;
+    walletChainId?: number;
+    pChainAddress?: string;
+    coreEthAddress?: string;
+  }) => void;
+  
+  updateNetworkSettings: (data: {
+    avalancheNetworkID?: typeof networkIDs.FujiID | typeof networkIDs.MainnetID;
+    isTestnet?: boolean;
+    evmChainName?: string;
+  }) => void;
+  
+  // Balance actions - simplified
+  setBalance: (type: 'pChain' | 'l1' | 'cChain', amount: number) => void;
+  setLoading: (type: 'pChain' | 'l1' | 'cChain', loading: boolean) => void;
+  
+  // Legacy individual setters for backward compatibility
+  setCoreWalletClient: (coreWalletClient: ReturnType<typeof createCoreWalletClient>) => void;
+  setWalletChainId: (walletChainId: number) => void;
+  setWalletEVMAddress: (walletEVMAddress: string) => void;
+  setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => void;
+  setPChainAddress: (pChainAddress: string) => void;
+  setCoreEthAddress: (coreEthAddress: string) => void;
+  setIsTestnet: (isTestnet: boolean) => void;
+  setEvmChainName: (evmChainName: string) => void;
+  
+  // Balance update methods
+  updatePChainBalance: () => Promise<void>;
+  updateL1Balance: () => Promise<void>;
+  updateCChainBalance: () => Promise<void>;
+  updateAllBalances: () => Promise<void>;
+  
+  // Utility getters
+  getNetworkName: () => GlobalParamNetwork;
+  
+  // Legacy balance getters for backward compatibility
+  pChainBalance: number;
+  l1Balance: number;
+  cChainBalance: number;
+  isPChainBalanceLoading: boolean;
+  isL1BalanceLoading: boolean;
+  isCChainBalanceLoading: boolean;
+}
 
-        const _updateL1Balance = async () => {
-            if (get().isL1BalanceLoading) return; // Return if already loading
-            let newBalance = 0;
-            set({ isL1BalanceLoading: true });
-            try {
-                const indexedChains = await getIndexedChains();
-                const isIndexedChain = indexedChains.includes(get().walletChainId);
+type WalletStore = WalletState & WalletActions;
 
-                if (isIndexedChain) {
-                    const l1Balance = await getNativeTokenBalance(get().walletChainId, get().walletEVMAddress);
-                    newBalance = Number(l1Balance.balance) / (10 ** l1Balance.decimals);
-                } else {
-                    const l1Balance = await get().publicClient.getBalance({
-                        address: get().walletEVMAddress as `0x${string}`,
-                    });
-                    newBalance = Number(l1Balance) / 1e18;
-                }
-            } finally {
-                set({ l1Balance: newBalance, isL1BalanceLoading: false });
-            }
-        };
+export const useWalletStore = create<WalletStore>((set, get) => {
+  // Initialize balance service with callbacks
+  const store = {
+    // Initial state
+    coreWalletClient: createCoreWalletClient(zeroAddress),
+    publicClient: createPublicClient({
+      transport: typeof window !== 'undefined' && window.avalanche 
+        ? custom(window.avalanche) 
+        : http(avalancheFuji.rpcUrls.default.http[0]),
+    }),
+    walletChainId: 0,
+    walletEVMAddress: "",
+    avalancheNetworkID: networkIDs.FujiID as typeof networkIDs.FujiID | typeof networkIDs.MainnetID,
+    pChainAddress: "",
+    coreEthAddress: "",
+    isTestnet: undefined as boolean | undefined,
+    evmChainName: "",
+    balances: {
+      pChain: 0,
+      l1: 0,
+      cChain: 0,
+    },
+    isLoading: {
+      pChain: false,
+      l1: false,
+      cChain: false,
+    },
 
-        const _updateCChainBalance = async () => {
-            if (get().isCChainBalanceLoading) return; // Return if already loading
-            let newBalance = 0;
-            set({ isCChainBalanceLoading: true });
+    // Actions
+    updateWalletConnection: (data: { coreWalletClient?: ReturnType<typeof createCoreWalletClient>; walletEVMAddress?: string; walletChainId?: number; pChainAddress?: string; coreEthAddress?: string; }) => {
+      set((state) => ({
+        ...state,
+        ...data,
+      }));
+    },
 
+    updateNetworkSettings: (data: { avalancheNetworkID?: typeof networkIDs.FujiID | typeof networkIDs.MainnetID; isTestnet?: boolean; evmChainName?: string; }) => {
+      set((state) => ({
+        ...state,
+        ...data,
+      }));
+    },
 
-            const chain = get().isTestnet ? avalancheFuji : avalanche;
+    setBalance: (type: 'pChain' | 'l1' | 'cChain', amount: number) => {
+      set((state) => ({
+        balances: {
+          ...state.balances,
+          [type]: amount,
+        },
+      }));
+    },
 
-            try {
-                const cChainBalance = await getNativeTokenBalance(chain.id, get().walletEVMAddress);
-                newBalance = Number(cChainBalance.balance) / (10 ** cChainBalance.decimals);
-            } finally {
-                set({ cChainBalance: newBalance, isCChainBalanceLoading: false });
-            }
-        }
+    setLoading: (type: 'pChain' | 'l1' | 'cChain', loading: boolean) => {
+      set((state) => ({
+        isLoading: {
+          ...state.isLoading,
+          [type]: loading,
+        },
+      }));
+    },
 
-        // Create debounced versions (500ms wait time)
-        const debouncedUpdatePChainBalance = debounce(_updatePChainBalance, 500);
-        const debouncedUpdateL1Balance = debounce(_updateL1Balance, 500);
-        const debouncedUpdateCChainBalance = debounce(_updateCChainBalance, 500);
+    // Legacy individual setters for backward compatibility
+    setCoreWalletClient: (coreWalletClient: ReturnType<typeof createCoreWalletClient>) => set({ coreWalletClient }),
+    setWalletChainId: (walletChainId: number) => set({ walletChainId }),
+    setWalletEVMAddress: (walletEVMAddress: string) => set({ walletEVMAddress }),
+    setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => set({ avalancheNetworkID }),
+    setPChainAddress: (pChainAddress: string) => set({ pChainAddress }),
+    setCoreEthAddress: (coreEthAddress: string) => set({ coreEthAddress }),
+    setIsTestnet: (isTestnet: boolean) => set({ isTestnet }),
+    setEvmChainName: (evmChainName: string) => set({ evmChainName }),
 
-        return {
-            setCoreWalletClient: (coreWalletClient: ReturnType<typeof createCoreWalletClient>) => set({ coreWalletClient }),
-            setWalletChainId: (walletChainId: number) => set({ walletChainId }),
-            setWalletEVMAddress: (walletEVMAddress: string) => set({ walletEVMAddress }),
-            setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => set({ avalancheNetworkID }),
-            setPChainAddress: (pChainAddress: string) => set({ pChainAddress }),
-            setCoreEthAddress: (coreEthAddress: string) => set({ coreEthAddress }),
-            setIsTestnet: (isTestnet: boolean) => set({ isTestnet }),
-            setEvmChainName: (evmChainName: string) => set({ evmChainName }),
-            updatePChainBalance: () => debouncedUpdatePChainBalance(),
-            updateL1Balance: () => debouncedUpdateL1Balance(),
-            updateCChainBalance: () => debouncedUpdateCChainBalance(),
-            updateAllBalances: async () => {
-                debouncedUpdatePChainBalance();
-                debouncedUpdateL1Balance();
-                debouncedUpdateCChainBalance();
-            },
-            getNetworkName: (): GlobalParamNetwork => {
-                const { avalancheNetworkID } = get();
-                return avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
-            },
-        }
-    })
-)
+    // Balance update methods - delegate to service
+    updatePChainBalance: async () => balanceService.updatePChainBalance(),
+    updateL1Balance: async () => balanceService.updateL1Balance(),
+    updateCChainBalance: async () => balanceService.updateCChainBalance(),
+    updateAllBalances: async () => balanceService.updateAllBalances(),
+
+    getNetworkName: (): GlobalParamNetwork => {
+      const { avalancheNetworkID } = get();
+      return avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "fuji";
+    },
+
+    // Legacy balance getters for backward compatibility
+    get pChainBalance() { return get().balances.pChain; },
+    get l1Balance() { return get().balances.l1; },
+    get cChainBalance() { return get().balances.cChain; },
+    get isPChainBalanceLoading() { return get().isLoading.pChain; },
+    get isL1BalanceLoading() { return get().isLoading.l1; },
+    get isCChainBalanceLoading() { return get().isLoading.cChain; },
+  };
+
+  // Set up balance service callbacks
+  balanceService.setCallbacks({
+    setBalance: store.setBalance,
+    setLoading: store.setLoading,
+    getState: get,
+  });
+
+  return store;
+})
+
+// Performance selectors for commonly accessed data
+export const useWalletAddress = () => useWalletStore((state) => state.walletEVMAddress);
+export const useBalances = () => useWalletStore((state) => state.balances);
+export const useNetworkInfo = () => useWalletStore((state) => ({
+  isTestnet: state.isTestnet,
+  chainId: state.walletChainId,
+  networkName: state.getNetworkName(),
+  avalancheNetworkID: state.avalancheNetworkID,
+  evmChainName: state.evmChainName,
+}));
+export const useLoadingStates = () => useWalletStore((state) => state.isLoading);

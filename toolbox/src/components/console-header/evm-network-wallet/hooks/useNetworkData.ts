@@ -1,17 +1,17 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useWalletStore } from '@/stores/walletStore'
+import { useMemo } from 'react'
+import { useWalletAddress, useBalances, useNetworkInfo } from '@/stores/walletStore'
 import { useL1ListStore } from '@/stores/l1ListStore'
 import { avalanche, avalancheFuji } from 'viem/chains'
-import { createPublicClient, http, formatEther } from 'viem'
+
 
 export function useNetworkData() {
-  const {
-    walletChainId,
-    isTestnet,
-    l1Balance,
-    cChainBalance,
-    walletEVMAddress,
-  } = useWalletStore()
+  // Use performance selectors for better performance
+  const walletEVMAddress = useWalletAddress()
+  const balances = useBalances()
+  const { isTestnet, chainId: walletChainId } = useNetworkInfo()
+  
+  // Extract individual balance values for backward compatibility
+  const { l1: l1Balance, cChain: cChainBalance } = balances
 
   const l1ListStore = useL1ListStore()
   const l1List = l1ListStore((s) => s.l1List)
