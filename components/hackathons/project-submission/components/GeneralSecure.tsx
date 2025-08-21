@@ -115,7 +115,7 @@ export default function GeneralSecureComponent({
   useEffect(() => {
     if (project && isEditing) {
       setFormData(project);
-      dispatch({ type: "SET_TEAM_NAME", payload: project.project_name || "" });
+    
       dispatch({ type: "SET_PROJECT_ID", payload: project.id || "" });
     }
   }, [project, isEditing, setFormData, dispatch]); // ✅ 'dispatch' es estable
@@ -158,18 +158,6 @@ export default function GeneralSecureComponent({
     }
   };
 
-  if (status === "loading") {
-    return (
-      <div className="p-4 sm:p-6 rounded-lg max-w-7xl mx-auto">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Initializing project...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (status === "error") {
     return (
@@ -324,36 +312,7 @@ export default function GeneralSecureComponent({
           </section>
         </div>
       </div>
-
-      <JoinTeamDialog
-        open={openJoinTeam}
-        onOpenChange={(open) =>
-          dispatch({ type: "SET_OPEN_JOIN_TEAM", payload: open })
-        }
-        teamName={teamName}
-        projectId={projectId || ""}
-        hackathonId={hackathonId as string}
-        currentUserId={currentUser?.id}
-        setLoadData={(accepted) => {
-          if (accepted) {
-            getProject();
-          }
-        }}
-      />
-
-      <ProjectMemberWarningDialog
-        open={openCurrentProject}
-        onOpenChange={(open) =>
-          dispatch({ type: "SET_OPEN_CURRENT_PROJECT", payload: open })
-        }
-        projectName={teamName}
-        hackathonId={hackathonId as string}
-        setLoadData={(accepted) => {
-          if (accepted) {
-            getProject();
-          }
-        }}
-      />
+  
 
       <InvalidInvitationComponent
         hackathonId={hackathonId as string}
