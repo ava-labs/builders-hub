@@ -7,8 +7,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import axios from "axios";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 interface JoinTeamDialogProps {
   open: boolean;
@@ -30,31 +32,62 @@ export const JoinTeamDialog = ({
   setLoadData
 }: JoinTeamDialogProps) => {
   const router = useRouter();
+  const { toast } = useToast();
+  const wasActionTaken = useRef(false);
+  const searchParams = useSearchParams();
+  // Reset the flag when modal opens
+  useEffect(() => {
+    if (open) {
+      wasActionTaken.current = false;
+    }
+  }, [open]);
 
   const handleAcceptJoinTeam = async () => {
     try {
-      axios.patch(`/api/project/${projectId}/members/status`, {
+      wasActionTaken.current = true; // Mark that an action was taken
+      const response = await axios.patch(`/api/project/${projectId}/members/status`, {
         user_id: currentUserId,
         status: "Confirmed",
-      })
-        .then(() => {
-          console.log("Status updated successfully");
-        })
-        .catch((error) => {
-          console.error("Error updating status:", error);
-        });
-      onOpenChange(false);
-      if(setLoadData){
-        setLoadData(true);
+      });
+      
+      if (response.status === 200) {
+
+        if (setLoadData) {
+          const params = new URLSearchParams(searchParams.toString());
+          params.delete("invitation");
+          setLoadData(true);
+        }
       }
       
+      onOpenChange(false);
+      
     } catch (error) {
-      console.error("Error joining team:", error);
+      console.error("Error updating status:", error);
+      // Reset the flag if there was an error so the toast can still show
+      wasActionTaken.current = false;
     }
   };
 
+  const handleClose = (open: boolean) => {
+    // If modal is closing and no action was taken, show toast and redirect
+    if (!open && !wasActionTaken.current) {
+      toast({
+        title: "Redirecting...",
+        description: "You will be redirected to hackathon",
+        duration: 3000,
+      });
+      
+      // Small delay to show the toast before redirecting
+      setTimeout(() => {
+        router.push(`/hackathons/${hackathonId}`);
+      }, 1000);
+    }
+    
+    onOpenChange(open);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
         hideCloseButton={true}
         className="dark:bg-zinc-900 dark:text-white rounded-lg p-6 w-full max-w-md border border-zinc-400 px-4"
@@ -65,7 +98,7 @@ export const JoinTeamDialog = ({
             size="icon"
             className="absolute top-6 right-4 dark:text-white hover:text-red-400 p-0 h-6 w-6"
             onClick={() => {
-              router.push(`/hackathons/${hackathonId}`);
+              // This will trigger handleClose with open=false
               onOpenChange(false);
             }}
           >
@@ -78,14 +111,13 @@ export const JoinTeamDialog = ({
           </DialogTitle>
         </DialogHeader>
         <Card className="border border-red-500 dark:bg-zinc-800 rounded-md">
-          <div className="flex flex-col px-6">
-            <p className="text-md dark:text-white text-gray-700">
-              You&apos;ve been invited to join {teamName}. Accept the invitation
-              to collaborate with your team.
+          <div className="flex flex-col px-4">
+            <p className="text-md text-center dark:text-white text-gray-700">
+              You&apos;ve been invited to join <b>{teamName}</b>.
             </p>
           </div>
 
-          <div className="flex flex-col items-center justify-center gap-4 py-6">
+          <div className="flex flex-col items-center justify-center gap-4 py-4">
             <Button
               onClick={handleAcceptJoinTeam}
               className="dark:bg-white dark:text-black"

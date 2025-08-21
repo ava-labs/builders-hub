@@ -9,6 +9,7 @@ import SubmitStep2 from "./SubmissionStep2";
 import SubmitStep3 from "./SubmissionStep3";
 import { useSubmissionFormSecure } from "../hooks/useSubmissionFormSecure";
 import { useHackathonProject } from "../hooks/useHackathonProject";
+import { useDebounce } from "../hooks/useDebounce";
 import { ProgressBar } from "../components/ProgressBar";
 import { StepNavigation } from "../components/StepNavigation";
 import { Tag, Users, Pickaxe, Image, AlertCircle } from "lucide-react";
@@ -28,6 +29,8 @@ export default function GeneralSecureComponent({
 }) {
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(0);
+
+  const debouncedProgress = useDebounce(progress, 300); 
 
   const { data: session } = useSession();
   const currentUser = session?.user;
@@ -73,49 +76,60 @@ export default function GeneralSecureComponent({
       "tracks",
     ];
   };
+  
+  const calculateProgress = () => {
+    const formValues = form.getValues();
+    const allFields = getAllFields();
+    const totalFields = allFields.length;
+    let completedFields = 0;
 
+    allFields.forEach((field) => {
+      const fieldValue = formValues[field as keyof typeof formValues];
+      if (Array.isArray(fieldValue)) {
+        if (fieldValue && fieldValue.length > 0) {
+          completedFields++;
+        }
+      } else if (
+        typeof fieldValue === "string" &&
+        fieldValue.trim() !== ""
+      ) {
+        completedFields++;
+      } else if (typeof fieldValue === "boolean" && fieldValue === true) {
+        completedFields++;
+      } else if (
+        fieldValue !== undefined &&
+        fieldValue !== null &&
+        fieldValue !== "" &&
+        fieldValue !== false
+      ) {
+        completedFields++;
+      }
+    });
+
+    return Math.round((completedFields / totalFields) * 100);
+  };
+  
   useEffect(() => {
     const subscription = form.watch(
       (value: any, { name, type }: { name?: string; type?: string }) => {
         if (type === "change") {
-          const formValues = form.getValues();
-          const allFields = getAllFields();
-          const totalFields = allFields.length;
-          let completedFields = 0;
-
-          allFields.forEach((field) => {
-            const fieldValue = formValues[field as keyof typeof formValues];
-            if (Array.isArray(fieldValue)) {
-              if (fieldValue && fieldValue.length > 0) {
-                completedFields++;
-              }
-            } else if (
-              typeof fieldValue === "string" &&
-              fieldValue.trim() !== ""
-            ) {
-              completedFields++;
-            } else if (typeof fieldValue === "boolean" && fieldValue === true) {
-              completedFields++;
-            } else if (
-              fieldValue !== undefined &&
-              fieldValue !== null &&
-              fieldValue !== "" &&
-              fieldValue !== false
-            ) {
-              completedFields++;
-            }
-          });
-
-          setProgress(Math.round((completedFields / totalFields) * 100));
+          setProgress(calculateProgress());
         }
       }
     );
     return () => subscription.unsubscribe();
   }, [form]);
+
+  useEffect(() => {
+    if (project && isEditing) {
+      setProgress(calculateProgress());
+    }
+  }, [project, isEditing, form, calculateProgress]);
+
   useEffect(() => {
     if (project && isEditing) {
       setFormData(project);
-      dispatch({ type: "SET_TEAM_NAME", payload: project.project_name || "" });
+    
       dispatch({ type: "SET_PROJECT_ID", payload: project.id || "" });
     }
   }, [project, isEditing, setFormData, dispatch]); // ✅ 'dispatch' es estable
@@ -158,18 +172,6 @@ export default function GeneralSecureComponent({
     }
   };
 
-  if (status === "loading") {
-    return (
-      <div className="p-4 sm:p-6 rounded-lg max-w-7xl mx-auto">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Initializing project...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (status === "error") {
     return (
@@ -200,7 +202,7 @@ export default function GeneralSecureComponent({
         </p>
       </div>
 
-      <ProgressBar progress={progress} timeLeft={timeLeft} />
+      <ProgressBar progress={debouncedProgress} timeLeft={timeLeft} />
 
       <div className="flex flex-col sm:flex-row mt-6 gap-4 sm:gap-4 sm:space-x-12">
         {/* Sidebar para móvil */}
@@ -324,36 +326,7 @@ export default function GeneralSecureComponent({
           </section>
         </div>
       </div>
-
-      <JoinTeamDialog
-        open={openJoinTeam}
-        onOpenChange={(open) =>
-          dispatch({ type: "SET_OPEN_JOIN_TEAM", payload: open })
-        }
-        teamName={teamName}
-        projectId={projectId || ""}
-        hackathonId={hackathonId as string}
-        currentUserId={currentUser?.id}
-        setLoadData={(accepted) => {
-          if (accepted) {
-            getProject();
-          }
-        }}
-      />
-
-      <ProjectMemberWarningDialog
-        open={openCurrentProject}
-        onOpenChange={(open) =>
-          dispatch({ type: "SET_OPEN_CURRENT_PROJECT", payload: open })
-        }
-        projectName={teamName}
-        hackathonId={hackathonId as string}
-        setLoadData={(accepted) => {
-          if (accepted) {
-            getProject();
-          }
-        }}
-      />
+  
 
       <InvalidInvitationComponent
         hackathonId={hackathonId as string}

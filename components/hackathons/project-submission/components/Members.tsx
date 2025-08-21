@@ -90,6 +90,13 @@ export default function MembersComponent({
     setInvalidEmails(invalidEmails.filter((e) => e !== email));
   };
 
+  const handleCloseModal = (b:boolean) => {
+    setOpenModal(b);
+    setEmails([]);
+    setNewEmail("");
+    setInvitationSent(false);
+  };
+
   const handleSendInvitations = async () => {
     if (emails.length === 0 || invalidEmails.length > 0) return;
     try {
@@ -182,9 +189,9 @@ export default function MembersComponent({
     if (setOpenCurrentProject) {
       setOpenCurrentProject(accepted);
     }
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("invitation");
     if (!accepted) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("invitation");
       await updateMemberStatus(MemberStatus.REJECTED, false);
       router.push(`/hackathons/project-submission?${params.toString()}`);
 
@@ -233,7 +240,7 @@ export default function MembersComponent({
   return (
     <>
       <div className="flex justify-end mt-4">
-        <Dialog open={openModal} onOpenChange={setOpenModal}>
+        <Dialog open={openModal} onOpenChange={handleCloseModal} >
           <DialogTrigger asChild>
             <Button variant="outline" type="button">
               Invite Team Member
@@ -377,10 +384,7 @@ export default function MembersComponent({
                     <DialogClose asChild>
                       <Button
                         onClick={() => {
-                          setOpenModal(false);
-                          setEmails([]);
-                          setNewEmail("");
-                          setInvitationSent(false);
+                          handleCloseModal(false);
                         }}
                         className="dark:bg-white border rounder-md max-w-16 "
                       >
@@ -424,10 +428,7 @@ export default function MembersComponent({
                     <DialogClose asChild>
                       <Button
                         onClick={() => {
-                          setOpenModal(false);
-                          setEmails([]);
-                          setNewEmail("");
-                          setInvitationSent(false);
+                          handleCloseModal(false);
                         }}
                         className="dark:bg-white border rounder-md max-w-16 "
                       >

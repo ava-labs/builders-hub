@@ -122,8 +122,9 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
         
         if (response.data?.invitation?.exists) {
           const invitation = response.data.invitation;
-
+          const project = response.data.project;
           dispatch({ type: 'SET_OPEN_JOIN_TEAM', payload: invitation.isConfirming ?? false });
+          dispatch({ type: "SET_TEAM_NAME", payload: project.project_name || "" });
           dispatch({ type: 'SET_OPEN_CURRENT_PROJECT', payload: invitation.hasConfirmedProject ?? false });
           dispatch({ type: 'SET_EDITING', payload: true });
         } else {

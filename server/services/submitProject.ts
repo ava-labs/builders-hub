@@ -58,6 +58,7 @@ export async function createProject(
         members: {
           some: {
             user_id: projectData.user_id,
+            status: "Confirmed",
           },
         },
       },
