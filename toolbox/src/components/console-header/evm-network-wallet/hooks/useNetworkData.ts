@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
-import { useWalletAddress, useBalances, useNetworkInfo } from '@/stores/walletStore'
-import { useL1ListStore } from '@/stores/l1ListStore'
+import { useEffect, useMemo } from 'react'
+import { useWalletAddress, useBalances, useNetworkInfo, useWalletStore } from '@/stores/walletStore'
+import { useL1List } from '@/stores/l1ListStore'
 import { avalanche, avalancheFuji } from 'viem/chains'
+import { balanceService } from '@/services/balanceService'
 
 
 export function useNetworkData() {
@@ -9,12 +10,20 @@ export function useNetworkData() {
   const walletEVMAddress = useWalletAddress()
   const balances = useBalances()
   const { isTestnet, chainId: walletChainId } = useNetworkInfo()
+  const l1Balances = useWalletStore((state) => state.balances.l1Chains)
   
   // Extract individual balance values for backward compatibility
-  const { l1: l1Balance, cChain: cChainBalance } = balances
+  const { cChain: cChainBalance } = balances
 
-  const l1ListStore = useL1ListStore()
-  const l1List = l1ListStore((s) => s.l1List)
+  const l1List = useL1List()
+
+  // Update all L1 balances when l1List changes or wallet connects
+  useEffect(() => {
+    if (walletEVMAddress && l1List && l1List.length > 0) {
+      // Update balances for all L1s using the balance service
+      balanceService.updateAllBalancesWithAllL1s(l1List)
+    }
+  }, [l1List, walletEVMAddress])
 
   // Determine current network and balance
   const currentNetwork = useMemo(() => {
@@ -52,13 +61,13 @@ export function useNetworkData() {
 
     // Determine the appropriate balance based on network type
     const isCChain = currentNet.evmChainId === avalanche.id || currentNet.evmChainId === avalancheFuji.id
-    const balance = isCChain ? cChainBalance : l1Balance
+    const balance = isCChain ? cChainBalance : (l1Balances[currentNet.evmChainId.toString()] || 0)
 
     return {
       ...currentNet,
       balance,
     }
-  }, [l1List, walletChainId, isTestnet, cChainBalance, l1Balance, walletEVMAddress])
+  }, [l1List, walletChainId, isTestnet, cChainBalance, l1Balances, walletEVMAddress])
 
   const getNetworkBalance = (network: (typeof l1List)[0]) => {
     const isCChain = network.evmChainId === avalanche.id || network.evmChainId === avalancheFuji.id
@@ -66,8 +75,7 @@ export function useNetworkData() {
     if (isCChain) {
       return cChainBalance
     } else {
-
-        return l1Balance
+      return l1Balances[network.evmChainId.toString()] || 0
     }
   }
 

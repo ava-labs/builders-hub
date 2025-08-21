@@ -21,15 +21,19 @@ async function getIndexedChains(): Promise<Number[]> {
 }
 
 export interface BalanceUpdateCallbacks {
-  setBalance: (type: 'pChain' | 'l1' | 'cChain', amount: number) => void;
-  setLoading: (type: 'pChain' | 'l1' | 'cChain', loading: boolean) => void;
+  setBalance: (type: 'pChain' | 'cChain' | string, amount: number) => void;
+  setLoading: (type: 'pChain' | 'cChain' | string, loading: boolean) => void;
   getState: () => {
     isTestnet?: boolean;
     pChainAddress: string;
     walletChainId: number;
     walletEVMAddress: string;
     publicClient: any;
-    isLoading: Record<'pChain' | 'l1' | 'cChain', boolean>;
+    isLoading: {
+      pChain: boolean;
+      cChain: boolean;
+      l1Chains: Record<string, boolean>;
+    };
   };
 }
 
@@ -67,27 +71,34 @@ export class BalanceService {
       await debouncedPChainUpdate();
     };
 
-    const debouncedL1Update = debounce(async () => {
+    // Create debounced L1 update function that takes chainId
+    const createDebouncedL1Update = (chainId: string) => debounce(async () => {
       if (!this.callbacks) return;
       const state = this.callbacks.getState();
       
-      if (state.isLoading.l1) return;
+      if (state.isLoading.l1Chains[chainId]) return;
       
-      this.callbacks.setLoading('l1', true);
+      this.callbacks.setLoading(chainId, true);
       try {
         const balance = await this.fetchL1Balance(
-          state.walletChainId, 
+          parseInt(chainId), 
           state.walletEVMAddress, 
           state.publicClient
         );
-        this.callbacks.setBalance('l1', balance);
+        this.callbacks.setBalance(chainId, balance);
       } finally {
-        this.callbacks.setLoading('l1', false);
+        this.callbacks.setLoading(chainId, false);
       }
     }, this.debounceTime);
+
+    // Store debounced functions for each chain
+    const debouncedL1Updates = new Map<string, ReturnType<typeof createDebouncedL1Update>>();
     
-    this.updateL1Balance = async () => {
-      await debouncedL1Update();
+    this.updateL1Balance = async (chainId: string) => {
+      if (!debouncedL1Updates.has(chainId)) {
+        debouncedL1Updates.set(chainId, createDebouncedL1Update(chainId));
+      }
+      await debouncedL1Updates.get(chainId)!();
     };
 
     const debouncedCChainUpdate = debounce(async () => {
@@ -166,16 +177,45 @@ export class BalanceService {
 
   // These will be set up by initializeDebouncedMethods
   updatePChainBalance = async () => Promise.resolve();
-  updateL1Balance = async () => Promise.resolve();
+  updateL1Balance = async (_chainId: string) => Promise.resolve();
   updateCChainBalance = async () => Promise.resolve();
 
-  // Update all balances
+
+
+  // Update all balances (normal behavior - only current L1)
   updateAllBalances = async () => {
     await Promise.all([
       this.updatePChainBalance(),
-      this.updateL1Balance(),
+      this.updateCurrentL1Balance(),
       this.updateCChainBalance(),
     ]);
+  };
+
+  // Update all balances including all L1s
+  updateAllBalancesWithAllL1s = async (l1List?: Array<{evmChainId: number}>) => {
+    if (l1List && l1List.length > 0) {
+      // Update balances for all L1s in the list
+      const updatePromises = l1List.map(l1 => 
+        this.updateL1Balance(l1.evmChainId.toString())
+      );
+      await Promise.all([
+        this.updatePChainBalance(),
+        Promise.all(updatePromises),
+        this.updateCChainBalance(),
+      ]);
+    } else {
+      // Fallback: update the current wallet chain (same as updateAllBalances)
+      await this.updateAllBalances();
+    }
+  };
+
+  // Helper method to update only the current wallet's L1 balance
+  updateCurrentL1Balance = async () => {
+    if (!this.callbacks) return;
+    const state = this.callbacks.getState();
+    if (state.walletChainId && state.walletChainId !== 0) {
+      await this.updateL1Balance(state.walletChainId.toString());
+    }
   };
 }
 

@@ -21,6 +21,7 @@ export function EvmNetworkWallet() {
 
   const l1ListStore = useL1ListStore()
   const addL1 = l1ListStore((s) => s.addL1)
+  const removeL1 = l1ListStore((s) => s.removeL1)
 
   const {
     currentNetwork,
@@ -104,6 +105,10 @@ export function EvmNetworkWallet() {
     setIsAddNetworkModalOpen(true)
   }
 
+  const handleRemoveNetwork = (network: any) => {
+    removeL1(network.id)
+  }
+
   // Show connect wallet button if no wallet is connected
   if (!walletEVMAddress) {
     return (
@@ -149,6 +154,7 @@ export function EvmNetworkWallet() {
             getNetworkBalance={getNetworkBalance}
             isNetworkActive={isNetworkActive}
             onNetworkSelect={handleNetworkChange}
+            onNetworkRemove={handleRemoveNetwork}
           />
 
           <NetworkActions
@@ -169,11 +175,7 @@ export function EvmNetworkWallet() {
         <AddChainModal
           onClose={() => setIsAddNetworkModalOpen(false)}
           onAddChain={(chain) => {
-            try {
-              addL1(chain as any)
-            } catch (error) {
-              console.log('addL1 error (non-blocking):', error)
-            }
+            addL1(chain as any)
             setIsAddNetworkModalOpen(false)
           }}
           allowLookup={true}

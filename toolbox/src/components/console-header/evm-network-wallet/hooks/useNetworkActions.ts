@@ -34,7 +34,7 @@ export function useNetworkActions() {
             if (isCChain) {
               updateCChainBalance()
             } else {
-              updateL1Balance()
+              updateL1Balance(network.evmChainId.toString())
             }
           }, 800)
         } catch (error) {
