@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useWalletStore } from '@/stores/walletStore'
 import { useSelectedL1, useL1ListStore } from '@/stores/l1ListStore'
 import { avalanche, avalancheFuji } from 'viem/chains'
@@ -18,9 +18,9 @@ export function useNetworkData() {
   const l1List = l1ListStore((s) => s.l1List)
 
   // External per-L1 balances (fetched directly from each L1 RPC)
-  const [externalBalances, setExternalBalances] = React.useState<Record<number, string>>({})
+  const [externalBalances, setExternalBalances] = useState<Record<number, string>>({})
 
-  React.useEffect(() => {
+  useEffect(() => {
     let cancelled = false
     async function fetchBalances() {
       if (!walletEVMAddress) return
@@ -42,7 +42,7 @@ export function useNetworkData() {
   }, [walletEVMAddress, l1List])
 
   // Available networks for selection - filtered by current testnet/mainnet mode
-  const availableNetworks = React.useMemo(() => {
+  const availableNetworks = useMemo(() => {
     const allNetworks = [
       {
         id: 'avalanche-cchain',
@@ -87,7 +87,7 @@ export function useNetworkData() {
   }, [l1List, isTestnet])
 
   // Determine current network and balance
-  const currentNetwork = React.useMemo(() => {
+  const currentNetwork = useMemo(() => {
     // If wallet is connected but chainId is not set yet (during account switching), default to C-Chain
     const isActuallyCChainSelected =
       walletChainId === avalanche.id || walletChainId === avalancheFuji.id
