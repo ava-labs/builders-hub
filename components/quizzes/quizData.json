@@ -29,7 +29,12 @@
         "902",
         "903",
         "904",
-        "905"
+        "905",
+        "950",
+        "951",
+        "952",
+        "953",
+        "954"
       ]
     },
     "l1-tokenomics": {
@@ -179,6 +184,81 @@
       "hint": "Reviewers look for execution readiness and commitment.",
       "explanation": "Projects beyond MVP with a committed team are best positioned for a successful grant application.",
       "chapter": "Grants Process"
+    },
+    "950": {
+      "question": "What is more valuable for an early-stage Web3 project?",
+      "options": [
+        "10,000 followers who rarely engage",
+        "100 active community members who participate daily",
+        "500 KOLs promoting your project",
+        "1,000 token holders who don't use your product"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Quality engagement creates more value than passive numbers.",
+      "explanation": "100 active community members who participate daily create more value through feedback, advocacy, and genuine engagement than thousands of passive followers.",
+      "chapter": "Community Building"
+    },
+    "951": {
+      "question": "Which approach to content creation is most effective for founders with limited resources?",
+      "options": [
+        "Posting as frequently as possible to maintain visibility",
+        "Hiring a full creative team before launching",
+        "Focusing on high-quality ideas even if execution isn't polished",
+        "Only posting when you have professionally created content"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Authenticity and value matter more than polish in early stages.",
+      "explanation": "Focusing on high-quality ideas even if execution isn't polished is most effective because authentic, valuable content resonates more than infrequent, overly polished posts.",
+      "chapter": "Community Building"
+    },
+    "952": {
+      "question": "What percentage of your social media followers typically see each post?",
+      "options": [
+        "50%",
+        "25%",
+        "13%",
+        "5%"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "It's lower than most people think, which means you can repeat key messages.",
+      "explanation": "Only about 13% of your followers see each post, which means you can repeat important messages without boring your audience.",
+      "chapter": "Community Building"
+    },
+    "953": {
+      "question": "Which is NOT an effective strategy for community building in Web3?",
+      "options": [
+        "Automating verification processes",
+        "Relying primarily on token airdrops for loyalty",
+        "Organizing in-person events",
+        "Empowering early community champions"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Token-based loyalty is mercenary loyalty.",
+      "explanation": "Relying primarily on token airdrops for loyalty is ineffective because it attracts mercenary users who leave when rewards end, rather than building genuine community.",
+      "chapter": "Community Building"
+    },
+    "954": {
+      "question": "What should be the first step in planning a community event?",
+      "options": [
+        "Booking a prestigious venue",
+        "Creating promotional materials",
+        "Defining your authentic 'why' and target audience",
+        "Setting the event budget"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Purpose drives all other decisions.",
+      "explanation": "Defining your authentic 'why' and target audience should come first because your event's purpose drives every other decision from venue to content to success metrics.",
+      "chapter": "Community Building"
     },
     "101": {
       "question": "What is the underlying principle of the Avalanche Consensus family?",

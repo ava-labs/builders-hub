@@ -170,6 +170,18 @@ const officialCourses: Course[] = [
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
         category: "Codebase"
     },
+    {
+        name: "Web3 Community Architect",
+        description: "pending...",
+        slug: "codebase-entrepreneur-web3-community",
+        icon: <SquareStackIcon />,
+        status: "featured",
+        duration: "1 hour",
+        languages: [],
+        tools: ["Codebase"],
+        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
+        category: "Codebase"
+    },
 
     /*{
         name:"Chainlink VRF with Interchain Messaging ",
