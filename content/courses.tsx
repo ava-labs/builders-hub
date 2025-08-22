@@ -170,6 +170,18 @@ const officialCourses: Course[] = [
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
         category: "Codebase"
     },
+    {
+        name: "Codebase Entrepreneur: Go-to-Market",
+        description: "Master go-to-market strategies, sales, and pricing for your Web3 startup",
+        slug: "codebase-entrepreneur-go-to-market",
+        icon: <SquareStackIcon />,
+        status: "featured",
+        duration: "3 hours",
+        languages: [],
+        tools: ["Codebase"],
+        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
+        category: "Codebase"
+    },
 
     /*{
         name:"Chainlink VRF with Interchain Messaging ",
