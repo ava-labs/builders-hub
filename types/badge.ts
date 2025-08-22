@@ -1,10 +1,16 @@
 import { metadata } from '../app/(home)/academy/page';
 
-export type BadgeMetadata = {
+export type Requirement = {
+    id: string
     course_id?: string,
     hackathon?: 'won' | 'register' | 'submission' | null
     type?: 'course' | 'hackathon' 
+    points?: number
+    description?: string
+    
+   
 }
+
 
 export type Badge = {
     id: string
@@ -13,7 +19,8 @@ export type Badge = {
     points: number
     image_path: string
     category: string
-    metadata: BadgeMetadata | null
+    requirements?: Requirement[]
+    is_unlocked?: boolean
 }
 
 export type UserBadge = {
@@ -26,5 +33,5 @@ export type UserBadge = {
     points: number
     image_path: string
     category: string
-    metadata: BadgeMetadata | null
+    requirements: Requirement[] | null
 }

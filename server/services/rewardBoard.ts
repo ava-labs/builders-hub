@@ -1,14 +1,17 @@
 import { prisma } from "@/prisma/prisma";
-import { UserBadge, BadgeMetadata, Badge } from "@/types/badge";
+import { UserBadge, Requirement, Badge } from "@/types/badge";
 import { JsonValue } from "@prisma/client/runtime/library";
 
 // Utility function to safely convert JSON metadata
-function parseBadgeMetadata(metadata: JsonValue): BadgeMetadata | null {
-  const metadataObject = metadata as BadgeMetadata;
+export function parseBadgeMetadata(metadata: JsonValue): Requirement | null {
+  const metadataObject = metadata as Requirement;
   const toReturn = {
     course_id: metadataObject.course_id || undefined,
     hackathon: metadataObject.hackathon || null,
     type: metadataObject.type || undefined,
+    points: metadataObject.points || undefined,
+    description: metadataObject.description || undefined,
+    id: metadataObject.id || "",
   };
   return toReturn;
 }
@@ -34,18 +37,18 @@ export async function getRewardBoard(user_id: string): Promise<UserBadge[]> {
     points: userBadge.badge.points,
     image_path: userBadge.badge.image_path,
     category: userBadge.badge.category,
-    metadata: parseBadgeMetadata(userBadge.badge.metadata),
+    requirements:userBadge.badge.requirements.map((requirement) => parseBadgeMetadata(requirement)) as Requirement[],
   }));
 }
 
 export async function getBadgeByCourseId(courseId: string): Promise<Badge> {
   const badge = await prisma.badge.findFirst({
-    where: {
-      metadata: {
-        path: ["course_id"],
-        equals: courseId,
-      },
-    },
+    // where: {
+    //   requirements: {
+    //     path: ["course_id"],
+    //     equals: courseId,
+    //   },
+    // },
   });
 
   if (!badge) {
@@ -59,7 +62,7 @@ export async function getBadgeByCourseId(courseId: string): Promise<Badge> {
     points: badge.points,
     image_path: badge.image_path,
     category: badge.category,
-    metadata: parseBadgeMetadata(badge.metadata),
+    requirements: badge.requirements.map((requirement) => parseBadgeMetadata(requirement)) as Requirement[],
   };
 }
 

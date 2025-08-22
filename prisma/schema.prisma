@@ -145,7 +145,7 @@ model Badge {
   points      Int
   image_path  String
   category    String
-  metadata    Json           @default("{}")
+  requirements Json[]        @default([])
   users       UserBadge[]
   projects    ProjectBadge[]
 }
