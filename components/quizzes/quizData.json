@@ -107,6 +107,16 @@
         "409",
         "410"
       ]
+    },
+    "web3-community-architect": {
+      "title": "Web3 Community Architect",
+      "quizzes": [
+        "701",
+        "702",
+        "703",
+        "704",
+        "705"
+      ]
     }
   },
   "quizzes": {
@@ -1317,6 +1327,81 @@
       "hint": "Think about the inheritance pattern shown in the class diagram.",
       "explanation": "ValidatorManager extends ACP99Manager through inheritance, implementing the abstract base contract. This design pattern allows ValidatorManager to inherit the standardized validator management functions defined in ACP99Manager while adding its own concrete implementation of the initiate functions. The inheritance relationship ensures that all validator managers follow the same interface defined by ACP99Manager, providing consistency across different implementations.",
       "chapter": "Validator Manager Contract"
+    },
+    "701": {
+      "question": "What is more valuable for an early-stage Web3 project?",
+      "options": [
+        "10,000 followers who rarely engage",
+        "100 active community members who participate daily",
+        "500 KOLs promoting your project",
+        "1,000 token holders who don't use your product"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Quality of engagement matters more than quantity.",
+      "explanation": "100 active community members who participate daily are more valuable because they provide feedback, become advocates, and create genuine engagement that attracts others.",
+      "chapter": "Community Building"
+    },
+    "702": {
+      "question": "Which approach to content creation is most effective for founders with limited resources?",
+      "options": [
+        "Posting as frequently as possible to maintain visibility",
+        "Hiring a full creative team before launching",
+        "Focusing on high-quality ideas even if execution isn't polished",
+        "Only posting when you have professionally created content"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Ideas resonate more than polish in early stages.",
+      "explanation": "Focusing on high-quality ideas even if execution isn't polished is most effective because compelling concepts that resonate with users matter more than production value when starting out.",
+      "chapter": "Community Building"
+    },
+    "703": {
+      "question": "What percentage of your social media followers typically see each post?",
+      "options": [
+        "50%",
+        "25%",
+        "13%",
+        "5%"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "It's lower than most people think.",
+      "explanation": "Only about 13% of your followers typically see each post, which means you can repeat key messages without boring your audience.",
+      "chapter": "Community Building"
+    },
+    "704": {
+      "question": "Which is NOT an effective strategy for community building in Web3?",
+      "options": [
+        "Automating verification processes",
+        "Relying primarily on token airdrops for loyalty",
+        "Organizing in-person events",
+        "Empowering early community champions"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about what creates lasting engagement.",
+      "explanation": "Relying primarily on token airdrops for loyalty is ineffective because it attracts mercenary users who leave when rewards end, rather than building genuine community engagement.",
+      "chapter": "Community Building"
+    },
+    "705": {
+      "question": "What should be the first step in planning a community event?",
+      "options": [
+        "Booking a prestigious venue",
+        "Creating promotional materials",
+        "Defining your authentic 'why' and target audience",
+        "Setting the event budget"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Start with purpose before logistics.",
+      "explanation": "Defining your authentic 'why' and target audience should come first because your event's purpose drives every other decision from venue to content to success metrics.",
+      "chapter": "Community Building"
     }
   }
 }
