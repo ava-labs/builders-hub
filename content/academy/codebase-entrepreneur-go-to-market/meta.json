@@ -1,0 +1,14 @@
+{
+    "title": "Codebase Entrepreneur: Go-to-Market",
+    "icon": "Rocket",
+    "root": true,
+    "pages": [
+        "index",
+        "---Strategic Go-to-Market Planning---",
+        "...04-gtm-strategies",
+        "---Master the Art of Sales---",
+        "...05-sales",
+        "---SPricing for Web3 Startups---",
+        "...06-pricing"
+    ]
+}
