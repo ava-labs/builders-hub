@@ -34,6 +34,9 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import { ProjectMemberWarningDialog } from "./ProjectMemberWarningDialog";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MemberStatus } from "@/types/project";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
+import { InvitationLinksMember } from "./InvitationLinksMember";
 export default function MembersComponent({
   project_id,
   hackaton_id,
@@ -55,6 +58,8 @@ export default function MembersComponent({
   const [sendingInvitation, setSendingInvitation] = useState(false);
   const [invalidEmails, setInvalidEmails] = useState<string[]>([]);
   const [isValidingEmail, setIsValidingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [invitationResult, setInvitationResult] = useState<any>(null);
   const roles: string[] = [
     "Member",
     "Developer",
@@ -65,6 +70,7 @@ export default function MembersComponent({
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
 
   const handleAddEmail = () => {
     if (newEmail && !emails.includes(newEmail) && validateEmail(newEmail)) {
@@ -84,6 +90,13 @@ export default function MembersComponent({
     setInvalidEmails(invalidEmails.filter((e) => e !== email));
   };
 
+  const handleCloseModal = (b:boolean) => {
+    setOpenModal(b);
+    setEmails([]);
+    setNewEmail("");
+    setInvitationSent(false);
+  };
+
   const handleSendInvitations = async () => {
     if (emails.length === 0 || invalidEmails.length > 0) return;
     try {
@@ -92,12 +105,16 @@ export default function MembersComponent({
         await onHandleSave();
       }
 
-      await axios.post(`/api/project/invite-member`, {
+      const invitationResult = await axios.post(`/api/project/invite-member`, {
         emails: emails,
         hackathon_id: hackaton_id,
         project_id: project_id,
         user_id: user_id,
       });
+      setInvitationResult(invitationResult.data?.result);
+      if (invitationResult.data?.result?.Success) {
+        setEmailSent(true);
+      }
       if ((!project_id || project_id === "") && onProjectCreated) {
         onProjectCreated();
       }
@@ -169,23 +186,25 @@ export default function MembersComponent({
   };
 
   const handleAcceptJoinTeamWithPreviousProject = async (accepted: boolean) => {
-    if(setOpenCurrentProject){
+    if (setOpenCurrentProject) {
       setOpenCurrentProject(accepted);
     }
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("invitation");
     if (!accepted) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("invitation");
-     await updateMemberStatus(MemberStatus.REJECTED,false);
+      await updateMemberStatus(MemberStatus.REJECTED, false);
       router.push(`/hackathons/project-submission?${params.toString()}`);
-      
+
       return;
     }
-   await updateMemberStatus(MemberStatus.CONFIRMED,true);
-   handleAcceptJoinTeam(true);
-
+    await updateMemberStatus(MemberStatus.CONFIRMED, true);
+    handleAcceptJoinTeam(true);
   };
 
-  const updateMemberStatus = async (status: string,wasInOtherProject: boolean) => {
+  const updateMemberStatus = async (
+    status: string,
+    wasInOtherProject: boolean
+  ) => {
     try {
       axios
         .patch(`/api/project/${project_id}/members/status`, {
@@ -199,11 +218,10 @@ export default function MembersComponent({
         .catch((error) => {
           console.error("Error updating status:", error);
         });
-    
     } catch (error) {
       console.error("Error joining team:", error);
     }
-  }
+  };
 
   useEffect(() => {
     if (!project_id) return;
@@ -222,7 +240,7 @@ export default function MembersComponent({
   return (
     <>
       <div className="flex justify-end mt-4">
-        <Dialog open={openModal} onOpenChange={setOpenModal}>
+        <Dialog open={openModal} onOpenChange={handleCloseModal} >
           <DialogTrigger asChild>
             <Button variant="outline" type="button">
               Invite Team Member
@@ -250,7 +268,9 @@ export default function MembersComponent({
                   Invite Member
                 </DialogTitle>
                 <DialogDescription className="text-sm text-zinc-400 mt-0 pt-0">
-                  Enter the email addresses of the persons you want to invite to your team and then press <strong>Enter</strong>. When you've added all emails, click on <strong>Send Invitation</strong>.
+                  Enter the email addresses of the persons you want to invite to
+                  your team and then press <strong>Enter</strong>. When you've
+                  added all emails, click on <strong>Send Invitation</strong>.
                 </DialogDescription>
               </DialogHeader>
               <Card className="border border-red-500 dark:bg-zinc-800 rounded-md">
@@ -321,7 +341,7 @@ export default function MembersComponent({
                 </div>
               </Card>
             </DialogContent>
-          ) : (
+          ) : emailSent ? (
             <DialogContent
               className="dark:bg-zinc-900 
               dark:text-white rounded-lg p-6 w-full
@@ -350,16 +370,65 @@ export default function MembersComponent({
                     <span className="font-semibold gap-2 text-md">
                       {emails.join("; ")}
                     </span>
-                    . They will receive an email to join your team.
+                    . They will receive an email to join your team. You can also
+                    copy the links and send them manually.
                   </p>
+                  {invitationResult &&
+                    invitationResult?.InviteLinks &&
+                    invitationResult?.InviteLinks.length > 0 && (
+                      <InvitationLinksMember
+                        invitationResult={invitationResult}
+                      />
+                    )}
                   <div className="items-center justify-center text-center">
                     <DialogClose asChild>
                       <Button
                         onClick={() => {
-                          setOpenModal(false);
-                          setEmails([]);
-                          setNewEmail("");
-                          setInvitationSent(false);
+                          handleCloseModal(false);
+                        }}
+                        className="dark:bg-white border rounder-md max-w-16 "
+                      >
+                        Done
+                      </Button>
+                    </DialogClose>
+                  </div>
+                </div>
+              </Card>
+            </DialogContent>
+          ) : (
+            <DialogContent
+              className="dark:bg-zinc-900 
+              dark:text-white rounded-lg p-6 w-full
+               max-w-md border border-zinc-400  px-4"
+              hideCloseButton={true}
+            >
+              <DialogClose asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-6 right-4 dark:text-white hover:text-red-400 p-0 h-6 w-6"
+                >
+                  ✕
+                </Button>
+              </DialogClose>
+              <DialogTitle className="text-lg font-semibold">
+                Invitation Failed!
+              </DialogTitle>
+              <Card className="border border-red-500 dark:bg-zinc-800 rounded-md mt-4">
+                <div className="flex flex-col  px-4 py-2 gap-4">
+                  <div className="flex items-center justify-center text-center">
+                    <BadgeCheck width={35} height={35} color="#FF394A" />
+                  </div>
+                  <p className=" text-md ">
+                    We've got some errors sending the invitations, but here are
+                    the links for you to send them manually:{" "}
+                  </p>
+                  <InvitationLinksMember invitationResult={invitationResult} />
+                  <div className="items-center justify-center text-center">
+                    <DialogClose asChild>
+                      <Button
+                        onClick={() => {
+                          handleCloseModal(false);
                         }}
                         className="dark:bg-white border rounder-md max-w-16 "
                       >
@@ -471,6 +540,9 @@ export default function MembersComponent({
         hackathonId={hackaton_id as string}
         setLoadData={handleAcceptJoinTeamWithPreviousProject}
       />
+
+      {/* ✅ TOASTER: Required for toast notifications */}
+      <Toaster />
     </>
   );
 }

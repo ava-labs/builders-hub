@@ -7,6 +7,7 @@ import quizDataImport from '@/components/quizzes/quizData.json';
 import Quiz from '@/components/quizzes/quiz';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Linkedin, Twitter, Award, Share2 } from 'lucide-react';
+import { AwardBadgeWrapper } from './components/awardBadgeWrapper';
 
 interface CertificatePageProps {
   courseId: string;
@@ -49,6 +50,9 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   const [userName, setUserName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [quizzes, setQuizzes] = useState<QuizInfo[]>([]);
+  const [totalQuizzes, setTotalQuizzes] = useState(0);
+  const [correctlyAnsweredQuizzes, setCorrectlyAnsweredQuizzes] = useState(0);
+  const [shouldShowCertificate, setShouldShowCertificate] = useState(false);
 
   useEffect(() => {
     const fetchQuizzes = () => {
@@ -59,6 +63,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
         question: quizData.quizzes[quizId]?.question || ''
       }));
       setQuizzes(quizzesWithChapters);
+      setTotalQuizzes(courseQuizzes.length);
     };
 
     fetchQuizzes();
@@ -72,7 +77,10 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
           return response && response.isCorrect ? quiz.id : null;
         })
       );
-      setCompletedQuizzes(completed.filter((id): id is string => id !== null));
+  
+      const completedIds = completed.filter((id): id is string => id !== null);
+      setCompletedQuizzes(completedIds);
+      setCorrectlyAnsweredQuizzes(completedIds.length);
       setIsLoading(false);
     };
 
@@ -81,7 +89,26 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
     }
   }, [quizzes]);
 
-  const allQuizzesCompleted = completedQuizzes.length === quizzes.length;
+  
+  useEffect(() => {
+    if (totalQuizzes > 0 && correctlyAnsweredQuizzes === totalQuizzes) {
+      
+       setShouldShowCertificate(true);
+
+       setTimeout(() => {
+     
+       }, 3000);
+    }
+  }, [correctlyAnsweredQuizzes, totalQuizzes]);
+  
+  const handleQuizCompleted = (quizId: string) => {
+    if (!completedQuizzes.includes(quizId)) {
+       setCompletedQuizzes(prev => [...prev, quizId]);
+       setCorrectlyAnsweredQuizzes(prev => prev + 1);
+    }
+  };
+
+  const allQuizzesCompleted = shouldShowCertificate;
 
   const generateCertificate = async () => {
     if (!userName.trim()) {
@@ -152,19 +179,16 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      {chapters.map((chapter) => {
+      {!shouldShowCertificate && chapters.map((chapter) => {
         const chapterQuizzes = quizzesByChapter[chapter];
-        const incompleteQuizzes = chapterQuizzes.filter(quiz => !completedQuizzes.includes(quiz.id));
-
-        if (incompleteQuizzes.length === 0) return null;
-
+       
         return (
           <div key={chapter} className="mb-8">
             <h3 className="text-xl font-medium mb-4">{chapter}</h3>
             <Accordions type="single" collapsible>
-              {incompleteQuizzes.map((quiz) => (
+              {chapterQuizzes.map((quiz) => (
                 <Accordion key={quiz.id} title={`${quiz.question}`}>
-                  <Quiz quizId={quiz.id} />
+                  <Quiz quizId={quiz.id} onQuizCompleted={handleQuizCompleted} />
                 </Accordion>
               ))}
             </Accordions>
@@ -173,7 +197,9 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       })}
       
       {allQuizzesCompleted && (
+        
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+           <AwardBadgeWrapper courseId={courseId} isCompleted={allQuizzesCompleted} />
           <div className="flex items-center justify-center mb-6">
             <Award className="w-16 h-16 text-green-500 mr-4" />
             <h2 className="text-3xl font-bold text-gray-800 dark:text-white" style={{ fontSize: '2rem', marginTop: '1em'}}>Congratulations!</h2>

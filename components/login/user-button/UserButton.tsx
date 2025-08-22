@@ -79,6 +79,10 @@ export function UserButton() {
             <DropdownMenuItem asChild className='cursor-pointer'>
               <Link href='/profile'>Profile</Link>
             </DropdownMenuItem>
+       {/*     <DropdownMenuItem asChild className='cursor-pointer'>
+              <Link href='/profile/rewards-board'>Reward Board</Link>
+            </DropdownMenuItem>
+            */}
             <DropdownMenuItem
               onClick={() => setIsDialogOpen(true)}
               className='cursor-pointer'

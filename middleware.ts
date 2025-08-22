@@ -80,5 +80,7 @@ export const config = {
     "/showcase/:path*",
     "/login/:path*",
     "/profile/:path*",
+    "/academy/:path*/get-certificate",
+    "/academy/:path*/certificate",
   ],
 };
