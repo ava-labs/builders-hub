@@ -4,12 +4,13 @@
     "root": true,
     "pages": [
         "index",
-        "---Module 9---",
-        "...09-module",
-        "---Grant Applications---",
-        "...10-grants",
-        "---Module 11---",
-        "...11-module",
-        "---More coming very soon...---"
+        "---Legal Foundations---",
+        "...01-legal-foundations",
+        "---Security Fundamentals---",
+        "...02-security-fundamentals",
+        "---Bussiness Model Canvas---",
+        "...03-business-model-canvas",
+        "---User Personas---",
+        "...04-user-personas"
     ]
 }

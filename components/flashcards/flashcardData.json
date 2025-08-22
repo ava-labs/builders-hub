@@ -31,7 +31,7 @@
             {
                 "term": "Howey Test",
                 "definition": "A four-part test used by the SEC to determine if a transaction qualifies as an investment contract (security)",
-                "example": "If users buy tokens primarily expecting profit from the efforts of the development team, the token likely qualifies as a security under the Howey Test"
+                "example": "If users buy tokens primarily expecting profit from the efforts of the development team, the token likely qualifies as a security under the Howey Test (see: https://www.investopedia.com/terms/h/howey-test.asp)"
             },
             {
                 "term": "KYC/AML Compliance",
