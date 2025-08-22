@@ -4,27 +4,26 @@ import { ValidationError } from "./hackathons";
 import { MemberStatus } from "@/types/project";
 
 export async function UpdateStatusMember(
-  user_id: string,
+  user_id: string | undefined,
   project_id: string,
   status: string,
   email: string,
   wasInOtherProject: boolean
-) {
+) {  
   if (!project_id || !status) {
-    throw new ValidationError("user_id and project_id are required", []);
+    throw new ValidationError("project_id and status are required", []);
   }
 
-  const user = await prisma.user.findFirst({
-    where: user_id ? {
+  // Buscar el usuario si se proporciona user_id
+  const user = user_id ? await prisma.user.findFirst({
+    where: {
       OR: [
         { id: user_id },
         { email: email }
       ]
-    } : {
-      email: email
     }
-  });
-
+  }) : null;
+ 
   const member = await prisma.member.findFirst({
     where: {
       OR: [
@@ -35,7 +34,7 @@ export async function UpdateStatusMember(
       project_id: project_id
     }
   });
-
+  
   if (!member) {
     throw new ValidationError("Member not found", []);
   }
@@ -47,8 +46,9 @@ export async function UpdateStatusMember(
     },
     data: { status: status },
   });
+  
 
-  if(!member.user_id){
+  if (user_id && user_id !== member.user_id) {
     await prisma.member.update({
       where: {
         id: member.id,
@@ -63,9 +63,6 @@ export async function UpdateStatusMember(
 }
 
 async function checkIfUserIsMemberOfOtherProject(wasInOtherProject: boolean, member: any, project_id: string) {
-  console.log("wasInOtherProject",wasInOtherProject)
-  console.log("member",member)
-  console.log("project_id",project_id)
 
   if (wasInOtherProject) {
     const currentProject = await prisma.project.findUnique({

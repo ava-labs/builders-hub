@@ -7,7 +7,6 @@ import {  NextResponse } from 'next/server';
 export const POST = withAuth(async (request,context ,session) => {
   try{
     const body = await request.json();
-    console.log("body",body)
     const newProject = await createProject({ ...body, submittedBy: session.user.email });
   
     return NextResponse.json({ message: 'project created', project: newProject }, { status: 201 });
