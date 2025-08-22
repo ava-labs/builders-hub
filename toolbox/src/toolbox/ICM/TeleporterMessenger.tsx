@@ -134,14 +134,18 @@ export default function TeleporterMessenger() {
 
     return (
         <Container
-            title="Deploy TeleporterMessenger"
-            description="Deploy the TeleporterMessenger contract to your L1 to enable cross-L1 messaging and applications like ICTT."
+            title="Deploy ICM Messenger (formerly called TeleporterMessenger)"
+            description="Deploy the ICM messenger contract to your L1 to enable cross-L1 messaging and applications like ICTT."
         >
             <div>
                 <p className="mt-2">This tool deploys the TeleporterMessenger contract, which is the core contract that handles cross-subnet message sending and receiving. Please read more <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/teleporter/README.md" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">here</a>.</p>
             </div>
             <Steps>
                 <Step>
+                    <h2 className="text-lg font-semibold">Check if Deployer Address Balance is sufficient</h2>
+                    <p className="text-sm text-gray-500">
+                        Enter the parameters for your new chain.
+                    </p>
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -187,9 +191,10 @@ export default function TeleporterMessenger() {
                     </div>
                 </Step>
                 <Step>
+                    <h2 className="text-lg font-semibold">Deploy ICM Messenger</h2>
                     {isDeployed ? (
                         <div className="py-4">
-                            <h3 className="font-semibold">Contract Already Deployed</h3>
+                            <p className="text-md">Contract Already Deployed</p>
                             <p>The TeleporterMessenger contract is already deployed at the expected address.</p>
                         </div>
                     ) : (

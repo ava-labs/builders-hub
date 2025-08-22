@@ -274,14 +274,14 @@ export async function sendRegistrationToHubSpot(
       // Hackathon-registration-specific fields
       'fullname': registrationData.name,
       'country_dropdown': registrationData.city,
-      'hs_role': registrationData.role,
+      'hs_role': registrationData.role || 'Other',
       'name': registrationData.company_name || '',
       'telegram_handle': registrationData.telegram_user || '',
       'github_url': registrationData.github_portfolio || '',
       //'avalanche_ecosystem_member': registrationData.hackathon_participation || '',
       'hackathon_interests': registrationData.interests || '',
       'programming_language_familiarity': registrationData.languages || '',
-      'employment_role_other': registrationData.roles || '',
+      'employment_role_other': registrationData.roles || 'Other',
       'tooling_familiarity': registrationData.tools || '',
       'founder_check' : 'No', // TODO: add this to the BH form
       'avalanche_ecosystem_member' : 'No',  // TODO: add this to the BH form

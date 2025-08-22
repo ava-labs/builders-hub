@@ -128,7 +128,7 @@ export const ConnectWallet = ({
     if (!walletEVMAddress || !walletChainId) return;
 
     // Always update EVM balances
-    updateL1Balance();
+    updateL1Balance(walletChainId.toString());
     updateCChainBalance();
 
     // Only update P-Chain balance if we have a P-Chain address (Core wallet)
@@ -138,7 +138,7 @@ export const ConnectWallet = ({
 
     const intervalId = setInterval(() => {
       // Always update EVM balances
-      updateL1Balance();
+      updateL1Balance(walletChainId.toString());
       updateCChainBalance();
 
       // Only update P-Chain balance if we have a P-Chain address (Core wallet)
@@ -199,8 +199,8 @@ export const ConnectWallet = ({
     return () => {
       if (window.avalanche?.removeListener) {
         try {
-          window.avalanche.removeListener("accountsChanged", () => {});
-          window.avalanche.removeListener("chainChanged", () => {});
+          window.avalanche.removeListener("accountsChanged", () => { });
+          window.avalanche.removeListener("chainChanged", () => { });
         } catch (e) {
           console.warn("Failed to remove event listeners:", e);
         }
@@ -344,7 +344,7 @@ export const ConnectWallet = ({
   // Determine what to display based on props
   const isActuallyCChainSelected =
     walletChainId === avalanche.id || walletChainId === avalancheFuji.id;
-  
+
   // Check if we're in C-Chain mode (either explicitly set or actually connected)
   const isCChainMode = walletMode === "c-chain" || isActuallyCChainSelected;
 
@@ -353,8 +353,13 @@ export const ConnectWallet = ({
   const displayedL1TokenSymbol =
     isCChainMode ? "AVAX" : "Tokens";
   const displayedL1Address = walletEVMAddress;
-  const updateDisplayedL1Balance =
-    walletMode === "c-chain" ? updateCChainBalance : updateL1Balance;
+  const updateDisplayedL1Balance = async () => {
+    if (walletMode === "c-chain") {
+      await updateCChainBalance();
+    } else {
+      await updateL1Balance(walletChainId.toString());
+    }
+  };
 
   // Server-side rendering placeholder
   if (!isClient) {
@@ -406,10 +411,10 @@ export const ConnectWallet = ({
                       ...(isCChainMode
                         ? [<CChainFaucetButton key="cchain-faucet" />]
                         : [<L1FaucetButton
-                            key="l1-faucet"
-                            blockchainId={selectedL1.id}
-                            displayedL1Balance={displayedL1Balance}
-                          />]),
+                          key="l1-faucet"
+                          blockchainId={selectedL1.id}
+                          displayedL1Balance={displayedL1Balance}
+                        />]),
                       <L1ExplorerButton key="l1-explorer" blockchainId={selectedL1.id} />,
                       <L1DetailsModal key="l1-details" blockchainId={selectedL1.id} />,
                     ]}
@@ -451,10 +456,16 @@ export const ConnectWallet = ({
           {enforceChainId} and try again.
         </div>
       )) || (
-        <RemountOnWalletChange>
-          <div className="transition-all duration-300">{children}</div>
-        </RemountOnWalletChange>
-      )}
+          <RemountOnWalletChange>
+            <div className="transition-all duration-300">
+              <div className="rounded-lg border bg-white dark:bg-slate-800 border-zinc-200 dark:border-zinc-800 mb-8">
+                <div className="border-b border-zinc-200 dark:border-zinc-800 p-6 md:p-8">
+                  {children}
+                </div>
+              </div>
+            </div>
+          </RemountOnWalletChange>
+        )}
     </div>
   );
 };

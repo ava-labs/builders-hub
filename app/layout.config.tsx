@@ -99,6 +99,13 @@ export const integrationsMenu: LinkItemType = {
   ],
 };
 
+export const blogMenu: LinkItemType = {
+  type: 'menu',
+  text: 'Blog',
+  url: '/guides',
+  items: [],
+};
+
 export const docsMenu: LinkItemType = {
   type: 'menu',
   text: 'Documentation',
@@ -242,21 +249,21 @@ export const academyMenu: LinkItemType = {
   ],
 };
 
-export const toolsMenu: LinkItemType = {
+export const consoleMenu: LinkItemType = {
   type: 'menu',
-  text: 'Tools',
-  url: '/tools/l1-toolbox',
+  text: 'Console',
+  url: '/console',
   items: [
     {
       menu: {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src="/l1toolbox.png"
+              src="/builderhub-console.png"
               alt='L1 Launcher Preview'
-              width={900}
-              height={400}
-              className='rounded-t-lg object-cover w-full h-auto'
+              width={500}
+              height={140}
+              className='rounded-t-lg object-cover'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -266,16 +273,16 @@ export const toolsMenu: LinkItemType = {
         className: 'md:row-span-2 lg:col-span-1',
       },
       icon: <Waypoints />,
-      text: 'L1 Toolbox',
+      text: 'Console',
       description: 'Manage your L1 with a highly granular set of tools.',
-      url: '/tools/l1-toolbox',
+      url: '/console',
     },
     {
       icon: <SendHorizontal />,
       text: 'Interchain Messaging Tools',
       description:
         'Set up Interchain Messaging (ICM) for your L1.',
-      url: '/tools/l1-toolbox',
+      url: '/console/icm/setup',
       menu: {
         className: 'lg:col-start-2 lg:row-start-1',
       },
@@ -285,7 +292,7 @@ export const toolsMenu: LinkItemType = {
       text: 'Interchain Token Transfer Tools',
       description:
         'Set up cross-L1 bridges using the Interchain Token Transfer protocol.',
-      url: '/tools/l1-toolbox',
+      url: '/console/ictt/setup',
       menu: {
         className: 'lg:col-start-2 lg:row-start-2',
       },
@@ -295,21 +302,11 @@ export const toolsMenu: LinkItemType = {
       text: 'Testnet Faucet',
       description:
         'Claim Fuji AVAX tokens from the testnet faucet to test your dApps.',
-      url: '/tools/l1-toolbox#faucet',
+      url: '/console/primary-network/faucet',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },
-    },
-    {
-      icon: <Github />,
-      text: 'Avalanche Starter Kit',
-      description:
-        'Spin up short-lived test environments for building dApps using interoperability features like ICM and ICTT.',
-      url: 'https://github.com/ava-labs/avalanche-starter-kit',
-      menu: {
-        className: 'lg:col-start-3 lg:row-start-2',
-      },
-    },
+    }
   ],
 };
 
@@ -465,16 +462,10 @@ export const eventsMenu: LinkItemType = {
   ],
 };
 
-const bridgeLink: LinkItemType = {
-  type: 'main',
-  text: 'Bridge',
-  url: 'https://core.app/bridge',
-};
-
 const userMenu: LinkItemType = {
   type: 'custom',
   children: <UserButtonWrapper />,
-  secondary: true
+  secondary: true,
 };
 
 const github: LinkItemType = {
@@ -505,12 +496,12 @@ export const baseOptions: BaseLayoutProps = {
   links: [
     academyMenu,
     docsMenu,
-    integrationsMenu,
-    bridgeLink,
-    toolsMenu,
-    grantsMenu,
+    consoleMenu,
     eventsMenu,
+    grantsMenu,
+    integrationsMenu,
     github,
     userMenu,
+    blogMenu,
   ],
 };

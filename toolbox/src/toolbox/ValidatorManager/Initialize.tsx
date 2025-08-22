@@ -11,12 +11,11 @@ import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/Valid
 import { utils } from "@avalabs/avalanchejs";
 import SelectSubnetId from "../../components/SelectSubnetId";
 import { Container } from "../../components/Container";
-import { getSubnetInfo } from "../../coreViem/utils/glacier";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { useViemChainStore } from "../../stores/toolboxStore";
 import { useSelectedL1 } from "../../stores/l1ListStore";
 import { useCreateChainStore } from "../../stores/createChainStore";
-import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
+import { Step, Steps } from "fumadocs-ui/components/steps";
 
 export default function Initialize() {
     const { showBoundary } = useErrorBoundary();
@@ -32,8 +31,6 @@ export default function Initialize() {
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
     const [subnetId, setSubnetId] = useState("");
-    const [subnet, setSubnet] = useState<any>(null);
-    const [isLoadingSubnet, setIsLoadingSubnet] = useState(false);
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
 
     useEffect(() => {
@@ -56,27 +53,6 @@ export default function Initialize() {
     } catch (error) {
         console.error('Error decoding subnetId:', error);
     }
-
-    useEffect(() => {
-        if (proxyAddress) {
-            checkIfInitialized();
-        }
-    }, [proxyAddress]);
-
-    useEffect(() => {
-        if (!subnetId) return;
-        setIsLoadingSubnet(true);
-        getSubnetInfo(subnetId).then((subnetInfo) => {
-            setProxyAddress(subnetInfo.l1ValidatorManagerDetails?.contractAddress || "");
-            setSubnet(subnetInfo);
-        }).catch((error) => {
-            console.error('Error getting subnet info:', error);
-            setSubnet(null);
-        }).finally(() => {
-            setIsLoadingSubnet(false);
-        });
-    }, [subnetId]);
-
 
 
     async function checkIfInitialized() {
@@ -182,47 +158,62 @@ export default function Initialize() {
             title="Initial Validator Manager Configuration"
             description="This will initialize the ValidatorManager contract with the initial configuration."
         >
-            <div className="space-y-4">
-                <div className="space-y-2">
+            <Steps>
+                <Step>
+                    <h2 className="text-lg font-semibold">Select the Validator Manager</h2>
+                    <p className="text-sm text-gray-500">
+                        Select the proxy contract pointing to the ValidatorManager implementation you want to initialize.
+                    </p>
+
                     <EVMAddressInput
                         label="Proxy Address of ValidatorManager"
                         value={proxyAddress}
                         onChange={setProxyAddress}
                         disabled={isInitializing}
                     />
+
+
                     <Button
-                        variant="secondary"
                         onClick={checkIfInitialized}
                         loading={isChecking}
                         disabled={!proxyAddress}
                         size="sm"
-                        stickLeft
                     >
                         Check Status
                     </Button>
-                </div>
+                </Step>
+                <Step>
+                    <h2 className="text-lg font-semibold">Select Subnet/L1 for the Validator Manager</h2>
+                    <p className="text-sm text-gray-500">
+                        Enter the SubnetID of the Subnet/L1 this Validator Manager contract will manage the validators for. The P-Chain will only accept validator set changes from the Validator Manager contract addresses and blockchainID combination that was indicated in the ConvertSubnetToL1Tx.
+                    </p>
+                    <SelectSubnetId
+                        value={subnetId}
+                        onChange={setSubnetId}
+                        hidePrimaryNetwork={true}
+                    />
 
-                <SelectSubnetId
-                    value={subnetId}
-                    onChange={setSubnetId}
-                    hidePrimaryNetwork={true}
-                />
+                    <Input
+                        label={`Subnet ID (Hex), ${utils.hexToBuffer(subnetIDHex).length} bytes`}
+                        value={subnetIDHex}
+                        disabled
+                    />
 
-                {/* Show subnet details if available */}
-                <BlockchainDetailsDisplay
-                    subnet={subnet}
-                    isLoading={isLoadingSubnet}
-                />
+                </Step>
+                <Step>
+                    <h2 className="text-lg font-semibold">Set the Validator Manager Configuration</h2>
+                    <p className="text-sm text-gray-500">
+                        Set the intitial configuration for the Validator Manager contract. The admin address should be a multisig wallet for production L1s, since it can take full control over the L1 validator set by arbitrarily changing the validator set. The churn settings define how rapid changes to the validator set can be made.
+                    </p>
 
-                <Input
-                    label={`Subnet ID (Hex), ${utils.hexToBuffer(subnetIDHex).length} bytes`}
-                    value={subnetIDHex}
-                    disabled
-                />
+                    <EVMAddressInput
+                        label="Validator Admin Address (should be a multisig for production L1s, can be changed later)"
+                        value={adminAddress}
+                        onChange={setAdminAddress}
+                        disabled={isInitializing}
+                        placeholder="Enter admin address"
+                    />
 
-
-
-                <div className="space-y-4">
                     <Input
                         label="Churn Period (seconds)"
                         type="number"
@@ -237,13 +228,6 @@ export default function Initialize() {
                         onChange={setMaximumChurnPercentage}
                         placeholder="Enter maximum churn percentage"
                     />
-                    <EVMAddressInput
-                        label="Admin Address"
-                        value={adminAddress}
-                        onChange={setAdminAddress}
-                        disabled={isInitializing}
-                        placeholder="Enter admin address"
-                    />
                     <Button
                         variant="primary"
                         onClick={handleInitialize}
@@ -252,7 +236,9 @@ export default function Initialize() {
                     >
                         Initialize Contract
                     </Button>
-                </div>
+
+                </Step>
+                </Steps>
                 {isInitialized === true && (
                     <ResultField
                         label="Initialization Event"
@@ -260,7 +246,6 @@ export default function Initialize() {
                         showCheck={isInitialized}
                     />
                 )}
-            </div>
         </Container>
 
     );
