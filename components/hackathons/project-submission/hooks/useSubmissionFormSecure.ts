@@ -31,46 +31,36 @@ export const FormSchema = z
       },
       z.array(
         z.string()
-          .min(1, { message: 'GitHub repository is required' })
+          .min(1, { message: 'Repository link is required' })
       )
-      .min(1, { message: 'At least one GitHub repository is required' })
+      .min(1, { message: 'At least one link is required' })
       .refine(
         (links) => {
           const uniqueLinks = new Set(links);
           return uniqueLinks.size === links.length;
         },
-        { message: 'Duplicate GitHub repositories are not allowed' }
+        { message: 'Duplicate repository links are not allowed' }
       )
       .transform((val) => {
-        const invalidRepos = val.filter(repo => {
-          if (repo.startsWith('http')) {
+        const invalidLinks = val.filter(link => {
+          if (link.startsWith('http')) {
             try {
-              const url = new URL(repo);
-              return !(
-                url.hostname === 'github.com' &&
-                url.pathname.split('/').length >= 2 &&
-                url.pathname.split('/')[1].length > 0
-              );
+              new URL(link);
+              return false; // URL válida
             } catch {
-              return true;
+              return true; // URL inválida
             }
           }
           
-          const parts = repo.split('/');
-          return !(
-            parts.length === 2 &&
-            parts[0].length > 0 &&
-            !parts[0].includes(' ') &&
-            parts[1].length > 0 &&
-            !parts[1].includes(' ')
-          );
+          // Si no es una URL, verificar que tenga formato válido (opcional)
+          return link.trim().length === 0;
         });
         
-        if (invalidRepos.length > 0) {
+        if (invalidLinks.length > 0) {
           throw new z.ZodError([
             {
               code: 'custom',
-              message: 'Please enter a valid GitHub URL (e.g., https://github.com/username/repo) or username/repo format',
+              message: 'Please enter valid  links (URLs or other formats)',
               path: ['github_repository']
             }
           ]);
@@ -418,7 +408,6 @@ export const useSubmissionFormSecure = () => {
         title: 'Project saved',
         description: 'Your project has been successfully saved. You will be redirected to the hackathon page.',
       });
-      // ✅ RESTORE: Redirect after 3 seconds like in the original implementation
       await new Promise((resolve) => setTimeout(resolve, 3000));
       router.push(`/hackathons/${state.hackathonId}`);
     } catch (error) {
