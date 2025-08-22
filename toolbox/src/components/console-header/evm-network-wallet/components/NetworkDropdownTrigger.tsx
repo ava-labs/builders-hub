@@ -1,17 +1,17 @@
-import * as React from 'react'
+import { forwardRef } from 'react'
 import { Globe } from 'lucide-react'
 
 interface NetworkDropdownTriggerProps {
   currentNetwork: {
     name: string
-    symbol: string
+    coinName: string
     balance: number | string
     logoUrl?: string
   }
   className?: string
 }
 
-export const NetworkDropdownTrigger = React.forwardRef<
+export const NetworkDropdownTrigger = forwardRef<
   HTMLButtonElement,
   NetworkDropdownTriggerProps
 >(({ currentNetwork, className }, ref) => {
@@ -44,7 +44,7 @@ export const NetworkDropdownTrigger = React.forwardRef<
         <div className="flex gap-2 items-center">
           <span className="text-sm font-medium leading-none">{currentNetwork.name}</span>
           <span className="text-xs text-muted-foreground leading-none">
-            {formatBalance(currentNetwork.balance)} {currentNetwork.symbol}
+            {formatBalance(currentNetwork.balance)} {currentNetwork.coinName}
           </span>
         </div>
       </div>

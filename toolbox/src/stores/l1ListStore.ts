@@ -118,9 +118,22 @@ export const getL1ListStore = (isTestnet: boolean) => create(
     ),
 )
 
+// Create a stable hook that returns the current l1List and properly subscribes to changes
+export const useL1List = () => {
+    const { isTestnet } = useWalletStore();
+    // Get the appropriate store based on testnet status
+    const store = useMemo(() => getL1ListStore(Boolean(isTestnet)), [isTestnet]);
+    // Subscribe to the l1List from the current store
+    return store((state) => state.l1List);
+};
+
+// Keep the original hook but make it stable to prevent infinite loops
 export const useL1ListStore = () => {
     const { isTestnet } = useWalletStore();
-    return getL1ListStore(Boolean(isTestnet));
+    // Use useMemo to stabilize the store reference and prevent unnecessary re-renders
+    return useMemo(() => {
+        return getL1ListStore(Boolean(isTestnet));
+    }, [isTestnet]);
 }
 
 

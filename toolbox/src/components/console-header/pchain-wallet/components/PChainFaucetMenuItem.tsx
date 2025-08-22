@@ -115,6 +115,7 @@ export function PChainFaucetMenuItem() {
       <DropdownMenuItem 
         onClick={handlePChainTokenRequest}
         disabled={isRequestingPTokens}
+        className='cursor-pointer'
       >
         <Droplet className="mr-2 h-3 w-3" />
         {isRequestingPTokens ? "Requesting..." : "Get AVAX from Faucet"}

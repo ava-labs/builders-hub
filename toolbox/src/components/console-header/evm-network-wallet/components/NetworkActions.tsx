@@ -9,7 +9,7 @@ export function NetworkActions({ onAddNetwork }: NetworkActionsProps) {
   return (
     <>
       <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={onAddNetwork}>
+      <DropdownMenuItem onClick={onAddNetwork} className='cursor-pointer'>
         <Plus className="mr-2 h-3 w-3" />
         Add Network
       </DropdownMenuItem>
