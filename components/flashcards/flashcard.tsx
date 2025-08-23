@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, RotateCw, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { saveFlashcardProgress, getFlashcardProgress, resetFlashcardProgress } from "@/utils/quizzes/indexedDB"
+import flashcardData from './flashcardData.json'
 
 interface FlashcardProps {
     flashcardSetId: string
@@ -16,39 +17,8 @@ interface FlashcardDataItem {
     example?: string
 }
 
-const flashcardData: Record<string, FlashcardDataItem[]> = {
-    "grants-process": [
-        {
-            term: "Foundation Grants vs. VC Funding",
-            definition: "Unlike VCs seeking ROI, foundation grants prioritize ecosystem impact",
-            example: "A project creating open-source infrastructure that many can build upon",
-        },
-        {
-            term: "Ecosystem Fit",
-            definition: "How well your project addresses a specific gap or need in the Avalanche ecosystem",
-            example: "Building privacy solutions that enable real-world business transactions on Avalanche",
-        },
-        {
-            term: "Proof of Shipping",
-            definition: "Evidence that demonstrates your ability to execute and deliver on your roadmap",
-            example: "A working prototype on Fuji testnet that shows core functionality",
-        },
-        {
-            term: "Grant Hunting",
-            definition: "Applying for grants across multiple ecosystems without customization or commitment",
-            example:
-                "Submitting identical proposals to Avalanche, Solana, and Ethereum without blockchain-specific considerations",
-        },
-        {
-            term: "Business Development Support",
-            definition: "Connections and introductions provided by the foundation to help your project grow",
-            example: "Getting introduced to institutional custodians that would be difficult to reach independently",
-        },
-    ],
-}
-
 const CleanFlashcard: React.FC<FlashcardProps> = ({ flashcardSetId }) => {
-    const [flashcards] = useState<FlashcardDataItem[]>(flashcardData[flashcardSetId] || [])
+    const [flashcards] = useState<FlashcardDataItem[]>(flashcardData.flashcardSets[flashcardSetId as keyof typeof flashcardData.flashcardSets] || [])
     const [currentIndex, setCurrentIndex] = useState(0)
     const [isRevealed, setIsRevealed] = useState(false)
     const [viewedCards, setViewedCards] = useState<Set<number>>(new Set())
