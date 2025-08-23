@@ -1,0 +1,11 @@
+{
+    "title": "Web3 Community Architect",
+    "icon": "Users",
+    "root": true,
+    "pages": [
+        "index",
+        "---Community Building---",
+        "...01-community-building",
+        "---Tokenomics Coming Soon---"
+    ]
+}
