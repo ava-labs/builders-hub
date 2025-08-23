@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
-import { ArrowRight, BookOpen, Code, Layers, ChevronDown, ArrowLeftRight, Coins } from "lucide-react";
+import { ArrowRight, BookOpen, Code, Layers, ChevronDown, ArrowLeftRight, Coins, GraduationCap, Users, Lightbulb } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface CourseNode {
@@ -17,7 +17,11 @@ interface CourseNode {
   mobileOrder?: number;
 }
 
-const learningPaths: CourseNode[] = [
+interface LearningTreeProps {
+  pathType?: 'avalanche' | 'entrepreneur';
+}
+
+const avalancheLearningPaths: CourseNode[] = [
   // Foundation Layer
   {
     id: "blockchain-fundamentals",
@@ -40,6 +44,16 @@ const learningPaths: CourseNode[] = [
     position: { x: 50, y: 150 },
     mobileOrder: 2
   },
+  {
+    id: "customizing-evm",
+    name: "Customizing the EVM",
+    description: "Add custom precompiles and configure the EVM",
+    slug: "customizing-evm",
+    category: "VM Customization",
+    dependencies: ["avalanche-fundamentals"],
+    position: { x: 85, y: 150 },
+    mobileOrder: 6
+  },
 
   // Third Layer - Branching paths
   {
@@ -53,60 +67,116 @@ const learningPaths: CourseNode[] = [
     mobileOrder: 3
   },
   {
+    id: "l1-native-tokens",
+    name: "L1 Native Tokens",
+    description: "Design L1 economics with transaction fees and staking",
+    slug: "l1-tokenomics",
+    category: "L1 Tokenomics",
+    dependencies: ["avalanche-fundamentals"],
+    position: { x: 50, y: 350 },
+    mobileOrder: 4
+  },
+  {
     id: "permissioned-l1s",
     name: "Permissioned L1s",
     description: "Create and manage permissioned blockchains with Proof of Authority",
     slug: "permissioned-l1s",
     category: "L1 Development",
     dependencies: ["avalanche-fundamentals"],
-    position: { x: 40, y: 350 },
+    position: { x: 85, y: 350 },
     mobileOrder: 7
   },
+  // Fourth Layer - Advanced topics
   {
-    id: "l1-tokenomics",
-    name: "L1 Tokenomics",
-    description: "Design L1 economics with transaction fees and staking",
-    slug: "l1-tokenomics",
-    category: "L1 Tokenomics",
-    dependencies: ["avalanche-fundamentals"],
-    position: { x: 65, y: 350 },
-    mobileOrder: 6
-  },
-  {
-    id: "customizing-evm",
-    name: "Customizing the EVM",
-    description: "Add custom precompiles and configure the EVM",
-    slug: "customizing-evm",
-    category: "VM Customization",
-    dependencies: ["avalanche-fundamentals"],
-    position: { x: 90, y: 350 },
-    mobileOrder: 8
-  },
-
-  // Fourth Layer - Advanced topics (adjusted for no overlap)
-  {
-    id: "interchain-token-transfer",
-    name: "Interchain Token Transfer",
+    id: "erc-20-bridging",
+    name: "ERC-20 Bridging",
     description: "Transfer assets between chains using Interchain Messaging",
     slug: "interchain-token-transfer",
     category: "Interoperability",
     dependencies: ["interchain-messaging"],
     position: { x: 5, y: 550 },
-    mobileOrder: 4
+    mobileOrder: 7
   },
   {
-    id: "icm-chainlink",
-    name: "Chainlink via ICM",
-    description: "Use Chainlink services on an L1 through the Interchain Messaging",
-    slug: "icm-chainlink",
+    id: "cross-chain-l1-native-tokens",
+    name: "Cross-Chain L1 Native Tokens",
+    description: "Bridge native tokens between L1 chains",
+    slug: "interchain-token-transfer",
     category: "Interoperability",
-    dependencies: ["interchain-messaging"],
-    position: { x: 35, y: 550 },
-    mobileOrder: 5
+    dependencies: ["erc-20-bridging", "l1-native-tokens"],
+    position: { x: 20, y: 750 },
+    mobileOrder: 8
+  },
+  {
+    id: "permissionless-l1s",
+    name: "Permissionless L1s",
+    description: "Create and manage permissionless blockchains",
+    slug: "permissioned-l1s",
+    category: "L1 Development",
+    dependencies: ["l1-native-tokens", "permissioned-l1s"],
+    position: { x: 62, y: 550 },
+    mobileOrder: 9
+  },
+  {
+    id: "access-restriction",
+    name: "Access Restriction",
+    description: "Implement access control mechanisms for L1s",
+    slug: "permissioned-l1s",
+    category: "L1 Development",
+    dependencies: ["permissioned-l1s"],
+    position: { x: 95, y: 550 },
+    mobileOrder: 10
   },
 ];
 
-const categoryStyles = {
+const entrepreneurLearningPaths: CourseNode[] = [
+  // Foundation Layer
+  {
+    id: "codebase-foundation",
+    name: "Codebase Foundation",
+    description: "Foundation course covering essential blockchain and business fundamentals",
+    slug: "codebase-entrepreneur-academy",
+    category: "Fundamentals",
+    position: { x: 50, y: 0 },
+    mobileOrder: 1
+  },
+
+  // Second Layer  
+  {
+    id: "go-to-market",
+    name: "Go To Market",
+    description: "Master go-to-market strategies for Web3 products and services",
+    slug: "codebase-entrepreneur-academy",
+    category: "Business Strategy",
+    dependencies: ["codebase-foundation"],
+    position: { x: 30, y: 200 },
+    mobileOrder: 2
+  },
+  {
+    id: "web3-community-architect",
+    name: "Web3 Community Architect",
+    description: "Learn to build and manage thriving Web3 communities",
+    slug: "codebase-entrepreneur-academy",
+    category: "Community",
+    dependencies: ["codebase-foundation"],
+    position: { x: 70, y: 200 },
+    mobileOrder: 3
+  },
+
+  // Third Layer
+  {
+    id: "fundraising",
+    name: "Fundraising",
+    description: "Master fundraising strategies and financial management in Web3",
+    slug: "codebase-entrepreneur-academy",
+    category: "Finance",
+    dependencies: ["go-to-market", "web3-community-architect"],
+    position: { x: 50, y: 400 },
+    mobileOrder: 4
+  }
+];
+
+const avalancheCategoryStyles = {
   "Fundamentals": {
     gradient: "from-blue-500 to-blue-600",
     icon: BookOpen,
@@ -139,9 +209,40 @@ const categoryStyles = {
   }
 };
 
-export default function LearningTree() {
+const entrepreneurCategoryStyles = {
+  "Fundamentals": {
+    gradient: "from-blue-500 to-blue-600",
+    icon: BookOpen,
+    lightBg: "bg-blue-50",
+    darkBg: "dark:bg-blue-950/30"
+  },
+  "Community": {
+    gradient: "from-purple-500 to-purple-600",
+    icon: Users,
+    lightBg: "bg-purple-50",
+    darkBg: "dark:bg-purple-950/30"
+  },
+  "Business Strategy": {
+    gradient: "from-emerald-500 to-emerald-600",
+    icon: Lightbulb,
+    lightBg: "bg-emerald-50",
+    darkBg: "dark:bg-emerald-950/30"
+  },
+  "Finance": {
+    gradient: "from-yellow-500 to-yellow-600",
+    icon: Coins,
+    lightBg: "bg-yellow-50",
+    darkBg: "dark:bg-yellow-950/30"
+  }
+};
+
+export default function LearningTree({ pathType = 'avalanche' }: LearningTreeProps) {
   const [hoveredNode, setHoveredNode] = React.useState<string | null>(null);
   const isMobile = useIsMobile();
+
+  // Select the appropriate learning paths and styles based on pathType
+  const learningPaths = pathType === 'avalanche' ? avalancheLearningPaths : entrepreneurLearningPaths;
+  const categoryStyles = pathType === 'avalanche' ? avalancheCategoryStyles : entrepreneurCategoryStyles;
 
   // Function to get all ancestor nodes (dependencies) of a given node
   const getAncestors = (nodeId: string, ancestors: Set<string> = new Set()): Set<string> => {
@@ -171,7 +272,7 @@ export default function LearningTree() {
   }, [hoveredNode]);
 
   // Calculate SVG dimensions based on node positions
-  const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 200;
+  const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 250;
 
   const drawConnections = () => {
     const connections: React.JSX.Element[] = [];
