@@ -4,21 +4,10 @@
     "root": true,
     "pages": [
         "index",
-        "---Basics---",
-        "...01-basics",
-        "---Advanced Native Tokens---",
-        "...02-native-tokens",
-        "---Multi-Chain Ecosystems---",
-        "...03-multi-chain-ecosystems",
-        "---Staking---",
-        "...04-staking",
-        "---Transaction Fees---",
-        "...05-transaction-fees",
-        "---Token Distribution---",
-        "...06-distribution",
-        "---Governance---",
-        "...07-governance",
-        "---Conclusion---",
-        "certificate"
+        "---Token Basics---",
+        "...01-tokens101",
+        "---Custom Tokens---",
+        "...02-custom-tokens",
+        "More coming soon..."
     ]
 }
