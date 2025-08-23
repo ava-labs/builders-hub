@@ -1,0 +1,98 @@
+---
+title: ERC-20 Tokens
+description: Learn about ERC-20 tokens and their role in blockchain ecosystems.
+updated: 2024-09-03
+authors: [0xstt]
+icon: Book
+---
+
+While a blockchain has a single **native token**, the **ERC-20** token standard was developed to allow for the representation of a wide range of assets on EVM-compatible chains. 
+
+**ERC** stands for **Ethereum Request for Comment**, and **20** is the identifier for the specific proposal that defines the standard.
+
+ERC-20 tokens are **fungible**, meaning each token is identical to another and can be exchanged on a one-to-one basis. These tokens are created and managed through smart contracts that adhere to the ERC-20 standard, ensuring interoperability between different tokens and decentralized applications (DApps).
+
+---
+
+### ERC-20 Token Architecture
+
+At the core of every ERC-20 token is a simple **mapping** of addresses to balances, representing the number of tokens an address holds.
+
+```solidity
+abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
+    
+  mapping(address account => uint256) private _balances;
+  
+  //...
+}
+```
+
+Addresses holding ERC-20 tokens can belong to either **Externally Owned Accounts (EOAs)** or **smart contracts**. Both types of accounts can store and transfer ERC-20 tokens, making ERC-20 tokens versatile in decentralized finance (DeFi) and decentralized applications.
+
+---
+
+### Role of ERC-20 Tokens in Blockchain Ecosystems
+
+ERC-20 tokens play an essential role in enabling the creation of decentralized applications with various functionalities:
+
+- **Tokenized Assets**: ERC-20 tokens can represent anything from digital currencies to tokenized real-world assets.
+- **DeFi Protocols**: Many DeFi protocols use ERC-20 tokens for lending, staking, and liquidity pools.
+- **Token Sales**: ICOs (Initial Coin Offerings) and other fundraising models rely heavily on ERC-20 tokens.
+
+---
+
+### The ERC-20 Interface
+
+All ERC-20 tokens follow a standard interface to ensure compatibility with decentralized applications (DApps). This allows tokens to be easily transferred, approved for spending, and managed by any DApp that follows the same rules.
+
+```solidity
+interface IERC20 {
+    function name() external view returns (string memory);
+
+    function symbol() external view returns (string memory);
+
+    function decimals() external view returns (uint8);
+
+    function totalSupply() external view returns (uint256);
+
+    function balanceOf(address _owner) external view returns (uint256 balance);
+
+    function transfer(address _to, uint256 _value) external returns (bool success);
+
+    function transferFrom(address _from, address _to, uint256 _value) external returns (bool success);
+
+    function approve(address _spender, uint256 _value) external returns (bool success);
+
+    function allowance(address _owner, address _spender) external view returns (uint256 remaining);
+}
+```
+
+You can review the full **ERC-20 standard** [here](https://eips.ethereum.org/EIPS/eip-20).
+
+---
+
+### Transferring ERC-20 Tokens
+
+To transfer ERC-20 tokens between accounts, you use the `transfer()` function, where the sender specifies the recipient’s address and the amount to be transferred.
+
+For more complex interactions, such as allowing a smart contract to transfer tokens on behalf of someone else, the ERC-20 standard includes the `approve()` and `transferFrom()` functions. 
+
+
+<Accordions>
+<Accordion title="transfer()">
+Transfers tokens from the sender’s account to another account, decreasing the sender's balance and increasing the recipient’s.
+</Accordion>
+<Accordion title="approve()">
+This function allows the owner of a token balance to approve another account (the **spender**) to withdraw up to a specified amount of tokens. The spender can withdraw from the owner's balance multiple times, as long as the total amount doesn’t exceed the approved limit.
+</Accordion>
+<Accordion title="allowance()">
+The `allowance()` function returns the amount that a spender is still allowed to withdraw from an owner's balance.
+</Accordion>
+<Accordion title="transferFrom()">
+This function facilitates the transfer of tokens from one account to another on behalf of the account owner. It is typically used in scenarios where smart contracts need to execute token transfers according to the contract's logic.
+</Accordion>
+</Accordions>
+
+---
+
+ERC-20 tokens revolutionized the blockchain space by enabling the tokenization of assets and simplifying the creation of decentralized applications. Their standardization ensures compatibility across platforms and DApps, making them an integral part of the broader crypto ecosystem.
