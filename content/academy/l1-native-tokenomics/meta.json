@@ -1,0 +1,13 @@
+{
+    "title": "L1 Native Tokenomics",
+    "icon": "HandCoins",
+    "root": true,
+    "pages": [
+        "index",
+        "---Token Basics---",
+        "...01-tokens101",
+        "---Custom Native Tokens---",
+        "...02-custom-tokens",
+        "More coming soon..."
+    ]
+}

@@ -87,6 +87,18 @@ const officialCourses: Course[] = [
         category: "L1 Development"
     },
     {
+        name: "L1 Native Tokenomics",
+        description: "Learn how to design and deploy tokenomics for your Avalanche L1",
+        slug: "l1-tokenomics",
+        icon: <Coins />,
+        duration: "2 hours",
+        status: "featured",
+        tools: ["Avalanche CLI", "ICM"],
+        languages: ["Solidity"],
+        instructors: ["Martin Eckardt", "Owen Wahlgren", "Sarp", "Nicolas Arnedo"],
+        category: "L1 Development"
+    },
+    {
         name: "L1 Validator Management",
         description: "Learn how to manage your Avalanche L1 Validators",
         slug: "l1-validator-management",
