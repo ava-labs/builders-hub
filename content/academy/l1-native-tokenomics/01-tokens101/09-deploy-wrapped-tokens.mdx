@@ -7,15 +7,23 @@ icon: Terminal
 ---
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-In this section, we will deploy and interact with a wrapped token using **Forge** and **cast** commands. Forge simplifies smart contract deployment, and cast allows you to interact with deployed contracts.
+In this section, we will deploy and interact with a wrapped token using the Dev Console.
 
 ---
 
 <Steps>
 <Step>
 
-#### 1. Write the Wrapped Token Contract
-Here is a basic implementation of a wrapped token contract in Solidity:
+#### 1. Deploy Wrapped Native Token with the Dev Console
+Use the Dev Console to deploy a wrapped native token without setting up a local project.
+
+Steps:
+- Open the Dev Console → L1 → Genesis Builder
+- Go to “Pre-Deployed Contracts” and enable “Wrapped Native Token”
+- Generate the genesis and launch your L1 (or use your existing L1 if already configured)
+- After launch, note the Wrapped Token address shown for your L1 in the Dev Console
+
+If you need a reference implementation, here is a minimal wrapper in Solidity:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -43,12 +51,9 @@ contract WrappedToken is ERC20 {
 </Step>
 <Step>
 
-### Deploy ERC20 Receiver
-Deploy the Contract Using Forge's `create` Command
+### Open the Dev Console Inline
 
-```bash
-forge create --rpc-url myblockchain --private-key $PK WrappedToken.sol:WrappedToken --broadcast
-```
+<ToolboxMdxWrapper />
 
 </Step>
 
@@ -67,8 +72,7 @@ export WRAPPED_TOKEN=<address>
 <Step>
 
 ### Interacting with the Deployed Contract
-
-Once the contract is deployed, you can interact with it using **cast** commands.
+Once the wrapper is deployed via the Dev Console, you can interact with it using the console tools or any ERC‑20 compatible wallet/tooling.
 
 
 <Accordions>
