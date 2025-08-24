@@ -4,7 +4,7 @@
     "root": true,
     "pages": [
         "index",
-        "economics",
+        "dappVsL1",
         "---Tokens 101---",
         "...01-tokens101"
     ]
