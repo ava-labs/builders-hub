@@ -3,12 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  Home, 
-  Layers,  
+import {
+  Home,
+  Layers,
   MessagesSquare,
-  Wrench, 
-  Droplets, 
+  Wrench,
+  Droplets,
   ArrowLeft,
   Shield,
   Network,
@@ -55,10 +55,10 @@ const data = {
       icon: Home,
     },
     {
-        title: "Back to Builder Hub",
-        url: "/",
-        icon: ArrowLeft,
-      },
+      title: "Back to Builder Hub",
+      url: "/",
+      icon: ArrowLeft,
+    },
   ],
   navGroups: [
     {
@@ -229,6 +229,11 @@ const data = {
           url: "/console/ictt/token-transfer",
           icon: ArrowLeftRight,
         },
+        {
+          title: "Wrapped Native Token",
+          url: "/console/ictt/wrapped-native-token",
+          icon: Coins,
+        },
       ],
     },
     {
@@ -246,10 +251,10 @@ const data = {
   navSecondary: [],
 };
 
-interface ConsoleSidebarProps extends React.ComponentProps<typeof Sidebar> {}
+interface ConsoleSidebarProps extends React.ComponentProps<typeof Sidebar> { }
 
-export function ConsoleSidebar({ 
-  ...props 
+export function ConsoleSidebar({
+  ...props
 }: ConsoleSidebarProps) {
   const pathname = usePathname();
   return (
@@ -263,7 +268,7 @@ export function ConsoleSidebar({
           <span className="font-large font-semibold">Builder Console</span>
         </Link>
       </SidebarHeader>
-      
+
       <SidebarContent>
         {/* Main Navigation */}
         <SidebarGroup>
@@ -272,8 +277,8 @@ export function ConsoleSidebar({
               const isActive = pathname === item.url;
               return (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
+                  <SidebarMenuButton
+                    asChild
                     isActive={isActive}
                   >
                     <Link href={item.url}>
@@ -300,14 +305,14 @@ export function ConsoleSidebar({
                   const isComingSoon = 'comingSoon' in item && (item as any).comingSoon;
                   return (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton 
+                      <SidebarMenuButton
                         asChild
                         isActive={isActive}
                         className={`${isComingSoon ? 'opacity-50 cursor-not-allowed' : ''}`}
                         disabled={isComingSoon}
                       >
 
-                        
+
                         {isComingSoon ? (
                           <Link href="#">
                             <item.icon />
