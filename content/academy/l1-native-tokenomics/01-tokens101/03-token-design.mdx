@@ -1,0 +1,71 @@
+---
+title: Token Design
+description: Technical parameters that shape how a token behaves on-chain.
+updated: 2024-09-03
+authors: [0xstt]
+icon: BookOpen
+---
+
+Designing a token can also have technical approach: choices you make in the contract (or at the protocol level for native tokens) determine precision, issuance, transfer rules, permissions, gas usage, and composability. Below are the core levers to consider when specifying a token
+
+### Decimals (Precision)
+
+Defines the smallest unit and affects UX, pricing, rounding, and integrations.
+
+- 6 decimals → smallest unit is 0.000001
+- 18 decimals → smallest unit is 0.000000000000000001 (common on EVM)
+
+Implementation detail: ERC‑20 exposes `decimals()`; native tokens inherit precision from the chain/protocol.
+
+---
+
+### Total Supply and Issuance Model
+
+Specify whether supply is fixed at deployment or elastic over time.
+
+- Fixed supply: immutable cap set in constructor/genesis
+- Elastic supply: emissions/vesting/mint/burn mechanisms adjust supply
+- Programmatic schedules vs role‑gated actions
+
+---
+
+### Minting and Burning Functions
+
+Control how supply can change post‑deployment.
+
+- `mint(address,toAmount)`: who can call (owner, `MINTER_ROLE`)? caps?
+- `burn(amount)` / `burnFrom(address,amount)`: opt‑in user burn vs admin burn
+- Event emissions (`Transfer` from/to zero address) for indexers
+
+---
+
+### Transfer Mechanics
+
+Define how balances move and what hooks apply.
+
+- Plain ERC‑20 `transfer/transferFrom`
+- Fee/tax on transfer (discouraged for DeFi composability)
+- Blacklist/whitelist or trading windows (be careful: centralization + DEX issues)
+- Pausable transfers (circuit breakers via `Pausable`)
+
+### Allowance and Approvals
+
+Permissions for third‑party spenders.
+
+- Standard `approve/allowance/transferFrom`
+- EIP‑2612 Permit (gasless approvals via signatures)
+- Race‑condition safe patterns (set to 0 then new amount)
+
+---
+
+### Access Control and Roles
+
+Who can mint, pause, upgrade, or change parameters.
+
+- `Ownable` vs `AccessControl` (role‑based: `MINTER_ROLE`, `PAUSER_ROLE`)
+- Timelocks and multisig admins for safer governance changes
+
+---
+
+
+Choosing these parameters up front ensures your token remains secure, composable, and easy to integrate while matching the precision, control, and lifecycle you intend.

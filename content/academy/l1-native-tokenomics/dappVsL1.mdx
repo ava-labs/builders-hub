@@ -1,0 +1,33 @@
+---
+title: Dapp's and L1's
+description: Listing tokenomics and infrastructure requirements to understand whether creating an L1 is neccessary for your business-case
+updated: 2025-08-21
+authors: [nicolasarnedo]
+icon: Microscope
+---
+
+So far you have learnt a lot of the basics around blockchains, how they work, architecture, consensus mechanism's, smart contract's, and also Avalanche-specific concepts. Before reading through this course however, now is a good moment to reflect on whether your use-case requires it's own L1 and native tokenomics.
+
+In order to do this, there are several economic factors which will dictate if we should deploy an application on a public blockchain (Avalanche C-chain, Ethereum) or create our own custom Layer 1 (L1) blockchain. Let's look into them...
+
+### Transaction Volume and Value
+If your application processes a high volume of low-value transactions, a custom L1 may be more cost-effective in the long run. Conversely, if your application handles only a few high-value transactions, the cost savings may not justify the complexity of running a separate L1.
+
+### Fee Stability
+On a public blockchain, you are at the mercy of network-wide fee fluctuations. With a custom L1, you can ensure fee stability, which is crucial for budgeting and long-term planning.
+
+### Data Control and Customization
+You can control who interacts with your application equally when deploying an app to a public chain vs on your own L1, but if you want to have more control on the data; who can deploy smart contracts, isolating your data for compliance/KYC reasons, or who can validate transactions, then you will absolutely need an L1.
+
+If you do have to create an L1 - the primary cost of running it is the infrastructure required to support the validator set. Once you establish an appropriate number of validators based on your security requirements, the operational costs become mostly fixed. These costs are independent of the number and complexity of the transactions processed on your chain, providing predictable financial outlays as your application scales.
+
+### Token Location
+Choose based on where your security and token economics must live. If your token must be native to the protocol (gas token, staking/slashing, fee burn/distribution, protocol‑level issuance or supply rules) and you need validator/permissioning guarantees, a custom L1 is appropriate. If your token’s utility is application‑level (access, rewards, governance without base‑fee mechanics) and you benefit from public‑chain security and liquidity, a dApp with an ERC‑20 on a public chain is the simpler path. Decide whether the required guarantees are protocol‑layer (L1) or app‑layer (public chain).
+
+Launching a blockchain application on a public permissionless blockchain or spinning up your own L1 on Avalanche is a decision that depends heavily on your application's transaction profile and economic model. Ultimately, the decision should be driven by a careful analysis of your transaction patterns, user experience goals, what will be the token utilty and the potential for fee volatility in public networks. By weighing these factors, you can make an informed decision that aligns with your application's long-term success.
+
+#### *Use-case Example*
+
+*Gaming application where users frequently make micro-transactions, high transaction fees on a public blockchain could be a significant barrier to user retention. By deploying your own L1, you can minimize or even eliminate these fees, thereby enhancing the user experience and driving higher engagement. This is particularly relevant for applications that target mainstream audiences, where a seamless and cost-effective user experience is paramount.*
+
+**Live Proof**: [Off The Grid](https://gunzillagames.com/en/) uses a dedicated Avalanche L1 to power a player‑driven economy with on‑chain item ownership (NFTs) and currency ($GUNZ).
