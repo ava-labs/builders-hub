@@ -163,7 +163,7 @@ export function ValidatorWorldMap() {
             <Globe className="h-5 w-5" style={{ color: "#40c9ff" }} />
             Global Validator Distribution
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="pt-2">
             Geographic distribution of Avalanche Primary Network validators
             worldwide
           </CardDescription>
@@ -183,7 +183,7 @@ export function ValidatorWorldMap() {
             <Globe className="h-5 w-5" style={{ color: "#40c9ff" }} />
             Global Validator Distribution
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="pt-2">
             Geographic distribution of Avalanche Primary Network validators
             worldwide
           </CardDescription>
@@ -236,7 +236,7 @@ export function ValidatorWorldMap() {
               <Globe className="h-5 w-5" style={{ color: "#40c9ff" }} />
               Global Validator Distribution
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="pt-2">
               Geographic distribution of Avalanche Primary Network validators
               worldwide
             </CardDescription>
@@ -275,17 +275,23 @@ export function ValidatorWorldMap() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="pt-4 px-0 pb-0">
         <div className="h-[500px] w-full">
           <MapContainer
             center={[20, 0]}
             zoom={2}
             style={{ height: "100%", width: "100%" }}
-            scrollWheelZoom={true}
+            scrollWheelZoom={false}
+            zoomControl={false}
+            dragging={true}
+            touchZoom={false}
+            doubleClickZoom={false}
+            boxZoom={false}
+            keyboard={false}
           >
             <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             />
             {geoData.map((country, index) => {
               const isHovered = hoveredCountry === country.countryCode;
@@ -374,65 +380,6 @@ export function ValidatorWorldMap() {
               );
             })}
           </MapContainer>
-        </div>
-
-        {/* Legend */}
-        <div className="p-4 border-t bg-muted/20">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-4">
-              <span className="text-muted-foreground">
-                {visualMode === "validators" && "Validator Count:"}
-                {visualMode === "stake" && "Stake Amount:"}
-                {visualMode === "heatmap" && "Network Share:"}
-              </span>
-              {visualMode === "heatmap" ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-sky-600"></div>
-                    <span>Lowest</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-lime-600"></div>
-                    <span>Low</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-amber-600"></div>
-                    <span>Medium</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-orange-600"></div>
-                    <span>High</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-red-600"></div>
-                    <span>Highest</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span>Low</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
-                    <span>Medium</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-orange-500"></div>
-                    <span>High</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-red-500"></div>
-                    <span>Very High</span>
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="text-muted-foreground">
-              Total Countries: {geoData.length} | Mode: {visualMode}
-            </div>
-          </div>
         </div>
       </CardContent>
     </Card>

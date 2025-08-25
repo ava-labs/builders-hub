@@ -1,4 +1,5 @@
 "use client";
+
 import * as React from "react";
 import { useState, useEffect } from "react";
 import {
@@ -6,7 +7,7 @@ import {
   AreaChart,
   CartesianGrid,
   XAxis,
-  YAxis,
+  Label,
   Pie,
   PieChart,
   ReferenceLine,
@@ -27,7 +28,14 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import DateRangeFilter from "@/components/ui/DateRangeFilter";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Landmark,
   Shield,
@@ -37,12 +45,11 @@ import {
   HandCoins,
 } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
-import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 
 interface TimeSeriesDataPoint {
   timestamp: number;
   value: number | string;
-  date: string;
+  date: string; // ISO date string for easy formatting
 }
 
 interface TimeSeriesMetric {
@@ -66,11 +73,40 @@ interface ChartDataPoint {
   value: number;
 }
 
+interface ValidatorInfo {
+  txHash: string;
+  nodeId: string;
+  subnetId: string;
+  amountStaked: string;
+  delegationFee: string;
+  startTimestamp: number;
+  endTimestamp: number;
+  blsCredentials: {
+    publicKey: string;
+    proofOfPossession: string;
+  };
+  delegatorCount: number;
+  amountDelegated: string;
+  rewards: {
+    validationRewardAmount: string;
+    delegationRewardAmount: string;
+    rewardAddresses: string[];
+    rewardTxHash: string;
+  };
+  validationStatus: string;
+  avalancheGoVersion?: string; // This is what we're looking for
+}
+
+interface ValidatorsResponse {
+  nextPageToken?: string;
+  validators: ValidatorInfo[];
+}
+
 interface VersionCount {
   version: string;
   count: number;
   percentage: number;
-  amountStaked: number;
+  amountStaked: number; // in AVAX
   stakingPercentage: number;
 }
 
@@ -194,28 +230,6 @@ export default function PrimaryNetworkMetrics() {
     })} AVAX`;
   };
 
-  const formatWeightForAxis = (weight: number | string): string => {
-    if (weight === "N/A" || weight === "") return "N/A";
-    const numValue =
-      typeof weight === "string" ? Number.parseFloat(weight) : weight;
-    if (isNaN(numValue)) return "N/A";
-
-    const avaxValue = numValue / 1e9;
-
-    if (avaxValue >= 1e12) {
-      return `${(avaxValue / 1e12).toFixed(2)}T`;
-    } else if (avaxValue >= 1e9) {
-      return `${(avaxValue / 1e9).toFixed(2)}B`;
-    } else if (avaxValue >= 1e6) {
-      return `${(avaxValue / 1e6).toFixed(2)}M`;
-    } else if (avaxValue >= 1e3) {
-      return `${(avaxValue / 1e3).toFixed(2)}K`;
-    }
-    return avaxValue.toLocaleString(undefined, {
-      maximumFractionDigits: 2,
-    });
-  };
-
   const getChartData = (
     metricKey: keyof Pick<
       PrimaryNetworkMetrics,
@@ -235,12 +249,16 @@ export default function PrimaryNetworkMetrics() {
             ? parseFloat(point.value)
             : point.value,
       }))
-      .reverse();
+      .reverse(); // Reverse to show oldest to newest
   };
 
+  // Helper function to get year boundaries for vertical separators
   const getYearBoundaries = (data: ChartDataPoint[]): string[] => {
     if (timeRange !== "all" || data.length === 0) return [];
+
     const yearMap = new Map<number, string>();
+
+    // Find the first occurrence of each year
     data.forEach((point) => {
       const date = new Date(point.day);
       const year = date.getFullYear();
@@ -249,19 +267,23 @@ export default function PrimaryNetworkMetrics() {
       }
     });
 
+    // Sort years and return boundaries (skip the first year to avoid line at beginning)
     const sortedYears = Array.from(yearMap.keys()).sort((a, b) => a - b);
     return sortedYears.slice(1).map((year) => yearMap.get(year)!);
   };
 
+  // Helper function to format dates based on time range
   const formatDateLabel = (dateString: string): string => {
     const date = new Date(dateString);
 
     if (timeRange === "all") {
+      // For all-time data, show year and month for better context
       return date.toLocaleDateString("en-US", {
         month: "short",
         year: "numeric",
       });
     } else {
+      // For shorter periods, show just month/day
       return date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
@@ -269,16 +291,19 @@ export default function PrimaryNetworkMetrics() {
     }
   };
 
+  // Helper function to format tooltip dates with more detail
   const formatTooltipDate = (dateString: string): string => {
     const date = new Date(dateString);
 
     if (timeRange === "all") {
+      // For all-time data, show full date
       return date.toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",
       });
     } else {
+      // For shorter periods, show month/day/year
       return date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
@@ -287,6 +312,7 @@ export default function PrimaryNetworkMetrics() {
     }
   };
 
+  // Helper function to format tooltip values with context-specific labels
   const formatTooltipValue = (value: number, metricKey: string): string => {
     switch (metricKey) {
       case "validator_count":
@@ -337,8 +363,10 @@ export default function PrimaryNetworkMetrics() {
     }
 
     const data = metrics[metricKey].data;
-    const currentValue = data[0];
-    let comparisonIndex = 1;
+    const currentValue = data[0]; // Most recent value
+
+    // Calculate comparison point based on time range
+    let comparisonIndex = 1; // Default to 1 day ago
     switch (timeRange) {
       case "7d":
         comparisonIndex = Math.min(7, data.length - 1);
@@ -350,7 +378,7 @@ export default function PrimaryNetworkMetrics() {
         comparisonIndex = Math.min(90, data.length - 1);
         break;
       case "all":
-        comparisonIndex = data.length - 1;
+        comparisonIndex = data.length - 1; // Compare to oldest available data
         break;
     }
 
@@ -382,6 +410,7 @@ export default function PrimaryNetworkMetrics() {
     };
   };
 
+  // Prepare pie chart data
   const getPieChartData = () => {
     if (!validatorVersions.length) return [];
 
@@ -391,10 +420,11 @@ export default function PrimaryNetworkMetrics() {
       percentage: version.percentage,
       amountStaked: version.amountStaked,
       stakingPercentage: version.stakingPercentage,
-      fill: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`,
+      fill: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`, // Direct color values
     }));
   };
 
+  // Generate chart config for versions
   const getVersionsChartConfig = (): ChartConfig => {
     const config: ChartConfig = {
       count: {
@@ -405,7 +435,7 @@ export default function PrimaryNetworkMetrics() {
     validatorVersions.forEach((version, index) => {
       config[version.version] = {
         label: version.version,
-        color: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`,
+        color: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`, // Blue variations
       };
     });
 
@@ -454,7 +484,7 @@ export default function PrimaryNetworkMetrics() {
       chartConfig: {
         value: {
           label: "Delegator Count",
-          color: "#8b5cf6",
+          color: "#40c9ff",
         },
       } satisfies ChartConfig,
     },
@@ -468,7 +498,7 @@ export default function PrimaryNetworkMetrics() {
       chartConfig: {
         value: {
           label: "Delegator Weight",
-          color: "#a855f7",
+          color: "#40c9ff",
         },
       } satisfies ChartConfig,
     },
@@ -545,7 +575,7 @@ export default function PrimaryNetworkMetrics() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
+      <div className="container mx-auto mt-4 p-6 space-y-12">
         <div className="space-y-2">
           <div>
             <h1 className="text-2xl md:text-5xl mb-4">
@@ -574,15 +604,12 @@ export default function PrimaryNetworkMetrics() {
                   className="text-center p-6 rounded-lg bg-card border"
                 >
                   <div className="flex items-center justify-center gap-2 mb-3">
-                    <Icon
-                      className="h-5 w-5"
-                      style={{ color: config.chartConfig.value.color }}
-                    />
+                    <Icon className="h-5 w-5" style={{ color: "#40c9ff" }} />
                     <p className="text-sm text-muted-foreground">
                       {config.title}
                     </p>
                   </div>
-                  <p className="text-3xl font-mono font-semibold">
+                  <p className="text-xl font-mono font-semibold">
                     {config.metricKey.includes("weight")
                       ? formatWeight(currentValue)
                       : formatNumber(currentValue)}
@@ -618,26 +645,102 @@ export default function PrimaryNetworkMetrics() {
                         <CardTitle className="flex items-center gap-2 font-medium">
                           <Icon
                             className="h-5 w-5"
-                            style={{ color: config.chartConfig.value.color }}
+                            style={{ color: "#40c9ff" }}
                           />
                           {config.title}
                         </CardTitle>
                         <CardDescription>{config.description}</CardDescription>
                       </div>
+                      {/* Replaced CardAction with direct div and moved controls to header */}
                       <div className="flex items-center gap-2 px-2">
-                        <DateRangeFilter
-                          defaultRange={timeRange}
-                          onRangeChange={(range) => {
+                        <ToggleGroup
+                          type="single"
+                          value={timeRange}
+                          onValueChange={(value) => {
                             if (
-                              range === "7d" ||
-                              range === "30d" ||
-                              range === "90d" ||
-                              range === "all"
+                              value &&
+                              (value === "7d" ||
+                                value === "30d" ||
+                                value === "90d" ||
+                                value === "all")
                             ) {
-                              setTimeRange(range);
+                              setTimeRange(value);
                             }
                           }}
-                        />
+                          className="hidden sm:flex bg-gray-100 dark:bg-gray-800 border-0 rounded-full p-0.5 shadow-sm mx-2"
+                        >
+                          <ToggleGroupItem
+                            value="7d"
+                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
+                          >
+                            7d
+                          </ToggleGroupItem>
+                          <ToggleGroupItem
+                            value="30d"
+                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
+                          >
+                            30d
+                          </ToggleGroupItem>
+                          <ToggleGroupItem
+                            value="90d"
+                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
+                          >
+                            90d
+                          </ToggleGroupItem>
+                          <ToggleGroupItem
+                            value="all"
+                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
+                          >
+                            All
+                          </ToggleGroupItem>
+                        </ToggleGroup>
+                        <Select
+                          value={timeRange}
+                          onValueChange={(value: string) => {
+                            if (
+                              value === "7d" ||
+                              value === "30d" ||
+                              value === "90d" ||
+                              value === "all"
+                            ) {
+                              setTimeRange(value);
+                            }
+                          }}
+                        >
+                          <SelectTrigger
+                            className="w-20 h-6 sm:hidden bg-gray-100 dark:bg-gray-800 border-0 rounded-full text-gray-700 dark:text-gray-300 shadow-sm font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-md hover:scale-102 transition-all duration-200 ease-out text-xs px-4 min-w-[2.5rem]"
+                            size="sm"
+                            aria-label="Select a value"
+                          >
+                            <SelectValue placeholder="30d" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl bg-white dark:bg-gray-800 border-0 shadow-lg p-1 w-32">
+                            <SelectItem
+                              value="7d"
+                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
+                            >
+                              7d
+                            </SelectItem>
+                            <SelectItem
+                              value="30d"
+                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
+                            >
+                              30d
+                            </SelectItem>
+                            <SelectItem
+                              value="90d"
+                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
+                            >
+                              90d
+                            </SelectItem>
+                            <SelectItem
+                              value="all"
+                              className="rounded-full text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
+                            >
+                              All
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </CardHeader>
@@ -704,20 +807,6 @@ export default function PrimaryNetworkMetrics() {
                               'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
                           }}
                         />
-                        <YAxis
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={8}
-                          tickFormatter={(value) =>
-                            config.metricKey.includes("weight")
-                              ? formatWeightForAxis(value)
-                              : formatNumber(value)
-                          }
-                          tick={{
-                            fontFamily:
-                              'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                          }}
-                        />
                         <ChartTooltip
                           cursor={false}
                           content={
@@ -731,12 +820,13 @@ export default function PrimaryNetworkMetrics() {
                                   value as number,
                                   config.metricKey
                                 ),
-                                "",
+                                "", // Empty string for cleaner tooltip (removes duplicate title)
                               ]}
                               className="font-mono"
                             />
                           }
                         />
+                        {/* Year separator lines for all-time data */}
                         {timeRange === "all" &&
                           getYearBoundaries(chartData).map(
                             (yearBoundary, idx) => (
@@ -1006,9 +1096,6 @@ export default function PrimaryNetworkMetrics() {
           <ValidatorWorldMap />
         </section>
       </div>
-
-      {/* Bubble Navigation */}
-      <BubbleNavigation />
     </div>
   );
 }
