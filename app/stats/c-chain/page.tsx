@@ -24,7 +24,14 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import DateRangeFilter from "@/components/ui/DateRangeFilter";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Users,
   Activity,
@@ -42,7 +49,6 @@ import {
   Clock,
   Fuel,
 } from "lucide-react";
-import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 
 interface TimeSeriesDataPoint {
   timestamp: number;
@@ -683,7 +689,7 @@ export default function CChainMetrics() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
+      <div className="container mx-auto mt-4 p-6 space-y-12">
         <div className="space-y-2">
           <div>
             <h1 className="text-2xl md:text-5xl mb-4">
@@ -792,19 +798,94 @@ export default function CChainMetrics() {
                         <CardDescription>{config.description}</CardDescription>
                       </div>
                       <div className="flex items-center gap-2 px-2">
-                        <DateRangeFilter
-                          defaultRange={timeRange}
-                          onRangeChange={(range) => {
+                        <ToggleGroup
+                          type="single"
+                          value={timeRange}
+                          onValueChange={(value) => {
                             if (
-                              range === "7d" ||
-                              range === "30d" ||
-                              range === "90d" ||
-                              range === "all"
+                              value &&
+                              (value === "7d" ||
+                                value === "30d" ||
+                                value === "90d" ||
+                                value === "all")
                             ) {
-                              setTimeRange(range);
+                              setTimeRange(value);
                             }
                           }}
-                        />
+                          className="hidden sm:flex bg-gray-100 dark:bg-gray-800 border-0 rounded-full p-0.5 shadow-sm mx-2"
+                        >
+                          <ToggleGroupItem
+                            value="7d"
+                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
+                          >
+                            7d
+                          </ToggleGroupItem>
+                          <ToggleGroupItem
+                            value="30d"
+                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
+                          >
+                            30d
+                          </ToggleGroupItem>
+                          <ToggleGroupItem
+                            value="90d"
+                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
+                          >
+                            90d
+                          </ToggleGroupItem>
+                          <ToggleGroupItem
+                            value="all"
+                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
+                          >
+                            All
+                          </ToggleGroupItem>
+                        </ToggleGroup>
+                        <Select
+                          value={timeRange}
+                          onValueChange={(value: string) => {
+                            if (
+                              value === "7d" ||
+                              value === "30d" ||
+                              value === "90d" ||
+                              value === "all"
+                            ) {
+                              setTimeRange(value);
+                            }
+                          }}
+                        >
+                          <SelectTrigger
+                            className="w-20 h-6 sm:hidden bg-gray-100 dark:bg-gray-800 border-0 rounded-full text-gray-700 dark:text-gray-300 shadow-sm font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-md hover:scale-102 transition-all duration-200 ease-out text-xs px-4 min-w-[2.5rem]"
+                            size="sm"
+                            aria-label="Select a value"
+                          >
+                            <SelectValue placeholder="30d" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl bg-white dark:bg-gray-800 border-0 shadow-lg p-1 w-32">
+                            <SelectItem
+                              value="7d"
+                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
+                            >
+                              7d
+                            </SelectItem>
+                            <SelectItem
+                              value="30d"
+                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
+                            >
+                              30d
+                            </SelectItem>
+                            <SelectItem
+                              value="90d"
+                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
+                            >
+                              90d
+                            </SelectItem>
+                            <SelectItem
+                              value="all"
+                              className="rounded-full text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
+                            >
+                              All
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </CardHeader>
@@ -989,9 +1070,6 @@ export default function CChainMetrics() {
           </div>
         </section>
       </div>
-
-      {/* Bubble Navigation */}
-      <BubbleNavigation />
     </div>
   );
 }

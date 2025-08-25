@@ -8,7 +8,7 @@ const avalanche = new Avalanche({
 interface TimeSeriesDataPoint {
   timestamp: number;
   value: number | string;
-  date: string; // ISO date string for easy formatting
+  date: string;
 }
 
 interface TimeSeriesMetric {
@@ -28,7 +28,7 @@ interface PrimaryNetworkMetrics {
 }
 
 let cachedData: Map<string, { data: PrimaryNetworkMetrics; timestamp: number }> = new Map();
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 1 day for regular data
+const CACHE_DURATION = 24 * 60 * 60 * 1000;
 
 function getTimestampsFromTimeRange(timeRange: string): { startTimestamp: number; endTimestamp: number } {
   const now = Math.floor(Date.now() / 1000);
@@ -45,7 +45,7 @@ function getTimestampsFromTimeRange(timeRange: string): { startTimestamp: number
       startTimestamp = now - (90 * 24 * 60 * 60);
       break;
     case 'all':
-      startTimestamp = 1600646400; // September 21, 2020
+      startTimestamp = 1600646400;
       break;
     default:
       startTimestamp = now - (30 * 24 * 60 * 60);
@@ -133,7 +133,6 @@ function createTimeSeriesMetric(data: TimeSeriesDataPoint[]): TimeSeriesMetric {
 
 async function fetchValidatorVersions() {
   try {
-    console.log('Fetching validator versions from SDK...');
     const result = await avalanche.data.primaryNetwork.getNetworkDetails({});
     
     if (!result?.validatorDetails?.stakingDistributionByVersion) {
@@ -183,8 +182,6 @@ export async function GET(request: Request) {
     }
     
     const startTime = Date.now();
-
-    // Determine if we need to fetch all pages for comprehensive data
     const fetchAllPages = timeRange === 'all' || timeRange === '90d' || timeRange === '30d';
     const pageSize = timeRange === 'all' ? 2000 : timeRange === '90d' ? 500 : 365;
 
@@ -203,7 +200,6 @@ export async function GET(request: Request) {
     ]);
 
     const validatorVersionsJson = JSON.stringify(validatorVersions);
-    console.log('Validator versions JSON:', validatorVersionsJson);
 
     const metrics: PrimaryNetworkMetrics = {
       validator_count: createTimeSeriesMetric(validatorCountData),
