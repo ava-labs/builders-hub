@@ -88,7 +88,7 @@ export const CheckWalletRequirements = ({
 
     if (!state.isActive) {
         return (
-            <div className="flex items-center justify-center p-4 h-[100vh]">
+            <div className="flex items-center justify-center p-4 h-[100vh] not-prose">
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 max-w-md w-full">
                     {/* Header */}
                     <div className="text-center mb-6">
