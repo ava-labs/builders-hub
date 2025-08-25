@@ -8,12 +8,14 @@ import TeamMembers from "./sections/TeamMembers";
 import { Project } from "@/types/showcase";
 import VideoRenderer from "./DemoVideoRenderer";
 import { TeamBadge } from "./sections/TeamBadge";
+import { UserBadge } from "@/types/badge";
 
 
 type Props = {
   project: Project;
+  badges?: UserBadge[];
 };
-export default function ProjectOverview({ project }: Props) {
+export default function ProjectOverview({ project, badges }: Props) {
   
   return (
     <div>
@@ -61,6 +63,7 @@ export default function ProjectOverview({ project }: Props) {
             <TeamMembers
               members={project.members}
               projectName={project.project_name}
+              badges={badges}
             />
           )}
        

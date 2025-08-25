@@ -6,7 +6,7 @@ import {
   getBadgesByHackathonId,
   validateBadge,
 } from "./badge";
-import { Badge, BadgeAwardStatus, ProjectBadge, Requirement } from "@/types/badge";
+import { Badge, BadgeAwardStatus, ProjectBadge, Requirement, UserBadge } from "@/types/badge";
 
 export async function assignBadgeProject(
   body: AssignBadgeBody,
@@ -323,4 +323,43 @@ export async function getProjectBadges(projectId: string): Promise<ProjectBadge[
   }));
 
   return badges as unknown as ProjectBadge[];
+}
+
+export async function getUserBadgesByProjectId(projectId: string): Promise<UserBadge[]> {
+  
+  const project = await prisma.project.findUnique({
+    where: {
+      id: projectId,
+      members: {
+        some: {
+          status: "Confirmed",
+        },
+      },
+    },
+    include: {
+      members: true,
+    },
+  });
+
+  const userBadges = await prisma.userBadge.findMany({
+    where: {
+      user_id: {
+        in: project?.members
+          .map((member) => member.user_id)
+          .filter((id): id is string => id !== null && id !== undefined),
+      },
+
+    },
+    include: {
+      badge: true,
+    },
+  });
+
+  const badgesReturn = userBadges.map((badge) => ({
+    ...badge,
+    name: badge.badge.name,
+    image_path: badge.badge.image_path,
+  }));
+
+  return badgesReturn as unknown as UserBadge[];
 }
