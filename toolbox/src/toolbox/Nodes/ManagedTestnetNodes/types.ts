@@ -19,6 +19,8 @@ export interface NodeRegistration {
     created_at: string;
     expires_at: string;
     status: string;
+    public_key?: string;
+    proof_of_possession?: string;
 }
 
 export interface NodeStatusResponse {

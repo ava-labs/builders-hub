@@ -1,0 +1,96 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getAuthSession } from '@/lib/auth/authSession';
+import { rateLimit } from '@/lib/rateLimit';
+
+export async function getUserId(): Promise<{ userId: string | null; error?: NextResponse }> {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  if (isDevelopment) {
+    return { userId: 'dev-user-id' };
+  }
+  const session = await getAuthSession();
+  if (!session?.user?.id) {
+    return {
+      userId: null,
+      error: NextResponse.json(
+        { 
+          error: 'Authentication required',
+          message: 'Please sign in to access managed testnet nodes'
+        },
+        { status: 401 }
+      )
+    };
+  }
+  return { userId: session.user.id };
+}
+
+// we should have this in avalanche-sdk-ts
+export function validateSubnetId(subnetId: string): boolean {
+  return typeof subnetId === 'string' && subnetId.length >= 40 && subnetId.length <= 60;
+}
+
+export function validateNodeIndex(nodeIndex: string): { valid: boolean; index?: number } {
+  const index = parseInt(nodeIndex, 10);
+  if (isNaN(index) || index < 0) {
+    return { valid: false };
+  }
+  return { valid: true, index };
+}
+
+export function toDateFromEpoch(epoch: number): Date {
+  const ms = epoch > 1e12 ? epoch : epoch * 1000;
+  return new Date(ms);
+}
+
+export function mapNodeRegistration(node: any) {
+  return {
+    id: node.id,
+    subnet_id: node.subnet_id,
+    blockchain_id: node.blockchain_id,
+    node_id: node.node_id,
+    node_index: node.node_index,
+    rpc_url: node.rpc_url,
+    chain_name: node.chain_name,
+    created_at: node.created_at,
+    expires_at: node.expires_at,
+    status: node.status,
+    public_key: node.public_key,
+    proof_of_possession: node.proof_of_possession
+  };
+}
+
+type RateLimitConfig = {
+  dev: { windowMs: number; max: number };
+  prod: { windowMs: number; max: number };
+  identifier: () => Promise<string>;
+};
+
+export function rateLimited(
+  handler: (request: NextRequest) => Promise<NextResponse>,
+  config: RateLimitConfig
+) {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  return rateLimit(handler, {
+    windowMs: isDevelopment ? config.dev.windowMs : config.prod.windowMs,
+    maxRequests: isDevelopment ? config.dev.max : config.prod.max,
+    identifier: config.identifier
+  });
+}
+
+export const NODE_TTL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+
+export function jsonOk(payload: any, status = 200) {
+  return NextResponse.json(payload, { status });
+}
+
+export function jsonError(status: number, message: string, error?: unknown) {
+  if (error) {
+    try {
+      // eslint-disable-next-line no-console
+      console.error(message, typeof error === 'string' ? error.slice(0, 500) : error);
+    } catch {}
+  }
+  return NextResponse.json({ error: 'Error', message }, { status });
+}
+
+
+

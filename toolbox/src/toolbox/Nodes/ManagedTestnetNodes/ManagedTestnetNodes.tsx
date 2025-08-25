@@ -51,6 +51,7 @@ export default function ManagedTestnetNodes() {
     // Show create form state
     const [showCreateForm, setShowCreateForm] = useState(false);
 
+
     const handleLogin = () => {
         window.location.href = "/login";
     };
@@ -176,6 +177,7 @@ export default function ManagedTestnetNodes() {
         }
     };
 
+
     // Load nodes when component mounts
     useEffect(() => {
         fetchNodes();
@@ -238,9 +240,6 @@ export default function ManagedTestnetNodes() {
                 <div className="mb-8 not-prose">
                     <div className="flex items-center justify-between mb-6">
                         <div>
-                            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-1">
-                                Layer 1 Nodes
-                            </h2>
                             <p className="text-sm text-zinc-500 dark:text-zinc-400">
                                 {nodes.length} / 3 active nodes
                             </p>
@@ -255,6 +254,7 @@ export default function ManagedTestnetNodes() {
                         </Button>
                     </div>
                 </div>
+
 
                 {/* Create Node Form */}
                 {showCreateForm && (

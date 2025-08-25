@@ -32,8 +32,6 @@ export default function NodeCard({
     isDeletingNode 
 }: NodeCardProps) {
     const [expanded, setExpanded] = useState(false);
-    const [apiResponse, setApiResponse] = useState<any>(null);
-    const [loadingApiResponse, setLoadingApiResponse] = useState(false);
 
     const timeRemaining = calculateTimeRemaining(node.expires_at);
     const statusData = getStatusData(timeRemaining);
@@ -51,37 +49,8 @@ export default function NodeCard({
         }
     };
 
-    const toggleExpanded = async () => {
-        if (expanded) {
-            setExpanded(false);
-        } else {
-            setExpanded(true);
-
-            if (!apiResponse) {
-                setLoadingApiResponse(true);
-                
-                try {
-                    const response = await fetch('/api/managed-testnet-nodes', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ 
-                            action: 'status',
-                            subnetId: node.subnet_id 
-                        })
-                    });
-
-                    const data = await response.json();
-                    setApiResponse(data);
-                } catch (error) {
-                    console.error('Failed to fetch API response:', error);
-                    setApiResponse({ error: 'Failed to fetch API response' });
-                } finally {
-                    setLoadingApiResponse(false);
-                }
-            }
-        }
+    const toggleExpanded = () => {
+        setExpanded(prev => !prev);
     };
 
     return (
@@ -251,75 +220,38 @@ export default function NodeCard({
                     {expanded && (
                         <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                             <div className="flex items-center justify-between mb-2">
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Subnet Status:</p>
-                                {apiResponse && !loadingApiResponse && (
-                                    <button
-                                        onClick={() => onCopyToClipboard(JSON.stringify(apiResponse, null, 2), "Subnet Status")}
-                                        className="p-1 rounded bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                                        title="Copy Subnet Status"
-                                    >
-                                        <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
-                                    </button>
-                                )}
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Node Info (JSON-RPC 2.0):</p>
+                                <button
+                                    onClick={() => onCopyToClipboard(JSON.stringify({
+                                        jsonrpc: "2.0",
+                                        result: {
+                                            nodeID: node.node_id,
+                                            nodePOP: {
+                                                publicKey: node.public_key || "",
+                                                proofOfPossession: node.proof_of_possession || ""
+                                            }
+                                        },
+                                        id: 1
+                                    }, null, 2), "Node Info")}
+                                    className="p-1 rounded bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+                                    title="Copy Node Info JSON"
+                                >
+                                    <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
+                                </button>
                             </div>
-                            {loadingApiResponse ? (
-                                <div className="flex items-center justify-center py-4">
-                                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-solid border-gray-300 border-r-transparent"></div>
-                                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading subnet status...</span>
-                                </div>
-                            ) : (
-                                (() => {
-                                    const status = apiResponse;
-                                    if (status?.error) {
-                                        return (
-                                            <div className="text-sm text-red-600 dark:text-red-400 p-2 bg-red-50 dark:bg-red-900/20 rounded">
-                                                Error: {status.error}
-                                            </div>
-                                        );
-                                    }
-                                    
-                                    if (status?.nodes && Array.isArray(status.nodes)) {
-                                        return (
-                                            <div className="space-y-2">
-                                                <div className="text-sm text-gray-600 dark:text-gray-400">
-                                                    Total nodes: {status.nodes.length}
-                                                </div>
-                                                {status.nodes.map((nodeData: any, index: number) => (
-                                                    <div key={index} className="p-2 bg-white dark:bg-gray-900 rounded border text-xs space-y-2">
-                                                        <div className="font-medium">Node #{nodeData.nodeIndex}</div>
-                                                        <div className="text-gray-500 dark:text-gray-500">
-                                                            Created: {nodeData.dateCreated ? new Date(nodeData.dateCreated).toLocaleString() : 'N/A'}
-                                                        </div>
-                                                        {nodeData.nodeInfo && (
-                                                            <div className="mt-2">
-                                                                <div className="flex items-center justify-between mb-1">
-                                                                    <span className="font-medium text-gray-700 dark:text-gray-300">Node Info:</span>
-                                                                    <button
-                                                                        onClick={() => onCopyToClipboard(JSON.stringify(nodeData.nodeInfo, null, 2), "Node Info")}
-                                                                        className="p-1 rounded bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                                                                        title="Copy Node Info"
-                                                                    >
-                                                                        <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
-                                                                    </button>
-                                                                </div>
-                                                                <pre className="text-xs bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded border font-mono text-gray-600 dark:text-gray-400 overflow-auto max-h-48">
-                                                                    {JSON.stringify(nodeData.nodeInfo, null, 2)}
-                                                                </pre>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        );
-                                    }
-                                    
-                                    return (
-                                        <pre className="text-xs bg-white dark:bg-gray-900 px-3 py-2 rounded border font-mono text-gray-600 dark:text-gray-400 overflow-auto max-h-64">
-                                            {JSON.stringify(status || { error: 'No data available' }, null, 2)}
-                                        </pre>
-                                    );
-                                })()
-                            )}
+                            <pre className="text-xs bg-white dark:bg-gray-900 px-3 py-2 rounded border font-mono text-gray-600 dark:text-gray-400 overflow-auto max-h-64">
+                                {JSON.stringify({
+                                    jsonrpc: "2.0",
+                                    result: {
+                                        nodeID: node.node_id,
+                                        nodePOP: {
+                                            publicKey: node.public_key || "",
+                                            proofOfPossession: node.proof_of_possession || ""
+                                        }
+                                    },
+                                    id: 1
+                                }, null, 2)}
+                            </pre>
                         </div>
                     )}
                 </div>
