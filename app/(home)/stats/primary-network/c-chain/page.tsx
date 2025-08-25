@@ -739,7 +739,7 @@ export default function CChainMetrics() {
                       {config.title}
                     </p>
                   </div>
-                  <p className="text-xl font-mono font-semibold">
+                  <p className="text-3xl font-mono font-semibold">
                     {displayValue}
                   </p>
                 </div>
