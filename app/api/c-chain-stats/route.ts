@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
+import { Avalanche } from "@avalanche-sdk/chainkit";
 
-const C_CHAIN_ID = "43114";
+const avalanche = new Avalanche({
+  chainId: "43114",
+});
 
 interface TimeSeriesDataPoint {
   timestamp: number;
@@ -50,40 +53,58 @@ interface CChainMetrics {
   last_updated: number;
 }
 
-let cachedData: { data: CChainMetrics; timestamp: number; icmTimeRange: string } | null = null;
+let cachedData: Map<string, { data: CChainMetrics; timestamp: number; icmTimeRange: string }> = new Map();
 const CACHE_DURATION = 24 * 60 * 60 * 1000;
 
-async function getTimeSeriesData(metricType: string, pageSize: number = 365, fetchAllPages: boolean = false): Promise<TimeSeriesDataPoint[]> {
+function getTimestampsFromTimeRange(timeRange: string): { startTimestamp: number; endTimestamp: number } {
+  const now = Math.floor(Date.now() / 1000);
+  let startTimestamp: number;
+  
+  switch (timeRange) {
+    case '7d':
+      startTimestamp = now - (7 * 24 * 60 * 60);
+      break;
+    case '30d':
+      startTimestamp = now - (30 * 24 * 60 * 60);
+      break;
+    case '90d':
+      startTimestamp = now - (90 * 24 * 60 * 60);
+      break;
+    case 'all':
+      startTimestamp = 1600646400;
+      break;
+    default:
+      startTimestamp = now - (30 * 24 * 60 * 60);
+  }
+  
+  return {
+    startTimestamp,
+    endTimestamp: now
+  };
+}
+
+async function getTimeSeriesData(metricType: string, timeRange: string, pageSize: number = 365, fetchAllPages: boolean = false): Promise<TimeSeriesDataPoint[]> {
   try {
+    const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
     let allResults: any[] = [];
-    let nextPageToken: string | null = null;
     let pageCount = 0;
     const maxPages = 50;
     
-    do {
-      let url = `https://metrics.avax.network/v2/chains/${C_CHAIN_ID}/metrics/${metricType}?pageSize=${pageSize}&timeInterval=day`;
-      if (nextPageToken) {
-        url += `&pageToken=${encodeURIComponent(nextPageToken)}`;
-      }
-      
-      const response = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
-      });
+    const result = await avalanche.metrics.chains.getMetrics({
+      metric: metricType as any,
+      startTimestamp,
+      endTimestamp,
+      timeInterval: "day",
+      pageSize,
+    });
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          return [];
-        }
-        break;
+    for await (const page of result) {
+      if (!page?.result?.results || !Array.isArray(page.result.results)) {
+        console.warn(`Invalid page structure for ${metricType}:`, page);
+        continue;
       }
 
-      const data = await response.json();
-      if (!data?.results || !Array.isArray(data.results)) {
-        break;
-      }
-
-      allResults = allResults.concat(data.results);
-      nextPageToken = data.nextPageToken || null;
+      allResults = allResults.concat(page.result.results);
       pageCount++;
       
       if (!fetchAllPages) {
@@ -93,8 +114,7 @@ async function getTimeSeriesData(metricType: string, pageSize: number = 365, fet
       if (pageCount >= maxPages) {
         break;
       }
-      
-    } while (nextPageToken && fetchAllPages);
+    }
 
     return allResults
       .sort((a: any, b: any) => b.timestamp - a.timestamp)
@@ -104,6 +124,7 @@ async function getTimeSeriesData(metricType: string, pageSize: number = 365, fet
         date: new Date(result.timestamp * 1000).toISOString().split('T')[0]
       }));
   } catch (error) {
+    console.warn(`Failed to fetch ${metricType} data:`, error);
     return [];
   }
 }
@@ -135,12 +156,7 @@ function createTimeSeriesMetric(data: TimeSeriesDataPoint[]): TimeSeriesMetric {
   };
 }
 
-function filterDataByTimeRange(data: TimeSeriesDataPoint[], days: number): TimeSeriesDataPoint[] {
-  if (days === 0) return data;
-  
-  const cutoffTimestamp = Date.now() / 1000 - (days * 24 * 60 * 60);
-  return data.filter(point => point.timestamp >= cutoffTimestamp);
-}
+
 
 async function getICMData(timeRange: string): Promise<ICMDataPoint[]> {
   try {
@@ -211,34 +227,40 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const timeRange = searchParams.get('timeRange') || '30d';
     
-    if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
-      // Check if we need to refetch ICM data due to different timeRange
-      if (cachedData.icmTimeRange !== timeRange) {
+    if (searchParams.get('clearCache') === 'true') {
+      cachedData.clear();
+    }
+    
+    const cached = cachedData.get(timeRange);
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      if (cached.icmTimeRange !== timeRange) {
         try {
           const newICMData = await getICMData(timeRange);
-          cachedData.data.icmMessages = createICMMetric(newICMData);
-          cachedData.icmTimeRange = timeRange;
+          cached.data.icmMessages = createICMMetric(newICMData);
+          cached.icmTimeRange = timeRange;
+          cachedData.set(timeRange, cached);
         } catch (error) {
           console.warn('Failed to fetch new ICM data, using cached data:', error);
         }
       }
       
-      const filteredData = filterCachedDataByTimeRange(cachedData.data, timeRange);
-      return NextResponse.json(filteredData, {
+      return NextResponse.json(cached.data, {
         headers: {
-          'Cache-Control': `public, max-age=${Math.floor(CACHE_DURATION / 1000)}, stale-while-revalidate=300`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
           'X-Data-Source': 'cache',
-          'X-Cache-Timestamp': new Date(cachedData.timestamp).toISOString(),
+          'X-Cache-Timestamp': new Date(cached.timestamp).toISOString(),
           'X-Time-Range': timeRange,
-          'X-ICM-Refetched': cachedData.icmTimeRange === timeRange ? 'false' : 'true',
+          'X-ICM-Refetched': cached.icmTimeRange === timeRange ? 'false' : 'true',
         }
       });
     }
     
     const startTime = Date.now();
-
-    const fetchAllPages = timeRange === 'all';
-    const pageSize = fetchAllPages ? 1000 : 365;
+    const fetchAllPages = timeRange === 'all' || timeRange === '90d' || timeRange === '30d';
+    const pageSize = timeRange === 'all' ? 2000 : timeRange === '90d' ? 500 : 365;
     const [
       activeAddressesData,
       activeSendersData,
@@ -257,21 +279,21 @@ export async function GET(request: Request) {
       feesPaidData,
       icmData,
     ] = await Promise.all([
-      getTimeSeriesData('activeAddresses', pageSize, fetchAllPages),
-      getTimeSeriesData('activeSenders', pageSize, fetchAllPages),
-      getTimeSeriesData('cumulativeAddresses', pageSize, fetchAllPages),
-      getTimeSeriesData('cumulativeDeployers', pageSize, fetchAllPages),
-      getTimeSeriesData('txCount', pageSize, fetchAllPages),
-      getTimeSeriesData('cumulativeTxCount', pageSize, fetchAllPages),
-      getTimeSeriesData('cumulativeContracts', pageSize, fetchAllPages),
-      getTimeSeriesData('gasUsed', pageSize, fetchAllPages),
-      getTimeSeriesData('avgGps', pageSize, fetchAllPages),
-      getTimeSeriesData('maxGps', pageSize, fetchAllPages),
-      getTimeSeriesData('avgTps', pageSize, fetchAllPages),
-      getTimeSeriesData('maxTps', pageSize, fetchAllPages),
-      getTimeSeriesData('avgGasPrice', pageSize, fetchAllPages),
-      getTimeSeriesData('maxGasPrice', pageSize, fetchAllPages),
-      getTimeSeriesData('feesPaid', pageSize, fetchAllPages),
+      getTimeSeriesData('activeAddresses', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('activeSenders', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('cumulativeAddresses', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('cumulativeDeployers', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('txCount', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('cumulativeTxCount', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('cumulativeContracts', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('gasUsed', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('avgGps', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('maxGps', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('avgTps', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('maxTps', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('avgGasPrice', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('maxGasPrice', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('feesPaid', timeRange, pageSize, fetchAllPages),
       getICMData(timeRange),
     ]);
 
@@ -295,18 +317,19 @@ export async function GET(request: Request) {
       last_updated: Date.now()
     };
 
-    cachedData = {
+    cachedData.set(timeRange, {
       data: metrics,
       timestamp: Date.now(),
       icmTimeRange: timeRange
-    };
+    });
 
-    const filteredData = filterCachedDataByTimeRange(metrics, timeRange);
     const fetchTime = Date.now() - startTime;
 
-    return NextResponse.json(filteredData, {
+    return NextResponse.json(metrics, {
       headers: {
-        'Cache-Control': `public, max-age=${Math.floor(CACHE_DURATION / 1000)}, stale-while-revalidate=300`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'X-Data-Source': 'fresh',
         'X-Fetch-Time': `${fetchTime}ms`,
         'X-Cache-Timestamp': new Date().toISOString(),
@@ -315,29 +338,31 @@ export async function GET(request: Request) {
       }
     });
   } catch (error) {
-    if (cachedData) {
-      const { searchParams } = new URL(request.url);
-      const timeRange = searchParams.get('timeRange') || '30d';
-
-      if (cachedData.icmTimeRange !== timeRange) {
+    const { searchParams } = new URL(request.url);
+    const fallbackTimeRange = searchParams.get('timeRange') || '30d';
+    const cached = cachedData.get(fallbackTimeRange);
+    if (cached) {
+      if (cached.icmTimeRange !== fallbackTimeRange) {
         try {
-          const newICMData = await getICMData(timeRange);
-          cachedData.data.icmMessages = createICMMetric(newICMData);
-          cachedData.icmTimeRange = timeRange;
+          const newICMData = await getICMData(fallbackTimeRange);
+          cached.data.icmMessages = createICMMetric(newICMData);
+          cached.icmTimeRange = fallbackTimeRange;
+          cachedData.set(fallbackTimeRange, cached);
         } catch (icmError) {
           console.warn('Failed to fetch new ICM data in error fallback:', icmError);
         }
       }
       
-      const filteredData = filterCachedDataByTimeRange(cachedData.data, timeRange);
-      return NextResponse.json(filteredData, {
+      return NextResponse.json(cached.data, {
         headers: {
-          'Cache-Control': `public, max-age=${Math.floor(CACHE_DURATION / 2000)}, stale-while-revalidate=300`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
           'X-Data-Source': 'cache-fallback',
-          'X-Cache-Timestamp': new Date(cachedData.timestamp).toISOString(),
+          'X-Cache-Timestamp': new Date(cached.timestamp).toISOString(),
           'X-Error': 'true',
-          'X-Time-Range': timeRange,
-          'X-ICM-Refetched': cachedData.icmTimeRange === timeRange ? 'false' : 'true',
+          'X-Time-Range': fallbackTimeRange,
+          'X-ICM-Refetched': cached.icmTimeRange === fallbackTimeRange ? 'false' : 'true',
         }
       });
     }
@@ -347,75 +372,4 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-}
-
-
-
-function filterCachedDataByTimeRange(data: CChainMetrics, timeRange: string): CChainMetrics {
-  const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 0;
-  
-  return {
-    ...data,
-    activeAddresses: {
-      ...data.activeAddresses,
-      data: filterDataByTimeRange(data.activeAddresses.data, days)
-    },
-    activeSenders: {
-      ...data.activeSenders,
-      data: filterDataByTimeRange(data.activeSenders.data, days)
-    },
-    cumulativeAddresses: {
-      ...data.cumulativeAddresses,
-      data: filterDataByTimeRange(data.cumulativeAddresses.data, days)
-    },
-    cumulativeDeployers: {
-      ...data.cumulativeDeployers,
-      data: filterDataByTimeRange(data.cumulativeDeployers.data, days)
-    },
-    txCount: {
-      ...data.txCount,
-      data: filterDataByTimeRange(data.txCount.data, days)
-    },
-    cumulativeTxCount: {
-      ...data.cumulativeTxCount,
-      data: filterDataByTimeRange(data.cumulativeTxCount.data, days)
-    },
-    cumulativeContracts: {
-      ...data.cumulativeContracts,
-      data: filterDataByTimeRange(data.cumulativeContracts.data, days)
-    },
-    gasUsed: {
-      ...data.gasUsed,
-      data: filterDataByTimeRange(data.gasUsed.data, days)
-    },
-    avgGps: {
-      ...data.avgGps,
-      data: filterDataByTimeRange(data.avgGps.data, days)
-    },
-    maxGps: {
-      ...data.maxGps,
-      data: filterDataByTimeRange(data.maxGps.data, days)
-    },
-    avgTps: {
-      ...data.avgTps,
-      data: filterDataByTimeRange(data.avgTps.data, days)
-    },
-    maxTps: {
-      ...data.maxTps,
-      data: filterDataByTimeRange(data.maxTps.data, days)
-    },
-    avgGasPrice: {
-      ...data.avgGasPrice,
-      data: filterDataByTimeRange(data.avgGasPrice.data, days)
-    },
-    maxGasPrice: {
-      ...data.maxGasPrice,
-      data: filterDataByTimeRange(data.maxGasPrice.data, days)
-    },
-    feesPaid: {
-      ...data.feesPaid,
-      data: filterDataByTimeRange(data.feesPaid.data, days)
-    },
-    icmMessages: data.icmMessages
-  };
 }

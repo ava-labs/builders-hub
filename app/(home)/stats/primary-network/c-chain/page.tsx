@@ -615,6 +615,7 @@ export default function CChainMetrics() {
     ...contractConfigs,
     ...gasConfigs,
     ...feeConfigs,
+    ...icmConfigs,
   ];
 
   function getTimeRangeLabel(range: string): string {
@@ -690,63 +691,14 @@ export default function CChainMetrics() {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto mt-4 p-6 space-y-12">
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl md:text-5xl mb-4">
-                C-Chain Network Metrics
-              </h1>
-              <p className="text-zinc-400 text-md text-left">
-                Real-time insights into Avalanche C-Chain activity and network
-                usage
-              </p>
-            </div>
-            <div className="flex items-center gap-2 px-2">
-              <ToggleGroup
-                type="single"
-                value={timeRange}
-                onValueChange={(value) => {
-                  if (
-                    value &&
-                    (value === "7d" ||
-                      value === "30d" ||
-                      value === "90d" ||
-                      value === "all")
-                  ) {
-                    setTimeRange(value);
-                  }
-                }}
-                className="bg-gray-100 dark:bg-gray-800 border-0 rounded-full p-0.5 shadow-sm"
-              >
-                <ToggleGroupItem
-                  value="7d"
-                  size="sm"
-                  className="text-xs px-4 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.5rem]"
-                >
-                  7d
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="30d"
-                  size="sm"
-                  className="text-xs px-4 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.5rem]"
-                >
-                  30d
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="90d"
-                  size="sm"
-                  className="text-xs px-4 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.5rem]"
-                >
-                  90d
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="all"
-                  size="sm"
-                  className="text-xs px-4 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.5rem]"
-                >
-                  All
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+          <div>
+            <h1 className="text-2xl md:text-5xl mb-4">
+              C-Chain Network Metrics
+            </h1>
+            <p className="text-zinc-400 text-md text-left">
+              Real-time insights into Avalanche C-Chain activity and network
+              usage
+            </p>
           </div>
         </div>
 
@@ -809,246 +761,16 @@ export default function CChainMetrics() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {allConfigs.map((config, index) => {
-              const chartData = getChartData(config.metricKey);
-              const currentValue = getCurrentValue(config.metricKey);
-              const { change, isPositive } = getValueChange(config.metricKey);
-              const Icon = config.icon;
-
-              return (
-                <Card key={config.metricKey} className="w-full">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <CardTitle className="flex items-center gap-2">
-                          <Icon
-                            className="h-5 w-5"
-                            style={{ color: config.chartConfig.value.color }}
-                          />
-                          {config.title}
-                        </CardTitle>
-                        <CardDescription>{config.description}</CardDescription>
-                      </div>
-                      <div className="flex items-center gap-2 px-2">
-                        <ToggleGroup
-                          type="single"
-                          value={timeRange}
-                          onValueChange={(value) => {
-                            if (
-                              value &&
-                              (value === "7d" ||
-                                value === "30d" ||
-                                value === "90d" ||
-                                value === "all")
-                            ) {
-                              setTimeRange(value);
-                            }
-                          }}
-                          className="hidden sm:flex bg-gray-100 dark:bg-gray-800 border-0 rounded-full p-0.5 shadow-sm mx-2"
-                        >
-                          <ToggleGroupItem
-                            value="7d"
-                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
-                          >
-                            7d
-                          </ToggleGroupItem>
-                          <ToggleGroupItem
-                            value="30d"
-                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
-                          >
-                            30d
-                          </ToggleGroupItem>
-                          <ToggleGroupItem
-                            value="90d"
-                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
-                          >
-                            90d
-                          </ToggleGroupItem>
-                          <ToggleGroupItem
-                            value="all"
-                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
-                          >
-                            All
-                          </ToggleGroupItem>
-                        </ToggleGroup>
-                        <Select
-                          value={timeRange}
-                          onValueChange={(value: string) => {
-                            if (
-                              value === "7d" ||
-                              value === "30d" ||
-                              value === "90d" ||
-                              value === "all"
-                            ) {
-                              setTimeRange(value);
-                            }
-                          }}
-                        >
-                          <SelectTrigger
-                            className="w-20 h-6 sm:hidden bg-gray-100 dark:bg-gray-800 border-0 rounded-full text-gray-700 dark:text-gray-300 shadow-sm font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-md hover:scale-102 transition-all duration-200 ease-out text-xs px-4 min-w-[2.5rem]"
-                            size="sm"
-                            aria-label="Select a value"
-                          >
-                            <SelectValue placeholder="30d" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl bg-white dark:bg-gray-800 border-0 shadow-lg p-1 w-32">
-                            <SelectItem
-                              value="7d"
-                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
-                            >
-                              7d
-                            </SelectItem>
-                            <SelectItem
-                              value="30d"
-                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
-                            >
-                              30d
-                            </SelectItem>
-                            <SelectItem
-                              value="90d"
-                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
-                            >
-                              90d
-                            </SelectItem>
-                            <SelectItem
-                              value="all"
-                              className="rounded-full text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
-                            >
-                              All
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="text-2xl font-mono">
-                        {formatTooltipValue(
-                          typeof currentValue === "string"
-                            ? parseFloat(currentValue)
-                            : currentValue,
-                          config.metricKey
-                        )}
-                      </div>
-                      {change > 0 && (
-                        <div
-                          className={`flex items-center gap-1 text-sm ${
-                            isPositive ? "text-green-600" : "text-red-600"
-                          }`}
-                          title={`Change compared to ${getComparisonPeriodLabel(
-                            timeRange
-                          )}`}
-                        >
-                          <TrendingUp
-                            className={`h-4 w-4 ${
-                              isPositive ? "" : "rotate-180"
-                            }`}
-                          />
-                          {change.toFixed(1)}%
-                        </div>
-                      )}
-                    </div>
-                    <ChartContainer
-                      config={config.chartConfig}
-                      className="aspect-auto h-[250px] w-full font-mono"
+            {allConfigs.map((config) => {
+              const isICMChart = config.metricKey === "icmMessages";
+              const chartData = isICMChart
+                ? getICMChartData()
+                : getChartData(
+                    config.metricKey as keyof Omit<
+                      CChainMetrics,
+                      "last_updated" | "icmMessages"
                     >
-                      <AreaChart data={chartData}>
-                        <defs>
-                          <linearGradient
-                            id={`fill-${config.metricKey}`}
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="5%"
-                              stopColor={config.chartConfig.value.color}
-                              stopOpacity={0.8}
-                            />
-                            <stop
-                              offset="95%"
-                              stopColor={config.chartConfig.value.color}
-                              stopOpacity={0.1}
-                            />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                          dataKey="day"
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={8}
-                          minTickGap={32}
-                          tickFormatter={(value) => formatDateLabel(value)}
-                          tick={{
-                            fontFamily:
-                              'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                          }}
-                        />
-                        <ChartTooltip
-                          cursor={false}
-                          content={
-                            <ChartTooltipContent
-                              labelFormatter={(value) =>
-                                formatTooltipDate(value)
-                              }
-                              indicator="dot"
-                              formatter={(value) => [
-                                formatTooltipValue(
-                                  value as number,
-                                  config.metricKey
-                                ),
-                                "",
-                              ]}
-                              className="font-mono"
-                            />
-                          }
-                        />
-
-                        {timeRange === "all" &&
-                          getYearBoundaries(chartData).map(
-                            (yearBoundary, idx) => (
-                              <ReferenceLine
-                                key={`year-${idx}`}
-                                x={yearBoundary}
-                                stroke="#d1d5db"
-                                strokeWidth={1}
-                                strokeDasharray="3 3"
-                                opacity={0.6}
-                              />
-                            )
-                          )}
-                        <Area
-                          dataKey="value"
-                          type="natural"
-                          fill={`url(#fill-${config.metricKey})`}
-                          stroke={config.chartConfig.value.color}
-                          strokeWidth={2}
-                        />
-                      </AreaChart>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="space-y-6">
-          <div className="space-y-2">
-            <h3 className="text-xl font-medium text-left">
-              Interchain Messaging (ICM)
-            </h3>
-            <p className="text-zinc-400 text-sm text-left">
-              Cross-chain message activity with incoming/outgoing breakdown
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6">
-            {icmConfigs.map((config) => {
-              const icmChartData = getICMChartData();
+                  );
               const currentValue = getCurrentValue(config.metricKey);
               const { change, isPositive } = getValueChange(config.metricKey);
               const Icon = config.icon;
@@ -1058,11 +780,13 @@ export default function CChainMetrics() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className="flex items-center gap-2 font-medium">
                           <Icon
                             className="h-5 w-5"
                             style={{
-                              color: config.chartConfig.messageCount.color,
+                              color: isICMChart
+                                ? config.chartConfig.messageCount.color
+                                : config.chartConfig.value.color,
                             }}
                           />
                           {config.title}
@@ -1164,7 +888,14 @@ export default function CChainMetrics() {
                   <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
                     <div className="flex items-center gap-4 mb-4">
                       <div className="text-2xl font-mono">
-                        {formatNumber(currentValue)} Messages
+                        {isICMChart
+                          ? `${formatNumber(currentValue)} Messages`
+                          : formatTooltipValue(
+                              typeof currentValue === "string"
+                                ? parseFloat(currentValue)
+                                : currentValue,
+                              config.metricKey
+                            )}
                       </div>
                       {change > 0 && (
                         <div
@@ -1186,62 +917,147 @@ export default function CChainMetrics() {
                     </div>
                     <ChartContainer
                       config={config.chartConfig}
-                      className="aspect-auto h-[300px] w-full font-mono"
+                      className={`aspect-auto w-full font-mono ${
+                        isICMChart ? "h-[300px]" : "h-[250px]"
+                      }`}
                     >
-                      <BarChart
-                        data={icmChartData}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis
-                          dataKey="day"
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={8}
-                          minTickGap={32}
-                          tickFormatter={(value) => formatDateLabel(value)}
-                          tick={{
-                            fontFamily:
-                              'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                          }}
-                        />
-                        <ChartTooltip
-                          cursor={false}
-                          content={({ active, payload, label }) => {
-                            if (active && payload && payload.length) {
-                              const messageCount =
-                                payload[0]?.payload?.messageCount || 0;
-                              return (
-                                <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
-                                  <div className="grid gap-2">
-                                    <div className="font-medium">
-                                      {formatTooltipDate(label)}
-                                    </div>
-                                    <div className="flex items-center gap-2 text-sm">
-                                      <div
-                                        className="w-3 h-3 rounded-sm"
-                                        style={{
-                                          backgroundColor: "#40c9ff",
-                                        }}
-                                      />
-                                      <span>
-                                        ICM Messages:{" "}
-                                        {formatNumber(messageCount)}
-                                      </span>
+                      {isICMChart ? (
+                        <BarChart
+                          data={chartData}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            vertical={false}
+                          />
+                          <XAxis
+                            dataKey="day"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            minTickGap={32}
+                            tickFormatter={(value) => formatDateLabel(value)}
+                            tick={{
+                              fontFamily:
+                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                            }}
+                          />
+                          <ChartTooltip
+                            cursor={false}
+                            content={({ active, payload, label }) => {
+                              if (active && payload && payload.length) {
+                                const messageCount =
+                                  payload[0]?.payload?.messageCount || 0;
+                                return (
+                                  <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                                    <div className="grid gap-2">
+                                      <div className="font-medium">
+                                        {formatTooltipDate(label)}
+                                      </div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <div
+                                          className="w-3 h-3 rounded-sm"
+                                          style={{
+                                            backgroundColor:
+                                              config.chartConfig.messageCount
+                                                .color,
+                                          }}
+                                        />
+                                        <span>
+                                          ICM Messages:{" "}
+                                          {formatNumber(messageCount)}
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              );
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Bar
+                            dataKey="messageCount"
+                            fill={config.chartConfig.messageCount.color}
+                            radius={[4, 4, 4, 4]}
+                          />
+                        </BarChart>
+                      ) : (
+                        <AreaChart data={chartData}>
+                          <defs>
+                            <linearGradient
+                              id={`fill-${config.metricKey}`}
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="5%"
+                                stopColor={config.chartConfig.value.color}
+                                stopOpacity={0.8}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor={config.chartConfig.value.color}
+                                stopOpacity={0.1}
+                              />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid vertical={false} />
+                          <XAxis
+                            dataKey="day"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            minTickGap={32}
+                            tickFormatter={(value) => formatDateLabel(value)}
+                            tick={{
+                              fontFamily:
+                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                            }}
+                          />
+                          <ChartTooltip
+                            cursor={false}
+                            content={
+                              <ChartTooltipContent
+                                labelFormatter={(value) =>
+                                  formatTooltipDate(value)
+                                }
+                                indicator="dot"
+                                formatter={(value) => [
+                                  formatTooltipValue(
+                                    value as number,
+                                    config.metricKey
+                                  ),
+                                  "",
+                                ]}
+                                className="font-mono"
+                              />
                             }
-                            return null;
-                          }}
-                        />
-                        <Bar
-                          dataKey="messageCount"
-                          fill={config.chartConfig.messageCount.color}
-                          radius={[4, 4, 4, 4]}
-                        />
-                      </BarChart>
+                          />
+
+                          {timeRange === "all" &&
+                            getYearBoundaries(
+                              chartData as ChartDataPoint[]
+                            ).map((yearBoundary, idx) => (
+                              <ReferenceLine
+                                key={`year-${idx}`}
+                                x={yearBoundary}
+                                stroke="#d1d5db"
+                                strokeWidth={1}
+                                strokeDasharray="3 3"
+                                opacity={0.6}
+                              />
+                            ))}
+                          <Area
+                            dataKey="value"
+                            type="natural"
+                            fill={`url(#fill-${config.metricKey})`}
+                            stroke={config.chartConfig.value.color}
+                            strokeWidth={2}
+                          />
+                        </AreaChart>
+                      )}
                     </ChartContainer>
                   </CardContent>
                 </Card>
