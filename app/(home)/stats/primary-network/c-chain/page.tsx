@@ -736,14 +736,18 @@ export default function CChainMetrics() {
                   key={config.metricKey}
                   className="text-center p-6 rounded-lg bg-card border"
                 >
-                  <Icon
-                    className="h-8 w-8 mx-auto mb-3"
-                    style={{ color: config.chartConfig.value.color }}
-                  />
-                  <p className="text-sm text-muted-foreground mb-1">
-                    {config.title}
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <Icon
+                      className="h-5 w-5"
+                      style={{ color: config.chartConfig.value.color }}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      {config.title}
+                    </p>
+                  </div>
+                  <p className="text-xl font-mono font-semibold">
+                    {displayValue}
                   </p>
-                  <p className="text-xl font-semibold">{displayValue}</p>
                 </div>
               );
             })}

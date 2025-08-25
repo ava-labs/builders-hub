@@ -577,63 +577,14 @@ export default function PrimaryNetworkMetrics() {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto mt-4 p-6 space-y-12">
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl md:text-5xl mb-4">
-                Primary Network Validator Metrics
-              </h1>
-              <p className="text-zinc-400 text-md text-left">
-                Real-time insights into the Avalanche Primary Network
-                performance and validator distribution
-              </p>
-            </div>
-            <div className="flex items-center gap-2 px-2">
-              <ToggleGroup
-                type="single"
-                value={timeRange}
-                onValueChange={(value) => {
-                  if (
-                    value &&
-                    (value === "7d" ||
-                      value === "30d" ||
-                      value === "90d" ||
-                      value === "all")
-                  ) {
-                    setTimeRange(value);
-                  }
-                }}
-                className="bg-gray-100 dark:bg-gray-800 border-0 rounded-full p-0.5 shadow-sm"
-              >
-                <ToggleGroupItem
-                  value="7d"
-                  size="sm"
-                  className="text-xs px-4 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.5rem]"
-                >
-                  7d
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="30d"
-                  size="sm"
-                  className="text-xs px-4 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.5rem]"
-                >
-                  30d
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="90d"
-                  size="sm"
-                  className="text-xs px-4 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.5rem]"
-                >
-                  90d
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="all"
-                  size="sm"
-                  className="text-xs px-4 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.5rem]"
-                >
-                  All
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+          <div>
+            <h1 className="text-2xl md:text-5xl mb-4">
+              Primary Network Validator Metrics
+            </h1>
+            <p className="text-zinc-400 text-md text-left">
+              Real-time insights into the Avalanche Primary Network performance
+              and validator distribution
+            </p>
           </div>
         </div>
 
@@ -652,14 +603,13 @@ export default function PrimaryNetworkMetrics() {
                   key={config.metricKey}
                   className="text-center p-6 rounded-lg bg-card border"
                 >
-                  <Icon
-                    className="h-8 w-8 mx-auto mb-3"
-                    style={{ color: "#40c9ff" }}
-                  />
-                  <p className="text-sm text-muted-foreground mb-1">
-                    {config.title}
-                  </p>
-                  <p className="text-xl font-semibold">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <Icon className="h-5 w-5" style={{ color: "#40c9ff" }} />
+                    <p className="text-sm text-muted-foreground">
+                      {config.title}
+                    </p>
+                  </div>
+                  <p className="text-xl font-mono font-semibold">
                     {config.metricKey.includes("weight")
                       ? formatWeight(currentValue)
                       : formatNumber(currentValue)}
@@ -692,7 +642,7 @@ export default function PrimaryNetworkMetrics() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className="flex items-center gap-2 font-medium">
                           <Icon
                             className="h-5 w-5"
                             style={{ color: "#40c9ff" }}
@@ -796,7 +746,7 @@ export default function PrimaryNetworkMetrics() {
                   </CardHeader>
                   <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
                     <div className="flex items-center gap-4 mb-4">
-                      <div className="text-2xl font-bold">
+                      <div className="text-2xl font-mono">
                         {config.metricKey.includes("weight")
                           ? formatWeight(currentValue)
                           : formatNumber(currentValue)}
@@ -821,7 +771,7 @@ export default function PrimaryNetworkMetrics() {
                     </div>
                     <ChartContainer
                       config={config.chartConfig}
-                      className="aspect-auto h-[250px] w-full"
+                      className="aspect-auto w-full font-mono h-[250px]"
                     >
                       <AreaChart data={chartData}>
                         <defs>
@@ -852,6 +802,10 @@ export default function PrimaryNetworkMetrics() {
                           tickMargin={8}
                           minTickGap={32}
                           tickFormatter={(value) => formatDateLabel(value)}
+                          tick={{
+                            fontFamily:
+                              'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          }}
                         />
                         <ChartTooltip
                           cursor={false}
@@ -868,6 +822,7 @@ export default function PrimaryNetworkMetrics() {
                                 ),
                                 "", // Empty string for cleaner tooltip (removes duplicate title)
                               ]}
+                              className="font-mono"
                             />
                           }
                         />
@@ -918,7 +873,7 @@ export default function PrimaryNetworkMetrics() {
               <Card data-chart="pie-count" className="flex flex-col">
                 <ChartStyle id="pie-count" config={versionsChartConfig} />
                 <CardHeader className="items-center pb-0">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 font-medium">
                     <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
                     By Validator Count
                   </CardTitle>
@@ -939,13 +894,13 @@ export default function PrimaryNetworkMetrics() {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                              <div className="rounded-lg border bg-background p-2 shadow-sm">
+                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                                 <div className="grid gap-2">
                                   <div className="flex flex-col">
                                     <span className="text-[0.70rem] uppercase text-muted-foreground">
                                       {data.version}
                                     </span>
-                                    <span className="font-bold text-muted-foreground">
+                                    <span className="font-mono font-bold text-muted-foreground">
                                       {data.count} validators (
                                       {data.percentage.toFixed(1)}%)
                                     </span>
@@ -975,7 +930,7 @@ export default function PrimaryNetworkMetrics() {
               <Card data-chart="pie-stake" className="flex flex-col">
                 <ChartStyle id="pie-stake" config={versionsChartConfig} />
                 <CardHeader className="items-center pb-0">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 font-medium">
                     <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
                     By Stake Weight
                   </CardTitle>
@@ -996,13 +951,13 @@ export default function PrimaryNetworkMetrics() {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                              <div className="rounded-lg border bg-background p-2 shadow-sm">
+                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                                 <div className="grid gap-2">
                                   <div className="flex flex-col">
                                     <span className="text-[0.70rem] uppercase text-muted-foreground">
                                       {data.version}
                                     </span>
-                                    <span className="font-bold text-muted-foreground">
+                                    <span className="font-mono font-bold text-muted-foreground">
                                       {data.amountStaked.toLocaleString(
                                         undefined,
                                         { maximumFractionDigits: 0 }
@@ -1037,7 +992,7 @@ export default function PrimaryNetworkMetrics() {
           {/* Detailed Version Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2">
+              <CardTitle className="text-xl flex items-center gap-2 font-medium">
                 <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
                 Detailed Version Breakdown
               </CardTitle>
@@ -1080,7 +1035,7 @@ export default function PrimaryNetworkMetrics() {
                             <span className="text-sm text-muted-foreground">
                               Validators:
                             </span>
-                            <span className="font-semibold">
+                            <span className="font-mono font-semibold">
                               {versionInfo.count} (
                               {versionInfo.percentage.toFixed(1)}%)
                             </span>
@@ -1089,7 +1044,7 @@ export default function PrimaryNetworkMetrics() {
                             <span className="text-sm text-muted-foreground">
                               Staked:
                             </span>
-                            <span className="font-semibold">
+                            <span className="font-mono font-semibold">
                               {versionInfo.amountStaked.toLocaleString(
                                 undefined,
                                 { maximumFractionDigits: 0 }

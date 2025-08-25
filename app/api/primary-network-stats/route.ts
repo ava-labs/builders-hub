@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
+import { Avalanche } from "@avalanche-sdk/chainkit";
 
-const GLACIER_API_KEY = process.env.GLACIER_API_KEY;
-const PRIMARY_NETWORK_SUBNET_ID = "11111111111111111111111111111111LpoYY";
+const avalanche = new Avalanche({
+  network: "mainnet",
+});
 
 interface TimeSeriesDataPoint {
   timestamp: number;
@@ -25,66 +27,68 @@ interface PrimaryNetworkMetrics {
   last_updated: number;
 }
 
-let cachedData: { data: PrimaryNetworkMetrics; timestamp: number } | null = null;
+let cachedData: Map<string, { data: PrimaryNetworkMetrics; timestamp: number }> = new Map();
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 1 day for regular data
-const ALL_TIME_CACHE_DURATION = 24 * 60 * 60 * 1000; // 1 day for all-time data
 
-async function getTimeSeriesData(metricType: string, pageSize: number = 365, fetchAllPages: boolean = false): Promise<TimeSeriesDataPoint[]> {
+function getTimestampsFromTimeRange(timeRange: string): { startTimestamp: number; endTimestamp: number } {
+  const now = Math.floor(Date.now() / 1000);
+  let startTimestamp: number;
+  
+  switch (timeRange) {
+    case '7d':
+      startTimestamp = now - (7 * 24 * 60 * 60);
+      break;
+    case '30d':
+      startTimestamp = now - (30 * 24 * 60 * 60);
+      break;
+    case '90d':
+      startTimestamp = now - (90 * 24 * 60 * 60);
+      break;
+    case 'all':
+      startTimestamp = 1600646400; // September 21, 2020
+      break;
+    default:
+      startTimestamp = now - (30 * 24 * 60 * 60);
+  }
+  
+  return {
+    startTimestamp,
+    endTimestamp: now
+  };
+}
+
+async function getTimeSeriesData(metricType: string, timeRange: string, pageSize: number = 365, fetchAllPages: boolean = false): Promise<TimeSeriesDataPoint[]> {
   try {
+    const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
     let allResults: any[] = [];
-    let nextPageToken: string | null = null;
     let pageCount = 0;
-    const maxPages = 50; // Safety limit to prevent infinite loops
+    const maxPages = 50;
     
-    do {
-      // Build URL with pagination token if available
-      let url = `https://metrics.avax.network/v2/networks/mainnet/metrics/${metricType}?pageSize=${pageSize}&subnetId=${PRIMARY_NETWORK_SUBNET_ID}`;
-      if (nextPageToken) {
-        url += `&pageToken=${encodeURIComponent(nextPageToken)}`;
-      }
-      
-      console.log(`Fetching ${metricType} page ${pageCount + 1}${nextPageToken ? ` with token: ${nextPageToken.substring(0, 20)}...` : ''}`);
-      
-      const response = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
-      });
+    const result = await avalanche.metrics.networks.getStakingMetrics({
+      metric: metricType as any,
+      startTimestamp,
+      endTimestamp,
+      pageSize,
+    });
 
-      if (!response.ok) {
-        console.error(`HTTP error for ${metricType} page ${pageCount + 1}: ${response.status}`);
-        break;
+    for await (const page of result) {
+      if (!page?.result?.results || !Array.isArray(page.result.results)) {
+        console.warn(`Invalid page structure for ${metricType}:`, page);
+        continue;
       }
 
-      const data = await response.json();
-      if (!data?.results || !Array.isArray(data.results)) {
-        console.log(`No results found for ${metricType} page ${pageCount + 1}`);
-        break;
-      }
-
-      // Add results to our collection
-      allResults = allResults.concat(data.results);
-      
-      // Update pagination info
-      nextPageToken = data.nextPageToken || null;
+      allResults = allResults.concat(page.result.results);
       pageCount++;
       
-      console.log(`Fetched ${data.results.length} records for ${metricType} page ${pageCount}. Total so far: ${allResults.length}`);
-      
-      // For single page requests, don't continue pagination
       if (!fetchAllPages) {
         break;
       }
       
-      // Safety check to prevent infinite loops
       if (pageCount >= maxPages) {
-        console.warn(`Reached maximum page limit (${maxPages}) for ${metricType}`);
         break;
       }
-      
-    } while (nextPageToken && fetchAllPages);
-    
-    console.log(`Completed fetching ${metricType}: ${allResults.length} total records across ${pageCount} pages`);
+    }
 
-    // Sort and transform all results
     return allResults
       .sort((a: any, b: any) => b.timestamp - a.timestamp)
       .map((result: any) => ({
@@ -93,7 +97,7 @@ async function getTimeSeriesData(metricType: string, pageSize: number = 365, fet
         date: new Date(result.timestamp * 1000).toISOString().split('T')[0]
       }));
   } catch (error) {
-    console.error(`Error fetching ${metricType}:`, error);
+    console.warn(`Failed to fetch ${metricType} data:`, error);
     return [];
   }
 }
@@ -125,61 +129,28 @@ function createTimeSeriesMetric(data: TimeSeriesDataPoint[]): TimeSeriesMetric {
   };
 }
 
-function filterDataByTimeRange(data: TimeSeriesDataPoint[], days: number): TimeSeriesDataPoint[] {
-  if (days === 0) return data; // All time
-  
-  const cutoffTimestamp = Date.now() / 1000 - (days * 24 * 60 * 60);
-  return data.filter(point => point.timestamp >= cutoffTimestamp);
-}
+
 
 async function fetchValidatorVersions() {
-  if (!GLACIER_API_KEY) {
-    console.error('GLACIER_API_KEY is missing');
-    return {};
-  }
-
   try {
-    console.log('Fetching validator versions from Glacier API...');
-    const response = await fetch('https://glacier-api.avax.network/v1/networks/mainnet', {
-      headers: {
-        'x-glacier-api-key': GLACIER_API_KEY,
-        'Accept': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      console.error(`Glacier API failed with status: ${response.status}`);
-      const errorText = await response.text();
-      console.error('Error response:', errorText);
-      return {};
-    }
-
-    const data = await response.json();
-    console.log('Full Glacier API response:', JSON.stringify(data, null, 2));
-
-    if (!data?.validatorDetails) {
-      console.error('No validatorDetails found in response');
-      return {};
-    }
-
-    if (!data?.validatorDetails?.stakingDistributionByVersion) {
-      console.error('No stakingDistributionByVersion found in validatorDetails');
-      console.log('Available validatorDetails keys:', Object.keys(data.validatorDetails));
+    console.log('Fetching validator versions from SDK...');
+    const result = await avalanche.data.primaryNetwork.getNetworkDetails({});
+    
+    if (!result?.validatorDetails?.stakingDistributionByVersion) {
+      console.error('No stakingDistributionByVersion found in SDK response');
       return {};
     }
 
     const versionData: { [key: string]: { validatorCount: number; amountStaked: string } } = {};
-    data.validatorDetails.stakingDistributionByVersion.forEach((item: any) => {
+    result.validatorDetails.stakingDistributionByVersion.forEach((item: any) => {
       if (item.version && item.validatorCount) {
         versionData[item.version] = {
           validatorCount: item.validatorCount,
           amountStaked: item.amountStaked
         };
-        console.log(`Added version: ${item.version} with ${item.validatorCount} validators`);
       }
     });
 
-    console.log('Final version data:', versionData);
     return versionData;
   } catch (error) {
     console.error('Error fetching validator versions:', error);
@@ -192,19 +163,21 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const timeRange = searchParams.get('timeRange') || '30d';
     
-    // Use different cache duration based on request type
-    const currentCacheDuration = timeRange === 'all' ? ALL_TIME_CACHE_DURATION : CACHE_DURATION;
+    if (searchParams.get('clearCache') === 'true') {
+      cachedData.clear();
+    }
     
-    if (cachedData && Date.now() - cachedData.timestamp < currentCacheDuration) {
-      // Filter cached data by requested time range
-      const filteredData = filterCachedDataByTimeRange(cachedData.data, timeRange);
-      return NextResponse.json(filteredData, {
+    const cached = cachedData.get(timeRange);
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return NextResponse.json(cached.data, {
         headers: {
-          'Cache-Control': `public, max-age=${Math.floor(currentCacheDuration / 1000)}, stale-while-revalidate=300`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
           'X-Data-Source': 'cache',
-          'X-Cache-Timestamp': new Date(cachedData.timestamp).toISOString(),
+          'X-Cache-Timestamp': new Date(cached.timestamp).toISOString(),
           'X-Time-Range': timeRange,
-          'X-Cache-Duration': `${currentCacheDuration / 1000}s`,
         }
       });
     }
@@ -212,10 +185,8 @@ export async function GET(request: Request) {
     const startTime = Date.now();
 
     // Determine if we need to fetch all pages for comprehensive data
-    const fetchAllPages = timeRange === 'all';
-    const pageSize = fetchAllPages ? 1000 : 365; // Larger page size for efficiency when fetching all data
-    
-    console.log(`Fetching data for time range: ${timeRange}, fetchAllPages: ${fetchAllPages}, pageSize: ${pageSize}`);
+    const fetchAllPages = timeRange === 'all' || timeRange === '90d' || timeRange === '30d';
+    const pageSize = timeRange === 'all' ? 2000 : timeRange === '90d' ? 500 : 365;
 
     const [
       validatorCountData,
@@ -224,10 +195,10 @@ export async function GET(request: Request) {
       delegatorWeightData,
       validatorVersions
     ] = await Promise.all([
-      getTimeSeriesData('validatorCount', pageSize, fetchAllPages),
-      getTimeSeriesData('validatorWeight', pageSize, fetchAllPages),
-      getTimeSeriesData('delegatorCount', pageSize, fetchAllPages),
-      getTimeSeriesData('delegatorWeight', pageSize, fetchAllPages),
+      getTimeSeriesData('validatorCount', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('validatorWeight', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('delegatorCount', timeRange, pageSize, fetchAllPages),
+      getTimeSeriesData('delegatorWeight', timeRange, pageSize, fetchAllPages),
       fetchValidatorVersions()
     ]);
 
@@ -243,46 +214,42 @@ export async function GET(request: Request) {
       last_updated: Date.now()
     };
 
-    cachedData = {
+    cachedData.set(timeRange, {
       data: metrics,
       timestamp: Date.now()
-    };
+    });
 
-    const filteredData = filterCachedDataByTimeRange(metrics, timeRange);
     const fetchTime = Date.now() - startTime;
 
-    // Log performance metrics for all-time requests
-    if (fetchAllPages) {
-      console.log(`All-time data fetch completed in ${fetchTime}ms`);
-      console.log(`Data points fetched - Validator Count: ${validatorCountData.length}, Validator Weight: ${validatorWeightData.length}, Delegator Count: ${delegatorCountData.length}, Delegator Weight: ${delegatorWeightData.length}`);
-    }
-
-    return NextResponse.json(filteredData, {
+    return NextResponse.json(metrics, {
       headers: {
-        'Cache-Control': `public, max-age=${Math.floor(currentCacheDuration / 1000)}, stale-while-revalidate=300`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'X-Data-Source': 'fresh',
         'X-Fetch-Time': `${fetchTime}ms`,
         'X-Cache-Timestamp': new Date().toISOString(),
         'X-Time-Range': timeRange,
         'X-All-Pages': fetchAllPages.toString(),
-        'X-Total-Data-Points': `${validatorCountData.length + validatorWeightData.length + delegatorCountData.length + delegatorWeightData.length}`,
       }
     });
   } catch (error) {
     console.error('Error in primary-network-stats API:', error);
     
-    if (cachedData) {
-      const { searchParams } = new URL(request.url);
-      const timeRange = searchParams.get('timeRange') || '30d';
-      const currentCacheDuration = timeRange === 'all' ? ALL_TIME_CACHE_DURATION : CACHE_DURATION;
-      const filteredData = filterCachedDataByTimeRange(cachedData.data, timeRange);
-      return NextResponse.json(filteredData, {
+    const { searchParams } = new URL(request.url);
+    const fallbackTimeRange = searchParams.get('timeRange') || '30d';
+    const cached = cachedData.get(fallbackTimeRange);
+    
+    if (cached) {
+      return NextResponse.json(cached.data, {
         headers: {
-          'Cache-Control': `public, max-age=${Math.floor(currentCacheDuration / 2000)}, stale-while-revalidate=300`, // Half cache time on error
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
           'X-Data-Source': 'cache-fallback',
-          'X-Cache-Timestamp': new Date(cachedData.timestamp).toISOString(),
+          'X-Cache-Timestamp': new Date(cached.timestamp).toISOString(),
           'X-Error': 'true',
-          'X-Time-Range': timeRange,
+          'X-Time-Range': fallbackTimeRange,
         }
       });
     }
@@ -292,28 +259,4 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-}
-
-function filterCachedDataByTimeRange(data: PrimaryNetworkMetrics, timeRange: string): PrimaryNetworkMetrics {
-  const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 0;
-  
-  return {
-    ...data,
-    validator_count: {
-      ...data.validator_count,
-      data: filterDataByTimeRange(data.validator_count.data, days)
-    },
-    validator_weight: {
-      ...data.validator_weight,
-      data: filterDataByTimeRange(data.validator_weight.data, days)
-    },
-    delegator_count: {
-      ...data.delegator_count,
-      data: filterDataByTimeRange(data.delegator_count.data, days)
-    },
-    delegator_weight: {
-      ...data.delegator_weight,
-      data: filterDataByTimeRange(data.delegator_weight.data, days)
-    }
-  };
 }
