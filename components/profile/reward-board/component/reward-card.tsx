@@ -36,8 +36,8 @@ export const RewardCard = ({
         <div className="reward-card-front">
           <Card className="h-full border-0 shadow-none bg-transparent">
             <CardContent className="p-0 h-full flex flex-col">
-              <div className="relative px-4 sm:px-6 pt-4 sm:pt-6 pb-3 flex flex-col items-center min-h-[100px] sm:min-h-[120px]">
-                <div className="relative w-16 h-16 sm:w-20 sm:h-20">
+              <div className="relative px-2 sm:px-4 pt-2 sm:pt-4 pb-2 flex flex-col items-center min-h-[100px] sm:min-h-[120px]">
+                <div className="relative w-18 h-18 sm:w-20 sm:h-20">
                   <Image
                     src={image}
                     alt={name + " icon"}

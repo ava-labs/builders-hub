@@ -39,7 +39,7 @@ console.log("academyBadgesUnlocked",academyBadgesUnlocked);
       image={reward.image_path}
       requirements={reward.requirements}
       id={reward.id}
-      className="border border-red-500 dark:bg-zinc-900"
+       className="border border-gray-900 dark:bg-zinc-900"
     />
   ));
   const academyRewards = academyBadgesUnlocked.map((reward) => (

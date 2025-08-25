@@ -5,36 +5,37 @@ import React from 'react'
 
 export default function MemberBadge({badges, member}: {badges: UserBadge[], member: Member}) {
 
-  console.log("badges", badges);
-  console.log("member", member);
   const badgesFiltered = badges?.filter((badge) => badge.user_id === member.user_id);
-  console.log("badgesFiltered", badgesFiltered);
+
   return (
     <>
       {badgesFiltered && badgesFiltered.length > 0 ? (
-        <div>
+        <div className="flex flex-wrap gap-1.5 p-2">
           {badgesFiltered.map((badge) => (
-            <div key={badge.badge_id}>
-                <Image
-                    src={badge.image_path}
-                    alt={badge.name + " icon"}
-                    width={128}
-                    height={128}
-                    className="object-contain w-full h-full"
-                    draggable={false}
-                    quality={90}
-                    priority={false}
-                    unoptimized={false}
-                  />
-                  <p>{badge.name}</p>
+            <div 
+              key={badge.badge_id} 
+              className="flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:scale-110 transition-transform duration-200 overflow-hidden"
+              title={badge.name}
+            >
+              <Image
+                src={badge.image_path}
+                alt={badge.name + " icon"}
+                width={64}
+                height={64}
+                className="object-cover w-full h-full"
+                draggable={false}
+                quality={90}
+                priority={false}
+                unoptimized={false}
+              />
             </div>
-        ))}
-    </div>
-    ) : (
-        <div>
-            <p>User has no badges</p>
+          ))}
         </div>
-    )}
+      ) : (
+        <div className="p-2">
+          <p className="text-sm text-gray-500 dark:text-gray-400">No badges</p>
+        </div>
+      )}
     </>
   )
 }
