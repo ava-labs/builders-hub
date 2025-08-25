@@ -1,4 +1,4 @@
-import { documentation, academy, guide, integration } from '@/lib/source';
+import { documentation, academy, blog, integration } from '@/lib/source';
 import { getLLMText } from '../../lib/getLLMText';
 
 // cached forever
@@ -26,7 +26,7 @@ export async function GET() {
     const allPages = [
       ...documentation.getPages(),
       ...academy.getPages(),
-      ...guide.getPages(),
+      ...blog.getPages(),
       ...integration.getPages()
     ];
     

@@ -53,8 +53,8 @@ export default function TeleporterRegistry() {
 
     return (
         <Container
-            title="Deploy Teleporter Registry"
-            description="Deploy the Teleporter Registry contract to your L1."
+            title="Deploy ICM Registry"
+            description="Deploy the ICM Registry contract to your L1."
         >
             <div className="space-y-4">
                 <div className="mb-4">

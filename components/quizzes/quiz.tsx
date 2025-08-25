@@ -9,6 +9,7 @@ import quizData from './quizData.json';
 
 interface QuizProps {
   quizId: string;
+  onQuizCompleted?: (quizId: string) => void;
 }
 
 interface QuizData {
@@ -19,7 +20,7 @@ interface QuizData {
   explanation: string;
 }
 
-const Quiz: React.FC<QuizProps> = ({ quizId }) => {
+const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
   const [quizInfo, setQuizInfo] = useState<QuizData | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [isAnswerChecked, setIsAnswerChecked] = useState<boolean>(false);
@@ -83,6 +84,11 @@ const Quiz: React.FC<QuizProps> = ({ quizId }) => {
         isAnswerChecked: true,
         isCorrect: correct,
       });
+
+      // Llamar a onQuizCompleted si la respuesta es correcta
+      if (correct && onQuizCompleted) {
+        onQuizCompleted(quizId);
+      }
     }
   };
 

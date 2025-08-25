@@ -1,5 +1,7 @@
 import { defineConfig, ConfigEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from "path"
+import tailwindcss from "@tailwindcss/vite"
 import { execSync } from 'child_process'
 
 // https://vite.dev/config/
@@ -15,7 +17,7 @@ export default ({ mode }: ConfigEnv) => {
   }
 
   return defineConfig({
-    plugins: [react()],
+    plugins: [react(), tailwindcss()],
     define: {
       'process.env': process.env,
       global: 'globalThis',
@@ -25,6 +27,7 @@ export default ({ mode }: ConfigEnv) => {
         buffer: 'buffer',
         process: 'process/browser',
         util: 'util',
+        "@": path.resolve(__dirname, "./src"),
       },
     },
     build: {

@@ -188,7 +188,7 @@ export default function Page() {
               className="block hover:no-underline"
             >
               <ProgramCard
-                title="Hexgate Security Program"
+                title="Hexagate Security Program"
                 description="Onchain security for Avalanche builders, delivering real-time threat detection for smart contracts and protocols."
                 icon={<Shield className="w-6 h-6 text-foreground" />}
               />

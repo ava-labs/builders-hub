@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../Button';
-import { X } from 'lucide-react';
 import { type Chain } from 'viem';
 import { useWalletStore } from '../../stores/walletStore';
 import { utils } from "@avalabs/avalanchejs";
 import { Input } from '../Input';
 import { Select } from '../Select';
 import { getBlockchainInfo, getSubnetInfo, getChainDetails } from '../../coreViem/utils/glacier';
-import * as Dialog from "@radix-ui/react-dialog";
+import { Dialog, DialogOverlay, DialogContent, DialogTitle } from '../ui/dialog';
 import { fetchChainId } from '../../lib/chainId';
+
 interface AddChainModalProps {
     // onOpen: () => void;//FIXME: consider brining back isOpen
     onClose: () => void;
@@ -145,11 +145,11 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
     return (
         <Dialog.Root open={true} onOpenChange={() => onClose()}>
             <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 bg-black/50 data-[state=open]:animate-overlayShow" />
-                <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-lg focus:outline-none w-[90vw] max-w-md">
-                    <Dialog.Title className="text-xl font-bold mb-6 text-zinc-800 dark:text-zinc-100">
+                <DialogOverlay />
+                <DialogContent>
+                    <DialogTitle>
                         Add an existing Avalanche L1
-                    </Dialog.Title>
+                    </DialogTitle>
 
                     {logoUrl && (
                         <div className="flex justify-center mb-4">
@@ -252,18 +252,9 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
                             Add Chain
                         </Button>
                     </div>
-
-                    <Dialog.Close asChild>
-                        <button
-                            className="absolute top-3 right-3 text-zinc-500 hover:text-black dark:hover:text-white p-1 rounded-full"
-                            aria-label="Close modal"
-                        >
-                            <X size={20} />
-                        </button>
-                    </Dialog.Close>
-                </Dialog.Content>
+                </DialogContent>
             </Dialog.Portal>
-        </Dialog.Root >
+        </Dialog.Root>
     );
 };
 function LoadFromCoreWallet({ onLookup }: { onLookup: ({ rpcUrl, coinName }: { rpcUrl: string, coinName: string }) => void }) {
