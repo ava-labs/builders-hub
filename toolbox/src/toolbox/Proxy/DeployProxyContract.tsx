@@ -12,6 +12,8 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Success } from "../../components/Success";
+import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 export default function DeployProxyContract() {
     const { showBoundary } = useErrorBoundary();
@@ -83,82 +85,86 @@ export default function DeployProxyContract() {
     }
 
     return (
-        <Container
-            title="Deploy Proxy Contracts"
-            description="Deploy ProxyAdmin and TransparentUpgradeableProxy contracts to the EVM network."
-        >
-            <p className="my-3">
-                <a href="https://github.com/OpenZeppelin/openzeppelin-contracts/tree/release-v4.9/contracts/proxy/transparent"
-                    target="_blank"
-                    rel="noopener noreferrer">
-                    OpenZeppelin's Transparent Proxy Pattern
-                </a> enables upgradeability of smart contracts while preserving state and contract addresses.
-            </p>
+        <CheckWalletRequirements configKey={[
+            WalletRequirementsConfigKey.EVMChainBalance,
+        ]}>
+            <Container
+                title="Deploy Proxy Contracts"
+                description="Deploy ProxyAdmin and TransparentUpgradeableProxy contracts to the EVM network."
+            >
+                <p className="my-3">
+                    <a href="https://github.com/OpenZeppelin/openzeppelin-contracts/tree/release-v4.9/contracts/proxy/transparent"
+                        target="_blank"
+                        rel="noopener noreferrer">
+                        OpenZeppelin's Transparent Proxy Pattern
+                    </a> enables upgradeability of smart contracts while preserving state and contract addresses.
+                </p>
 
-            <p className="mb-3"><strong>How It Works:</strong> The proxy contract stores state and forwards function calls, while the implementation contract contains only the logic. The proxy admin manages implementation upgrades securely.</p>
+                <p className="mb-3"><strong>How It Works:</strong> The proxy contract stores state and forwards function calls, while the implementation contract contains only the logic. The proxy admin manages implementation upgrades securely.</p>
 
-            <Callout type="warn" className="mb-8">
-                If you have created the L1 that you want to deploy the Validator Manager for with the Builder Console, a proxy contract is pre-deployed with the Genesis at the address <code>0xfacade...</code> and you can skip this step. You only need this tool if you want to use the validator manager on a different L1 or if you want to deploy a new proxy contract for any reason.
-            </Callout>
+                <Callout type="warn" className="mb-8">
+                    If you have created the L1 that you want to deploy the Validator Manager for with the Builder Console, a proxy contract is pre-deployed with the Genesis at the address <code>0xfacade...</code> and you can skip this step. You only need this tool if you want to use the validator manager on a different L1 or if you want to deploy a new proxy contract for any reason.
+                </Callout>
 
-            <Steps>
-                <Step>
-                    <h2 className="text-lg font-semibold">Deploy Proxy Admin Contract</h2>
-                    <p className="text-sm text-gray-500">
-                        This will deploy the <code>ProxyAdmin</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ProxyAdmin</code> is used to manage upgrades to the implementation for the proxy contract. For production L1s this should be a multisig wallet, since it can take full control over the L1 validator set by arbitrarily changing the implementation of the ValidatorManager contract.
-                    </p>
+                <Steps>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Deploy Proxy Admin Contract</h2>
+                        <p className="text-sm text-gray-500">
+                            This will deploy the <code>ProxyAdmin</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ProxyAdmin</code> is used to manage upgrades to the implementation for the proxy contract. For production L1s this should be a multisig wallet, since it can take full control over the L1 validator set by arbitrarily changing the implementation of the ValidatorManager contract.
+                        </p>
 
-                    <Button
-                        variant="primary"
-                        onClick={deployProxyAdmin}
-                        loading={isDeployingProxyAdmin}
-                        disabled={isDeployingProxyAdmin || !!proxyAdminAddress}
-                        className="mt-4"
-                    >
-                        Deploy Proxy Admin
-                    </Button>
+                        <Button
+                            variant="primary"
+                            onClick={deployProxyAdmin}
+                            loading={isDeployingProxyAdmin}
+                            disabled={isDeployingProxyAdmin || !!proxyAdminAddress}
+                            className="mt-4"
+                        >
+                            Deploy Proxy Admin
+                        </Button>
 
-                    {proxyAdminAddress && (
-                        <Success
-                            label="ProxyAdmin Contract Deployed"
-                            value={proxyAdminAddress}
+                        {proxyAdminAddress && (
+                            <Success
+                                label="ProxyAdmin Contract Deployed"
+                                value={proxyAdminAddress}
+                            />
+                        )}
+                    </Step>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Deploy Transparent Proxy Contract</h2>
+                        <p className="text-sm text-gray-500">
+                            The proxy requires the <code>ProxyAdmin</code> contract at address: <code>{proxyAdminAddress || "Not deployed"}</code>
+                        </p>
+
+
+                        <EVMAddressInput
+                            label="Implementation Address"
+                            value={implementationAddress}
+                            onChange={setImplementationAddress}
+                            placeholder="Enter implementation contract address (e.g. ValidatorManager or StakingManager)"
+                            disabled={isDeployingProxy}
                         />
-                    )}
-                </Step>
-                <Step>
-                    <h2 className="text-lg font-semibold">Deploy Transparent Proxy Contract</h2>
-                    <p className="text-sm text-gray-500">
-                        The proxy requires the <code>ProxyAdmin</code> contract at address: <code>{proxyAdminAddress || "Not deployed"}</code>
-                    </p>
 
+                        <Button
+                            variant="primary"
+                            onClick={deployTransparentProxy}
+                            loading={isDeployingProxy}
+                            disabled={isDeployingProxy || !proxyAdminAddress || !implementationAddress}
+                            className="mt-4"
+                        >
+                            Deploy Proxy Contract
+                        </Button>
 
-                    <EVMAddressInput
-                        label="Implementation Address"
-                        value={implementationAddress}
-                        onChange={setImplementationAddress}
-                        placeholder="Enter implementation contract address (e.g. ValidatorManager or StakingManager)"
-                        disabled={isDeployingProxy}
-                    />
+                        {proxyAddress && (
+                            <Success
+                                label="Proxy Contract Deployed"
+                                value={proxyAddress}
+                            />
+                        )}
 
-                    <Button
-                        variant="primary"
-                        onClick={deployTransparentProxy}
-                        loading={isDeployingProxy}
-                        disabled={isDeployingProxy || !proxyAdminAddress || !implementationAddress}
-                        className="mt-4"
-                    >
-                        Deploy Proxy Contract
-                    </Button>
-
-                    {proxyAddress && (
-                        <Success
-                            label="Proxy Contract Deployed"
-                            value={proxyAddress}
-                        />
-                    )}
-
-                </Step>
-            </Steps>
-        </Container>
+                    </Step>
+                </Steps>
+            </Container>
+        </CheckWalletRequirements>
     );
 }

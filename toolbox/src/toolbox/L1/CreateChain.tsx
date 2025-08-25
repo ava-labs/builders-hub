@@ -14,6 +14,8 @@ import { Success } from "../../components/Success";
 import { RadioGroup } from "../../components/RadioGroup";
 import InputSubnetId from "../../components/InputSubnetId";
 import { SUBNET_EVM_VM_ID } from "../Nodes/config";
+import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 const generateRandomName = () => {
     //makes sure the name doesn't contain a dash
@@ -99,110 +101,114 @@ export default function CreateChain() {
     }
 
     return (
-        <Container
-            title="Create Chain"
-            description="Create a subnet and add a new blockchain with custom parameters and genesis data."
-        >
-            <Steps>
-                <Step>
-                    <h2 className="text-lg font-semibold">Step 1: Create a Subnet</h2>
-                    <p className="text-sm text-gray-500">
-                        Every chain needs to be associated with a Subnet. If you don't have a Subnet, create one here. If you already have a Subnet, skip to the next step.
-                    </p>
-                    <div className="space-y-4">
-                        <Input
-                            label="Subnet Owner"
-                            value={pChainAddress}
-                            disabled={true}
-                            type="text"
+        <CheckWalletRequirements configKey={[
+            WalletRequirementsConfigKey.PChainBalance
+        ]}>
+            <Container
+                title="Create Chain"
+                description="Create a subnet and add a new blockchain with custom parameters and genesis data."
+            >
+                <Steps>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Step 1: Create a Subnet</h2>
+                        <p className="text-sm text-gray-500">
+                            Every chain needs to be associated with a Subnet. If you don't have a Subnet, create one here. If you already have a Subnet, skip to the next step.
+                        </p>
+                        <div className="space-y-4">
+                            <Input
+                                label="Subnet Owner"
+                                value={pChainAddress}
+                                disabled={true}
+                                type="text"
+                            />
+
+                            <Button
+                                onClick={handleCreateSubnet}
+                                loading={isCreatingSubnet}
+                                variant="primary"
+                            >
+                                Create Subnet
+                            </Button>
+                        </div>
+                        {createdSubnetId && (
+                            <div className="mt-4">
+                                <Success
+                                    label="Subnet Created Successfully"
+                                    value={createdSubnetId}
+                                />
+                            </div>
+                        )}
+                    </Step>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Step 2: Create a Chain</h2>
+                        <p className="text-sm text-gray-500">
+                            Enter the parameters for your new chain.
+                        </p>
+
+                        <InputSubnetId
+                            id="create-chain-subnet-id"
+                            label="Subnet ID"
+                            value={subnetId}
+                            onChange={handleSubnetIdChange}
+                            validationDelayMs={3000}
+                            hideSuggestions={true}
+                            placeholder="Create a Subnet in Step 1 or enter a SubnetID."
                         />
+
+                        <Input
+                            label="Chain Name"
+                            value={localChainName}
+                            onChange={setLocalChainName}
+                            placeholder="Enter chain name"
+                        />
+
+                        <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Virtual Machine</h3>
+                        <p className="text-sm text-gray-500">
+                            Select what Virtual Machine (VM) your chain will use.
+                        </p>
+                        <RadioGroup
+                            value={showVMIdInput ? 'true' : 'false'}
+                            onChange={(value) => {
+                                const shouldShow = value === "true";
+                                setShowVMIdInput(shouldShow);
+                                // Reset to standard EVM when switching to uncustomized
+                                if (!shouldShow) {
+                                    setVmId(SUBNET_EVM_VM_ID);
+                                }
+                            }}
+                            idPrefix={`show-vm-id`}
+                            className="mb-4"
+                            items={[
+                                { value: "false", label: "Uncustomized EVM" },
+                                { value: "true", label: "Customized EVM or alternative VM (Experts only)" }
+                            ]}
+                        />
+                        {showVMIdInput && (
+                            <Input
+                                label="VM ID"
+                                value={vmId}
+                                onChange={setVmId}
+                                placeholder="Enter VM ID"
+                                helperText={`For an L1 with an uncustomized EVM use ${SUBNET_EVM_VM_ID}`}
+                            />
+                        )}
+
+                        <GenesisBuilder genesisData={localGenesisData} setGenesisData={setLocalGenesisData} />
 
                         <Button
-                            onClick={handleCreateSubnet}
-                            loading={isCreatingSubnet}
-                            variant="primary"
+                            onClick={handleCreateChain}
+                            loading={isCreatingChain}
+                            loadingText="Creating Chain..."
                         >
-                            Create Subnet
+                            Create Chain
                         </Button>
-                    </div>
-                    {createdSubnetId && (
-                        <div className="mt-4">
-                            <Success
-                                label="Subnet Created Successfully"
-                                value={createdSubnetId}
-                            />
-                        </div>
-                    )}
-                </Step>
-                <Step>
-                    <h2 className="text-lg font-semibold">Step 2: Create a Chain</h2>
-                    <p className="text-sm text-gray-500">
-                        Enter the parameters for your new chain.
-                    </p>
-
-                    <InputSubnetId
-                        id="create-chain-subnet-id"
-                        label="Subnet ID"
-                        value={subnetId}
-                        onChange={handleSubnetIdChange}
-                        validationDelayMs={3000}
-                        hideSuggestions={true}
-                        placeholder="Create a Subnet in Step 1 or enter a SubnetID."
-                    />
-
-                    <Input
-                        label="Chain Name"
-                        value={localChainName}
-                        onChange={setLocalChainName}
-                        placeholder="Enter chain name"
-                    />
-
-                    <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Virtual Machine</h3>
-                    <p className="text-sm text-gray-500">
-                        Select what Virtual Machine (VM) your chain will use.
-                    </p>
-                    <RadioGroup
-                        value={showVMIdInput ? 'true' : 'false'}
-                        onChange={(value) => {
-                            const shouldShow = value === "true";
-                            setShowVMIdInput(shouldShow);
-                            // Reset to standard EVM when switching to uncustomized
-                            if (!shouldShow) {
-                                setVmId(SUBNET_EVM_VM_ID);
-                            }
-                        }}
-                        idPrefix={`show-vm-id`}
-                        className="mb-4"
-                        items={[
-                            { value: "false", label: "Uncustomized EVM" },
-                            { value: "true", label: "Customized EVM or alternative VM (Experts only)" }
-                        ]}
-                    />
-                    {showVMIdInput && (
-                        <Input
-                            label="VM ID"
-                            value={vmId}
-                            onChange={setVmId}
-                            placeholder="Enter VM ID"
-                            helperText={`For an L1 with an uncustomized EVM use ${SUBNET_EVM_VM_ID}`}
-                        />
-                    )}
-
-                    <GenesisBuilder genesisData={localGenesisData} setGenesisData={setLocalGenesisData} />
-
-                    <Button
-                        onClick={handleCreateChain}
-                        loading={isCreatingChain}
-                        loadingText="Creating Chain..."
-                    >
-                        Create Chain
-                    </Button>
-                </Step>
-            </Steps>
-            {createdChainId && <Success
-                label="Chain Created Successfully"
-                value={createdChainId}
-            />}
-        </Container>
+                    </Step>
+                </Steps>
+                {createdChainId && <Success
+                    label="Chain Created Successfully"
+                    value={createdChainId}
+                />}
+            </Container>
+        </CheckWalletRequirements>
     );
 };

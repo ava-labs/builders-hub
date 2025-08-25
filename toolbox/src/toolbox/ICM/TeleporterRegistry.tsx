@@ -11,6 +11,8 @@ import TeleporterRegistryBytecode from '../../../contracts/icm-contracts-release
 import TeleporterMessengerAddress from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import TeleporterRegistryManualyCompiled from '../../../contracts/icm-contracts/compiled/TeleporterRegistry.json';
 import { Container } from "../../components/Container";
+import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 
 export default function TeleporterRegistry() {
@@ -52,28 +54,32 @@ export default function TeleporterRegistry() {
     }
 
     return (
-        <Container
-            title="Deploy ICM Registry"
-            description="Deploy the ICM Registry contract to your L1."
-        >
-            <div className="space-y-4">
-                <div className="mb-4">
-                    This will deploy the <code>TeleporterRegistry</code> contract to the EVM network #<code>{selectedL1?.evmChainId}</code>.
-                    The contract will be initialized with the Teleporter Messenger address <code>{TeleporterMessengerAddress.content.trim()}</code>.
+        <CheckWalletRequirements configKey={[
+            WalletRequirementsConfigKey.EVMChainBalance,
+        ]}>
+            <Container
+                title="Deploy ICM Registry"
+                description="Deploy the ICM Registry contract to your L1."
+            >
+                <div className="space-y-4">
+                    <div className="mb-4">
+                        This will deploy the <code>TeleporterRegistry</code> contract to the EVM network #<code>{selectedL1?.evmChainId}</code>.
+                        The contract will be initialized with the Teleporter Messenger address <code>{TeleporterMessengerAddress.content.trim()}</code>.
+                    </div>
+                    <Button
+                        variant="primary"
+                        onClick={handleDeploy}
+                        loading={isDeploying}
+                        disabled={isDeploying}
+                    >
+                        {teleporterRegistryAddress ? "Redeploy" : "Deploy"} TeleporterRegistry
+                    </Button>
                 </div>
-                <Button
-                    variant="primary"
-                    onClick={handleDeploy}
-                    loading={isDeploying}
-                    disabled={isDeploying}
-                >
-                    {teleporterRegistryAddress ? "Redeploy" : "Deploy"} TeleporterRegistry
-                </Button>
-            </div>
-            <Success
-                label="TeleporterRegistry Address"
-                value={teleporterRegistryAddress}
-            />
-        </Container>
+                <Success
+                    label="TeleporterRegistry Address"
+                    value={teleporterRegistryAddress}
+                />
+            </Container>
+        </CheckWalletRequirements>
     );
 }

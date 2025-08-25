@@ -15,6 +15,7 @@ export function WalletBootstrap() {
   const setAvalancheNetworkID = useWalletStore((s) => s.setAvalancheNetworkID)
   const setEvmChainName = useWalletStore((s) => s.setEvmChainName)
   const updateAllBalances = useWalletStore((s) => s.updateAllBalances)
+  const setBootstrapped = useWalletStore((s) => s.setBootstrapped)
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.avalanche) return
@@ -88,6 +89,8 @@ export function WalletBootstrap() {
     }
 
     try {
+      setBootstrapped(true)
+
       if (window.avalanche.on) {
         window.avalanche.on('accountsChanged', handleAccountsChanged)
         window.avalanche.on('chainChanged', onChainChanged)

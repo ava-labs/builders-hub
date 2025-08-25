@@ -14,6 +14,9 @@ import { Container } from "../../components/Container";
 import SelectBlockchainId from "../../components/SelectBlockchainId";
 import { useL1ByChainId, useSelectedL1 } from "../../stores/l1ListStore";
 import { useEffect } from "react";
+import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
+
 const predeployedDemos: Record<string, string> = {
     //fuji
     "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp": "0x05c474824e7d2cc67cf22b456f7cf60c0e3a1289"
@@ -159,68 +162,72 @@ export default function SendICMMessage() {
         !targetL1?.rpcUrl;
 
     return (
-        <Container title="Send ICM Message">
-            <div className="space-y-4">
-                <Input
-                    value={icmReceiverAddress}
-                    label={`ICM Demo Contract Address on ${selectedL1?.name}`}
-                    disabled
-                    error={sourceContractError}
-                />
-                <Input
-                    label="Message to deliver (Number)"
-                    value={message.toString()}
-                    onChange={(value) => setMessage(Number(value) || 0)}
-                    required
-                    type="number"
-                />
-                <SelectBlockchainId
-                    label="Destination Chain"
-                    value={destinationChainId}
-                    onChange={(value) => setDestinationChainId(value)}
-                    error={destinationChainError}
-                />
-                <Input
-                    value={targetToolboxStore.icmReceiverAddress}
-                    label={`ICM Demo Contract Address on ${targetL1?.name}`}
-                    disabled
-                    error={targetContractError}
-                />
-
-                <Button
-                    variant="primary"
-                    onClick={handleSendMessage}
-                    loading={isSending}
-                    disabled={isButtonDisabled}
-                >
-                    Send Message from {selectedL1?.name || 'Source'} to {targetL1?.name || 'Destination'}
-                </Button>
-
-                <div className="space-y-1">
-                    <Success
-                        label="Transaction ID (on Source Chain)"
-                        value={lastTxId ?? ""}
+        <CheckWalletRequirements configKey={[
+            WalletRequirementsConfigKey.EVMChainBalance,
+        ]}>
+            <Container title="Send ICM Message">
+                <div className="space-y-4">
+                    <Input
+                        value={icmReceiverAddress}
+                        label={`ICM Demo Contract Address on ${selectedL1?.name}`}
+                        disabled
+                        error={sourceContractError}
                     />
-                </div>
+                    <Input
+                        label="Message to deliver (Number)"
+                        value={message.toString()}
+                        onChange={(value) => setMessage(Number(value) || 0)}
+                        required
+                        type="number"
+                    />
+                    <SelectBlockchainId
+                        label="Destination Chain"
+                        value={destinationChainId}
+                        onChange={(value) => setDestinationChainId(value)}
+                        error={destinationChainError}
+                    />
+                    <Input
+                        value={targetToolboxStore.icmReceiverAddress}
+                        label={`ICM Demo Contract Address on ${targetL1?.name}`}
+                        disabled
+                        error={targetContractError}
+                    />
 
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
                     <Button
-                        variant="secondary"
-                        onClick={queryLastMessage}
-                        loading={isQuerying}
-                        disabled={isQueryButtonDisabled}
+                        variant="primary"
+                        onClick={handleSendMessage}
+                        loading={isSending}
+                        disabled={isButtonDisabled}
                     >
-                        Query Last Message on {targetL1?.name || 'Destination Chain'}
+                        Send Message from {selectedL1?.name || 'Source'} to {targetL1?.name || 'Destination'}
                     </Button>
 
-                    <div className="mt-2">
+                    <div className="space-y-1">
                         <Success
-                            label="Last Received Message on Destination Chain"
-                            value={lastReceivedMessage !== undefined ? lastReceivedMessage.toString() : ""}
+                            label="Transaction ID (on Source Chain)"
+                            value={lastTxId ?? ""}
                         />
                     </div>
+
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                        <Button
+                            variant="secondary"
+                            onClick={queryLastMessage}
+                            loading={isQuerying}
+                            disabled={isQueryButtonDisabled}
+                        >
+                            Query Last Message on {targetL1?.name || 'Destination Chain'}
+                        </Button>
+
+                        <div className="mt-2">
+                            <Success
+                                label="Last Received Message on Destination Chain"
+                                value={lastReceivedMessage !== undefined ? lastReceivedMessage.toString() : ""}
+                            />
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </Container>
+            </Container>
+        </CheckWalletRequirements>
     );
 }

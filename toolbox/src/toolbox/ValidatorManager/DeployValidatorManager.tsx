@@ -11,6 +11,8 @@ import ValidatorMessagesABI from "../../../contracts/icm-contracts/compiled/Vali
 import { Container } from "../../components/Container";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Success } from "../../components/Success";
+import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 function calculateLibraryHash(libraryPath: string) {
     const hash = keccak256(
@@ -103,63 +105,67 @@ export default function DeployValidatorContracts() {
     }
 
     return (
-        <Container
-            title="Deploy Validator Contracts"
-            description="Deploy the ValidatorMessages library and ValidatorManager contract to the EVM network."
-        >
-            <div className="space-y-4">
-                <Steps>
-                    <Step>
-                        <h2 className="text-lg font-semibold">Deploy Validator Messages Library</h2>
-                        <p className="text-sm text-gray-500">
-                            This will deploy the <code>ValidatorMessages</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ValidatorMessages</code> is a library required by the <code>ValidatorManager</code> family of contracts.
-                        </p>
+        <CheckWalletRequirements configKey={[
+            WalletRequirementsConfigKey.EVMChainBalance,
+        ]}>
+            <Container
+                title="Deploy Validator Contracts"
+                description="Deploy the ValidatorMessages library and ValidatorManager contract to the EVM network."
+            >
+                <div className="space-y-4">
+                    <Steps>
+                        <Step>
+                            <h2 className="text-lg font-semibold">Deploy Validator Messages Library</h2>
+                            <p className="text-sm text-gray-500">
+                                This will deploy the <code>ValidatorMessages</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ValidatorMessages</code> is a library required by the <code>ValidatorManager</code> family of contracts.
+                            </p>
 
-                        <Button
-                            variant="primary"
-                            onClick={deployValidatorMessages}
-                            loading={isDeployingMessages}
-                            disabled={isDeployingMessages || !!validatorMessagesLibAddress}
-                        >
-                            Deploy Library
-                        </Button>
+                            <Button
+                                variant="primary"
+                                onClick={deployValidatorMessages}
+                                loading={isDeployingMessages}
+                                disabled={isDeployingMessages || !!validatorMessagesLibAddress}
+                            >
+                                Deploy Library
+                            </Button>
 
-                        <p>Deployment Status: <code>{validatorMessagesLibAddress || "Not deployed"}</code></p>
+                            <p>Deployment Status: <code>{validatorMessagesLibAddress || "Not deployed"}</code></p>
 
-                        {validatorMessagesLibAddress && (
-                            <Success
-                                label="ValidatorMessages Library Deployed"
-                                value={validatorMessagesLibAddress}
-                            />
-                        )}
-                    </Step>
+                            {validatorMessagesLibAddress && (
+                                <Success
+                                    label="ValidatorMessages Library Deployed"
+                                    value={validatorMessagesLibAddress}
+                                />
+                            )}
+                        </Step>
 
-                    <Step>
-                        <h2 className="text-lg font-semibold">Deploy Validator Manager Contract</h2>
-                        <p className="text-sm text-gray-500">
-                            This will deploy the <code>ValidatorManager</code> contract to the EVM network <code>{viemChain?.id}</code>. It is the interface for managing the validators for it's L1. The contract emits the ICM messages to change the L1s validator set on the P-Chain.
-                        </p>
+                        <Step>
+                            <h2 className="text-lg font-semibold">Deploy Validator Manager Contract</h2>
+                            <p className="text-sm text-gray-500">
+                                This will deploy the <code>ValidatorManager</code> contract to the EVM network <code>{viemChain?.id}</code>. It is the interface for managing the validators for it's L1. The contract emits the ICM messages to change the L1s validator set on the P-Chain.
+                            </p>
 
-                        <Button
-                            variant="primary"
-                            onClick={deployValidatorManager}
-                            loading={isDeployingManager}
-                            disabled={isDeployingManager || !validatorMessagesLibAddress || !!validatorManagerAddress}
-                            className="mt-1"
-                        >
-                            Deploy Manager Contract
-                        </Button>
+                            <Button
+                                variant="primary"
+                                onClick={deployValidatorManager}
+                                loading={isDeployingManager}
+                                disabled={isDeployingManager || !validatorMessagesLibAddress || !!validatorManagerAddress}
+                                className="mt-1"
+                            >
+                                Deploy Manager Contract
+                            </Button>
 
-                        {validatorManagerAddress && (
-                            <Success
-                                label="ValidatorManager Address"
-                                value={validatorManagerAddress}
-                            />
-                        )}
+                            {validatorManagerAddress && (
+                                <Success
+                                    label="ValidatorManager Address"
+                                    value={validatorManagerAddress}
+                                />
+                            )}
 
-                    </Step>
-                </Steps>
-            </div>
-        </Container>
+                        </Step>
+                    </Steps>
+                </div>
+            </Container>
+        </CheckWalletRequirements>
     );
 }

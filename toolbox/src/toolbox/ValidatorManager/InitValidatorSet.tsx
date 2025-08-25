@@ -18,6 +18,8 @@ import { Container } from '../../components/Container';
 import { ResultField } from '../../components/ResultField';
 import { getSubnetInfo } from '../../coreViem/utils/glacier';
 import { useAvaCloudSDK } from "../../stores/useAvaCloudSDK";
+import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 const cb58ToHex = (cb58: string) => utils.bufferToHex(utils.base58check.decode(cb58));
 const add0x = (hex: string): `0x${string}` => hex.startsWith('0x') ? hex as `0x${string}` : `0x${hex}`;
@@ -184,78 +186,82 @@ export default function InitValidatorSet() {
     };
 
     return (
-        <Container
-            title="Initialize Validator Set"
-            description="This will initialize the ValidatorManager contract."
-        >
-            <Steps>
-                <Step>
-                    <h2 className="text-lg font-semibold">Step 1: Aggregate Signature of Conversion Data</h2>
-                    <p>Enter the P-Chain Transaction ID of the ConvertSubnetToL1Tx of the L1 this Validator Manager it is for. It is needed to fetch the conversion data containing the initial validator set. This validator set will be set up in the validator manager contract so the consensus weight of these validators can be changed or they can be removed entirely if desired.</p>
-                    <div className="space-y-4">
+        <CheckWalletRequirements configKey={[
+            WalletRequirementsConfigKey.EVMChainBalance,
+        ]}>
+            <Container
+                title="Initialize Validator Set"
+                description="This will initialize the ValidatorManager contract."
+            >
+                <Steps>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Step 1: Aggregate Signature of Conversion Data</h2>
+                        <p>Enter the P-Chain Transaction ID of the ConvertSubnetToL1Tx of the L1 this Validator Manager it is for. It is needed to fetch the conversion data containing the initial validator set. This validator set will be set up in the validator manager contract so the consensus weight of these validators can be changed or they can be removed entirely if desired.</p>
+                        <div className="space-y-4">
+                            <Input
+                                label="Conversion Tx ID"
+                                value={conversionTxID}
+                                onChange={setConversionTxID}
+                                error={conversionTxIDError}
+                            />
+                            <Button disabled={!conversionTxID || !!L1ConversionSignature} onClick={() => aggSigs()} loading={isAggregating}>Aggregate</Button>
+                        </div>
+                    </Step>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Step 2: Intialize the Validator Manager Contract State</h2>
+                        With the aggregated signature, you can now initialize the Validator Manager contract state. This will set up the initial validator set and allow you to manage validators.
                         <Input
-                            label="Conversion Tx ID"
-                            value={conversionTxID}
-                            onChange={setConversionTxID}
-                            error={conversionTxIDError}
+                            label="Aggregated Signature"
+                            value={L1ConversionSignature}
+                            onChange={setL1ConversionSignature}
+                            type="textarea"
+                            placeholder="0x...."
+                            disabled={!conversionTxID}
+                            error={L1ConversionSignatureError}
                         />
-                        <Button disabled={!conversionTxID || !!L1ConversionSignature} onClick={() => aggSigs()} loading={isAggregating}>Aggregate</Button>
+                        <Button
+                            variant="primary"
+                            onClick={() => onInitialize(false)}
+                            loading={isInitializing}
+                            disabled={!conversionTxID || !L1ConversionSignature}
+                        >
+                            Initialize Validator Set
+                        </Button>
+                    </Step>
+                </Steps>
+
+                {error && (
+                    <div className="p-4 text-red-700 bg-red-100 rounded-md">
+                        {error}
                     </div>
-                </Step>
-                <Step>
-                    <h2 className="text-lg font-semibold">Step 2: Intialize the Validator Manager Contract State</h2>
-                    With the aggregated signature, you can now initialize the Validator Manager contract state. This will set up the initial validator set and allow you to manage validators.
-                    <Input
-                        label="Aggregated Signature"
-                        value={L1ConversionSignature}
-                        onChange={setL1ConversionSignature}
-                        type="textarea"
-                        placeholder="0x...."
-                        disabled={!conversionTxID}
-                        error={L1ConversionSignatureError}
+                )}
+
+                {simulationWentThrough && !error && (
+                    <div className="p-4 text-green-700 bg-green-100 rounded-md">
+                        Transaction simulation successful
+                    </div>
+                )}
+
+                {
+                    Object.keys(collectedData).length > 0 && (
+                        <div className="space-y-2">
+                            <span onClick={() => setShowDebugData(!showDebugData)} className="cursor-pointer text-blue-500  hover:underline">{showDebugData ? "Hide" : "Show"} debug data</span>
+                            {showDebugData && (
+                                <CodeHighlighter code={JSON.stringify(collectedData, null, 2)} lang="json" />
+                            )}
+                        </div>
+                    )
+                }
+
+                {txHash && (
+                    <ResultField
+                        label="Transaction Successful"
+                        value={txHash}
+                        showCheck={true}
                     />
-                    <Button
-                        variant="primary"
-                        onClick={() => onInitialize(false)}
-                        loading={isInitializing}
-                        disabled={!conversionTxID || !L1ConversionSignature}
-                    >
-                        Initialize Validator Set
-                    </Button>
-                </Step>
-            </Steps>
-
-            {error && (
-                <div className="p-4 text-red-700 bg-red-100 rounded-md">
-                    {error}
-                </div>
-            )}
-
-            {simulationWentThrough && !error && (
-                <div className="p-4 text-green-700 bg-green-100 rounded-md">
-                    Transaction simulation successful
-                </div>
-            )}
-
-            {
-                Object.keys(collectedData).length > 0 && (
-                    <div className="space-y-2">
-                        <span onClick={() => setShowDebugData(!showDebugData)} className="cursor-pointer text-blue-500  hover:underline">{showDebugData ? "Hide" : "Show"} debug data</span>
-                        {showDebugData && (
-                            <CodeHighlighter code={JSON.stringify(collectedData, null, 2)} lang="json" />
-                        )}
-                    </div>
-                )
-            }
-
-            {txHash && (
-                <ResultField
-                    label="Transaction Successful"
-                    value={txHash}
-                    showCheck={true}
-                />
-            )}
-        </Container>
+                )}
+            </Container>
+        </CheckWalletRequirements>
     );
 }
 

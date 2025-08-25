@@ -16,6 +16,8 @@ import { useViemChainStore } from "../../stores/toolboxStore";
 import { useSelectedL1 } from "../../stores/l1ListStore";
 import { useCreateChainStore } from "../../stores/createChainStore";
 import { Step, Steps } from "fumadocs-ui/components/steps";
+import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 export default function Initialize() {
     const { showBoundary } = useErrorBoundary();
@@ -153,100 +155,103 @@ export default function Initialize() {
     }
 
     return (
+        <CheckWalletRequirements configKey={[
+            WalletRequirementsConfigKey.EVMChainBalance,
+        ]}>
+            <Container
+                title="Initial Validator Manager Configuration"
+                description="This will initialize the ValidatorManager contract with the initial configuration."
+            >
+                <Steps>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Select the Validator Manager</h2>
+                        <p className="text-sm text-gray-500">
+                            Select the proxy contract pointing to the ValidatorManager implementation you want to initialize.
+                        </p>
 
-        <Container
-            title="Initial Validator Manager Configuration"
-            description="This will initialize the ValidatorManager contract with the initial configuration."
-        >
-            <Steps>
-                <Step>
-                    <h2 className="text-lg font-semibold">Select the Validator Manager</h2>
-                    <p className="text-sm text-gray-500">
-                        Select the proxy contract pointing to the ValidatorManager implementation you want to initialize.
-                    </p>
-
-                    <EVMAddressInput
-                        label="Proxy Address of ValidatorManager"
-                        value={proxyAddress}
-                        onChange={setProxyAddress}
-                        disabled={isInitializing}
-                    />
+                        <EVMAddressInput
+                            label="Proxy Address of ValidatorManager"
+                            value={proxyAddress}
+                            onChange={setProxyAddress}
+                            disabled={isInitializing}
+                        />
 
 
-                    <Button
-                        onClick={checkIfInitialized}
-                        loading={isChecking}
-                        disabled={!proxyAddress}
-                        size="sm"
-                    >
-                        Check Status
-                    </Button>
-                </Step>
-                <Step>
-                    <h2 className="text-lg font-semibold">Select Subnet/L1 for the Validator Manager</h2>
-                    <p className="text-sm text-gray-500">
-                        Enter the SubnetID of the Subnet/L1 this Validator Manager contract will manage the validators for. The P-Chain will only accept validator set changes from the Validator Manager contract addresses and blockchainID combination that was indicated in the ConvertSubnetToL1Tx.
-                    </p>
-                    <SelectSubnetId
-                        value={subnetId}
-                        onChange={setSubnetId}
-                        hidePrimaryNetwork={true}
-                    />
+                        <Button
+                            onClick={checkIfInitialized}
+                            loading={isChecking}
+                            disabled={!proxyAddress}
+                            size="sm"
+                        >
+                            Check Status
+                        </Button>
+                    </Step>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Select Subnet/L1 for the Validator Manager</h2>
+                        <p className="text-sm text-gray-500">
+                            Enter the SubnetID of the Subnet/L1 this Validator Manager contract will manage the validators for. The P-Chain will only accept validator set changes from the Validator Manager contract addresses and blockchainID combination that was indicated in the ConvertSubnetToL1Tx.
+                        </p>
+                        <SelectSubnetId
+                            value={subnetId}
+                            onChange={setSubnetId}
+                            hidePrimaryNetwork={true}
+                        />
 
-                    <Input
-                        label={`Subnet ID (Hex), ${utils.hexToBuffer(subnetIDHex).length} bytes`}
-                        value={subnetIDHex}
-                        disabled
-                    />
+                        <Input
+                            label={`Subnet ID (Hex), ${utils.hexToBuffer(subnetIDHex).length} bytes`}
+                            value={subnetIDHex}
+                            disabled
+                        />
 
-                </Step>
-                <Step>
-                    <h2 className="text-lg font-semibold">Set the Validator Manager Configuration</h2>
-                    <p className="text-sm text-gray-500">
-                        Set the intitial configuration for the Validator Manager contract. The admin address should be a multisig wallet for production L1s, since it can take full control over the L1 validator set by arbitrarily changing the validator set. The churn settings define how rapid changes to the validator set can be made.
-                    </p>
+                    </Step>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Set the Validator Manager Configuration</h2>
+                        <p className="text-sm text-gray-500">
+                            Set the intitial configuration for the Validator Manager contract. The admin address should be a multisig wallet for production L1s, since it can take full control over the L1 validator set by arbitrarily changing the validator set. The churn settings define how rapid changes to the validator set can be made.
+                        </p>
 
-                    <EVMAddressInput
-                        label="Validator Admin Address (should be a multisig for production L1s, can be changed later)"
-                        value={adminAddress}
-                        onChange={setAdminAddress}
-                        disabled={isInitializing}
-                        placeholder="Enter admin address"
-                    />
+                        <EVMAddressInput
+                            label="Validator Admin Address (should be a multisig for production L1s, can be changed later)"
+                            value={adminAddress}
+                            onChange={setAdminAddress}
+                            disabled={isInitializing}
+                            placeholder="Enter admin address"
+                        />
 
-                    <Input
-                        label="Churn Period (seconds)"
-                        type="number"
-                        value={churnPeriodSeconds}
-                        onChange={setChurnPeriodSeconds}
-                        placeholder="Enter churn period in seconds"
-                    />
-                    <Input
-                        label="Maximum Churn Percentage"
-                        type="number"
-                        value={maximumChurnPercentage}
-                        onChange={setMaximumChurnPercentage}
-                        placeholder="Enter maximum churn percentage"
-                    />
-                    <Button
-                        variant="primary"
-                        onClick={handleInitialize}
-                        loading={isInitializing}
-                        disabled={isInitializing}
-                    >
-                        Initialize Contract
-                    </Button>
+                        <Input
+                            label="Churn Period (seconds)"
+                            type="number"
+                            value={churnPeriodSeconds}
+                            onChange={setChurnPeriodSeconds}
+                            placeholder="Enter churn period in seconds"
+                        />
+                        <Input
+                            label="Maximum Churn Percentage"
+                            type="number"
+                            value={maximumChurnPercentage}
+                            onChange={setMaximumChurnPercentage}
+                            placeholder="Enter maximum churn percentage"
+                        />
+                        <Button
+                            variant="primary"
+                            onClick={handleInitialize}
+                            loading={isInitializing}
+                            disabled={isInitializing}
+                        >
+                            Initialize Contract
+                        </Button>
 
-                </Step>
-                </Steps>
-                {isInitialized === true && (
-                    <ResultField
-                        label="Initialization Event"
-                        value={jsonStringifyWithBigint(initEvent)}
-                        showCheck={isInitialized}
-                    />
-                )}
-        </Container>
+                    </Step>
+                    </Steps>
+                    {isInitialized === true && (
+                        <ResultField
+                            label="Initialization Event"
+                            value={jsonStringifyWithBigint(initEvent)}
+                            showCheck={isInitialized}
+                        />
+                    )}
+            </Container>
+        </CheckWalletRequirements>
 
     );
 };

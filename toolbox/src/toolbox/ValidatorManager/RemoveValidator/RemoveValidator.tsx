@@ -15,6 +15,8 @@ import InitiateValidatorRemoval from "./InitiateValidatorRemoval"
 import CompleteValidatorRemoval from "./CompleteValidatorRemoval"
 import SubmitPChainTxRemoval from "./SubmitPChainTxRemoval"
 import { Step, Steps } from "fumadocs-ui/components/steps"
+import { CheckWalletRequirements } from "../../../components/CheckWalletRequirements"
+import { WalletRequirementsConfigKey } from "../../../hooks/useWalletRequirements"
 
 const RemoveValidatorExpert: React.FC = () => {
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -90,135 +92,140 @@ const RemoveValidatorExpert: React.FC = () => {
   }
 
   return (
-    <Container 
-      title="Remove Validator" 
-      description="Remove a validator from an Avalanche L1 by following these steps in order."
-    >
-      <div className="space-y-6">
-        {globalError && (
-          <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
-            <div className="flex items-center">
-              <AlertCircle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
-              <span>Error: {globalError}</span>
+    <CheckWalletRequirements configKey={[
+      WalletRequirementsConfigKey.EVMChainBalance,
+      WalletRequirementsConfigKey.PChainBalance
+    ]}>
+      <Container 
+        title="Remove Validator" 
+        description="Remove a validator from an Avalanche L1 by following these steps in order."
+      >
+        <div className="space-y-6">
+          {globalError && (
+            <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
+              <div className="flex items-center">
+                <AlertCircle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
+                <span>Error: {globalError}</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <Steps>
-          <Step>
-            <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Choose the L1 subnet where you want to remove the validator.
-            </p>
-            <div className="space-y-2">
-              <SelectSubnetId
-                value={subnetIdL1}
-                onChange={setSubnetIdL1}
-                error={validatorManagerError}
-                hidePrimaryNetwork={true}
-              />
-              <ValidatorManagerDetails
-                validatorManagerAddress={validatorManagerAddress}
-                blockchainId={blockchainId}
+          <Steps>
+            <Step>
+              <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Choose the L1 subnet where you want to remove the validator.
+              </p>
+              <div className="space-y-2">
+                <SelectSubnetId
+                  value={subnetIdL1}
+                  onChange={setSubnetIdL1}
+                  error={validatorManagerError}
+                  hidePrimaryNetwork={true}
+                />
+                <ValidatorManagerDetails
+                  validatorManagerAddress={validatorManagerAddress}
+                  blockchainId={blockchainId}
+                  subnetId={subnetIdL1}
+                  isLoading={isLoadingVMCDetails}
+                  signingSubnetId={signingSubnetId}
+                  contractTotalWeight={contractTotalWeight}
+                  l1WeightError={l1WeightError}
+                  isLoadingL1Weight={isLoadingL1Weight}
+                  contractOwner={contractOwner}
+                  ownershipError={ownershipError}
+                  isLoadingOwnership={isLoadingOwnership}
+                  isOwnerContract={isOwnerContract}
+                  ownerType={ownerType}
+                  isDetectingOwnerType={isDetectingOwnerType}
+                  isExpanded={isValidatorManagerDetailsExpanded}
+                  onToggleExpanded={() => setIsValidatorManagerDetailsExpanded(!isValidatorManagerDetailsExpanded)}
+                />
+              </div>
+            </Step>
+
+            <Step>
+              <h2 className="text-lg font-semibold">Initiate Validator Removal</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Start the removal process by selecting the validator to remove.
+              </p>
+              <InitiateValidatorRemoval
                 subnetId={subnetIdL1}
-                isLoading={isLoadingVMCDetails}
-                signingSubnetId={signingSubnetId}
-                contractTotalWeight={contractTotalWeight}
-                l1WeightError={l1WeightError}
-                isLoadingL1Weight={isLoadingL1Weight}
-                contractOwner={contractOwner}
-                ownershipError={ownershipError}
-                isLoadingOwnership={isLoadingOwnership}
-                isOwnerContract={isOwnerContract}
-                ownerType={ownerType}
-                isDetectingOwnerType={isDetectingOwnerType}
-                isExpanded={isValidatorManagerDetailsExpanded}
-                onToggleExpanded={() => setIsValidatorManagerDetailsExpanded(!isValidatorManagerDetailsExpanded)}
+                validatorManagerAddress={validatorManagerAddress}
+                resetForm={resetInitiateForm}
+                initialNodeId={nodeId}
+                initialValidationId={validationId}
+                ownershipState={ownershipState}
+                onSuccess={(data) => {
+                  setNodeId(data.nodeId)
+                  setValidationId(data.validationId)
+                  setInitiateRemovalTxHash(data.txHash)
+                  setGlobalError(null)
+                  setResetInitiateForm(false)
+                }}
+                onError={(message) => setGlobalError(message)}
               />
-            </div>
-          </Step>
+            </Step>
 
-          <Step>
-            <h2 className="text-lg font-semibold">Initiate Validator Removal</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Start the removal process by selecting the validator to remove.
-            </p>
-            <InitiateValidatorRemoval
-              subnetId={subnetIdL1}
-              validatorManagerAddress={validatorManagerAddress}
-              resetForm={resetInitiateForm}
-              initialNodeId={nodeId}
-              initialValidationId={validationId}
-              ownershipState={ownershipState}
-              onSuccess={(data) => {
-                setNodeId(data.nodeId)
-                setValidationId(data.validationId)
-                setInitiateRemovalTxHash(data.txHash)
-                setGlobalError(null)
-                setResetInitiateForm(false)
-              }}
-              onError={(message) => setGlobalError(message)}
+            <Step>
+              <h2 className="text-lg font-semibold">Sign Warp Message & Submit to P-Chain</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Sign the warp message and submit the removal transaction to the P-Chain.
+              </p>
+              <SubmitPChainTxRemoval
+                key={`submit-pchain-${resetKey}`}
+                subnetIdL1={subnetIdL1}
+                initialEvmTxHash={initiateRemovalTxHash}
+                signingSubnetId={signingSubnetId}
+                onSuccess={(pChainTxId) => {
+                  setPChainTxId(pChainTxId)
+                  setGlobalError(null)
+                }}
+                onError={(message) => setGlobalError(message)}
+              />
+            </Step>
+
+            <Step>
+              <h2 className="text-lg font-semibold">Sign P-Chain Warp Message & Complete Removal</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Complete the validator removal by signing the P-Chain warp message.
+              </p>
+              <CompleteValidatorRemoval
+                key={`complete-removal-${resetKey}`}
+                subnetIdL1={subnetIdL1}
+                validationId={validationId}
+                pChainTxId={pChainTxId}
+                eventData={null}
+                isContractOwner={isContractOwner}
+                validatorManagerAddress={validatorManagerAddress}
+                signingSubnetId={signingSubnetId}
+                contractOwner={contractOwner}
+                isLoadingOwnership={isLoadingOwnership}
+                ownerType={ownerType}
+                onSuccess={(message) => {
+                  setGlobalSuccess(message)
+                  setGlobalError(null)
+                }}
+                onError={(message) => setGlobalError(message)}
+              />
+            </Step>
+          </Steps>
+
+          {globalSuccess && (
+            <Success 
+              label="Process Complete"
+              value={globalSuccess}
             />
-          </Step>
+          )}
 
-          <Step>
-            <h2 className="text-lg font-semibold">Sign Warp Message & Submit to P-Chain</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Sign the warp message and submit the removal transaction to the P-Chain.
-            </p>
-            <SubmitPChainTxRemoval
-              key={`submit-pchain-${resetKey}`}
-              subnetIdL1={subnetIdL1}
-              initialEvmTxHash={initiateRemovalTxHash}
-              signingSubnetId={signingSubnetId}
-              onSuccess={(pChainTxId) => {
-                setPChainTxId(pChainTxId)
-                setGlobalError(null)
-              }}
-              onError={(message) => setGlobalError(message)}
-            />
-          </Step>
-
-          <Step>
-            <h2 className="text-lg font-semibold">Sign P-Chain Warp Message & Complete Removal</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Complete the validator removal by signing the P-Chain warp message.
-            </p>
-            <CompleteValidatorRemoval
-              key={`complete-removal-${resetKey}`}
-              subnetIdL1={subnetIdL1}
-              validationId={validationId}
-              pChainTxId={pChainTxId}
-              eventData={null}
-              isContractOwner={isContractOwner}
-              validatorManagerAddress={validatorManagerAddress}
-              signingSubnetId={signingSubnetId}
-              contractOwner={contractOwner}
-              isLoadingOwnership={isLoadingOwnership}
-              ownerType={ownerType}
-              onSuccess={(message) => {
-                setGlobalSuccess(message)
-                setGlobalError(null)
-              }}
-              onError={(message) => setGlobalError(message)}
-            />
-          </Step>
-        </Steps>
-
-        {globalSuccess && (
-          <Success 
-            label="Process Complete"
-            value={globalSuccess}
-          />
-        )}
-
-        {(initiateRemovalTxHash || pChainTxId || globalError || globalSuccess) && (
-          <Button onClick={handleReset} variant="secondary" className="mt-6">
-            Reset All Steps
-          </Button>
-        )}
-      </div>
-    </Container>
+          {(initiateRemovalTxHash || pChainTxId || globalError || globalSuccess) && (
+            <Button onClick={handleReset} variant="secondary" className="mt-6">
+              Reset All Steps
+            </Button>
+          )}
+        </div>
+      </Container>
+    </CheckWalletRequirements>
   )
 }
 

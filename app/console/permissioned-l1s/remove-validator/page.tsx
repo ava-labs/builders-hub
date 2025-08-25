@@ -2,8 +2,8 @@
 
 import { lazy } from "react";
 
-const ChangeWeight = lazy(() =>
-  import("../../../../toolbox/src/toolbox/ValidatorManager/ChangeWeight/ChangeWeight").then(
+const RemoveValidator = lazy(() =>
+  import("../../../../toolbox/src/toolbox/ValidatorManager/RemoveValidator/RemoveValidator").then(
     (module) => ({ default: module.default })
   )
 );
@@ -11,6 +11,6 @@ const ChangeWeight = lazy(() =>
 
 export default function Page() {
   return (
-    <ChangeWeight />
+    <RemoveValidator />
   );
 }

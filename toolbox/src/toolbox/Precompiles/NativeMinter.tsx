@@ -11,6 +11,8 @@ import { EVMAddressInput } from "../../components/EVMAddressInput";
 import nativeMinterAbi from "../../../contracts/precompiles/NativeMinter.json";
 import { AllowlistComponent } from "../../components/AllowListComponents";
 import { CheckPrecompile } from "../../components/CheckPrecompile";
+import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 // Default Native Minter address
 const DEFAULT_NATIVE_MINTER_ADDRESS =
@@ -61,58 +63,62 @@ export default function NativeMinter() {
   const canMint = Boolean(recipient && isValidAmount && walletEVMAddress && coreWalletClient && !isMinting);
 
   return (
-    <CheckPrecompile
-      configKey="contractNativeMinterConfig"
-      precompileName="Native Minter"
-    >
-      <Container
-        title="Mint Native Tokens"
-        description="This will mint native tokens to the specified address."
+    <CheckWalletRequirements configKey={[
+      WalletRequirementsConfigKey.EVMChainBalance
+    ]}>
+      <CheckPrecompile
+        configKey="contractNativeMinterConfig"
+        precompileName="Native Minter"
       >
-        <div className="space-y-4">
+        <Container
+          title="Mint Native Tokens"
+          description="This will mint native tokens to the specified address."
+        >
           <div className="space-y-4">
-            <EVMAddressInput
-              label="Recipient Address"
-              value={recipient}
-              onChange={setRecipient}
-              disabled={isMinting}
-            />
-            <Input
-              label="Amount"
-              value={amount}
-              onChange={(value) => setAmount(value)}
-              type="number"
-              min="0"
-              step="0.000000000000000001"
-              disabled={isMinting}
-            />
+            <div className="space-y-4">
+              <EVMAddressInput
+                label="Recipient Address"
+                value={recipient}
+                onChange={setRecipient}
+                disabled={isMinting}
+              />
+              <Input
+                label="Amount"
+                value={amount}
+                onChange={(value) => setAmount(value)}
+                type="number"
+                min="0"
+                step="0.000000000000000001"
+                disabled={isMinting}
+              />
+            </div>
+
+            {txHash && (
+              <ResultField
+                label="Transaction Successful"
+                value={txHash}
+                showCheck={true}
+              />
+            )}
+
+            <Button
+              variant="primary"
+              onClick={handleMint}
+              loading={isMinting}
+              disabled={!canMint}
+            >
+              {!walletEVMAddress
+                ? "Connect Wallet to Mint"
+                : "Mint Native Tokens"}
+            </Button>
           </div>
+        </Container>
 
-          {txHash && (
-            <ResultField
-              label="Transaction Successful"
-              value={txHash}
-              showCheck={true}
-            />
-          )}
-
-          <Button
-            variant="primary"
-            onClick={handleMint}
-            loading={isMinting}
-            disabled={!canMint}
-          >
-            {!walletEVMAddress
-              ? "Connect Wallet to Mint"
-              : "Mint Native Tokens"}
-          </Button>
-        </div>
-      </Container>
-
-      <AllowlistComponent
-        precompileAddress={DEFAULT_NATIVE_MINTER_ADDRESS}
-        precompileType="Minter"
-      />
-    </CheckPrecompile>
+        <AllowlistComponent
+          precompileAddress={DEFAULT_NATIVE_MINTER_ADDRESS}
+          precompileType="Minter"
+        />
+      </CheckPrecompile>
+    </CheckWalletRequirements>
   );
 }
