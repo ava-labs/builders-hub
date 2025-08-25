@@ -1,5 +1,4 @@
 "use client";
-
 import * as React from "react";
 import { useState, useEffect } from "react";
 import {
@@ -9,6 +8,7 @@ import {
   BarChart,
   CartesianGrid,
   XAxis,
+  YAxis,
   ReferenceLine,
 } from "recharts";
 import {
@@ -232,14 +232,12 @@ export default function CChainMetrics() {
 
     return metrics.icmMessages.data
       .map((point: ICMDataPoint) => {
-        // Check if we have meaningful incoming/outgoing data
         const hasBreakdownData =
           point.incomingCount > 0 || point.outgoingCount > 0;
 
         return {
           day: point.date,
           messageCount: point.messageCount,
-          // If no breakdown data available, use messageCount as incomingCount for display
           incomingCount: hasBreakdownData
             ? point.incomingCount
             : point.messageCount,
@@ -650,7 +648,7 @@ export default function CChainMetrics() {
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-muted-foreground">
-                Fetching real-time C-Chain data...
+                Fetching real-time Avalanche C-Chain data...
               </p>
             </div>
           </div>
@@ -865,6 +863,16 @@ export default function CChainMetrics() {
                                 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
                             }}
                           />
+                          <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tickFormatter={(value) => value.toLocaleString()}
+                            tick={{
+                              fontFamily:
+                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                            }}
+                          />
                           <ChartTooltip
                             cursor={false}
                             content={({ active, payload, label }) => {
@@ -934,6 +942,16 @@ export default function CChainMetrics() {
                             tickMargin={8}
                             minTickGap={32}
                             tickFormatter={(value) => formatDateLabel(value)}
+                            tick={{
+                              fontFamily:
+                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                            }}
+                          />
+                          <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tickFormatter={(value) => formatNumber(value)}
                             tick={{
                               fontFamily:
                                 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
