@@ -148,6 +148,7 @@ model Badge {
   requirements Json[]        @default([])
   users       UserBadge[]
   projects    ProjectBadge[]
+  current_version Int   @default(1)
 }
 
 model UserBadge {
@@ -158,7 +159,10 @@ model UserBadge {
   badge_id   String
   awarded_at DateTime @default(now())
   awarded_by String?
-
+  requirements_version Int              @default(1)
+  requirements_snapshot Json            @default("{}")
+  evidence             Json?            
+  status Int  @db.SmallInt
   @@unique([user_id, badge_id])
 }
 
@@ -170,6 +174,9 @@ model ProjectBadge {
   badge_id   String
   awarded_at DateTime @default(now())
   awarded_by String?
-
+  requirements_version Int              @default(1)
+  requirements_snapshot Json            @default("{}")
+  evidence             Json?            
+  status Int  @db.SmallInt
   @@unique([project_id, badge_id])
 }

@@ -1,6 +1,7 @@
 import { prisma } from "@/prisma/prisma";
 import { UserBadge, Requirement, Badge } from "@/types/badge";
 import { JsonValue } from "@prisma/client/runtime/library";
+import { continents } from '../../types/infrabuidlForm';
 
 // Utility function to safely convert JSON metadata
 export function parseBadgeMetadata(metadata: JsonValue): Requirement | null {
@@ -40,30 +41,4 @@ export async function getRewardBoard(user_id: string): Promise<UserBadge[]> {
     requirements:userBadge.badge.requirements.map((requirement) => parseBadgeMetadata(requirement)) as Requirement[],
   }));
 }
-
-export async function getBadgeByCourseId(courseId: string): Promise<Badge> {
-  const badge = await prisma.badge.findFirst({
-    // where: {
-    //   requirements: {
-    //     path: ["course_id"],
-    //     equals: courseId,
-    //   },
-    // },
-  });
-
-  if (!badge) {
-    throw new Error(`Badge not found for course ID: ${courseId}`);
-  }
-
-  return {
-    id: badge.id,
-    name: badge.name,
-    description: badge.description,
-    points: badge.points,
-    image_path: badge.image_path,
-    category: badge.category,
-    requirements: badge.requirements.map((requirement) => parseBadgeMetadata(requirement)) as Requirement[],
-  };
-}
-
 

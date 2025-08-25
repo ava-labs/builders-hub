@@ -1,5 +1,4 @@
 
-import { getBadgeByCourseId } from "@/server/services/rewardBoard";
 import { Badge } from "@/types/badge";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
@@ -32,20 +31,17 @@ export const useBadgeAward = (courseId: string) => {
     setError(null);
     
     try {
-      return;
-      const response = await fetch('/api/award-badge', {
+     
+      const response = await fetch('/api/badge/assign-course', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ courseId, userId: session.user.id })
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to award badge');
-      }
-      
-      setIsAwarded(true);
+      const data = await response.json();
+      setIsAwarded(true); 
+      return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {

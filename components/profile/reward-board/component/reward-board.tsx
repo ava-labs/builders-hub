@@ -17,15 +17,13 @@ export default async function RewardBoard() {
   const academyBadges = badges.filter((badge) => badge.category == "academy");
   const hackathonBadges:Badge[] = badges.filter((badge) => badge.category == "hackathon");
 
-
-
   const hackathonBadgesUnlocked = hackathonBadges.map((badge) => ({
     ...badge,
-    is_unlocked: userBadges.some((userBadge) => userBadge.badge_id === badge.id),
+    is_unlocked: userBadges.some((userBadge) => userBadge.badge_id == badge.id),
   }));
   const academyBadgesUnlocked = academyBadges.map((badge) => ({
     ...badge,
-    is_unlocked: userBadges.some((userBadge) => userBadge.badge_id === badge.id),
+    is_unlocked: userBadges.some((userBadge) => userBadge.badge_id == badge.id),
   }));
 console.log("hackathonBadgesUnlocked",hackathonBadgesUnlocked);
 console.log("academyBadgesUnlocked",academyBadgesUnlocked);
@@ -45,6 +43,7 @@ console.log("academyBadgesUnlocked",academyBadgesUnlocked);
     />
   ));
   const academyRewards = academyBadgesUnlocked.map((reward) => (
+    
     <RewardCard
       key={reward.name}
       icon={reward.image_path}
@@ -54,6 +53,7 @@ console.log("academyBadgesUnlocked",academyBadgesUnlocked);
       image={reward.image_path}
       requirements={reward.requirements}
       id={reward.id}
+      is_unlocked={reward.is_unlocked}
       className="border border-gray-900 dark:bg-zinc-900"
     />
   ));

@@ -1,14 +1,203 @@
-
 import { prisma } from "@/prisma/prisma";
-import { Badge, Requirement } from "@/types/badge";
+import { Badge, BadgeAwardStatus, Requirement } from "@/types/badge";
 import { parseBadgeMetadata } from "./rewardBoard";
 
-export async function getAllBadges():Promise<Badge[]> {
-  const badges = await prisma.badge.findMany({
-  });
+export interface AssignBadgeBody {
+  courseId?: string;
+  userId: string;
+  hackathonId?: string;
+  projectId?: string;
+}
+
+export interface AssignBadgeResult {
+  success: boolean;
+  message: string;
+  badge_id: string;
+  user_id: string;
+  badges: BadgeData[] | [];
+}
+
+export interface BadgeData {
+  name: string;
+  image_path: string;
+}
+
+export async function getAllBadges(): Promise<Badge[]> {
+  const badges = await prisma.badge.findMany({});
 
   return badges.map((badge) => ({
     ...badge,
-    requirements: badge.requirements.map((requirement) => parseBadgeMetadata(requirement)) as Requirement[],
+    requirements: badge.requirements.map((requirement) =>
+      parseBadgeMetadata(requirement)
+    ) as Requirement[],
+  }));
+}
+
+export async function assignBadgeAcademy(
+  body: AssignBadgeBody
+): Promise<AssignBadgeResult> {
+  const badgesAcademy = await getBadgeByCourseId(body.courseId!);
+  let badgeToReturn: AssignBadgeResult = {
+    success: false,
+    message: "Badges not found",
+    badge_id: "",
+    user_id: "",
+    badges: [],
+  };
+  if (!badgesAcademy) {
+    return badgeToReturn;
+  }
+  for (const badge of badgesAcademy) {
+    const isBadgeAlreadyAwarded = await validateBadge(badge.id, body.userId);
+    if (isBadgeAlreadyAwarded) {
+      continue;
+    }
+    const badgeRequirements = badge.requirements;
+    const badgeImage: string = badge.image_path as string;
+    const existingUserBadge = await prisma.userBadge.findUnique({
+      where: {
+        user_id_badge_id: {
+          user_id: body.userId,
+          badge_id: badge.id,
+        },
+      },
+    });
+
+    const completedRequirements =
+      (existingUserBadge?.evidence as Requirement[]) || [];
+    const currentRequirement = badgeRequirements?.find(
+      (req: any) => req.course_id === body.courseId
+    );
+    if (
+      currentRequirement &&
+      !completedRequirements.some((req: any) => req.id == currentRequirement.id)
+    ) {
+      completedRequirements.push(currentRequirement);
+    }
+
+    const allRequirementsCompleted = badgeRequirements?.every((req: any) =>
+      completedRequirements.some((completed: any) => completed.id == req.id)
+    );
+
+    const someRequirementsCompleted = completedRequirements.length > 0;
+    let badgeStatus = BadgeAwardStatus.pending;
+    if (allRequirementsCompleted) {
+      badgeStatus = BadgeAwardStatus.approved;
+      (badgeToReturn.badges as BadgeData[]).push({
+        name: badge.name,
+        image_path: badgeImage,
+      });
+      badgeToReturn.success = true;
+      badgeToReturn.message = "Badge assigned successfully";
+      badgeToReturn.badge_id = badge.id;
+      badgeToReturn.user_id = body.userId;
+    } else if (someRequirementsCompleted) {
+      badgeStatus = BadgeAwardStatus.pending;
+    }
+
+    if (someRequirementsCompleted) {
+      await prisma.userBadge.upsert({
+        where: {
+          user_id_badge_id: {
+            user_id: body.userId,
+            badge_id: badge.id,
+          },
+        },
+        update: {
+          awarded_at:
+            badgeStatus == BadgeAwardStatus.approved
+              ? new Date()
+              : existingUserBadge?.awarded_at,
+          awarded_by: "system",
+          status: badgeStatus,
+          requirements_version: 1,
+          evidence: completedRequirements,
+        },
+        create: {
+          user_id: body.userId,
+          badge_id: badge.id,
+          awarded_at:
+            badgeStatus == BadgeAwardStatus.approved ? new Date() : undefined,
+          awarded_by: "system",
+          status: badgeStatus,
+          requirements_version: 1,
+          requirements_snapshot: badgeRequirements,
+          evidence: completedRequirements,
+        },
+      });
+    }
+  }
+
+  return badgeToReturn;
+}
+
+export async function validateBadge(
+  badgeId: string,
+  userId: string
+): Promise<boolean> {
+  const existingUserBadge = await prisma.userBadge.findUnique({
+    where: {
+      user_id_badge_id: {
+        user_id: userId,
+        badge_id: badgeId,
+      },
+    },
+  });
+  return existingUserBadge?.status == BadgeAwardStatus.approved;
+}
+
+export async function getBadgeByCourseId(courseId: string): Promise<Badge[]> {
+  const badges = await prisma.badge.findMany({
+    where: {
+      category: "academy",
+    },
+  });
+
+  const filteredBadges = badges.filter((badge) =>
+    badge.requirements?.some((req: any) => req.course_id === courseId)
+  );
+
+  if (filteredBadges.length === 0) {
+    throw new Error(`Badge not found for course ID: ${courseId}`);
+  }
+
+  return filteredBadges.map((badge) => ({
+    id: badge.id,
+    name: badge.name,
+    description: badge.description,
+    points: badge.points,
+    image_path: badge.image_path,
+    category: badge.category,
+    requirements: badge.requirements.map((requirement) =>
+      parseBadgeMetadata(requirement)
+    ) as Requirement[],
+  }));
+}
+
+export async function getBadgesByHackathonId(hackathonId: string): Promise<Badge[]> {
+  const badges = await prisma.badge.findMany({
+    where: {
+      category: "hackathon",
+    },
+  });
+
+  const filteredBadges = badges.filter((badge) =>
+    badge.requirements?.some((req: any) => req.hackathon == hackathonId)
+  );
+  console.log("filteredBadges", filteredBadges);
+  if (filteredBadges.length === 0) {
+    throw new Error(`Badge not found for hackathon ID: ${hackathonId}`);
+  }
+
+  return filteredBadges.map((badge) => ({
+    id: badge.id,
+    name: badge.name,
+    description: badge.description,
+    points: badge.points,
+    image_path: badge.image_path,
+    category: badge.category,
+    requirements: badge.requirements.map((requirement) =>
+      parseBadgeMetadata(requirement)
+    ) as Requirement[],
   }));
 }

@@ -52,6 +52,7 @@ export const RewardCard = ({
                       imageRendering: "crisp-edges",
                       filter: is_unlocked ? "none" : "grayscale(100%)",
                     }}
+                    
                   />
                 </div>
               </div>

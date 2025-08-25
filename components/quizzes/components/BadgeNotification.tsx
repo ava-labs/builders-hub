@@ -5,7 +5,8 @@ import { Fireworks } from "@fireworks-js/react";
 import type { FireworksHandlers } from "@fireworks-js/react";
 import { Badge } from "@/types/badge";
 import Image from "next/image";
-// components/quizzes/badge-notification.tsx
+import { BadgeData } from "@/server/services/badge";
+
 export const BadgeNotification = ({
   courseId,
   isCompleted,
@@ -17,41 +18,44 @@ export const BadgeNotification = ({
   const ref = useRef<FireworksHandlers>(null);
   const [showFireworks, setShowFireworks] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  const [badge, setBadge] = useState<Badge | null>(null);
+
+  const [badges, setBadges] = useState<BadgeData[]>([]);
 
   useEffect(() => {
     if (isCompleted && session) {
-      getBadge(courseId).then((badge) => {
-        if (badge) {
-          console.log("Badge obtenido", badge);
-          setBadge(badge);
-          awardBadge();
-          console.log("Badge awarded");
-          setShowFireworks(true);
-          setIsModalOpen(true);
-          // small delay for fade in
-          
-          
-          const timer = setTimeout(() => {
-            setShowFireworks(false);
-            setIsModalOpen(false);
-            handleModalClose();
-          }, 15000);
+      awardBadge()
+        .then((badge) => {
+      
+          if (
+            badge.result &&
+            Array.isArray(badge.result.badges) &&
+            badge.result.badges.length > 0
+          ) {
+        
+            setBadges(badge.result.badges);
+            setShowFireworks(true);
+            setIsModalOpen(true);
+            // small delay for fade in
+            const timer = setTimeout(() => {
+              setShowFireworks(false);
+              setIsModalOpen(false);
+              handleModalClose();
+            }, 15000);
 
-          return () => clearTimeout(timer);
-        }
-      });
+            return () => clearTimeout(timer);
+          }
+        })
+        .catch((error) => {
+          console.error("Error awarding badge:", error);
+        });
     }
   }, [isCompleted, session]);
 
   const handleModalClose = () => {
-    
     // delay for fade out before closing
     setTimeout(() => {
       setIsModalOpen(false);
       setShowFireworks(false);
-   
     }, 300);
   };
 
@@ -80,17 +84,53 @@ export const BadgeNotification = ({
             <h3 className="text-lg font-bold text-center">
               {"Congratulations!"}
             </h3>
-            <Image
-              src={badge?.image_path || ""}
-              alt={"badge"}
-              width={100}
-              height={100}
-            />
 
-            <p className="text-sm text-gray-500 text-center">
-              {"You have been awarded with a new badge"}
-            </p>
-            <h3 className="text-lg font-bold text-center">{badge?.name}</h3>
+            {Array.isArray(badges) && badges.length === 1 ? (
+              // Mostrar un solo badge
+              <div className="flex flex-col items-center">
+                <Image
+                  src={badges[0]?.image_path || ""}
+                  alt={"badge"}
+                  width={100}
+                  height={100}
+                />
+                <p className="text-sm text-gray-500 text-center mt-2">
+                  {"You have been awarded with a new badge"}
+                </p>
+                <h3 className="text-lg font-bold text-center mt-2">
+                  {badges[0]?.name}
+                </h3>
+              </div>
+            ) : Array.isArray(badges) && badges.length > 1 ? (
+              // Mostrar múltiples badges en mosaico
+              <div className="flex flex-col items-center">
+                <p className="text-sm text-gray-500 text-center mb-4">
+                  {`You have been awarded with ${badges.length} new badges!`}
+                </p>
+                <div className="grid grid-cols-2 gap-4 max-w-md">
+                  {badges.map((badge, index) => (
+                    <div key={index} className="flex flex-col items-center">
+                      <Image
+                        src={badge.image_path}
+                        alt={badge.name}
+                        width={80}
+                        height={80}
+                      />
+                      <p className="text-xs text-center mt-1 text-gray-600">
+                        {badge.name}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              // No hay badges para mostrar
+              <div className="flex flex-col items-center">
+                <p className="text-sm text-gray-500 text-center">
+                  No badges available
+                </p>
+              </div>
+            )}
           </div>
         }
         className="border border-red-500 z-50 w-[20%]! "

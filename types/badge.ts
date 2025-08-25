@@ -1,5 +1,9 @@
-import { metadata } from '../app/(home)/academy/page';
-
+export enum BadgeAwardStatus {
+    pending,
+    approved,
+    revoked
+  }
+  
 export type Requirement = {
     id: string
     course_id?: string,
@@ -10,7 +14,6 @@ export type Requirement = {
     
    
 }
-
 
 export type Badge = {
     id: string
@@ -34,4 +37,20 @@ export type UserBadge = {
     image_path: string
     category: string
     requirements: Requirement[] | null
+    status?: BadgeAwardStatus
+    requirements_version?: number
+    evidence?: Requirement[]
+}
+
+export type ProjectBadge={
+    id: string
+    project_id: string
+    badge_id: string
+    awarded_at: Date
+    awarded_by: string | null
+    status: BadgeAwardStatus
+    requirements_version: number
+    name: string
+    image_path: string
+    evidence: Requirement[]
 }
