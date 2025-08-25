@@ -15,6 +15,8 @@ import versions from '../../versions.json';
 import { Note } from '../../components/Note';
 import { Container } from '../../components/Container';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { CheckWalletRequirements } from '../../components/CheckWalletRequirements';
+import { WalletRequirementsConfigKey } from '../../hooks/useWalletRequirements';
 
 
 export default function ICMRelayer() {
@@ -180,122 +182,126 @@ export default function ICMRelayer() {
     }, []);
 
     return (
-        <Container
-            title="ICM Relayer"
-            description="Configure the ICM Relayer for cross-chain message delivery."
-        >
-            <Input
-                label="Relayer EVM Address"
-                value={relayerAddress || ''}
-                disabled
-            />
-            <Note variant="warning">
-                <span className="font-semibold">Important:</span> The Relayer EVM Address above uses a temporary private key generated in your browser. Feel free to replace it with another private key in the ralyer config file (field <code>account-private-key</code> of all destination blockchains) below.
-                This generated key is stored only in session storage and will be <span className="font-semibold">lost when you close this browser tab</span>.
-                Ensure you fund this address sufficiently.
-            </Note>
+        <CheckWalletRequirements configKey={[
+            WalletRequirementsConfigKey.EVMChainBalance,
+        ]}>
+            <Container
+                title="ICM Relayer"
+                description="Configure the ICM Relayer for cross-chain message delivery."
+            >
+                <Input
+                    label="Relayer EVM Address"
+                    value={relayerAddress || ''}
+                    disabled
+                />
+                <Note variant="warning">
+                    <span className="font-semibold">Important:</span> The Relayer EVM Address above uses a temporary private key generated in your browser. Feel free to replace it with another private key in the ralyer config file (field <code>account-private-key</code> of all destination blockchains) below.
+                    This generated key is stored only in session storage and will be <span className="font-semibold">lost when you close this browser tab</span>.
+                    Ensure you fund this address sufficiently.
+                </Note>
 
-            {error && (
-                <div className="text-red-500 p-2 bg-red-50 rounded-md">
-                    {error}
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Source Networks Column */}
-                <div className="space-y-4">
-                    <div className="text-lg font-bold">Source Networks</div>
-                    <div className="space-y-2 border rounded-md p-4 bg-gray-50 dark:bg-gray-900/20">
-                        {l1List.map(l1 => (
-                            <div key={`source-${l1.id}`} className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
-                                <input
-                                    type="checkbox"
-                                    id={`source-${l1.id}`}
-                                    checked={selectedSources.includes(l1.id)}
-                                    onChange={() => handleToggleSource(l1.id)}
-                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                />
-                                <label htmlFor={`source-${l1.id}`} className="flex-1">
-                                    <div className="font-medium">{l1.name}</div>
-                                    <div className="text-xs text-gray-500">Chain ID: {l1.evmChainId}</div>
-                                </label>
-                            </div>
-                        ))}
+                {error && (
+                    <div className="text-red-500 p-2 bg-red-50 rounded-md">
+                        {error}
                     </div>
-                </div>
+                )}
 
-                {/* Destination Networks Column */}
-                <div className="space-y-4">
-                    <div className="text-lg font-bold">Destination Networks</div>
-                    <div className="space-y-2 border rounded-md p-4 bg-gray-50 dark:bg-gray-900/20">
-                        {l1List.map(l1 => (
-                            <div key={`dest-${l1.id}`} className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
-                                <input
-                                    type="checkbox"
-                                    id={`dest-${l1.id}`}
-                                    checked={selectedDestinations.includes(l1.id)}
-                                    onChange={() => handleToggleDestination(l1.id)}
-                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                />
-                                <label htmlFor={`dest-${l1.id}`} className="flex-1">
-                                    <div className="font-medium">{l1.name}</div>
-                                    <div className="text-xs text-gray-500">Chain ID: {l1.evmChainId}</div>
-                                </label>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Balances Section */}
-            <div className="space-y-4">
-                <div className="text-lg font-bold">Relayer Balances</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Ensure the relayer address maintains a positive balance on all selected chains to cover transaction fees for message delivery.
-                </div>
-                <div className="space-y-2">
-                    {selectedChains.map(chain => (
-                        <div key={`balance-${chain.id}`} className="flex items-center justify-between p-3 border rounded-md">
-                            <div>
-                                <div className="font-medium">{chain.name}</div>
-                                <div className="flex items-center gap-1 text-sm text-gray-500">
-                                    {balances[chain.id] ? `${balances[chain.id]} ${chain.coinName}` : 'Loading...'}
-                                    <button
-                                        onClick={() => fetchBalances()}
-                                        disabled={isLoadingBalances}
-                                        className="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-50"
-                                        style={{ lineHeight: 0 }}
-                                    >
-                                        <RefreshCw className={`h-4 w-4 ${isLoadingBalances ? 'animate-spin' : ''}`} />
-                                    </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Source Networks Column */}
+                    <div className="space-y-4">
+                        <div className="text-lg font-bold">Source Networks</div>
+                        <div className="space-y-2 border rounded-md p-4 bg-gray-50 dark:bg-gray-900/20">
+                            {l1List.map(l1 => (
+                                <div key={`source-${l1.id}`} className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
+                                    <input
+                                        type="checkbox"
+                                        id={`source-${l1.id}`}
+                                        checked={selectedSources.includes(l1.id)}
+                                        onChange={() => handleToggleSource(l1.id)}
+                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                    <label htmlFor={`source-${l1.id}`} className="flex-1">
+                                        <div className="font-medium">{l1.name}</div>
+                                        <div className="text-xs text-gray-500">Chain ID: {l1.evmChainId}</div>
+                                    </label>
                                 </div>
-                            </div>
-                            <Button
-                                size="sm"
-                                variant="primary"
-                                className="w-auto px-4 flex-shrink-0"
-                                onClick={() => sendOneCoin(chain.id)}
-                                loading={isSending}
-                            >
-                                Send 1 {chain.coinName}
-                            </Button>
+                            ))}
                         </div>
-                    ))}
+                    </div>
+
+                    {/* Destination Networks Column */}
+                    <div className="space-y-4">
+                        <div className="text-lg font-bold">Destination Networks</div>
+                        <div className="space-y-2 border rounded-md p-4 bg-gray-50 dark:bg-gray-900/20">
+                            {l1List.map(l1 => (
+                                <div key={`dest-${l1.id}`} className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
+                                    <input
+                                        type="checkbox"
+                                        id={`dest-${l1.id}`}
+                                        checked={selectedDestinations.includes(l1.id)}
+                                        onChange={() => handleToggleDestination(l1.id)}
+                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                    <label htmlFor={`dest-${l1.id}`} className="flex-1">
+                                        <div className="font-medium">{l1.name}</div>
+                                        <div className="text-xs text-gray-500">Chain ID: {l1.evmChainId}</div>
+                                    </label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div className="text-lg font-bold">Relayer Configuration</div>
-            <DynamicCodeBlock
-                code={genConfigCommand(getConfigSources(), getConfigDestinations(), isTestnet ?? false)}
-                lang="bash"
-            />
+                {/* Balances Section */}
+                <div className="space-y-4">
+                    <div className="text-lg font-bold">Relayer Balances</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Ensure the relayer address maintains a positive balance on all selected chains to cover transaction fees for message delivery.
+                    </div>
+                    <div className="space-y-2">
+                        {selectedChains.map(chain => (
+                            <div key={`balance-${chain.id}`} className="flex items-center justify-between p-3 border rounded-md">
+                                <div>
+                                    <div className="font-medium">{chain.name}</div>
+                                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                                        {balances[chain.id] ? `${balances[chain.id]} ${chain.coinName}` : 'Loading...'}
+                                        <button
+                                            onClick={() => fetchBalances()}
+                                            disabled={isLoadingBalances}
+                                            className="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                                            style={{ lineHeight: 0 }}
+                                        >
+                                            <RefreshCw className={`h-4 w-4 ${isLoadingBalances ? 'animate-spin' : ''}`} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="primary"
+                                    className="w-auto px-4 flex-shrink-0"
+                                    onClick={() => sendOneCoin(chain.id)}
+                                    loading={isSending}
+                                >
+                                    Send 1 {chain.coinName}
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
-            <div className="text-lg mt-8 font-bold">Run the relayer</div>
-            <DynamicCodeBlock
-                code={relayerDockerCommand()}
-                lang="sh"
-            />
-        </Container>
+                <div className="text-lg font-bold">Relayer Configuration</div>
+                <DynamicCodeBlock
+                    code={genConfigCommand(getConfigSources(), getConfigDestinations(), isTestnet ?? false)}
+                    lang="bash"
+                />
+
+                <div className="text-lg mt-8 font-bold">Run the relayer</div>
+                <DynamicCodeBlock
+                    code={relayerDockerCommand()}
+                    lang="sh"
+                />
+            </Container>
+        </CheckWalletRequirements>
     );
 }
 

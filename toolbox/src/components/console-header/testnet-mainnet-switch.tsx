@@ -2,31 +2,14 @@
 
 import { useWalletStore } from "@/stores/walletStore";
 import { avalanche, avalancheFuji } from "viem/chains";
-import { networkIDs } from "@avalabs/avalanchejs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { useWalletSwitch } from "../../hooks/useWalletSwitch";
 
 export function TestnetMainnetSwitch() {
-  const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
   const isTestnet = useWalletStore((s) => s.isTestnet);
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
-  const setWalletChainId = useWalletStore((s) => s.setWalletChainId);
-  const setIsTestnet = useWalletStore((s) => s.setIsTestnet);
-  const setAvalancheNetworkID = useWalletStore((s) => s.setAvalancheNetworkID);
-
-  const safelySwitch = async (chainId: number, testnet: boolean) => {
-    try {
-      await coreWalletClient.switchChain({ id: chainId });
-    } catch (e) {
-      // Non-fatal in header context; Connect flow handles wallet specifics
-      console.debug("switchChain failed in header:", e);
-    } finally {
-      // Optimistically update store so UI reflects the intent immediately
-      setWalletChainId(chainId);
-      setIsTestnet(testnet);
-      setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID);
-    }
-  };
+  const { safelySwitch } = useWalletSwitch();
 
   if (!walletEVMAddress) return null;
 
