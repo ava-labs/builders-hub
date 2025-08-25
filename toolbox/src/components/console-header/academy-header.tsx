@@ -1,5 +1,8 @@
 "use client";
 
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar"
+
 import WalletBootstrap from "./wallet-bootstrap";
 import { TestnetMainnetSwitch } from "./testnet-mainnet-switch";
 import EvmNetworkWallet from "./evm-network-wallet";
@@ -11,6 +14,12 @@ export function AcademyHeader() {
 
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
         <WalletBootstrap />
+        <SidebarTrigger className="-ml-1" />
+        
+        <Separator
+          orientation="vertical"
+          className="mr-2 data-[orientation=vertical]:h-4"
+        />
         
         <span className="text-sm text-muted-foreground">Builder Console</span>
         <div className="ml-auto flex items-center gap-2">
