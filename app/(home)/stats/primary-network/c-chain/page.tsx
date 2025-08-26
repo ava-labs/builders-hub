@@ -61,8 +61,6 @@ interface ICMDataPoint {
   timestamp: number;
   date: string;
   messageCount: number;
-  incomingCount: number;
-  outgoingCount: number;
 }
 
 interface ICMMetric {
@@ -100,8 +98,6 @@ interface ChartDataPoint {
 interface ICMChartDataPoint {
   day: string;
   messageCount: number;
-  incomingCount: number;
-  outgoingCount: number;
 }
 
 export default function CChainMetrics() {
@@ -231,19 +227,10 @@ export default function CChainMetrics() {
     if (!metrics?.icmMessages?.data) return [];
 
     return metrics.icmMessages.data
-      .map((point: ICMDataPoint) => {
-        const hasBreakdownData =
-          point.incomingCount > 0 || point.outgoingCount > 0;
-
-        return {
-          day: point.date,
-          messageCount: point.messageCount,
-          incomingCount: hasBreakdownData
-            ? point.incomingCount
-            : point.messageCount,
-          outgoingCount: hasBreakdownData ? point.outgoingCount : 0,
-        };
-      })
+      .map((point: ICMDataPoint) => ({
+        day: point.date,
+        messageCount: point.messageCount,
+      }))
       .reverse();
   };
 
@@ -685,7 +672,7 @@ export default function CChainMetrics() {
         <div className="space-y-2">
           <div>
             <h1 className="text-2xl md:text-5xl mb-4">
-              C-Chain Network Metrics
+              Avalanche C-Chain Network Metrics
             </h1>
             <p className="text-zinc-400 text-md text-left">
               Real-time insights into Avalanche C-Chain activity and network
