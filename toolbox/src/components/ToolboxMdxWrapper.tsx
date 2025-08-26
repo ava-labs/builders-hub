@@ -32,7 +32,7 @@ export default function ToolboxMdxWrapper({ children }: { children: React.ReactN
                 <AcademySidebar />
                 <SidebarInset className="h-full bg-white dark:bg-gray-800">
                 <AcademyHeader />
-                <div className="flex flex-1 flex-col gap-4 p-8 overflow-y-auto h-[calc(100vh-var(--header-height)-1rem)]">
+                <div className="flex flex-1 flex-col gap-4 p-6 overflow-y-auto h-[calc(100vh-var(--header-height)-1rem)]">
                     {children}
                 </div>
                 </SidebarInset>
