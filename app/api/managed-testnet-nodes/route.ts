@@ -33,6 +33,12 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
   if (error) return error;
 
   try {
+    // Enforce max 3 active nodes per user
+    const activeNodes = await getUserNodes(userId!);
+    if (activeNodes.length >= 3) {
+      return jsonError(429, 'You already have 3 active nodes. Delete one or wait for expiry.');
+    }
+
     const body: CreateNodeRequest = await request.json();
     const { subnetId, blockchainId } = body;
 
@@ -93,13 +99,5 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const handler = rateLimited((req: NextRequest) => handleCreateNode(req), {
-    dev: { windowMs: 60 * 1000, max: 100 },
-    prod: { windowMs: 24 * 60 * 60 * 1000, max: 3 },
-    identifier: async () => {
-      const { userId } = await getUserId();
-      return userId || 'anonymous';
-    }
-  });
-  return handler(request);
+  return handleCreateNode(request);
 }
