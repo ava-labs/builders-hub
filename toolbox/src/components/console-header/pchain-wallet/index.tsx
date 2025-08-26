@@ -9,7 +9,7 @@ import { PChainFaucetMenuItem } from "./components/PChainFaucetMenuItem";
 
 export function WalletPChain() {
   const pChainAddress = useWalletStore((s) => s.pChainAddress);
-  const pChainBalance = useWalletStore((s) => s.pChainBalance);
+  const pChainBalance = useWalletStore((s) => s.balances.pChain);
   const updatePChainBalance = useWalletStore((s) => s.updatePChainBalance);
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
 

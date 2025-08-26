@@ -8,8 +8,7 @@ import {
   Layers,  
   MessagesSquare,
   Wrench, 
-  Droplets, 
-  ArrowLeft,
+  Droplets,
   Shield,
   Network,
   GitMerge,
@@ -40,24 +39,17 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarFooter,
-  SidebarRail,
 } from "@/components/ui/sidebar";
-import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { AvalancheLogo } from "@/navigation/avalanche-logo";
 
 // Navigation data structure matching user specification
 const data = {
   navMain: [
     {
-      title: "Home",
+      title: "Console Home",
       url: "/console",
       icon: Home,
-    },
-    {
-        title: "Back to Builder Hub",
-        url: "/",
-        icon: ArrowLeft,
-      },
+    }
   ],
   navGroups: [
     {
@@ -245,14 +237,19 @@ const data = {
   navSecondary: [],
 };
 
-interface ConsoleSidebarProps extends React.ComponentProps<typeof Sidebar> {}
 
-export function ConsoleSidebar({ 
+interface AcademySidebarProps extends React.ComponentProps<typeof Sidebar> {}
+
+export function AcademySidebar({ 
   ...props 
-}: ConsoleSidebarProps) {
+}: AcademySidebarProps) {
   const pathname = usePathname();
   return (
-    <Sidebar {...props}>
+    <Sidebar 
+      variant="sidebar" 
+      collapsible="offcanvas" 
+      className="not-prose absolute top-[var(--header-height)] left-0 right-0 bottom-0 z-50" 
+      {...props}>
       <SidebarHeader>
         <Link
           href="/console"
@@ -275,7 +272,7 @@ export function ConsoleSidebar({
                     asChild 
                     isActive={isActive}
                   >
-                    <Link href={item.url}>
+                    <Link href={item.url} target="_blank">
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>
@@ -313,7 +310,7 @@ export function ConsoleSidebar({
                             <span>{item.title} (soon)</span>
                           </Link>
                         ) : (
-                          <Link href={item.url}>
+                          <Link href={item.url} target="_blank">
                             <item.icon />
                             <span>{item.title}</span>
                           </Link>
@@ -332,6 +329,3 @@ export function ConsoleSidebar({
     </Sidebar>
   );
 }
-
-// Export the navigation data for use in other components
-export { data };

@@ -16,6 +16,8 @@ import { ValidatorListInput, ConvertToL1Validator } from '../../../components/Va
 import { useCreateChainStore } from '../../../stores/createChainStore';
 import { useWalletStore } from '../../../stores/walletStore';
 import { getPChainBalance } from '../../../coreViem/methods/getPChainbalance';
+import { CheckWalletRequirements } from '../../../components/CheckWalletRequirements';
+import { WalletRequirementsConfigKey } from '../../../hooks/useWalletRequirements';
 
 // Helper functions for BigInt serialization
 const serializeValidators = (validators: ConvertToL1Validator[]) => {
@@ -169,151 +171,156 @@ const AddValidatorExpert: React.FC = () => {
   };
 
   return (
-    <Container title="Add New Validator" description="Add a validator to your L1 by following these steps in order.">
-      <div className="space-y-6">
-        {globalError && (
-          <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
-            <div className="flex items-center">
-              <AlertCircle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
-              <span>Error: {globalError}</span>
+    <CheckWalletRequirements configKey={[
+      WalletRequirementsConfigKey.EVMChainBalance,
+      WalletRequirementsConfigKey.PChainBalance
+    ]}>
+      <Container title="Add New Validator" description="Add a validator to your L1 by following these steps in order.">
+        <div className="space-y-6">
+          {globalError && (
+            <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
+              <div className="flex items-center">
+                <AlertCircle className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
+                <span>Error: {globalError}</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <Steps>
-          <Step>
-            <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Choose the L1 subnet where you want to add the validator.
-            </p>
-            <div className="space-y-2">
-              <SelectSubnetId
-                value={subnetIdL1}
-                onChange={setSubnetIdL1}
-                error={validatorManagerError}
-                hidePrimaryNetwork={true}
+          <Steps>
+            <Step>
+              <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Choose the L1 subnet where you want to add the validator.
+              </p>
+              <div className="space-y-2">
+                <SelectSubnetId
+                  value={subnetIdL1}
+                  onChange={setSubnetIdL1}
+                  error={validatorManagerError}
+                  hidePrimaryNetwork={true}
+                />
+                <ValidatorManagerDetails
+                  validatorManagerAddress={validatorManagerAddress}
+                  blockchainId={blockchainId}
+                  subnetId={subnetIdL1}
+                  isLoading={isLoadingVMCDetails}
+                  signingSubnetId={signingSubnetId}
+                  contractTotalWeight={contractTotalWeight}
+                  l1WeightError={l1WeightError}
+                  isLoadingL1Weight={isLoadingL1Weight}
+                  contractOwner={contractOwner}
+                  ownershipError={ownershipError}
+                  isLoadingOwnership={isLoadingOwnership}
+                  isOwnerContract={isOwnerContract}
+                  ownerType={ownerType}
+                  isDetectingOwnerType={isDetectingOwnerType}
+                  isExpanded={isValidatorManagerDetailsExpanded}
+                  onToggleExpanded={() => setIsValidatorManagerDetailsExpanded(!isValidatorManagerDetailsExpanded)}
+                />
+              </div>
+            </Step>
+
+            <Step>
+              <h2 className="text-lg font-semibold">Add Validator Details</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Add the validator details including node credentials and configuration.
+              </p>
+              
+              <ValidatorListInput
+                key={`validator-input-${resetKey}`}
+                validators={validators}
+                onChange={setValidators}
+                defaultAddress={pChainAddress ? pChainAddress : ""}
+                label=""
+                l1TotalInitializedWeight={!l1WeightError && contractTotalWeight > 0n ? contractTotalWeight : null}
+                userPChainBalanceNavax={userPChainBalanceNavax}
+                maxValidators={1}
               />
-              <ValidatorManagerDetails
-                validatorManagerAddress={validatorManagerAddress}
-                blockchainId={blockchainId}
+            </Step>
+
+            <Step>
+              <h2 className="text-lg font-semibold">Initiate Validator Registration</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Submit the validator registration transaction to the blockchain.
+              </p>
+              
+              <InitiateValidatorRegistration
+                key={`initiate-${resetKey}`}
                 subnetId={subnetIdL1}
-                isLoading={isLoadingVMCDetails}
-                signingSubnetId={signingSubnetId}
+                validatorManagerAddress={validatorManagerAddress}
+                validators={validators}
+                ownershipState={ownershipState}
                 contractTotalWeight={contractTotalWeight}
                 l1WeightError={l1WeightError}
-                isLoadingL1Weight={isLoadingL1Weight}
-                contractOwner={contractOwner}
-                ownershipError={ownershipError}
-                isLoadingOwnership={isLoadingOwnership}
-                isOwnerContract={isOwnerContract}
-                ownerType={ownerType}
-                isDetectingOwnerType={isDetectingOwnerType}
-                isExpanded={isValidatorManagerDetailsExpanded}
-                onToggleExpanded={() => setIsValidatorManagerDetailsExpanded(!isValidatorManagerDetailsExpanded)}
+                onSuccess={(data) => {
+                  setValidatorBalance(data.validatorBalance);
+                  setBlsProofOfPossession(data.blsProofOfPossession);
+                  setEvmTxHash(data.txHash);
+                  setGlobalError(null);
+                }}
+                onError={(message) => setGlobalError(message)}
+              />           
+            </Step>
+
+            <Step>
+              <h2 className="text-lg font-semibold">Sign Warp Message & Submit to P-Chain</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Sign the warp message and submit the validator registration to the P-Chain.
+              </p>
+              <SubmitPChainTxRegisterL1Validator
+                key={`submit-pchain-${resetKey}`}
+                subnetIdL1={subnetIdL1}
+                validatorBalance={validatorBalance}
+                blsProofOfPossession={blsProofOfPossession}
+                evmTxHash={evmTxHash}
+                signingSubnetId={signingSubnetId}
+                onSuccess={(pChainTxId) => {
+                  setPChainTxId(pChainTxId);
+                  setGlobalError(null);
+                }}
+                onError={(message) => setGlobalError(message)}
               />
-            </div>
-          </Step>
+            </Step>
 
-          <Step>
-            <h2 className="text-lg font-semibold">Add Validator Details</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Add the validator details including node credentials and configuration.
-            </p>
-            
-            <ValidatorListInput
-              key={`validator-input-${resetKey}`}
-              validators={validators}
-              onChange={setValidators}
-              defaultAddress={pChainAddress ? pChainAddress : ""}
-              label=""
-              l1TotalInitializedWeight={!l1WeightError && contractTotalWeight > 0n ? contractTotalWeight : null}
-              userPChainBalanceNavax={userPChainBalanceNavax}
-              maxValidators={1}
+            <Step>
+              <h2 className="text-lg font-semibold">Sign P-Chain Warp Message & Complete Registration</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Complete the validator registration by signing the P-Chain warp message.
+              </p>
+              <CompleteValidatorRegistration
+                key={`complete-registration-${resetKey}`}
+                subnetIdL1={subnetIdL1}
+                pChainTxId={pChainTxId}
+                ownershipState={ownershipState}
+                validatorManagerAddress={validatorManagerAddress}
+                signingSubnetId={signingSubnetId}
+                contractOwner={contractOwner}
+                isLoadingOwnership={isLoadingOwnership}
+                ownerType={ownerType}
+                onSuccess={(message) => {
+                  setGlobalSuccess(message);
+                  setGlobalError(null);
+                }}
+                onError={(message) => setGlobalError(message)}
+              />
+            </Step>
+          </Steps>
+
+          {globalSuccess && (
+            <Success 
+              label="Process Complete"
+              value={globalSuccess}
             />
-          </Step>
+          )}
 
-          <Step>
-            <h2 className="text-lg font-semibold">Initiate Validator Registration</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Submit the validator registration transaction to the blockchain.
-            </p>
-            
-            <InitiateValidatorRegistration
-              key={`initiate-${resetKey}`}
-              subnetId={subnetIdL1}
-              validatorManagerAddress={validatorManagerAddress}
-              validators={validators}
-              ownershipState={ownershipState}
-              contractTotalWeight={contractTotalWeight}
-              l1WeightError={l1WeightError}
-              onSuccess={(data) => {
-                setValidatorBalance(data.validatorBalance);
-                setBlsProofOfPossession(data.blsProofOfPossession);
-                setEvmTxHash(data.txHash);
-                setGlobalError(null);
-              }}
-              onError={(message) => setGlobalError(message)}
-            />           
-          </Step>
-
-          <Step>
-            <h2 className="text-lg font-semibold">Sign Warp Message & Submit to P-Chain</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Sign the warp message and submit the validator registration to the P-Chain.
-            </p>
-            <SubmitPChainTxRegisterL1Validator
-              key={`submit-pchain-${resetKey}`}
-              subnetIdL1={subnetIdL1}
-              validatorBalance={validatorBalance}
-              blsProofOfPossession={blsProofOfPossession}
-              evmTxHash={evmTxHash}
-              signingSubnetId={signingSubnetId}
-              onSuccess={(pChainTxId) => {
-                setPChainTxId(pChainTxId);
-                setGlobalError(null);
-              }}
-              onError={(message) => setGlobalError(message)}
-            />
-          </Step>
-
-          <Step>
-            <h2 className="text-lg font-semibold">Sign P-Chain Warp Message & Complete Registration</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Complete the validator registration by signing the P-Chain warp message.
-            </p>
-            <CompleteValidatorRegistration
-              key={`complete-registration-${resetKey}`}
-              subnetIdL1={subnetIdL1}
-              pChainTxId={pChainTxId}
-              ownershipState={ownershipState}
-              validatorManagerAddress={validatorManagerAddress}
-              signingSubnetId={signingSubnetId}
-              contractOwner={contractOwner}
-              isLoadingOwnership={isLoadingOwnership}
-              ownerType={ownerType}
-              onSuccess={(message) => {
-                setGlobalSuccess(message);
-                setGlobalError(null);
-              }}
-              onError={(message) => setGlobalError(message)}
-            />
-          </Step>
-        </Steps>
-
-        {globalSuccess && (
-          <Success 
-            label="Process Complete"
-            value={globalSuccess}
-          />
-        )}
-
-        {(pChainTxId || globalError || globalSuccess) && (
-          <Button onClick={handleReset} variant="secondary" className="mt-6">
-            Reset All Steps
-          </Button>
-        )}
-      </div>
-    </Container>
+          {(pChainTxId || globalError || globalSuccess) && (
+            <Button onClick={handleReset} variant="secondary" className="mt-6">
+              Reset All Steps
+            </Button>
+          )}
+        </div>
+      </Container>
+      </CheckWalletRequirements>
   );
 };
 
