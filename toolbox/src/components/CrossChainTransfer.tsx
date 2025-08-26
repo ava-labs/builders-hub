@@ -30,7 +30,6 @@ export default function CrossChainTransfer({
     const [amount, setAmount] = useState<string>(suggestedAmount)
     const [sourceChain, setSourceChain] = useState<string>("c-chain")
     const [destinationChain, setDestinationChain] = useState<string>("p-chain")
-    const [_destinationSelection, setDestinationSelection] = useState<BlockchainSelection>({ blockchainId: "", blockchain: null })
     const [exportLoading, setExportLoading] = useState<boolean>(false)
     const [importLoading, setImportLoading] = useState<boolean>(false)
     const [exportTxId, setExportTxId] = useState<string>("")
@@ -178,8 +177,6 @@ export default function CrossChainTransfer({
         setDestinationChain(tempChain)
         setError(null);
         setImportError(null);
-        // Clear destination selection when swapping
-        setDestinationSelection({ blockchainId: "", blockchain: null });
     }
 
     const validateAmount = (): boolean => {
