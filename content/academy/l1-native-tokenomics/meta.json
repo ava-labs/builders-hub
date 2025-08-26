@@ -1,0 +1,11 @@
+{
+    "title": "L1 Native Tokenomics",
+    "icon": "HandCoins",
+    "root": true,
+    "pages": [
+        "index",
+        "dappVsL1",
+        "---Tokens 101---",
+        "...01-tokens101"
+    ]
+}
