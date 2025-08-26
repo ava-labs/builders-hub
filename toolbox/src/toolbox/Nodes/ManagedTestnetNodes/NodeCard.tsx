@@ -115,7 +115,7 @@ export default function NodeCard({
 
             {/* Node Details (compact) */}
             <div className="p-4 space-y-2 min-w-0">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 min-w-0">
+                <div className="grid grid-cols-1 gap-2 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
                         <span className="w-28 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Subnet ID</span>
                         <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded border border-gray-200 dark:border-gray-600 min-w-0 flex-1">
@@ -152,23 +152,7 @@ export default function NodeCard({
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 min-w-0">
-                        <span className="w-28 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Node ID{node.node_index !== null && node.node_index !== undefined ? ` (${node.node_index})` : ''}</span>
-                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded border border-gray-200 dark:border-gray-600 min-w-0 flex-1">
-                            <code className="text-xs font-mono text-gray-700 dark:text-gray-300 truncate flex-1">{node.node_id}</code>
-                            <button
-                                onClick={() => handleLocalCopy(node.node_id, "nodeId")}
-                                className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                                title={copiedKey === "nodeId" ? "Copied!" : "Copy Node ID"}
-                            >
-                                {copiedKey === "nodeId" ? (
-                                    <Check className="w-3 h-3 text-green-600 dark:text-green-400" />
-                                ) : (
-                                    <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
-                                )}
-                            </button>
-                        </div>
-                    </div>
+                    
 
                     <div className="flex items-center gap-2 min-w-0">
                         <span className="w-28 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">RPC URL</span>
