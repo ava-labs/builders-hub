@@ -1,24 +1,36 @@
+"use client"
 import { UserBadge } from '@/types/badge';
 import { Member } from '@/types/showcase';
 import Image from 'next/image';
-import React from 'react'
+import React, { useState } from 'react'
 
 export default function MemberBadge({badges, member}: {badges: UserBadge[], member: Member}) {
 
   const badgesFiltered = badges?.filter((badge) => badge.user_id === member.user_id);
+  const [showAll, setShowAll] = useState(false);
+  const maxBadges = 12;
+
+  const initialBadges = badgesFiltered?.slice(0, maxBadges) || [];
+  const hasMore = badgesFiltered && badgesFiltered.length > maxBadges;
+  const remainingCount = badgesFiltered ? badgesFiltered.length - maxBadges : 0;
+  
+  const displayBadges = showAll ? badgesFiltered : initialBadges;
 
   return (
     <>
       {badgesFiltered && badgesFiltered.length > 0 ? (
         <div className="flex flex-col gap-2 p-2">
-          <h2 className="text-sm text-gray-500 dark:text-gray-400">Badges</h2>
+          <h2 className="text-sm font-bold">Badges</h2>
           
-          <div className="flex flex-wrap gap-1.5">
-            {badgesFiltered.map((badge) => (
-            
+          <div className="grid grid-cols-3 gap-1.5">
+            {displayBadges.map((badge) => (
+              
               <div 
                 key={badge.badge_id} 
-                className="flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:scale-110 transition-transform duration-200 overflow-hidden"
+                className="flex items-center
+              backdrop-blur-sm
+           bg-gradient-to-r from-[#f29a9a] to-[#6b6b72]
+                justify-center w-16 h-16 rounded-2xl  border border-gray-200 dark:border-gray-700 hover:scale-110 transition-transform duration-200 overflow-hidden"
                 title={badge.name}
               >
         
@@ -36,6 +48,15 @@ export default function MemberBadge({badges, member}: {badges: UserBadge[], memb
               </div>
             ))}
           </div>
+          
+          {hasMore && (
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200 self-start"
+            >
+              {showAll ? `Hide badges` : `Show ${remainingCount} badges more`}
+            </button>
+          )}
         </div>
       ) : (
         <div className="p-2">

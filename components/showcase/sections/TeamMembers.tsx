@@ -47,6 +47,7 @@ export default function TeamMembers({ members, projectName, badges }: Props) {
               <TooltipContent 
                 side="top" 
                 sideOffset={10}
+                className="bg-zinc-900 dark:bg-zinc-100"
               >
               <MemberBadge badges={badges ?? []} member={member} />
               </TooltipContent>
