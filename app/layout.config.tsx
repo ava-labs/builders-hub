@@ -100,15 +100,20 @@ export const integrationsMenu: LinkItemType = {
 };
 
 export const blogMenu: LinkItemType = {
-  type: 'menu',
+  type: 'main',
   text: 'Blog',
   url: '/guides',
-  items: [],
+};
+
+export const stats: LinkItemType = {
+  type: "main",
+  text: "Stats",
+  url: "/stats/primary-network/validators",
 };
 
 export const docsMenu: LinkItemType = {
   type: 'menu',
-  text: 'Documentation',
+  text: 'Docs',
   url: '/docs',
   items: [
     {
@@ -503,5 +508,6 @@ export const baseOptions: BaseLayoutProps = {
     github,
     userMenu,
     blogMenu,
+    stats
   ],
 };
