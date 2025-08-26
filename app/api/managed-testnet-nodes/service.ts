@@ -1,5 +1,5 @@
 import { prisma } from '@/prisma/prisma';
-import { builderHubUrls } from './constants';
+import { ManagedTestnetNodesServiceURLs } from './constants';
 import { SubnetStatusResponse, NodeInfo } from './types';
 import { toDateFromEpoch, NODE_TTL_MS } from './utils';
 
@@ -7,7 +7,7 @@ export async function builderHubAddNode(subnetId: string): Promise<SubnetStatusR
   const password = process.env.MANAGED_TESTNET_NODE_SERVICE_PASSWORD;
   if (!password) throw new Error('MANAGED_TESTNET_NODE_SERVICE_PASSWORD not configured');
 
-  const url = builderHubUrls.addNode(subnetId, password);
+  const url = ManagedTestnetNodesServiceURLs.addNode(subnetId, password);
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -19,14 +19,14 @@ export async function builderHubAddNode(subnetId: string): Promise<SubnetStatusR
   try {
     data = JSON.parse(rawText);
   } catch {
-    throw new Error(`Invalid response from Builder Hub: ${rawText.substring(0, 100)}...`);
+    throw new Error(`Invalid response from Managed Testnet Node Service: ${rawText.substring(0, 100)}...`);
   }
   if (!response.ok) {
-    const message = (data as any).error || (data as any).message || `Builder Hub error ${response.status}`;
+    const message = (data as any).error || (data as any).message || `Managed Testnet Node Service error ${response.status}`;
     throw new Error(message);
   }
   if ((data as any).error) {
-    throw new Error((data as any).error || 'Builder Hub registration failed');
+    throw new Error((data as any).error || 'Managed Testnet Node Service registration failed');
   }
   return data;
 }
@@ -57,7 +57,7 @@ export async function createDbNode(params: {
         node_id: newestNode.nodeInfo.result.nodeID,
         public_key: newestNode.nodeInfo.result.nodePOP.publicKey,
         proof_of_possession: newestNode.nodeInfo.result.nodePOP.proofOfPossession,
-        rpc_url: builderHubUrls.rpcEndpoint(blockchainId),
+        rpc_url: ManagedTestnetNodesServiceURLs.rpcEndpoint(blockchainId),
         chain_name: chainName,
         expires_at: enforcedExpiry,
         created_at: toDateFromEpoch(newestNode.dateCreated),
@@ -82,7 +82,7 @@ export async function createDbNode(params: {
       node_index: newestNode.nodeIndex,
       public_key: newestNode.nodeInfo.result.nodePOP.publicKey,
       proof_of_possession: newestNode.nodeInfo.result.nodePOP.proofOfPossession,
-      rpc_url: builderHubUrls.rpcEndpoint(blockchainId),
+      rpc_url: ManagedTestnetNodesServiceURLs.rpcEndpoint(blockchainId),
       chain_name: chainName,
       expires_at: enforcedExpiry,
       created_at: toDateFromEpoch(newestNode.dateCreated),

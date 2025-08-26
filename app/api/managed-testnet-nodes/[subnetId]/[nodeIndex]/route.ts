@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserId, validateSubnetId, validateNodeIndex, mapNodeRegistration, jsonOk, jsonError } from '../../utils';
+import { getUserId, validateSubnetId, jsonOk, jsonError } from '../../utils';
 import { prisma } from '@/prisma/prisma';
-import { builderHubUrls } from '../../constants';
+import { ManagedTestnetNodesServiceURLs } from '../../constants';
 
 /**
  * GET /api/managed-testnet-nodes/[subnetId]/[nodeIndex]
@@ -30,7 +30,7 @@ async function handleGetNode(subnetId: string, nodeIndex: number): Promise<NextR
       return jsonError(404, 'Node not found or you do not have access to it');
     }
 
-    return jsonOk({ node: mapNodeRegistration(nodeRegistration) });
+    return jsonOk({ node: nodeRegistration });
 
   } catch (error) {
     return jsonError(500, error instanceof Error ? error.message : 'Failed to fetch node', error);
@@ -66,7 +66,7 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
       return jsonError(503, 'Builder Hub service is not configured');
     }
 
-    const builderHubUrl = builderHubUrls.deleteNode(subnetId, nodeIndex, password);
+    const builderHubUrl = ManagedTestnetNodesServiceURLs.deleteNode(subnetId, nodeIndex, password);
     
     try {
       const response = await fetch(builderHubUrl, {
@@ -123,12 +123,12 @@ export async function GET(
 ): Promise<NextResponse> {
   const { subnetId, nodeIndex } = await params;
   
-  const nodeIndexValidation = validateNodeIndex(nodeIndex);
-  if (!nodeIndexValidation.valid) {
+  const parsedIndex = parseInt(nodeIndex, 10);
+  if (Number.isNaN(parsedIndex) || parsedIndex < 0) {
     return jsonError(400, 'Invalid node index format');
   }
 
-  return handleGetNode(subnetId, nodeIndexValidation.index!);
+  return handleGetNode(subnetId, parsedIndex);
 }
 
 export async function DELETE(
@@ -137,10 +137,10 @@ export async function DELETE(
 ): Promise<NextResponse> {
   const { subnetId, nodeIndex } = await params;
   
-  const nodeIndexValidation = validateNodeIndex(nodeIndex);
-  if (!nodeIndexValidation.valid) {
+  const parsedIndex = parseInt(nodeIndex, 10);
+  if (Number.isNaN(parsedIndex) || parsedIndex < 0) {
     return jsonError(400, 'Invalid node index format');
   }
 
-  return handleDeleteNode(subnetId, nodeIndexValidation.index!);
+  return handleDeleteNode(subnetId, parsedIndex);
 }

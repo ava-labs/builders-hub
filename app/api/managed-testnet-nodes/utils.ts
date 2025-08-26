@@ -28,34 +28,9 @@ export function validateSubnetId(subnetId: string): boolean {
   return typeof subnetId === 'string' && subnetId.length >= 40 && subnetId.length <= 60;
 }
 
-export function validateNodeIndex(nodeIndex: string): { valid: boolean; index?: number } {
-  const index = parseInt(nodeIndex, 10);
-  if (isNaN(index) || index < 0) {
-    return { valid: false };
-  }
-  return { valid: true, index };
-}
-
 export function toDateFromEpoch(epoch: number): Date {
   const ms = epoch > 1e12 ? epoch : epoch * 1000;
   return new Date(ms);
-}
-
-export function mapNodeRegistration(node: any) {
-  return {
-    id: node.id,
-    subnet_id: node.subnet_id,
-    blockchain_id: node.blockchain_id,
-    node_id: node.node_id,
-    node_index: node.node_index,
-    rpc_url: node.rpc_url,
-    chain_name: node.chain_name,
-    created_at: node.created_at,
-    expires_at: node.expires_at,
-    status: node.status,
-    public_key: node.public_key,
-    proof_of_possession: node.proof_of_possession
-  };
 }
 
 type RateLimitConfig = {

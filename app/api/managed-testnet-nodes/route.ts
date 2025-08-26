@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { rateLimited, getUserId, validateSubnetId, mapNodeRegistration, jsonOk, jsonError } from './utils';
+import { rateLimited, getUserId, validateSubnetId, jsonOk, jsonError } from './utils';
 import { builderHubAddNode, selectNewestNode, createDbNode, getUserNodes } from './service';
 import { getBlockchainInfo } from '../../../toolbox/src/coreViem/utils/glacier';
 import { CreateNodeRequest, SubnetStatusResponse } from './types';
@@ -15,8 +15,7 @@ async function handleGetNodes(): Promise<NextResponse> {
   if (error) return error;
 
   try {
-    const nodeRegistrations = await getUserNodes(userId!);
-    const nodes = nodeRegistrations.map(mapNodeRegistration);
+    const nodes = await getUserNodes(userId!);
     return jsonOk({ nodes, total: nodes.length });
 
   } catch (error) {
@@ -73,7 +72,7 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
       const createdNode = await createDbNode({ userId: userId!, subnetId, blockchainId, newestNode, chainName });
       if (!createdNode) return jsonError(409, 'Node already exists for this user (active)');
       return jsonOk({
-        node: mapNodeRegistration(createdNode),
+        node: createdNode,
         builder_hub_response: {
           nodeID: newestNode.nodeInfo.result.nodeID,
           nodePOP: newestNode.nodeInfo.result.nodePOP,
