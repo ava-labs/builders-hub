@@ -192,7 +192,8 @@ export default function L1Metrics() {
 
   const formatGasPrice = (price: number | string): string => {
     if (price === "N/A" || price === "") return "N/A";
-    const priceValue = typeof price === "string" ? Number.parseFloat(price) : price;
+    const priceValue =
+      typeof price === "string" ? Number.parseFloat(price) : price;
     if (isNaN(priceValue)) return "N/A";
     return formatNumber(priceValue);
   };
@@ -443,6 +444,29 @@ export default function L1Metrics() {
       day: point.date,
       messageCount: point.messageCount,
     }));
+  };
+
+  const getYAxisDomain = (
+    data: ChartDataPoint[] | ICMChartDataPoint[],
+    isICM: boolean = false
+  ): [number, number] => {
+    if (data.length === 0) return [0, 100];
+
+    const values = isICM
+      ? (data as ICMChartDataPoint[]).map((d) => d.messageCount)
+      : (data as ChartDataPoint[]).map((d) => d.value);
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+
+    if (max - min < max * 0.1) {
+      const center = (min + max) / 2;
+      const range = Math.max(center * 0.1, 1);
+      return [Math.max(0, center - range), center + range];
+    }
+
+    const padding = (max - min) * 0.1;
+    return [Math.max(0, min - padding), max + padding];
   };
 
   if (!slug) {
@@ -783,6 +807,7 @@ export default function L1Metrics() {
                       "last_updated" | "icmMessages"
                     >
                   );
+              const yAxisDomain = getYAxisDomain(chartData, isICMChart);
               const currentValue = getCurrentValue(config.metricKey);
               const { change, isPositive } = getValueChange(config.metricKey);
               const Icon = config.icon;
@@ -880,6 +905,7 @@ export default function L1Metrics() {
                             }}
                           />
                           <YAxis
+                            domain={yAxisDomain}
                             tickLine={false}
                             axisLine={false}
                             tickMargin={8}
@@ -964,6 +990,7 @@ export default function L1Metrics() {
                             }}
                           />
                           <YAxis
+                            domain={yAxisDomain}
                             tickLine={false}
                             axisLine={false}
                             tickMargin={8}
