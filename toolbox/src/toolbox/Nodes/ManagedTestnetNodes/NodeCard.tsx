@@ -77,7 +77,7 @@ export default function NodeCard({
                     <div className="flex items-center gap-3">
                         <div>
                             <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
-                                {node.chain_name || 'Unnamed Chain'}
+                                {node.chain_name || 'Unnamed Chain'} {node.node_index ? `Node ${node.node_index}` : ''}
                             </h3>
                             <div className="flex items-center gap-3">
                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${statusData.color}`}>
@@ -184,11 +184,15 @@ export default function NodeCard({
                 {/* Primary Actions */}
                 <div className="mt-2 flex items-center justify-end gap-2 border-t border-gray-200 dark:border-gray-700 pt-3">
                     <Button
-                        onClick={() => onCopyToClipboard(nodeInfoJson, "Node Info")}
+                        onClick={() => handleLocalCopy(nodeInfoJson, "nodeInfo")}
                         variant="outline"
                         size="sm"
                         className="!w-auto"
-                        icon={<Copy className="w-4 h-4" />}
+                        icon={copiedKey === "nodeInfo" ? (
+                            <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        ) : (
+                            <Copy className="w-4 h-4" />
+                        )}
                     >
                         Copy Node Info
                     </Button>
