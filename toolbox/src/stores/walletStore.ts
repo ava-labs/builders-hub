@@ -36,6 +36,7 @@ interface WalletState {
     cChain: boolean;
     l1Chains: Record<string, boolean>; // Key: chainId, Value: loading state
   };
+  bootstrapped: boolean;
 }
 
 interface WalletActions {
@@ -89,6 +90,9 @@ interface WalletActions {
   // New getters for L1 chains
   getL1Balance: (chainId: string) => number;
   getL1Loading: (chainId: string) => boolean;
+
+  getBootstrapped: () => boolean;
+  setBootstrapped: (bootstrapped: boolean) => void;
 }
 
 type WalletStore = WalletState & WalletActions;
@@ -120,6 +124,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
       cChain: false,
       l1Chains: {},
     },
+    bootstrapped: false,
 
     // Actions
     updateWalletConnection: (data: { coreWalletClient?: ReturnType<typeof createCoreWalletClient>; walletEVMAddress?: string; walletChainId?: number; pChainAddress?: string; coreEthAddress?: string; }) => {
@@ -235,6 +240,9 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     // Legacy L1 methods for backward compatibility - delegate to unified methods
     setL1Balance: (chainId: string, amount: number) => store.setBalance(chainId, amount),
     setL1Loading: (chainId: string, loading: boolean) => store.setLoading(chainId, loading),
+
+    getBootstrapped: () => get().bootstrapped,
+    setBootstrapped: (bootstrapped: boolean) => set({ bootstrapped: bootstrapped }),
   };
 
   // Set up balance service callbacks
