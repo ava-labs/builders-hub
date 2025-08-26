@@ -9,7 +9,6 @@ import {
   MessagesSquare,
   Wrench, 
   Droplets, 
-  ArrowLeft,
   Shield,
   Network,
   GitMerge,
