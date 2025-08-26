@@ -273,7 +273,7 @@ export function AcademySidebar({
                     asChild 
                     isActive={isActive}
                   >
-                    <Link href={item.url}>
+                    <Link href={item.url} target="_blank">
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>
@@ -311,7 +311,7 @@ export function AcademySidebar({
                             <span>{item.title} (soon)</span>
                           </Link>
                         ) : (
-                          <Link href={item.url}>
+                          <Link href={item.url} target="_blank">
                             <item.icon />
                             <span>{item.title}</span>
                           </Link>
