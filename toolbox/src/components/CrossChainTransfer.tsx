@@ -16,7 +16,6 @@ import { CheckWalletRequirements } from "./CheckWalletRequirements"
 import { WalletRequirementsConfigKey } from "../hooks/useWalletRequirements"
 import { Success } from "./Success"
 import { AmountInput } from "./AmountInput"
-import { type BlockchainSelection } from "./SelectBlockchain"
 import { StepCard, StepIndicator } from "./StepCard"
 
 export default function CrossChainTransfer({
