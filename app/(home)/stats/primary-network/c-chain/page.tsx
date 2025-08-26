@@ -114,7 +114,9 @@ export default function CChainMetrics() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/c-chain-stats?timeRange=${timeRange}`);
+      const response = await fetch(
+        `/api/chain-stats/43114?timeRange=${timeRange}`
+      );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -212,26 +214,20 @@ export default function CChainMetrics() {
   ): ChartDataPoint[] => {
     if (!metrics || !metrics[metricKey]?.data) return [];
 
-    return metrics[metricKey].data
-      .map((point: TimeSeriesDataPoint) => ({
-        day: point.date,
-        value:
-          typeof point.value === "string"
-            ? parseFloat(point.value)
-            : point.value,
-      }))
-      .reverse();
+    return metrics[metricKey].data.map((point: TimeSeriesDataPoint) => ({
+      day: point.date,
+      value:
+        typeof point.value === "string" ? parseFloat(point.value) : point.value,
+    }));
   };
 
   const getICMChartData = (): ICMChartDataPoint[] => {
     if (!metrics?.icmMessages?.data) return [];
 
-    return metrics.icmMessages.data
-      .map((point: ICMDataPoint) => ({
-        day: point.date,
-        messageCount: point.messageCount,
-      }))
-      .reverse();
+    return metrics.icmMessages.data.map((point: ICMDataPoint) => ({
+      day: point.date,
+      messageCount: point.messageCount,
+    }));
   };
 
   const getYearBoundaries = (data: ChartDataPoint[]): string[] => {

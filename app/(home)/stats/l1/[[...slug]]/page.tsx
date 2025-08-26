@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import { useState, useEffect } from "react";
+import { useParams, notFound } from "next/navigation";
 import {
   Area,
   AreaChart,
@@ -8,6 +9,7 @@ import {
   BarChart,
   CartesianGrid,
   XAxis,
+  YAxis,
   ReferenceLine,
 } from "recharts";
 import {
@@ -23,14 +25,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import {
   Users,
   Activity,
@@ -48,6 +43,8 @@ import {
   Clock,
   Fuel,
 } from "lucide-react";
+import BubbleNavigation from "@/components/navigation/BubbleNavigation";
+import l1ChainsData from "@/constants/l1-chains.json";
 
 interface TimeSeriesDataPoint {
   timestamp: number;
@@ -77,7 +74,7 @@ interface ICMMetric {
   change_percentage_24h: number;
 }
 
-interface CChainMetrics {
+interface L1Metrics {
   activeAddresses: TimeSeriesMetric;
   activeSenders: TimeSeriesMetric;
   cumulativeAddresses: TimeSeriesMetric;
@@ -105,12 +102,21 @@ interface ChartDataPoint {
 interface ICMChartDataPoint {
   day: string;
   messageCount: number;
-  incomingCount: number;
-  outgoingCount: number;
 }
 
-export default function CChainMetrics() {
-  const [metrics, setMetrics] = useState<CChainMetrics | null>(null);
+interface L1Chain {
+  chainId: string;
+  chainName: string;
+  chainLogoURI: string;
+  subnetId: string;
+  slug: string;
+}
+
+export default function L1Metrics() {
+  const params = useParams();
+  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+  const [currentChain, setCurrentChain] = useState<L1Chain | null>(null);
+  const [metrics, setMetrics] = useState<L1Metrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
@@ -118,23 +124,41 @@ export default function CChainMetrics() {
     "7d" | "30d" | "90d" | "all"
   >("30d");
 
+  useEffect(() => {
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
+
+    const chain = l1ChainsData.find((c) => c.slug === slug);
+    if (!chain) {
+      notFound();
+    }
+
+    setCurrentChain(chain);
+  }, [slug]);
+
   const fetchData = async () => {
+    if (!currentChain) return;
+
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/c-chain-stats?timeRange=${timeRange}`);
+      const response = await fetch(
+        `/api/chain-stats/${currentChain.chainId}?timeRange=${timeRange}`
+      );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const cChainData = await response.json();
+      const l1Data = await response.json();
 
-      if (!cChainData) {
-        throw new Error("C-Chain data not found");
+      if (!l1Data) {
+        throw new Error("L1 data not found");
       }
 
-      setMetrics(cChainData);
+      setMetrics(l1Data);
       setLastUpdated(new Date().toLocaleString());
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -144,8 +168,10 @@ export default function CChainMetrics() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, [timeRange]);
+    if (currentChain) {
+      fetchData();
+    }
+  }, [currentChain, timeRange]);
 
   const formatNumber = (num: number | string): string => {
     if (num === "N/A" || num === "") return "N/A";
@@ -166,15 +192,9 @@ export default function CChainMetrics() {
 
   const formatGasPrice = (price: number | string): string => {
     if (price === "N/A" || price === "") return "N/A";
-    const priceValue =
-      typeof price === "string" ? Number.parseFloat(price) : price;
+    const priceValue = typeof price === "string" ? Number.parseFloat(price) : price;
     if (isNaN(priceValue)) return "N/A";
-
-    const gwei = priceValue / 1e9;
-    if (gwei < 1) {
-      return `${gwei.toFixed(3)} gwei`;
-    }
-    return `${gwei.toFixed(2)} gwei`;
+    return formatNumber(priceValue);
   };
 
   const formatGas = (gas: number | string): string => {
@@ -204,54 +224,7 @@ export default function CChainMetrics() {
     const weiValue = typeof wei === "string" ? Number.parseFloat(wei) : wei;
     if (isNaN(weiValue)) return "N/A";
 
-    const ether = weiValue / 1e18;
-    if (ether >= 1e6) {
-      return `${(ether / 1e6).toFixed(2)}M AVAX`;
-    } else if (ether >= 1e3) {
-      return `${(ether / 1e3).toFixed(2)}K AVAX`;
-    } else if (ether >= 1) {
-      return `${ether.toFixed(2)} AVAX`;
-    } else {
-      return `${ether.toFixed(6)} AVAX`;
-    }
-  };
-
-  const getChartData = (
-    metricKey: keyof Omit<CChainMetrics, "last_updated" | "icmMessages">
-  ): ChartDataPoint[] => {
-    if (!metrics || !metrics[metricKey]?.data) return [];
-
-    return metrics[metricKey].data
-      .map((point: TimeSeriesDataPoint) => ({
-        day: point.date,
-        value:
-          typeof point.value === "string"
-            ? parseFloat(point.value)
-            : point.value,
-      }))
-      .reverse();
-  };
-
-  const getICMChartData = (): ICMChartDataPoint[] => {
-    if (!metrics?.icmMessages?.data) return [];
-
-    return metrics.icmMessages.data
-      .map((point: ICMDataPoint) => {
-        // Check if we have meaningful incoming/outgoing data
-        const hasBreakdownData =
-          point.incomingCount > 0 || point.outgoingCount > 0;
-
-        return {
-          day: point.date,
-          messageCount: point.messageCount,
-          // If no breakdown data available, use messageCount as incomingCount for display
-          incomingCount: hasBreakdownData
-            ? point.incomingCount
-            : point.messageCount,
-          outgoingCount: hasBreakdownData ? point.outgoingCount : 0,
-        };
-      })
-      .reverse();
+    return formatNumber(weiValue);
   };
 
   const getYearBoundaries = (data: ChartDataPoint[]): string[] => {
@@ -345,14 +318,14 @@ export default function CChainMetrics() {
   };
 
   const getCurrentValue = (
-    metricKey: keyof Omit<CChainMetrics, "last_updated">
+    metricKey: keyof Omit<L1Metrics, "last_updated">
   ): number | string => {
     if (!metrics || !metrics[metricKey]) return "N/A";
     return metrics[metricKey].current_value;
   };
 
   const getValueChange = (
-    metricKey: keyof Omit<CChainMetrics, "last_updated">
+    metricKey: keyof Omit<L1Metrics, "last_updated">
   ): { change: number; isPositive: boolean } => {
     if (
       !metrics ||
@@ -420,6 +393,61 @@ export default function CChainMetrics() {
       isPositive: changePercentage >= 0,
     };
   };
+
+  function getTimeRangeLabel(range: string): string {
+    switch (range) {
+      case "7d":
+        return "7 days";
+      case "30d":
+        return "30 days";
+      case "90d":
+        return "90 days";
+      case "all":
+        return "all time";
+      default:
+        return "30 days";
+    }
+  }
+
+  function getComparisonPeriodLabel(range: string): string {
+    switch (range) {
+      case "7d":
+        return "7 days ago";
+      case "30d":
+        return "30 days ago";
+      case "90d":
+        return "90 days ago";
+      case "all":
+        return "the beginning of the dataset";
+      default:
+        return "30 days ago";
+    }
+  }
+
+  const getChartData = (
+    metricKey: keyof Omit<L1Metrics, "last_updated" | "icmMessages">
+  ): ChartDataPoint[] => {
+    if (!metrics || !metrics[metricKey]?.data) return [];
+
+    return metrics[metricKey].data.map((point: TimeSeriesDataPoint) => ({
+      day: point.date,
+      value:
+        typeof point.value === "string" ? parseFloat(point.value) : point.value,
+    }));
+  };
+
+  const getICMChartData = (): ICMChartDataPoint[] => {
+    if (!metrics?.icmMessages?.data) return [];
+
+    return metrics.icmMessages.data.map((point: ICMDataPoint) => ({
+      day: point.date,
+      messageCount: point.messageCount,
+    }));
+  };
+
+  if (!slug) {
+    notFound();
+  }
 
   const addressConfigs = [
     {
@@ -617,49 +645,22 @@ export default function CChainMetrics() {
     ...icmConfigs,
   ];
 
-  function getTimeRangeLabel(range: string): string {
-    switch (range) {
-      case "7d":
-        return "7 days";
-      case "30d":
-        return "30 days";
-      case "90d":
-        return "90 days";
-      case "all":
-        return "all time";
-      default:
-        return "30 days";
-    }
-  }
-
-  function getComparisonPeriodLabel(range: string): string {
-    switch (range) {
-      case "7d":
-        return "7 days ago";
-      case "30d":
-        return "30 days ago";
-      case "90d":
-        return "90 days ago";
-      case "all":
-        return "the beginning of the dataset";
-      default:
-        return "30 days ago";
-    }
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto p-6 pb-24">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-muted-foreground">
-                Fetching real-time C-Chain data...
+                Fetching real-time {currentChain?.chainName} data...
               </p>
             </div>
           </div>
         </div>
+
+        {/* Bubble Navigation */}
+        <BubbleNavigation />
       </div>
     );
   }
@@ -667,7 +668,7 @@ export default function CChainMetrics() {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto p-6 pb-24">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <p className="text-destructive text-lg mb-4">
@@ -682,21 +683,28 @@ export default function CChainMetrics() {
             </div>
           </div>
         </div>
+
+        {/* Bubble Navigation */}
+        <BubbleNavigation />
       </div>
     );
   }
 
+  if (!currentChain) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto mt-4 p-6 space-y-12">
+      <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
         <div className="space-y-2">
           <div>
-            <h1 className="text-2xl md:text-5xl mb-4">
-              C-Chain Network Metrics
+            <h1 className="text-2xl md:text-5xl mb-4 capitalize">
+              {currentChain.chainName} Network Metrics
             </h1>
             <p className="text-zinc-400 text-md text-left">
-              Real-time insights into Avalanche C-Chain activity and network
-              usage
+              Real-time insights into {currentChain.chainName} L1 activity and
+              network usage
             </p>
           </div>
         </div>
@@ -759,7 +767,8 @@ export default function CChainMetrics() {
               Historical Trends
             </h2>
             <p className="text-zinc-400 text-md text-left">
-              Track C-Chain network growth and activity over time
+              Track {currentChain.chainName} network growth and activity over
+              time
             </p>
           </div>
 
@@ -770,7 +779,7 @@ export default function CChainMetrics() {
                 ? getICMChartData()
                 : getChartData(
                     config.metricKey as keyof Omit<
-                      CChainMetrics,
+                      L1Metrics,
                       "last_updated" | "icmMessages"
                     >
                   );
@@ -797,94 +806,19 @@ export default function CChainMetrics() {
                         <CardDescription>{config.description}</CardDescription>
                       </div>
                       <div className="flex items-center gap-2 px-2">
-                        <ToggleGroup
-                          type="single"
-                          value={timeRange}
-                          onValueChange={(value) => {
+                        <DateRangeFilter
+                          defaultRange={timeRange}
+                          onRangeChange={(range) => {
                             if (
-                              value &&
-                              (value === "7d" ||
-                                value === "30d" ||
-                                value === "90d" ||
-                                value === "all")
+                              range === "7d" ||
+                              range === "30d" ||
+                              range === "90d" ||
+                              range === "all"
                             ) {
-                              setTimeRange(value);
+                              setTimeRange(range);
                             }
                           }}
-                          className="hidden sm:flex bg-gray-100 dark:bg-gray-800 border-0 rounded-full p-0.5 shadow-sm mx-2"
-                        >
-                          <ToggleGroupItem
-                            value="7d"
-                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
-                          >
-                            7d
-                          </ToggleGroupItem>
-                          <ToggleGroupItem
-                            value="30d"
-                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
-                          >
-                            30d
-                          </ToggleGroupItem>
-                          <ToggleGroupItem
-                            value="90d"
-                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
-                          >
-                            90d
-                          </ToggleGroupItem>
-                          <ToggleGroupItem
-                            value="all"
-                            className="text-xs px-3.5 py-0.5 font-medium rounded-full transition-all duration-200 ease-out text-gray-600 dark:text-gray-400 hover:text-white hover:bg-[#40c9ff] hover:shadow-md hover:scale-102 data-[state=on]:bg-[#40c9ff] data-[state=on]:text-white data-[state=on]:shadow-sm data-[state=on]:scale-100 min-w-[2.25rem]"
-                          >
-                            All
-                          </ToggleGroupItem>
-                        </ToggleGroup>
-                        <Select
-                          value={timeRange}
-                          onValueChange={(value: string) => {
-                            if (
-                              value === "7d" ||
-                              value === "30d" ||
-                              value === "90d" ||
-                              value === "all"
-                            ) {
-                              setTimeRange(value);
-                            }
-                          }}
-                        >
-                          <SelectTrigger
-                            className="w-20 h-6 sm:hidden bg-gray-100 dark:bg-gray-800 border-0 rounded-full text-gray-700 dark:text-gray-300 shadow-sm font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-md hover:scale-102 transition-all duration-200 ease-out text-xs px-4 min-w-[2.5rem]"
-                            size="sm"
-                            aria-label="Select a value"
-                          >
-                            <SelectValue placeholder="30d" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl bg-white dark:bg-gray-800 border-0 shadow-lg p-1 w-32">
-                            <SelectItem
-                              value="7d"
-                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
-                            >
-                              7d
-                            </SelectItem>
-                            <SelectItem
-                              value="30d"
-                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
-                            >
-                              30d
-                            </SelectItem>
-                            <SelectItem
-                              value="90d"
-                              className="rounded-full mb-0.5 text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
-                            >
-                              90d
-                            </SelectItem>
-                            <SelectItem
-                              value="all"
-                              className="rounded-full text-gray-700 dark:text-gray-300 font-medium hover:bg-[#40c9ff] hover:text-white hover:shadow-sm focus:bg-[#40c9ff] focus:text-white transition-all duration-200 text-xs py-0.5 px-4 justify-center hover:scale-102 min-w-[2.5rem]"
-                            >
-                              All
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                        />
                       </div>
                     </div>
                   </CardHeader>
@@ -940,6 +874,16 @@ export default function CChainMetrics() {
                             tickMargin={8}
                             minTickGap={32}
                             tickFormatter={(value) => formatDateLabel(value)}
+                            tick={{
+                              fontFamily:
+                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                            }}
+                          />
+                          <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tickFormatter={(value) => formatNumber(value)}
                             tick={{
                               fontFamily:
                                 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
@@ -1019,6 +963,16 @@ export default function CChainMetrics() {
                                 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
                             }}
                           />
+                          <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tickFormatter={(value) => formatNumber(value)}
+                            tick={{
+                              fontFamily:
+                                'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                            }}
+                          />
                           <ChartTooltip
                             cursor={false}
                             content={
@@ -1069,6 +1023,9 @@ export default function CChainMetrics() {
           </div>
         </section>
       </div>
+
+      {/* Bubble Navigation */}
+      <BubbleNavigation />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 import type React from "react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -23,6 +24,7 @@ import {
   BarChart3,
   Loader2,
   Search,
+  ExternalLink,
 } from "lucide-react";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import {
@@ -34,6 +36,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
+import l1ChainsData from "@/constants/l1-chains.json";
 
 interface ChainMetrics {
   chainId: string;
@@ -66,6 +69,15 @@ export default function AvalancheMetrics() {
   const [visibleCount, setVisibleCount] = useState(25);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const getChainSlug = (chainId: string, chainName: string): string | null => {
+    const chain = l1ChainsData.find(
+      (c) =>
+        c.chainId === chainId ||
+        c.chainName.toLowerCase() === chainName.toLowerCase()
+    );
+    return chain?.slug || null;
+  };
+
   const parseCSV = (csvText: string): ChainMetrics[] => {
     const lines = csvText.trim().split("\n");
     const headers = lines[0].split(",");
@@ -93,8 +105,6 @@ export default function AvalancheMetrics() {
       if (values.length >= headers.length) {
         const chainName = values[1].replace(/"/g, "");
         const chainLogoURI = values[2].replace(/"/g, "");
-        // Skip subnetId (values[3]) since we don't use it in the UI
-
         const parseMetricValue = (value: string): number | string => {
           if (value === "N/A" || value === "") return "N/A";
           const parsed = Number.parseInt(value);
@@ -336,7 +346,7 @@ export default function AvalancheMetrics() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background text-foreground">
-        <main className="container mx-auto px-4 py-12">
+        <main className="container mx-auto px-4 py-8 pb-24 space-y-8">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <Loader2 className="h-12 w-12 animate-spin text-orange-500 mx-auto mb-4" />
@@ -347,6 +357,9 @@ export default function AvalancheMetrics() {
             </div>
           </div>
         </main>
+
+        {/* Bubble Navigation */}
+        <BubbleNavigation />
       </div>
     );
   }
@@ -354,7 +367,7 @@ export default function AvalancheMetrics() {
   if (error) {
     return (
       <div className="min-h-screen bg-background text-foreground">
-        <main className="container mx-auto px-4 py-12">
+        <main className="container mx-auto px-4 py-8 pb-24 space-y-8">
           <div className="flex items-center justify-center min-h-[400px]">
             <Card className="max-w-md">
               <CardContent className="p-6 text-center">
@@ -369,6 +382,9 @@ export default function AvalancheMetrics() {
             </Card>
           </div>
         </main>
+
+        {/* Bubble Navigation */}
+        <BubbleNavigation />
       </div>
     );
   }
@@ -376,7 +392,7 @@ export default function AvalancheMetrics() {
   if (chainMetrics.length === 0) {
     return (
       <div className="min-h-screen bg-background text-foreground">
-        <main className="container mx-auto px-4 py-12">
+        <main className="container mx-auto px-4 py-8 pb-24 space-y-8">
           <div className="flex items-center justify-center min-h-[400px]">
             <Card className="max-w-md">
               <CardContent className="p-6 text-center">
@@ -393,6 +409,9 @@ export default function AvalancheMetrics() {
             </Card>
           </div>
         </main>
+
+        {/* Bubble Navigation */}
+        <BubbleNavigation />
       </div>
     );
   }
@@ -418,7 +437,7 @@ export default function AvalancheMetrics() {
             </h1>
             <p className="text-base text-muted-foreground max-w-2xl leading-relaxed">
               An opinionated collection of stats for the Avalanche Mainnet L1s.
-              Updated daily.
+              Updated daily. Click on any chain name to view detailed metrics.
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm">
@@ -827,10 +846,17 @@ export default function AvalancheMetrics() {
                   <TableHead className="font-medium text-center min-w-[100px] text-muted-foreground">
                     Activity
                   </TableHead>
+                  <TableHead className="font-medium text-center min-w-[100px] text-muted-foreground">
+                    Details
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {visibleData.map((chain, index) => {
+                  const chainSlug = getChainSlug(
+                    chain.chainId,
+                    chain.chainName
+                  );
                   return (
                     <TableRow
                       key={chain.chainId}
@@ -941,6 +967,23 @@ export default function AvalancheMetrics() {
                             chain.totalIcmMessages
                           )}
                         />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {chainSlug ? (
+                          <Link href={`/stats/l1/${chainSlug}`}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 hover:bg-primary/10"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            —
+                          </span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
