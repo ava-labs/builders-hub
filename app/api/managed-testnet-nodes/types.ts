@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export interface NodeInfo {
   nodeIndex: number;
   nodeInfo: {
@@ -24,5 +26,33 @@ export interface CreateNodeRequest {
   subnetId: string;
   blockchainId: string;
 }
+
+// Zod schemas for runtime validation
+export const NodeInfoSchema = z.object({
+  nodeIndex: z.number().int().nonnegative(),
+  nodeInfo: z.object({
+    result: z.object({
+      nodeID: z.string().min(1),
+      nodePOP: z.object({
+        publicKey: z.string().min(1),
+        proofOfPossession: z.string().min(1)
+      })
+    })
+  }),
+  dateCreated: z.number(),
+  expiresAt: z.number()
+});
+
+export const SubnetStatusResponseSchema = z.object({
+  subnetId: z.string().min(1),
+  nodes: z.array(NodeInfoSchema),
+  error: z.string().optional(),
+  message: z.string().optional()
+});
+
+export const ServiceErrorSchema = z.object({
+  error: z.string().optional(),
+  message: z.string().optional()
+}).passthrough();
 
 

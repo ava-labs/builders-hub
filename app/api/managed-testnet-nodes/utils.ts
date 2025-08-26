@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { rateLimit } from '@/lib/rateLimit';
+import { ServiceErrorSchema } from './types';
 
 export async function getUserId(): Promise<{ userId: string | null; error?: NextResponse }> {
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -65,6 +66,26 @@ export function jsonError(status: number, message: string, error?: unknown) {
     } catch {}
   }
   return NextResponse.json({ error: 'Error', message }, { status });
+}
+
+// Extracts a useful error message from a non-OK Response from the external service
+export async function extractServiceErrorMessage(response: Response): Promise<string | null> {
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      const body = await response.json();
+      const parsed = ServiceErrorSchema.safeParse(body);
+      if (parsed.success) {
+        return parsed.data.error || parsed.data.message || null;
+      }
+    } catch {}
+  } else {
+    try {
+      const text = await response.text();
+      if (text) return text.slice(0, 200);
+    } catch {}
+  }
+  return null;
 }
 
 

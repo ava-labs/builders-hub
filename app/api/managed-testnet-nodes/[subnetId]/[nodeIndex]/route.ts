@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserId, validateSubnetId, jsonOk, jsonError } from '../../utils';
 import { prisma } from '@/prisma/prisma';
 import { ManagedTestnetNodesServiceURLs } from '../../constants';
+import { extractServiceErrorMessage } from '../../utils';
 
 /**
  * GET /api/managed-testnet-nodes/[subnetId]/[nodeIndex]
  * Returns a specific node (DB-only) for the authenticated user.
  */
 async function handleGetNode(subnetId: string, nodeIndex: number): Promise<NextResponse> {
-  const { userId, error } = await getUserId();
-  if (error) return error;
+  const auth = await getUserId();
+  if (auth.error) return auth.error;
+  if (!auth.userId) return jsonError(401, 'Authentication required');
+  const userId = auth.userId;
 
   if (!validateSubnetId(subnetId)) {
     return jsonError(400, 'Invalid subnet ID format');
@@ -17,7 +20,7 @@ async function handleGetNode(subnetId: string, nodeIndex: number): Promise<NextR
 
   try {
     // Only use our database for node info
-    const nodeRegistration = await (prisma as any).nodeRegistration.findFirst({
+    const nodeRegistration = await prisma.nodeRegistration.findFirst({
       where: {
         user_id: userId,
         subnet_id: subnetId,
@@ -42,8 +45,10 @@ async function handleGetNode(subnetId: string, nodeIndex: number): Promise<NextR
  * Deletes a node from the external Builder Hub first, then marks the DB record as terminated.
  */
 async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<NextResponse> {
-  const { userId, error } = await getUserId();
-  if (error) return error;
+  const auth = await getUserId();
+  if (auth.error) return auth.error;
+  if (!auth.userId) return jsonError(401, 'Authentication required');
+  const userId = auth.userId;
 
   if (!validateSubnetId(subnetId)) {
     return jsonError(400, 'Invalid subnet ID format');
@@ -51,7 +56,7 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
 
   try {
     // First verify the user owns this node
-    const nodeRegistration = await (prisma as any).nodeRegistration.findFirst({
+    const nodeRegistration = await prisma.nodeRegistration.findFirst({
       where: {
         user_id: userId,
         subnet_id: subnetId,
@@ -78,7 +83,7 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
 
       if (response.ok || response.status === 404) {
         if (nodeRegistration) {
-          await (prisma as any).nodeRegistration.updateMany({
+          await prisma.nodeRegistration.updateMany({
             where: {
               user_id: userId,
               subnet_id: subnetId,
@@ -103,9 +108,8 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
         });
       }
 
-      const rawText = await response.text();
-      console.error(`Builder Hub delete failed: ${response.status} ${response.statusText} - ${rawText}`);
-      return jsonError(502, 'Failed to delete node from Builder Hub.');
+      const message = await extractServiceErrorMessage(response) || 'Failed to delete node from Builder Hub.';
+      return jsonError(502, message);
 
     } catch (hubError) {
       console.error('Builder Hub request failed:', hubError);

@@ -1,6 +1,6 @@
 import { prisma } from '@/prisma/prisma';
 import { ManagedTestnetNodesServiceURLs } from './constants';
-import { SubnetStatusResponse, NodeInfo } from './types';
+import { SubnetStatusResponse, NodeInfo, SubnetStatusResponseSchema, ServiceErrorSchema } from './types';
 import { toDateFromEpoch, NODE_TTL_MS } from './utils';
 
 export async function builderHubAddNode(subnetId: string): Promise<SubnetStatusResponse> {
@@ -14,19 +14,28 @@ export async function builderHubAddNode(subnetId: string): Promise<SubnetStatusR
     body: JSON.stringify({})
   });
 
-  const rawText = await response.text();
-  let data: SubnetStatusResponse;
+  let json: unknown;
   try {
-    data = JSON.parse(rawText);
+    json = await response.json();
   } catch {
-    throw new Error(`Invalid response from Managed Testnet Node Service: ${rawText.substring(0, 100)}...`);
+    throw new Error('Invalid JSON response from Managed Testnet Node Service');
   }
+
   if (!response.ok) {
-    const message = (data as any).error || (data as any).message || `Managed Testnet Node Service error ${response.status}`;
+    const parsedErr = ServiceErrorSchema.safeParse(json);
+    const message = parsedErr.success
+      ? (parsedErr.data.error || parsedErr.data.message || `Managed Testnet Node Service error ${response.status}`)
+      : `Managed Testnet Node Service error ${response.status}`;
     throw new Error(message);
   }
-  if ((data as any).error) {
-    throw new Error((data as any).error || 'Managed Testnet Node Service registration failed');
+
+  const parsed = SubnetStatusResponseSchema.safeParse(json);
+  if (!parsed.success) {
+    throw new Error('Invalid response shape from Managed Testnet Node Service');
+  }
+  const data = parsed.data;
+  if (data.error) {
+    throw new Error(data.error || 'Managed Testnet Node Service registration failed');
   }
   return data;
 }
