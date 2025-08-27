@@ -1,14 +1,12 @@
 "use client"
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { Loader2, ArrowDownUp, Clock } from "lucide-react"
 import { Button } from "./Button"
 
 import { Container } from "./Container"
 import { useWalletStore } from "../stores/walletStore"
-import { evmImportTx } from "../coreViem/methods/evmImport"
 import { evmExport } from "../coreViem/methods/evmExport"
 import { pvmImport } from "../coreViem/methods/pvmImport"
-import { pvmExport } from "../coreViem/methods/pvmExport"
 import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs'
 import { getRPCEndpoint } from '../coreViem/utils/rpc'
 import { useErrorBoundary } from "react-error-boundary"
@@ -17,6 +15,8 @@ import { WalletRequirementsConfigKey } from "../hooks/useWalletRequirements"
 import { Success } from "./Success"
 import { AmountInput } from "./AmountInput"
 import { StepCard, StepIndicator } from "./StepCard"
+import { createAvalancheWalletClient } from "@avalanche-sdk/client"
+import { avalanche, avalancheFuji } from "@avalanche-sdk/client/chains"
 
 export default function CrossChainTransfer({
     suggestedAmount = "0.0",
@@ -52,7 +52,6 @@ export default function CrossChainTransfer({
 
     const {
         coreWalletClient,
-        publicClient,
         isTestnet,
         updateCChainBalance,
         updatePChainBalance
@@ -63,6 +62,18 @@ export default function CrossChainTransfer({
     const pChainAddress = useWalletStore((s) => s.pChainAddress);
     const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
     const coreEthAddress = useWalletStore((s) => s.coreEthAddress);
+
+    const avalancheClient = useMemo(() => {
+        console.log("Creating avalanche client", isTestnet, walletEVMAddress);
+        return createAvalancheWalletClient({
+            chain: isTestnet ? avalancheFuji : avalanche,
+            transport: {
+                type: "custom",
+                provider: window.avalanche!,
+            },
+            account: walletEVMAddress as `0x${string}`
+        })
+    }, [isTestnet, walletEVMAddress]);
 
     // Calculate total AVAX in UTXOs
     const totalCToPUtxoAmount = cToP_UTXOs.reduce((sum, utxo) => {
@@ -139,11 +150,11 @@ export default function CrossChainTransfer({
 
     // Initial fetch of UTXOs and balances
     useEffect(() => {
-        if (publicClient && walletEVMAddress) {
+        if (avalancheClient && walletEVMAddress) {
             fetchUTXOs();
             onBalanceChanged();
         }
-    }, [publicClient, walletEVMAddress, pChainAddress, fetchUTXOs, onBalanceChanged])
+    }, [avalancheClient, walletEVMAddress, pChainAddress, fetchUTXOs, onBalanceChanged])
 
     // Persistent polling for pending export UTXOs
     useEffect(() => {
@@ -224,13 +235,19 @@ export default function CrossChainTransfer({
                 setCompletedExportTxId(txId);
             } else {
                 // P-Chain to C-Chain export using the pvmExport function
-                const response = await pvmExport(coreWalletClient, {
-                    amount,
-                    pChainAddress
+                console.log("Preparing P-Chain Export transaction", pChainAddress, amount);
+                const txnRequest = await avalancheClient.pChain.prepareExportTxn({
+                    exportedOutputs: [{
+                        addresses: [pChainAddress],
+                        amount: Number(amount),
+                    }],
+                    destinationChain: "C"
                 });
+                const txnResponse = await avalancheClient.sendXPTransaction(txnRequest);
+                await avalancheClient.waitForTxn(txnResponse);
 
-                console.log("P-Chain Export transaction sent:", response);
-                const txId = response.txID || String(response);
+                console.log("P-Chain Export transaction sent:", txnResponse,);
+                const txId = txnResponse.txHash;
                 setExportTxId(txId);
                 setCompletedExportTxId(txId);
             }
@@ -274,15 +291,13 @@ export default function CrossChainTransfer({
                 // Import to C-Chain using evmImportTx function
                 console.log("Importing to C-Chain", walletEVMAddress);
                 console.log("Core wallet client", coreWalletClient);
-                const response = await evmImportTx(coreWalletClient, {
-                    walletEVMAddress
+                const txnRequest = await avalancheClient.cChain.prepareImportTxn({
+                    sourceChain: "P",
+                    toAddress: walletEVMAddress as `0x${string}`,
                 });
-                console.log("C-Chain Import transaction sent:", response);
-                if (typeof response === 'object' && response !== null && 'txID' in response) {
-                    setImportTxId((response as any).txID);
-                } else {
-                    setImportTxId(String(response));
-                }
+                const txnResponse = await avalancheClient.sendXPTransaction(txnRequest);
+                console.log("C-Chain Import transaction sent:", txnResponse.txHash);
+                setImportTxId(String(txnResponse.txHash));
             }
 
             await pollForUTXOChanges();
