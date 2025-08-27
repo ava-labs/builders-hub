@@ -52,11 +52,11 @@ export default function CrossChainTransfer({
 
     const {
         coreWalletClient,
-        isTestnet,
         updateCChainBalance,
         updatePChainBalance
     } = useWalletStore()
 
+    const isTestnet = useWalletStore((s) => s.isTestnet);
     const cChainBalance = useWalletStore((s) => s.balances.cChain);
     const pChainBalance = useWalletStore((s) => s.balances.pChain);
     const pChainAddress = useWalletStore((s) => s.pChainAddress);
