@@ -11,10 +11,9 @@ export async function builderHubAddNode(subnetId: string): Promise<SubnetStatusR
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({})
   });
 
-  let json: unknown;
+  let json: JSON;
   try {
     json = await response.json();
   } catch {
@@ -53,13 +52,13 @@ export async function createDbNode(params: {
 }) {
   const { userId, subnetId, blockchainId, newestNode, chainName } = params;
 
-  const existingNode = await (prisma as any).nodeRegistration.findFirst({
+  const existingNode = await prisma.nodeRegistration.findFirst({
     where: { user_id: userId, subnet_id: subnetId, node_index: newestNode.nodeIndex }
   });
   // If an inactive record exists for this index, revive/update it instead of conflicting
   if (existingNode && existingNode.status !== 'active') {
     const enforcedExpiry = new Date(Date.now() + NODE_TTL_MS);
-    await (prisma as any).nodeRegistration.updateMany({
+    await prisma.nodeRegistration.updateMany({
       where: { user_id: userId, subnet_id: subnetId, node_index: newestNode.nodeIndex },
       data: {
         blockchain_id: blockchainId,
@@ -73,7 +72,7 @@ export async function createDbNode(params: {
         status: 'active'
       }
     });
-    const revived = await (prisma as any).nodeRegistration.findFirst({
+    const revived = await prisma.nodeRegistration.findFirst({
       where: { user_id: userId, subnet_id: subnetId, node_index: newestNode.nodeIndex, status: 'active' }
     });
     return revived;
@@ -82,7 +81,7 @@ export async function createDbNode(params: {
 
   const enforcedExpiry = new Date(Date.now() + NODE_TTL_MS);
 
-  const createdNode = await (prisma as any).nodeRegistration.create({
+  const createdNode = await prisma.nodeRegistration.create({
     data: {
       user_id: userId,
       subnet_id: subnetId,
@@ -103,7 +102,7 @@ export async function createDbNode(params: {
 }
 
 export async function getUserNodes(userId: string) {
-  const nodes = await (prisma as any).nodeRegistration.findMany({
+  const nodes = await prisma.nodeRegistration.findMany({
     where: { user_id: userId, status: 'active' },
     orderBy: { created_at: 'desc' }
   });
