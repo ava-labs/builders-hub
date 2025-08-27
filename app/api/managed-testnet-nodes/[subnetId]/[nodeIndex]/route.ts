@@ -70,11 +70,9 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
     if (!password) {
       return jsonError(503, 'Builder Hub service is not configured');
     }
-
-    const builderHubUrl = ManagedTestnetNodesServiceURLs.deleteNode(subnetId, nodeIndex, password);
     
     try {
-      const response = await fetch(builderHubUrl, {
+      const response = await fetch(ManagedTestnetNodesServiceURLs.deleteNode(subnetId, nodeIndex, password), {
         method: 'DELETE',
         headers: {
           'Accept': 'application/json'
