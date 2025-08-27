@@ -174,10 +174,25 @@ export default function NodeCard({
                 </div>
 
                 {/* info.getNodeID API Response */}
-                <div className="mt-2 w-full max-w-full overflow-x-auto">
+                <div className="mt-2 w-full max-w-full">
                     <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">info.getNodeID API Response</p>
-                    <div className="inline-block min-w-full align-top">
-                        <DynamicCodeBlock lang="json" code={nodeInfoJson} />
+                    <div className="relative">
+                        <button
+                            onClick={() => handleLocalCopy(nodeInfoJson, "nodeInfoOverlay")}
+                            className="absolute top-2 right-2 z-10 p-1.5 rounded-md bg-white/80 text-gray-700 border border-gray-200 shadow-sm hover:bg-white backdrop-blur-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-400 dark:bg-gray-700/80 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                            title={copiedKey === "nodeInfoOverlay" ? "Copied!" : "Copy"}
+                        >
+                            {copiedKey === "nodeInfoOverlay" ? (
+                                <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                            ) : (
+                                <Copy className="w-4 h-4" />
+                            )}
+                        </button>
+                        <div className="overflow-x-auto">
+                            <div className="inline-block min-w-full align-top">
+                                <DynamicCodeBlock lang="json" code={nodeInfoJson} />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -205,19 +220,17 @@ export default function NodeCard({
                     >
                         Add to Wallet
                     </Button>
-                    {node.node_index !== null && node.node_index !== undefined && (
-                        <Button
-                            onClick={() => onDeleteNode(node)}
-                            variant="danger"
-                            size="sm"
-                            loading={isDeletingNode}
-                            loadingText="Deleting..."
-                            className="!w-auto"
-                            icon={<Trash2 className="w-4 h-4" />}
-                        >
-                            Delete Node
-                        </Button>
-                    )}
+                    <Button
+                        onClick={() => onDeleteNode(node)}
+                        variant="danger"
+                        size="sm"
+                        loading={isDeletingNode}
+                        loadingText={node.node_index === null || node.node_index === undefined ? "Removing..." : "Deleting..."}
+                        className="!w-auto"
+                        icon={<Trash2 className="w-4 h-4" />}
+                    >
+                        {node.node_index === null || node.node_index === undefined ? 'Remove from Account' : 'Delete Node'}
+                    </Button>
                 </div>
             </div>
         </div>
