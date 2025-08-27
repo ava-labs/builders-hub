@@ -1,13 +1,11 @@
 "use client";
-import { CChainFaucetButton } from "../../components/ConnectWallet/CChainFaucetButton";
+import { EVMFaucetButton } from "../../components/ConnectWallet/EVMFaucetButton";
 import { PChainFaucetButton } from "../../components/ConnectWallet/PChainFaucetButton";
 import { Droplets, Sparkles, AlertCircle } from "lucide-react";
 import { CheckWalletRequirements } from "@/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/hooks/useWalletRequirements";
 
-
 export default function Faucet() {
-
   return (
     <CheckWalletRequirements configKey={[
       WalletRequirementsConfigKey.TestnetRequired
@@ -23,7 +21,8 @@ export default function Faucet() {
             Get Test Tokens
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
-            Request free AVAX tokens for testing your applications on Fuji testnet. Each request provides 2 AVAX tokens.
+            Request free tokens for testing your applications on Fuji testnet
+            and Avalanche L1s. Each request provides 3 tokens.
           </p>
         </div>
 
@@ -44,7 +43,7 @@ export default function Faucet() {
                 <p className="text-zinc-600 dark:text-zinc-400 text-sm">Smart contract development</p>
               </div>
             </div>
-            
+
             <div className="space-y-3 mb-6">
               <div className="flex items-center gap-3 text-sm">
                 <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></div>
@@ -56,16 +55,17 @@ export default function Faucet() {
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></div>
-                <span className="text-zinc-600 dark:text-zinc-400">2 AVAX per request</span>
+                <span className="text-zinc-600 dark:text-zinc-400">3 AVAX per request</span>
               </div>
             </div>
-            
-            <CChainFaucetButton 
+
+            <EVMFaucetButton 
+              chainId={43113} 
               className="w-full px-4 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Droplets className="w-4 h-4" />
               Request C-Chain Tokens
-            </CChainFaucetButton>
+            </EVMFaucetButton>
           </div>
 
           {/* P-Chain Card */}
@@ -83,7 +83,7 @@ export default function Faucet() {
                 <p className="text-zinc-600 dark:text-zinc-400 text-sm">Staking & validation</p>
               </div>
             </div>
-            
+
             <div className="space-y-3 mb-6">
               <div className="flex items-center gap-3 text-sm">
                 <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></div>
@@ -98,13 +98,93 @@ export default function Faucet() {
                 <span className="text-zinc-600 dark:text-zinc-400">2 AVAX per request</span>
               </div>
             </div>
-            
+
             <PChainFaucetButton 
               className="w-full px-4 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Droplets className="w-4 h-4" />
               Request P-Chain Tokens
             </PChainFaucetButton>
+          </div>
+
+          {/* Echo L1 Card */}
+          <div className="bg-white/90 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-700/70 shadow-md rounded-xl p-6 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                <img
+                  src="https://images.ctfassets.net/gcj8jwzm6086/7kyTY75fdtnO6mh7f0osix/4c92c93dd688082bfbb43d5d910cbfeb/Echo_Subnet_Logo.png"
+                  alt="Echo L1"
+                  className="w-6 h-6"
+                />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Echo L1</h3>
+                <p className="text-zinc-600 dark:text-zinc-400 text-sm">Echo testnet blockchain</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></div>
+                <span className="text-zinc-600 dark:text-zinc-400">EVM-compatible L1 chain</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></div>
+                <span className="text-zinc-600 dark:text-zinc-400">Deploy dApps on Echo</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></div>
+                <span className="text-zinc-600 dark:text-zinc-400">3 ECH per request</span>
+              </div>
+            </div>
+
+            <EVMFaucetButton
+              chainId={173750}
+              className="w-full px-4 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Droplets className="w-4 h-4" />
+              Request Echo Tokens
+            </EVMFaucetButton>
+          </div>
+
+          {/* Dispatch L1 Card */}
+          <div className="bg-white/90 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-700/70 shadow-md rounded-xl p-6 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                <img
+                  src="https://images.ctfassets.net/gcj8jwzm6086/60XrKdf99PqQKrHiuYdwTE/908622f5204311dbb11be9c6008ead44/Dispatch_Subnet_Logo.png"
+                  alt="Dispatch L1"
+                  className="w-6 h-6"
+                />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Dispatch L1</h3>
+                <p className="text-zinc-600 dark:text-zinc-400 text-sm">Dispatch testnet blockchain</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></div>
+                <span className="text-zinc-600 dark:text-zinc-400">EVM-compatible L1 chain</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></div>
+                <span className="text-zinc-600 dark:text-zinc-400">Deploy dApps on Dispatch</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></div>
+                <span className="text-zinc-600 dark:text-zinc-400">3 DIS per request</span>
+              </div>
+            </div>
+
+            <EVMFaucetButton
+              chainId={779672}
+              className="w-full px-4 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Droplets className="w-4 h-4" />
+              Request Dispatch Tokens
+            </EVMFaucetButton>
           </div>
         </div>
 

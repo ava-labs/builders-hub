@@ -13,32 +13,49 @@ import { useWalletStore } from "../../stores/walletStore";
 
 const LOW_BALANCE_THRESHOLD = 1;
 
-interface CChainFaucetButtonProps {
+const SUPPORTED_CHAINS = {
+  43113: { name: "C-Chain (Fuji)", symbol: "AVAX" },
+  173750: { name: "Echo L1", symbol: "ECH" },
+  779672: { name: "Dispatch L1", symbol: "DIS" },
+} as const;
+
+type SupportedChainId = keyof typeof SUPPORTED_CHAINS;
+
+interface EVMFaucetButtonProps {
+  chainId: SupportedChainId;
   className?: string;
   buttonProps?: React.ButtonHTMLAttributes<HTMLButtonElement>;
   children?: React.ReactNode;
 }
 
-export const CChainFaucetButton = ({ className, buttonProps, children }: CChainFaucetButtonProps = {}) => {
+export const EVMFaucetButton = ({
+  chainId,
+  className,
+  buttonProps,
+  children,
+}: EVMFaucetButtonProps) => {
   const { walletEVMAddress, isTestnet, cChainBalance, updateCChainBalance } =
     useWalletStore();
 
-  const [isRequestingCTokens, setIsRequestingCTokens] = useState(false);
+  const [isRequestingTokens, setIsRequestingTokens] = useState(false);
   const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
   const [alertDialogTitle, setAlertDialogTitle] = useState("Error");
   const [alertDialogMessage, setAlertDialogMessage] = useState("");
   const [isLoginError, setIsLoginError] = useState(false);
+
+  const chainConfig = SUPPORTED_CHAINS[chainId];
+
   const handleLogin = () => {
     window.location.href = "/login";
   };
 
-  const handleCChainTokenRequest = async () => {
-    if (isRequestingCTokens || !walletEVMAddress) return;
-    setIsRequestingCTokens(true);
+  const handleTokenRequest = async () => {
+    if (isRequestingTokens || !walletEVMAddress) return;
+    setIsRequestingTokens(true);
 
     try {
       const response = await fetch(
-        `/api/cchain-faucet?address=${walletEVMAddress}`
+        `/api/evm-chain-faucet?address=${walletEVMAddress}&chainId=${chainId}`
       );
       const rawText = await response.text();
       let data;
@@ -64,19 +81,25 @@ export const CChainFaucetButton = ({ className, buttonProps, children }: CChainF
       }
 
       if (data.success) {
-        console.log("C-Chain token request successful, txHash:", data.txHash);
-        setTimeout(() => updateCChainBalance(), 3000);
+        console.log(
+          `${chainConfig.name} token request successful, txHash:`,
+          data.txHash
+        );
+
+        if (chainId === 43113) {
+          setTimeout(() => updateCChainBalance(), 3000);
+        }
       } else {
         throw new Error(data.message || "Failed to get tokens");
       }
     } catch (error) {
-      console.error("C-Chain token request error:", error);
+      console.error(`${chainConfig.name} token request error:`, error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       if (errorMessage.includes("login") || errorMessage.includes("401")) {
         setAlertDialogTitle("Authentication Required");
         setAlertDialogMessage(
-          "You need to be logged in to request free tokens from the C-Chain Faucet."
+          `You need to be logged in to request free tokens from the ${chainConfig.name} Faucet.`
         );
         setIsLoginError(true);
         setIsAlertDialogOpen(true);
@@ -87,7 +110,7 @@ export const CChainFaucetButton = ({ className, buttonProps, children }: CChainF
         setIsAlertDialogOpen(true);
       }
     } finally {
-      setIsRequestingCTokens(false);
+      setIsRequestingTokens(false);
     }
   };
 
@@ -95,12 +118,11 @@ export const CChainFaucetButton = ({ className, buttonProps, children }: CChainF
     return null;
   }
 
-  // Default styling
   const defaultClassName = `px-2 py-1 text-xs font-medium text-white rounded transition-colors ${
     cChainBalance < LOW_BALANCE_THRESHOLD
       ? "bg-blue-500 hover:bg-blue-600 shimmer"
       : "bg-zinc-600 hover:bg-zinc-700"
-  } ${isRequestingCTokens ? "opacity-50 cursor-not-allowed" : ""}`;
+  } ${isRequestingTokens ? "opacity-50 cursor-not-allowed" : ""}`;
 
   return (
     <>
@@ -134,12 +156,14 @@ export const CChainFaucetButton = ({ className, buttonProps, children }: CChainF
 
       <button
         {...buttonProps}
-        onClick={handleCChainTokenRequest}
-        disabled={isRequestingCTokens}
+        onClick={handleTokenRequest}
+        disabled={isRequestingTokens}
         className={className || defaultClassName}
-        title="Get free C-Chain AVAX"
+        title={`Get free ${chainConfig.symbol} tokens`}
       >
-        {isRequestingCTokens ? "Requesting..." : (children || "Faucet")}
+        {isRequestingTokens
+          ? "Requesting..."
+          : children || `${chainConfig.symbol} Faucet`}
       </button>
     </>
   );

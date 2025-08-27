@@ -1,17 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createWalletClient, http, parseEther, createPublicClient } from 'viem';
+import { createWalletClient, http, parseEther, createPublicClient, defineChain } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { avalancheFuji, avalanche } from 'viem/chains';
+import { avalancheFuji } from 'viem/chains';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { rateLimit } from '@/lib/rateLimit';
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
-const FAUCET_C_CHAIN_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
-const FIXED_AMOUNT = '4';
+const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
+const FIXED_AMOUNT = '3';
 
-if (!SERVER_PRIVATE_KEY || !FAUCET_C_CHAIN_ADDRESS) {
-  console.error('necessary environment variables for C-Chain faucet are not set');
+if (!SERVER_PRIVATE_KEY || !FAUCET_ADDRESS) {
+  console.error('necessary environment variables for EVM chain faucets are not set');
 }
+
+const echoTestnet = defineChain({
+  id: 173750,
+  name: 'Echo L1',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'ECH',
+    symbol: 'ECH',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://subnets.avax.network/echo/testnet/rpc'],
+    },
+  },
+  blockExplorers: {
+    default: { name: 'Explorer', url: 'https://subnets.avax.network/echo/testnet' },
+  },
+});
+
+const dispatchTestnet = defineChain({
+  id: 779672,
+  name: 'Dispatch L1',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'DIS',
+    symbol: 'DIS',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://subnets.avax.network/dispatch/testnet/rpc'],
+    },
+  },
+  blockExplorers: {
+    default: { name: 'Explorer', url: 'https://subnets.avax.network/dispatch/testnet' },
+  },
+});
+
+const SUPPORTED_CHAINS = {
+  43113: { chain: avalancheFuji, name: 'C-Chain (Fuji)', symbol: 'AVAX' },
+  173750: { chain: echoTestnet, name: 'Echo L1', symbol: 'ECH' },
+  779672: { chain: dispatchTestnet, name: 'Dispatch L1', symbol: 'DIS' },
+} as const;
+
+type SupportedChainId = keyof typeof SUPPORTED_CHAINS;
 
 interface TransferResponse {
   success: boolean;
@@ -19,25 +63,31 @@ interface TransferResponse {
   sourceAddress?: string;
   destinationAddress?: string;
   amount?: string;
+  chainId?: number;
+  chainName?: string;
   message?: string;
 }
 
-async function transferCChainAVAX(
+async function transferEVMTokens(
   sourcePrivateKey: string,
   sourceAddress: string,
   destinationAddress: string,
-  isTestnet: boolean
+  chainId: SupportedChainId
 ): Promise<{ txHash: string }> {
-  const chain = isTestnet ? avalancheFuji : avalanche; 
+  const chainConfig = SUPPORTED_CHAINS[chainId];
+  if (!chainConfig) {
+    throw new Error(`Unsupported chain ID: ${chainId}`);
+  }
+
   const account = privateKeyToAccount(sourcePrivateKey as `0x${string}`);
   const walletClient = createWalletClient({
     account,
-    chain,
+    chain: chainConfig.chain,
     transport: http()
   });
 
   const publicClient = createPublicClient({
-    chain,
+    chain: chainConfig.chain,
     transport: http()
   });
 
@@ -48,7 +98,7 @@ async function transferCChainAVAX(
   const amountToSend = parseEther(FIXED_AMOUNT);
   
   if (balance < amountToSend) {
-    throw new Error('Insufficient faucet balance');
+    throw new Error(`Insufficient faucet balance on ${chainConfig.name}`);
   }
 
   const txHash = await walletClient.sendTransaction({
@@ -69,7 +119,7 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
       );
     }
     
-    if (!SERVER_PRIVATE_KEY || !FAUCET_C_CHAIN_ADDRESS) {
+    if (!SERVER_PRIVATE_KEY || !FAUCET_ADDRESS) {
       return NextResponse.json(
         { success: false, message: 'Server not properly configured' },
         { status: 500 }
@@ -78,10 +128,26 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
       
     const searchParams = request.nextUrl.searchParams;
     const destinationAddress = searchParams.get('address');
+    const chainId = searchParams.get('chainId');
 
     if (!destinationAddress) {
       return NextResponse.json(
         { success: false, message: 'Destination address is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!chainId) {
+      return NextResponse.json(
+        { success: false, message: 'Chain ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const parsedChainId = parseInt(chainId) as SupportedChainId;
+    if (!SUPPORTED_CHAINS[parsedChainId]) {
+      return NextResponse.json(
+        { success: false, message: `Unsupported chain ID: ${chainId}` },
         { status: 400 }
       );
     }
@@ -93,7 +159,7 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
       );
     }
     
-    if (destinationAddress.toLowerCase() === FAUCET_C_CHAIN_ADDRESS?.toLowerCase()) {
+    if (destinationAddress.toLowerCase() === FAUCET_ADDRESS?.toLowerCase()) {
       return NextResponse.json(
         { success: false, message: 'Cannot send tokens to the faucet address' },
         { status: 400 }
@@ -116,27 +182,30 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
   try {
     const searchParams = request.nextUrl.searchParams;
     const destinationAddress = searchParams.get('address')!;
-    const isTestnet = true;
+    const chainId = parseInt(searchParams.get('chainId')!) as SupportedChainId;
+    const chainConfig = SUPPORTED_CHAINS[chainId];
     
-    const tx = await transferCChainAVAX(
+    const tx = await transferEVMTokens(
       SERVER_PRIVATE_KEY!,
-      FAUCET_C_CHAIN_ADDRESS!,
+      FAUCET_ADDRESS!,
       destinationAddress,
-      isTestnet
+      chainId
     );
 
     const response: TransferResponse = {
       success: true,
       txHash: tx.txHash,
-      sourceAddress: FAUCET_C_CHAIN_ADDRESS,
+      sourceAddress: FAUCET_ADDRESS,
       destinationAddress,
-      amount: FIXED_AMOUNT
+      amount: FIXED_AMOUNT,
+      chainId,
+      chainName: chainConfig.name
     };
         
     return NextResponse.json(response);
       
   } catch (error) {
-    console.error('C-Chain transfer failed:', error);
+    console.error('EVM chain transfer failed:', error);
         
     const response: TransferResponse = {
       success: false,
@@ -154,10 +223,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return validationResponse;
   }
 
+  const chainId = request.nextUrl.searchParams.get('chainId');
   const rateLimitHandler = rateLimit(handleFaucetRequest, {
     windowMs: 24 * 60 * 60 * 1000,
-    maxRequests: 1
+    maxRequests: 1,
+    identifier: async (req: NextRequest) => {
+      const session = await import('@/lib/auth/authSession').then(mod => mod.getAuthSession());
+      if (!session) throw new Error('Authentication required');
+      const userId = session.user.id;
+      return `${userId}-${chainId}`;
+    }
   });
  
   return rateLimitHandler(request);
-} 
+}
