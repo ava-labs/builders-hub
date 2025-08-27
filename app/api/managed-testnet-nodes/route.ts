@@ -3,6 +3,8 @@ import { rateLimited, getUserId, validateSubnetId, jsonOk, jsonError } from './u
 import { builderHubAddNode, selectNewestNode, createDbNode, getUserNodes } from './service';
 import { getBlockchainInfo } from '../../../toolbox/src/coreViem/utils/glacier';
 import { CreateNodeRequest, SubnetStatusResponse } from './types';
+import { prisma } from '@/prisma/prisma';
+import { SUBNET_EVM_VM_ID } from './constants';
 
 // Types moved to ./types
 
@@ -62,12 +64,12 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Fetch chain information to get the chain name (optional)
-    let chainName: string | null = null;
-    try {
-      const blockchainInfo = await getBlockchainInfo(blockchainId);
-      chainName = blockchainInfo.blockchainName || null;
-    } catch {}
+    // Fetch chain information and enforce Subnet EVM VM check
+    const blockchainInfo = await getBlockchainInfo(blockchainId);
+    const chainName: string | null = blockchainInfo.blockchainName || null;
+    if (blockchainInfo.vmId !== SUBNET_EVM_VM_ID) {
+      return jsonError(400, `Unsupported VM for this service. Expected Subnet EVM (vmID ${SUBNET_EVM_VM_ID}), got ${blockchainInfo.vmId}.`);
+    }
 
     // Make the request to Builder Hub API to add node
     const data: SubnetStatusResponse = await builderHubAddNode(subnetId);
@@ -100,4 +102,29 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   return handleCreateNode(request);
+}
+
+/**
+ * DELETE /api/managed-testnet-nodes?id=NODE_DB_ID
+ * Account-only removal: marks a node as terminated by its DB id when node_index is unknown.
+ * Used to clean up nodes that were created before we had the node_index field.
+ */
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  const { userId, error } = await getUserId();
+  if (error) return error;
+  if (!userId) return jsonError(401, 'Authentication required');
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+  if (!id) return jsonError(400, 'Missing node id');
+
+  try {
+    const record = await prisma.nodeRegistration.findFirst({ where: { id, user_id: userId } });
+    if (!record) return jsonError(404, 'Node not found');
+
+    await prisma.nodeRegistration.update({ where: { id }, data: { status: 'terminated' } });
+    return jsonOk({ success: true, message: 'Node removed from your account.' });
+  } catch (e) {
+    return jsonError(500, e instanceof Error ? e.message : 'Failed to remove node');
+  }
 }
