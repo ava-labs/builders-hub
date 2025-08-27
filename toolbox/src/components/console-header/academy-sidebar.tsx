@@ -1,13 +1,11 @@
 "use client";
-
 import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { 
-  Home, 
-  Layers,  
+import { useState, useEffect } from "react";
+import {
+  Home,
+  Layers,
   MessagesSquare,
-  Wrench, 
+  Wrench,
   Droplets,
   Shield,
   Network,
@@ -26,9 +24,8 @@ import {
   Hexagon,
   SlidersVertical,
   SquareMinus,
-  SquarePlus
+  SquarePlus,
 } from "lucide-react";
-
 import {
   Sidebar,
   SidebarContent,
@@ -49,7 +46,7 @@ const data = {
       title: "Console Home",
       url: "/console",
       icon: Home,
-    }
+    },
   ],
   navGroups: [
     {
@@ -153,7 +150,7 @@ const data = {
           title: "Change Validator Weight",
           url: "/console/permissioned-l1s/change-validator-weight",
           icon: SlidersVertical,
-        }
+        },
       ],
     },
     {
@@ -237,29 +234,44 @@ const data = {
   navSecondary: [],
 };
 
+function usePathname() {
+  const [pathname, setPathname] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setPathname(window.location.pathname);
+    };
+
+    window.addEventListener("popstate", handleLocationChange);
+    return () => window.removeEventListener("popstate", handleLocationChange);
+  }, []);
+
+  return pathname;
+}
 
 interface AcademySidebarProps extends React.ComponentProps<typeof Sidebar> {}
 
-export function AcademySidebar({ 
-  ...props 
-}: AcademySidebarProps) {
+export function AcademySidebar({ ...props }: AcademySidebarProps) {
   const pathname = usePathname();
   return (
-    <Sidebar 
-      variant="sidebar" 
-      collapsible="offcanvas" 
-      className="not-prose absolute top-[var(--header-height)] left-0 right-0 bottom-0 z-50" 
-      {...props}>
+    <Sidebar
+      variant="sidebar"
+      collapsible="offcanvas"
+      className="not-prose absolute top-[var(--header-height)] left-0 right-0 bottom-0 z-50"
+      {...props}
+    >
       <SidebarHeader>
-        <Link
+        <a
           href="/console"
           className="flex items-center gap-2 group transition-all duration-200 p-2"
+          target="_blank"
+          rel="noopener noreferrer"
         >
-          <AvalancheLogo className='size-7' fill='currentColor' />
+          <AvalancheLogo className="size-7" fill="currentColor" />
           <span className="font-large font-semibold">Builder Console</span>
-        </Link>
+        </a>
       </SidebarHeader>
-      
+
       <SidebarContent>
         {/* Main Navigation */}
         <SidebarGroup>
@@ -268,14 +280,15 @@ export function AcademySidebar({
               const isActive = pathname === item.url;
               return (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={isActive}
-                  >
-                    <Link href={item.url} target="_blank">
+                  <SidebarMenuButton asChild isActive={isActive}>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <item.icon />
                       <span>{item.title}</span>
-                    </Link>
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               );
@@ -293,27 +306,32 @@ export function AcademySidebar({
               <SidebarMenu>
                 {group.items.map((item) => {
                   const isActive = pathname === item.url;
-                  const isComingSoon = 'comingSoon' in item && (item as any).comingSoon;
+                  const isComingSoon =
+                    "comingSoon" in item && (item as any).comingSoon;
                   return (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton 
+                      <SidebarMenuButton
                         asChild
                         isActive={isActive}
-                        className={`${isComingSoon ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`${
+                          isComingSoon ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
                         disabled={isComingSoon}
                       >
-
-                        
                         {isComingSoon ? (
-                          <Link href="#">
+                          <a href="#" rel="noopener noreferrer">
                             <item.icon />
                             <span>{item.title} (soon)</span>
-                          </Link>
+                          </a>
                         ) : (
-                          <Link href={item.url} target="_blank">
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
                             <item.icon />
                             <span>{item.title}</span>
-                          </Link>
+                          </a>
                         )}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -323,8 +341,6 @@ export function AcademySidebar({
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
-
-
       </SidebarContent>
     </Sidebar>
   );
