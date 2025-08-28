@@ -34,7 +34,7 @@ interface CountryData {
 }
 
 let cachedGeoData: { data: CountryData[]; timestamp: number } | null = null;
-const CACHE_DURATION = 10 * 60 * 1000;
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // updates every 24 hours
 
 async function fetchAllValidators(): Promise<Validator[]> {
   try {
