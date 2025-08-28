@@ -1,3 +1,5 @@
+"use client";
+
 import { HomeLayout } from 'fumadocs-ui/layouts/home';
 import type { ReactNode } from 'react';
 import { Footer } from '@/components/navigation/footer';
