@@ -18,6 +18,9 @@ import { ValidatorManagerDetails } from "../../components/ValidatorManagerDetail
 import { useCreateChainStore } from "../../stores/createChainStore";
 import SelectSafeWallet, { SafeSelection } from "../../components/SelectSafeWallet";
 
+import { CheckWalletRequirements } from "@/components/CheckWalletRequirements"
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
+
 export default function DeployPoAManager() {
     const { showBoundary } = useErrorBoundary();
     const { 
@@ -130,6 +133,9 @@ export default function DeployPoAManager() {
     }
 
     return (
+        <CheckWalletRequirements configKey={[
+            WalletRequirementsConfigKey.EVMChainBalance,
+          ]}>
         <Container
             title="Deploy PoA Manager"
             description="Deploy and initialize the PoAManager contract to manage Proof of Authority validators."
@@ -289,5 +295,6 @@ export default function DeployPoAManager() {
                 </Steps>
             </div>
         </Container>
+        </CheckWalletRequirements>
     );
 }
