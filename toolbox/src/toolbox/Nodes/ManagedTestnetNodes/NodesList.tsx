@@ -17,7 +17,6 @@ interface NodesListProps {
     onShowCreateForm: () => void;
     onConnectWallet: (nodeId: string) => void;
     onDeleteNode: (node: NodeRegistration) => void;
-    onCopyToClipboard: (text: string, label: string) => void;
     deletingNodes: Set<string>;
 }
 
@@ -29,7 +28,6 @@ export default function NodesList({
     onShowCreateForm,
     onConnectWallet,
     onDeleteNode,
-    onCopyToClipboard,
     deletingNodes
 }: NodesListProps) {
     if (isLoadingNodes) {
@@ -93,7 +91,6 @@ export default function NodesList({
                         node={node}
                         onConnectWallet={onConnectWallet}
                         onDeleteNode={onDeleteNode}
-                        onCopyToClipboard={onCopyToClipboard}
                         isDeletingNode={deletingNodes.has(node.id)}
                     />
                 ))}

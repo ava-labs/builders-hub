@@ -108,19 +108,6 @@ export default function ManagedTestnetNodes() {
         }
     };
 
-    const copyToClipboard = async (text: string, label: string) => {
-        try {
-            await navigator.clipboard.writeText(text);
-            setAlertDialogTitle("Copied!");
-            setAlertDialogMessage(`${label} has been copied to your clipboard.`);
-            setIsAlertDialogOpen(true);
-        } catch (error) {
-            setAlertDialogTitle("Copy Failed");
-            setAlertDialogMessage("Failed to copy to clipboard. Please copy manually.");
-            setIsAlertDialogOpen(true);
-        }
-    };
-
     const handleDeleteNode = async (node: NodeRegistration) => {
         // If node_index is missing, allow account-only removal
         if (node.node_index === null || node.node_index === undefined) {
@@ -302,7 +289,6 @@ export default function ManagedTestnetNodes() {
                         onShowCreateForm={() => setShowCreateForm(true)}
                         onConnectWallet={setConnectWalletModalNodeId}
                         onDeleteNode={handleDeleteNode}
-                        onCopyToClipboard={copyToClipboard}
                         deletingNodes={deletingNodes}
                     />
                 </div>

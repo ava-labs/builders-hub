@@ -1,14 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import { 
-    Copy, 
     Clock, 
     Wallet,
     Trash2,
     XCircle,
     CheckCircle2,
     AlertTriangle,
-    Check,
 } from "lucide-react";
 import { NodeRegistration } from "./types";
 import { calculateTimeRemaining, formatTimeRemaining, getStatusData } from "./useTimeRemaining";
@@ -19,7 +17,6 @@ interface NodeCardProps {
     node: NodeRegistration;
     onConnectWallet: (nodeId: string) => void;
     onDeleteNode: (node: NodeRegistration) => void;
-    onCopyToClipboard: (text: string, label: string) => void;
     isDeletingNode: boolean;
 }
 
@@ -27,10 +24,8 @@ export default function NodeCard({
     node, 
     onConnectWallet, 
     onDeleteNode, 
-    onCopyToClipboard, 
     isDeletingNode 
 }: NodeCardProps) {
-    const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [secondsUntilWalletEnabled, setSecondsUntilWalletEnabled] = useState<number>(0);
     const timeRemaining = calculateTimeRemaining(node.expires_at);
     const statusData = getStatusData(timeRemaining);
@@ -56,17 +51,6 @@ export default function NodeCard({
                 return <CheckCircle2 className="w-3 h-3" />;
             default:
                 return <XCircle className="w-3 h-3" />;
-        }
-    };
-
-    const handleLocalCopy = async (text: string, key: string) => {
-        try {
-            await navigator.clipboard.writeText(text);
-            setCopiedKey(key);
-            window.setTimeout(() => setCopiedKey(null), 1500);
-        } catch (err) {
-            // Fallback to parent handler if clipboard fails
-            try { onCopyToClipboard(text, key); } catch {}
         }
     };
 
@@ -141,58 +125,23 @@ export default function NodeCard({
                 <div className="grid grid-cols-1 gap-2 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
                         <span className="w-28 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Subnet ID</span>
-                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded border border-gray-200 dark:border-gray-600 min-w-0 flex-1">
-                            <code className="text-xs font-mono text-gray-700 dark:text-gray-300 truncate flex-1">{node.subnet_id}</code>
-                            <button
-                                onClick={() => handleLocalCopy(node.subnet_id, "subnetId")}
-                                className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                                title={copiedKey === "subnetId" ? "Copied!" : "Copy Subnet ID"}
-                            >
-                                {copiedKey === "subnetId" ? (
-                                    <Check className="w-3 h-3 text-green-600 dark:text-green-400" />
-                                ) : (
-                                    <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
-                                )}
-                            </button>
-                        </div>
+                        <CodeBlock lang="json" allowCopy={true}>
+                            <Pre>{node.subnet_id}</Pre>
+                        </CodeBlock>
                     </div>
 
                     <div className="flex items-center gap-2 min-w-0">
                         <span className="w-28 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Blockchain ID</span>
-                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded border border-gray-200 dark:border-gray-600 min-w-0 flex-1">
-                            <code className="text-xs font-mono text-gray-700 dark:text-gray-300 truncate flex-1">{node.blockchain_id}</code>
-                            <button
-                                onClick={() => handleLocalCopy(node.blockchain_id, "blockchainId")}
-                                className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                                title={copiedKey === "blockchainId" ? "Copied!" : "Copy Blockchain ID"}
-                            >
-                                {copiedKey === "blockchainId" ? (
-                                    <Check className="w-3 h-3 text-green-600 dark:text-green-400" />
-                                ) : (
-                                    <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
-                                )}
-                            </button>
-                        </div>
+                        <CodeBlock lang="json" allowCopy={true}>
+                            <Pre>{node.blockchain_id}</Pre>
+                        </CodeBlock>
                     </div>
-
-                    
 
                     <div className="flex items-center gap-2 min-w-0">
                         <span className="w-28 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">RPC URL</span>
-                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded border border-gray-200 dark:border-gray-600 min-w-0 flex-1">
-                            <code className="text-xs font-mono text-gray-700 dark:text-gray-300 truncate flex-1">{node.rpc_url}</code>
-                            <button
-                                onClick={() => handleLocalCopy(node.rpc_url, "rpcUrl")}
-                                className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                                title={copiedKey === "rpcUrl" ? "Copied!" : "Copy RPC URL"}
-                            >
-                                {copiedKey === "rpcUrl" ? (
-                                    <Check className="w-3 h-3 text-green-600 dark:text-green-400" />
-                                ) : (
-                                    <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
-                                )}
-                            </button>
-                        </div>
+                        <CodeBlock lang="json" allowCopy={true}>
+                            <Pre>{node.rpc_url}</Pre>
+                        </CodeBlock>
                     </div>
                 </div>
 
@@ -206,19 +155,6 @@ export default function NodeCard({
 
                 {/* Primary Actions */}
                 <div className="mt-2 flex items-center justify-end gap-2 border-t border-gray-200 dark:border-gray-700 pt-3">
-                    <Button
-                        onClick={() => handleLocalCopy(nodeInfoJson, "nodeInfo")}
-                        variant="outline"
-                        size="sm"
-                        className="!w-auto"
-                        icon={copiedKey === "nodeInfo" ? (
-                            <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        ) : (
-                            <Copy className="w-4 h-4" />
-                        )}
-                    >
-                        Copy Node Info
-                    </Button>
                     <Button
                         onClick={() => onConnectWallet(node.id)}
                         variant="secondary"
