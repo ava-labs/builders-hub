@@ -40,8 +40,6 @@ async function fetchAllValidators(): Promise<Validator[]> {
   try {
     console.log('Fetching all validators with geolocation data using SDK...');
     const allValidators: Validator[] = [];
-    let pageCount = 0;
-    const maxPages = 50;
 
     const result = await avalanche.data.primaryNetwork.listValidators({
       validationStatus: "active",
@@ -71,12 +69,6 @@ async function fetchAllValidators(): Promise<Validator[]> {
         }));
       
       allValidators.push(...validatorsWithGeo);
-      pageCount++;
-
-      if (pageCount >= maxPages) {
-        console.log('Reached maximum page limit');
-        break;
-      }
     }
     return allValidators;
   } catch (error) {

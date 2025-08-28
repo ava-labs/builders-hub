@@ -89,8 +89,6 @@ async function getTimeSeriesData(
   try {
     const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
     let allResults: any[] = [];
-    let pageCount = 0;
-    const maxPages = 50;
     
     const avalanche = new Avalanche({
       chainId: chainId,
@@ -111,14 +109,8 @@ async function getTimeSeriesData(
       }
 
       allResults = allResults.concat(page.result.results);
-      pageCount++;
       
       if (!fetchAllPages) {
-        break;
-      }
-      
-      if (pageCount >= maxPages) {
-        console.warn(`Reached maximum page limit (${maxPages}) for ${metricType} on chain ${chainId}`);
         break;
       }
     }

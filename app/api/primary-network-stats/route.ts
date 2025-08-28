@@ -61,8 +61,6 @@ async function getTimeSeriesData(metricType: string, timeRange: string, pageSize
   try {
     const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
     let allResults: any[] = [];
-    let pageCount = 0;
-    const maxPages = 50;
     
     const result = await avalanche.metrics.networks.getStakingMetrics({
       metric: metricType as any,
@@ -78,13 +76,8 @@ async function getTimeSeriesData(metricType: string, timeRange: string, pageSize
       }
 
       allResults = allResults.concat(page.result.results);
-      pageCount++;
       
       if (!fetchAllPages) {
-        break;
-      }
-      
-      if (pageCount >= maxPages) {
         break;
       }
     }
