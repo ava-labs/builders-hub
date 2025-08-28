@@ -1,5 +1,4 @@
 import { useWalletStore } from '@/stores/walletStore'
-import { avalanche, avalancheFuji } from 'viem/chains'
 import { networkIDs } from '@avalabs/avalanchejs'
 
 export function useNetworkActions() {
@@ -15,57 +14,35 @@ export function useNetworkActions() {
 
   const handleNetworkChange = async (network: any) => {
     try {
-      if (network.type === 'avalanche') {
-        if (network.isTestnet !== isTestnet) {
-          setIsTestnet(network.isTestnet)
-          setAvalancheNetworkID(
-            network.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID
-          )
-        }
+      if (network.isTestnet !== isTestnet) {
+        setIsTestnet(network.isTestnet)
+        setAvalancheNetworkID(
+          network.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID
+        )
+      }
 
-        if (window.avalanche?.request) {
+      if (window.avalanche?.request && network.evmChainId) {
+        try {
           await window.avalanche.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${network.chainId.toString(16)}` }],
+            params: [{ chainId: `0x${network.evmChainId.toString(16)}` }],
           })
-          setTimeout(() => updateCChainBalance(), 800)
-        }
-      } else if (network.type === 'l1' && network.l1Data) {
-        if (window.avalanche?.request && network.chainId) {
-          try {
-            await window.avalanche.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: `0x${network.chainId.toString(16)}` }],
-            })
-            setTimeout(() => updateL1Balance(), 800)
-          } catch (error) {
-            console.debug('Failed to switch to L1 chain in wallet:', error)
-          }
+          
+          // Determine if this is C-Chain for appropriate balance update
+          const isCChain = network.evmChainId === 43114 || network.evmChainId === 43113
+          setTimeout(() => {
+            if (isCChain) {
+              updateCChainBalance()
+            } else {
+              updateL1Balance(network.evmChainId.toString())
+            }
+          }, 800)
+        } catch (error) {
+          console.debug('Failed to switch chain in wallet:', error)
         }
       }
     } catch (error) {
       console.error('Failed to switch network:', error)
-    }
-  }
-
-  const handleTestnetToggle = async () => {
-    const newIsTestnet = !isTestnet
-    setIsTestnet(newIsTestnet)
-    setAvalancheNetworkID(newIsTestnet ? networkIDs.FujiID : networkIDs.MainnetID)
-
-    const targetChainId = newIsTestnet ? avalancheFuji.id : avalanche.id
-    if (window.avalanche?.request) {
-      try {
-        await window.avalanche.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: `0x${targetChainId.toString(16)}` }],
-        })
-        setTimeout(() => updateCChainBalance(), 800)
-      } catch (error) {
-        console.debug('Failed to switch network in wallet:', error)
-      }
-    } else {
-      updateAllBalances()
     }
   }
 
@@ -81,7 +58,6 @@ export function useNetworkActions() {
 
   return {
     handleNetworkChange,
-    handleTestnetToggle,
     copyAddress,
     openExplorer,
     updateAllBalances,

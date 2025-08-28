@@ -69,9 +69,9 @@ export default function SubmitStep2() {
         {/* Campo: Demo Link */}
         <MultiLinkInput
           name="demo_link"
-          label="Live Demo Link"
-          placeholder="Paste Demo link (e.g., https://yoursite.com)"
-          validationMessage="Provide a live demo or working prototype. Use space,enter or tab after each link"
+          label="Demo and Other Links"
+          placeholder="Paste any project links (e.g., https://yoursite.com)"
+          validationMessage="Provide a live demo, presnetation, deck, Google Drive Folder, website, etc. Use space, enter or tab after each link"
         />
       </section>
 

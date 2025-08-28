@@ -3,8 +3,8 @@ export type HackathonHeader = {
   id: string
   title: string
   description: string
-  start_date: Date
-  end_date: Date
+  start_date: string
+  end_date: string
   location: string
   total_prizes: number
   participants: number

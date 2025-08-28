@@ -128,7 +128,7 @@ export const ConnectWallet = ({
     if (!walletEVMAddress || !walletChainId) return;
 
     // Always update EVM balances
-    updateL1Balance();
+    updateL1Balance(walletChainId.toString());
     updateCChainBalance();
 
     // Only update P-Chain balance if we have a P-Chain address (Core wallet)
@@ -138,7 +138,7 @@ export const ConnectWallet = ({
 
     const intervalId = setInterval(() => {
       // Always update EVM balances
-      updateL1Balance();
+      updateL1Balance(walletChainId.toString());
       updateCChainBalance();
 
       // Only update P-Chain balance if we have a P-Chain address (Core wallet)
@@ -353,8 +353,13 @@ export const ConnectWallet = ({
   const displayedL1TokenSymbol =
     isCChainMode ? "AVAX" : "Tokens";
   const displayedL1Address = walletEVMAddress;
-  const updateDisplayedL1Balance =
-    walletMode === "c-chain" ? updateCChainBalance : updateL1Balance;
+  const updateDisplayedL1Balance = async () => {
+    if (walletMode === "c-chain") {
+      await updateCChainBalance();
+    } else {
+      await updateL1Balance(walletChainId.toString());
+    }
+  };
 
   // Server-side rendering placeholder
   if (!isClient) {

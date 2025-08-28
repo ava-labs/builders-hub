@@ -1,0 +1,131 @@
+---
+title: Avalanche C-Chain Throughput Increases as Validators Signal Higher Gas Targets
+description: Avalanche validators increase the C-Chain's target gas consumption by 30% thanks to the Octane upgrade, paving the way for higher throughput and future scaling optimizations.
+date: 2025-08-21
+authors: [AvaxDevelopers]
+topics: [Validators, Gas Target, Octane Upgrade, SAE, Firewood]
+comments: true
+---
+
+_Originally published by [@AvaxDevelopers](https://x.com/AvaxDevelopers/status/1958202141409247333)_
+
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/header.jpeg)
+---
+
+## Quick Take
+
+- Positions Avalanche well to become one of the lowest latency, highest throughput EVM L1 experiences in the ecosystem.  
+- Avalanche validators increased the C-Chain's target gas consumption by 30 % from 1.6 M to 2.1 M gas/sec.  
+- The dynamic adjustments were enabled by the Octane upgrade, activated on April 6, 2025.  
+- The Avalanche Foundation plans to continue signaling incremental increases as network metrics allow.  
+- Future improvements like Streaming Asynchronous Execution (SAE) and Firewood Database integration aim to enable even larger increases.
+
+Avalanche's C-Chain has seen its throughput capacity increase by over 30% following validator action to raise the target gas
+consumption from 1.6 million to 2.1 million gas per second. The increase was made possible by the Octane upgrade that went live
+on April 6th, 2025.
+
+The gas target determines how much computational work the network can process per second, directly affecting how many transactions
+and smart contract operations can be executed. For users of the chain, higher gas targets mean higher potential transactions per second,
+and also lower transaction fees. For validators and node operations, higher gas targets can mean increased demands on hardware and network
+infrastructure, which is closely monitored to ensure stability and reliability.
+The dynamic adjustments were enabled by the Octane upgrade, activated on April 6, 2025.
+Future improvements like Streaming Asynchronous Execution (SAE) and Firewood Database integration aim to enable even larger increases.
+
+---
+
+## Dynamic Gas Target Adjustment
+
+[The Octane upgrade](https://www.avax.network/about/blog/octane-optimizing-c-chain-gas-fees) introduced the ability for Avalanche Primary Network validators to dynamically update the network's target utilization through
+signaling their preferences. This mechanism allows the network to adjust capacity parameters without requiring hard forks or governance votes.
+
+### How Validator Signaling Works
+
+Under the new mechanism, validators can explicitly set their preferred gas target values. Validators that do not set a preference effectively abstain
+from influencing the network's gas target by defaulting to whatever the current value is. The network calculates the effective gas target based on the
+preferences of participating validators.
+
+Since the upgrade's activation, validators run by the Avalanche Foundation have iteratively increased their gas target preferences, resulting in the
+30% throughput increase observed across the network.
+
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/1.jpeg)
+
+The Avalanche Foundation plans to continue gradually increasing their validator preferences while monitoring network performance metrics.
+This approach aims to maximize C-Chain utilization within current infrastructure constraints. Upcoming optimizations like Streaming Asynchronous
+Execution and the Firewood Database integration are expected to enable further increases.
+
+Other validator operators can set their gas target preferences to participate in determining the network's effective throughput capacity.
+This allows scaling decisions to reflect the technical assessment of the broader validator community.
+
+---
+
+### Network Health Monitoring
+
+Several key performance indicators are closely monitored consistently through changes to the target gas consumption to ensure network stability:
+
+- Block verification times - to ensure consensus remains stable
+
+As the gas target increases, so does the maximum amount of gas able to be consumed in a given block. The more gas in a block, the longer time that
+block will potentially take to execute. It's important that block execution times remain within an acceptable range to ensure that consensus is able
+to proceed successfully.
+
+Because blocks can have significantly different sizes depending on the time they are produced and gas capacity available at that instant, a holistic
+way of viewing the amount of time spent in block execution is by looking at the percentage of time that a node uses to execute blocks during consensus.
+We had earmarked less than or equal to 5% of time spent in block execution as a key performance indicator of consensus, and though a small initial
+increase was observed, validator nodes were able to stay below that threshold.
+
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/2.jpeg)
+
+- Disk usage and state growth rates - to monitor storage requirements
+
+The higher the gas usage, the higher potential for state growth, and because all validators currently must maintain the full state of the chain on disk,
+the more storage validators may need to have available to use.
+
+Of course the larger the chain grows, the more disk space it will require to store it, but in increasing the gas target we wanted to ensure that the
+rate of disk growth didn't become unsustainable, and in fact observed that disk usage continued to grow at a relatively constant rate of around 3 to 4
+GB per day.
+
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/3.jpeg)
+
+- Peer-to-peer network health - to monitor connectivity between all validator nodes
+
+A key indicator of the health of the network as a whole is the percentage of successful queries made to peers. If any significant number of validator
+nodes were to not be able to process the increased utilization level of the chain, they would not be able to respond to their peer's queries about block
+proposals. Throughout the iterative increases to the gas target in June and July, we did not observe any noticeable decrease in the observed percentage
+of successful queries, indicating that on the whole, the vast majority of nodes are still stable and able to keep up with the increased processing
+demands created by the higher gas targets.
+
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/4.jpeg)
+
+These metrics remained within acceptable parameters throughout the increase, indicating the network can handle the higher throughput without stability issues.
+
+---
+
+## Scaling Optimization Ahead
+
+The 30% increase represents just the beginning of Avalanche's throughput expansion plans. Two major technical upgrades are in development that could
+enable even more significant capacity improvements:
+
+### Streaming Asynchronous Execution (SAE)  
+
+As outlined in Avalanche Community Proposal ACP-194, SAE introduces a fundamental architectural change by separating block execution from the consensus
+process. This allows for a continuous execution thread that operates independently of consensus, enabling gas targets to align with average-case execution
+times rather than being constrained by worst-case scenarios.
+
+The separation means the network can maintain higher throughput targets without risking consensus delays during computationally intensive blocks.
+
+### Firewood Database Integration 
+
+The upcoming Firewood database integration is designed to significantly improve performance of blockchain database operations, and also reduce validator
+node storage requirements through optimized data layout and state pruning. By maintaining only recent state data and improving storage efficiency, Firewood
+will reduce the operational burden on validators, potentially enabling support for higher gas targets.
+
+---
+
+## Looking Ahead
+
+A combination of upcoming performance improvement efforts as well as continued iteration to dynamically determine the maximum chain capacity possible
+at any given point in time positions Avalanche well to become one of the lowest latency, highest throughput EVM L1 experiences in the ecosystem.
+
+Head to the Builders Hub to access everything you need to know about building on Avalanche: https://build.avax.network/
+
+Follow us on X to keep up with all of the latest news, research and tooling for building on Avalanche: https://x.com/avaxdevelopers/

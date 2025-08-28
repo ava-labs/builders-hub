@@ -258,6 +258,9 @@ export async function CheckInvitation(invitationId: string, user_id: string) {
         { id: invitationId, user_id: user_id },
         { id: invitationId, email: user?.email },
       ],
+      status: {
+        not: "Removed",
+      },
     },
     include: {
       project: true,

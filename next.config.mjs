@@ -75,6 +75,11 @@ const config = {
         permanent: true,
       },
       {
+        source: '/tools/:path*',
+        destination: '/console',
+        permanent: true,
+      },
+      {
         source: '/guides',
         destination: '/blog',
         permanent: true,
