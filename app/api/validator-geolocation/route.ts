@@ -3,6 +3,7 @@ import { Avalanche } from "@avalanche-sdk/chainkit";
 
 const avalanche = new Avalanche({
   network: "mainnet",
+  apiKey: process.env.GLACIER_API_KEY,
 });
 
 const PRIMARY_NETWORK_SUBNET_ID = "11111111111111111111111111111111LpoYY";

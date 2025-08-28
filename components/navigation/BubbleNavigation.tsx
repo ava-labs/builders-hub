@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 interface BubbleNavItem {
@@ -20,13 +20,53 @@ export default function BubbleNavigation() {
   const router = useRouter();
   const [activeItem, setActiveItem] = useState("validators");
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [bottomOffset, setBottomOffset] = useState(32);
+  const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const currentItem = navItems.find((item) => pathname === item.href);
     if (currentItem) {
       setActiveItem(currentItem.id);
+    } else if (pathname.startsWith("/stats/l1/")) {
+      setActiveItem("");
     }
   }, [pathname]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const footer = document.querySelector("footer");
+      if (!footer) {
+        setBottomOffset(32);
+        return;
+      }
+
+      const footerRect = footer.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const navHeight = 80;
+      const margin = 16;
+
+      const distanceToFooter = windowHeight - footerRect.top;
+
+      if (footerRect.top <= windowHeight && footerRect.top > 0) {
+        const newBottomOffset = Math.max(
+          margin,
+          Math.min(distanceToFooter + margin, windowHeight - navHeight - margin)
+        );
+        setBottomOffset(newBottomOffset);
+      } else {
+        setBottomOffset(32);
+      }
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleScroll);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
 
   const handleItemClick = (item: BubbleNavItem) => {
     setActiveItem(item.id);
@@ -34,7 +74,13 @@ export default function BubbleNavigation() {
   };
 
   return (
-    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+    <div
+      ref={navRef}
+      className="fixed left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ease-in-out"
+      style={{
+        bottom: `${bottomOffset}px`,
+      }}
+    >
       <nav className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-full p-4 shadow-lg">
         <div className="flex items-center justify-center space-x-2">
           {navItems.map((item, index) => {

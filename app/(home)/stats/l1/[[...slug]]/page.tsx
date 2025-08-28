@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 
 interface TimeSeriesDataPoint {
   timestamp: number;
@@ -672,18 +673,20 @@ export default function L1Metrics() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-        <div className="container mx-auto p-6 pb-24">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-muted-foreground">
-                Fetching real-time {currentChain?.chainName} data...
+        <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
+          <div className="space-y-2">
+            <div>
+              <h1 className="text-2xl md:text-5xl mb-4 capitalize">
+                {currentChain?.chainName || "L1"} Network Metrics
+              </h1>
+              <p className="text-zinc-400 text-md text-left">
+                Real-time insights into {currentChain?.chainName || "L1"}{" "}
+                activity and network usage
               </p>
             </div>
           </div>
+          <ChartSkeletonLoader />
         </div>
-
-        {/* Bubble Navigation */}
         <BubbleNavigation />
       </div>
     );

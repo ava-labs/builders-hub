@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
+import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 
 interface TimeSeriesDataPoint {
   timestamp: number;
@@ -507,16 +508,21 @@ export default function PrimaryNetworkMetrics() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-        <div className="container mx-auto p-6">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-muted-foreground">
-                Fetching real-time Primary Network data...
+        <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
+          <div className="space-y-2">
+            <div>
+              <h1 className="text-2xl md:text-5xl mb-4">
+                Primary Network Validator Metrics
+              </h1>
+              <p className="text-zinc-400 text-md text-left">
+                Real-time insights into the Avalanche Primary Network
+                performance and validator distribution
               </p>
             </div>
           </div>
+          <ChartSkeletonLoader />
         </div>
+        <BubbleNavigation />
       </div>
     );
   }
