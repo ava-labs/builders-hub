@@ -10,6 +10,7 @@ interface NetworkActionsProps {
 export function NetworkActions({ onAddNetwork, isEditMode, onToggleEditMode }: NetworkActionsProps) {
   return (
     <>
+      <DropdownMenuSeparator />
       <DropdownMenuItem
         onSelect={(e) => { e.preventDefault(); onToggleEditMode() }}
         className='cursor-pointer'
@@ -21,7 +22,6 @@ export function NetworkActions({ onAddNetwork, isEditMode, onToggleEditMode }: N
         )}
         {isEditMode ? 'Done Editing' : 'Edit Network List'}
       </DropdownMenuItem>
-      <DropdownMenuSeparator />
       <DropdownMenuItem
         onSelect={(e) => { e.preventDefault(); onAddNetwork() }}
         className='cursor-pointer'
