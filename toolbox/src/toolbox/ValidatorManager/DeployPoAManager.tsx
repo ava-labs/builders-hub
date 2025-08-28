@@ -188,19 +188,18 @@ export default function DeployPoAManager() {
 
                 <Steps>
                     <Step>
-                        <div className="flex flex-col gap-2">
-                            <h3 className="text-lg font-bold">Configure and Deploy PoA Manager</h3>
-                            <div className="text-sm">
-                                Deploy the <code>PoAManager</code> contract with the specified owner and validator manager addresses. 
-                                The contract will be initialized automatically during deployment.
-                                {viemChain && (
-                                    <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                                        Current chain: {viemChain.name} (ID: {viemChain.id})
-                                    </div>
-                                )}
+                        <h2 className="text-lg font-semibold">Configure and Deploy PoA Manager</h2>
+                        <p className="text-sm text-gray-500">
+                            Deploy the <code>PoAManager</code> contract with the specified owner and validator manager addresses. 
+                            The contract will be initialized automatically during deployment.
+                        </p>
+                        {viemChain && (
+                            <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                                Current chain: {viemChain.name} (ID: {viemChain.id})
                             </div>
+                        )}
 
-                            <div className="space-y-4">
+                        <div className="space-y-4">
                                 <div className="space-y-3">
                                     <SelectSafeWallet
                                         value={safeSelection.safeAddress}
@@ -247,17 +246,15 @@ export default function DeployPoAManager() {
                                     value={poaManagerAddress}
                                 />
                             )}
-                        </div>
                     </Step>
 
                     <Step>
-                        <div className="flex flex-col gap-2">
-                            <h3 className="text-lg font-bold">Verify Deployment</h3>
-                            <div className="text-sm">
-                                Verify that the PoA Manager was deployed and initialized correctly.
-                            </div>
+                        <h2 className="text-lg font-semibold">Verify Deployment</h2>
+                        <p className="text-sm text-gray-500">
+                            Verify that the PoA Manager was deployed and initialized correctly.
+                        </p>
 
-                            <div className="space-y-4">
+                        <div className="space-y-4">
                                 <EVMAddressInput
                                     label="PoA Manager Address"
                                     value={poaManagerAddress}
@@ -288,7 +285,6 @@ export default function DeployPoAManager() {
                                     </div>
                                 )}
                             </div>
-                        </div>
                     </Step>
                 </Steps>
             </div>
