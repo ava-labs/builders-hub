@@ -1,47 +1,11 @@
 "use client";
 import * as React from "react";
 import { useState, useEffect } from "react";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  ReferenceLine,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ReferenceLine } from "recharts";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
+import {type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent} from "@/components/ui/chart";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
-import {
-  Users,
-  Activity,
-  FileText,
-  MessageSquare,
-  Loader2,
-  TrendingUp,
-  UserPlus,
-  Hash,
-  Code2,
-  Zap,
-  Gauge,
-  DollarSign,
-  TrendingDown,
-  Clock,
-  Fuel,
-} from "lucide-react";
+import { Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel } from "lucide-react";
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 
@@ -664,7 +628,9 @@ export default function ChainMetricsPage({
           <div className="space-y-2">
             <div>
               <h1 className="text-2xl md:text-5xl mb-4">
-                {chainName} Network Metrics
+                {chainName.includes("C-Chain")
+                  ? "Avalanche C-Chain Metrics"
+                  : `${chainName} L1 Metrics`}
               </h1>
               <p className="text-zinc-400 text-md text-left">{description}</p>
             </div>
@@ -704,7 +670,9 @@ export default function ChainMetricsPage({
         <div className="space-y-2">
           <div>
             <h1 className="text-2xl md:text-5xl mb-4">
-              {chainName} Network Metrics
+              {chainName.includes("C-Chain")
+                ? "Avalanche C-Chain Metrics"
+                : `${chainName} L1 Metrics`}
             </h1>
             <p className="text-zinc-400 text-md text-left">{description}</p>
           </div>

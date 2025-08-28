@@ -1,4 +1,10 @@
 import ChainMetricsPage from "@/components/stats/ChainMetricsPage";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Avalanche C-Chain Metrics",
+  description: "Track Avalanche C-Chain network activity with real-time metrics including active addresses, transactions, gas usage, fees, and ICM messaging data.",
+};
 
 export default function CChainMetrics() {
   return (
