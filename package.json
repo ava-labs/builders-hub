@@ -17,6 +17,7 @@
     "@ai-sdk/react": "^1.2.12",
     "@avalabs/avacloud-sdk": "^0.12.2",
     "@avalabs/avalanchejs": "^5.0.0",
+    "@avalanche-sdk/client": "^0.0.4-alpha.12",
     "@fireworks-js/react": "^2.10.8",
     "@fumadocs/cli": "^0.2.1",
     "@fumadocs/mdx-remote": "^1.2.0",
