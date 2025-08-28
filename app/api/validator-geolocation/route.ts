@@ -39,9 +39,7 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // updates every 24 hours
 
 async function fetchAllValidators(): Promise<Validator[]> {
   try {
-    console.log('Fetching all validators with geolocation data using SDK...');
     const allValidators: Validator[] = [];
-
     const result = await avalanche.data.primaryNetwork.listValidators({
       validationStatus: "active",
       subnetId: PRIMARY_NETWORK_SUBNET_ID,
