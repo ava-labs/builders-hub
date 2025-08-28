@@ -50,7 +50,7 @@ interface ChainMetrics {
 }
 
 let cachedData: Map<string, { data: ChainMetrics; timestamp: number; icmTimeRange: string }> = new Map();
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_DURATION = 6 * 60 * 60 * 1000; // backend cache updates every 6 hours
 
 function getTimestampsFromTimeRange(timeRange: string): { startTimestamp: number; endTimestamp: number } {
   const now = Math.floor(Date.now() / 1000);
