@@ -1,6 +1,6 @@
 'use client'
 
-import * as React from 'react'
+import { useState } from 'react'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 import { useL1ListStore } from '@/stores/l1ListStore'
 import { AddChainModal } from '@/components/ConnectWallet/AddChainModal'
@@ -17,18 +17,20 @@ import { NetworkActions } from './components/NetworkActions'
 import { WalletInfo } from './components/WalletInfo'
 
 export function EvmNetworkWallet() {
-  const [isAddNetworkModalOpen, setIsAddNetworkModalOpen] = React.useState(false)
+  const [isAddNetworkModalOpen, setIsAddNetworkModalOpen] = useState(false)
 
   const l1ListStore = useL1ListStore()
   const addL1 = l1ListStore((s) => s.addL1)
+  const removeL1 = l1ListStore((s) => s.removeL1)
 
   const {
-    availableNetworks,
     currentNetwork,
     getNetworkBalance,
     isNetworkActive,
     walletEVMAddress,
   } = useNetworkData()
+
+  const l1List = l1ListStore((s) => s.l1List)
 
   const {
     handleNetworkChange,
@@ -103,6 +105,10 @@ export function EvmNetworkWallet() {
     setIsAddNetworkModalOpen(true)
   }
 
+  const handleRemoveNetwork = (network: any) => {
+    removeL1(network.id)
+  }
+
   // Show connect wallet button if no wallet is connected
   if (!walletEVMAddress) {
     return (
@@ -119,7 +125,7 @@ export function EvmNetworkWallet() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={`inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3`}>
+          <Button variant="outline" size="sm">
             <div className="flex items-center gap-3">
               <div className="flex-shrink-0 w-5 h-5 rounded-md overflow-hidden flex items-center justify-start">
                 {currentNetwork && (currentNetwork as any).logoUrl ? (
@@ -135,19 +141,20 @@ export function EvmNetworkWallet() {
               <div className="flex gap-2 items-center">
                 <span className="text-sm font-medium leading-none">{currentNetwork.name}</span>
                 <span className="text-xs text-muted-foreground leading-none">
-                  {typeof currentNetwork.balance === 'string' ? parseFloat(currentNetwork.balance).toFixed(4) : (currentNetwork.balance || 0).toFixed(4)} {currentNetwork.symbol}
+                  {typeof currentNetwork.balance === 'string' ? parseFloat(currentNetwork.balance).toFixed(4) : (currentNetwork.balance || 0).toFixed(4)} {(currentNetwork as any).coinName}
                 </span>
               </div>
             </div>
-          </button>
+          </Button>
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end" className="w-60">
           <NetworkList
-            availableNetworks={availableNetworks}
+            availableNetworks={l1List || []}
             getNetworkBalance={getNetworkBalance}
             isNetworkActive={isNetworkActive}
             onNetworkSelect={handleNetworkChange}
+            onNetworkRemove={handleRemoveNetwork}
           />
 
           <NetworkActions
@@ -168,11 +175,7 @@ export function EvmNetworkWallet() {
         <AddChainModal
           onClose={() => setIsAddNetworkModalOpen(false)}
           onAddChain={(chain) => {
-            try {
-              addL1(chain as any)
-            } catch (error) {
-              console.log('addL1 error (non-blocking):', error)
-            }
+            addL1(chain as any)
             setIsAddNetworkModalOpen(false)
           }}
           allowLookup={true}

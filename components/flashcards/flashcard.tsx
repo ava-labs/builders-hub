@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, RotateCw, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { saveFlashcardProgress, getFlashcardProgress, resetFlashcardProgress } from "@/utils/quizzes/indexedDB"
-import flashcardDataImport from './flashcardData.json'
+import flashcardData from './flashcardData.json'
 
 interface FlashcardProps {
     flashcardSetId: string
@@ -18,7 +18,7 @@ interface FlashcardDataItem {
 }
 
 const CleanFlashcard: React.FC<FlashcardProps> = ({ flashcardSetId }) => {
-    const [flashcards] = useState<FlashcardDataItem[]>(flashcardDataImport.flashcardSets[flashcardSetId as keyof typeof flashcardDataImport.flashcardSets] || [])
+    const [flashcards] = useState<FlashcardDataItem[]>(flashcardData.flashcardSets[flashcardSetId as keyof typeof flashcardData.flashcardSets] || [])
     const [currentIndex, setCurrentIndex] = useState(0)
     const [isRevealed, setIsRevealed] = useState(false)
     const [viewedCards, setViewedCards] = useState<Set<number>>(new Set())

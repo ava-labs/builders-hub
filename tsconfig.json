@@ -45,7 +45,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-, "utils/remote-content.mts"  ],
+, "utils/remote-content.mts", "hooks/getLucideIcon.tsz"  ],
   "exclude": [
     "node_modules"
   ]

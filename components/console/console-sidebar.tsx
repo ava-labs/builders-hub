@@ -45,7 +45,6 @@ import {
 } from "@/components/ui/sidebar";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 
-
 // Navigation data structure matching user specification
 const data = {
   navMain: [

@@ -1,19 +1,44 @@
 'use client'
 
+import { useState } from 'react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftRight, Copy, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, Copy, RefreshCw, Check } from "lucide-react";
 import { useWalletStore } from "@/stores/walletStore";
 import { PChainFaucetMenuItem } from "./components/PChainFaucetMenuItem";
 
 export function WalletPChain() {
   const pChainAddress = useWalletStore((s) => s.pChainAddress);
-  const pChainBalance = useWalletStore((s) => s.pChainBalance);
+  const pChainBalance = useWalletStore((s) => s.balances.pChain);
   const updatePChainBalance = useWalletStore((s) => s.updatePChainBalance);
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
 
-  const copy = async () => {
-    if (pChainAddress) await navigator.clipboard.writeText(pChainAddress);
+  const [isCopied, setIsCopied] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleCopy = async () => {
+    if (pChainAddress) {
+      await navigator.clipboard.writeText(pChainAddress);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 1000);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await updatePChainBalance();
+    setTimeout(() => setIsRefreshing(false), 2000);
+  };
+
+  // Format P-Chain address for compact display
+  const formatAddressForDisplay = (
+    address: string,
+    leading: number = 6,
+    trailing: number = 4
+  ) => {
+    if (!address) return ''
+    if (address.length <= leading + trailing + 3) return address
+    return `${address.slice(0, leading)}...${address.slice(-trailing)}`
   };
 
   if (!walletEVMAddress) return null;
@@ -36,23 +61,61 @@ export function WalletPChain() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-60">
-        {pChainAddress && (
-          <DropdownMenuItem>
-            <span className="text-xs font-mono truncate max-w-[14rem] block">{pChainAddress}</span>
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={copy}>
-          <Copy className="mr-2 h-3 w-3" />
-          Copy Address
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={updatePChainBalance}>
-          <RefreshCw className="mr-2 h-3 w-3" />
-          Refresh Balance
-        </DropdownMenuItem>
+        {/* Modern minimized wallet info section */}
+        <div className="px-3 py-2 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-1">
+                P-Chain Address
+              </div>
+              <div 
+                className="text-xs font-mono text-foreground cursor-pointer hover:text-primary transition-colors"
+                title={pChainAddress || 'Not connected'}
+                onClick={handleCopy}
+              >
+                {pChainAddress
+                  ? formatAddressForDisplay(pChainAddress)
+                  : 'Not connected'}
+              </div>
+            </div>
+            
+            {/* Compact action buttons */}
+            <div className="flex items-center gap-1 ml-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopy}
+                className={`h-6 w-6 p-0 hover:bg-muted transition-colors ${
+                  isCopied ? 'text-green-600' : ''
+                }`}
+                title={isCopied ? 'Copied!' : 'Copy address'}
+              >
+                {isCopied ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                className={`h-6 w-6 p-0 hover:bg-muted transition-colors ${
+                  isRefreshing ? 'text-blue-600' : ''
+                }`}
+                title={isRefreshing ? 'Refreshing...' : 'Refresh balance'}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
+        </div>
+        
         <DropdownMenuSeparator />
         <PChainFaucetMenuItem />
-        <DropdownMenuItem onClick={() => window.location.href = '/console/primary-network/c-p-bridge'}>
+        <DropdownMenuItem onClick={() => window.location.href = '/console/primary-network/c-p-bridge'} className='cursor-pointer'>
           <ArrowLeftRight className="mr-2 h-3 w-3" />
           Bridge AVAX from C-Chain
         </DropdownMenuItem>

@@ -37,11 +37,10 @@ export function SiteHeader() {
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
         />
-        <Breadcrumb>
-          <BreadcrumbList>
-            {breadcrumbs.map((breadcrumb, index) => (
-              <div key={`${breadcrumb.href}-${index}`} className="flex items-center">
-                <BreadcrumbItem className="hidden md:block">
+        <Breadcrumb className="overflow-hidden min-w-0">
+          <BreadcrumbList className="flex-nowrap">
+            {breadcrumbs.map((breadcrumb, index) => (<>
+                <BreadcrumbItem key={`${breadcrumb.href}-${index}`} className="whitespace-nowrap">
                   {breadcrumb.isCurrentPage ? (
                     <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
                   ) : breadcrumb.href === "#" ? (
@@ -53,9 +52,9 @@ export function SiteHeader() {
                   )}
                 </BreadcrumbItem>
                 {index < breadcrumbs.length - 1 && (
-                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbSeparator key={`breadcrumb-separator-${index}`} />
                 )}
-              </div>
+              </>
             ))}
           </BreadcrumbList>
         </Breadcrumb>
