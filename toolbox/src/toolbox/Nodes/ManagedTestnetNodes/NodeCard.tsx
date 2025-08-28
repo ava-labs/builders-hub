@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { 
     Copy, 
     Clock, 
@@ -31,6 +31,7 @@ export default function NodeCard({
     isDeletingNode 
 }: NodeCardProps) {
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
+    const [secondsUntilWalletEnabled, setSecondsUntilWalletEnabled] = useState<number>(0);
     const timeRemaining = calculateTimeRemaining(node.expires_at);
     const statusData = getStatusData(timeRemaining);
     const nodeInfoJson = JSON.stringify({
@@ -68,6 +69,28 @@ export default function NodeCard({
             try { onCopyToClipboard(text, key); } catch {}
         }
     };
+
+    // Disable "Add to Wallet" for 10 seconds after node creation to allow bootstrapping
+    useEffect(() => {
+        const createdAtMs = new Date(node.created_at).getTime();
+        const elapsedSeconds = Math.floor((Date.now() - createdAtMs) / 1000);
+        const initialRemaining = Math.max(0, 10 - elapsedSeconds);
+        setSecondsUntilWalletEnabled(initialRemaining);
+
+        if (initialRemaining === 0) return;
+
+        const intervalId = window.setInterval(() => {
+            setSecondsUntilWalletEnabled(prev => {
+                if (prev <= 1) {
+                    window.clearInterval(intervalId);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => window.clearInterval(intervalId);
+    }, [node.created_at]);
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors min-w-0">
@@ -201,9 +224,12 @@ export default function NodeCard({
                         variant="secondary"
                         size="sm"
                         stickLeft
+                        disabled={secondsUntilWalletEnabled > 0}
                         icon={<Wallet className="w-4 h-4" />}
                     >
-                        Add to Wallet
+                        {secondsUntilWalletEnabled > 0
+                            ? `Add L1 to your wallet in ${secondsUntilWalletEnabled}s`
+                            : "Add to Wallet"}
                     </Button>
                     <Button
                         onClick={() => onDeleteNode(node)}
