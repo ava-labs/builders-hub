@@ -41,6 +41,7 @@
         "914",
         "915",
         "916",
+<<<<<<< HEAD
         "917",
         "918",
         "919",
@@ -60,6 +61,9 @@
         "941",
         "942",
         "943"
+=======
+        "917"
+>>>>>>> origin/master
       ]
     },
     "l1-tokenomics": {
@@ -1717,6 +1721,261 @@
       "hint": "Think about the inheritance pattern shown in the class diagram.",
       "explanation": "ValidatorManager extends ACP99Manager through inheritance, implementing the abstract base contract. This design pattern allows ValidatorManager to inherit the standardized validator management functions defined in ACP99Manager while adding its own concrete implementation of the initiate functions. The inheritance relationship ensures that all validator managers follow the same interface defined by ACP99Manager, providing consistency across different implementations.",
       "chapter": "Validator Manager Contract"
+    },
+    "906": {
+      "question": "What is emerging as a crypto-friendly alternative to Delaware for Web3 company incorporation?",
+      "options": [
+        "New York",
+        "California",
+        "Wyoming",
+        "Florida"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "This state has implemented blockchain-friendly legislation.",
+      "explanation": "Wyoming has emerged as a crypto-friendly alternative to Delaware, offering favorable legislation for blockchain and cryptocurrency businesses.",
+      "chapter": "Legal Foundations"
+    },
+    "907": {
+      "question": "According to the Howey Test, which factor is NOT part of determining if a token is a security?",
+      "options": [
+        "Investment of money",
+        "Common enterprise",
+        "Decentralized governance",
+        "Expectation of profit from efforts of others"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "The Howey Test has four specific criteria.",
+      "explanation": "Decentralized governance is not part of the Howey Test. The test looks for: investment of money, common enterprise, expectation of profit, and profits from efforts of others.",
+      "chapter": "Legal Foundations"
+    },
+    "908": {
+      "question": "Which of the following is a good practice for Web3 founders?",
+      "options": [
+        "Vague classification for tokens",
+        "Operating without a legal entity",
+        "Making investment-style promises",
+        "Registering appropriate trademarks"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Think about protecting intellectual property.",
+      "explanation": "Registering appropriate trademarks is a good practice for Web3 founders to protect their intellectual property and brand.",
+      "chapter": "Legal Foundations"
+    },
+    "909": {
+      "question": "What should a non-technical founder prioritize when assessing their project's security standards?",
+      "options": [
+        "Investing in expensive security tools",
+        "Hiring a large security team",
+        "Relying on third-party security assessments and implementing bug bounty programs",
+        "Moving all data to off-chain storage"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about leveraging external expertise and community involvement.",
+      "explanation": "Non-technical founders should prioritize third-party security assessments and bug bounty programs to leverage external expertise in identifying vulnerabilities.",
+      "chapter": "Security Fundamentals"
+    },
+    "910": {
+      "question": "Which of these is NOT one of the three most overlooked components of IT governance in early-stage startups?",
+      "options": [
+        "Access management",
+        "Marketing strategy",
+        "Change management",
+        "Vendor management"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Marketing is not an IT governance component.",
+      "explanation": "Marketing strategy is not an IT governance component. The three most overlooked components are access management, change management, and vendor management.",
+      "chapter": "Security Fundamentals"
+    },
+    "911": {
+      "question": "What is the recommended approach for managing private keys according to best practices?",
+      "options": [
+        "Store them in a cloud service for easy access",
+        "Keep them offline, encrypted, and split into different shards",
+        "Share them with all team members for redundancy",
+        "Store them in plain text in your code repository"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about maximum security through separation and encryption.",
+      "explanation": "Best practice is to keep private keys offline, encrypted, and split into different shards to maximize security and prevent single points of failure.",
+      "chapter": "Security Fundamentals"
+    },
+    "912": {
+      "question": "Which type of data is most appropriate to store on-chain?",
+      "options": [
+        "Large media files",
+        "User personal information",
+        "Frequently updated state data",
+        "Ownership records and token information"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Think about data that benefits from immutability and transparency.",
+      "explanation": "Ownership records and token information are most appropriate for on-chain storage as they benefit from blockchain's immutability and transparency.",
+      "chapter": "Security Fundamentals"
+    },
+    "913": {
+      "question": "What principle should guide admin privilege management in a Web3 startup?",
+      "options": [
+        "All team members should have admin rights for efficiency",
+        "No one should have admin rights by default, and access should require approval",
+        "Only the CTO should have permanent admin rights",
+        "Admin rights should rotate randomly among team members"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about the principle of least privilege.",
+      "explanation": "The principle of least privilege should guide admin management - no one should have admin rights by default, and access should require explicit approval.",
+      "chapter": "Security Fundamentals"
+    },
+    "914": {
+      "question": "How does the business model canvas for Web3 differ from traditional canvases?",
+      "options": [
+        "It uses completely different components",
+        "It doesn't fundamentally differ, but expands the definition of 'customer' and includes unique value capture mechanisms",
+        "It focuses exclusively on token economics",
+        "It eliminates the need for revenue considerations"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Web3 expands traditional concepts rather than replacing them.",
+      "explanation": "The Web3 business model canvas doesn't fundamentally differ but expands the definition of 'customer' to include various stakeholders and incorporates unique value capture mechanisms like tokenomics.",
+      "chapter": "Business Model Canvas"
+    },
+    "915": {
+      "question": "What does the module suggest about defining your target audience?",
+      "options": [
+        "Keep it broad to appeal to more users",
+        "Focus only on token holders",
+        "Be very specific about demographics and psychographics",
+        "Change it frequently to adapt to market conditions"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Specificity helps in creating targeted solutions.",
+      "explanation": "The module emphasizes being very specific about demographics and psychographics when defining your target audience to create more effective solutions.",
+      "chapter": "Business Model Canvas"
+    },
+    "916": {
+      "question": "What common pitfall should Web3 founders avoid regarding tokens?",
+      "options": [
+        "Designing tokens with unclear use cases",
+        "Viewing tokens merely as speculative tools rather than representations of real value",
+        "Making tokens too accessible to users",
+        "Limiting token supply too severely"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about the true purpose of tokens in a project.",
+      "explanation": "Founders should avoid viewing tokens merely as speculative tools and instead ensure they represent real value and utility within their ecosystem.",
+      "chapter": "Business Model Canvas"
+    },
+    "917": {
+      "question": "How should a founder approach feature development?",
+      "options": [
+        "Build a comprehensive suite of features before launch",
+        "Focus only on features that generate immediate revenue",
+        "Build bare-bones functionality and validate with users before expanding",
+        "Copy features from successful competitors"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about the lean startup approach.",
+      "explanation": "Founders should build bare-bones functionality and validate with users before expanding, following lean startup principles to avoid wasting resources.",
+      "chapter": "Business Model Canvas"
+    },
+    "918": {
+      "question": "How should Web3 founders approach the revenue and cost sections of the business model canvas?",
+      "options": [
+        "Leave them blank until the business model is fully developed",
+        "Focus exclusively on token appreciation",
+        "Consider them from day one, even with an evolving business model",
+        "Prioritize them above all other canvas elements"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Financial planning should start early.",
+      "explanation": "Founders should consider revenue and cost sections from day one, even with an evolving business model, to ensure financial sustainability.",
+      "chapter": "Business Model Canvas"
+    },
+    "919": {
+      "question": "What should be the primary focus when identifying potential Web3 users?",
+      "options": [
+        "Communities where blockchain is trending",
+        "Areas where traditional systems aren't working well",
+        "Friends and family who will give supportive feedback",
+        "Existing crypto investors"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about where blockchain provides real value.",
+      "explanation": "The primary focus should be on areas where traditional systems aren't working well, as these represent genuine opportunities for blockchain solutions.",
+      "chapter": "User Personas"
+    },
+    "920": {
+      "question": "When is the optimal time to contact a new user after they sign up?",
+      "options": [
+        "Within 2-3 minutes",
+        "Within 24 hours",
+        "After a week of usage",
+        "Only after they report a problem"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Quick engagement is key.",
+      "explanation": "The optimal time is within 2-3 minutes after signup, when the user is most engaged and receptive to guidance.",
+      "chapter": "User Personas"
+    },
+    "921": {
+      "question": "What approach to user engagement has proven effective for building retention in Web3 projects?",
+      "options": [
+        "Automated email sequences",
+        "Personal communication",
+        "Token airdrops",
+        "Formal quarterly surveys"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about building genuine relationships.",
+      "explanation": "Personal communication has proven most effective for building retention in Web3 projects, as it creates stronger connections with users.",
+      "chapter": "User Personas"
+    },
+    "922": {
+      "question": "How should founders prioritize implementing user feedback?",
+      "options": [
+        "Focus on requests from the most vocal users",
+        "Implement whatever is easiest technically",
+        "Prioritize high-impact changes requiring minimal time",
+        "Wait until multiple versions of feedback can be implemented together"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about maximizing value with limited resources.",
+      "explanation": "Founders should prioritize high-impact changes requiring minimal time to maximize value delivery with limited resources.",
+      "chapter": "User Personas"
     }
   }
 }

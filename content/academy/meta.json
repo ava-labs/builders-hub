@@ -11,7 +11,12 @@
     "l1-tokenomics",
     "l1-validator-management",
     "permissioned-l1s",
+<<<<<<< HEAD
     "codebase-entrepreneur-academy",
     "codebase-entrepreneur-go-to-market"
+=======
+    "codebase-entrepreneur-fundamentals",
+    "codebase-entrepreneur-fundraising"
+>>>>>>> origin/master
   ]
 }
