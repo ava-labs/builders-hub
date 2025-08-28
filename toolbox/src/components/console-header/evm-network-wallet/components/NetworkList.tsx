@@ -1,12 +1,13 @@
 import { DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { NetworkMenuItem } from './NetworkMenuItem'
+import { L1ListItem } from '@/stores/l1ListStore'
 
 interface NetworkListProps {
-  availableNetworks: any[]
-  getNetworkBalance: (network: any) => number | string
-  isNetworkActive: (network: any) => boolean
-  onNetworkSelect: (network: any) => void
-  onNetworkRemove?: (network: any) => void
+  availableNetworks: L1ListItem[]
+  getNetworkBalance: (network: L1ListItem) => number | string
+  isNetworkActive: (network: L1ListItem) => boolean
+  onNetworkSelect: (network: L1ListItem) => void
+  onNetworkRemove?: (network: L1ListItem) => void
   isEditMode: boolean
 }
 

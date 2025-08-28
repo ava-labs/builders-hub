@@ -3,7 +3,7 @@ import { persist, createJSONStorage, combine } from 'zustand/middleware'
 import { useWalletStore } from "./walletStore";
 import { localStorageComp, STORE_VERSION } from "./utils";
 import { useMemo } from "react";
-type L1ListItem = {
+export type L1ListItem = {
     id: string;
     name: string;
     description?: string;
@@ -154,7 +154,7 @@ export const useL1List = () => {
     // Get the appropriate store based on testnet status
     const store = useMemo(() => getL1ListStore(Boolean(isTestnet)), [isTestnet]);
     // Subscribe to the l1List from the current store
-    return store((state) => state.l1List);
+    return store((state: { l1List: L1ListItem[] }) => state.l1List);
 };
 
 // Keep the original hook but make it stable to prevent infinite loops
@@ -174,7 +174,7 @@ export function useSelectedL1() {
     return useMemo(() =>
         () => {
             const l1List = l1ListStore.getState().l1List;
-            return l1List.find(l1 => l1.evmChainId === walletChainId) || undefined;
+            return l1List.find((l1: L1ListItem) => l1.evmChainId === walletChainId) || undefined;
         },
         [walletChainId, l1ListStore]
     );
@@ -186,7 +186,7 @@ export function useL1ByChainId(chainId: string) {
     return useMemo(() =>
         () => {
             const l1List = l1ListStore.getState().l1List;
-            return l1List.find(l1 => l1.id === chainId) || undefined;
+            return l1List.find((l1: L1ListItem) => l1.id === chainId) || undefined;
         },
         [chainId, l1ListStore]
     );

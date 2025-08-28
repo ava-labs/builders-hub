@@ -1,18 +1,13 @@
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Globe, Check, Trash2 } from 'lucide-react'
+import { L1ListItem } from '@/stores/l1ListStore'
 
 interface NetworkMenuItemProps {
-  network: {
-    id: string
-    name: string
-    coinName: string
-    logoUrl?: string
-    evmChainId?: number
-  }
+  network: L1ListItem
   isActive: boolean
-  onSelect: (network: any) => void
+  onSelect: (network: L1ListItem) => void
   isEditMode?: boolean
-  onRemove?: (network: any) => void
+  onRemove?: (network: L1ListItem) => void
   balance?: number | string
 }
 
