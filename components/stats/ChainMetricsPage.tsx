@@ -173,14 +173,17 @@ export default function ChainMetricsPage({
     if (isNaN(weiValue)) return "N/A";
 
     const ether = weiValue / 1e18;
+    const isC_Chain = chainName.includes("C-Chain");
+    const unit = isC_Chain ? " AVAX" : "";
+
     if (ether >= 1e6) {
-      return `${(ether / 1e6).toFixed(2)}M AVAX`;
+      return `${(ether / 1e6).toFixed(2)}M${unit}`;
     } else if (ether >= 1e3) {
-      return `${(ether / 1e3).toFixed(2)}K AVAX`;
+      return `${(ether / 1e3).toFixed(2)}K${unit}`;
     } else if (ether >= 1) {
-      return `${ether.toFixed(2)} AVAX`;
+      return `${ether.toFixed(2)}${unit}`;
     } else {
-      return `${ether.toFixed(6)} AVAX`;
+      return `${ether.toFixed(6)}${unit}`;
     }
   };
 
