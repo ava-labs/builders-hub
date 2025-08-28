@@ -35,7 +35,9 @@ export function NetworkMenuItem({
     return num.toFixed(4)
   }
 
-  const handleClick = () => {
+  const handleSelect: React.ComponentProps<typeof DropdownMenuItem>["onSelect"] = (e) => {
+    // Prevent the dropdown from auto-closing; parent decides when to close
+    e.preventDefault()
     if (isEditMode && onRemove && !isCChain(network.evmChainId)) {
       onRemove(network)
     } else if (!isEditMode) {
@@ -47,7 +49,7 @@ export function NetworkMenuItem({
 
   return (
     <DropdownMenuItem
-      onClick={handleClick}
+      onSelect={handleSelect}
       className={`flex items-center justify-between p-3 ${
         canRemove ? 'cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20' : 
         isEditMode && isCChain(network.evmChainId) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
