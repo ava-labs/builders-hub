@@ -171,54 +171,17 @@ const officialCourses: Course[] = [
         category: "Codebase"
     },
     {
-<<<<<<< HEAD
         name: "Codebase Entrepreneur: Go-to-Market",
         description: "Master go-to-market strategies, sales, and pricing for your Web3 startup",
         slug: "codebase-entrepreneur-go-to-market",
         icon: <SquareStackIcon />,
         status: "featured",
         duration: "3 hours",
-=======
-        name: "Go-To-Market Strategist",
-        description: "Pending...",
-        slug: "codebase-entrepreneur-academy",
-        icon: <SquareStackIcon />,
-        status: "featured",
-        duration: "1 hour",
->>>>>>> origin/master
         languages: [],
         tools: ["Codebase"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
         category: "Codebase"
     },
-<<<<<<< HEAD
-=======
-    {
-        name: "Web3 Community Architect",
-        description: "Pending...",
-        slug: "codebase-entrepreneur-academy",
-        icon: <SquareStackIcon />,
-        status: "featured",
-        duration: "1 hour",
-        languages: [],
-        tools: ["Codebase"],
-        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Codebase"
-    },
-    {
-        name: "Fundraising & Finance Pro",
-        description: "Pending...",
-        slug: "codebase-entrepreneur-academy",
-        icon: <SquareStackIcon />,
-        status: "featured",
-        duration: "1 hour",
-        languages: [],
-        tools: ["Codebase"],
-        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
-        category: "Codebase"
-    },
-
->>>>>>> origin/master
 
     /*{
         name:"Chainlink VRF with Interchain Messaging ",
