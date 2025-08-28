@@ -102,21 +102,51 @@ const defaultChainIds = [
 export const isDefaultChain = (chainId: string) => defaultChainIds.includes(chainId)
 
 
-export const getL1ListStore = (isTestnet: boolean) => create(
-    persist(
-        combine(isTestnet ? l1ListInitialStateFuji : l1ListInitialStateMainnet, (set) => ({
-            addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
-            removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
-            reset: () => {
-                window?.localStorage.removeItem(`${STORE_VERSION}-l1-list-store-${isTestnet ? 'testnet' : 'mainnet'}`);
-            },
-        })),
-        {
-            name: `${STORE_VERSION}-l1-list-store-${isTestnet ? 'testnet' : 'mainnet'}`,
-            storage: createJSONStorage(localStorageComp),
-        },
-    ),
-)
+// Ensure singleton stores per network to keep state in sync across components
+let testnetStoreSingleton: any | null = null;
+let mainnetStoreSingleton: any | null = null;
+
+export const getL1ListStore = (isTestnet: boolean) => {
+    if (isTestnet) {
+        if (!testnetStoreSingleton) {
+            testnetStoreSingleton = create(
+                persist(
+                    combine(l1ListInitialStateFuji, (set) => ({
+                        addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
+                        removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
+                        reset: () => {
+                            window?.localStorage.removeItem(`${STORE_VERSION}-l1-list-store-testnet`);
+                        },
+                    })),
+                    {
+                        name: `${STORE_VERSION}-l1-list-store-testnet`,
+                        storage: createJSONStorage(localStorageComp),
+                    },
+                ),
+            );
+        }
+        return testnetStoreSingleton;
+    } else {
+        if (!mainnetStoreSingleton) {
+            mainnetStoreSingleton = create(
+                persist(
+                    combine(l1ListInitialStateMainnet, (set) => ({
+                        addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
+                        removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
+                        reset: () => {
+                            window?.localStorage.removeItem(`${STORE_VERSION}-l1-list-store-mainnet`);
+                        },
+                    })),
+                    {
+                        name: `${STORE_VERSION}-l1-list-store-mainnet`,
+                        storage: createJSONStorage(localStorageComp),
+                    },
+                ),
+            );
+        }
+        return mainnetStoreSingleton;
+    }
+}
 
 // Create a stable hook that returns the current l1List and properly subscribes to changes
 export const useL1List = () => {
