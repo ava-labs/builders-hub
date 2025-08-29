@@ -13,7 +13,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Loader2, RefreshCw, Send, X, User, Bot, Sparkles, StopCircle, HelpCircle, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import { Loader2, RefreshCw, Send, X, User, Sparkles, StopCircle, HelpCircle, ChevronRight, ChevronLeft, Maximize2, Minimize2 } from 'lucide-react';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '../../lib/cn';
 import { buttonVariants } from '../ui/button';
