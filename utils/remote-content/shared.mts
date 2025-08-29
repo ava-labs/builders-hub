@@ -252,11 +252,38 @@ edit_url: ${safeEditUrl}
   content = content.replace(/^(#{2,6})\s/gm, (match) => '#'.repeat(match.length - 1) + ' ');
   content = replaceRelativeLinks(content, sourceBaseUrl);
 
+  // Helper: convert a fenced mermaid block to <Mermaid chart={`...`} />
+  function convertMermaidFenceToComponent(fence: string): string {
+    // Strip the ```mermaid fence
+    let inner = fence.replace(/^```mermaid\s*/, '').replace(/```$/, '');
+    inner = inner.trim();
+
+    // Convert optional YAML-like config block at the start to Mermaid init directive
+    // Example handled: ---\n  config:\n    class:\n      hideEmptyMembersBox: true\n---\n
+    if (inner.startsWith('---')) {
+      const secondFenceIndex = inner.indexOf('---', 3);
+      if (secondFenceIndex !== -1) {
+        const yamlSection = inner.slice(3, secondFenceIndex).trim();
+        const diagramBody = inner.slice(secondFenceIndex + 3).trim();
+        let initPrefix = '';
+        if (/config:\s*[\s\S]*class:\s*[\s\S]*hideEmptyMembersBox:\s*true/i.test(yamlSection)) {
+          initPrefix = "%%{init: { 'class': { 'hideEmptyMembersBox': true } }}%%\n";
+        }
+        inner = `${initPrefix}${diagramBody}`;
+      }
+    }
+
+    // Escape backticks to avoid breaking the template literal
+    inner = inner.replace(/`/g, '\\`');
+
+    return `<Mermaid chart={\`${inner}\`} />`;
+  }
+
   // Restore preserved math expressions, flowcharts, and components
   content = content
     .replace(/__MATH_BLOCK_(\d+)__/g, (match, index) => mathExpressions[parseInt(index)])
     .replace(/__MATH_INLINE_(\d+)__/g, (match, index) => mathExpressions[parseInt(index)])
-    .replace(/__FLOWCHART_(\d+)__/g, (match, index) => flowcharts[parseInt(index)])
+    .replace(/__FLOWCHART_(\d+)__/g, (match, index) => convertMermaidFenceToComponent(flowcharts[parseInt(index)]))
     .replace(/__CALLOUT_(\d+)__/g, (match, index) => preservedComponents[parseInt(index)]);
 
   // Final cleanup fixes - apply these last to catch any issues from earlier transformations
