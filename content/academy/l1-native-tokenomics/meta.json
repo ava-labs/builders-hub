@@ -12,6 +12,10 @@
         "...03-precompiles",
         "---Native Minter---",
         "...04-native-minter",
+        "---Distribution---",
+        "...09-distribution",
+        "---Governance---",
+        "...10-governance",
         "More coming soon..."
     ]
 }
