@@ -5,7 +5,7 @@ description: This tutorial will show you how to add a node to the validator set 
 
 ## Introduction
 
-The [Primary Network](/docs/quick-start/primary-network)
+The [Primary Network](/docs/primary-network)
 is inherent to the Avalanche platform and validates Avalanche's built-in
 blockchains. In this
 tutorial, we'll add a node to the Primary Network on Avalanche.
@@ -27,9 +27,9 @@ our [Discord](https://chat.avalabs.org/) to ask questions.
 ## Requirements
 
 You've completed [Run an Avalanche Node](/docs/nodes/run-a-node/from-source) and are familiar with
-[Avalanche's architecture](/docs/quick-start/primary-network). In this
+[Avalanche's architecture](/docs/primary-network). In this
 tutorial, we use [AvalancheJS](/docs/tooling/avalanche-js) and
-[Avalanche's Postman collection](/docs/tooling/avalanchego-postman-collection) 
+[Avalanche's Postman collection](/docs/tooling/avalanche-postman/add-postman-collection) 
 to help us make API calls.
 
 In order to ensure your node is well-connected, make sure that your node can
@@ -45,7 +45,7 @@ First, we show you how to add your node as a validator by using [Core web](https
 
 ### Retrieve the Node ID, the BLS signature and the BLS key
 
-Get this info by calling [`info.getNodeID`](/docs/api-reference/info-api#infogetnodeid):
+Get this info by calling [`info.getNodeID`](/docs/apis/info-api#infogetnodeid):
 
 ```bash
 curl -X POST --data '{
@@ -90,13 +90,13 @@ with information like the amount staked, staking time, and more.
 ![Staking Overview](/images/node-validator.png)
 
 Calling
-[`platform.getPendingValidators`](/docs/api-reference/p-chain/api#platformgetpendingvalidators)
+[`platform.getPendingValidators`](/docs/apis/p-chain/api#platformgetpendingvalidators)
 verifies that your transaction was accepted. Note that this API call should be
 made before your node's validation start time, otherwise, the return will not
 include your node's id as it is no longer pending.
 
 You can also call
-[`platform.getCurrentValidators`](/docs/api-reference/p-chain/api#platformgetcurrentvalidators)
+[`platform.getCurrentValidators`](/docs/apis/p-chain/api#platformgetcurrentvalidators)
 to check that your node's id is included in the response.
 
 That's it!
@@ -155,7 +155,7 @@ The API URL is already set to Fuji (`https://api.avax-test.network/`).
 
 #### Retrieve the Node ID, the BLS signature and the BLS key
 
-Get this info by calling [`info.getNodeID`](/docs/api-reference/info-api#infogetnodeid):
+Get this info by calling [`info.getNodeID`](/docs/apis/info-api#infogetnodeid):
 
 ```bash
 curl -X POST --data '{
@@ -310,7 +310,7 @@ laviniatalpas@Lavinias-MacBook-Pro avalanchejs % node --loader ts-node/esm examp
 ```
 
 We can check the transaction's status by running the example script with
-[`platform.getTxStatus`](/docs/api-reference/p-chain/api#platformgettxstatus)
+[`platform.getTxStatus`](/docs/apis/p-chain/api#platformgettxstatus)
 or looking up the validator directly on the 
 [explorer](https://subnets-test.avax.network/validators/NodeID-JXJNyJXhgXzvVGisLkrDiZvF938zJxnT5).
 

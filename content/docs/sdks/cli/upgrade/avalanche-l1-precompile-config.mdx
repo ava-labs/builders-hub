@@ -18,7 +18,7 @@ This tutorial assumes that you have already [installed](/docs/tooling/get-avalan
 Generate the Upgrade File[​](#generate-the-upgrade-file "Direct link to heading")
 ---------------------------------------------------------------------------------
 
-The [Precompiles](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#network-upgrades-enabledisable-precompiles) documentation describes what files the network upgrade requires, and where to place them.
+The [Precompiles](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#network-upgrades-enabledisable-precompiles) documentation describes what files the network upgrade requires, and where to place them.
 
 To generate a valid `upgrade.json` file, run:
 
@@ -71,11 +71,11 @@ Use the arrow keys to navigate: ↓ ↑ → ←
     Transaction Allow List
 ```
 
-Refer to [Precompiles](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#precompiles) for a description of available precompiles and how to configure them.
+Refer to [Precompiles](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#precompiles) for a description of available precompiles and how to configure them.
 
 Make sure you understand precompiles thoroughly and how to configure them before attempting to continue.
 
-For every precompile in the list, the wizard guides you to provide correct information by prompting relevant questions. For the sake of this tutorial, select `Transaction Allow List`. The document [Restricting Who Can Submit Transactions](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#restricting-who-can-submit-transactions) describes what this precompile is about.
+For every precompile in the list, the wizard guides you to provide correct information by prompting relevant questions. For the sake of this tutorial, select `Transaction Allow List`. The document [Restricting Who Can Submit Transactions](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#restricting-who-can-submit-transactions) describes what this precompile is about.
 
 ```bash
 ✔ Transaction Allow List
@@ -364,7 +364,7 @@ To install the upgrade file on your validator:
    ******************************************************************************************************************
    * Upgrades are tricky. The syntactic correctness of the upgrade file is important.                               *
    * The sequence of upgrades must be strictly observed.                                                            *
-   * Make sure you understand https://build.avax.network/docs/nodes/configure/configs-flags#subnet-chain-configs  *
+   * Make sure you understand https://build.avax.network/docs/primary-network/configure/configs-flags#subnet-chain-configs  *
    * before applying upgrades manually.                                                                             *
    ******************************************************************************************************************
 ```

@@ -25,7 +25,7 @@ All IDs in this article are for illustration purposes. They can be different in 
 Virtual Machine[​](#virtual-machine "Direct link to heading")
 -------------------------------------------------------------
 
-Avalanche can run multiple blockchains. Each blockchain is an instance of a [Virtual Machine](/docs/quick-start/virtual-machines), much like an object in an object-oriented language is an instance of a class. That's, the VM defines the behavior of the blockchain.
+Avalanche can run multiple blockchains. Each blockchain is an instance of a [Virtual Machine](/docs/avalanche-l1s/virtual-machines), much like an object in an object-oriented language is an instance of a class. That's, the VM defines the behavior of the blockchain.
 
 [Subnet-EVM](https://github.com/ava-labs/subnet-evm) is the VM that defines the Avalanche L1 Contract Chains. Subnet-EVM is a simplified version of [Avalanche C-Chain](https://github.com/ava-labs/coreth).
 
@@ -356,7 +356,7 @@ To get your new Avalanche L1 information, visit the [Avalanche L1 Explorer](http
 Add a Validator[​](#add-a-validator "Direct link to heading")
 -------------------------------------------------------------
 
-Before proceeding to add a validator to our Avalanche L1, we will need to have the validator's NodeID, BLS public key and proof of possession. These can be obtained by ssh into the node itself and run the `getNodeID` API specified [here](/docs/api-reference/info-api#infogetnodeid).
+Before proceeding to add a validator to our Avalanche L1, we will need to have the validator's NodeID, BLS public key and proof of possession. These can be obtained by ssh into the node itself and run the `getNodeID` API specified [here](/docs/apis/info-api#infogetnodeid).
 
 To add a validator to an Avalanche L1, the owner of the key that acts as the controller of `ValidatorManager` contract specified in `avalanche blockchain create` command above run:
 

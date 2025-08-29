@@ -19,7 +19,7 @@ NodeID[​](#nodeid "Direct link to heading")
 If more than one running nodes share the same NodeID, the communications from other nodes in the Avalanche network to this NodeID will be random to one of these nodes. If this NodeID is of a validator, it will dramatically impact the uptime calculation of the validator which will very likely disqualify the validator from receiving the staking rewards. Please make sure only one node with the same NodeID run at one time.
 </Callout>
 
-NodeID is a unique identifier that differentiates your node from all the other peers on the network. It's a string formatted like `NodeID-5mb46qkSBj81k9g9e4VFjGGSbaaSLFRzD`. You can look up the technical background of how the NodeID is constructed [here](/docs/api-reference/standards/cryptographic-primitives#tls-addresses). In essence, NodeID is defined by two files:
+NodeID is a unique identifier that differentiates your node from all the other peers on the network. It's a string formatted like `NodeID-5mb46qkSBj81k9g9e4VFjGGSbaaSLFRzD`. You can look up the technical background of how the NodeID is constructed [here](/docs/apis/standards/cryptographic-primitives#tls-addresses). In essence, NodeID is defined by two files:
 
 - `staker.crt`
 - `staker.key`
@@ -38,7 +38,7 @@ If `staker.key` and `staker.crt` are removed from a node, which is restarted aft
 If the `signer.key` is regenerated, the node will lose its previous BLS identity, which includes its public key and proof of possession. This change means that the node's former identity on the network will no longer be recognized, affecting its ability to participate in the consensus mechanism as before. Consequently, the node may lose its established reputation and any associated staking rewards.
 
 <Callout type="warn">
-If you have users defined in the keystore of your node, then you need to back up and restore those as well. [Keystore API](/docs/api-reference/keystore-api) has methods that can be used to export and import user keys. Note that Keystore API is used by developers only and not intended for use in production nodes. If you don't know what a keystore API is and have not used it, you don't need to worry about it.
+If you have users defined in the keystore of your node, then you need to back up and restore those as well. The keystore provides methods to export and import user keys. Note that the keystore is used by developers only and not intended for use in production nodes. If you don't know what a keystore API is and have not used it, you don't need to worry about it.
 </Callout>
 
 ### Backup[​](#backup "Direct link to heading")
@@ -119,7 +119,7 @@ Once the files have been replaced, log into the machine and start the node using
 sudo systemctl start avalanchego
 ```
 
-You can now check that the node is restored with the correct NodeID and NodePOP by issuing the [getNodeID](/docs/api-reference/info-api#infogetnodeid) API call in the same console you ran the previous command:
+You can now check that the node is restored with the correct NodeID and NodePOP by issuing the [getNodeID](/docs/apis/info-api#infogetnodeid) API call in the same console you ran the previous command:
 
 ```bash
 curl -X POST --data '{

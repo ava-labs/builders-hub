@@ -5,11 +5,11 @@ description: Explore the multi-chain architecture of Avalanche ecosystem.
 
 An Avalanche L1 is a sovereign network which defines its own rules regarding its membership and token economics. It is composed of a dynamic subset of Avalanche validators working together to achieve consensus on the state of one or more blockchains. Each blockchain is validated by exactly one Avalanche L1, while an Avalanche L1 can validate many blockchains.
 
-Avalanche's [Primary Network](/docs/primary-network/overview) is a special Avalanche L1 running three blockchains:
+Avalanche's [Primary Network](/docs/primary-network) is a special Avalanche L1 running three blockchains:
 
-- The Platform Chain [(P-Chain)](/docs/primary-network/overview#p-chain)
-- The Contract Chain [(C-Chain)](/docs/primary-network/overview#c-chain)
-- The Exchange Chain [(X-Chain)](/docs/primary-network/overview#x-chain)
+- The Platform Chain [(P-Chain)](/docs/primary-network#p-chain)
+- The Contract Chain [(C-Chain)](/docs/primary-network#c-chain)
+- The Exchange Chain [(X-Chain)](/docs/primary-network#x-chain)
 
 ![image](/images/subnet1.png)
 
@@ -54,7 +54,7 @@ Avalanche L1s are ideal for organizations interested in keeping their informatio
 
 Institutions conscious of their stakeholders' privacy can create a private Avalanche L1 where the contents of the blockchains would be visible only to a set of pre-approved validators.
 
-Define this at creation with a [single parameter](/docs/avalanche-l1s/evm-configuration/avalanche-l1-configs#private-avalanche-l1).
+Define this at creation with a [single parameter](/docs/primary-network/configure/avalanche-l1-configs#private-avalanche-l1).
 
 ### Validator Sovereignty
 
@@ -92,7 +92,7 @@ Avalanche L1s are powered by gas tokens, and building your own blockchain gives 
 
 #### Decide how to Customize Your Avalanche L1
 
-Once you have selected your virtual machine, further customization may be necessary to align the blockchain with your specific needs. This might involve configuring the token allocation in the genesis block, setting gas fee rates, or making changes to the VM's behavior through precompiles. Such customizations often require careful iterative testing to perfect. For detailed instructions, refer to [Customize Your EVM-Powered Avalanche L1](/docs/avalanche-l1s/upgrade/customize-avalanche-l1).
+Once you have selected your virtual machine, further customization may be necessary to align the blockchain with your specific needs. This might involve configuring the token allocation in the genesis block, setting gas fee rates, or making changes to the VM's behavior through precompiles. Such customizations often require careful iterative testing to perfect. For detailed instructions, refer to [Customize Your EVM-Powered Avalanche L1](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1).
 
 #### Available Subnet-EVM Precompiles
 

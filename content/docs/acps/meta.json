@@ -7,6 +7,8 @@
     "---Overview---",
     "index",
     "---Standards Track ACPs---",
+    "226-dynamic-minimum-block-times",
+    "224-dynamic-gas-limit-in-subnet-evm",
     "209-eip7702-style-account-abstraction",
     "204-precompile-secp256r1",
     "194-streaming-asynchronous-execution",

@@ -7,7 +7,7 @@ description: The Avalanche Network Runner (ANR) allows a user to define, create 
 
 Developing P2P systems is hard, and blockchains are no different. A developer can't just focus on the functionality of a node, but needs to consider the dynamics of the network, the interaction of nodes and emergent system properties. A lot of testing can't be addressed by unit testing, but needs a special kind of integration testing, where the code runs in interaction with other nodes, attempting to simulate real network scenarios.
 
-In the context of Avalanche, **[Avalanche L1s](/docs/quick-start/avalanche-l1s)** are a special focus which requires new tooling and support for playing, working and testing with this unique feature of the Avalanche ecosystem.
+In the context of Avalanche, **[Avalanche L1s](/docs/avalanche-l1s)** are a special focus which requires new tooling and support for playing, working and testing with this unique feature of the Avalanche ecosystem.
 
 The ANR aims at being a tool for developers and system integrators alike, offering functionality to run networks of AvalancheGo nodes with support for custom node, Avalanche L1 and network configurations, allowing to locally test code before deploying to Mainnet or even public testnets like `fuji`.
 
@@ -293,7 +293,7 @@ It's also possible to provide individual node config parameters:
 	--node-config '{"index-enabled":false, "api-admin-enabled":true,"network-peer-list-gossip-frequency":"300ms"}'
 ```
 
-`--node-config` allows to specify specific AvalancheGo config parameters to the new node. See [here](/docs/nodes/configure/configs-flags) for the reference of supported flags.
+`--node-config` allows to specify specific AvalancheGo config parameters to the new node. See [here](/docs/primary-network/configure/configs-flags) for the reference of supported flags.
 
 **Note**: The following parameters will be _ignored_ if set in `--node-config`, because the network runner needs to set its own in order to function properly: `--log-dir` `--db-dir`
 
@@ -317,7 +317,7 @@ avalanche-network-runner control stop \
 
 ## Avalanche L1s
 
-For general Avalanche L1 documentation, please refer to [Avalanche L1s](/docs/quick-start/avalanche-l1s). ANR can be a great helper working with Avalanche L1s, and can be used to develop and test new Avalanche L1s before deploying them in public networks. However, for a smooth and guided experience, we recommend using [Avalanche-CLI](/docs/tooling/create-deploy-avalanche-l1s/deploy-locally). These examples expect a basic understanding of what Avalanche L1s are and their usage.
+For general Avalanche L1 documentation, please refer to [Avalanche L1s](/docs/avalanche-l1s). ANR can be a great helper working with Avalanche L1s, and can be used to develop and test new Avalanche L1s before deploying them in public networks. However, for a smooth and guided experience, we recommend using [Avalanche-CLI](/docs/tooling/create-deploy-avalanche-l1s/deploy-locally). These examples expect a basic understanding of what Avalanche L1s are and their usage.
 
 ### RPC Server Subnet-EVM Example
 

@@ -70,7 +70,7 @@ Once you set up the server and install AvalancheGo on them, nodes will need to b
 
 #### State Sync[​](#state-sync "Direct link to heading")
 
-If the nodes you will be running as validators don't need to have the full transaction history, then you can use [state sync](/docs/nodes/chain-configs/c-chain#state-sync-enabled). With this flag enabled, instead of replaying the whole history to get to the current state, nodes simply download only the current state from other network peers, shortening the bootstrap process from multiple days to a couple of hours. If the nodes will be used for Avalanche L1 validation exclusively, you can use the state sync without any issues. Currently, state sync is only available for the C-Chain, but since the bulk of the transactions on the platform happen there it still has a significant impact on the speed of bootstrapping.
+If the nodes you will be running as validators don't need to have the full transaction history, then you can use [state sync](/docs/primary-network/chain-configs/c-chain#state-sync-enabled). With this flag enabled, instead of replaying the whole history to get to the current state, nodes simply download only the current state from other network peers, shortening the bootstrap process from multiple days to a couple of hours. If the nodes will be used for Avalanche L1 validation exclusively, you can use the state sync without any issues. Currently, state sync is only available for the C-Chain, but since the bulk of the transactions on the platform happen there it still has a significant impact on the speed of bootstrapping.
 
 #### Database Copy[​](#database-copy "Direct link to heading")
 
@@ -95,7 +95,7 @@ General instruction on how to use a Ledger device with Avalanche can be found [h
 
 The structure that defines the most important parameters in an Avalanche L1 is found in the genesis file, which is a `json` formatted, human-readable file. Describing the contents and the options available in the genesis file is beyond the scope of this document, and if you're ready to deploy your Avalanche L1 to production you probably have it mapped out already.
 
-If you want to review, we have a description of the genesis file in our document on [customizing EVM Avalanche L1s](/docs/avalanche-l1s/upgrade/customize-avalanche-l1).
+If you want to review, we have a description of the genesis file in our document on [customizing EVM Avalanche L1s](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1).
 
 Validator Configuration[​](#validator-configuration "Direct link to heading")
 -----------------------------------------------------------------------------
@@ -147,7 +147,7 @@ That means the node has successfully bootstrapped the Avalanche L1 and is now in
 
 ### Monitoring[​](#monitoring "Direct link to heading")
 
-If you want to inspect the process of Avalanche L1 syncing, you can use the RPC call to check for the [blockchain status](/docs/api-reference/p-chain/api#platformgetblockchainstatus).
+If you want to inspect the process of Avalanche L1 syncing, you can use the RPC call to check for the [blockchain status](/docs/apis/p-chain/api#platformgetblockchainstatus).
 
 For a more in-depth look into Avalanche L1 operation, check out the blockchain log. By default, the log can be found in `~/.avalanchego/logs/ChainID.log` where you replace the `ChainID` with the actual ID of the blockchain in your Avalanche L1.
 

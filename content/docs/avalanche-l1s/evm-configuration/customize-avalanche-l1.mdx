@@ -5,7 +5,7 @@ description: Learn how to customize your EVM-powered Avalanche L1.
 
 All Avalanche L1s can be customized by utilizing [`L1s Configs`](#avalanche-l1-configs).
 
-an Avalanche L1 can have one or more blockchains. For example, the Primary Network, which is an Avalanche L1, a special one nonetheless, has 3 blockchains. Each chain can be further customized using chain specific configuration file. See [here](/docs/nodes/configure/configs-flags) for detailed explanation.
+an Avalanche L1 can have one or more blockchains. For example, the Primary Network, which is an Avalanche L1, a special one nonetheless, has 3 blockchains. Each chain can be further customized using chain specific configuration file. See [here](/docs/primary-network/configure/configs-flags) for detailed explanation.
 
 An Avalanche L1 created by or forked from [Subnet-EVM](https://github.com/ava-labs/subnet-evm) can be customized by utilizing one or more of the following methods:
 
@@ -19,11 +19,11 @@ Avalanche L1 Configs[​](#avalanche-l1-configs "Direct link to heading")
 
 an Avalanche L1 can customized by setting parameters for the following:
 
-- [Validator-only communication to create a private Avalanche L1](/docs/avalanche-l1s/evm-configuration/avalanche-l1-configs#validatoronly-bool)
-- [Consensus](/docs/avalanche-l1s/evm-configuration/avalanche-l1-configs#consensus-parameters)
-- [Gossip](/docs/avalanche-l1s/evm-configuration/avalanche-l1-configs#gossip-configs)
+- [Validator-only communication to create a private Avalanche L1](/docs/primary-network/configure/avalanche-l1-configs#validatoronly-bool)
+- [Consensus](/docs/primary-network/configure/avalanche-l1-configs#consensus-parameters)
+- [Gossip](/docs/primary-network/configure/avalanche-l1-configs#gossip-configs)
 
-See [here](/docs/avalanche-l1s/evm-configuration/avalanche-l1-configs) for more info.
+See [here](/docs/primary-network/configure/avalanche-l1-configs) for more info.
 
 Genesis[​](#genesis "Direct link to heading")
 ---------------------------------------------
@@ -511,7 +511,7 @@ In addition to the `AllowList` interface, the FeeConfigManager adds the followin
 - `setFeeConfig`: sets the dynamic fee config on chain (see [here](#fee-config) for details on the fee config parameters). This function can only be called by an `Admin`, `Manager` or `Enabled` address.
 - `FeeConfigChanged`: an event that is emitted when the fee config is updated. Topics include the sender, the old fee config, and the new fee config.
 
-You can also get the fee configuration at a block with the `eth_feeConfig` RPC method. For more information see [here](/docs/api-reference/subnet-evm-api#eth_feeconfig).
+You can also get the fee configuration at a block with the `eth_feeConfig` RPC method. For more information see [here](/docs/apis/subnet-evm-api#eth_feeconfig).
 
 #### Initial Fee Config Configuration[​](#initial-fee-config-configuration "Direct link to heading")
 
@@ -800,7 +800,7 @@ Important: An already synced database cannot be fully converted to an archival n
 
 When switching between database types (e.g., from LevelDB to PebbleDB), historical data does not carry over. If you need to change the database type for your archival node, you must start a fresh sync from genesis.
 
-For information about all available configuration options and directory structures, see the [AvalancheGo Config Flags documentation](https://build.avax.network/docs/nodes/configure/configs-flags).
+For information about all available configuration options and directory structures, see the [AvalancheGo Config Flags documentation](https://build.avax.network/docs/primary-network/configure/configs-flags).
 
 Network Upgrades: State Upgrades[​](#network-upgrades-state-upgrades "Direct link to heading")
 ----------------------------------------------------------------------------------------------

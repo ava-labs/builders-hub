@@ -3,7 +3,7 @@ title: Installing Your VM
 description: Learn how to install your VM on your node.
 ---
 
-AvalancheGo searches for and registers VM plugins under the `plugins` [directory](/docs/nodes/configure/configs-flags#--plugin-dir-string).
+AvalancheGo searches for and registers VM plugins under the `plugins` [directory](/docs/primary-network/configure/configs-flags#--plugin-dir-string).
 
 To install the virtual machine onto your node, you need to move the built virtual machine binary under this directory. Virtual machine executable names must be either a full virtual machine ID (encoded in CB58), or a VM alias.
 
@@ -48,6 +48,6 @@ Confirm the response of `loadVMs` contains the newly installed virtual machine `
 }
 ```
 
-Now, this VM's static API can be accessed at endpoints `/ext/vm/timestampvm-rs` and `/ext/vm/timestamp-rs`. For more details about VM configs, see [here](/docs/nodes/configure/configs-flags#virtual-machine-vm-configs).
+Now, this VM's static API can be accessed at endpoints `/ext/vm/timestampvm-rs` and `/ext/vm/timestamp-rs`. For more details about VM configs, see [here](/docs/primary-network/configure/configs-flags#virtual-machine-vm-configs).
 
 In this tutorial, we used the VM's ID as the executable name to simplify the process. However, AvalancheGo would also accept `timestampvm-rs` or `timestamp-rs` since those are registered aliases in previous step.
