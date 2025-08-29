@@ -13,7 +13,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Loader2, RefreshCw, Send, X, User, Bot, Sparkles, StopCircle, HelpCircle, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import { Loader2, RefreshCw, Send, X, User, Sparkles, StopCircle, HelpCircle, ChevronRight, ChevronLeft, Maximize2, Minimize2 } from 'lucide-react';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '../../lib/cn';
 import { buttonVariants } from '../ui/button';
@@ -308,6 +308,9 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
   const cleanContent = isUser ? message.content : removeFollowUpQuestions(message.content);
   const followUpQuestions = isUser ? [] : parseFollowUpQuestions(message.content);
   
+  // Check if this is a blank response from the API (likely API down)
+  const isBlankResponse = !isUser && !isStreaming && message.content.trim() === '';
+  
   // Extract tool references from AI responses - only on desktop
   const [detectedTools, setDetectedTools] = useState<string[]>([]);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
@@ -347,7 +350,23 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
             {roleName[message.role] ?? 'Unknown'}
           </p>
           <div className="prose prose-sm max-w-none dark:prose-invert">
-            <Markdown text={cleanContent} onToolClick={isMobile ? undefined : onToolReference} />
+            {isBlankResponse ? (
+              <div className="p-4 rounded-lg border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/30">
+                <div className="flex items-center gap-2 text-red-700 dark:text-red-400 mb-2">
+                  <X className="size-4" />
+                  <span className="font-medium text-sm">API Error</span>
+                </div>
+                <p className="text-sm text-red-600 dark:text-red-300 mb-3">
+                  The AI service appears to be down or returned an empty response. Please try switching to a different AI model using the dropdown below.
+                </p>
+                <div className="flex items-center gap-1 text-xs text-red-500 dark:text-red-400">
+                  <ChevronLeft className="size-3" />
+                  <span>Switch AI model in the dropdown below</span>
+                </div>
+              </div>
+            ) : (
+              <Markdown text={cleanContent} onToolClick={isMobile ? undefined : onToolReference} />
+            )}
           </div>
           
           {/* Show all tools referenced */}
@@ -757,7 +776,9 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
                   <Sparkles className="size-4 text-red-600" />
                 </div>
                 <div className="flex items-center gap-2 text-xs text-fd-muted-foreground">
-                  <div className="flex gap-1">
+                  <Loader2 className="size-3 animate-spin mr-2" />
+                  <span>AI is thinking...</span>
+                  <div className="flex gap-1 ml-2">
                     <span className="size-1.5 rounded-full bg-fd-muted-foreground/50 animate-bounce [animation-delay:-0.3s]"></span>
                     <span className="size-1.5 rounded-full bg-fd-muted-foreground/50 animate-bounce [animation-delay:-0.15s]"></span>
                     <span className="size-1.5 rounded-full bg-fd-muted-foreground/50 animate-bounce"></span>
@@ -925,7 +946,9 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
                   <Sparkles className="size-5 text-red-600" />
                 </div>
                 <div className="flex items-center gap-2 text-sm text-fd-muted-foreground">
-                  <div className="flex gap-1">
+                  <Loader2 className="size-4 animate-spin mr-2" />
+                  <span>AI is thinking...</span>
+                  <div className="flex gap-1 ml-2">
                     <span className="size-2 rounded-full bg-fd-muted-foreground/50 animate-bounce [animation-delay:-0.3s]"></span>
                     <span className="size-2 rounded-full bg-fd-muted-foreground/50 animate-bounce [animation-delay:-0.15s]"></span>
                     <span className="size-2 rounded-full bg-fd-muted-foreground/50 animate-bounce"></span>

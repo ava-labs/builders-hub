@@ -20,7 +20,7 @@ behind a load balancer to ensure high availability and high request throughput.
 The public API server is at `api.avax.network` for Avalanche Mainnet and
 `api.avax-test.network` for Avalanche Fuji Testnet. To access a particular API,
 just append the relevant API endpoint, as documented
-[here](/docs/api-reference/guides/issuing-api-calls). Namely, use the following end points for
+[here](/docs/tooling/avalanche-postman/making-api-calls). Namely, use the following end points for
 each chain respectively:
 
 #### HTTP
@@ -41,12 +41,12 @@ Note: on Fuji Testnet, the URL is `wss://api.avax-test.network/ext/bc/C/ws`.
 
 The public API server supports all the API endpoints that make sense to be
 available on a public-facing service, including APIs for the
-[X-Chain](/docs/api-reference/x-chain/api), [P-Chain](/docs/api-reference/p-chain/api),
-[C-Chain](/docs/api-reference/c-chain/api), and full archival for the Primary Network.
-However, it doesn't support [Index APIs](/docs/api-reference/index-api), which includes
+[X-Chain](/docs/apis/x-chain/api), [P-Chain](/docs/apis/p-chain/api),
+[C-Chain](/docs/apis/c-chain/api), and full archival for the Primary Network.
+However, it doesn't support [Index APIs](/docs/apis/index-api), which includes
 the X-Chain API's `getAddressTxs` method.
 
-For a full list of available APIs see [here](/docs/api-reference/p-chain/api).
+For a full list of available APIs see [here](/docs/apis/p-chain/api).
 
 #### Limitations
 
@@ -56,7 +56,7 @@ don't exist on the C-Chain's HTTP API.
 For batched C-Chain requests on the public API node, the maximum number of items
 is 40. We're working on to support a larger batch size.
 
-The maximum number of blocks to serve per `getLogs` request is 2048, which is set by [`api-max-blocks-per-request`](/docs/nodes/chain-configs/c-chain#api-max-blocks-per-request).
+The maximum number of blocks to serve per `getLogs` request is 2048, which is set by [`api-max-blocks-per-request`](/docs/primary-network/chain-configs/c-chain#api-max-blocks-per-request).
 
 #### Sticky Sessions
 

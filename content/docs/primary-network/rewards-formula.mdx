@@ -1,0 +1,130 @@
+---
+title: Rewards Formula
+description: Learn about the rewards formula for the Avalanche Primary Network validator
+---
+
+## Primary Network Validator Rewards
+
+Consider a Primary Network validator which stakes a $Stake$ amount of `AVAX` for $StakingPeriod$ seconds.
+
+The potential reward is calculated **at the beginning of the staking period**. At the beginning of the staking period there is a $Supply$ amount of `AVAX` in the network. The maximum amount of `AVAX` is $MaximumSupply$. At the end of its staking period, a responsive Primary Network validator receives a reward.
+
+$$
+Potential Reward = \left(MaximumSupply - Supply \right) \times \frac{Stake}{Supply} \times \frac{Staking Period}{Minting Period} \times EffectiveConsumptionRate
+$$
+
+where,
+
+$$
+MaximumSupply - Supply = \text{the number of AVAX tokens left to emit in the network}
+$$
+
+$$
+\frac{Stake}{Supply} = \text{the individual's stake as a percentage of all available AVAX tokens in the network}
+$$
+
+$$
+\frac{StakingPeriod}{MintingPeriod} = \text{time tokens are locked up divided by the $MintingPeriod$}
+$$
+
+$$
+\text{$MintingPeriod$ is one year as configured by the network).}
+$$
+
+$$
+EffectiveConsumptionRate =
+$$
+
+$$
+\frac{MinConsumptionRate}{PercentDenominator} \times \left(1- \frac{Staking Period}{Minting Period}\right) + \frac{MaxConsumptionRate}{PercentDenominator} \times \frac{Staking Period}{Minting Period}
+$$
+
+Note that $StakingPeriod$ is the staker's entire staking period, not just the staker's uptime, that is the aggregated time during which the staker has been responsive. The uptime comes into play only to decide whether a staker should be rewarded; to calculate the actual reward only the staking period duration is taken into account.
+
+$EffectiveConsumptionRate$ is the rate at which the Primary Network validator is rewarded based on $StakingPeriod$ selection.
+
+$MinConsumptionRate$ and $MaxConsumptionRate$ bound $EffectiveConsumptionRate$:
+
+$$
+MinConsumptionRate \leq EffectiveConsumptionRate \leq MaxConsumptionRate
+$$
+
+The larger $StakingPeriod$ is, the closer $EffectiveConsumptionRate$ is to $MaxConsumptionRate$. The smaller $StakingPeriod$ is, the closer $EffectiveConsumptionRate$ is to $MinConsumptionRate$.
+
+A staker achieves the maximum reward for its stake if $StakingPeriod$ = $Minting Period$. The reward is:
+
+$$
+Max Reward = \left(MaximumSupply - Supply \right) \times \frac{Stake}{Supply} \times \frac{MaxConsumptionRate}{PercentDenominator}
+$$
+
+Note that this formula is the same as the reward formula at the top of this section because $EffectiveConsumptionRate$ = $MaxConsumptionRate$.
+
+For reference, you can find all the Primary network parameters in [the section below](#primary-network-parameters-on-mainnet).
+
+## Delegators Weight Checks
+
+There are bounds set of the maximum amount of delegators' stake that a validator can receive.
+
+The maximum weight $MaxWeight$ a validator $Validator$ can have is:
+
+$$
+MaxWeight = \min(Validator.Weight \times MaxValidatorWeightFactor, MaxValidatorStake)
+$$
+
+where $MaxValidatorWeightFactor$ and $MaxValidatorStake$ are the Primary Network Parameters described above.
+
+A delegator won't be added to a validator if the combination of their weights and all other validator's delegators' weight is larger than $MaxWeight$. Note that this must be true at any point in time.
+
+Note that setting $MaxValidatorWeightFactor$ to 1 disables delegation since the $MaxWeight = Validator.Weight$.
+
+## Notes on Percentages
+
+`PercentDenominator = 1_000_000` is the denominator used to calculate percentages.
+
+It allows you to specify percentages up to 4 digital positions. To denominate your percentage in `PercentDenominator` just multiply it by `10_000`. For example:
+
+- `100%` corresponds to `100 * 10_000 = 1_000_000`
+- `1%` corresponds to `1* 10_000 = 10_000`
+- `0.02%` corresponds to `0.002 * 10_000 = 200`
+- `0.0007%` corresponds to `0.0007 * 10_000 = 7`
+
+## Primary Network Parameters on Mainnet
+
+For reference we list below the Primary Network parameters on Mainnet:
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| **AssetID** | `Avax` | Native asset identifier |
+| **InitialSupply** | `240,000,000 AVAX` | Initial token supply |
+| **MaximumSupply** | `720,000,000 AVAX` | Maximum possible token supply |
+| **MinConsumptionRate** | `0.10 * reward.PercentDenominator` | Minimum reward rate (10%) |
+| **MaxConsumptionRate** | `0.12 * reward.PercentDenominator` | Maximum reward rate (12%) |
+| **Minting Period** | `365 * 24 * time.Hour` | One year (reward calculation period) |
+| **MinValidatorStake** | `2,000 AVAX` | Minimum stake required to validate |
+| **MaxValidatorStake** | `3,000,000 AVAX` | Maximum stake allowed per validator |
+| **MinStakeDuration** | `2 * 7 * 24 * time.Hour` | Minimum staking period (2 weeks) |
+| **MaxStakeDuration** | `365 * 24 * time.Hour` | Maximum staking period (1 year) |
+| **MinDelegationFee** | `20000` (2%) | Minimum delegation fee rate |
+| **MinDelegatorStake** | `25 AVAX` | Minimum stake required to delegate |
+| **MaxValidatorWeightFactor** | `5` | Maximum delegation multiplier* |
+| **UptimeRequirement** | `0.8` (80%) | Minimum uptime for rewards |
+
+<Callout type="info">
+*MaxValidatorWeightFactor is a platformVM parameter shared across networks, not a genesis parameter.
+</Callout>
+
+### Interactive Graph
+
+The graph below demonstrates the reward as a function of the length of time
+staked. The x-axis depicts $\frac{StakingPeriod}{MintingPeriod}$ as a percentage
+while the y-axis depicts $Reward$ as a percentage of $MaximumSupply - Supply$,
+the amount of tokens left to be emitted.
+
+Graph variables correspond to those defined above:
+
+- `h` (high) = $MaxConsumptionRate$
+- `l` (low) = $MinConsumptionRate$
+- `s` = $\frac{Stake}{Supply}$
+
+<iframe src="https://www.desmos.com/calculator/uqtank2gcn" width="100%" height="400px"></iframe>
+

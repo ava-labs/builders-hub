@@ -1,0 +1,68 @@
+---
+title: Overview
+description: Complete API reference for Avalanche.
+---
+
+Welcome to the Avalanche API documentation! This section provides comprehensive reference documentation for all Avalanche APIs.
+
+## AvalancheGo APIs
+
+The core APIs for interacting with AvalancheGo nodes and the Avalanche Primary Network.
+
+<Cards>
+<Card title="C-Chain API" description="Ethereum-compatible JSON-RPC API for smart contracts" href="/docs/apis/c-chain/api" />
+<Card title="P-Chain API" description="Platform Chain API for validators and blockchain management" href="/docs/apis/p-chain/api" />
+<Card title="X-Chain API" description="Exchange Chain API for asset creation and trading" href="/docs/apis/x-chain/api" />
+<Card title="Admin API" description="Node administration and debugging endpoints" href="/docs/apis/admin-api" />
+</Cards>
+
+## Node Management APIs
+
+Essential APIs for node health monitoring and information retrieval.
+
+<Cards>
+<Card title="Health API" description="Check node health and status" href="/docs/apis/health-api" />
+<Card title="Info API" description="Get node information and network details" href="/docs/apis/info-api" />
+<Card title="Metrics API" description="Prometheus metrics for monitoring" href="/docs/apis/metrics-api" />
+<Card title="Index API" description="Query transaction and block data" href="/docs/apis/index-api" />
+</Cards>
+
+## Subnet EVM APIs
+
+<Cards>
+<Card title="Subnet EVM API" description="API reference for Subnet EVM instances" href="/docs/apis/subnet-evm-api" />
+</Cards>
+
+## Getting Started with APIs
+
+### Prerequisites
+
+- A running AvalancheGo node or access to a public RPC endpoint
+- Basic understanding of JSON-RPC protocol
+- API client or tool like curl, Postman, or your preferred programming language
+
+### API Format
+
+Most Avalanche APIs use the JSON-RPC 2.0 format. Here's a basic example:
+
+```bash
+curl -X POST --data '{
+    "jsonrpc": "2.0",
+    "method": "info.getNodeVersion",
+    "params": {},
+    "id": 1
+}' -H 'content-type:application/json;' https://api.avax.network/ext/info
+```
+
+### Common Endpoints
+
+- **C-Chain**: `/ext/bc/C/rpc` - Ethereum-compatible RPC
+- **P-Chain**: `/ext/bc/P` - Platform Chain operations  
+- **X-Chain**: `/ext/bc/X` - Asset creation and transfers
+- **Info**: `/ext/info` - Node and network information
+- **Health**: `/ext/health` - Health checks
+
+For detailed examples and method documentation, explore the specific API sections above.
+
+
+

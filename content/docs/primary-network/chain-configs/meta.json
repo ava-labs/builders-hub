@@ -1,0 +1,9 @@
+{
+  "title": "Chain Specific Configs",
+  "pages": [
+    "overview",
+    "p-chain",
+    "x-chain",
+    "c-chain"
+  ]
+}

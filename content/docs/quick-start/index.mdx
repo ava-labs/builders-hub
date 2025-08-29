@@ -1,29 +1,74 @@
 ---
-title: Introduction
-description: Learn about Avalanche Protocol and its unique features.
+title: Overview
+description: Get started with Avalanche - RPC endpoints, faucets, and popular topics.
 ---
 
-Avalanche is an open-source platform for building decentralized applications in one interoperable, decentralized, and highly scalable ecosystem.
+Welcome to Avalanche! This quick start guide provides essential information to get you building immediately.
 
-Powered by a uniquely powerful [consensus mechanism](/docs/quick-start/avalanche-consensus), Avalanche is the first ecosystem designed to accommodate the scale of global finance, with near-instant transaction finality.
+## RPC Endpoints
 
-## Blazingly Fast
+### Avalanche Mainnet RPC Endpoints
 
-Avalanche employs the fastest consensus mechanism of any Layer 1 blockchain. The unique consensus mechanism enables quick finality and low latency: in less than 2 seconds, your transaction is effectively processed and verified.
+| Chain | Network | RPC URL | WebSocket URL | Chain ID | Symbol | Explorer |
+|-------|---------|---------|---------------|----------|--------|----------|
+| C‑Chain | Mainnet | https://api.avax.network/ext/bc/C/rpc | wss://api.avax.network/ext/bc/C/ws | `43114` | `AVAX` | https://subnets.avax.network/c-chain |
+| P‑Chain | Mainnet | https://api.avax.network/ext/P | - | - | `AVAX` | - |
+| X‑Chain | Mainnet | https://api.avax.network/ext/X | - | - | `AVAX` | - |
 
-## Built to Scale
+### Fuji Testnet RPC Endpoints
 
-Developers who build on Avalanche can build application-specific blockchains with complex rulesets or build on existing private or public Avalanche L1s in any language.
+| Chain | Network | RPC URL | WebSocket URL | Chain ID | Symbol | Explorer |
+|-------|---------|---------|---------------|----------|--------|----------|
+| C‑Chain | Fuji Testnet | https://api.avax-test.network/ext/bc/C/rpc | wss://api.avax-test.network/ext/bc/C/ws | `43113` | `AVAX` | https://subnets-test.avax.network/c-chain |
+| P‑Chain | Fuji Testnet | https://api.avax-test.network/ext/P | - | - | `AVAX` | - |
+| X‑Chain | Fuji Testnet | https://api.avax-test.network/ext/X | - | - | `AVAX` | - |
 
-Avalanche is incredibly energy-efficient and can run easily on consumer-grade hardware. The entire Avalanche network consumes the same amount of energy as 46 US households, equivalent to 0.0005% of the amount of energy consumed by Bitcoin.
+### Get Testnet AVAX
 
-Solidity developers can build on Avalanche's implementation of the EVM straight out-of-the box, or build their own custom Virtual Machine (VM) for advanced use cases.
+To obtain free testnet AVAX for development and testing:
 
-## Advanced Security
+1. **[Toolbox Faucet](/tools/l1-toolbox/faucet)** - Request testnet tokens directly with a BuilderHub account
+2. **[Core Wallet Faucet](https://faucet.avax.network/)** - Request a faucet coupon if you don't have mainnet AVAX
+3. **[Guild](https://guild.xyz/avalanche)** - Join the Guild and request a faucet coupon if you don't have mainnet AVAX
 
-Avalanche consensus scales to thousands of concurrent validators without suffering performance degradation making it one of the most secure protocols for internet scaling systems.
+<Callout title="Note">
+If you already have AVAX on Mainnet, you can use that address to request testnet tokens from the faucet.
+</Callout>
 
-Permissionless and permissioned custom blockchains deployed as an Avalanche L1s can include custom rulesets designed to be compliant with legal and jurisdictional considerations.
+### Add Networks to Wallet
+
+Both Mainnet and Testnet explorers have an "Add to Wallet" button for easy MetaMask/wallet integration:
+
+- **Mainnet**: Visit the [C-Chain explorer](https://subnets.avax.network/c-chain) 
+- **Testnet**: Visit the [Fuji C-Chain explorer](https://subnets-test.avax.network/c-chain)
+
+Look for "Add Avalanche C-Chain to Wallet" under the "Chain Info" section.
+
+
+## Essential Links
+
+<Cards>
+<Card title="Build dApps" description="Deploy smart contracts on C-Chain" href="/docs/dapps" />
+<Card title="Create an L1" description="Build your own blockchain" href="/docs/avalanche-l1s" />
+<Card title="Run a Node" description="Participate in the Primary Network" href="/docs/primary-network" />
+</Cards>
+
+## Popular Topics
+
+<Cards>
+<Card title="Smart Contract Development" description="Build and deploy Solidity contracts" href="/docs/dapps/smart-contract-dev" />
+<Card title="API Reference" description="Complete API documentation" href="/docs/apis" />
+<Card title="Cross-Chain Messaging" description="Connect L1s with Teleporter" href="/docs/cross-chain/teleporter" />
+<Card title="Avalanche CLI" description="Command-line tool for L1 development" href="/docs/tooling/create-avalanche-l1" />
+</Cards>
+
+### Architecture
+
+Avalanche uses a unique [consensus mechanism](/docs/primary-network/avalanche-consensus) and consists of:
+
+- **[Primary Network](/docs/primary-network)**: The main network with X, P, and C-Chains
+- **[Avalanche L1s](/docs/avalanche-l1s)**: Custom blockchains with their own rules and tokens
+- **[Virtual Machines](/docs/avalanche-l1s/virtual-machines)**: Execution environments for different use cases
 
 
 
