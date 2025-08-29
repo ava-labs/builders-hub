@@ -30,7 +30,6 @@ export function NetworkActions({ onAddNetwork, isEditMode, onToggleEditMode }: N
         <Plus className="mr-2 h-3 w-3" />
         Add Network
       </DropdownMenuItem>
-      <DropdownMenuSeparator />
       <DropdownMenuItem
         onSelect={() => { try { resetAllStores() } catch { throw new Error("Reset failed")}}}
         className='cursor-pointer text-red-600 focus:text-red-700'
@@ -38,6 +37,7 @@ export function NetworkActions({ onAddNetwork, isEditMode, onToggleEditMode }: N
         <RotateCcw className="mr-2 h-3 w-3" />
         Reset
       </DropdownMenuItem>
+      <DropdownMenuSeparator />
     </>
   )
 }
