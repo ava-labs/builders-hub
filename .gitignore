@@ -150,6 +150,7 @@ package-lock.json
 
 
 
+
 # Remote content output paths
 content/docs/acps/103-dynamic-fees.mdx
 content/docs/acps/108-evm-event-importing.mdx
@@ -166,6 +167,8 @@ content/docs/acps/194-streaming-asynchronous-execution.mdx
 content/docs/acps/20-ed25519-p2p.mdx
 content/docs/acps/204-precompile-secp256r1.mdx
 content/docs/acps/209-eip7702-style-account-abstraction.mdx
+content/docs/acps/224-dynamic-gas-limit-in-subnet-evm.mdx
+content/docs/acps/226-dynamic-minimum-block-times.mdx
 content/docs/acps/23-p-chain-native-transfers.mdx
 content/docs/acps/24-shanghai-eips.mdx
 content/docs/acps/25-vm-application-errors.mdx
