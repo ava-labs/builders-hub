@@ -2,6 +2,7 @@ import InputSubnetId from "./InputSubnetId";
 import { Input, type Suggestion } from "./Input";
 import { useCreateChainStore } from "../stores/createChainStore";
 import { useL1ListStore } from "../stores/l1ListStore";
+import type { L1ListItem } from "../stores/l1ListStore";
 import { useMemo } from "react";
 
 export default function SelectSubnetId({
@@ -26,8 +27,8 @@ export default function SelectSubnetId({
     // This component adds filtering logic on top of InputSubnetId
     // If onlyNotConverted is true, it filters out converted subnets
 
-    const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
-    const l1List = useL1ListStore()(state => state.l1List);
+    const createChainStoreSubnetId = useCreateChainStore()(({ subnetId }: { subnetId: string }) => subnetId);
+    const l1List = useL1ListStore()(({ l1List }: { l1List: L1ListItem[] }) => l1List);
 
     // Create filtered suggestions if onlyNotConverted is true
     const filteredSuggestions: Suggestion[] | undefined = useMemo(() => {

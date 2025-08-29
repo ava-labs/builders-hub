@@ -25,7 +25,14 @@
         "./.source/index.ts"
       ],
       "@/*": [
-        "./*"
+        "./*",
+        "toolbox/src/*"
+      ],
+      "@/stores/*": [
+        "toolbox/src/stores/*"
+      ],
+      "@console-header/*": [
+        "toolbox/src/components/console-header/*"
       ]
     },
     "plugins": [
@@ -39,7 +46,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-, "utils/remote-content.mts"  ],
+, "utils/remote-content.mts", "hooks/getLucideIcon.tsz"  ],
   "exclude": [
     "node_modules"
   ]

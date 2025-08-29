@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
 import { ArrowRight, Clock, BookOpen, ChevronDown } from 'lucide-react';
 import { HeroBackground } from '@/components/landing/hero';
-import { guide } from '@/lib/source';
+import { blog } from '@/lib/source';
 import LearningTree from '@/components/academy/learning-tree';
 import { cn } from '@/utils/cn';
 
@@ -86,7 +86,7 @@ function Hero(): React.ReactElement {
 
 function CourseCatalog(): React.ReactElement {
   // Get all guides
-  const guides = [...guide.getPages()].sort(
+  const blogs = [...blog.getPages()].sort(
     (a, b) =>
       new Date(b.data.date ?? b.file.name).getTime() -
       new Date(a.data.date ?? a.file.name).getTime(),
@@ -182,10 +182,10 @@ function CourseCatalog(): React.ReactElement {
         <div className="mb-20">
           <div className="flex items-center gap-3 mb-8">
             <h2 className="text-xl font-bold tracking-wide text-zinc-700 dark:text-zinc-300 uppercase">
-              Quick Start Guides
+              Join The Discussion
             </h2>
             <Link 
-              href="/guides" 
+              href="/blog" 
               className="ml-auto text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 font-medium transition-colors flex items-center gap-1"
             >
               View all guides
@@ -194,10 +194,10 @@ function CourseCatalog(): React.ReactElement {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {guides.map((guide) => (
+            {blogs.map((blog) => (
               <Link
-                key={guide.url}
-                href={guide.url}
+                key={blog.url}
+                href={blog.url}
                 className={cn(
                   "group block p-6 rounded-2xl transition-all duration-200",
                   "bg-white dark:bg-zinc-900/50",
@@ -210,8 +210,8 @@ function CourseCatalog(): React.ReactElement {
                 <div className="h-full flex flex-col">
                   {/* Category Pills */}
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {guide.data.topics && guide.data.topics.length > 0 ? (
-                      guide.data.topics.slice(0, 3).map((topic: string) => {
+                    {blog.data.topics && blog.data.topics.length > 0 ? (
+                      blog.data.topics.slice(0, 3).map((topic: string) => {
                         const colorClass = getTopicColor(topic);
                         
                         return (
@@ -233,11 +233,11 @@ function CourseCatalog(): React.ReactElement {
                   {/* Content */}
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold mb-2 text-zinc-900 dark:text-white line-clamp-2 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors">
-                      {guide.data.title}
+                      {blog.data.title}
                     </h3>
                     
                     <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed line-clamp-3">
-                      {guide.data.description}
+                      {blog.data.description}
                     </p>
                   </div>
                   

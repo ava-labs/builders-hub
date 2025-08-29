@@ -13,6 +13,9 @@ import { useToolboxStore } from "../../stores/toolboxStore";
 import { getSubnetInfo } from "../../coreViem/utils/glacier";
 import { EVMAddressInput } from "../../components/EVMAddressInput";
 import { Input } from "../../components/Input";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 // Storage slot with the admin of the proxy (following EIP1967)
 const ADMIN_SLOT = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103";
@@ -120,11 +123,11 @@ export default function UpgradeProxy() {
         if (!desiredImplementation) {
             throw new Error('Implementation address is required');
         }
-        
+
         if (!proxyAddress) {
             throw new Error('Proxy address is required');
         }
-        
+
         if (!proxyAdminAddress) {
             throw new Error('Proxy admin address is required');
         }
@@ -152,48 +155,73 @@ export default function UpgradeProxy() {
     const canUpgrade = !!proxyAddress && !!proxyAdminAddress && !!desiredImplementation && isUpgradeNeeded;
 
     return (
-        <Container
-            title="Upgrade Proxy Implementation"
-            description="This will upgrade the proxy implementation to the desired implementation."
-        >
-            <EVMAddressInput
-                label="Proxy Address"
-                value={proxyAddress}
-                onChange={setProxyAddress}
-                disabled={isUpgrading}
-                placeholder="Enter proxy address"
-            />
-            <Input
-                label="Proxy Admin Address"
-                value={proxySlotAdmin || ""}
-                disabled={true}
-                placeholder="Proxy admin address will be read from storage"
-            />
-            <EVMAddressInput
-                label="Desired Implementation"
-                value={desiredImplementation || ""}
-                onChange={(value: string) => setDesiredImplementation(value)}
-                placeholder="Enter desired implementation address"
-            />
-            <Input
-                label="Current Implementation"
-                value={currentImplementation || ""}
-                disabled
-                placeholder="Current implementation address will be shown here"
-                error={contractError}
-            />
-            <Button
-                variant="primary"
-                onClick={handleUpgrade}
-                loading={isUpgrading}
-                disabled={isUpgrading || !canUpgrade}
+        <CheckWalletRequirements configKey={[
+            WalletRequirementsConfigKey.EVMChainBalance
+        ]}>
+            <Container
+                title="Upgrade Proxy Implementation"
+                description="This will upgrade the proxy implementation to the desired implementation."
             >
-                {!canUpgrade ? (isUpgradeNeeded ? "Enter All Required Addresses" : "Already Up To Date") : "Upgrade Proxy"}
-            </Button>
-            {!isUpgradeNeeded && currentImplementation && <Success
-                label="Current Implementation"
-                value={"No change needed"}
-            />}
-        </Container>
+
+                <Steps>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Select Proxy to Upgrade</h2>
+                        <p className="text-sm text-gray-500">
+                            Select the proxy contract you want to upgrade.
+                        </p>
+
+                        <EVMAddressInput
+                            label="Proxy Address"
+                            value={proxyAddress}
+                            onChange={setProxyAddress}
+                            disabled={isUpgrading}
+                            placeholder="Enter proxy address"
+                        />
+                        <Input
+                            label="Proxy Admin Address"
+                            value={proxySlotAdmin || ""}
+                            disabled
+                            placeholder="Proxy admin address will be read from storage"
+                        />
+                        <Input
+                            label="Current Implementation"
+                            value={currentImplementation || ""}
+                            disabled
+                            placeholder="Current implementation address will be shown here"
+                            error={contractError}
+                        />
+                    </Step>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Set new Implementation</h2>
+                        <p className="text-sm text-gray-500">
+                            Enter the new implementation contract you want the Proxy to point to.
+                        </p>
+
+                        <EVMAddressInput
+                            label="Desired Implementation"
+                            value={desiredImplementation || ""}
+                            onChange={(value: string) => setDesiredImplementation(value)}
+                            placeholder="Enter desired implementation address"
+                        />
+
+                        <Button
+                            variant="primary"
+                            onClick={handleUpgrade}
+                            loading={isUpgrading}
+                            disabled={isUpgrading || !canUpgrade}
+                        >
+                            {!canUpgrade ? (isUpgradeNeeded ? "Enter All Required Addresses" : "Already Up To Date") : "Upgrade Proxy"}
+                        </Button>
+
+                    </Step>
+                </Steps>
+
+
+                {!isUpgradeNeeded && currentImplementation && <Success
+                    label="Current Implementation"
+                    value={"No change needed"}
+                />}
+            </Container>
+        </CheckWalletRequirements>
     );
 };

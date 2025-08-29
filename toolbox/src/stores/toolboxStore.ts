@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage, combine } from 'zustand/middleware'
 import { useMemo } from 'react';
 import { useWalletStore } from './walletStore';
-import { useSelectedL1 } from './l1ListStore';
+import { L1ListItem, useSelectedL1 } from './l1ListStore';
 import { localStorageComp, STORE_VERSION } from './utils';
 import { useL1ListStore } from './l1ListStore';
 
@@ -59,8 +59,8 @@ export const useToolboxStore = () => {
 
 export function useViemChainStore() {
     const { walletChainId } = useWalletStore();
-    const l1List = useL1ListStore()(state => state.l1List);
-    const selectedL1 = useMemo(() => l1List.find(l1 => l1.evmChainId === walletChainId), [l1List, walletChainId]);
+    const l1List = useL1ListStore()(({ l1List }: { l1List: L1ListItem[] }) => l1List);
+    const selectedL1 = useMemo(() => l1List.find((l1: L1ListItem) => l1.evmChainId === walletChainId), [l1List, walletChainId]);
 
     const viemChain = useMemo(() => {
         if (!selectedL1) {

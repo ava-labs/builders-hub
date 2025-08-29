@@ -19,6 +19,18 @@ export function UserButton() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isAuthenticated = status === 'authenticated';
   const handleSignOut = (): void => {
+    // Clean up any stored redirect URLs before logout
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("redirectAfterProfile");
+      
+      // Clean up any form data stored in localStorage
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith("formData_")) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+    
     signOut();
   };
   console.debug('session', session, isAuthenticated);
@@ -67,6 +79,10 @@ export function UserButton() {
             <DropdownMenuItem asChild className='cursor-pointer'>
               <Link href='/profile'>Profile</Link>
             </DropdownMenuItem>
+       {/*     <DropdownMenuItem asChild className='cursor-pointer'>
+              <Link href='/profile/rewards-board'>Reward Board</Link>
+            </DropdownMenuItem>
+            */}
             <DropdownMenuItem
               onClick={() => setIsDialogOpen(true)}
               className='cursor-pointer'

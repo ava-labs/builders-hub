@@ -1,0 +1,67 @@
+---
+title: VMC Deployment Options
+description: Understanding where to deploy the PoA Validator Manager contract
+updated: 2025-07-31
+authors: [nicolasarnedo]
+icon: Book
+---
+
+While Validator Manager Contract's (VMC) location choice becomes more critical when transitioning to Proof of Stake (PoS) systems due to token staking considetations, it's important to understand these options now because **you'll need to specify the VMC location in the next section when converting your Subnet to an L1**.
+
+## Why can it be located anywhere?
+
+The PoA Validator Manager contract can be deployed on any EVM-compatible chain within the Avalanche ecosystem. Since the contract communicates with the P-Chain through Interchain Messaging (ICM), **the deployment location doesn't affect its core functionality** - validator management operations work the same regardless of where the contract resides.
+
+The Validator Manager Contract and P-chain generally follow a **Request-Process-Confirm** flow. The VMC chain initiates cross-chain communication to interact with the P-Chain for all validator operations (e.g: *adding a validator*):
+
+- **Request**: Sends `RegisterL1ValidatorMessage` to P-Chain
+- **Process**: P-Chain verifies signatures and processes the operation  
+- **Confirm**: Receives `L1ValidatorRegistrationMessage` confirmations
+
+## Deployment Options
+
+<Tabs items={['Your L1', 'C-Chain', 'Another L1']} collapsible="true">
+
+<Tab value="Your L1">
+Best for L1's that plan to remain always permissioned with PoA
+
+**Advantages**
+- Direct integration with your L1's operational setup
+- Lower operational costs
+- Can configure native token minting privileges for future PoS migration
+
+**Considerations**
+- Requires bootstrapping initial validators before contract deployment
+</Tab>
+
+<Tab value="C-Chain">
+Best for L1s planning future decentralization (PoS) or DeFi integration
+
+**Advantages**
+- Highest security and decentralization (Avalanche's primary network)
+- Can manage multiple L1s from one location
+- **DeFi Composability**: Easy integration with existing DeFi ecosystem
+- **Decentralization Path**: Ideal for transition to Proof of Stake
+
+**Considerations**
+- Higher gas costs compared to L1s
+- Potential congestion during high network usage
+</Tab>
+
+<Tab value="Another L1">
+Best for multi-chain architecture systems owned  by the same company
+
+**Advantages**
+- Centralized management across multiple L1s
+- Can leverage a "hub" L1 for coordinated operations
+
+**Considerations**
+- Technically, the implementation of this architecture is the same as deploying on the C-chain
+</Tab>
+
+</Tabs>
+
+## Proof of Authority Recommendation
+
+If you plan to keep your L1 permissioned with PoA, **deploying VMC on it is recommended** for better operational alignment.
+

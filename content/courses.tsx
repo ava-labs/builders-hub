@@ -10,7 +10,7 @@ export type Course = {
     languages: string[];
     tools: string[];
     instructors: string[];
-    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability";
+    category: "Fundamentals" | "Smart Contract Development" | "L1 Development" | "Interoperability" | "Codebase";
 };
 
 const officialCourses: Course[] = [
@@ -35,7 +35,7 @@ const officialCourses: Course[] = [
         duration: "1 hour",
         languages: [],
         tools: ["L1 Toolbox"],
-        instructors: ["Martin Eckardt", "Ash"],
+        instructors: ["Martin Eckardt", "Ash", "Nicolas Arnedo"],
         category: "Fundamentals"
     },
     {
@@ -99,6 +99,18 @@ const officialCourses: Course[] = [
         category: "L1 Development"
     },
     {
+        name: "Permissioned L1s",
+        description: "Learn how to create and manage permissioned blockchains with Proof of Authority on Avalanche",
+        slug: "permissioned-l1s",
+        icon: <SquareStackIcon />,
+        duration: "2 hours",
+        status: "featured",
+        tools: ["Validator Manager", "P-Chain", "ICM"],
+        languages: ["Solidity"],
+        instructors: ["Martin Eckardt", "Owen Wahlgren", "Nicolas Arnedo"],
+        category: "L1 Development"
+    },
+    {
         name: "AvaCloud APIs",
         description: "Learn how to leverage AvaCloud APIs to build web apps on Avalanche",
         slug: "avacloudapis",
@@ -145,7 +157,44 @@ const officialCourses: Course[] = [
         languages: ["Solidity"],
         instructors: ["Martin Eckardt", "Andrea Vargas", "Ash"],
         category: "Interoperability"
-    }
+    },
+    {
+        name: "Foundations of a Web3 Venture",
+        description: "Pending...",
+        slug: "codebase-entrepreneur-academy",
+        icon: <SquareStackIcon />,
+        status: "featured",
+        duration: "1 hour",
+        languages: [],
+        tools: ["Codebase"],
+        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
+        category: "Codebase"
+    },
+    {
+        name: "Codebase Entrepreneur: Go-to-Market",
+        description: "Master go-to-market strategies, sales, and pricing for your Web3 startup",
+        slug: "codebase-entrepreneur-go-to-market",
+        icon: <SquareStackIcon />,
+        status: "featured",
+        duration: "3 hours",
+        languages: [],
+        tools: ["Codebase"],
+        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
+        category: "Codebase"
+    },
+    {
+        name: "Web3 Community Architect",
+        description: "pending...",
+        slug: "codebase-entrepreneur-web3-community",
+        icon: <SquareStackIcon />,
+        status: "featured",
+        duration: "1 hour",
+        languages: [],
+        tools: ["Codebase"],
+        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
+        category: "Codebase"
+    },
+
     /*{
         name:"Chainlink VRF with Interchain Messaging ",
         description:"Utilize Interchain Messaging to make Chainlink VRF available on any blockchain in the Avalanche Network",

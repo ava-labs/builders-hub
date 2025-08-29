@@ -2,6 +2,8 @@
 
 import { AllowlistComponent } from "../../components/AllowListComponents";
 import { CheckPrecompile } from "../../components/CheckPrecompile";
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
+import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
 
 // Default Transaction AllowList address
 const DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS =
@@ -9,14 +11,18 @@ const DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS =
 
 export default function TransactionAllowlist() {
   return (
-    <CheckPrecompile
-      configKey="txAllowListConfig"
-      precompileName="Transaction Allowlist"
-    >
-      <AllowlistComponent
-        precompileAddress={DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS}
-        precompileType="Transaction"
-      />
-    </CheckPrecompile>
+    <CheckWalletRequirements configKey={[
+        WalletRequirementsConfigKey.EVMChainBalance,
+    ]}>
+      <CheckPrecompile
+        configKey="txAllowListConfig"
+        precompileName="Transaction Allowlist"
+      >
+        <AllowlistComponent
+          precompileAddress={DEFAULT_TRANSACTION_ALLOWLIST_ADDRESS}
+          precompileType="Transaction"
+        />
+      </CheckPrecompile>
+    </CheckWalletRequirements>
   );
 }

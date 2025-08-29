@@ -4,6 +4,7 @@ import { AddChainModal } from "./AddChainModal";
 import { useErrorBoundary } from "react-error-boundary";
 import { useState, useCallback } from "react";
 import { isDefaultChain, useL1ListStore } from "../../stores/l1ListStore";
+import type { L1ListItem } from "../../stores/l1ListStore";
 
 
 export const ChainSelector = ({ enforceChainId }: { enforceChainId?: number }) => {
@@ -25,7 +26,7 @@ export const ChainSelector = ({ enforceChainId }: { enforceChainId?: number }) =
             <div className="mb-6">
                 <h4 className="text-sm font-medium text-zinc-600 dark:text-zinc-300 mb-2">Your Networks</h4>
                 <div className="grid grid-cols-4 sm:grid-cols-2 md:grid-cols-4 gap-2">
-                    {l1List.map((chain) => {
+                    {l1List.map((chain: L1ListItem) => {
                         const isChainEnforced = enforceChainId !== undefined && chain.evmChainId !== enforceChainId;
                         return (
                             <ChainTile

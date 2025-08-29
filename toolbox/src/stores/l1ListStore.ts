@@ -3,7 +3,7 @@ import { persist, createJSONStorage, combine } from 'zustand/middleware'
 import { useWalletStore } from "./walletStore";
 import { localStorageComp, STORE_VERSION } from "./utils";
 import { useMemo } from "react";
-type L1ListItem = {
+export type L1ListItem = {
     id: string;
     name: string;
     description?: string;
@@ -102,25 +102,68 @@ const defaultChainIds = [
 export const isDefaultChain = (chainId: string) => defaultChainIds.includes(chainId)
 
 
-export const getL1ListStore = (isTestnet: boolean) => create(
-    persist(
-        combine(isTestnet ? l1ListInitialStateFuji : l1ListInitialStateMainnet, (set) => ({
-            addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
-            removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
-            reset: () => {
-                window?.localStorage.removeItem(`${STORE_VERSION}-l1-list-store-${isTestnet ? 'testnet' : 'mainnet'}`);
-            },
-        })),
-        {
-            name: `${STORE_VERSION}-l1-list-store-${isTestnet ? 'testnet' : 'mainnet'}`,
-            storage: createJSONStorage(localStorageComp),
-        },
-    ),
-)
+// Ensure singleton stores per network to keep state in sync across components
+let testnetStoreSingleton: any | null = null;
+let mainnetStoreSingleton: any | null = null;
 
+export const getL1ListStore = (isTestnet: boolean) => {
+    if (isTestnet) {
+        if (!testnetStoreSingleton) {
+            testnetStoreSingleton = create(
+                persist(
+                    combine(l1ListInitialStateFuji, (set) => ({
+                        addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
+                        removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
+                        reset: () => {
+                            window?.localStorage.removeItem(`${STORE_VERSION}-l1-list-store-testnet`);
+                        },
+                    })),
+                    {
+                        name: `${STORE_VERSION}-l1-list-store-testnet`,
+                        storage: createJSONStorage(localStorageComp),
+                    },
+                ),
+            );
+        }
+        return testnetStoreSingleton;
+    } else {
+        if (!mainnetStoreSingleton) {
+            mainnetStoreSingleton = create(
+                persist(
+                    combine(l1ListInitialStateMainnet, (set) => ({
+                        addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, l1] })),
+                        removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
+                        reset: () => {
+                            window?.localStorage.removeItem(`${STORE_VERSION}-l1-list-store-mainnet`);
+                        },
+                    })),
+                    {
+                        name: `${STORE_VERSION}-l1-list-store-mainnet`,
+                        storage: createJSONStorage(localStorageComp),
+                    },
+                ),
+            );
+        }
+        return mainnetStoreSingleton;
+    }
+}
+
+// Create a stable hook that returns the current l1List and properly subscribes to changes
+export const useL1List = () => {
+    const { isTestnet } = useWalletStore();
+    // Get the appropriate store based on testnet status
+    const store = useMemo(() => getL1ListStore(Boolean(isTestnet)), [isTestnet]);
+    // Subscribe to the l1List from the current store
+    return store((state: { l1List: L1ListItem[] }) => state.l1List);
+};
+
+// Keep the original hook but make it stable to prevent infinite loops
 export const useL1ListStore = () => {
     const { isTestnet } = useWalletStore();
-    return getL1ListStore(Boolean(isTestnet));
+    // Use useMemo to stabilize the store reference and prevent unnecessary re-renders
+    return useMemo(() => {
+        return getL1ListStore(Boolean(isTestnet));
+    }, [isTestnet]);
 }
 
 
@@ -131,7 +174,7 @@ export function useSelectedL1() {
     return useMemo(() =>
         () => {
             const l1List = l1ListStore.getState().l1List;
-            return l1List.find(l1 => l1.evmChainId === walletChainId) || undefined;
+            return l1List.find((l1: L1ListItem) => l1.evmChainId === walletChainId) || undefined;
         },
         [walletChainId, l1ListStore]
     );
@@ -143,7 +186,7 @@ export function useL1ByChainId(chainId: string) {
     return useMemo(() =>
         () => {
             const l1List = l1ListStore.getState().l1List;
-            return l1List.find(l1 => l1.id === chainId) || undefined;
+            return l1List.find((l1: L1ListItem) => l1.id === chainId) || undefined;
         },
         [chainId, l1ListStore]
     );

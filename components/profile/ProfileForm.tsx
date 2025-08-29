@@ -138,7 +138,18 @@ export default function ProfileForm({
         throw new Error(`Error while saving profile: ${error.message}`);
       });
       await update();
-      router.push("/");
+      
+      // Check for stored redirect URL and navigate there, otherwise go to home
+      const redirectUrl = typeof window !== "undefined" 
+        ? localStorage.getItem("redirectAfterProfile") 
+        : null;
+      
+      if (redirectUrl) {
+        localStorage.removeItem("redirectAfterProfile");
+        router.push(redirectUrl);
+      } else {
+        router.push("/");
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -213,7 +224,18 @@ export default function ProfileForm({
     } finally {
       await update();      
       setIsSaving(false);
-      router.push("/");
+      
+      // Check for stored redirect URL and navigate there, otherwise go to home
+      const redirectUrl = typeof window !== "undefined" 
+        ? localStorage.getItem("redirectAfterProfile") 
+        : null;
+      
+      if (redirectUrl) {
+        localStorage.removeItem("redirectAfterProfile");
+        router.push(redirectUrl);
+      } else {
+        router.push("/");
+      }
     }
   };
 

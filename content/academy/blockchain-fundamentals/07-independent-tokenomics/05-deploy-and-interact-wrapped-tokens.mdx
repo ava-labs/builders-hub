@@ -1,0 +1,103 @@
+---
+title: Deploy and Interact with Wrapped Token
+description: Learn how to deploy and interact with wrapped tokens
+updated: 2024-09-03
+authors: [0xstt]
+icon: Terminal
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In this section, we will deploy and interact with a wrapped token using **Forge** and **cast** commands. Forge simplifies smart contract deployment, and cast allows you to interact with deployed contracts.
+
+---
+
+<Steps>
+<Step>
+
+#### 1. Write the Wrapped Token Contract
+Here is a basic implementation of a wrapped token contract in Solidity:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract WrappedToken is ERC20 {
+    address public nativeTokenHolder;
+
+    constructor() ERC20("Wrapped Token", "WTKN") {}
+
+    function deposit() external payable {
+        _mint(msg.sender, msg.value);
+        nativeTokenHolder = msg.sender;
+    }
+
+    function withdraw(uint256 amount) external {
+        _burn(msg.sender, amount);
+        payable(msg.sender).transfer(amount);
+    }
+}
+```
+
+</Step>
+<Step>
+
+### Deploy ERC20 Receiver
+Deploy the Contract Using Forge's `create` Command
+
+```bash
+forge create --rpc-url myblockchain --private-key $PK WrappedToken.sol:WrappedToken --broadcast
+```
+
+</Step>
+
+<Step>
+
+### Save the Wrapped Token Address
+
+Save the `Deployed to` address in an environment variable.
+
+```bash
+export WRAPPED_TOKEN=<address>
+```
+
+</Step>
+
+<Step>
+
+### Interacting with the Deployed Contract
+
+Once the contract is deployed, you can interact with it using **cast** commands.
+
+
+<Accordions>
+<Accordion title="Depositing Native Tokens (Wrapping)">
+
+To deposit native tokens and mint wrapped tokens, use the following `cast send` command:
+
+```bash
+cast send $WRAPPED_TOKEN "deposit()" --value <AMOUNT> --rpc-url myblockchain --private-key $PK
+```
+
+- `<AMOUNT>`: The amount of native tokens you want to wrap (in wei).
+</Accordion>
+<Accordion title="Withdrawing Native Tokens (Unwrapping)">
+
+To burn the wrapped tokens and retrieve the equivalent amount of native tokens:
+
+```bash
+cast send $WRAPPED_TOKEN "withdraw(uint256)" <AMOUNT> --rpc-url myblockchain --private-key $PK
+```
+
+- `<AMOUNT>`: The number of wrapped tokens to burn and convert back to native tokens.
+</Accordion>
+</Accordions>
+
+You can use the following page for [**wei conversions**](https://snowtrace.io/unitconverter).
+
+</Step>
+
+</Steps>
+
+<Quiz quizId="202"/>

@@ -1,0 +1,52 @@
+---
+title: Transparent Proxy
+description: In-depth guide of the Transparent Proxy smart contract structure flows
+updated: 2025-01-10
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+Before we get into understanding the *genesis.json* we have deployed, it is important we fully understand this proxy pattern, as it plays an important role in updating and using the **Validator Manager contract**.
+
+### Key Components
+- **TransparentUpgradeableProxy**: Main proxy with immutable admin address for gas efficiency
+- **ProxyAdmin**: Administrative contract managing upgrades through ownership transfer capability
+- **Implementation**: Contains actual business logic, upgradeable via ProxyAdmin
+
+## Admin Flow
+
+Admins can only call upgrade functions. All other calls are blocked to prevent selector clashes.
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant Admin
+    participant ProxyAdmin
+    participant TransparentProxy
+    participant NewImplementation
+
+    Admin->>ProxyAdmin: upgradeAndCall(proxy, newImpl, data)
+    ProxyAdmin->>TransparentProxy: upgradeToAndCall(newImpl, data)
+    TransparentProxy->>TransparentProxy: _dispatchUpgradeToAndCall()
+    TransparentProxy->>NewImplementation: delegatecall(data) [if data provided]
+"
+/>
+
+## User Flow
+
+Regular users can call any function except upgrade functions, which are delegated to the implementation contract.
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant User
+    participant TransparentProxy
+    participant Implementation
+
+    User->>TransparentProxy: call someFunction()
+    Note over TransparentProxy: msg.sender != admin
+    TransparentProxy->>Implementation: delegatecall(someFunction())
+    Implementation-->>TransparentProxy: return result
+    TransparentProxy-->>User: return result
+"
+/>

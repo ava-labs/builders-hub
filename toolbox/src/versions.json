@@ -1,4 +1,5 @@
 {
-  "avaplatform/subnet-evm_avalanchego": "v0.7.5_v1.13.2",
-  "avaplatform/icm-relayer": "v1.6.5"
+  "avaplatform/avalanchego": "v1.13.4",
+  "avaplatform/subnet-evm_avalanchego": "v0.7.8_v1.13.4",
+  "avaplatform/icm-relayer": "v1.6.6"
 }

@@ -43,12 +43,12 @@ export default function AvalanchegoDocker() {
         try {
             const vmId = blockchainInfo?.vmId || SUBNET_EVM_VM_ID;
             setRpcCommand(generateDockerCommand(
-                [subnetId], 
-                isRPC, 
-                avalancheNetworkID, 
-                chainId, 
-                vmId, 
-                enableDebugTrace, 
+                [subnetId],
+                isRPC,
+                avalancheNetworkID,
+                chainId,
+                vmId,
+                enableDebugTrace,
                 pruningEnabled,
                 false // isPrimaryNetwork = false
             ));
@@ -74,30 +74,30 @@ export default function AvalanchegoDocker() {
 
         // Use AbortController to cancel previous requests
         const abortController = new AbortController();
-        
+
         setIsLoading(true);
-        
+
         const loadSubnetData = async () => {
             try {
                 const subnetInfo = await getSubnetInfo(subnetId, abortController.signal);
-                
+
                 // Check if this request was cancelled
                 if (abortController.signal.aborted) return;
-                
+
                 setSubnet(subnetInfo);
-                
+
                 // Always get blockchain info for the first blockchain (for Docker command generation)
                 if (subnetInfo.blockchains && subnetInfo.blockchains.length > 0) {
                     const blockchainId = subnetInfo.blockchains[0].blockchainId;
                     setChainId(blockchainId);
                     setSelectedRPCBlockchainId(blockchainId); // Auto-select first blockchain for RPC
-                    
+
                     try {
                         const chainInfo = await getBlockchainInfo(blockchainId, abortController.signal);
-                        
+
                         // Check if this request was cancelled
                         if (abortController.signal.aborted) return;
-                        
+
                         setBlockchainInfo(chainInfo);
                     } catch (error) {
                         if (!abortController.signal.aborted) {
@@ -115,9 +115,9 @@ export default function AvalanchegoDocker() {
                 }
             }
         };
-        
+
         loadSubnetData();
-        
+
         // Cleanup function to abort the request if component unmounts or subnetId changes
         return () => {
             abortController.abort();
@@ -152,7 +152,7 @@ export default function AvalanchegoDocker() {
     return (
         <>
             <Container
-                title="Node Setup with Docker"
+                title="L1 Node Setup with Docker"
                 description="This will start a Docker container running an RPC or validator node that tracks your L1."
             >
                 <Steps>
@@ -253,11 +253,23 @@ export default function AvalanchegoDocker() {
 
                                 <DynamicCodeBlock lang="bash" code={rpcCommand} />
 
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                    For advanced node configuration options, see the{" "}
+                                    <a
+                                        href="https://build.avax.network/docs/nodes/configure/configs-flags"
+                                        target="_blank"
+                                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                                        rel="noreferrer"
+                                    >
+                                        AvalancheGo configuration flags documentation
+                                    </a>.
+                                </p>
+
                                 {isCustomVM && (
                                     <Accordions type="single" className="mt-4">
                                         <Accordion title="Custom VM Configuration">
                                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                This blockchain uses a non-standard Virtual Machine ID. The Docker command automatically includes the <code>--vm-aliases-file-content</code> flag with base64 encoded VM aliases configuration.
+                                                This blockchain uses a non-standard Virtual Machine ID. The Docker command automatically includes the <code>AVAGO_VM_ALIASES_FILE_CONTENT</code> environment variable with base64 encoded VM aliases configuration.
                                             </p>
                                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                                                 <strong>VM ID:</strong> {blockchainInfo.vmId}<br />
