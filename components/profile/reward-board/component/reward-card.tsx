@@ -72,10 +72,19 @@ export const RewardCard = ({
         <div className="reward-card-back">
           <Card className="h-full border-0 shadow-none bg-transparent">
             <CardContent className="p-0 h-full flex items-center justify-center">
-              <div className="text-center">
-                <ul>
+              <div className="text-center px-6">
+                <h3 className="text-lg font-semibold dark:text-white text-gray-900 mb-4">
+                  Requirements
+                </h3>
+                <ul className="space-y-3 text-left">
                   {requirements?.map((requirement) => (
-                    <li key={requirement.id}>{requirement.description}</li>
+                    <li 
+                      key={requirement.id} 
+                      className="flex items-start space-x-3 text-sm text-gray-700 dark:text-gray-300"
+                    >
+                      <span className="flex-shrink-0 w-2 h-2 bg-gradient-to-r from-red-500 to-zinc-700 rounded-full mt-2"></span>
+                      <span className="leading-relaxed" style={{textDecoration: is_unlocked ?  "line-through" : "none"}}>{requirement.description}</span>
+                    </li>
                   ))}
                 </ul>
               </div>

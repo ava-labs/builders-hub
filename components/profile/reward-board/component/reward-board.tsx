@@ -16,7 +16,7 @@ export default async function RewardBoard() {
   const badges = await getAllBadges();
   const academyBadges = badges.filter((badge) => badge.category == "academy");
   const hackathonBadges:Badge[] = badges.filter((badge) => badge.category == "hackathon");
-
+  const totalPoints = userBadges.reduce((acc, userBadge) => acc + userBadge.points, 0);
   const hackathonBadgesUnlocked = hackathonBadges.map((badge) => ({
     ...badge,
     is_unlocked: userBadges.some((userBadge) => userBadge.badge_id == badge.id),
@@ -25,8 +25,6 @@ export default async function RewardBoard() {
     ...badge,
     is_unlocked: userBadges.some((userBadge) => userBadge.badge_id == badge.id),
   }));
-console.log("hackathonBadgesUnlocked",hackathonBadgesUnlocked);
-console.log("academyBadgesUnlocked",academyBadgesUnlocked);
 
   const rewards = hackathonBadgesUnlocked.map((reward) => (
     <RewardCard
@@ -61,6 +59,12 @@ console.log("academyBadgesUnlocked",academyBadgesUnlocked);
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
       <div>
+      <div className="flex flex-col gap-4 sm:gap-6 mb-2 sm:mb-4">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
+            Total Points: {totalPoints}
+          </h1>
+        </div>
+        <Separator className="mb-6 mt-6 bg-zinc-700 " />
         <div className="flex flex-col gap-4 sm:gap-6 mb-2 sm:mb-4">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
             Hackathon Badges
