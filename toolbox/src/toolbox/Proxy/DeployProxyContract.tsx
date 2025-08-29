@@ -14,6 +14,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Success } from "../../components/Success";
 import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
+import { Checkbox } from "../../components/Checkbox";
 
 export default function DeployProxyContract() {
     const { showBoundary } = useErrorBoundary();
@@ -24,6 +25,7 @@ export default function DeployProxyContract() {
     const [proxyAddress, setProxyAddress] = useState<string>("");
     const [proxyAdminAddress, setProxyAdminAddress] = useState<string>("");
     const viemChain = useViemChainStore();
+    const [acknowledged, setAcknowledged] = useState(false);
 
     async function deployProxyAdmin() {
         setIsDeployingProxyAdmin(true);
@@ -103,7 +105,16 @@ export default function DeployProxyContract() {
                 <p className="mb-3"><strong>How It Works:</strong> The proxy contract stores state and forwards function calls, while the implementation contract contains only the logic. The proxy admin manages implementation upgrades securely.</p>
 
                 <Callout type="warn" className="mb-8">
-                    If you have created the L1 that you want to deploy the Validator Manager for with the Builder Console, a proxy contract is pre-deployed with the Genesis at the address <code>0xfacade...</code> and you can skip this step. You only need this tool if you want to use the validator manager on a different L1 or if you want to deploy a new proxy contract for any reason.
+                    <div className="space-y-3">
+                        <p>
+                            If you have created the L1 that you want to deploy the Validator Manager for with the Builder Console, a proxy contract is pre-deployed with the Genesis at the address <code>0xfacade...</code> and you can skip this step. You only need this tool if you want to use the validator manager on a different L1 or if you want to deploy a new proxy contract for any reason.
+                        </p>
+                        <Checkbox
+                            label="I know what I'm doing"
+                            checked={acknowledged}
+                            onChange={setAcknowledged}
+                        />
+                    </div>
                 </Callout>
 
                 <Steps>
@@ -117,7 +128,7 @@ export default function DeployProxyContract() {
                             variant="primary"
                             onClick={deployProxyAdmin}
                             loading={isDeployingProxyAdmin}
-                            disabled={isDeployingProxyAdmin || !!proxyAdminAddress}
+                            disabled={isDeployingProxyAdmin || !!proxyAdminAddress || !acknowledged}
                             className="mt-4"
                         >
                             Deploy Proxy Admin
@@ -149,7 +160,7 @@ export default function DeployProxyContract() {
                             variant="primary"
                             onClick={deployTransparentProxy}
                             loading={isDeployingProxy}
-                            disabled={isDeployingProxy || !proxyAdminAddress || !implementationAddress}
+                            disabled={isDeployingProxy || !proxyAdminAddress || !implementationAddress || !acknowledged}
                             className="mt-4"
                         >
                             Deploy Proxy Contract
