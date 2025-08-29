@@ -1,5 +1,6 @@
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
-import { Plus, Edit3, X } from 'lucide-react'
+import { Plus, Edit3, X, RotateCcw } from 'lucide-react'
+import { resetAllStores } from '@/stores/reset'
 
 interface NetworkActionsProps {
   onAddNetwork: () => void
@@ -28,6 +29,14 @@ export function NetworkActions({ onAddNetwork, isEditMode, onToggleEditMode }: N
       >
         <Plus className="mr-2 h-3 w-3" />
         Add Network
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem
+        onSelect={() => { try { resetAllStores() } catch {} }}
+        className='cursor-pointer text-red-600 focus:text-red-700'
+      >
+        <RotateCcw className="mr-2 h-3 w-3" />
+        Reset
       </DropdownMenuItem>
     </>
   )
