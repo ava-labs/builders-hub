@@ -15,7 +15,7 @@ import { L1ExplorerButton } from "./L1ExplorerButton";
 import { PChainExplorerButton } from "./PChainExplorerButton";
 import { ChainSelector } from "./ChainSelector";
 import { PChainFaucetButton } from "./PChainFaucetButton";
-import { CChainFaucetButton } from "./CChainFaucetButton";
+import { EVMFaucetButton } from "./EVMFaucetButton";
 import { BridgeButton } from "./BridgeButton";
 import { L1DetailsModal } from "./L1DetailsModal";
 import { L1FaucetButton } from "./L1FaucetButton";
@@ -409,12 +409,8 @@ export const ConnectWallet = ({
                     address={displayedL1Address}
                     buttons={[
                       ...(isCChainMode
-                        ? [<CChainFaucetButton key="cchain-faucet" />]
-                        : [<L1FaucetButton
-                          key="l1-faucet"
-                          blockchainId={selectedL1.id}
-                          displayedL1Balance={displayedL1Balance}
-                        />]),
+                        ? [<EVMFaucetButton key="cchain-faucet" chainId={43113}/>,]
+                        : [<L1FaucetButton key="l1-faucet" blockchainId={selectedL1.id} displayedL1Balance={displayedL1Balance}/>]),
                       <L1ExplorerButton key="l1-explorer" blockchainId={selectedL1.id} />,
                       <L1DetailsModal key="l1-details" blockchainId={selectedL1.id} />,
                     ]}
@@ -456,16 +452,16 @@ export const ConnectWallet = ({
           {enforceChainId} and try again.
         </div>
       )) || (
-          <RemountOnWalletChange>
-            <div className="transition-all duration-300">
-              <div className="rounded-lg border bg-white dark:bg-slate-800 border-zinc-200 dark:border-zinc-800 mb-8">
-                <div className="border-b border-zinc-200 dark:border-zinc-800 p-6 md:p-8">
-                  {children}
-                </div>
+        <RemountOnWalletChange>
+          <div className="transition-all duration-300">
+            <div className="rounded-lg border bg-white dark:bg-slate-800 border-zinc-200 dark:border-zinc-800 mb-8">
+              <div className="border-b border-zinc-200 dark:border-zinc-800 p-6 md:p-8">
+                {children}
               </div>
             </div>
-          </RemountOnWalletChange>
-        )}
+          </div>
+        </RemountOnWalletChange>
+      )}
     </div>
   );
 };
