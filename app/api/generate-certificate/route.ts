@@ -11,10 +11,10 @@ const courseMapping: Record<string, string> = {
 
 const certificateTemplates: Record<string, string> = {
   'avalanche-fundamentals': 'AvalancheAcademy_Certificate.pdf',
-  'codebase-entrepreneur-foundations': 'codebase-foundations.png',
-  'codebase-entrepreneur-go-to-market': 'codebase-gtm.png',
-  'codebase-entrepreneur-community': 'codebase-community.png',
-  'codebase-entrepreneur-fundraising': 'codebase-fundraising.png',
+  'codebase-entrepreneur-foundations': 'codebase-foundations.pdf',
+  'codebase-entrepreneur-go-to-market': 'codebase-gtm.pdf',
+  'codebase-entrepreneur-community': 'codebase-community.pdf',
+  'codebase-entrepreneur-fundraising': 'codebase-fundraising.pdf',
 };
 
 function getCourseName(courseId: string): string {
