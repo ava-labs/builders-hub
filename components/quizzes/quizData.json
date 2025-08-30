@@ -72,6 +72,54 @@
         "943"
       ]
     },
+    "codebase-entrepreneur-fundamentals": {
+      "title": "Codebase Entrepreneur Fundamentals",
+      "quizzes": [
+        "906",
+        "907",
+        "908",
+        "909",
+        "910",
+        "911",
+        "912",
+        "913",
+        "914",
+        "915",
+        "916",
+        "917",
+        "918",
+        "919",
+        "920",
+        "921",
+        "922"
+      ]
+    },
+    "codebase-entrepreneur-go-to-market": {
+      "title": "Codebase Entrepreneur Go-to-Market",
+      "quizzes": [
+        "940",
+        "941",
+        "942",
+        "943"
+      ]
+    },
+    "codebase-entrepreneur-community": {
+      "title": "Codebase Entrepreneur Community",
+      "quizzes": [
+        "950",
+        "951",
+        "952",
+        "953",
+        "954"
+      ]
+    },
+    "codebase-entrepreneur-fundraising": {
+      "title": "Codebase Entrepreneur Fundraising",
+      "quizzes": [
+        "930",
+        "931"
+      ]
+    },
     "l1-tokenomics": {
       "title": "L1 Tokenomics",
       "quizzes": [
