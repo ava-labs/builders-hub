@@ -10,6 +10,10 @@
     "icm-chainlink",
     "l1-tokenomics",
     "l1-validator-management",
-    "permissioned-l1s"
+    "permissioned-l1s",
+    "codebase-entrepreneur-community",
+    "codebase-entrepreneur-go-to-market",
+    "codebase-entrepreneur-foundations",
+    "codebase-entrepreneur-fundraising"
   ]
 }
