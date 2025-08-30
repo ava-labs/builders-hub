@@ -3,7 +3,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 const courseMapping: Record<string, string> = {
   'avalanche-fundamentals': 'Avalanche Fundamentals',
-  'codebase-entrepreneur-fundamentals': 'Codebase Entrepreneur Fundamentals',
+  'codebase-entrepreneur-foundations': 'Codebase Entrepreneur Foundations',
   'codebase-entrepreneur-go-to-market': 'Codebase Entrepreneur Go-to-Market',
   'codebase-entrepreneur-community': 'Codebase Entrepreneur Community',
   'codebase-entrepreneur-fundraising': 'Codebase Entrepreneur Fundraising',
@@ -11,7 +11,7 @@ const courseMapping: Record<string, string> = {
 
 const certificateTemplates: Record<string, string> = {
   'avalanche-fundamentals': 'AvalancheAcademy_Certificate.pdf',
-  'codebase-entrepreneur-fundamentals': 'codebase-foundations.png',
+  'codebase-entrepreneur-foundations': 'codebase-foundations.png',
   'codebase-entrepreneur-go-to-market': 'codebase-gtm.png',
   'codebase-entrepreneur-community': 'codebase-community.png',
   'codebase-entrepreneur-fundraising': 'codebase-fundraising.png',
