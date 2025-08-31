@@ -117,6 +117,25 @@ const data = {
         },
       ],
     },
+
+    {
+      title: "Free Testnet Infrastructure",
+      icon: Box,
+      items: [
+        {
+          title: "Nodes",
+          url: "/console/testnet-infra/nodes",
+          icon: Layers,
+        },
+        {
+          title: "ICM Relayer",
+          url: "/console/testnet-infra/icm-relayer",
+          icon: Layers,
+          comingSoon: true,
+        },
+      ],
+    },
+
     {
       title: "L1 Tokenomics",
       icon: Coins,
