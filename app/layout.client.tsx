@@ -7,8 +7,8 @@ export function Body({
   children: ReactNode;
 }): React.ReactElement {
   return (
-  <div>
-    {children}
+    <div>
+      {children}
     </div>
-);
+  );
 }
