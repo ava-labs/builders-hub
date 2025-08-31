@@ -10,7 +10,6 @@ import {
   Cable,
   Bot,
   Cpu,
-  Cog,
   Snowflake,
   BriefcaseBusiness,
   MessageSquareQuote,
@@ -467,29 +466,13 @@ export const eventsMenu: LinkItemType = {
   ],
 };
 
-const userMenu: LinkItemType = {
+export const userMenu: LinkItemType = {
   type: 'custom',
   children: <UserButtonWrapper />,
   secondary: true,
 };
 
-const github: LinkItemType = {
-  type: 'icon',
-  icon: <SiGithub />,
-  url: 'https://github.com/ava-labs/avalanche-docs',
-  text: 'Github',
-  active: 'none',
-};
-
-const hackathons: LinkItemType = {
-  icon: <Cog />,
-  text: 'Hackathons',
-  url: '/hackathons',
-  active: 'nested-url',
-};
-
 export const baseOptions: BaseLayoutProps = {
-  // githubUrl: 'https://github.com/ava-labs/builders-hub',
   nav: {
     title: (
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -505,7 +488,6 @@ export const baseOptions: BaseLayoutProps = {
     eventsMenu,
     grantsMenu,
     integrationsMenu,
-    github,
     userMenu,
     blogMenu,
     stats
