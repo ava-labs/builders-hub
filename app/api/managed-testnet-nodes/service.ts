@@ -3,7 +3,7 @@ import { ManagedTestnetNodesServiceURLs } from './constants';
 import { SubnetStatusResponse, NodeInfo, SubnetStatusResponseSchema, ServiceErrorSchema } from './types';
 import { toDateFromEpoch, NODE_TTL_MS } from './utils';
 
-export async function builderHubAddNode(subnetId: string): Promise<SubnetStatusResponse> {
+export async function addNode(subnetId: string): Promise<SubnetStatusResponse> {
   const password = process.env.MANAGED_TESTNET_NODE_SERVICE_PASSWORD;
   if (!password) throw new Error('MANAGED_TESTNET_NODE_SERVICE_PASSWORD not configured');
 

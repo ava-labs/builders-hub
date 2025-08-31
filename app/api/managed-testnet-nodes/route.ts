@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimited, getUserId, validateSubnetId, jsonOk, jsonError } from './utils';
-import { builderHubAddNode, selectNewestNode, createDbNode, getUserNodes } from './service';
+import { addNode, selectNewestNode, createDbNode, getUserNodes } from './service';
 import { getBlockchainInfo } from '../../../toolbox/src/coreViem/utils/glacier';
-import { CreateNodeRequest, SubnetStatusResponse } from './types';
+import { CreateNodeRequest, CreateNodeResponse, SubnetStatusResponse } from './types';
 import { prisma } from '@/prisma/prisma';
 import { SUBNET_EVM_VM_ID } from './constants';
 
@@ -72,21 +72,20 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
     }
 
     // Make the request to Builder Hub API to add node
-    const data: SubnetStatusResponse = await builderHubAddNode(subnetId);
+    const data: SubnetStatusResponse = await addNode(subnetId);
 
     // Store the new node in database
     if (data.nodes && data.nodes.length > 0) {
       const newestNode = selectNewestNode(data.nodes);
       const createdNode = await createDbNode({ userId: userId!, subnetId, blockchainId, newestNode, chainName });
       if (!createdNode) return jsonError(409, 'Node already exists for this user (active)');
-      return jsonOk({
+      const response: CreateNodeResponse = {
         node: createdNode,
-        builder_hub_response: {
-          nodeID: newestNode.nodeInfo.result.nodeID,
-          nodePOP: newestNode.nodeInfo.result.nodePOP,
-          nodeIndex: newestNode.nodeIndex
-        }
-      }, 201);
+        nodeID: newestNode.nodeInfo.result.nodeID,
+        nodePOP: newestNode.nodeInfo.result.nodePOP,
+        nodeIndex: newestNode.nodeIndex
+      };
+      return jsonOk(response, 201);
     } else {
       return jsonError(502, 'No nodes returned from Builder Hub');
     }

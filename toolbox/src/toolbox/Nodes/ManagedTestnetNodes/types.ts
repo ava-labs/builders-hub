@@ -6,6 +6,8 @@ export interface RegisterSubnetResponse {
         publicKey: string;
         proofOfPossession: string;
     };
+    nodeIndex: number;
+    node: NodeRegistration;
 }
 
 export interface NodeRegistration {
