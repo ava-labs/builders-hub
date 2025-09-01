@@ -98,12 +98,6 @@ export const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
                   ? "Closed"
                   : `Due in: ${getTimeLeft(bounty?.deadline)}`}
               </span>
-<<<<<<< HEAD
-            </div>
-<<<<<<< HEAD
-            <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
-              <FileText size={16} color="#9F9FA9" />
-=======
             </div> */}
             <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
               <FileText size={16} color='#9F9FA9' />
@@ -111,11 +105,6 @@ export const BountyHeader: React.FC<BountyHeaderProps> = ({ bounty }) => {
                 {bounty?._count?.submissions}{" "}
                 {bounty?._count?.submissions > 1 ? "Proposals" : "Proposal"}
               </span>
-=======
-            <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
-              <FileText size={16} color='#9F9FA9' />
-              <span>{bounty?._count?.submissions} Proposals</span>
->>>>>>> 4289f3331... feat: light and dark mode
             </div>
           </div>
           <div className='flex flex-wrap gap-2 mt-2'>
@@ -178,8 +167,8 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
   const timeLeft = useCountdown(bounty?.deadline);
   const [openAuthModal, setOpenAuthModal] = useState(false);
 
-  const { data, isLoading } = useCheckBountyStatus(bounty.id);
   const { data: userData } = useFetchUserDataQuery();
+  const { data, isLoading } = useCheckBountyStatus(bounty.id, userData);
 
   return (
     <div className='bg-transparent p-4 rounded-md border border-[var(--default-border-color)] sticky top-20'>
@@ -268,16 +257,8 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
         <button
           disabled={data?.has_submitted}
           className={`w-full font-medium py-3 rounded-md transition ${
-<<<<<<< HEAD
-            data?.has_submitted || timeLeft === "Expired"
-<<<<<<< HEAD
-              ? "bg-gray-400 text-white cursor-not-allowed"
-=======
-=======
             data?.has_submitted
->>>>>>> bbf5ad0e5... fix: fixed all urgent bugs
               ? "bg-gray-400 text-[var(--white-text-color)] cursor-not-allowed"
->>>>>>> 4289f3331... feat: light and dark mode
               : "bg-red-500 hover:bg-red-600 text-white"
           }`}
           onClick={() => {
@@ -305,7 +286,6 @@ export const BountySidebar: React.FC<BountySidebarProps> = ({
             <div className='flex items-center justify-center'>
               <Loader2 color='#fff' />
             </div>
->>>>>>> 4289f3331... feat: light and dark mode
           ) : data?.has_submitted ? (
             "Already Submitted"
           ) : (

@@ -22,7 +22,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ambassador-dao/custom-select";
 import CustomButton from "@/components/ambassador-dao/custom-button";
 import {
   useExportCsv,
@@ -371,8 +371,9 @@ const JobApplications = ({ listingId }: { listingId: string }) => {
                     <StatusBadge
                       status={
                         application.status === "APPLIED"
-                          ? "Pending Review" : application.status === "IN_PROGRESS"
-                            ? "Sponsor Review"
+                          ? "Pending Review"
+                          : application.status === "IN_PROGRESS"
+                          ? "Sponsor Review"
                           : application.status ?? "N/A"
                       }
                     />

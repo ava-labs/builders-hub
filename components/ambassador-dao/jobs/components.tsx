@@ -68,8 +68,8 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
   const timeLeft = useCountdown(job?.deadline);
   const [openAuthModal, setOpenAuthModal] = useState(false);
 
-  const { data, isLoading } = useCheckJobStatus(job.id);
   const { data: userData } = useFetchUserDataQuery();
+  const { data, isLoading } = useCheckJobStatus(job.id, userData);
 
   return (
     <div className='bg-transparent p-4 rounded-md border border-[var(--default-border-color)] sticky top-20'>
@@ -93,7 +93,7 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
             <span>{job?.proposalsCount}</span>
           </span>
           <span className='text-[var(--secondary-text-color)] text-sm'>
-            Applications
+            {job?.proposalsCount > 1 ? "Applications" : "Application"}
           </span>
         </div>
         {/* <div className='flex flex-col justify-center'>
@@ -132,16 +132,8 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
         <button
           disabled={data?.has_applied}
           className={`w-full font-medium py-3 rounded-md transition ${
-<<<<<<< HEAD
-            data?.has_applied || timeLeft === "Expired"
-<<<<<<< HEAD
-              ? "bg-gray-400 text-white cursor-not-allowed"
-=======
-=======
             data?.has_applied
->>>>>>> bbf5ad0e5... fix: fixed all urgent bugs
               ? "bg-gray-400 text-[var(--white-text-color)] cursor-not-allowed"
->>>>>>> 4289f3331... feat: light and dark mode
               : "bg-red-500 hover:bg-red-600 text-white"
           }`}
           onClick={() => {
@@ -167,13 +159,9 @@ export const JobSidebar: React.FC<JobSidebarProps> = ({ job, nullAction }) => {
           }}
         >
           {isLoading ? (
-<<<<<<< HEAD
-            <Loader2 className="mx-auto" color="#FFF" />
-=======
             <div className='flex items-center justify-center'>
               <Loader2 color='#fff' />
             </div>
->>>>>>> 4289f3331... feat: light and dark mode
           ) : data?.has_applied ? (
             "Already Applied"
           ) : (
@@ -241,25 +229,13 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
                   ? "Closed"
                   : `Due in: ${getTimeLeft(job?.deadline)}`}
               </span>
-<<<<<<< HEAD
-            </div>
-<<<<<<< HEAD
-            <div className="flex items-center gap-2 text-sm text-[#9F9FA9]">
-              <FileText size={16} color="#9F9FA9" />
-=======
             </div> */}
             <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
               <FileText size={16} color='#9F9FA9' />
->>>>>>> bbf5ad0e5... fix: fixed all urgent bugs
               <span>
                 {job._count?.applications}{" "}
                 {job?._count?.applications > 1 ? "Applications" : "Application"}
               </span>
-=======
-            <div className='flex items-center gap-2 text-sm text-[var(--secondary-text-color)]'>
-              <FileText size={16} color='#9F9FA9' />
-              <span>{job._count?.applications} Applications</span>
->>>>>>> 4289f3331... feat: light and dark mode
             </div>
           </div>
           <div className='flex flex-wrap gap-2 mt-2'>

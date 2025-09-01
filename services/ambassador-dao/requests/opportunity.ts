@@ -11,7 +11,7 @@ import axiosInstance from "./axios";
 import axios from "axios";
 
 export const useFetchOpportunity = (filters = {}) => {
-  console.log(filters)
+  console.log(filters);
   return useQuery({
     queryKey: ["opportunity", filters],
     queryFn: async () => {
@@ -46,7 +46,7 @@ export const useFetchOpportunityDetails = (opportunity_id: string) => {
   });
 };
 
-export const useCheckJobStatus = (opportunity_id: string) => {
+export const useCheckJobStatus = (opportunity_id: string, user: any) => {
   return useQuery({
     queryKey: ["has-applied", opportunity_id],
     queryFn: async () => {
@@ -56,10 +56,11 @@ export const useCheckJobStatus = (opportunity_id: string) => {
       return res.data.data;
     },
     staleTime: Infinity,
+    enabled: !!user,
   });
 };
 
-export const useCheckBountyStatus = (opportunity_id: string) => {
+export const useCheckBountyStatus = (opportunity_id: string, user: any) => {
   return useQuery({
     queryKey: ["has-submitted", opportunity_id],
     queryFn: async () => {
@@ -69,6 +70,7 @@ export const useCheckBountyStatus = (opportunity_id: string) => {
       return res.data.data;
     },
     staleTime: Infinity,
+    enabled: !!user,
   });
 };
 

@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 interface DatePickerProps {
-  value?: string;
+  value?: string | Date;
   onChange?: (date: Date) => void;
   minDate?: Date;
   maxDate?: Date;
@@ -60,7 +60,6 @@ const DatePicker: React.FC<DatePickerProps> = ({
     const lastDayOfMonth = currentMonth.endOf("month");
 
     let calendarStart = firstDayOfMonth.startOf("week");
-
     let calendarEnd = lastDayOfMonth.endOf("week");
 
     const days = [];

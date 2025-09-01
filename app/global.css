@@ -368,13 +368,12 @@ nav a:not(:first-child) {
   }
 
   /* for hiding avagpt */
-  [data-open="true"] {
-    z-index: 250;
-  }
+[data-open="true"] {
+  z-index: 250;
+}
 
-  [data-state="open"] {
-    z-index: 450;
-  }
+[data-state="open"] {
+  z-index: 450;
 }
 
 .tools-page svg.lucide {
@@ -786,11 +785,9 @@ html body[data-scroll-locked] {
   --black-background-color: #fff;
   --default-border-color: #d4d4d8;
   --default-background-color: #fafafa;
-  --category-bg-color: #E4E4E7;
-  --drop-shadow: #FFFFFF66;
-  --category-bg: #F4F4F5;
-
-
+  --category-bg-color: #e4e4e7;
+  --drop-shadow: #ffffff66;
+  --category-bg: #f4f4f5;
 }
 
 /* light */
@@ -801,16 +798,14 @@ html body[data-scroll-locked] {
   --black-background-color: #000;
   --default-border-color: #27272a;
   --default-background-color: #09090b;
-  --category-bg-color: #27272A;
+  --category-bg-color: #27272a;
   --drop-shadow: #16161699;
-  --category-bg: #18181B;
+  --category-bg: #18181b;
 
-
-  
   .bg-card-grad {
     background-image: url(../public/ambassador-dao-images/how-it-works.svg);
     background-repeat: no-repeat;
-     background-position: right center;
+    background-position: right center;
     background-size: cover;
     position: relative;
     border: none;
@@ -833,7 +828,6 @@ html body[data-scroll-locked] {
     background-size: contain;
     position: relative;
   }
-  
 }
 .markdownDescription {
   h1 {
@@ -867,8 +861,6 @@ html body[data-scroll-locked] {
   }
 }
 
-
-
 header a[data-active="true"] {
   color: #000000 !important;
 }
@@ -878,10 +870,6 @@ header a[data-active="true"] {
   background-repeat: no-repeat;
   background-position: center;
 }
-
-
-
-
 
 .red-card-bg {
   background-image: url(../public/ambassador-dao-images/red-card-bg.svg);
@@ -907,12 +895,15 @@ header a[data-active="true"] {
   position: relative;
 }
 
-
 .bg-card-grad {
-background: linear-gradient(91.94deg, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0) 51.64%);
-background-repeat: no-repeat;
+  background: linear-gradient(
+    91.94deg,
+    rgba(0, 0, 0, 0.12) 0%,
+    rgba(0, 0, 0, 0) 51.64%
+  );
+  background-repeat: no-repeat;
   background-position: right center;
- background-size: cover;
- position: relative;
- border: 1px solid #F4F4F5;
+  background-size: cover;
+  position: relative;
+  border: 1px solid #f4f4f5;
 }

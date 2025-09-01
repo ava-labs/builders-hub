@@ -63,12 +63,12 @@ export const CreateListingModal = ({
               <div
                 key={idx}
                 className={`rounded-xl border border-[var(--default-border-color)] bg-[var(--default-background-color)] p-6 flex-1 cursor-pointer space-y-4
-                  ${
-                    listingType === type.id.toUpperCase()
-                      ? "border-[#FB2C36]"
-                      : ""
-                  }
-                `}
+                    ${
+                      listingType === type.id.toUpperCase()
+                        ? "border-[#FB2C36]"
+                        : ""
+                    }
+                  `}
                 onClick={() => setListingType(type.id.toUpperCase() as any)}
               >
                 <div className='bg-zinc-200 dark:bg-[#000] rounded-md h-36 md:h-44 relative overflow-hidden'>

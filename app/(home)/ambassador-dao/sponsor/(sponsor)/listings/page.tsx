@@ -12,22 +12,14 @@ import { Input } from "@/components/ui/input";
 import Avalance3d from "@/public/ambassador-dao-images/3d.png";
 import EmptyWhite from "@/public/ambassador-dao-images/emptyWhite.png";
 import DefaultAvatar from "@/public/ambassador-dao-images/Avatar.svg";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// import {
+//   Select,
+//   SelectContent,
+//   SelectItem,
+//   SelectTrigger,
+//   SelectValue,
+// } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -46,6 +38,21 @@ import Loader from "@/components/ambassador-dao/ui/Loader";
 import { StatusBadge } from "@/components/ambassador-dao/status-badge";
 import { DeleteOpportunityModal } from "@/components/ambassador-dao/sections/delete-opportunity-modal";
 import toast from "react-hot-toast";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ambassador-dao/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ambassador-dao/custom-select";
 // Mock data
 const mockUser = {
   name: "John Doe",
