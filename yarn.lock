@@ -6050,12 +6050,12 @@ format@^0.2.0:
   integrity sha512-wzsgA6WOq+09wrU1tsJ09udeR/YZRaeArL9e1wPbFg3GG2yDnC2ldKpxs4xunpFF9DgqCqOIra3bc1HWrJ37Ww==
 
 framer-motion@^12.5.0:
-  version "12.23.12"
+  version "12.5.0"
   resolved "https://registry.yarnpkg.com/framer-motion/-/framer-motion-12.23.12.tgz#80cf6fd7c111073a0c558e336c85ca36cca80d3d"
   integrity sha512-6e78rdVtnBvlEVgu6eFEAgG9v3wLnYEboM8I5O5EXvfKC8gxGQB8wXJdhkMy10iVcn05jl6CNw7/HTsTCfwcWg==
   dependencies:
-    motion-dom "^12.23.12"
-    motion-utils "^12.23.6"
+    motion-dom "^12.5.0"
+    motion-utils "^12.5.0"
     tslib "^2.4.0"
 
 fsevents@2.3.3, fsevents@~2.3.2, fsevents@~2.3.3:
