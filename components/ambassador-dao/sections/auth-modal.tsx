@@ -1,4 +1,8 @@
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ambassador-dao/dialog";
 import { Mail } from "lucide-react";
 import React, { useState, useEffect, Suspense } from "react";
 import { VerificationInput } from "../verification-code";
@@ -16,6 +20,8 @@ import CustomButton from "../custom-button";
 import CustomInput from "../input";
 import { API_DEV } from "@/services/ambassador-dao/data/constants";
 import FullScreenLoader from "@/components/ambassador-dao/full-screen-loader";
+import { useNavigationWithLoading } from "@/utils/useNavigationWithLoading";
+import LoadingOverlay from "../loading-overlay";
 
 interface IAuthModalProps {
   isOpen: boolean;
@@ -80,7 +86,7 @@ export const AuthModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={onCloseModal}>
       <DialogContent
-        className='max-w-3xl h-full bg-gray-50 dark:bg-[#09090B]'
+        className='max-w-2xl bg-[#fafafa] dark:bg-[#09090B]'
         showClose
       >
         <DialogTitle></DialogTitle>
@@ -112,8 +118,10 @@ const OptionsStep = ({ setCurrentStep }: OptionsStepProps) => {
   return (
     <div className='flex flex-col items-center justify-center h-full p-4 md:p-6 max-w-md mx-auto'>
       <div className='mb-8 md:mb-12 text-center'>
-        <h1 className='text-[#FAFAFA] text-2xl font-medium'>Log in</h1>
-        <p className='text-[#9F9FA9] text-sm'>
+        <h1 className='text-[var(--primary-text-color)] text-2xl font-medium'>
+          Log in
+        </h1>
+        <p className='text-[var(--secondary-text-color)] text-sm'>
           Log in with email or choose another method
         </p>
       </div>
@@ -126,7 +134,7 @@ const OptionsStep = ({ setCurrentStep }: OptionsStepProps) => {
 
         <div className='w-full gap-4 flex items-center'>
           <hr className='w-full ' />
-          <p className='whitespace-nowrap uppercase text-[#9F9FA9] text-xs'>
+          <p className='whitespace-nowrap uppercase text-[var(--secondary-text-color)] text-xs'>
             Or sign in with
           </p>
           <hr className='w-full' />
@@ -137,7 +145,7 @@ const OptionsStep = ({ setCurrentStep }: OptionsStepProps) => {
         </CustomButton>
       </div>
 
-      <p className='text-sm font-normal text-[#A1A1AA] mt-8 md:mt-16 text-center'>
+      <p className='text-sm font-normal text-[#6b6b74] dark:text-[#A1A1AA] mt-8 md:mt-16 text-center'>
         By clicking continue, you agree to our{" "}
         <span className='underline'>Terms of Service</span> and{" "}
         <span className='underline'>Privacy Policy.</span>
@@ -173,8 +181,10 @@ const EmailStep = ({ setCurrentStep, setEmail }: EmailStepProps) => {
   return (
     <div className='flex flex-col items-center justify-center h-full p-4 md:p-6 max-w-md mx-auto'>
       <div className='mb-8 text-center'>
-        <h1 className='text-[#FAFAFA] text-2xl font-medium'>Log in</h1>
-        <p className='text-[#9F9FA9] text-sm'>
+        <h1 className='text-[var(--primary-text-color)] text-2xl font-medium'>
+          Log in
+        </h1>
+        <p className='text-[var(--secondary-text-color)] text-sm'>
           Log in with email or choose another method
         </p>
       </div>
@@ -187,8 +197,10 @@ const EmailStep = ({ setCurrentStep, setEmail }: EmailStepProps) => {
               placeholder='name@example.com'
               id='email'
               className={`bg-transparent border ${
-                errors.email ? "border-red-500" : "border-[#27272A]"
-              } rounded-md w-full h-10 px-3 text-[#FAFAFA] text-sm focus:outline-none`}
+                errors.email
+                  ? "border-red-500"
+                  : "border-[var(--default-border-color)]"
+              } rounded-md w-full h-10 px-3 text-[var(--primary-text-color)] text-sm focus:outline-none`}
               required
               {...register("email", {
                 required: "Email is required",
@@ -216,7 +228,7 @@ const EmailStep = ({ setCurrentStep, setEmail }: EmailStepProps) => {
         </form>
       </div>
 
-      <p className='text-sm font-normal text-[#A1A1AA] mt-8 md:mt-16 text-center'>
+      <p className='text-sm font-normal text-[#6b6b74] dark:text-[#A1A1AA] mt-8 md:mt-16 text-center'>
         By clicking continue, you agree to our{" "}
         <span className='underline'>Terms of Service</span> and{" "}
         <span className='underline'>Privacy Policy.</span>
@@ -237,6 +249,7 @@ const VerificationStep = ({
   stopRedirection,
 }: VerificationStepProps) => {
   const router = useRouter();
+  const { navigateWithLoading, isNavigating } = useNavigationWithLoading();
   const [code, setCode] = useState("");
   const {
     register,
@@ -244,7 +257,7 @@ const VerificationStep = ({
     formState: { errors },
   } = useForm<{ code: string }>();
   const { mutateAsync: verifyPasscodeMutation, isPending } =
-    useVerifyPasscodeMutation(stopRedirection);
+    useVerifyPasscodeMutation(stopRedirection, onClose, navigateWithLoading);
   const requestPasscodeMutation = useRequestPasscodeMutation();
   const [resendDisabled, setResendDisabled] = useState(true);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -295,7 +308,6 @@ const VerificationStep = ({
         email,
         passcode: code,
       });
-      onClose();
     } catch (error) {
       // Error handling is done in the mutation
     }
@@ -303,33 +315,38 @@ const VerificationStep = ({
 
   return (
     <div className='flex flex-col items-center justify-center h-full p-4 md:p-6 max-w-md mx-auto'>
+      {isNavigating && <LoadingOverlay message='Redirecting to dashboard...' />}
       <div className='mb-8 text-center'>
-        <h1 className='text-[#FAFAFA] text-2xl font-medium'>
+        <h1 className='text-[var(--primary-text-color)] text-2xl font-medium'>
           Verify Your Email
         </h1>
-        <p className='text-[#9F9FA9] text-sm'>
+        <p className='text-[var(--secondary-text-color)] text-sm'>
           Please enter the 6-digit code sent to {email}
         </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className='w-full'>
-        <VerificationInput onChange={(code) => setCode(code)} />
+        <VerificationInput
+          onChange={(code) => setCode(code.toLocaleUpperCase())}
+        />
 
         <CustomButton
           type='submit'
-          disabled={isPending}
+          disabled={isPending || isNavigating}
           className='mt-6 md:mt-8'
-          isLoading={isPending}
+          isLoading={isPending || isNavigating}
         >
           {"Verify Email"}
         </CustomButton>
       </form>
 
-      <p className='text-sm font-normal text-[#FAFAFA] mt-6 md:mt-10 text-center'>
+      <p className='text-sm font-normal text-[var(--primary-text-color)] mt-6 md:mt-10 text-center'>
         Didn't receive a code?{" "}
         <span
           className={`${
-            resendDisabled ? "text-[#9F9FA9]" : "text-[#FB2C36] cursor-pointer"
+            resendDisabled
+              ? "text-[var(--secondary-text-color)]"
+              : "text-[#FB2C36] cursor-pointer"
           }`}
           onClick={resendDisabled ? undefined : handleResend}
         >
@@ -337,7 +354,7 @@ const VerificationStep = ({
         </span>
       </p>
 
-      <p className='text-sm font-normal text-[#FAFAFA] mt-8 md:mt-12 text-center'>
+      <p className='text-sm font-normal text-[var(--primary-text-color)] mt-8 md:mt-12 text-center'>
         {resendDisabled
           ? `You can request a new code in ${formatTime(timeLeft)} seconds.`
           : "You can request a new code now."}

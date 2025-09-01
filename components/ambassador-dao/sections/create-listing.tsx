@@ -11,6 +11,7 @@ import {
   BriefcaseBusiness,
   X,
   Trash2,
+  Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UsdcToken from "@/public/images/usdc-token.svg";
@@ -20,7 +21,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ambassador-dao/custom-select";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -42,10 +43,13 @@ import { useForm, useFieldArray, Controller } from "react-hook-form";
 import dynamic from "next/dynamic";
 import FullScreenLoader from "../full-screen-loader";
 import { PublishOpportunityModal } from "./publish-opportunity-modal";
+import toast from "react-hot-toast";
+import DatePicker from "../DatePicker";
+import Loader from "../ui/Loader";
+import { Textarea } from "@/components/ui/textarea";
 const MarkdownEditor = dynamic(() => import("../markdown-editor"), {
   ssr: false,
 });
-const markdown = `Hello **world**!`;
 
 export default function AmbasssadorDaoSponsorsCreateListing({
   type,
@@ -78,17 +82,18 @@ export default function AmbasssadorDaoSponsorsCreateListing({
       end_date: null,
       requirements: "",
       max_winners: 1,
-      total_budget: 0,
+      total_budget: undefined,
       skill_ids: [],
       file_ids: [],
       custom_questions: [],
       point_of_contact: "",
-      prize_distribution: type === "BOUNTY" ? [{ position: 1, amount: 0 }] : [],
+      point_of_contact_email: "",
+      prize_distribution:
+        type === "BOUNTY" ? [{ position: 1, amount: undefined }] : [],
       should_publish: false,
     },
   });
 
-  // Prize distribution field array for BOUNTY type
   const {
     fields: prizeFields,
     append: appendPrize,
@@ -98,17 +103,14 @@ export default function AmbasssadorDaoSponsorsCreateListing({
     name: "prize_distribution",
   });
 
-  // Watch for form values
   const startDate = watch("start_date");
   const formType = watch("type");
   const customQuestionFields = watch("custom_questions");
 
-  // Set selected skills in form when they change
   useEffect(() => {
     setValue("skill_ids", selectedSkills);
   }, [selectedSkills, setValue]);
 
-  // Populate form with listing details when in edit mode
   useEffect(() => {
     if (id && listingDetails) {
       setValue("title", listingDetails.title);
@@ -127,6 +129,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
       setValue("file_ids", listingDetails.files);
       setValue("custom_questions", listingDetails.custom_questions || []);
       setValue("point_of_contact", listingDetails.point_of_contact);
+      setValue("point_of_contact_email", listingDetails.point_of_contact_email);
       if (listingDetails.prize_distribution) {
         setValue("prize_distribution", listingDetails.prize_distribution);
       }
@@ -145,10 +148,10 @@ export default function AmbasssadorDaoSponsorsCreateListing({
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [opportunityId, setOpportunityId] = useState<string | null>(null);
 
-  // Handle route changes
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isNavigating, setIsNavigating] = useState(false);
+  const [buttonState, setButtonState] = useState<string>("");
 
   useEffect(() => {
     if (isDirty && isNavigating) {
@@ -169,6 +172,10 @@ export default function AmbasssadorDaoSponsorsCreateListing({
   };
 
   const onSubmitContinue = async (data: ICreateOpportunityBody) => {
+    if (getValues("total_budget") <= 0) {
+      toast.error("Total prize / reward must be greater than $0");
+      return;
+    }
     if (id) {
       await updateOpportunity(data);
       setOpportunityId(id);
@@ -182,6 +189,10 @@ export default function AmbasssadorDaoSponsorsCreateListing({
   };
 
   const onSubmitPreview = async (data: ICreateOpportunityBody) => {
+    if (getValues("total_budget") <= 0) {
+      toast.error("Total prize / reward must be greater than $0");
+      return;
+    }
     if (id) {
       const res = await updateOpportunity(data);
       router.push(
@@ -205,13 +216,11 @@ export default function AmbasssadorDaoSponsorsCreateListing({
     setSelectedSkills(updated);
   };
 
-  // Function to add a custom question
   const addCustomQuestion = () => {
     const updatedQuestions = [...(customQuestionFields || []), ""];
     setValue("custom_questions", updatedQuestions);
   };
 
-  // Function to remove a custom question
   const removeCustomQuestion = (index: number) => {
     const updatedQuestions = customQuestionFields?.filter(
       (_, i) => i !== index
@@ -219,7 +228,6 @@ export default function AmbasssadorDaoSponsorsCreateListing({
     setValue("custom_questions", updatedQuestions);
   };
 
-  // Helper function to set end date based on weeks from start date
   const setEndDateFromWeeks = (weeks: number) => {
     if (startDate) {
       const newEndDate = addWeeks(new Date(startDate), weeks);
@@ -227,14 +235,12 @@ export default function AmbasssadorDaoSponsorsCreateListing({
     }
   };
 
-  // Calculate total budget for BOUNTY type
   const calculateTotalBudget = () => {
     const prizes = watch("prize_distribution") || [];
     const total = prizes.reduce((sum, prize) => sum + (prize.amount || 0), 0);
     setValue("total_budget", total);
   };
 
-  // Update total budget when prize amounts change
   useEffect(() => {
     const type = watch("type");
     if (type === "BOUNTY") {
@@ -251,7 +257,6 @@ export default function AmbasssadorDaoSponsorsCreateListing({
     }
   }, [watch("type")]);
 
-  // Handle unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
@@ -274,39 +279,54 @@ export default function AmbasssadorDaoSponsorsCreateListing({
       ) : (
         <>
           {" "}
-          <div className='p-4 md:p-8 m-4 md:m-8 bg-[#09090B] border border-[#27272A] rounded-md'>
+          <div className='p-4 md:p-8 m-4 md:m-8 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-md'>
             <div className='max-w-7xl mx-auto'>
               <div className='flex justify-between mb-8'>
                 <Button
                   variant='outline'
                   onClick={goBack}
-                  className='text-[#FAFAFA] border-[#27272A]'
+                  className='text-[var(--primary-text-color)] border-[var(--default-border-color)]'
                 >
-                  <ArrowLeft className='mr-1 h-4 w-4' color='#FAFAFA' /> Go Back
+                  <ArrowLeft
+                    className='mr-1 h-4 w-4'
+                    color='var(--primary-text-color)'
+                  />{" "}
+                  Go Back
                 </Button>
 
                 <div className='flex space-x-3'>
                   <CustomButton
                     variant='white'
-                    className='px-4 text-[#18181B]'
-                    onClick={handleSubmit(onSubmitPreview)}
-                    isLoading={isPending}
+                    className='px-4'
+                    onClick={() => {
+                      setButtonState("preview");
+                      handleSubmit(onSubmitPreview)();
+                    }}
+                    isLoading={isPending && buttonState === "preview"}
                     disabled={
-                      (type === "BOUNTY" && prizeFields.length === 0) ||
-                      selectedSkills.length === 0
+                      (formType === "BOUNTY" && prizeFields.length === 0) ||
+                      selectedSkills.length === 0 ||
+                      isPending
                     }
                   >
-                    <Eye className='mr-1 h-4 w-4' color='#18181B' />
+                    <Eye
+                      className='mr-1 h-4 w-4'
+                      color='var(--black-background-color)'
+                    />
                     Preview
                   </CustomButton>
                   <CustomButton
-                    onClick={handleSubmit(onSubmitContinue)}
-                    isLoading={isPending}
+                    onClick={() => {
+                      setButtonState("continue");
+                      handleSubmit(onSubmitContinue)();
+                    }}
+                    isLoading={isPending && buttonState === "continue"}
                     variant={"danger"}
                     className='px-4'
                     disabled={
-                      (type === "BOUNTY" && prizeFields.length === 0) ||
-                      selectedSkills.length === 0
+                      (formType === "BOUNTY" && prizeFields.length === 0) ||
+                      selectedSkills.length === 0 ||
+                      isPending
                     }
                   >
                     Continue
@@ -317,9 +337,8 @@ export default function AmbasssadorDaoSponsorsCreateListing({
               <form onSubmit={handleSubmit(onSubmitContinue)}>
                 <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
                   <div className='lg:col-span-2 space-y-6'>
-                    {/* Title Section */}
                     <div className='space-y-1'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         Listing Title
                         <span className='text-red-500 ml-1'>*</span>
                       </label>
@@ -331,26 +350,26 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             <Select
                               value={field.value}
                               onValueChange={field.onChange}
-                              iconColor='#FAFAFA'
+                              iconColor='var(--primary-text-color)'
                             >
-                              <SelectTrigger className='min-w-32 bg-[#09090B] border-[#27272A] focus:outline-none !h-10 my-2'>
+                              <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
                                 <SelectValue placeholder='Select' />
                               </SelectTrigger>
-                              <SelectContent className='bg-[#09090B] text-[#FAFAFA]'>
+                              <SelectContent className='bg-[#fafafa] dark:bg-[#09090B] text-[var(--primary-text-color)]'>
                                 <SelectItem value='JOB'>
                                   <div className='flex items-center'>
                                     <BriefcaseBusiness
                                       className='mr-2'
-                                      color='#FAFAFA'
+                                      color='var(--primary-text-color)'
                                     />
                                     Job
                                   </div>
                                 </SelectItem>
                                 <SelectItem value='BOUNTY'>
                                   <div className='flex items-center'>
-                                    <BriefcaseBusiness
+                                    <Lightbulb
                                       className='mr-2'
-                                      color='#FAFAFA'
+                                      color='var(--primary-text-color)'
                                     />
                                     Bounty
                                   </div>
@@ -380,18 +399,15 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       )}
                     </div>
 
-                    {/* Requirements Section */}
                     <div className='space-y-2'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         Requirements
-                        <span className='text-red-500 ml-1'>*</span>
                       </label>
                       <Controller
                         name='requirements'
                         control={control}
-                        rules={{ required: "Requirements is required" }}
                         render={({ field }) => (
-                          <CustomInput
+                          <Textarea
                             {...field}
                             className='w-full'
                             placeholder='English speaking candidates only'
@@ -405,17 +421,27 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       )}
                     </div>
 
-                    {/* Description Section */}
                     <div className='space-y-2'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         Description
                         <span className='text-red-500 ml-1'>*</span>
                       </label>
-                      <Suspense fallback={null}>
-                        <MarkdownEditor
-                          markdown={getValues("description") ?? markdown}
-                          setValue={setValue}
-                        />
+                      <Suspense fallback={<Loader />}>
+                        {id ? (
+                          listingDetails &&
+                          listingDetails?.description &&
+                          getValues("description") && (
+                            <MarkdownEditor
+                              markdown={getValues("description")}
+                              setValue={setValue}
+                            />
+                          )
+                        ) : (
+                          <MarkdownEditor
+                            markdown={getValues("description")}
+                            setValue={setValue}
+                          />
+                        )}
                       </Suspense>
                       {errors.description && (
                         <p className='text-red-500 text-xs mt-1'>
@@ -426,19 +452,21 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                   </div>
 
                   <div className='lg:col-span-1 space-y-6'>
-                    {/* Rewards Section - Conditional based on type */}
                     {formType === "JOB" ? (
                       <div className='space-y-1'>
-                        <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                        <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                           Add Rewards
                           <span className='text-red-500 ml-1'>*</span>
                         </label>
                         <div className='flex items-center gap-2'>
-                          <Select defaultValue='USDC' iconColor='#FAFAFA'>
-                            <SelectTrigger className='min-w-32 bg-[#09090B] border-[#27272A] focus:outline-none !h-10 my-2'>
+                          <Select
+                            defaultValue='USDC'
+                            iconColor='var(--primary-text-color)'
+                          >
+                            <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className='bg-[#09090B] text-[#FAFAFA]'>
+                            <SelectContent className='bg-[var(--default-background-color)] text-[var(--primary-text-color)]'>
                               <SelectItem value='USDC'>
                                 <div className='flex items-center'>
                                   <Image
@@ -457,16 +485,35 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           <Controller
                             name='total_budget'
                             control={control}
-                            rules={{ required: "Reward is required" }}
+                            rules={{
+                              required: "Reward is required",
+                              min: {
+                                value: 1,
+                                message: "Reward must be greater than $0",
+                              },
+                            }}
                             render={({ field }) => (
                               <CustomInput
                                 {...field}
+                                min={1}
                                 type='number'
-                                className='w-full'
+                                className='w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
                                 placeholder='100'
-                                onChange={(e) =>
-                                  field.onChange(Number(e.target.value))
-                                }
+                                onChange={(e) => {
+                                  const inputValue = e.target.value;
+                                  if (inputValue === "") {
+                                    field.onChange("");
+                                  } else if (+inputValue === 0) {
+                                    field.onChange("");
+                                  } else {
+                                    const numValue = Number(inputValue);
+                                    if (numValue < 1) {
+                                      field.onChange("");
+                                    } else {
+                                      field.onChange(numValue);
+                                    }
+                                  }
+                                }}
                               />
                             )}
                           />
@@ -479,7 +526,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       </div>
                     ) : (
                       <div className='space-y-4'>
-                        <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                        <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                           Prize Distribution
                           <span className='text-red-500 ml-1'>*</span>
                         </label>
@@ -493,7 +540,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
 
                         {prizeFields.map((field, index) => (
                           <div key={field.id} className='space-y-1'>
-                            <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                            <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                               {index === 0
                                 ? "First Prize"
                                 : index === 1
@@ -507,10 +554,10 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                                 defaultValue='USDC'
                                 onValueChange={() => {}}
                               >
-                                <SelectTrigger className='min-w-32 bg-[#09090B] border-[#27272A] focus:outline-none !h-10 my-2'>
+                                <SelectTrigger className='min-w-32 bg-[var(--default-background-color)] border-[var(--default-border-color)] focus:outline-none !h-10 my-2'>
                                   <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className='bg-[#09090B] text-[#FAFAFA]'>
+                                <SelectContent className='bg-[var(--default-background-color)] text-[var(--primary-text-color)]'>
                                   <SelectItem value='USDC'>
                                     <div className='flex items-center'>
                                       <Image
@@ -529,16 +576,34 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                               <Controller
                                 name={`prize_distribution.${index}.amount`}
                                 control={control}
-                                rules={{ required: "Prize amount is required" }}
+                                rules={{
+                                  required: "Prize amount is required",
+                                  min: {
+                                    value: 1,
+                                    message: "Reward must be greater than $0",
+                                  },
+                                }}
                                 render={({ field }) => (
                                   <CustomInput
                                     {...field}
                                     type='number'
-                                    className='w-full'
+                                    min={1}
+                                    required={true}
+                                    className='w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
                                     placeholder='100'
                                     onChange={(e) => {
-                                      field.onChange(Number(e.target.value));
-                                      calculateTotalBudget();
+                                      const inputValue = e.target.value;
+                                      if (
+                                        inputValue === "" ||
+                                        +inputValue === 0 ||
+                                        +inputValue < 1
+                                      ) {
+                                        field.onChange("");
+                                      } else {
+                                        const numValue = Number(inputValue);
+                                        field.onChange(numValue);
+                                        calculateTotalBudget();
+                                      }
                                     }}
                                   />
                                 )}
@@ -564,183 +629,131 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                             type='button'
                             variant='ghost'
                             size='sm'
-                            className='h-6 py-1 text-xs text-[#FAFAFA] hover:bg-none'
+                            className='h-6 py-1 text-xs text-[var(--primary-text-color)] hover:bg-none'
                             onClick={() =>
                               appendPrize({
                                 position: prizeFields.length + 1,
-                                amount: 0,
+                                amount: "" as unknown as number,
                               })
                             }
                           >
-                            <Plus className='h-3 w-3 mr-1' color='#FAFAFA' />
+                            <Plus
+                              className='h-3 w-3 mr-1'
+                              color='var(--primary-text-color)'
+                            />
                             Add Individual Prize Position
                           </Button>
                         </div>
                       </div>
                     )}
 
-                    {/* Start Date Section */}
-                    <div className='space-y-2'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
-                        Start Date (in America/New_York)
-                        <span className='text-red-500 ml-1'>*</span>
-                      </label>
-                      <div className='flex flex-col space-y-2'>
-                        <Controller
-                          name='start_date'
-                          control={control}
-                          rules={{ required: "Start date is required" }}
-                          render={({ field }) => (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant='outline'
-                                  className='bg-[#09090B] border-[#27272A] justify-between text-left font-normal'
-                                >
-                                  {field.value ? (
-                                    format(new Date(field.value), "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon
-                                    className='h-4 w-4 opacity-50'
-                                    color='#FAFAFA'
+                    {formType === "BOUNTY" && (
+                      <>
+                        <div className='space-y-2'>
+                          <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                            Start Date (in America/New_York)
+                            <span className='text-red-500 ml-1'>*</span>
+                          </label>
+                          <div className='flex flex-col space-y-2'>
+                            <Controller
+                              name='start_date'
+                              control={control}
+                              rules={{ required: "Start date is required" }}
+                              render={({ field }) => (
+                                <Popover>
+                                  <DatePicker
+                                    value={field.value || undefined}
+                                    onChange={(date) => {
+                                      field.onChange(date);
+                                      document.body.click();
+                                    }}
+                                    minDate={new Date()}
                                   />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className='w-auto p-0'
-                                align='start'
-                              >
-                                <Calendar
-                                  mode='single'
-                                  selected={
-                                    field.value
-                                      ? new Date(field.value)
-                                      : undefined
-                                  }
-                                  onSelect={(date) => {
-                                    field.onChange(date);
-                                    // Close popover when date is selected
-                                    document.body.click();
-                                  }}
-                                  initialFocus
-                                  className='text-[#FAFAFA] bg-[#09090B]'
-                                />
-                              </PopoverContent>
-                            </Popover>
+                                </Popover>
+                              )}
+                            />
+                          </div>
+                          {errors.start_date && (
+                            <p className='text-red-500 text-xs mt-1'>
+                              {errors.start_date.message}
+                            </p>
                           )}
-                        />
-                      </div>
-                      {errors.start_date && (
-                        <p className='text-red-500 text-xs mt-1'>
-                          {errors.start_date.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* End Date Section */}
-                    <div className='space-y-2'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
-                        End Date (in America/New_York)
-                        <span className='text-red-500 ml-1'>*</span>
-                      </label>
-                      <div className='flex flex-col space-y-2'>
-                        <Controller
-                          name='end_date'
-                          control={control}
-                          rules={{ required: "End date is required" }}
-                          render={({ field }) => (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant='outline'
-                                  className='bg-[#09090B] border-[#27272A] justify-between text-left font-normal'
-                                >
-                                  {field.value ? (
-                                    format(new Date(field.value), "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon
-                                    className='h-4 w-4 opacity-50'
-                                    color='#FAFAFA'
-                                  />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className='w-auto p-0'
-                                align='start'
-                              >
-                                <Calendar
-                                  mode='single'
-                                  selected={
-                                    field.value
-                                      ? new Date(field.value)
-                                      : undefined
-                                  }
-                                  onSelect={(date) => {
-                                    field.onChange(date);
-                                    // Close popover when date is selected
-                                    document.body.click();
-                                  }}
-                                  initialFocus
-                                  className='text-[#FAFAFA] bg-[#09090B]'
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          )}
-                        />
-
-                        <div className='flex space-x-2'>
-                          {[
-                            { label: "1 Week", weeks: 1 },
-                            { label: "2 Weeks", weeks: 2 },
-                            { label: "3 Weeks", weeks: 3 },
-                          ].map((period, i) => {
-                            const endDate = watch("end_date");
-                            const isActive =
-                              startDate &&
-                              endDate &&
-                              Math.round(
-                                (new Date(endDate).getTime() -
-                                  new Date(startDate).getTime()) /
-                                  (7 * 24 * 60 * 60 * 1000)
-                              ) === period.weeks;
-
-                            return (
-                              <Button
-                                key={period.label}
-                                type='button'
-                                variant='outline'
-                                className={cn(
-                                  "bg-transparent border-[#27272A] rounded-full text-xs px-3 h-8",
-                                  isActive && "border-blue-500 bg-blue-500/10"
-                                )}
-                                onClick={() =>
-                                  setEndDateFromWeeks(period.weeks)
-                                }
-                              >
-                                {period.label}
-                              </Button>
-                            );
-                          })}
                         </div>
-                      </div>
-                      {errors.end_date && (
-                        <p className='text-red-500 text-xs mt-1'>
-                          {errors.end_date.message}
-                        </p>
-                      )}
-                    </div>
+                        <div className='space-y-2'>
+                          <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                            End Date (in America/New_York)
+                            <span className='text-red-500 ml-1'>*</span>
+                          </label>
+                          <div className='flex flex-col space-y-2'>
+                            <Controller
+                              name='end_date'
+                              control={control}
+                              rules={{ required: "End date is required" }}
+                              render={({ field }) => (
+                                <Popover>
+                                  <DatePicker
+                                    value={field.value || undefined}
+                                    onChange={(date) => {
+                                      field.onChange(date);
+                                      document.body.click();
+                                    }}
+                                    minDate={watch("start_date") || new Date()}
+                                  />
+                                </Popover>
+                              )}
+                            />
 
-                    {/* Skills Section */}
+                            <div className='flex space-x-2'>
+                              {[
+                                { label: "1 Week", weeks: 1 },
+                                { label: "2 Weeks", weeks: 2 },
+                                { label: "3 Weeks", weeks: 3 },
+                              ].map((period, i) => {
+                                const endDate = watch("end_date");
+                                const isActive =
+                                  startDate &&
+                                  endDate &&
+                                  Math.round(
+                                    (new Date(endDate).getTime() -
+                                      new Date(startDate).getTime()) /
+                                      (7 * 24 * 60 * 60 * 1000)
+                                  ) === period.weeks;
+
+                                return (
+                                  <Button
+                                    key={period.label}
+                                    type='button'
+                                    variant='outline'
+                                    className={cn(
+                                      "bg-transparent border-[var(--default-border-color)] rounded-full text-xs px-3 h-8",
+                                      isActive &&
+                                        "border-blue-500 bg-blue-500/10"
+                                    )}
+                                    onClick={() =>
+                                      setEndDateFromWeeks(period.weeks)
+                                    }
+                                  >
+                                    {period.label}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          {errors.end_date && (
+                            <p className='text-red-500 text-xs mt-1'>
+                              {errors.end_date.message}
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    )}
+
                     <div className='space-y-2'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
                         Skills Needed
                         <span className='text-red-500 ml-1'>*</span>
                       </label>
-                      <div className='w-full min-h-10 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
+                      <div className='w-full min-h-10 flex flex-wrap gap-2 px-2 py-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] overflow-x-auto'>
                         {selectedSkills.map((skillId, idx) => {
                           const skillName =
                             skills?.find((skill) => skill.id === skillId)
@@ -748,7 +761,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           return (
                             <div
                               key={idx}
-                              className='flex items-center gap-2 bg-[#fff] text-[#18181B] rounded-full px-2 text-xs cursor-pointer capitalize'
+                              className='flex items-center gap-2 bg-gray-200 dark:bg-[#fff] text-[#18181B] rounded-full px-2 text-xs cursor-pointer capitalize'
                               onClick={() => removeSkill(skillId)}
                             >
                               {skillName}
@@ -762,7 +775,7 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           skills.map((badge, idx) => (
                             <div
                               key={idx}
-                              className='flex items-center gap-2 bg-[#09090B] border border-[#27272A] rounded-full px-3 py-1 text-xs cursor-pointer capitalize'
+                              className='flex items-center gap-2 bg-[var(--default-background-color)] border border-[var(--default-border-color)] rounded-full px-3 py-1 text-xs cursor-pointer capitalize'
                               onClick={() => addSkill(badge.id)}
                             >
                               {badge.name}
@@ -777,21 +790,24 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                       </div>
                     </div>
 
-                    {/* Contact Section */}
                     <div className='space-y-2'>
-                      <label className='flex text-[#FAFAFA] text-sm font-medium'>
-                        Point of Contact (TG / X / Email)
-                        <span className='text-red-500 ml-1'>*</span>
+                      <p className='flex text-[var(--primary-text-color)] text-base font-medium'>
+                        Point of Contact
+                      </p>
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                        (TG / X / Discord) URL
                       </label>
                       <Controller
                         name='point_of_contact'
                         control={control}
-                        rules={{ required: "Contact information is required" }}
+                        rules={{
+                          required: "Contact information is required",
+                        }}
                         render={({ field }) => (
                           <CustomInput
                             {...field}
-                            type='text'
-                            className='bg-[#09090B] border-[#27272A]'
+                            type='url'
+                            className='bg-[var(--default-background-color)] border-[var(--default-border-color)]'
                           />
                         )}
                       />
@@ -800,58 +816,92 @@ export default function AmbasssadorDaoSponsorsCreateListing({
                           {errors.point_of_contact.message}
                         </p>
                       )}
+
+                      <label className='flex text-[var(--primary-text-color)] text-sm font-medium'>
+                        Email
+                      </label>
+                      <Controller
+                        name='point_of_contact_email'
+                        control={control}
+                        rules={{ required: "Contact information is required" }}
+                        render={({ field }) => (
+                          <CustomInput
+                            {...field}
+                            type='email'
+                            className='bg-[var(--default-background-color)] border-[var(--default-border-color)]'
+                          />
+                        )}
+                      />
+                      {errors.point_of_contact_email && (
+                        <p className='text-red-500 text-xs mt-1'>
+                          {errors.point_of_contact_email.message}
+                        </p>
+                      )}
                     </div>
 
-                    {/* Custom Questions Section */}
-                    <div className='space-y-2'>
-                      <h3 className='text-lg font-semibold'>
-                        Custom Questions
-                      </h3>
+                    {formType !== "BOUNTY" && (
+                      <div className='space-y-2'>
+                        <h3 className='text-lg font-semibold'>
+                          Custom Questions
+                        </h3>
 
-                      {!customQuestionFields?.length && (
-                        <>
-                          <p className=' text-xs mt-1'>No questions added</p>
-                        </>
-                      )}
+                        {!customQuestionFields?.length && (
+                          <>
+                            <p className=' text-xs mt-1'>No questions added</p>
+                          </>
+                        )}
 
-                      {customQuestionFields?.map((field, index) => (
-                        <div key={index} className='flex gap-2 items-center'>
-                          <Controller
-                            name={`custom_questions.${index}`}
-                            control={control}
-                            render={({ field }) => (
-                              <CustomInput
-                                {...field}
-                                className='bg-[#09090B] border-[#27272A] flex-1'
-                                placeholder='Enter your question'
+                        {customQuestionFields?.map((field, index) => (
+                          <div key={index}>
+                            <div className='flex gap-2 items-center'>
+                              <Controller
+                                name={`custom_questions.${index}`}
+                                rules={{ required: "Question is required" }}
+                                control={control}
+                                render={({ field }) => (
+                                  <CustomInput
+                                    {...field}
+                                    required={true}
+                                    className='bg-[var(--default-background-color)] border-[var(--default-border-color)] flex-1'
+                                    placeholder='Enter your question'
+                                  />
+                                )}
                               />
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='icon'
+                                onClick={() => removeCustomQuestion(index)}
+                                className='text-red-500 px-2'
+                              >
+                                <Trash2 className='h-4 w-4' color='red' />
+                              </Button>
+                            </div>
+                            {errors.custom_questions && (
+                              <p className='text-red-500 text-xs mt-1'>
+                                {errors.custom_questions.message}
+                              </p>
                             )}
-                          />
+                          </div>
+                        ))}
+
+                        <div className='flex justify-end'>
                           <Button
                             type='button'
                             variant='ghost'
-                            size='icon'
-                            onClick={() => removeCustomQuestion(index)}
-                            className='text-red-500 px-2'
+                            size='sm'
+                            className='h-6 py-2 text-sm text-[var(--primary-text-color)] hover:bg-none'
+                            onClick={addCustomQuestion}
                           >
-                            <Trash2 className='h-4 w-4' color='red' />
+                            <Plus
+                              className='h-3 w-3 mr-1'
+                              color='var(--primary-text-color)'
+                            />{" "}
+                            Add Question
                           </Button>
                         </div>
-                      ))}
-
-                      <div className='flex justify-end'>
-                        <Button
-                          type='button'
-                          variant='ghost'
-                          size='sm'
-                          className='h-6 py-2 text-sm text-[#FAFAFA] hover:bg-none'
-                          onClick={addCustomQuestion}
-                        >
-                          <Plus className='h-3 w-3 mr-1' color='#FAFAFA' /> Add
-                          Question
-                        </Button>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </form>

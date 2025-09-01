@@ -3,23 +3,22 @@ import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import DatePicker from "../DatePicker";
 import { FilterDropdown } from "../dashboard/FilterDropdown";
-import { categories, jobTypes } from "../constants";
-import Token from "@/public/ambassador-dao-images/token.png";
+import { jobTypes } from "../constants";
+import Token from "@/public/images/usdcToken.svg";
+import XP from "@/public/ambassador-dao-images/sparkles.png";
+import XPDark from "@/public/ambassador-dao-images/sparkles-dark.svg";
+
 import { useFetchUserProjects } from "@/services/ambassador-dao/requests/users";
 import Loader from "../ui/Loader";
 import { Pagination } from "../ui/Pagination";
+import { useDebounce } from "../hooks/useDebounce";
 
 export default function ProjectSection() {
   const navigationTabs = ["Bounties", "Jobs"];
-  const projectTabs = [
-    { id: "APPLIED", count: 4, bgColor: "bg-[#161617]" },
-    { id: "WON", count: 4, bgColor: "bg-[#27272A]" },
-    { id: "CLOSED", count: 4, bgColor: "bg-[#27272A]" },
-  ];
 
   const [activeTab, setActiveTab] = useState("Bounties");
   const [activeProjectTab, setActiveProjectTab] = useState("APPLIED");
-  const [date, setDate] = useState(null);
+  const [date, setDate] = useState<string | null>(null);
   const [category, setCategory] = useState({
     category: jobTypes[0].id,
   });
@@ -27,6 +26,9 @@ export default function ProjectSection() {
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   const jobType = activeTab === "Bounties" ? "BOUNTY" : "JOB";
+
+  const debouncedJobSearch = useDebounce(searchQuery, 1000);
+  console.log(debouncedJobSearch);
 
   const {
     data: userProjects,
@@ -36,14 +38,39 @@ export default function ProjectSection() {
     type: jobType,
     status: activeProjectTab,
     category: category.category,
-    date: new Date().toLocaleString(),
-    query: searchQuery,
-    page: 1,
+    date_applied_start: date ? date : undefined,
+    query: debouncedJobSearch,
+    page: currentPage,
   });
+
+  const projectTabs = [
+    {
+      id: "APPLIED",
+      count: userProjects?.data?.stats.applied,
+      bgColor: "bg-[#161617]",
+    },
+    {
+      id: "WON",
+      count: userProjects?.data?.stats.won,
+      bgColor: "bg-[#27272A]",
+    },
+    {
+      id: "CLOSED",
+      count: userProjects?.data?.stats.closed,
+      bgColor: "bg-[#27272A]",
+    },
+  ];
 
   useEffect(() => {
     refetch();
-  }, [activeTab, activeProjectTab, date, category, searchQuery, refetch]);
+  }, [
+    activeTab,
+    activeProjectTab,
+    date,
+    category,
+    debouncedJobSearch,
+    refetch,
+  ]);
 
   const resetFilters = () => {
     setDate(null);
@@ -71,24 +98,41 @@ export default function ProjectSection() {
   return (
     <div className="border rounded-lg p-6 mb-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">My Projects</h2>
-        {(date || searchQuery) && (
+        <h2 className="text-2xl font-medium">My Projects</h2>
+        {(date || debouncedJobSearch) && (
           <button
             onClick={resetFilters}
-            className="text-sm text-red-500 hover:text-red-600"
+            className="text-xs sm:text-sm text-red-500 hover:text-red-600"
           >
             Reset Filters
           </button>
         )}
-      </div>
-
-      <div className="flex justify-between mb-4 border-b border-gray-800 pb-8">
-        <div>
+        <div className="sm:hidden flex">
           {navigationTabs.map((tab) => (
             <button
               key={tab}
-              className={`px-4 py-2 ${
-                activeTab === tab ? "bg-red-500 text-white" : "text-gray-400"
+              className={`px-1 py-2 border-b text-xs font-bold h-[38px] ${
+                activeTab === tab
+                  ? "border-[#FB2C36] text-[#FB2C36]"
+                  : " border-transparent text-[var(--secondary-text-color)] bg-[#0000000D]"
+              }`}
+              onClick={() => handleTabChange(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-between mb-8 border-b border-[var(--default-border-color)] pb-2">
+        <div className="hidden sm:flex">
+          {navigationTabs.map((tab) => (
+            <button
+              key={tab}
+              className={`px-4 py-2 h-[38px] ${
+                activeTab === tab
+                  ? "bg-red-500 text-white"
+                  : "text-[var(--secondary-text-color)] bg-[#0000000D] shadow-sm"
               } rounded-md`}
               onClick={() => handleTabChange(tab)}
             >
@@ -114,7 +158,7 @@ export default function ProjectSection() {
             <input
               type="text"
               placeholder={`Search ${activeTab}`}
-              className="text-xs sm:text-sm lg:text-base h-8 sm:h-11 border border-[#27272A] rounded-md px-4 py-2 focus:outline-none w-full"
+              className="text-sm lg:text-base h-10 border border-[var(--default-border-color)] rounded-md px-4 py-2 focus:outline-none w-full"
               value={searchQuery}
               onChange={handleSearchChange}
             />
@@ -125,39 +169,46 @@ export default function ProjectSection() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="flex flex-col mb-2 md:mb-0">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+        <div className="flex flex-row sm:flex-col mb-2 md:mb-0 max-w-[180px] gap-2">
           {projectTabs?.map((tab) => (
             <button
               key={tab.id}
-              className={`flex justify-between items-center px-4 py-2 rounded-xl ${
+              className={`flex justify-between items-center px-2 sm:px-4 py-3 rounded-xl ${
                 tab.bgColor
-              } max-w-[360px] h-[74px] mb-2 ${
+              } max-w-[360px] max-h-[74px] sm:h-[74px] mb-2 ${
                 activeProjectTab === tab.id ? "bg-red-500" : "bg-transparent"
               }`}
               onClick={() => handleProjectTabChange(tab.id)}
             >
               <span
-                className={`${
+                className={`capitalize text-xs sm:!text-lg ${
                   activeProjectTab === tab.id
-                    ? "text-[#FAFAFA]"
-                    : "text-[#9F9FA9]"
+                    ? "text-[var(--primary-text-color)]"
+                    : "text-[var(--secondary-text-color)]"
                 }`}
               >
-                {tab.id}
+                {tab?.id?.toLowerCase()}
               </span>
-              <span className="ml-1 bg-white text-[#161617] text-xs px-2 py-1 rounded-full">
-                {tab.count}
-              </span>
+              {!isLoadingUserProjects && (
+                <span className="ml-1 bg-white text-[#161617] text-xs px-2.5 py-0.5 rounded-full">
+                  {tab.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
-        <div className="space-y-4 col-span-2">
-          {isLoadingUserProjects ? (
-            <Loader />
-          ) : userProjects?.data && userProjects?.data?.length > 0 ? (
-            userProjects?.data?.map(
+        <div className="space-y-4 col-span-4">
+          {isLoadingUserProjects && <Loader />}
+          {!isLoadingUserProjects &&
+            userProjects?.data &&
+            (userProjects?.data?.opportunities?.length ||
+              userProjects?.data?.submissions?.length) > 0 &&
+            (
+              userProjects?.data?.opportunities ||
+              userProjects?.data?.submissions
+            )?.map(
               (project: {
                 opportunity: {
                   id: React.Key;
@@ -165,6 +216,8 @@ export default function ProjectSection() {
                   title: string;
                   name: any;
                   description: string;
+                  total_budget: number;
+                  xp_allocated: number;
                   type: string;
                   _count: any;
                   rewards: any;
@@ -175,67 +228,98 @@ export default function ProjectSection() {
               }) => (
                 <div
                   key={project?.opportunity?.id}
-                  className="bg-[#161617] shadow-sm rounded-lg p-4"
+                  className="bg-[#F5F5F9] dark:bg-[#000] shadow-sm rounded-lg p-4 border border-[var(--default-border-color)]"
                 >
-                  <div className="flex flex-col md:flex-row justify-between">
-                    <div className="flex">
+                  <div className="grid grid-cols-1 xl:grid-cols-3 space-y-2 md:space-y-0">
+                    <div className="flex items-start col-span-1">
                       <div className="w-10 h-10 bg-blue-500 rounded-full mr-3 overflow-hidden">
-                        <img
+                        <Image
                           src={project?.opportunity?.created_by?.profile_image}
                           alt="Project"
                           className="w-full h-full object-cover"
+                          width={48}
+                          height={48}
                         />
                       </div>
                       <div>
-                        <h3 className="text-red-500 font-bold">
+                        <h3 className="text-[#FF394A] font-medium truncate max-w-[150px] w-full sm:max-w-[240px] text-sm sm:text-base">
                           {project?.opportunity?.title}
                         </h3>
-                        <p className="text-gray-400 text-xs">
+                        <p className="text-[var(--secondary-text-color)] text-sm sm:text-base w-full truncate max-w-[150px] sm:max-w-[240px]">
                           {project?.opportunity?.description ||
-                            "Lorem ipsum omo nla, wa sere eje mi"}
+                            "kjdhghsgkjhsdakdshjjsdkdhfsbdfjhhasdhjadjaj"}
                         </p>
                       </div>
                     </div>
-                    <div className="flex mt-4 md:mt-0 items-center space-x-6">
-                      <div className="flex flex-col justify-center gap-1">
-                        <BriefcaseBusiness color="#9F9FA9" size={12} />
-                        <p className="text-gray-400 text-xs capitalize">
-                          {project?.opportunity?.type.toLowerCase() || jobType}
-                        </p>
-                      </div>
-                      <div className="flex flex-col justify-center gap-1">
-                        <File color="#9F9FA9" size={12} />
-                        <p className="text-gray-400 text-xs">
-                          {project?.opportunity?._count?.applications ||
-                            project?.opportunity?._count?.submissions ||
-                            0}{" "}
-                          Proposals
-                        </p>
-                      </div>
-                      {project?.opportunity?.rewards && (
-                        <div className="text-center flex items-center text-xs gap-1">
-                          <Image src={Token} alt="$" />
-                          <span className="text-white">
-                            {project?.opportunity?.rewards[0]?.amount} USDC
-                          </span>
-                        </div>
-                      )}
-                      <div>
-                        <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full">
-                          {project?.status || activeProjectTab}
+                    <div className="col-span-2 flex flex-wrap sm:flex-nowrap items-center gap-2 sm:justify-around pt-1 sm:pt-3 sm:-ml-8 xl:pt-0 xl:-ml-0">
+                      <div className="flex gap-1 flex-row sm:flex-col sm:items-center">
+                        <BriefcaseBusiness size={14} color="#9F9FA9" />
+                        <span className="text-xs text-[var(--secondary-text-color)] capitalize">
+                          {project?.opportunity?.type?.toLowerCase() || jobType}
                         </span>
                       </div>
+
+                      <div className="flex gap-1 flex-row sm:flex-col sm:items-center">
+                        <File color="#9F9FA9" size={12} />
+                        <p className="text-[var(--secondary-text-color)] text-xs flex w-max">
+                          {(() => {
+                            const appCount =
+                              project?.opportunity?._count?.applications || 0;
+                            const subCount =
+                              project?.opportunity?._count?.submissions || 0;
+
+                            if (appCount > 0) {
+                              return `${appCount} ${
+                                appCount === 1 ? "Application" : "Applications"
+                              }`;
+                            } else {
+                              return `${subCount} ${
+                                subCount === 1 ? "Proposal" : "Proposals"
+                              }`;
+                            }
+                          })()}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap sm:flex-nowrap flex-row space-x-3">
+                        {project?.opportunity?.total_budget > 0 && (
+                          <span className="dark:text-[#FFFFFF] dark:bg-[#162456] font-bold text-[#1C398E] bg-[#EFF6FF] border border-[#2B7FFF] rounded-md p-2 flex items-center gap-1 shrink-0 text-xs">
+                            <Image src={Token} alt="$" />
+                            {project?.opportunity?.total_budget.toLocaleString()}
+                          </span>
+                        )}
+
+                        {project?.opportunity?.xp_allocated > 0 && (
+                          <span className="mt-4 sm:mt-1 dark:text-[#FFFFFF] dark:bg-[#27272A] font-bold text-[#18181B] bg-[#F4F4F5] border border-[#D4D4D8] rounded-md p-2 flex items-center gap-1 shrink-0 text-xs">
+                            <div className="hidden dark:block">
+                              <Image src={XP} alt="XP" />
+                            </div>
+                            <div className="block dark:hidden">
+                              <Image src={XPDark} alt="XP" />
+                            </div>
+                            {project?.opportunity?.xp_allocated > 0} XP
+                          </span>
+                        )}
+                      </div>
+
+                      <button className="bg-blue-600 text-[var(--white-text-color)] text-xs px-3 py-1 rounded-full w-max">
+                        {project.status}
+                      </button>
                     </div>
                   </div>
                 </div>
               )
-            )
-          ) : (
-            <div className="flex flex-col items-center justify-center h-40 text-gray-400">
-              <Search size={48} className="mb-2 opacity-30" />
-              <p>No projects found matching your filters</p>
-            </div>
-          )}
+            )}
+          {!isLoadingUserProjects &&
+            (
+              userProjects?.data?.opportunities ||
+              userProjects?.data?.submissions
+            ).length === 0 && (
+              <div className="flex flex-col items-center justify-center h-40 text-[var(--secondary-text-color)]">
+                <Search size={48} className="mb-2 opacity-30" />
+                <p>No projects found matching your filters</p>
+              </div>
+            )}
 
           {userProjects?.metadata.last_page > 1 && (
             <Pagination

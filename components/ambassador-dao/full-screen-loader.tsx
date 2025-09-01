@@ -3,7 +3,7 @@ import React from "react";
 
 const FullScreenLoader = () => {
   return (
-    <div className='flex justify-center items-center h-screen bg-[#000]'>
+    <div className='flex justify-center items-center h-screen bg-[#fafafa] dark:bg-[#000]'>
       <div className='relative'>
         <div className='absolute inset-0 animate-ping rounded-full bg-[#fb2c365e] opacity-50'></div>
         <Loader2
@@ -16,4 +16,3 @@ const FullScreenLoader = () => {
 };
 
 export default FullScreenLoader;
-

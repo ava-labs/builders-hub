@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+
 import { API_DEV } from "../data/constants";
-import { IJobApplicationBody } from "../interfaces/opportunity";
 import toast from "react-hot-toast";
 import { errorMsg } from "@/utils/error-mapping";
 import { IClaimXP } from "../interfaces/user";
+import axiosInstance from "./axios";
 
 export const useFetchPublicUserDetails = (
   username: string | undefined | null
@@ -23,31 +24,41 @@ export const useFetchPublicUserDetails = (
 
 export const useFetchPastOpportunities = (
   username: string | undefined | null,
-  type: string
+  params: {
+    per_page: number;
+    page: number;
+  }
 ) => {
   return useQuery({
     queryFn: async () => {
-      const res = await axios.get(
-        `${API_DEV}/users/past-opportunities/${username}?type=${type}`
+      const res = await axiosInstance.get(
+        `${API_DEV}/users/past-activity/${username}`,
+        { params }
       );
-      return res.data.data;
+      return res.data;
     },
-    queryKey: ["past-opportunities", type],
+    queryKey: ["past-opportunities"],
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     enabled: !!username,
   });
 };
 
-export const useFetchUserPendingRewards = () => {
+export const useFetchUserPendingRewards = (
+  page: number,
+  needsOnboarding?: boolean
+) => {
   return useQuery({
     queryFn: async () => {
-      const res = await axios.get(`${API_DEV}/users/pending-rewards`);
+      const res = await axiosInstance.get(`${API_DEV}/users/pending-rewards`, {
+        params: { page, per_page: 3 },
+      });
       return res.data as any;
     },
-    queryKey: ["pendingRewards"],
+    queryKey: ["pendingRewards", page],
     staleTime: Infinity,
     refetchOnWindowFocus: false,
+    enabled: needsOnboarding,
   });
 };
 
@@ -56,18 +67,17 @@ export const useFetchUserProjects = (params: {
   status: string;
   category: string;
   query: string;
-  date: string | undefined;
+  date_applied_start: string | undefined;
   page: number;
 }) => {
   return useQuery({
     queryFn: async () => {
-      const res = await axios.get(
-        `${API_DEV}/users/projects`,
-        { params }
-      );
+      const res = await axiosInstance.get(`${API_DEV}/users/projects`, {
+        params,
+      });
       return res.data;
     },
-    queryKey: ["userProjects"],
+    queryKey: ["userProjects", params],
     staleTime: Infinity,
     refetchOnWindowFocus: false,
   });
@@ -79,7 +89,7 @@ export const useClaimXP = () => {
   return useMutation({
     mutationKey: ["claimXP"],
     mutationFn: async (args: IClaimXP) => {
-      const res = await axios.post(`${API_DEV}/users/xp-claim`, args);
+      const res = await axiosInstance.post(`${API_DEV}/users/xp-claim`, args);
       return res.data as any;
     },
     onSuccess: (data) => {
@@ -91,20 +101,46 @@ export const useClaimXP = () => {
   });
 };
 
-
 export const useUpdateWalletAddress = () => {
-  // const queryclient = useQueryClient();
+  const queryclient = useQueryClient();
   return useMutation({
     mutationKey: ["updateWallet"],
-    mutationFn: async (args: {wallet_address: string}) => {
-      const res = await axios.patch(`${API_DEV}/users/update-wallet-address`, args);
+    mutationFn: async (args: { wallet_address: string }) => {
+      const res = await axiosInstance.patch(
+        `${API_DEV}/users/update-wallet-address`,
+        args
+      );
       return res.data;
     },
     onSuccess: (data) => {
       toast.success(data.message);
-      // queryclient.invalidateQueries({ queryKey: ["allListings"] });
-      // queryclient.invalidateQueries({ queryKey: ["singleListings"] });
+      queryclient.invalidateQueries({ queryKey: ["fetchUserProfile"] });
     },
     onError: (err) => errorMsg(err),
+  });
+};
+
+export const useFetchUserXPTiers = () => {
+  return useQuery({
+    queryFn: async () => {
+      const res = await axiosInstance.get(`${API_DEV}/users/tiers`);
+      return res.data.data as {
+        tiers: {
+          id: string;
+          name: string;
+          description: string;
+          level: number;
+          imageUrl: string;
+          lowerBound: number;
+          upperBound: number;
+          userCount: number;
+          createdAt: string;
+          updatedAt: string;
+        }[];
+      };
+    },
+    queryKey: ["userXPTiers"],
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 };

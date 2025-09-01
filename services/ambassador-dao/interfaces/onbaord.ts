@@ -19,9 +19,11 @@ export interface IUpdateTalentProfileBody {
   username: string;
   profile_image: string;
   location: string;
-  skills_ids: string[];
+  job_title: string;
+  skill_ids: string[];
   social_links: string[];
   wallet_address: string;
+  years_of_experience: string;
 }
 
 export interface ISkillsResponse {

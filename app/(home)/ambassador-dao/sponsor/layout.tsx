@@ -20,11 +20,10 @@ const AmbasssadorDaoSponsorsLayout = ({
 
   useEffect(() => {
     if (!isLoading && !user) {
-      toast.error("Error Authenticating");
       router.push("/ambassador-dao");
     } else if (user && user.role !== "SPONSOR") {
       toast.error("You dont have permission to access this page.");
-      router.push("/ambassador-dao/jobs");
+      router.push("/ambassador-dao");
     } else {
       // do nothing
     }
@@ -36,48 +35,33 @@ const AmbasssadorDaoSponsorsLayout = ({
   return (
     <>
       {user && (
-        <div className='flex flex-col md:flex-row min-h-screen bg-[#09090B] rounded-md text-white m-4 md:m-6 border border-[#27272A] p-3 md:p-6 lg:p-8'>
+        <div className='flex flex-col md:flex-row min-h-screen bg-[var(--default-background-color)] rounded-md text-[var(--white-text-color)] m-4 md:m-6 border border-[var(--default-border-color)] p-3 md:p-6 lg:p-8'>
           {/* Sidebar */}
-          <aside className='w-full md:w-64 p-3 border-r border-[#27272A]'>
-            <div className='flex flex-row md:flex-col md:space-y-4 overflow-x-auto whitespace-nowrap space-x-4 md:space-x-0'>
+          <aside className='w-full md:w-56 lg:w-64 p-3 md:border-r border-[var(--default-border-color)]'>
+            <div className='flex flex-row justify-between md:justify-normal md:flex-col md:space-y-4 overflow-x-auto whitespace-nowrap space-x-3 md:space-x-0'>
               <SidebarItem
                 href='/ambassador-dao/sponsor/listings'
                 icon={<LayoutGrid className='h-5 w-5' />}
                 label='My Listing'
               />
 
-              <SidebarItem
-                href='#'
-                icon={<History className='h-5 w-5' />}
-                label='Get Help'
-              />
-              {user.status === "VERIFIED" && (
-                <CustomButton
-                  variant='danger'
-                  className='px-3 hidden md:block'
-                  onClick={() => setOpenCreateListingModal(true)}
-                >
-                  Create new listing
-                </CustomButton>
-              )}
+              <div>
+                {user.status === "VERIFIED" && (
+                  <CustomButton
+                    isFullWidth={true}
+                    variant='danger'
+                    className='px-3'
+                    onClick={() => setOpenCreateListingModal(true)}
+                  >
+                    Create new listing
+                  </CustomButton>
+                )}
+              </div>
             </div>
           </aside>
 
-          {user.status === "VERIFIED" && (
-            <div className='md:hidden flex my-2'>
-              <CustomButton
-                variant='danger'
-                className='px-3'
-                isFullWidth={false}
-                onClick={() => setOpenCreateListingModal(true)}
-              >
-                Create new listing
-              </CustomButton>
-            </div>
-          )}
-
           {/* Main content */}
-          <main className='flex-1 p-6'>{children}</main>
+          <main className='flex-1 p-2 sm:p-6'>{children}</main>
         </div>
       )}
     </>
@@ -94,7 +78,7 @@ interface SidebarItemProps {
 
 function SidebarItem({ href, icon, label }: SidebarItemProps) {
   const pathname = usePathname();
-  const isActive = pathname === href;
+  const isActive = pathname === href || pathname.includes(href);
 
   return (
     <Link
@@ -103,11 +87,13 @@ function SidebarItem({ href, icon, label }: SidebarItemProps) {
         "flex items-center space-x-2 py-2",
         isActive
           ? "font-semibold text-[#FB2C36]"
-          : "font-medium text-[#9F9FA9] hover:!text-white hover:!font-semibold"
+          : "font-medium text-[var(--secondary-text-color)] hover:!text-[var(--white-text-color)] hover:!font-semibold"
       )}
     >
       {React.cloneElement(icon as React.ReactElement<any>, {
-        className: cn(isActive ? " !text-[#FB2C36]" : " !text-[#9F9FA9]"),
+        className: cn(
+          isActive ? " !text-[#FB2C36]" : " !text-[var(--secondary-text-color)]"
+        ),
       })}
       <span className='text-base md:text-lg'>{label}</span>
     </Link>

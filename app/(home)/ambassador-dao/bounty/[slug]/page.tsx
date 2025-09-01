@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, Suspense, Key, useEffect, useRef } from "react";
-import { ArrowLeft, MessagesSquare, MoreVertical } from "lucide-react";
+import {
+  ArrowLeft,
+  Mail,
+  MessagesSquare,
+  MoreVertical,
+  Send,
+} from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import {
   useDeleteOpportunityComment,
@@ -22,7 +28,8 @@ import {
   BountySidebar,
   BountyDescription,
 } from "@/components/ambassador-dao/bounty/components";
-import { useFetchUserDataQuery } from '@/services/ambassador-dao/requests/auth';
+import { useFetchUserDataQuery } from "@/services/ambassador-dao/requests/auth";
+import Link from "next/link";
 
 interface CommentAuthor {
   id: string;
@@ -70,7 +77,6 @@ interface BountySidebarProps {
   };
 }
 
-
 const GoBackButton = () => {
   const router = useRouter();
 
@@ -81,9 +87,9 @@ const GoBackButton = () => {
   return (
     <button
       onClick={handleGoBack}
-      className='flex items-center gap-2 text-[#FAFAFA] hover:text-white mb-6 bg-[#1A1A1A] py-2 px-4 rounded-md border border-[#27272A]'
+      className='flex items-center gap-2 text-[var(--primary-text-color)] hover:text-[var(--white-text-color)] mb-6 bg-[var(--default-background-color)] py-2 px-4 rounded-md border border-[var(--default-border-color)]'
     >
-      <ArrowLeft size={16} color='#FAFAFA' />
+      <ArrowLeft size={16} color='var(--primary-text-color)' />
       <span>Go Back</span>
     </button>
   );
@@ -97,7 +103,7 @@ interface ReplyProps {
 const Reply: React.FC<ReplyProps> = ({ reply, isOptimistic = false }) => {
   return (
     <div
-      className={`p-4 border border-gray-800 rounded-lg my-2 relative bg-gray-900 bg-opacity-50 ${
+      className={`p-4 border border-[var(--default-border-color)] rounded-lg my-2 relative bg-[var(--default-background-color)] bg-opacity-50 ${
         isOptimistic ? "border-blue-400 border-opacity-50" : ""
       }`}
     >
@@ -113,7 +119,9 @@ const Reply: React.FC<ReplyProps> = ({ reply, isOptimistic = false }) => {
               {reply?.author?.first_name} {reply?.author?.last_name}
             </h3>
           </div>
-          <p className='text-gray-300 text-sm'>{reply?.content}</p>
+          <p className='text-[var(--secondary-text-color)] text-sm'>
+            {reply?.content}
+          </p>
         </div>
       </div>
     </div>
@@ -253,7 +261,7 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
         <button
           type='button'
           onClick={() => setIsReplying(!isReplying)}
-          className='hover:text-white text-gray-400 px-4 rounded-md text-sm transition'
+          className='hover:text-[var(--white-text-color)] text-[var(--secondary-text-color)] px-4 rounded-md text-sm transition'
         >
           Reply
         </button>
@@ -262,7 +270,7 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
           <div className='mt-2'>
             <form onSubmit={handleReplySubmit}>
               <textarea
-                className='w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900'
+                className='w-full border border-[var(--default-border-color)] rounded-md p-3 text-[var(--white-text-color)] resize-none focus:outline-none bg-[var(--default-background-color)]'
                 placeholder='Write a reply...'
                 rows={1}
                 value={replyText}
@@ -275,7 +283,7 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
                   <button
                     type='button'
                     onClick={handleCancelReply}
-                    className='px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition'
+                    className='px-4 py-1 text-[var(--secondary-text-color)] hover:text-[var(--white-text-color)] rounded-md text-sm transition'
                   >
                     Cancel
                   </button>
@@ -326,7 +334,7 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
         <button
           type='button'
           onClick={() => setIsReplying(!isReplying)}
-          className='hover:text-white text-gray-400 text-sm transition'
+          className='hover:text-[var(--white-text-color)] text-[var(--secondary-text-color)] text-sm transition'
         >
           Reply
         </button>
@@ -336,7 +344,7 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
         <div className='mt-2'>
           <form onSubmit={handleReplySubmit}>
             <textarea
-              className='w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900'
+              className='w-full border border-[var(--default-border-color)] rounded-md p-3 text-[var(--white-text-color)] resize-none focus:outline-none bg-[var(--default-background-color)]'
               placeholder='Write a reply...'
               rows={1}
               value={replyText}
@@ -349,7 +357,7 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
                 <button
                   type='button'
                   onClick={handleCancelReply}
-                  className='px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition'
+                  className='px-4 py-1 text-[var(--secondary-text-color)] hover:text-[var(--white-text-color)] rounded-md text-sm transition'
                 >
                   Cancel
                 </button>
@@ -376,7 +384,7 @@ const CommentReplies: React.FC<CommentRepliesProps> = ({
       )}
 
       {showReplies && displayReplies.length > 0 && (
-        <div className='space-y-2 mt-2 pl-2 border-l-2 border-gray-800'>
+        <div className='space-y-2 mt-2 pl-2 border-l-2 border-[var(--default-border-color)]'>
           {displayReplies.map((reply, idx) => (
             <Reply
               key={`reply-${reply.id}-${idx}`}
@@ -457,7 +465,7 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
         comment.isOptimistic ? "border-blue-400 border-opacity-50" : ""
       }`}
     >
-      <div className='p-4 border border-gray-800 rounded-lg my-2 relative'>
+      <div className='p-4 border border-[var(--default-border-color)] rounded-lg my-2 relative'>
         <div className='flex gap-3 w-full'>
           <div className='w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-700 flex items-center justify-center'>
             <span className='text-white text-sm'>
@@ -471,21 +479,21 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
               </h3>
               {isEditable && (
                 <button
-                  className='p-1 text-gray-400 hover:text-white focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity'
+                  className='p-1 text-[var(--secondary-text-color)] hover:text-[var(--white-text-color)] focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity'
                   onClick={toggleOptions}
                   aria-label='Comment options'
                 >
-                  <MoreVertical size={16} color='#fff' />
+                  <MoreVertical size={16} color='var(--white-text-color)' />
                 </button>
               )}
 
               {showOptions && isEditable && (
                 <div
                   ref={optionsRef}
-                  className='absolute right-4 top-4 bg-gray-800 rounded-md shadow-lg z-10 py-1 min-w-[100px]'
+                  className='absolute right-4 top-4 bg-[var(--default-background-color)] rounded-md shadow-lg z-10 py-1 min-w-[100px]'
                 >
                   <button
-                    className='w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700'
+                    className='w-full text-left px-4 py-2 text-sm text-[var(--white-text-color)] hover:bg-gray-200 dark:hover:bg-gray-800'
                     onClick={() => {
                       setIsEditing(true);
                       setShowOptions(false);
@@ -494,7 +502,7 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
                     Edit
                   </button>
                   <button
-                    className='w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-700'
+                    className='w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-200 dark:hover:bg-gray-700'
                     onClick={handleDeleteComment}
                   >
                     Delete
@@ -506,7 +514,7 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
             {isEditing ? (
               <form onSubmit={handleEditSubmit} className='mt-2'>
                 <textarea
-                  className='w-full border border-gray-800 rounded-md p-3 text-white resize-none focus:outline-none bg-gray-900'
+                  className='w-full border border-[var(--default-border-color)] rounded-md p-3 text-[var(--white-text-color)] resize-none focus:outline-none bg-[var(--default-background-color)]'
                   placeholder='Edit your comment'
                   rows={2}
                   value={editText}
@@ -520,7 +528,7 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
                       setEditText(comment?.content);
                       setIsEditing(false);
                     }}
-                    className='px-4 py-1 text-gray-300 hover:text-white rounded-md text-sm transition'
+                    className='px-4 py-1 text-[var(--secondary-text-color)] hover:text-[var(--white-text-color)] rounded-md text-sm transition'
                   >
                     Cancel
                   </button>
@@ -533,7 +541,9 @@ const Comment: React.FC<CommentProps> = ({ comment, opportunityId }) => {
                 </div>
               </form>
             ) : (
-              <p className='text-gray-300 text-sm'>{comment?.content}</p>
+              <p className='text-[var(--secondary-text-color)] text-sm'>
+                {comment?.content}
+              </p>
             )}
           </div>
         </div>
@@ -673,7 +683,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
   };
 
   return (
-    <div className='mt-8 border-t border-gray-800 pt-6'>
+    <div className='mt-8 border-t border-[var(--default-border-color)] pt-6'>
       <div className='flex items-center gap-2 mb-4'>
         <MessagesSquare size={16} color='#9F9FA9' />
         <h2 className='text-lg font-semibold'>
@@ -683,7 +693,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
 
       <form onSubmit={handleSubmitComment} className='mt-6 relative'>
         <textarea
-          className='w-full border border-gray-800 bg-gray-900 rounded-md p-3 text-white resize-none focus:outline-none'
+          className='w-full border border-[var(--default-border-color)] bg-transparent rounded-md p-3 text-[var(--white-text-color)] resize-none focus:outline-none'
           placeholder='Write Comments'
           rows={isFocused || newComment.length > 0 ? 2 : 1}
           value={newComment}
@@ -694,14 +704,14 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
 
         {(isFocused || newComment.trim() !== "") && (
           <>
-            <div className='text-gray-400 text-xs flex justify-end mt-1'>
+            <div className='text-[var(--secondary-text-color)] text-xs flex justify-end mt-1'>
               {`${280 - newComment.length} characters left`}
             </div>
             <div className='flex justify-end gap-2 mt-2'>
               <button
                 type='button'
                 onClick={handleCancelComment}
-                className='px-4 py-2 text-gray-300 hover:text-white rounded-md text-sm transition'
+                className='px-4 py-2 text-[var(--secondary-text-color)] hover:text-[var(--white-text-color)] rounded-md text-sm transition'
               >
                 Cancel
               </button>
@@ -729,7 +739,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ id }) => {
         <>
           <div className='space-y-4 mt-6'>
             {displayComments.length === 0 ? (
-              <p className='text-gray-400 text-center py-8'>
+              <p className='text-[var(--secondary-text-color)] text-center py-8'>
                 No comments yet. Be the first to comment!
               </p>
             ) : (
@@ -765,11 +775,15 @@ const AmbasssadorDaoSingleBountyPage = () => {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
 
-  const { data, isLoading: isFetchingOpportunityDetails } = useFetchOpportunityDetails(slug);
+  const { data, isLoading: isFetchingOpportunityDetails } =
+    useFetchOpportunityDetails(slug);
 
   const headerData = {
     id: data?.id,
     title: data?.title,
+    requirements: data?.requirements,
+    point_of_contact_email: data?.point_of_contact_email,
+    point_of_contact: data?.point_of_contact,
     companyName: data?.created_by?.company_profile?.name || "Unknown",
     companyLogo: data?.created_by?.company_profile?.logo,
     createdBy: `${data?.created_by?.first_name} ${data?.created_by?.last_name}`,
@@ -780,32 +794,32 @@ const AmbasssadorDaoSingleBountyPage = () => {
     _count: data?._count || 0,
   };
 
-  const extractDescriptionData = (apiResponse: { description: string, title: string }) => {
+  const extractDescriptionData = (apiResponse: {
+    description: string;
+    title: string;
+  }) => {
     const descriptionParagraphs = apiResponse?.description
       ? apiResponse.description
           .split("\n\n")
           .filter((para) => para.trim() !== "")
       : [];
 
-
-    const titleParagraph =
-    apiResponse?.title
-        ? apiResponse?.title
-        : "About the Job";
+    const titleParagraph = apiResponse?.title
+      ? apiResponse?.title
+      : "About the Job";
 
     const contentParagraphs = descriptionParagraphs;
 
-    console.log(titleParagraph, contentParagraphs)
     return {
       title: titleParagraph,
       content: contentParagraphs,
     };
   };
 
-
   const sidebarData = {
     id: data?.id,
     category: data?.category,
+    status: data?.status,
     total_budget: data?.total_budget || 0,
     deadline: data?.end_date,
     proposalsCount: data?._count?.submissions,
@@ -819,28 +833,71 @@ const AmbasssadorDaoSingleBountyPage = () => {
   }
 
   return (
-    <div className='text-white min-h-screen'>
-      {!isFetchingOpportunityDetails && 
-      <div className='max-w-7xl mx-auto px-4 py-8 border border-[#27272A] rounded-lg shadow-sm my-6'>
+    <div className='text-[var(--white-text-color)] min-h-screen bg-[var(--black-background-color)]'>
+      <div className='max-w-7xl mx-auto my-6'>
         <GoBackButton />
+      </div>
+      {!isFetchingOpportunityDetails && (
+        <div className='max-w-7xl mx-auto px-4 py-8 border border-[var(--default-border-color)] bg-[var(--default-background-color)] rounded-lg shadow-sm my-6'>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
+            <div className='md:col-span-2 flex flex-col'>
+              <BountyHeader bounty={headerData} />
 
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
-          <div className='md:col-span-2 flex flex-col'>
-            <BountyHeader bounty={headerData} />
+              {headerData?.requirements && (
+                <div className='border text-[var(--primary-text-color)] border-[var(--default-border-color)] p-4 mb-6 rounded-md'>
+                  <h2 className='mb-2 font-medium'>Requirements</h2>
+                  <p className='text-[13px] text-[var(--secondary-text-color)] whitespace-pre-line'>
+                    {headerData?.requirements}
+                  </p>
+                </div>
+              )}
 
-            <div className='block md:hidden my-6'>
-              <BountySidebar bounty={sidebarData} />
+              <div className='border text-[var(--primary-text-color)] border-[var(--default-border-color)] p-4 mb-6 rounded-md'>
+                <h2 className='mb-4 font-medium'>Contact Information</h2>
+                <p className='text-[13px] text-[var(--secondary-text-color)] whitespace-pre-line'>
+                  For questions or clarification, please contact
+                </p>
+                <div className='grid grid-cols-2 md:grid-cols-4 gap-3 mt-6'>
+                  <a
+                    href={`mailto://${headerData?.point_of_contact_email}`}
+                    className='flex items-center justify-center gap-2 bg-[var(--default-border-color)] transition-colors rounded-lg py-3 px-4'
+                  >
+                    <Mail color='var(--white-text-color)' size={16} />
+                    <span className='text-[var(--white-text-color)] text-sm font-medium'>
+                      Email
+                    </span>
+                  </a>
+
+                  <Link
+                    href={`https://t.me/${headerData?.point_of_contact}`}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='flex items-center justify-center gap-2 bg-[var(--default-border-color)] transition-colors rounded-lg py-3 px-4'
+                  >
+                    <div className='dark:bg-[#fff] bg-[#000] rounded-full p-1'>
+                      <Send color='var(--black-background-color)' size={10} />
+                    </div>
+                    <span className='text-[var(--white-text-color)] text-sm font-medium'>
+                      Telegram
+                    </span>
+                  </Link>
+                </div>
+              </div>
+
+              <div className='block md:hidden my-6'>
+                <BountySidebar bounty={sidebarData} />
+              </div>
+
+              <BountyDescription data={extractDescriptionData(data)} />
+              <CommentsSection id={slug} />
             </div>
 
-            <BountyDescription data={extractDescriptionData(data)} />
-            <CommentsSection id={slug} />
-          </div>
-
-          <div className='hidden md:block md:col-span-1'>
-            <BountySidebar bounty={sidebarData} />
+            <div className='hidden md:block md:col-span-1'>
+              <BountySidebar bounty={sidebarData} />
+            </div>
           </div>
         </div>
-      </div>}
+      )}
     </div>
   );
 };

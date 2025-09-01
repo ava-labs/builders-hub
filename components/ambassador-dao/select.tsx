@@ -11,16 +11,16 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
   ...props
 }) => {
   return (
-    <div className="my-2">
+    <div className='my-2'>
       {label && (
-        <label htmlFor={props.id} className="block text-sm mb-2">
+        <label htmlFor={props.id} className='block text-sm mb-2'>
           {label}
-          {props.required && <span className="text-[#FB2C36]">*</span>}
+          {props.required && <span className='text-[#FB2C36]'>*</span>}
         </label>
       )}
       <select
         {...props}
-        className={`w-full h-10 px-2 rounded-md bg-[#09090B] border border-[#27272A] text-[#FAFAFA] focus:outline-none focus:border-[#FB2C36] ${props.className}`}
+        className={`w-full h-10 px-2 rounded-md bg-[var(--default-background-color)] border border-[var(--default-border-color)] text-[var(--primary-text-color)] focus:outline-none focus:border-[#FB2C36] ${props.className}`}
       >
         {children}
       </select>

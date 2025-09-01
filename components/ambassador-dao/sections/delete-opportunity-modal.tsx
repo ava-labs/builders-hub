@@ -1,5 +1,9 @@
 import React from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ambassador-dao/dialog";
 import CustomButton from "../custom-button";
 import { useDeleteOpportunityMutation } from "@/services/ambassador-dao/requests/sponsor";
 
@@ -20,13 +24,13 @@ export const DeleteOpportunityModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className='max-w-lg py-6 bg-gray-50 dark:bg-[#09090B]'
+        className='max-w-lg py-6 bg-[#fafafa] dark:bg-[#09090B]'
         showClose
       >
-        <DialogTitle className='text-2xl text-[#FAFAFA] font-semibold'>
+        <DialogTitle className='text-2xl text-[var(--primary-text-color)] font-semibold'>
           Delete Opportunity
         </DialogTitle>
-        <div className='text-[#9F9FA9] my-3'>
+        <div className='text-[var(--secondary-text-color)] my-3'>
           Are you sure you want to delete this opportunity? This action cannot
           be undone.
         </div>

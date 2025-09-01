@@ -4,8 +4,37 @@ const withMDX = createMDX();
 
 /** @type {import('next').NextConfig} */
 const config = {
+  reactStrictMode: true,
+  typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    ignoreBuildErrors: true,
+  },
+  serverExternalPackages: [
+    'ts-morph',
+    'typescript',
+    'twoslash',
+  ],
+  transpilePackages: ["next-mdx-remote"],
   images: {
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'abs.twimg.com', 
+      },
       {
         protocol: "https",
         hostname: "*.s3.amazonaws.com",
@@ -21,13 +50,6 @@ const config = {
       {
         protocol: "https",
         hostname: "s3.eu-west-2.amazonaws.com",
-        port: "",
-        pathname: "/**",
-      },
-
-      {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com",
         port: "",
         pathname: "/**",
       },

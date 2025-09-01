@@ -111,7 +111,6 @@ function computeDerivedID(baseIDBytes: Uint8Array, index: number): Uint8Array {
 }
 
 
-
 /**
  * Decodes a Base58Check encoded ID string (like SubnetID or ChainID) into its raw bytes.
  * Returns null if decoding fails.

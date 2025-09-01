@@ -12,6 +12,7 @@ export interface ICreateOpportunityBody {
   file_ids?: string[];
   custom_questions?: string[];
   point_of_contact: string;
+  point_of_contact_email: string;
   prize_distribution?: {
     position: number;
     endPosition?: number;
@@ -47,6 +48,7 @@ export interface IOpportunityListing {
   max_winners: number;
   updated_at: Date;
   point_of_contact: string;
+  point_of_contact_email: string;
   skills: {
     id: string;
     name: string;
@@ -96,6 +98,7 @@ export enum OpportunityApplicationStatus {
   APPROVED = "APPROVED",
   COMPLETED = "COMPLETED",
   WITHDRAWN = "WITHDRAWN",
+  IN_PROGRESS = "IN_PROGRESS"
 }
 
 export enum OpportunitySubmissionStatus {
@@ -130,6 +133,15 @@ export interface IOppotunityApplicationsResponse {
       email: string;
       role: string;
       status: "VERIFIED" | "PENDING" | "REJECTED" | "SUSPENDED";
+      skills:
+        | {
+            id: string;
+            name: string;
+          }[]
+        | undefined;
+      years_of_experience: string;
+      social_links: string[];
+      job_title: string;
     };
     files: {
       id: string;
@@ -165,6 +177,14 @@ export interface IOppotunitySubmissionsResponse {
       profile_image: string | null;
       status: "VERIFIED" | "PENDING" | "REJECTED" | "SUSPENDED";
       role: string | null;
+      skills:
+        | {
+            id: string;
+            name: string;
+          }[]
+        | undefined;
+      years_of_experience: string;
+      job_title: string;
     };
     files: string[];
   }[];
@@ -176,4 +196,118 @@ export interface IOppotunitySubmissionsResponse {
     prev_page: number;
     total: number;
   };
+}
+
+export interface ISingleOppotunityApplicationResponse {
+  id: string;
+  cover_letter: string;
+  status: OpportunityApplicationStatus;
+  created_at: Date;
+  updated_at: Date;
+  extra_data: string | null;
+  custom_answers: {
+    question: string;
+    answer: string;
+  }[];
+  feedback: string | null;
+  user_id: string;
+  opportunity_id: string;
+  opportunity: {
+    id: string;
+    user_id: string;
+    type: "JOB" | "BOUNTY";
+  };
+  telegram_username: string;
+  files: {
+    id: string;
+    filename: string;
+    original_name: string;
+    path: string;
+  }[];
+  applicant_number_of_completed_jobs: string;
+  applicant: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    username: string;
+    profile_image: string | null;
+    location: string;
+    email: string;
+    role: string;
+    status: "VERIFIED" | "PENDING" | "REJECTED" | "SUSPENDED";
+    skills: {
+      id: string;
+      name: string;
+    }[];
+    socials: string[];
+    social_links: string[];
+    years_of_experience: string;
+    job_title: string;
+  };
+}
+
+export interface ISingleOppotunitySubmissionResponse {
+  id: string;
+  cover_letter: string;
+  content: string;
+  status: OpportunitySubmissionStatus;
+  created_at: Date;
+  updated_at: Date;
+  extra_data: string | null;
+  custom_answers: {
+    question: string;
+    answer: string;
+  }[];
+  telegram_username: string;
+  feedback: string | null;
+  user_id: string;
+  opportunity_id: string;
+  opportunity: {
+    id: string;
+    user_id: string;
+    type: "JOB" | "BOUNTY";
+  };
+  files: {
+    id: string;
+    filename: string;
+    original_name: string;
+  }[];
+  link: string;
+  tweet_link: string;
+  submitter_number_of_completed_jobs: string;
+  submitter: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    username: string;
+    profile_image: string | null;
+    location: string;
+    email: string;
+    role: string;
+    status: "VERIFIED" | "PENDING" | "REJECTED" | "SUSPENDED";
+    skills: {
+      id: string;
+      name: string;
+    }[];
+    years_of_experience: string;
+    socials: string[];
+    social_links: string[];
+    job_title: string;
+  };
+}
+
+export interface ILeaderboardResponse {
+  metadata: {
+    total: number;
+    last_page: number;
+    current_page: number;
+    per_page: number;
+  };
+  data: {
+    id: string;
+    clientId: string;
+    tag: string;
+    nickname: string;
+    points: number;
+  }[];
 }
