@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createWalletClient, http, parseEther, createPublicClient, defineChain } from 'viem';
+import { createWalletClient, http, parseEther, createPublicClient, defineChain, isAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { avalancheFuji } from 'viem/chains';
 import { getAuthSession } from '@/lib/auth/authSession';
@@ -139,7 +139,7 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
       );
     }
 
-    if (!/^0x[a-fA-F0-9]{40}$/.test(destinationAddress)) {
+    if (!isAddress(destinationAddress)) {
       return NextResponse.json(
         { success: false, message: 'Invalid Ethereum address format' },
         { status: 400 }
