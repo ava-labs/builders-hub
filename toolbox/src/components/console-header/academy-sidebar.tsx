@@ -235,15 +235,23 @@ const data = {
 };
 
 function usePathname() {
-  const [pathname, setPathname] = useState(window.location.pathname);
+  const [pathname, setPathname] = useState(() => {
+    // client-side check before accessing window
+    if (typeof window !== "undefined") {
+      return window.location.pathname;
+    }
+    return "/";
+  });
 
   useEffect(() => {
-    const handleLocationChange = () => {
-      setPathname(window.location.pathname);
-    };
+    if (typeof window !== "undefined") {
+      const handleLocationChange = () => {
+        setPathname(window.location.pathname);
+      };
 
-    window.addEventListener("popstate", handleLocationChange);
-    return () => window.removeEventListener("popstate", handleLocationChange);
+      window.addEventListener("popstate", handleLocationChange);
+      return () => window.removeEventListener("popstate", handleLocationChange);
+    }
   }, []);
 
   return pathname;
