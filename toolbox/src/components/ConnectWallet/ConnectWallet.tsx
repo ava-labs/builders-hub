@@ -350,8 +350,7 @@ export const ConnectWallet = ({
 
   const displayedL1Balance =
     walletMode === "c-chain" ? cChainBalance : l1Balance;
-  const displayedL1TokenSymbol =
-    isCChainMode ? "AVAX" : "Tokens";
+  const displayedL1TokenSymbol = isCChainMode ? "AVAX" : "Tokens";
   const displayedL1Address = walletEVMAddress;
   const updateDisplayedL1Balance = async () => {
     if (walletMode === "c-chain") {
@@ -408,8 +407,9 @@ export const ConnectWallet = ({
                     onTokenRefreshClick={updateDisplayedL1Balance}
                     address={displayedL1Address}
                     buttons={[
-                      ...(isCChainMode
-                        ? [<EVMFaucetButton key="cchain-faucet" chainId={43113}/>,]
+                      ...(selectedL1.hasBuilderHubFaucet &&
+                      [43113, 173750, 779672].includes(selectedL1.evmChainId)
+                        ? [<EVMFaucetButton key="builderhub-faucet" chainId={ selectedL1.evmChainId as 43113 | 173750 | 779672 } />,]
                         : [<L1FaucetButton key="l1-faucet" blockchainId={selectedL1.id} displayedL1Balance={displayedL1Balance}/>]),
                       <L1ExplorerButton key="l1-explorer" blockchainId={selectedL1.id} />,
                       <L1DetailsModal key="l1-details" blockchainId={selectedL1.id} />,

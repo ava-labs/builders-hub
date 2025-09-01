@@ -4,6 +4,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { avalancheFuji } from 'viem/chains';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { rateLimit } from '@/lib/rateLimit';
+import { getL1ListStore } from '@/toolbox/src/stores/l1ListStore';
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
 const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
@@ -13,49 +14,40 @@ if (!SERVER_PRIVATE_KEY || !FAUCET_ADDRESS) {
   console.error('necessary environment variables for EVM chain faucets are not set');
 }
 
-const echoTestnet = defineChain({
-  id: 173750,
-  name: 'Echo L1',
-  nativeCurrency: {
-    decimals: 18,
-    name: 'ECH',
-    symbol: 'ECH',
-  },
-  rpcUrls: {
-    default: {
-      http: ['https://subnets.avax.network/echo/testnet/rpc'],
+// Helper function to find a testnet chain that supports BuilderHub faucet
+function findSupportedChain(chainId: number) {
+  const testnetStore = getL1ListStore(true);
+  
+  return testnetStore.getState().l1List.find(
+    chain => chain.evmChainId === chainId && chain.hasBuilderHubFaucet
+  );
+}
+
+function createViemChain(l1Data: any) {
+  if (l1Data.evmChainId === 43113) {
+    return avalancheFuji;
+  }
+  
+  return defineChain({
+    id: l1Data.evmChainId,
+    name: l1Data.name,
+    nativeCurrency: {
+      decimals: 18,
+      name: l1Data.coinName,
+      symbol: l1Data.coinName,
     },
-  },
-  blockExplorers: {
-    default: { name: 'Explorer', url: 'https://subnets.avax.network/echo/testnet' },
-  },
-});
-
-const dispatchTestnet = defineChain({
-  id: 779672,
-  name: 'Dispatch L1',
-  nativeCurrency: {
-    decimals: 18,
-    name: 'DIS',
-    symbol: 'DIS',
-  },
-  rpcUrls: {
-    default: {
-      http: ['https://subnets.avax.network/dispatch/testnet/rpc'],
+    rpcUrls: {
+      default: {
+        http: [l1Data.rpcUrl],
+      },
     },
-  },
-  blockExplorers: {
-    default: { name: 'Explorer', url: 'https://subnets.avax.network/dispatch/testnet' },
-  },
-});
+    blockExplorers: l1Data.explorerUrl ? {
+      default: { name: 'Explorer', url: l1Data.explorerUrl },
+    } : undefined,
+  });
+}
 
-const SUPPORTED_CHAINS = {
-  43113: { chain: avalancheFuji, name: 'C-Chain (Fuji)', symbol: 'AVAX' },
-  173750: { chain: echoTestnet, name: 'Echo L1', symbol: 'ECH' },
-  779672: { chain: dispatchTestnet, name: 'Dispatch L1', symbol: 'DIS' },
-} as const;
-
-type SupportedChainId = keyof typeof SUPPORTED_CHAINS;
+const account = SERVER_PRIVATE_KEY ? privateKeyToAccount(SERVER_PRIVATE_KEY as `0x${string}`) : null;
 
 interface TransferResponse {
   success: boolean;
@@ -64,32 +56,26 @@ interface TransferResponse {
   destinationAddress?: string;
   amount?: string;
   chainId?: number;
-  chainName?: string;
   message?: string;
 }
 
 async function transferEVMTokens(
-  sourcePrivateKey: string,
   sourceAddress: string,
   destinationAddress: string,
-  chainId: SupportedChainId
+  chainId: number
 ): Promise<{ txHash: string }> {
-  const chainConfig = SUPPORTED_CHAINS[chainId];
-  if (!chainConfig) {
-    throw new Error(`Unsupported chain ID: ${chainId}`);
+  if (!account) {
+    throw new Error('Wallet not initialized');
   }
 
-  const account = privateKeyToAccount(sourcePrivateKey as `0x${string}`);
-  const walletClient = createWalletClient({
-    account,
-    chain: chainConfig.chain,
-    transport: http()
-  });
+  const l1Data = findSupportedChain(chainId);
+  if (!l1Data) {
+    throw new Error(`ChainID ${chainId} is not supported by Builder Hub Faucet`);
+  }
 
-  const publicClient = createPublicClient({
-    chain: chainConfig.chain,
-    transport: http()
-  });
+  const viemChain = createViemChain(l1Data);
+  const walletClient = createWalletClient({ account, chain: viemChain, transport: http() });
+  const publicClient = createPublicClient({ chain: viemChain, transport: http() });
 
   const balance = await publicClient.getBalance({
     address: sourceAddress as `0x${string}`
@@ -98,7 +84,7 @@ async function transferEVMTokens(
   const amountToSend = parseEther(FIXED_AMOUNT);
   
   if (balance < amountToSend) {
-    throw new Error(`Insufficient faucet balance on ${chainConfig.name}`);
+    throw new Error(`Insufficient faucet balance on ${l1Data.name}`);
   }
 
   const txHash = await walletClient.sendTransaction({
@@ -144,10 +130,11 @@ async function validateFaucetRequest(request: NextRequest): Promise<NextResponse
       );
     }
 
-    const parsedChainId = parseInt(chainId) as SupportedChainId;
-    if (!SUPPORTED_CHAINS[parsedChainId]) {
+    const parsedChainId = parseInt(chainId);
+    const supportedChain = findSupportedChain(parsedChainId);
+    if (!supportedChain) {
       return NextResponse.json(
-        { success: false, message: `Unsupported chain ID: ${chainId}` },
+        { success: false, message: `Chain ${chainId} does not support BuilderHub faucet` },
         { status: 400 }
       );
     }
@@ -182,11 +169,9 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
   try {
     const searchParams = request.nextUrl.searchParams;
     const destinationAddress = searchParams.get('address')!;
-    const chainId = parseInt(searchParams.get('chainId')!) as SupportedChainId;
-    const chainConfig = SUPPORTED_CHAINS[chainId];
+    const chainId = parseInt(searchParams.get('chainId')!);
     
     const tx = await transferEVMTokens(
-      SERVER_PRIVATE_KEY!,
       FAUCET_ADDRESS!,
       destinationAddress,
       chainId
@@ -198,8 +183,7 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
       sourceAddress: FAUCET_ADDRESS,
       destinationAddress,
       amount: FIXED_AMOUNT,
-      chainId,
-      chainName: chainConfig.name
+      chainId
     };
         
     return NextResponse.json(response);
@@ -227,7 +211,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const rateLimitHandler = rateLimit(handleFaucetRequest, {
     windowMs: 24 * 60 * 60 * 1000,
     maxRequests: 1,
-    identifier: async (req: NextRequest) => {
+    identifier: async (_req: NextRequest) => {
       const session = await import('@/lib/auth/authSession').then(mod => mod.getAuthSession());
       if (!session) throw new Error('Authentication required');
       const userId = session.user.id;
