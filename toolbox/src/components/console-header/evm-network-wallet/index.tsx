@@ -164,6 +164,7 @@ export function EvmNetworkWallet() {
           <WalletInfo
             walletAddress={walletEVMAddress || ''}
             currentNetworkExplorerUrl={(currentNetwork as any)?.explorerUrl}
+            currentNetwork={currentNetwork as any}
             onCopyAddress={copyAddress}
             onRefreshBalances={updateAllBalances}
             onOpenExplorer={openExplorer}

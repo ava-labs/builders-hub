@@ -39,7 +39,7 @@ const l1ListInitialStateFuji = {
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
             hasBuilderHubFaucet: true,
-            faucetUrl: "https://test.core.app/tools/testnet-faucet/?subnet=c&token=c",
+            faucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/c-chain"
         },
         {
@@ -56,7 +56,7 @@ const l1ListInitialStateFuji = {
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/7kyTY75fdtnO6mh7f0osix/4c92c93dd688082bfbb43d5d910cbfeb/Echo_Subnet_Logo.png",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
             hasBuilderHubFaucet: true,
-            faucetUrl: "https://test.core.app/tools/testnet-faucet/?subnet=echo&token=echo",
+            faucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/echo",
         },
         {
@@ -73,7 +73,7 @@ const l1ListInitialStateFuji = {
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/60XrKdf99PqQKrHiuYdwTE/908622f5204311dbb11be9c6008ead44/Dispatch_Subnet_Logo.png",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
             hasBuilderHubFaucet: true,
-            faucetUrl: "https://test.core.app/tools/testnet-faucet/?subnet=dispatch&token=dispatch",
+            faucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/dispatch"
         }
     ] as L1ListItem[],

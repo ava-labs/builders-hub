@@ -1,25 +1,39 @@
 import { useState } from 'react'
-import { DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
-import { Copy, RefreshCw, ExternalLink, Check } from 'lucide-react'
+import {DropdownMenuItem, DropdownMenuSeparator} from '@/components/ui/dropdown-menu'
+import {Copy, RefreshCw, ExternalLink, Check, Droplets, SquareArrowOutUpRight} from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useWalletStore } from '@/stores/walletStore'
+import { SUPPORTED_CHAIN_IDS, type SupportedChainId } from '@/components/ConnectWallet/EVMFaucetButton'
+
+interface L1ListItem {
+  id: string;
+  name: string;
+  evmChainId: number;
+  coinName: string;
+  hasBuilderHubFaucet?: boolean;
+  faucetUrl?: string;
+}
 
 interface WalletInfoProps {
   walletAddress: string
   currentNetworkExplorerUrl?: string
+  currentNetwork?: L1ListItem
   onCopyAddress: () => void
   onRefreshBalances: () => void
   onOpenExplorer: (explorerUrl: string) => void
 }
 
-export function WalletInfo({ 
-  walletAddress, 
+export function WalletInfo({
+  walletAddress,
   currentNetworkExplorerUrl,
-  onCopyAddress, 
-  onRefreshBalances, 
-  onOpenExplorer 
+  currentNetwork,
+  onCopyAddress,
+  onRefreshBalances,
+  onOpenExplorer
 }: WalletInfoProps) {
   const [isCopied, setIsCopied] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const { isTestnet } = useWalletStore()
 
   // Format EVM address for compact display
   const formatAddressForDisplay = (
@@ -44,6 +58,16 @@ export function WalletInfo({
     setTimeout(() => setIsRefreshing(false), 2000)
   }
 
+  const handleBuilderHubFaucet = () => {
+    window.location.href = '/console/primary-network/faucet'
+  }
+
+  const handleExternalFaucet = () => {
+    if (currentNetwork?.faucetUrl) {
+      window.location.href = currentNetwork.faucetUrl
+    }
+  }
+
   return (
     <>
       <DropdownMenuSeparator />
@@ -55,7 +79,7 @@ export function WalletInfo({
             <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-1">
               Wallet
             </div>
-            <div 
+            <div
               className="text-xs font-mono text-foreground cursor-pointer hover:text-primary transition-colors"
               title={walletAddress || 'Not connected'}
               onClick={handleCopyAddress}
@@ -65,7 +89,7 @@ export function WalletInfo({
                 : 'Not connected'}
             </div>
           </div>
-          
+
           {/* Compact action buttons */}
           <div className="flex items-center gap-1 ml-2">
             <Button
@@ -83,7 +107,7 @@ export function WalletInfo({
                 <Copy className="h-3 w-3" />
               )}
             </Button>
-            
+
             <Button
               variant="ghost"
               size="sm"
@@ -96,7 +120,7 @@ export function WalletInfo({
             >
               <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
-            
+
             {currentNetworkExplorerUrl && (
               <Button
                 variant="ghost"
@@ -111,6 +135,34 @@ export function WalletInfo({
           </div>
         </div>
       </div>
+
+      {/* Faucet options */}
+      {isTestnet && currentNetwork &&
+        (() => {
+          const hasBuilderHubFaucet = currentNetwork.hasBuilderHubFaucet && SUPPORTED_CHAIN_IDS.includes(currentNetwork.evmChainId as SupportedChainId)
+          const hasExternalFaucet = currentNetwork.faucetUrl
+
+          if (!hasBuilderHubFaucet && !hasExternalFaucet) return null
+
+          return (
+            <>
+              <DropdownMenuSeparator />
+              {hasBuilderHubFaucet && (
+                <DropdownMenuItem onClick={handleBuilderHubFaucet} className="cursor-pointer">
+                  <Droplets className="mr-2 h-3 w-3" />
+                  Claim free Testnet {currentNetwork.coinName}
+                </DropdownMenuItem>
+              )}
+
+              {hasExternalFaucet && (
+                <DropdownMenuItem onClick={handleExternalFaucet} className="cursor-pointer">
+                  <SquareArrowOutUpRight className="mr-2 h-3 w-3" />
+                  Open External Faucet
+                </DropdownMenuItem>
+              )}
+            </>
+          )
+        })()}
     </>
   )
 }
