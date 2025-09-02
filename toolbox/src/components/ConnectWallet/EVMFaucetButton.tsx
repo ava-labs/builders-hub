@@ -10,22 +10,13 @@ import {
   AlertDialogTitle,
 } from "../AlertDialog";
 import { useWalletStore } from "../../stores/walletStore";
+import { useBuilderHubFaucet } from "../../hooks/useBuilderHubFaucet";
+import { useL1List } from "../../stores/l1ListStore";
 
 const LOW_BALANCE_THRESHOLD = 1;
 
-export const SUPPORTED_CHAINS = {
-  43113: { name: "C-Chain (Fuji)", symbol: "AVAX" },
-  173750: { name: "Echo L1", symbol: "ECH" },
-  779672: { name: "Dispatch L1", symbol: "DIS" },
-} as const;
-
-export type SupportedChainId = keyof typeof SUPPORTED_CHAINS;
-export const SUPPORTED_CHAIN_IDS = Object.keys(SUPPORTED_CHAINS).map(
-  Number
-) as SupportedChainId[];
-
 interface EVMFaucetButtonProps {
-  chainId: SupportedChainId;
+  chainId: number;
   className?: string;
   buttonProps?: React.ButtonHTMLAttributes<HTMLButtonElement>;
   children?: React.ReactNode;
@@ -37,8 +28,9 @@ export const EVMFaucetButton = ({
   buttonProps,
   children,
 }: EVMFaucetButtonProps) => {
-  const { walletEVMAddress, isTestnet, cChainBalance, updateCChainBalance } =
-    useWalletStore();
+  const { walletEVMAddress, isTestnet, cChainBalance } = useWalletStore();
+  const { requestTokens } = useBuilderHubFaucet();
+  const l1List = useL1List();
 
   const [isRequestingTokens, setIsRequestingTokens] = useState(false);
   const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
@@ -46,7 +38,13 @@ export const EVMFaucetButton = ({
   const [alertDialogMessage, setAlertDialogMessage] = useState("");
   const [isLoginError, setIsLoginError] = useState(false);
 
-  const chainConfig = SUPPORTED_CHAINS[chainId];
+  const chainConfig = l1List.find(
+    (chain) => chain.evmChainId === chainId && chain.hasBuilderHubFaucet
+  );
+
+  if (!isTestnet || !chainConfig) {
+    return null;
+  }
 
   const handleLogin = () => {
     window.location.href = "/login";
@@ -57,44 +55,7 @@ export const EVMFaucetButton = ({
     setIsRequestingTokens(true);
 
     try {
-      const response = await fetch(
-        `/api/evm-chain-faucet?address=${walletEVMAddress}&chainId=${chainId}`
-      );
-      const rawText = await response.text();
-      let data;
-
-      try {
-        data = JSON.parse(rawText);
-      } catch (parseError) {
-        throw new Error(`Invalid response: ${rawText.substring(0, 100)}...`);
-      }
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error("Please login first");
-        }
-        if (response.status === 429) {
-          throw new Error(
-            data.message || "Rate limit exceeded. Please try again later."
-          );
-        }
-        throw new Error(
-          data.message || `Error ${response.status}: Failed to get tokens`
-        );
-      }
-
-      if (data.success) {
-        console.log(
-          `${chainConfig.name} token request successful, txHash:`,
-          data.txHash
-        );
-
-        if (chainId === 43113) {
-          setTimeout(() => updateCChainBalance(), 3000);
-        }
-      } else {
-        throw new Error(data.message || "Failed to get tokens");
-      }
+      await requestTokens(chainId);
     } catch (error) {
       console.error(`${chainConfig.name} token request error:`, error);
       const errorMessage =
@@ -116,10 +77,6 @@ export const EVMFaucetButton = ({
       setIsRequestingTokens(false);
     }
   };
-
-  if (!isTestnet) {
-    return null;
-  }
 
   const defaultClassName = `px-2 py-1 text-xs font-medium text-white rounded transition-colors ${
     cChainBalance < LOW_BALANCE_THRESHOLD
@@ -162,11 +119,11 @@ export const EVMFaucetButton = ({
         onClick={handleTokenRequest}
         disabled={isRequestingTokens}
         className={className || defaultClassName}
-        title={`Get free ${chainConfig.symbol} tokens`}
+        title={`Get free ${chainConfig.coinName} tokens`}
       >
         {isRequestingTokens
           ? "Requesting..."
-          : children || `${chainConfig.symbol} Faucet`}
+          : children || `${chainConfig.coinName} Faucet`}
       </button>
     </>
   );

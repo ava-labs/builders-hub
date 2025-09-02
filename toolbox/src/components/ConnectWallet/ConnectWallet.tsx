@@ -15,7 +15,7 @@ import { L1ExplorerButton } from "./L1ExplorerButton";
 import { PChainExplorerButton } from "./PChainExplorerButton";
 import { ChainSelector } from "./ChainSelector";
 import { PChainFaucetButton } from "./PChainFaucetButton";
-import { EVMFaucetButton, SUPPORTED_CHAIN_IDS, type SupportedChainId } from "./EVMFaucetButton";
+import { EVMFaucetButton } from "./EVMFaucetButton";
 import { BridgeButton } from "./BridgeButton";
 import { L1DetailsModal } from "./L1DetailsModal";
 import { L1FaucetButton } from "./L1FaucetButton";
@@ -199,8 +199,8 @@ export const ConnectWallet = ({
     return () => {
       if (window.avalanche?.removeListener) {
         try {
-          window.avalanche.removeListener("accountsChanged", () => { });
-          window.avalanche.removeListener("chainChanged", () => { });
+          window.avalanche.removeListener("accountsChanged", () => {});
+          window.avalanche.removeListener("chainChanged", () => {});
         } catch (e) {
           console.warn("Failed to remove event listeners:", e);
         }
@@ -407,10 +407,9 @@ export const ConnectWallet = ({
                     onTokenRefreshClick={updateDisplayedL1Balance}
                     address={displayedL1Address}
                     buttons={[
-                      ...(selectedL1.hasBuilderHubFaucet &&
-                      SUPPORTED_CHAIN_IDS.includes(selectedL1.evmChainId as SupportedChainId)
-                        ? [<EVMFaucetButton key="builderhub-faucet" chainId={ selectedL1.evmChainId as SupportedChainId } />,]
-                        : [<L1FaucetButton key="l1-faucet" blockchainId={selectedL1.id} displayedL1Balance={displayedL1Balance}/>]),
+                      ...(selectedL1.hasBuilderHubFaucet
+                        ? [<EVMFaucetButton key="builderhub-faucet" chainId={selectedL1.evmChainId} />,]
+                        : [<L1FaucetButton key="l1-faucet" blockchainId={selectedL1.id} displayedL1Balance={displayedL1Balance} />]),
                       <L1ExplorerButton key="l1-explorer" blockchainId={selectedL1.id} />,
                       <L1DetailsModal key="l1-details" blockchainId={selectedL1.id} />,
                     ]}
