@@ -4,7 +4,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { avalancheFuji } from 'viem/chains';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { rateLimit } from '@/lib/rateLimit';
-import { getL1ListStore } from '@/toolbox/src/stores/l1ListStore';
+import { getL1ListStore, type L1ListItem } from '@/toolbox/src/stores/l1ListStore';
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
 const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
@@ -14,15 +14,15 @@ if (!SERVER_PRIVATE_KEY || !FAUCET_ADDRESS) {
 }
 
 // Helper function to find a testnet chain that supports BuilderHub faucet
-function findSupportedChain(chainId: number) {
+function findSupportedChain(chainId: number): L1ListItem | undefined {
   const testnetStore = getL1ListStore(true);
   
   return testnetStore.getState().l1List.find(
-    chain => chain.evmChainId === chainId && chain.hasBuilderHubFaucet
+    (chain: L1ListItem) => chain.evmChainId === chainId && chain.hasBuilderHubFaucet
   );
 }
 
-function createViemChain(l1Data: any) {
+function createViemChain(l1Data: L1ListItem) {
   if (l1Data.evmChainId === 43113) {
     return avalancheFuji;
   }
