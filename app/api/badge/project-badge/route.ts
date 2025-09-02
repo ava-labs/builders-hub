@@ -1,20 +1,21 @@
 import { withAuth } from "@/lib/protectedRoute";
-import { getBadgeByCourseId } from "@/server/services/badge";
+
+import { getProjectBadges } from "@/server/services/project-badge";
 
 import { NextResponse } from "next/server";
 
 export const GET = withAuth(async (request) => {
   const { searchParams } = new URL(request.url);
-  const course_id = searchParams.get("course_id");
-  if (!course_id) {
+  const project_id = searchParams.get("project_id");
+  if (!project_id) {
     return NextResponse.json(
-      { error: "course_id parameter is required" },
+      { error: "project_id parameter is required" },
       { status: 400 }
     );
   }
 
   try {
-    const badge = await getBadgeByCourseId(course_id);
+    const badge = await getProjectBadges(project_id);
     return NextResponse.json(badge, { status: 200 });
   } catch (error) {
     console.error("Error getting badge:", error);
