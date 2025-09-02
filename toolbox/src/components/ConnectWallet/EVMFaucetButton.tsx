@@ -13,13 +13,16 @@ import { useWalletStore } from "../../stores/walletStore";
 
 const LOW_BALANCE_THRESHOLD = 1;
 
-const SUPPORTED_CHAINS = {
+export const SUPPORTED_CHAINS = {
   43113: { name: "C-Chain (Fuji)", symbol: "AVAX" },
   173750: { name: "Echo L1", symbol: "ECH" },
   779672: { name: "Dispatch L1", symbol: "DIS" },
 } as const;
 
-type SupportedChainId = keyof typeof SUPPORTED_CHAINS;
+export type SupportedChainId = keyof typeof SUPPORTED_CHAINS;
+export const SUPPORTED_CHAIN_IDS = Object.keys(SUPPORTED_CHAINS).map(
+  Number
+) as SupportedChainId[];
 
 interface EVMFaucetButtonProps {
   chainId: SupportedChainId;
