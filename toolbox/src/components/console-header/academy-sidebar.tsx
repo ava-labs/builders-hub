@@ -1,6 +1,8 @@
 "use client";
+
 import * as React from "react";
-import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Home,
   Layers,
@@ -26,6 +28,7 @@ import {
   SquareMinus,
   SquarePlus,
 } from "lucide-react";
+
 import {
   Sidebar,
   SidebarContent,
@@ -234,29 +237,6 @@ const data = {
   navSecondary: [],
 };
 
-function usePathname() {
-  const [pathname, setPathname] = useState(() => {
-    // client-side check before accessing window
-    if (typeof window !== "undefined") {
-      return window.location.pathname;
-    }
-    return "/";
-  });
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const handleLocationChange = () => {
-        setPathname(window.location.pathname);
-      };
-
-      window.addEventListener("popstate", handleLocationChange);
-      return () => window.removeEventListener("popstate", handleLocationChange);
-    }
-  }, []);
-
-  return pathname;
-}
-
 interface AcademySidebarProps extends React.ComponentProps<typeof Sidebar> {}
 
 export function AcademySidebar({ ...props }: AcademySidebarProps) {
@@ -269,15 +249,13 @@ export function AcademySidebar({ ...props }: AcademySidebarProps) {
       {...props}
     >
       <SidebarHeader>
-        <a
+        <Link
           href="/console"
           className="flex items-center gap-2 group transition-all duration-200 p-2"
-          target="_blank"
-          rel="noopener noreferrer"
         >
           <AvalancheLogo className="size-7" fill="currentColor" />
           <span className="font-large font-semibold">Builder Console</span>
-        </a>
+        </Link>
       </SidebarHeader>
 
       <SidebarContent>
@@ -289,14 +267,10 @@ export function AcademySidebar({ ...props }: AcademySidebarProps) {
               return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive}>
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
+                    <Link href={item.url} target="_blank">
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               );
@@ -327,19 +301,15 @@ export function AcademySidebar({ ...props }: AcademySidebarProps) {
                         disabled={isComingSoon}
                       >
                         {isComingSoon ? (
-                          <a href="#" rel="noopener noreferrer">
+                          <Link href="#">
                             <item.icon />
                             <span>{item.title} (soon)</span>
-                          </a>
+                          </Link>
                         ) : (
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
+                          <Link href={item.url} target="_blank">
                             <item.icon />
                             <span>{item.title}</span>
-                          </a>
+                          </Link>
                         )}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
