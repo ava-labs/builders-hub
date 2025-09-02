@@ -30,7 +30,7 @@ const l1ListInitialStateFuji = {
         {
             id: "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp",
             name: "C-Chain",
-            description: "C-Chain of Avalanche Fuji Testnet is the EVM chain of the Primary Network.",
+            description: "Smart contract development blockchain",
             rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
             evmChainId: 43113,
             coinName: "AVAX",
@@ -52,7 +52,7 @@ const l1ListInitialStateFuji = {
         {
             id: "98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp",
             name: "Echo",
-            description: "Echo is a Testnet L1 for testing dApps utilizing ICM.",
+            description: "Echo is a Testnet L1 for testing dApps utilizing ICM",
             rpcUrl: "https://subnets.avax.network/echo/testnet/rpc",
             evmChainId: 173750,
             coinName: "ECH",
@@ -74,7 +74,7 @@ const l1ListInitialStateFuji = {
         {
             id: "2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY",
             name: "Dispatch",
-            description: "Dispatch is a Testnet L1 for testing dApps utilizing ICM.",
+            description: "Dispatch is a Testnet L1 for testing dApps utilizing ICM",
             rpcUrl: "https://subnets.avax.network/dispatch/testnet/rpc",
             evmChainId: 779672,
             coinName: "DIS",

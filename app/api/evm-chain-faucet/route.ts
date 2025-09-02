@@ -8,7 +8,6 @@ import { getL1ListStore } from '@/toolbox/src/stores/l1ListStore';
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
 const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
-const FIXED_AMOUNT = '3';
 
 if (!SERVER_PRIVATE_KEY || !FAUCET_ADDRESS) {
   console.error('necessary environment variables for EVM chain faucets are not set');
@@ -62,7 +61,8 @@ interface TransferResponse {
 async function transferEVMTokens(
   sourceAddress: string,
   destinationAddress: string,
-  chainId: number
+  chainId: number,
+  amount: string
 ): Promise<{ txHash: string }> {
   if (!account) {
     throw new Error('Wallet not initialized');
@@ -81,7 +81,7 @@ async function transferEVMTokens(
     address: sourceAddress as `0x${string}`
   });
   
-  const amountToSend = parseEther(FIXED_AMOUNT);
+  const amountToSend = parseEther(amount);
   
   if (balance < amountToSend) {
     throw new Error(`Insufficient faucet balance on ${l1Data.name}`);
@@ -169,12 +169,15 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
   try {
     const searchParams = request.nextUrl.searchParams;
     const destinationAddress = searchParams.get('address')!;
-    const chainId = parseInt(searchParams.get('chainId')!);
+    const chainId = parseInt(searchParams.get('chainId')!);   
+    const supportedChain = findSupportedChain(chainId);
+    const dripAmount = (supportedChain?.dripAmount || 3).toString();
     
     const tx = await transferEVMTokens(
       FAUCET_ADDRESS!,
       destinationAddress,
-      chainId
+      chainId,
+      dripAmount
     );
 
     const response: TransferResponse = {
@@ -182,7 +185,7 @@ async function handleFaucetRequest(request: NextRequest): Promise<NextResponse> 
       txHash: tx.txHash,
       sourceAddress: FAUCET_ADDRESS,
       destinationAddress,
-      amount: FIXED_AMOUNT,
+      amount: dripAmount,
       chainId
     };
         

@@ -27,7 +27,7 @@ function EVMFaucetCard({ chain }: { chain: any }) {
             {chain.name}
           </h3>
           <p className="text-zinc-600 dark:text-zinc-400 text-sm">
-            {chain.name.includes("C-Chain") ? "Smart Contract development" : chain.description?.split(".")[0] || "Testnet blockchain"}
+            {chain.description}
           </p>
         </div>
       </div>
