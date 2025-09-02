@@ -11,7 +11,7 @@ import {
 } from "../AlertDialog";
 import { useWalletStore } from "../../stores/walletStore";
 import { useBuilderHubFaucet } from "../../hooks/useBuilderHubFaucet";
-import { useL1List } from "../../stores/l1ListStore";
+import { useL1List, type L1ListItem } from "../../stores/l1ListStore";
 
 const LOW_BALANCE_THRESHOLD = 1;
 
@@ -39,7 +39,8 @@ export const EVMFaucetButton = ({
   const [isLoginError, setIsLoginError] = useState(false);
 
   const chainConfig = l1List.find(
-    (chain) => chain.evmChainId === chainId && chain.hasBuilderHubFaucet
+    (chain: L1ListItem) =>
+      chain.evmChainId === chainId && chain.hasBuilderHubFaucet
   );
 
   if (!isTestnet || !chainConfig) {
