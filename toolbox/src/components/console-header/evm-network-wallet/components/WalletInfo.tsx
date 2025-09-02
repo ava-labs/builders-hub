@@ -11,7 +11,7 @@ interface L1ListItem {
   evmChainId: number;
   coinName: string;
   hasBuilderHubFaucet?: boolean;
-  faucetUrl?: string;
+  externalFaucetUrl?: string;
 }
 
 interface WalletInfoProps {
@@ -63,8 +63,8 @@ export function WalletInfo({
   }
 
   const handleExternalFaucet = () => {
-    if (currentNetwork?.faucetUrl) {
-      window.location.href = currentNetwork.faucetUrl
+    if (currentNetwork?.externalFaucetUrl) {
+      window.location.href = currentNetwork.externalFaucetUrl
     }
   }
 
@@ -140,7 +140,7 @@ export function WalletInfo({
       {isTestnet && currentNetwork &&
         (() => {
           const hasBuilderHubFaucet = currentNetwork.hasBuilderHubFaucet && SUPPORTED_CHAIN_IDS.includes(currentNetwork.evmChainId as SupportedChainId)
-          const hasExternalFaucet = currentNetwork.faucetUrl
+          const hasExternalFaucet = currentNetwork.externalFaucetUrl
 
           if (!hasBuilderHubFaucet && !hasExternalFaucet) return null
 
