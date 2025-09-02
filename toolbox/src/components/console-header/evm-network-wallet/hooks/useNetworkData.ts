@@ -3,7 +3,7 @@ import { useWalletAddress, useBalances, useNetworkInfo, useWalletStore } from '@
 import { useL1List } from '@/stores/l1ListStore'
 import { avalanche, avalancheFuji } from 'viem/chains'
 import { balanceService } from '@/services/balanceService'
-
+import { L1ListItem } from '@/stores/l1ListStore'
 
 export function useNetworkData() {
   // Use performance selectors for better performance
@@ -39,12 +39,12 @@ export function useNetworkData() {
     }
 
     // Find the current network based on wallet chain ID
-    let currentNet = (l1List || []).find((net) => net.evmChainId === walletChainId)
+    let currentNet = (l1List || []).find((net: L1ListItem) => net.evmChainId === walletChainId)
     
     // If wallet is connected but we don't have a proper chainId or network found,
     // default to C-Chain to avoid showing "No Network" during account switching
     if (!currentNet || !walletChainId || walletChainId === 0) {
-      currentNet = (l1List || []).find((net) => 
+      currentNet = (l1List || []).find((net: L1ListItem) => 
         net.evmChainId === (isTestnet ? avalancheFuji.id : avalanche.id)
       )
     }

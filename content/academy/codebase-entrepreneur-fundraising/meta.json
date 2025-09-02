@@ -1,0 +1,14 @@
+{
+    "title": "Fundraising and Finance Pro",
+    "icon": "Coins",
+    "root": true,
+    "pages": [
+        "index",
+        "---Fundraising---",
+        "...09-fundraising",
+        "---Grant Applications---",
+        "...10-grants",
+        "---Pitching---",
+        "...11-module"
+    ]
+}

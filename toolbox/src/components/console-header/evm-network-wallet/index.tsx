@@ -18,10 +18,11 @@ import { WalletInfo } from './components/WalletInfo'
 
 export function EvmNetworkWallet() {
   const [isAddNetworkModalOpen, setIsAddNetworkModalOpen] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
 
   const l1ListStore = useL1ListStore()
-  const addL1 = l1ListStore((s) => s.addL1)
-  const removeL1 = l1ListStore((s) => s.removeL1)
+  const addL1 = l1ListStore((s: any) => s.addL1)
+  const removeL1 = l1ListStore((s: any) => s.removeL1)
 
   const {
     currentNetwork,
@@ -30,7 +31,7 @@ export function EvmNetworkWallet() {
     walletEVMAddress,
   } = useNetworkData()
 
-  const l1List = l1ListStore((s) => s.l1List)
+  const l1List = l1ListStore((s: any) => s.l1List)
 
   const {
     handleNetworkChange,
@@ -155,10 +156,13 @@ export function EvmNetworkWallet() {
             isNetworkActive={isNetworkActive}
             onNetworkSelect={handleNetworkChange}
             onNetworkRemove={handleRemoveNetwork}
+            isEditMode={isEditMode}
           />
 
           <NetworkActions
             onAddNetwork={handleAddNetwork}
+            isEditMode={isEditMode}
+            onToggleEditMode={() => setIsEditMode((v) => !v)}
           />
 
           <WalletInfo

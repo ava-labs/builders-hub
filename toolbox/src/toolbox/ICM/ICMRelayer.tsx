@@ -2,7 +2,7 @@
 
 import { formatEther, parseEther, createPublicClient, http, Chain } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { useSelectedL1 } from '../../stores/l1ListStore';
+import { L1ListItem, useSelectedL1 } from '../../stores/l1ListStore';
 import { useL1ListStore } from '../../stores/l1ListStore';
 import { useWalletStore } from '../../stores/walletStore';
 import { Input } from '../../components/Input';
@@ -22,7 +22,7 @@ import { WalletRequirementsConfigKey } from '../../hooks/useWalletRequirements';
 export default function ICMRelayer() {
     const selectedL1 = useSelectedL1()();
     const { showBoundary } = useErrorBoundary();
-    const { coreWalletClient, isTestnet } = useWalletStore();
+    const { coreWalletClient, isTestnet, walletEVMAddress } = useWalletStore();
     const { l1List } = useL1ListStore()();
 
     // Initialize state with one-time calculation
@@ -90,8 +90,8 @@ export default function ICMRelayer() {
     const getConfigSources = () => {
         if (error) return [];
         return l1List
-            .filter(l1 => selectedSources.includes(l1.id))
-            .map(l1 => ({
+            .filter((l1: L1ListItem) => selectedSources.includes(l1.id))
+            .map((l1: L1ListItem) => ({
                 subnetId: l1.subnetId,
                 blockchainId: l1.id,
                 rpcUrl: l1.rpcUrl
@@ -101,8 +101,8 @@ export default function ICMRelayer() {
     const getConfigDestinations = () => {
         if (error || !privateKey) return [];
         return l1List
-            .filter(l1 => selectedDestinations.includes(l1.id))
-            .map(l1 => ({
+            .filter((l1: L1ListItem) => selectedDestinations.includes(l1.id))
+            .map((l1: L1ListItem) => ({
                 subnetId: l1.subnetId,
                 blockchainId: l1.id,
                 rpcUrl: l1.rpcUrl,
@@ -112,7 +112,7 @@ export default function ICMRelayer() {
 
     // Get unique chains from both sources and destinations
     const selectedChains = [...new Set([...selectedSources, ...selectedDestinations])]
-        .map(id => l1List.find(l1 => l1.id === id))
+        .map((id: string) => l1List.find((l1: L1ListItem) => l1.id === id))
         .filter(Boolean) as typeof l1List;
 
     const fetchBalances = async () => {
@@ -141,7 +141,7 @@ export default function ICMRelayer() {
     const sendOneCoin = async (chainId: string) => {
         setIsSending(true);
         try {
-            const chain = l1List.find(l1 => l1.id === chainId);
+            const chain = l1List.find((l1: L1ListItem) => l1.id === chainId);
             if (!chain) return;
 
             const viemChain: Chain = {
@@ -156,15 +156,23 @@ export default function ICMRelayer() {
                     decimals: 18,
                 },
             };
-
-            const txHash = await coreWalletClient.sendTransaction({
-                to: relayerAddress,
-                value: parseEther('1'),
-                chain: viemChain,
-            });
+            console.log('viemChain', viemChain);
 
             const publicClient = createPublicClient({
                 transport: http(chain.rpcUrl),
+            });
+
+            const nextNonce = await publicClient.getTransactionCount({
+                address: walletEVMAddress as `0x${string}`,
+                blockTag: 'pending',
+            });
+
+            const txHash = await coreWalletClient.sendTransaction({
+                to: relayerAddress as `0x${string}`,
+                value: parseEther('1'),
+                chain: viemChain,
+                gas: 21000n,
+                nonce: nextNonce,
             });
 
             await publicClient.waitForTransactionReceipt({ hash: txHash });
@@ -211,7 +219,7 @@ export default function ICMRelayer() {
                     <div className="space-y-4">
                         <div className="text-lg font-bold">Source Networks</div>
                         <div className="space-y-2 border rounded-md p-4 bg-gray-50 dark:bg-gray-900/20">
-                            {l1List.map(l1 => (
+                            {l1List.map((l1: L1ListItem) => (
                                 <div key={`source-${l1.id}`} className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
                                     <input
                                         type="checkbox"
@@ -233,7 +241,7 @@ export default function ICMRelayer() {
                     <div className="space-y-4">
                         <div className="text-lg font-bold">Destination Networks</div>
                         <div className="space-y-2 border rounded-md p-4 bg-gray-50 dark:bg-gray-900/20">
-                            {l1List.map(l1 => (
+                            {l1List.map((l1: L1ListItem) => (
                                 <div key={`dest-${l1.id}`} className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
                                     <input
                                         type="checkbox"
@@ -259,7 +267,7 @@ export default function ICMRelayer() {
                         Ensure the relayer address maintains a positive balance on all selected chains to cover transaction fees for message delivery.
                     </div>
                     <div className="space-y-2">
-                        {selectedChains.map(chain => (
+                        {selectedChains.map((chain: L1ListItem) => (
                             <div key={`balance-${chain.id}`} className="flex items-center justify-between p-3 border rounded-md">
                                 <div>
                                     <div className="font-medium">{chain.name}</div>

@@ -7,15 +7,6 @@ import AvalancheGoDockerL1 from "../../../../toolbox/src/toolbox/Nodes/Avalanche
 import ConvertToL1 from "../../../../toolbox/src/toolbox/L1/ConvertToL1";
 import ManagedTestnetNodes from "@/toolbox/src/toolbox/Nodes/ManagedTestnetNodes";
 
-function ManagedTestnetNodesPlaceholder() {
-  return (
-    <div className="p-4 w-full h-96 text-center flex flex-col items-center justify-center rounded-2xl border">
-      <h2 className="text-3xl font-semibold mb-2">🏗️ Managed Testnet L1 Nodes</h2>
-      <p className="text-gray-600">This feature is coming soon. Stay tuned!</p>
-    </div>
-  );
-}
-
 export default function Page() {
   const steps: StepDefinition[] = [
     {
@@ -32,7 +23,7 @@ export default function Page() {
       description: "Choose how you want to run your node.",
       options: [
         { key: "l1-node-setup", label: "L1 Node Setup with Docker", component: AvalancheGoDockerL1 },
-        { key: "managed-testnet-l1-nodes", label: "Managed Testnet L1 Nodes (coming soon)", component: ManagedTestnetNodesPlaceholder },
+        { key: "managed-testnet-l1-nodes", label: "Managed Testnet L1 Nodes", component: ManagedTestnetNodes },
       ],
     },
     {

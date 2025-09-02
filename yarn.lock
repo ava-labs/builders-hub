@@ -99,6 +99,14 @@
     "@scure/base" "1.1.5"
     micro-eth-signer "0.7.2"
 
+"@avalanche-sdk/chainkit@^0.3.0-alpha.1":
+  version "0.3.0-alpha.1"
+  resolved "https://registry.yarnpkg.com/@avalanche-sdk/chainkit/-/chainkit-0.3.0-alpha.1.tgz#051e1e24c2e997f63bd9da996a98e8172e7b47db"
+  integrity sha512-SWkhA9PvOB+91nuSiJ/it3/VpPB+BV29IfflQKDdvcAMtUX4zSWAtUqZJ7ZXojQAJPYCdeTUbOLy/Jx6TG+7ug==
+  dependencies:
+    json-canonicalize "^1.0.6"
+    zod "^3.20.0"
+
 "@babel/code-frame@^7.23.5":
   version "7.26.2"
   resolved "https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.26.2.tgz"
@@ -9115,6 +9123,11 @@ zod-to-json-schema@^3.24.1:
   version "3.24.6"
   resolved "https://registry.npmjs.org/zod-to-json-schema/-/zod-to-json-schema-3.24.6.tgz"
   integrity sha512-h/z3PKvcTcTetyjl1fkj79MHNEjm+HpD6NXheWjzOekY7kV+lwDYnHw+ivHkijnCSMz1yJaWBD9vu/Fcmk+vEg==
+
+zod@^3.20.0:
+  version "3.25.76"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-3.25.76.tgz#26841c3f6fd22a6a2760e7ccb719179768471e34"
+  integrity sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==
 
 zod@^3.24.1, zod@^3.24.2:
   version "3.24.2"

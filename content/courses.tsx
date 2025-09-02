@@ -159,9 +159,33 @@ const officialCourses: Course[] = [
         category: "Interoperability"
     },
     {
-        name: "Codebase Entrepreneur Academy",
-        description: "Build and scale a Web3 startup with Codebase and Avalanche",
+        name: "Foundations of a Web3 Venture",
+        description: "Pending...",
         slug: "codebase-entrepreneur-academy",
+        icon: <SquareStackIcon />,
+        status: "featured",
+        duration: "1 hour",
+        languages: [],
+        tools: ["Codebase"],
+        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
+        category: "Codebase"
+    },
+    {
+        name: "Codebase Entrepreneur: Go-to-Market",
+        description: "Master go-to-market strategies, sales, and pricing for your Web3 startup",
+        slug: "codebase-entrepreneur-go-to-market",
+        icon: <SquareStackIcon />,
+        status: "featured",
+        duration: "3 hours",
+        languages: [],
+        tools: ["Codebase"],
+        instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
+        category: "Codebase"
+    },
+    {
+        name: "Web3 Community Architect",
+        description: "pending...",
+        slug: "codebase-entrepreneur-web3-community",
         icon: <SquareStackIcon />,
         status: "featured",
         duration: "1 hour",

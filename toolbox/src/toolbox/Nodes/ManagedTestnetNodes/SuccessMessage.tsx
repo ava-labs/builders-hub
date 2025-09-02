@@ -1,16 +1,13 @@
 "use client";
 
 import { Button } from "../../../components/Button";
-import { Success } from "../../../components/Success";
-import { RegisterSubnetResponse } from "./types";
 
 interface SuccessMessageProps {
-    registrationResponse: RegisterSubnetResponse;
     onReset: () => void;
     onClose: () => void;
 }
 
-export default function SuccessMessage({ registrationResponse, onReset, onClose }: SuccessMessageProps) {
+export default function SuccessMessage({ onReset, onClose }: SuccessMessageProps) {
     return (
         <div className="space-y-4 mb-6 not-prose">
             <div className="bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 p-6">
@@ -32,28 +29,21 @@ export default function SuccessMessage({ registrationResponse, onReset, onClose 
                 <div className="flex gap-3">
                     <Button 
                         onClick={onReset}
-                        variant="outline"
                         size="sm"
-                        className="text-green-700 border-green-300 hover:bg-green-100 dark:text-green-300 dark:border-green-600 dark:hover:bg-green-800 !w-auto"
+                        className="bg-green-600 hover:bg-green-700 text-white !w-auto"
                     >
-                        Create Another Node
+                        View Node
                     </Button>
                     <Button 
                         onClick={onClose}
+                        variant="outline"
                         size="sm"
-                        className="bg-green-600 hover:bg-green-700 text-white !w-auto"
+                        className="text-green-700 border-green-300 hover:bg-green-100 dark:text-green-300 dark:border-green-600 dark:hover:bg-green-800 !w-auto"
                     >
                         Close
                     </Button>
                 </div>
             </div>
-            
-            {/* Display node information using the existing Success component */}
-            <Success 
-                label="Node ID"
-                value={registrationResponse.nodeID}
-                isTestnet={true}
-            />
         </div>
     );
 }

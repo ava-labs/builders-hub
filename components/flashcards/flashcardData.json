@@ -3,11 +3,118 @@
         "codebase-entrepreneur-academy": {
             "title": "Codebase Entrepreneur Academy",
             "flashcardSets": [
-                "grants-process"
+                "grants-process",
+                "fundraising-fundamentals",
+                "community-building",
+                "legal-foundations",
+                "security-fundamentals",
+                "business-model-canvas",
+                "user-personas",
+                "go-to-market",
+                "sales-mastery",
+                "pricing-strategies"
             ]
         }
     },
     "flashcardSets": {
+        "legal-foundations": [
+            {
+                "term": "Legal Jurisdiction",
+                "definition": "The legal authority where your business is registered and subject to its laws",
+                "example": "A legal jurisdiction for a start-up is like the \"home country or city\" whose rules and laws the business has to follow"
+            },
+            {
+                "term": "C Corporation",
+                "definition": "A legal business structure that provides limited liability protection while allowing for investment from unlimited shareholders",
+                "example": "Most venture-backed startups choose Delaware C-Corps for their established legal precedents and investor familiarity"
+            },
+            {
+                "term": "Token Classification",
+                "definition": "The regulatory categorization of a digital token as either a utility (functional tool) or security (investment)",
+                "example": "A token that provides immediate access to platform services without promising returns is more likely to be classified as a utility"
+            },
+            {
+                "term": "Howey Test",
+                "definition": "A four-part test used by the SEC to determine if a transaction qualifies as an investment contract (security)",
+                "example": "If users buy tokens primarily expecting profit from the efforts of the development team, the token likely qualifies as a security under the Howey Test (see: https://www.investopedia.com/terms/h/howey-test.asp)"
+            },
+            {
+                "term": "KYC/AML Compliance",
+                "definition": "Regulatory requirements to verify customer identities and prevent financial crimes",
+                "example": "Using a third-party compliance platform to automatically screen users against sanctions lists and verify their identities before allowing large transactions"
+            }
+        ],
+        "security-fundamentals": [
+            {
+                "term": "Access Management",
+                "definition": "Controlling who has access to what resources within your organization",
+                "example": "Implementing a role-based access matrix that removes all access credentials during employee offboarding"
+            },
+            {
+                "term": "Change Management",
+                "definition": "The process of moving code from development to production with appropriate security controls",
+                "example": "Setting up a pipeline that requires security testing and multiple approvals before code can be deployed to production"
+            },
+            {
+                "term": "Hardware Security Module (HSM)",
+                "definition": "A physical device that safeguards and manages digital keys and performs encryption functions",
+                "example": "Using an HSM to store the private keys for your project's treasury wallet, keeping the keys offline and protected from unauthorized access"
+            },
+            {
+                "term": "On-Chain Data",
+                "definition": "Information stored directly on a blockchain, making it immutable and publicly verifiable",
+                "example": "Storing NFT ownership records on-chain to ensure transparency and censorship resistance"
+            },
+            {
+                "term": "Breaking Glass Mechanism",
+                "definition": "A process requiring explicit approval for accessing elevated privileges",
+                "example": "Requiring multiple team members to approve access to admin functions through a time-limited permission system"
+            }
+        ],
+        "business-model-canvas": [
+            {
+                "term": "Business Model Canvas",
+                "definition": "A strategic management template that helps founders articulate their core assumptions about target audience, value propositions, and sustainability strategies",
+                "example": "A DeFi protocol using the canvas to map out how they'll provide value to liquidity providers while generating sustainable revenue"
+            },
+            {
+                "term": "Customer Definition in Web3",
+                "definition": "An expanded view of who interacts with your product, including token holders, community members, followers, and contributors",
+                "example": "A DAO considering not just active governance participants but also passive token holders as part of their customer base"
+            },
+            {
+                "term": "Value Capture Mechanisms",
+                "definition": "The methods through which Web3 projects generate and retain value, including tokenomics, treasury strategies, and yield approaches",
+                "example": "A GameFi project using a combination of NFT sales, in-game currency, and revenue sharing with content creators"
+            },
+            {
+                "term": "Tokenomics",
+                "definition": "The economic system governing a token's creation, distribution, and utility within a project's ecosystem",
+                "example": "A protocol designing token incentives that reward both early adopters and long-term contributors to ensure sustainable growth"
+            }
+        ],
+        "user-personas": [
+            {
+                "term": "User Persona",
+                "definition": "A detailed profile of your ideal user that outlines their needs, behaviors, pain points, and daily workflows",
+                "example": "A developer at a Series B startup with Solidity background who needs better tools for testing smart contracts"
+            },
+            {
+                "term": "Cold User",
+                "definition": "Potential users without existing relationships to founders who provide more honest, unbiased feedback",
+                "example": "A participant found through a Discord community rather than through personal connections"
+            },
+            {
+                "term": "Feedback Loop",
+                "definition": "The systematic process of collecting user input, implementing changes, and showing results to encourage more feedback",
+                "example": "Tracking how many users report a specific UI issue, fixing it, and highlighting the improvement in release notes"
+            },
+            {
+                "term": "On-Chain Analytics",
+                "definition": "Blockchain data that reveals user behavior patterns and can inform persona development",
+                "example": "Segmenting users by transaction frequency, wallet age, or staking behavior"
+            }
+        ],
         "grants-process": [
             {
                 "term": "Foundation Grants vs. VC Funding",
@@ -33,6 +140,244 @@
                 "term": "Business Development Support",
                 "definition": "Connections and introductions provided by the foundation to help your project grow",
                 "example": "Getting introduced to institutional custodians that would be difficult to reach independently"
+            }
+        ],
+        "legal-foundations": [
+            {
+                "term": "Legal Jurisdiction",
+                "definition": "The legal authority where your business is registered and subject to its laws",
+                "example": "A legal jurisdiction for a start-up is like the \"home country or city\" whose rules and laws the business has to follow"
+            },
+            {
+                "term": "C Corporation",
+                "definition": "A legal business structure that provides limited liability protection while allowing for investment from unlimited shareholders",
+                "example": "Most venture-backed startups choose Delaware C-Corps for their established legal precedents and investor familiarity"
+            },
+            {
+                "term": "Token Classification",
+                "definition": "The regulatory categorization of a digital token as either a utility (functional tool) or security (investment)",
+                "example": "A token that provides immediate access to platform services without promising returns is more likely to be classified as a utility"
+            },
+            {
+                "term": "Howey Test",
+                "definition": "A four-part test used by the SEC to determine if a transaction qualifies as an investment contract (security)",
+                "example": "If users buy tokens primarily expecting profit from the efforts of the development team, the token likely qualifies as a security under the Howey Test"
+            },
+            {
+                "term": "KYC/AML Compliance",
+                "definition": "Regulatory requirements to verify customer identities and prevent financial crimes",
+                "example": "Using a third-party compliance platform to automatically screen users against sanctions lists and verify their identities before allowing large transactions"
+            }
+        ],
+        "security-fundamentals": [
+            {
+                "term": "Access Management",
+                "definition": "Controlling who has access to what resources within your organization",
+                "example": "Implementing a role-based access matrix that removes all access credentials during employee offboarding"
+            },
+            {
+                "term": "Change Management",
+                "definition": "The process of moving code from development to production with appropriate security controls",
+                "example": "Setting up a pipeline that requires security testing and multiple approvals before code can be deployed to production"
+            },
+            {
+                "term": "Hardware Security Module (HSM)",
+                "definition": "A physical device that safeguards and manages digital keys and performs encryption functions",
+                "example": "Using an HSM to store the private keys for your project's treasury wallet, keeping the keys offline and protected from unauthorized access"
+            },
+            {
+                "term": "On-Chain Data",
+                "definition": "Information stored directly on a blockchain, making it immutable and publicly verifiable",
+                "example": "Storing NFT ownership records on-chain to ensure transparency and censorship resistance"
+            },
+            {
+                "term": "Breaking Glass Mechanism",
+                "definition": "A process requiring explicit approval for accessing elevated privileges",
+                "example": "Requiring multiple team members to approve access to admin functions through a time-limited permission system"
+            }
+        ],
+        "business-model-canvas": [
+            {
+                "term": "Business Model Canvas",
+                "definition": "A strategic management template that helps founders articulate their core assumptions about target audience, value propositions, and sustainability strategies",
+                "example": "A DeFi protocol using the canvas to map out how they'll provide value to liquidity providers while generating sustainable revenue"
+            },
+            {
+                "term": "Customer Definition in Web3",
+                "definition": "An expanded view of who interacts with your product, including token holders, community members, followers, and contributors",
+                "example": "A DAO considering not just active governance participants but also passive token holders as part of their customer base"
+            },
+            {
+                "term": "Value Capture Mechanisms",
+                "definition": "The methods through which Web3 projects generate and retain value, including tokenomics, treasury strategies, and yield approaches",
+                "example": "A GameFi project using a combination of NFT sales, in-game currency, and revenue sharing with content creators"
+            },
+            {
+                "term": "Tokenomics",
+                "definition": "The economic system governing a token's creation, distribution, and utility within a project's ecosystem",
+                "example": "A protocol designing token incentives that reward both early adopters and long-term contributors to ensure sustainable growth"
+            }
+        ],
+        "user-personas": [
+            {
+                "term": "User Persona",
+                "definition": "A detailed profile of your ideal user that outlines their needs, behaviors, pain points, and daily workflows",
+                "example": "A developer at a Series B startup with Solidity background who needs better tools for testing smart contracts"
+            },
+            {
+                "term": "Cold User",
+                "definition": "Potential users without existing relationships to founders who provide more honest, unbiased feedback",
+                "example": "A participant found through a Discord community rather than through personal connections"
+            },
+            {
+                "term": "Feedback Loop",
+                "definition": "The systematic process of collecting user input, implementing changes, and showing results to encourage more feedback",
+                "example": "Tracking how many users report a specific UI issue, fixing it, and highlighting the improvement in release notes"
+            },
+            {
+                "term": "On-Chain Analytics",
+                "definition": "Blockchain data that reveals user behavior patterns and can inform persona development",
+                "example": "Segmenting users by transaction frequency, wallet age, or staking behavior"
+            }
+        ],
+        "go-to-market": [
+            {
+                "term": "Ideal Customer Profile (ICP)",
+                "definition": "A detailed description of the type of company that would derive the most value from your product and provide value to your business",
+                "example": "An identity solution startup might define their ICP as 'government agencies in developing regions seeking to implement national digital ID systems'"
+            },
+            {
+                "term": "Go-To-Market (GTM) Strategy",
+                "definition": "A comprehensive plan that outlines how a company will reach target customers and achieve competitive advantage",
+                "example": "A structured approach that identifies target companies, defines personas, leverages networks, and builds replicable success stories"
+            },
+            {
+                "term": "Web2.5 Approach",
+                "definition": "Using blockchain as infrastructure without being token-based, bridging traditional and Web3 technologies",
+                "example": "A digital identity solution that uses blockchain for secure verification but interfaces with traditional systems without requiring token interactions"
+            },
+            {
+                "term": "Target Persona",
+                "definition": "Specific roles or individuals within target companies who influence or make purchasing decisions",
+                "example": "Technical directors who evaluate blockchain integration feasibility, or CEOs concerned with regulatory compliance"
+            },
+            {
+                "term": "Community Building",
+                "definition": "Strategic engagement with developer and user communities that influence adoption decisions",
+                "example": "Creating educational resources for developer communities that demonstrate how your solution integrates with existing systems"
+            }
+        ],
+        "sales-mastery": [
+            {
+                "term": "Value Proposition",
+                "definition": "The core emotional benefit your product provides to customers",
+                "example": "\"We create new revenue streams\" vs. \"We offer a blockchain loyalty platform\""
+            },
+            {
+                "term": "Buyer Persona",
+                "definition": "Detailed profile of decision-makers who will purchase your product",
+                "example": "CMO at mid-sized retail brand concerned with customer retention"
+            },
+            {
+                "term": "Partner Customer",
+                "definition": "Early adopter who collaborates on product development rather than expecting perfection",
+                "example": "A brand willing to run a 3-month pilot with weekly feedback sessions"
+            },
+            {
+                "term": "Case Study KPI",
+                "definition": "Measurable outcome that demonstrates your product's value",
+                "example": "\"15% increase in repeat purchases after implementing our loyalty program\""
+            },
+            {
+                "term": "Sales Call Structure",
+                "definition": "Framework for organizing customer conversations",
+                "example": "Introduction → Agenda → Customer pain points → Product overview → Q&A"
+            },
+            {
+                "term": "CRM System",
+                "definition": "Tool for tracking leads and automating follow-ups",
+                "example": "Using HubSpot to schedule reminder emails for prospects who haven't responded"
+            }
+        ],
+        "pricing-strategies": [
+            {
+                "term": "Hybrid Pricing Model",
+                "definition": "Combines a fixed subscription fee with variable usage charges",
+                "example": "$1599/month base fee plus additional costs based on storage usage"
+            },
+            {
+                "term": "Cost of Goods Sold (COGS)",
+                "definition": "The direct costs associated with providing your Web3 service",
+                "example": "Gas fees, validator costs, cloud infrastructure, and personnel expenses"
+            },
+            {
+                "term": "Usage-Based Pricing",
+                "definition": "Charging clients based on their actual consumption of resources",
+                "example": "Charging per transaction, API call, or data storage amount"
+            },
+            {
+                "term": "Price Buffering",
+                "definition": "Building in margin for strategic discounts while maintaining profit expectations",
+                "example": "Setting enterprise list price at $5000/month with room to offer up to 20% discount during negotiations"
+            },
+            {
+                "term": "Value-Based Framing",
+                "definition": "Focusing on the business value delivered rather than unit costs",
+                "example": "Highlighting $2M in potential savings rather than discussing the $50K service cost"
+            }
+        ],
+        "community-building": [
+            {
+                "term": "Supply and Demand in Social Media",
+                "definition": "Early-stage projects lack established demand and social capital",
+                "example": "Instead of posting daily without purpose, focus on creating one highly valuable, educational post per week"
+            },
+            {
+                "term": "Content Repurposing",
+                "definition": "Breaking long-form content into multiple smaller formats",
+                "example": "Converting a one-hour livestream into promotional clips, articles, social threads, and quote graphics"
+            },
+            {
+                "term": "Community vs. Audience",
+                "definition": "Community involves active participation while audience merely observes",
+                "example": "100 active members discussing your project daily is more valuable than 10,000 silent followers"
+            },
+            {
+                "term": "Iterative Content Process",
+                "definition": "Testing content ideas on a small scale before expanding",
+                "example": "Avalanche tested a simple 'Triangle adoption' post to gauge community response before launching a full campaign"
+            },
+            {
+                "term": "Event Planning Compass",
+                "definition": "A one-page document outlining an event's goals, audience, and success metrics",
+                "example": "Creating a document specifying that a hackathon aims to generate 10 new project prototypes from senior developers"
+            }
+        ],
+        "fundraising-fundamentals": [
+            {
+                "term": "Investor Funnel",
+                "definition": "The process of moving potential investors from initial awareness to committed capital, similar to a sales pipeline",
+                "example": "A founder starts with 100 cold outreach emails, gets 20 intro calls, 5 follow-up discussions, and ultimately 2 term sheets"
+            },
+            {
+                "term": "Data Room",
+                "definition": "A centralized repository containing all due diligence materials an investor might need to evaluate your company",
+                "example": "A Notion-based data room containing company formation documents, financial projections, team backgrounds, and product roadmaps"
+            },
+            {
+                "term": "Lead Investor",
+                "definition": "The primary investor who typically sets the terms and often takes a board seat in a funding round",
+                "example": "A venture capital firm commits to 50% of your funding round and helps bring in other investors to complete the round"
+            },
+            {
+                "term": "Investor Update",
+                "definition": "Regular communication sent to current and potential investors showing progress, metrics, and specific needs",
+                "example": "A monthly email highlighting 20% user growth, a key new hire, and asking for introductions to potential enterprise customers"
+            },
+            {
+                "term": "Valuation Cap",
+                "definition": "The maximum company valuation at which an investor's money converts to equity in a future priced round",
+                "example": "An investor provides $100,000 via SAFE with a $5M valuation cap, meaning their investment will convert as if the company were worth $5M even if the actual valuation is higher"
             }
         ]
     }

@@ -14,6 +14,8 @@ import { useValidatorManagerDetails } from "../hooks/useValidatorManagerDetails"
 import { ValidatorManagerDetails } from "../../components/ValidatorManagerDetails";
 import { TransactionReceipt } from "viem";
 import { AlertCircle, Info } from "lucide-react";
+import { CheckWalletRequirements } from "@/components/CheckWalletRequirements"
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 export default function TransferOwnership() {
     const { showBoundary } = useErrorBoundary();
@@ -116,6 +118,9 @@ export default function TransferOwnership() {
         (isCurrentUserOwner || isOwnerContract || isLoadingOwnership); // Allow contract owners and loading states
 
     return (
+        <CheckWalletRequirements configKey={[
+            WalletRequirementsConfigKey.EVMChainBalance,
+        ]}>
         <Container
             title="Transfer Validator Manager Ownership"
             description="This will transfer the ownership of the Validator Manager to a new address, which could be an EOA, StakingManager or PoAManager."
@@ -202,6 +207,7 @@ export default function TransferOwnership() {
                 />
             )}
         </Container>
+        </CheckWalletRequirements>
     );
 };
 

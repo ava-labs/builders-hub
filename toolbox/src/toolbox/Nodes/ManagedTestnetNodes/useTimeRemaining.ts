@@ -2,7 +2,15 @@ import { TimeRemaining, StatusData } from "./types";
 
 export function calculateTimeRemaining(expiresAt: string): TimeRemaining {
     const now = new Date();
-    const expiryTime = new Date(expiresAt);
+    // Robust parsing: handle ISO strings, and numeric seconds/milliseconds if passed
+    let expiryTime = new Date(expiresAt);
+    if (isNaN(expiryTime.getTime())) {
+        const numeric = Number(expiresAt);
+        if (!Number.isNaN(numeric)) {
+            const ms = numeric > 1e12 ? numeric : numeric * 1000;
+            expiryTime = new Date(ms);
+        }
+    }
     const timeRemaining = expiryTime.getTime() - now.getTime();
     const daysRemaining = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)));
     const hoursRemaining = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60)));

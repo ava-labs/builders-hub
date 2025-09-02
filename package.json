@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "build:remote": "tsx ./utils/remote-content.mts",
     "start": "pnpm build:remote && next build && next start",
     "check-links": "tsx .github/linkChecker.ts",
@@ -18,6 +18,7 @@
     "@avalabs/avacloud-sdk": "^0.12.2",
     "@avalabs/avalanchejs": "^5.0.0",
     "@fireworks-js/react": "^2.10.8",
+    "@avalanche-sdk/chainkit": "^0.3.0-alpha.1",
     "@fumadocs/cli": "^0.2.1",
     "@fumadocs/mdx-remote": "^1.2.0",
     "@hookform/resolvers": "^4.1.3",

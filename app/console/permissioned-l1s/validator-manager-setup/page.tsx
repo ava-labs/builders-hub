@@ -8,6 +8,7 @@ import DeployValidatorManager from "../../../../toolbox/src/toolbox/ValidatorMan
 import UpgradeProxy from "../../../../toolbox/src/toolbox/Proxy/UpgradeProxy";
 import Initialize from "../../../../toolbox/src/toolbox/ValidatorManager/Initialize";
 import InitValidatorSet from "../../../../toolbox/src/toolbox/ValidatorManager/InitValidatorSet";
+import ReadContract from "@/toolbox/src/toolbox/ValidatorManager/ReadContract";
 
 export default function Page() {
   const steps: StepDefinition[] = [
@@ -16,6 +17,7 @@ export default function Page() {
     { type: "single", key: "upgrade-proxy", title: "Upgrade Proxy", component: UpgradeProxy },
     { type: "single", key: "initialize-manager", title: "Initialize Manager", component: Initialize },
     { type: "single", key: "init-validator-set", title: "Initialize Validator Set", component: InitValidatorSet },
+    { type: "single", key: "read-contract", title: "Read Contract", component: ReadContract },
   ];
 
   return (
