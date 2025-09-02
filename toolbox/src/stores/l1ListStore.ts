@@ -19,6 +19,8 @@ type L1ListItem = {
     externalFaucetUrl?: string;
     explorerUrl?: string;
     hasBuilderHubFaucet?: boolean;
+    dripAmount?: number;
+    features?: string[];
 };
 
 
@@ -40,7 +42,12 @@ const l1ListInitialStateFuji = {
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
-            explorerUrl: "https://subnets-test.avax.network/c-chain"
+            explorerUrl: "https://subnets-test.avax.network/c-chain",
+            dripAmount: 3,
+            features: [
+                "EVM-compatible blockchain",
+                "Deploy smart contracts"
+            ]
         },
         {
             id: "98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp",
@@ -58,6 +65,11 @@ const l1ListInitialStateFuji = {
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/echo",
+            dripAmount: 3,
+            features: [
+                "EVM-compatible L1 chain",
+                "Deploy dApps & test interoperability with Echo"
+            ]
         },
         {
             id: "2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY",
@@ -74,7 +86,12 @@ const l1ListInitialStateFuji = {
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
             hasBuilderHubFaucet: true,
             externalFaucetUrl: "https://core.app/tools/testnet-faucet",
-            explorerUrl: "https://subnets-test.avax.network/dispatch"
+            explorerUrl: "https://subnets-test.avax.network/dispatch",
+            dripAmount: 3,
+            features: [
+                "EVM-compatible L1 chain",
+                "Deploy dApps & test interoperability with Dispatch"
+            ]
         }
     ] as L1ListItem[],
 }

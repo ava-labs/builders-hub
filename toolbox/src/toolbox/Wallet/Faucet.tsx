@@ -7,19 +7,13 @@ import { WalletRequirementsConfigKey } from "@/hooks/useWalletRequirements";
 import { useL1List } from "../../stores/l1ListStore";
 
 function EVMFaucetCard({ chain }: { chain: any }) {
-  const getChainFeatures = (chainName: string) => {
-    if (chainName.includes("C-Chain")) {
-      return [
-        "EVM-compatible blockchain",
-        "Deploy smart contracts",
-        `3 ${chain.coinName} per request`,
-      ];
-    }
-    return [
-      "EVM-compatible L1 chain",
-      `Deploy dApps & test interoperability with ${chainName}`,
-      `3 ${chain.coinName} tokens per request`,
-    ];
+  const getFeatures = () => {
+    const baseFeatures = chain.features || [];
+    const dripAmount = chain.dripAmount || 3;
+    const dripFeature = `${dripAmount} ${chain.coinName} ${
+      chain.coinName === "AVAX" ? "per request" : "tokens per request"
+    }`;
+    return [...baseFeatures, dripFeature];
   };
 
   return (
@@ -39,7 +33,7 @@ function EVMFaucetCard({ chain }: { chain: any }) {
       </div>
 
       <div className="space-y-3 mb-6">
-        {getChainFeatures(chain.name).map((feature, index) => (
+        {getFeatures().map((feature, index) => (
           <div key={index} className="flex items-center gap-3 text-sm">
             <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></div>
             <span className="text-zinc-600 dark:text-zinc-400">{feature}</span>
@@ -80,7 +74,7 @@ export default function Faucet() {
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
             Request free tokens for testing your applications on Fuji testnet
-            and Avalanche L1s. Each request provides 3 tokens.
+            and Avalanche L1s.
           </p>
         </div>
 
