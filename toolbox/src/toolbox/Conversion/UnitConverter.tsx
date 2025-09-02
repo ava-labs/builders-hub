@@ -33,12 +33,10 @@ export default function UnitConverter() {
                     const [whole, decimal] = inputAmount.split('.');
                     const wholeValue = whole === '' ? BigInt(0) : BigInt(whole);
                     const wholeInWei = wholeValue * sourceUnit.factor;
-
                     const decimalPlaces = decimal.length;
                     const decimalValue = BigInt(decimal);
                     const decimalFactor = sourceUnit.factor / BigInt(10 ** decimalPlaces);
                     const decimalInWei = decimalValue * decimalFactor;
-
                     baseAmount = wholeInWei + decimalInWei;
                 } else {
                     baseAmount = BigInt(inputAmount) * sourceUnit.factor;
@@ -65,7 +63,6 @@ export default function UnitConverter() {
                     results[unit.id] = `${quotient}.${trimmedDecimal}`;
                 }
             });
-
             return results;
         } catch (error) {
             showBoundary(error);

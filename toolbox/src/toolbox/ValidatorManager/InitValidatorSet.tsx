@@ -168,7 +168,6 @@ export default function InitValidatorSet() {
                     stack: error.stack,
                     name: error.name
                 });
-
                 // Parse the error message to be more user-friendly
                 let errorMessage = error.message;
                 if (errorMessage.includes('Cannot read properties of undefined')) {

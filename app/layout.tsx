@@ -1,17 +1,18 @@
 import "./global.css";
 import "katex/dist/katex.css";
+import { RootProvider } from "fumadocs-ui/provider";
 import { PHProvider } from "./providers";
 import type { Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import type { ReactNode } from "react";
 import { baseUrl, createMetadata } from "@/utils/metadata";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import Chatbot from "@/components/ui/chatbot";
 import { PrivacyPolicyBox } from "@/components/privacy-policy";
-import { SearchRootProvider } from "./searchRootProvider";
-import { Banner } from "fumadocs-ui/components/banner";
-import "./global.css";
-import "katex/dist/katex.css";
+import { ClientProvider } from "./layout.client";
+import L1LauncherPreview from "@/public/nav-banner/l1-launcher-preview.png";
 
 export const metadata = createMetadata({
   title: {
@@ -33,18 +34,22 @@ export const viewport: Viewport = {
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html
-      lang="en"
+      lang='en'
       className={`${GeistSans.variable} ${GeistMono.variable}`}
       suppressHydrationWarning
     >
       <PHProvider>
-        <body className="flex min-h-screen flex-col">
-          <SearchRootProvider>{children}</SearchRootProvider>
-          <Chatbot />
-          <div id="privacy-banner-root" className="relative">
-            <PrivacyPolicyBox />
-          </div>
-        </body>
+        <ClientProvider>
+          <body className='flex min-h-screen flex-col'>
+            <RootProvider>{children}</RootProvider>
+            <Analytics />
+            <SpeedInsights />
+            <Chatbot />
+            <div id='privacy-banner-root' className='relative'>
+              <PrivacyPolicyBox />
+            </div>
+          </body>
+        </ClientProvider>
       </PHProvider>
     </html>
   );
