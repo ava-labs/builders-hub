@@ -54,7 +54,7 @@ function EVMFaucetCard({ chain }: { chain: any }) {
 
 export default function Faucet() {
   const l1List = useL1List();
-  const supportedEVMChains = l1List.filter(
+  const EVMChainsWithBuilderHubFaucet = l1List.filter(
     (chain) => chain.hasBuilderHubFaucet
   );
 
@@ -81,7 +81,7 @@ export default function Faucet() {
         {/* Token Request Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Dynamic EVM Chain FaucetCards */}
-          {supportedEVMChains.map((chain) => (
+          {EVMChainsWithBuilderHubFaucet.map((chain) => (
             <EVMFaucetCard key={chain.id} chain={chain} />
           ))}
 
