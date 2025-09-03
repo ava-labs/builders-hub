@@ -1,5 +1,5 @@
 import { useWalletStore } from "../stores/walletStore";
-import { useL1List } from "../stores/l1ListStore";
+import { useL1List, type L1ListItem } from "../stores/l1ListStore";
 
 export const useBuilderHubFaucet = () => {
   const { walletEVMAddress } = useWalletStore();
@@ -8,7 +8,7 @@ export const useBuilderHubFaucet = () => {
   const requestTokens = async (chainId: number): Promise<{ success: boolean; txHash?: string; message?: string }> => {
     if (!walletEVMAddress) { throw new Error("Wallet address is required") }
 
-    const chainConfig = l1List.find(chain => chain.evmChainId === chainId && chain.hasBuilderHubFaucet);
+    const chainConfig = l1List.find((chain: L1ListItem) => chain.evmChainId === chainId && chain.hasBuilderHubFaucet);
     if (!chainConfig) { throw new Error(`Unsupported chain or faucet not available for chain ID ${chainId}`) }
 
     const response = await fetch(`/api/evm-chain-faucet?address=${walletEVMAddress}&chainId=${chainId}`);
