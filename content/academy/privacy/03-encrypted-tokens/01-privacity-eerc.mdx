@@ -1,0 +1,63 @@
+---
+title: What Kind of Privacy Does eERC Provide?
+description: Understanding the privacy features of eERC in the Avalanche ecosystem.
+updated: 2025-09-02
+authors: [alejandro99so]
+icon: Key
+---
+
+In the previous section, we explored why privacy is a critical enabler for blockchain adoption in industries like finance, enterprise, and gaming.  
+Now we will focus on **eERC (Encrypted ERC)**, Avalanche’s encrypted token standard and see the exact kind of privacy it delivers on C-Chain **Mainnet**, **Fuji(Testnet)**, and **custom L1 deployments**.
+
+---
+
+## Encrypted Balances
+- Balances are **fully encrypted** on-chain.  
+- Only the token holder (and authorized auditor) can see the actual balance.  
+- Prevents competitors, analysts, or malicious actors from tracking your holdings.
+
+---
+
+## Private Transaction Amounts
+- Transfer amounts are encrypted and not visible on public explorers like SnowTrace.  
+- Observers can see that a transfer occurred but not **how much** was sent.  
+- Uses **zero-knowledge proofs** to validate transactions without revealing amounts.
+
+---
+
+## Auditor-Ready Privacy
+- Built-in **Auditability Module** allows authorized parties to decrypt specific transactions.  
+- Access can be **revoked or rotated** without redeploying the contract.  
+- Enables compliance with financial regulations while maintaining user privacy.
+
+---
+
+## EVM Compatibility
+- Works seamlessly on Avalanche C-Chain Mainnet, Fuji (Testnet), and custom L1s without protocol changes.  
+- Fully compatible with existing EVM smart contract tooling.  
+- Developers can integrate using the **EncryptedERC Repository**.
+
+---
+
+## Flexible Deployment Modes
+- **Standalone Mode**: Fully private token from creation, with optional hidden total supply.  
+- **Converter Mode**: Wraps an existing ERC-20 into an encrypted token, enabling private transfers while preserving the ability to unwrap it back to ERC-20.
+
+---
+
+## Example Use Cases
+
+**Confidential DeFi**  
+- Private yield farming, liquidity provision, and staking allocations.
+
+**Enterprise Payments**  
+- Payroll systems where salaries are encrypted but verifiable to auditors.  
+- Supplier payments that conceal exact deal sizes.
+
+**Private Asset Management**  
+- Managing tokenized real-world assets without revealing portfolio composition.  
+- In-game transactions in private gaming economies.
+
+---
+
+In the **next section**, we will compare **ERC-20 vs eERC** to see exactly how these standards differ in privacy, compliance, and deployment options.

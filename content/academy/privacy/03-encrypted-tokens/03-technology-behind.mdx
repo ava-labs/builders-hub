@@ -1,0 +1,94 @@
+---
+title: Technology Behind eERC
+description: Understanding the cryptographic tools and architecture that power eERC on Avalanche.
+updated: 2025-09-02
+authors: [alejandro99so]
+icon: Cpu
+---
+
+The **eERC (Encrypted ERC)** standard combines modern cryptography with Avalanche’s high-performance infrastructure to deliver **confidential transactions** while remaining compatible with the EVM ecosystem.  
+In this section, we will break down the key technologies and architecture that make this possible.
+
+---
+
+## Core Privacy Technologies
+
+### 1. Zero-Knowledge Proofs (zk-SNARKs)
+- Used to **prove** that a transaction is valid without revealing its details.
+- Ensures the sender has enough balance and the transaction respects the rules, without disclosing amounts or balances.
+- Highly gas-efficient when deployed on Avalanche due to its low base fees.
+
+### 2. Homomorphic Encryption
+- Allows operations on encrypted values **without decrypting them**.
+- Enables balance updates and validations while keeping amounts hidden.
+- Balances remain encrypted on-chain at all times.
+
+### 3. BabyJubJub Elliptic Curve
+- A **twisted Edwards elliptic curve** optimized for zk-SNARKs.
+- Offers fast signature verification inside zero-knowledge circuits.
+- Used in eERC for **efficient key generation and proof validation**.
+
+### 4. ElGamal Encryption
+- Public-key encryption scheme adapted for elliptic curve cryptography.
+- Used to encrypt token balances and transfer amounts on BabyJubJub.
+- Supports **homomorphic addition** so encrypted balances can be updated without decryption.
+
+### 5. Poseidon Ciphertext Hashing
+- **Poseidon hash** is a ZK-friendly hashing algorithm designed for use inside proof circuits.
+- Optimized for minimal gas cost and high efficiency in zk-SNARK verification.
+- In eERC, used for commitments and ciphertext integrity checks.
+
+---
+
+## Auditability Module
+- Built directly into the eERC architecture.
+- Enables **selective decryption** of transactions for authorized auditors or regulators.
+- Permissions can be **rotated or revoked** without redeploying the contract.
+- Maintains **compliance-readiness** without compromising user privacy.
+
+---
+
+## On-Chain Components
+
+1. **Registrar Contract**  
+   - Manages the list of authorized auditors.
+   - Handles public keys for encryption and decryption permissions.
+
+2. **EncryptedUserBalances Contract**  
+   - Stores all encrypted balances for token holders.
+   - Updates balances through zk-SNARK validated operations.
+
+3. **AuditorManager Contract**  
+   - Controls access and permissions for auditors.
+   - Integrates with the Auditability Module.
+
+4. **Proof Verification Circuits**  
+   - Specialized zk circuits that verify transactions meet the protocol’s rules.
+   - Operates without revealing transaction details.
+   - Optimized for BabyJubJub, Poseidon hashing, and ElGamal operations.
+
+---
+
+## Modes of Operation
+
+### Standalone Mode
+- Token is **fully private** from the moment it is created.
+- Total supply can be hidden from the public.
+- Ideal for enterprise deployments or regulated private markets.
+
+### Converter Mode
+- Wraps an existing ERC-20 token into eERC form for private transfers.
+- Allows unwrapping back into the original ERC-20 token.
+- Perfect for projects that want optional privacy without changing their base asset.
+
+---
+
+## Developer Integration
+
+- Contracts, circuits and scripts to be used.
+- Compatible with Avalanche C-Chain Mainnet, Fuji (Testnet), and custom L1s.
+- Does not require modifying the underlying blockchain protocol.
+
+---
+
+In the **next section**, we will cover **Usability of eERC**, focusing on Standalone vs Converter modes, real-world use cases, and how developers and users interact with encrypted tokens on Avalanche.

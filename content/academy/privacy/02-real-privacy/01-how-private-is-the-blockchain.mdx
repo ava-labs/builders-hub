@@ -1,0 +1,54 @@
+---
+title: How Private is the Blockchain?
+description: Understanding the level of privacy in Avalanche and the difference between transparency and confidentiality.
+updated: 2025-09-02
+authors: [alejandro99so]
+icon: Eye
+---
+
+One of the most common misconceptions about blockchain is that it is **private**.  
+In reality, on Avalanche, whether you operate on the C-Chain **Mainnet**, **Fuji (Testnet)**, or a custom L1, the blockchain is **transparent by design**. Every transaction is recorded in a public ledger and can be inspected by anyone with the right tools.
+
+---
+
+## Transparency in Avalanche
+
+- **Every transaction is public**: Transfers, mints, burns, and contract interactions are visible in block explorers like [SnowTrace](https://snowtrace.io).  
+- **Balances are public**: Anyone can check the token holdings of any address by querying the blockchain.  
+- **Ownership history is public**: For NFTs (ERC-721 and ERC-1155), all past owners are permanently recorded.  
+
+This transparency is valuable for:
+- **Auditability**: Anyone can verify that a transaction took place and check the exact amounts.  
+- **Trustless systems**: No need for a central authority to confirm balances or transaction histories.  
+- **Security monitoring**: Easier to detect suspicious activity or exploits in real time.
+
+---
+
+## Pseudonymity vs Anonymity
+
+Avalanche, like other EVM-compatible blockchains, is **pseudonymous**, not truly anonymous.  
+- **Pseudonymity**: Users are identified by their public address (e.g., `0x1234...abcd`), but not by their real name.  
+- **Linkability**: Once an address is tied to an identity (via KYC, exchange deposits, or off-chain information), all past and future activity from that address can be analyzed.  
+- **Behavioral profiling**: Patterns in interactions (like dApps used, tokens traded, or NFTs purchased) can reveal insights about the owner.
+
+---
+
+## Confidentiality Limitations
+
+While transparency is useful for verification, it creates significant limitations for certain use cases:
+- **Business transactions**: Competitors can see volumes, counterparties, and frequency of payments.  
+- **Personal privacy**: Anyone can track your activity and build a profile of your blockchain behavior.  
+- **Regulated industries**: Some sectors require confidentiality for compliance (e.g., healthcare, finance).
+
+---
+
+## Example on Avalanche C-Chain
+
+If a company pays 50 employees using an ERC-20 token on Avalanche C-Chain:
+- The **amount**, **date**, and **recipient address** of each payment will be public.  
+- A competitor or third party could track salary patterns, hiring trends, or even link addresses to individuals.
+
+---
+
+Avalanche’s transparent design ensures trust and auditability, but **it does not provide native confidentiality** for balances, transaction amounts, or metadata.  
+In the **next section**, we will explore **Compliance**, why privacy alone is not enough, and how companies must align with regulatory requirements when designing blockchain solutions.

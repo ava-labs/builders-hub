@@ -83,6 +83,18 @@ const learningPaths: CourseNode[] = [
     mobileOrder: 8
   },
 
+ {
+   id: "privacy",
+   name: "Privacy",
+   description: "Learn about eERC tokens to add privacy to your applications",
+   slug: "privacy",
+   category: "Privacy",
+   dependencies: ["avalanche-fundamentals"],
+   position: { x: 80, y: 150 },
+   mobileOrder: 9
+ },
+
+
   // Fourth Layer - Advanced topics (adjusted for no overlap)
   {
     id: "interchain-token-transfer",

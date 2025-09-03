@@ -1,0 +1,55 @@
+---
+title: Compliance
+description: Why regulatory alignment matters for privacy tokens on Avalanche.
+updated: 2025-09-02
+authors: [alejandro99so]
+icon: Scale
+---
+
+Privacy is not the only requirement for enterprise-grade blockchain solutions, **compliance** is equally critical.  
+On Avalanche, whether you deploy to C-Chain **Mainnet**, **Fuji (Testnet)**, or a custom L1, tokens must often meet **regulatory obligations** to operate legally in certain jurisdictions or industries.
+
+---
+
+## Why Compliance Matters
+
+In finance, healthcare, gaming, and government, compliance is not optional, it is enforced through regulations like:
+- **KYC/AML** (Know Your Customer / Anti-Money Laundering): Identifying and verifying participants to prevent illegal activity.
+- **Jurisdictional restrictions**: Blocking access from certain regions due to sanctions or laws.
+- **Data protection laws**: GDPR (EU), HIPAA (US), and other frameworks require handling sensitive data in specific ways.
+
+---
+
+## Challenges with Current Token Standards
+
+Standard ERC-20, ERC-721, and ERC-1155 implementations on Avalanche offer **no built-in compliance tools**:
+- No **whitelisting** or **blacklisting** capabilities at the protocol level.
+- No **selective disclosure**: you cannot show transaction details only to authorized parties while hiding them from the public.
+- No **transaction-level restrictions** to enforce rules automatically.
+
+As a result, compliance must be built as a **custom layer**, which:
+- Increases development and auditing costs.
+- Introduces potential security risks if not implemented correctly.
+- Creates inconsistency between projects, making interoperability harder.
+
+---
+
+## The Compliance–Privacy Balance
+
+True privacy on Avalanche must still allow **authorized oversight**:
+- **Auditor access**: Regulators, tax authorities, or compliance officers should be able to review specific transactions without making them public.
+- **Selective decryption**: Only authorized entities can view transaction amounts and counterparties.
+- **Revocable permissions**: The ability to update who has access without redeploying the entire token contract.
+
+---
+
+## Example in the Avalanche Ecosystem
+
+Imagine an **L1** created for a private lending network:
+- Loans are issued in a **privacy-enabled token** to protect borrower data.
+- Regulators need to verify the amounts, interest rates, and repayment schedules.
+- Without compliance features, the project must either make all data public (losing privacy) or create a parallel off-chain audit system (increasing complexity).
+
+---
+
+In the **next section**, we will explore **Necessities Solved with Privacy**, real-world scenarios where privacy is not just a “nice to have,” but a **critical requirement** for operations, security, and compliance.

@@ -95,6 +95,14 @@ const instructors: Instructor[] = [
         linkedin: "https://www.linkedin.com/in/doro-unger-lee/",
         github: "",
     },
+    {
+        name: "Alejandro Soto",
+        title: "Developer Relations Engineer",
+
+        twitter: "https://x.com/alejandro99so",
+        linkedin: "https://www.linkedin.com/in/alejandro99so/",
+        github: "https://github.com/alejandro99so",
+    }
 ];
 
 export function getInstructorsByNames(names: string[]): Instructor[] {

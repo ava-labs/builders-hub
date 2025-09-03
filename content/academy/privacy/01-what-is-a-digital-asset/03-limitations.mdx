@@ -1,0 +1,65 @@
+---
+title: Limitations of Current Standards
+description: Challenges companies face when using ERC-20, ERC-721, and ERC-1155 on Avalanche.
+updated: 2025-09-02
+authors: [alejandro99so]
+icon: Book
+---
+
+The ERC-20, ERC-721, and ERC-1155 standards have become the backbone of asset creation and exchange on Avalanche’s C-Chain, Fuji Testnet, and custom L1s. However, while they ensure interoperability and simplicity, they also present **important limitations** that companies and developers must address when building real-world solutions.
+
+---
+
+## 1. Privacy Limitations
+
+All three standards: ERC-20, ERC-721, and ERC-1155, operate on **transparent ledgers**.  
+- **Balances are public**: Anyone can view wallet holdings.  
+- **Transactions are public**: Every transfer amount and counterparty is visible.  
+- **Asset ownership is public**: For ERC-721 and ERC-1155, ownership history and metadata are fully transparent.  
+
+This transparency is useful for auditability but problematic for:  
+- Regulated financial institutions.  
+- Enterprises managing sensitive transactions.  
+- Use cases requiring trade secrecy or personal data protection.  
+
+---
+
+## 2. Compliance Challenges
+
+Avalanche provides speed and low costs, but these standards **do not include compliance tools by default**.  
+- No built-in **selective disclosure** for regulators or auditors.  
+- No native mechanism to **restrict transactions** based on jurisdiction.  
+- Compliance features must be built as **custom layers**, increasing development cost and complexity.
+
+---
+
+## 3. Scalability Concerns
+
+While Avalanche’s architecture solves many scaling issues, token standards still introduce some constraints:  
+- **ERC-20 and ERC-721**: Each transfer is a separate transaction, which can be inefficient for high-volume operations.  
+- **ERC-721**: One contract per collection increases deployment and maintenance overhead.  
+- **ERC-1155**: More efficient, but not all dApps and marketplaces fully support it yet.
+
+---
+
+## 4. Asset Management Limitations
+
+- **Single-purpose contracts**: ERC-20 can only handle one fungible token per contract.  
+- **No native multi-asset governance**: ERC-721 collections and ERC-20 tokens require separate governance or management systems.  
+- **Limited metadata security**: Metadata for NFTs is often stored off-chain and can be altered unless proper safeguards are in place.
+
+---
+
+## Summary Table — Key Limitations on EVM Blockchains
+
+| Standard | Privacy | Compliance | Scalability | Asset Management |
+|----------|---------|------------|-------------|------------------|
+| ERC-20   | No privacy, public balances & transfers | No built-in compliance | One transfer per transaction | Single token per contract |
+| ERC-721  | No privacy, public ownership & metadata | No built-in compliance | One contract per collection | Separate governance per collection |
+| ERC-1155 | No privacy, public ownership & metadata | No built-in compliance | Batch transfers supported, but partial ecosystem support | Multi-asset capable but complex |
+
+---
+
+These limitations do not prevent successful deployments, but they **create barriers for industries that require privacy, compliance-readiness, and advanced asset control**.
+
+In the **next section**, we will explore **Real Privacy**: how much privacy blockchain truly offers, why compliance is critical, and how privacy-focused standards like **eERC** can address these challenges in the Avalanche ecosystem.

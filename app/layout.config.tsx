@@ -24,6 +24,7 @@ import {
   Ticket,
   Earth,
   ArrowLeftRight,
+  Shield,
 } from 'lucide-react';
 import Image from 'next/image';
 import { SiGithub } from '@icons-pack/react-simple-icons';
@@ -238,6 +239,16 @@ export const academyMenu: LinkItemType = {
       url: '/academy/customizing-evm',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
+      },
+    },
+    {
+      icon: <Shield />,
+      text: 'Privacy Tokens',
+      description:
+        'Explore eERC privacy tokens: scoped permissions, safer approvals, revocation, and minimized data exposure.',
+      url: '/academy/privacy',
+      menu: {
+        className: 'lg:col-start-3 lg:row-start-2',
       },
     },
     {
