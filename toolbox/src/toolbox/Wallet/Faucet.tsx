@@ -4,9 +4,9 @@ import { PChainFaucetButton } from "../../components/ConnectWallet/PChainFaucetB
 import { Droplets, Sparkles, AlertCircle } from "lucide-react";
 import { CheckWalletRequirements } from "@/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/hooks/useWalletRequirements";
-import { useL1List } from "../../stores/l1ListStore";
+import { useL1List, L1ListItem } from "../../stores/l1ListStore";
 
-function EVMFaucetCard({ chain }: { chain: any }) {
+function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
   const getFeatures = () => {
     const baseFeatures = chain.features || [];
     const dripAmount = chain.dripAmount || 3;
@@ -55,7 +55,7 @@ function EVMFaucetCard({ chain }: { chain: any }) {
 export default function Faucet() {
   const l1List = useL1List();
   const EVMChainsWithBuilderHubFaucet = l1List.filter(
-    (chain) => chain.hasBuilderHubFaucet
+    (chain: L1ListItem) => chain.hasBuilderHubFaucet
   );
 
   return (
@@ -69,9 +69,7 @@ export default function Faucet() {
             <Sparkles className="w-4 h-4" />
             Fuji Testnet Faucet
           </div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
-            Get Test Tokens
-          </h1>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">Get Test Tokens</h1>
           <p className="text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
             Request free tokens for testing your applications on Fuji testnet
             and Avalanche L1s.
@@ -81,7 +79,7 @@ export default function Faucet() {
         {/* Token Request Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Dynamic EVM Chain FaucetCards */}
-          {EVMChainsWithBuilderHubFaucet.map((chain) => (
+          {EVMChainsWithBuilderHubFaucet.map((chain: L1ListItem) => (
             <EVMFaucetCard key={chain.id} chain={chain} />
           ))}
 
@@ -96,33 +94,23 @@ export default function Faucet() {
                 />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-zinc-900 dark:text-white">
-                  P-Chain
-                </h3>
-                <p className="text-zinc-600 dark:text-zinc-400 text-sm">
-                  Staking & validation
-                </p>
+                <h3 className="text-xl font-bold text-zinc-900 dark:text-white">P-Chain</h3>
+                <p className="text-zinc-600 dark:text-zinc-400 text-sm">Staking & validation</p>
               </div>
             </div>
 
             <div className="space-y-3 mb-6">
               <div className="flex items-center gap-3 text-sm">
                 <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></div>
-                <span className="text-zinc-600 dark:text-zinc-400">
-                  Platform chain for validators
-                </span>
+                <span className="text-zinc-600 dark:text-zinc-400">Platform chain for validators</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></div>
-                <span className="text-zinc-600 dark:text-zinc-400">
-                  Manage validators and create L1s
-                </span>
+                <span className="text-zinc-600 dark:text-zinc-400">Manage validators and create L1s</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></div>
-                <span className="text-zinc-600 dark:text-zinc-400">
-                  2 AVAX per request
-                </span>
+                <span className="text-zinc-600 dark:text-zinc-400">2 AVAX per request</span>
               </div>
             </div>
 
@@ -142,28 +130,12 @@ export default function Faucet() {
               </div>
             </div>
             <div className="space-y-2">
-              <h4 className="font-semibold text-zinc-900 dark:text-white">
-                Important Information
-              </h4>
+              <h4 className="font-semibold text-zinc-900 dark:text-white">Important Information</h4>
               <ul className="space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
-                <li>
-                  • You can request tokens once every 24 hours for either chain
-                </li>
+                <li>• You can request tokens once every 24 hours for either chain</li>
                 <li>• Make sure your wallet is connected to Fuji testnet</li>
-                <li>
-                  • These tokens have no real value and are for testing only
-                </li>
-                <li>
-                  • Need more tokens? Try the{" "}
-                  <a
-                    href="https://core.app/tools/testnet-faucet/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    Core faucet
-                  </a>
-                </li>
+                <li>• These tokens have no real value and are for testing only</li>
+                <li>• Need more tokens? Try the{" "}<a href="https://core.app/tools/testnet-faucet/" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Core faucet</a></li>
               </ul>
             </div>
           </div>
