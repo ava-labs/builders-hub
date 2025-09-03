@@ -17,15 +17,23 @@ export default async function RewardBoard() {
   const academyBadges = badges.filter((badge) => badge.category == "academy");
   const hackathonBadges:Badge[] = badges.filter((badge) => badge.category == "hackathon");
   const totalPoints = userBadges.reduce((acc, userBadge) => acc + userBadge.points, 0);
-  const hackathonBadgesUnlocked = hackathonBadges.map((badge) => ({
-    ...badge,
-    is_unlocked: userBadges.some((userBadge) => userBadge.badge_id == badge.id),
-  }));
-  const academyBadgesUnlocked = academyBadges.map((badge) => ({
-    ...badge,
-    is_unlocked: userBadges.some((userBadge) => userBadge.badge_id == badge.id),
-  }));
-
+  const hackathonBadgesUnlocked = hackathonBadges.map((badge) => {
+    const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
+    return {
+      ...badge,
+      is_unlocked: !!userBadge,
+      requirements: userBadge?.requirements || badge.requirements,
+    };
+  }).sort(element=>element.is_unlocked ? -1 : 1);
+  
+  const academyBadgesUnlocked = academyBadges.map((badge) => {
+    const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
+    return {
+      ...badge,
+      is_unlocked: !!userBadge,
+      requirements: userBadge?.requirements || badge.requirements,
+    };
+  }).sort(element=>element.is_unlocked ? -1 : 1);
   const rewards = hackathonBadgesUnlocked.map((reward) => (
     <RewardCard
       key={reward.name}
@@ -52,23 +60,26 @@ export default async function RewardBoard() {
       requirements={reward.requirements}
       id={reward.id}
       is_unlocked={reward.is_unlocked}
-      className="border border-gray-900 dark:bg-zinc-900"
+      className="border border-gray-900 dark:bg-zinc-900 py-2"
     />
   ));
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
       <div>
-      <div className="flex flex-col gap-4 sm:gap-6 mb-2 sm:mb-4">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
-            Total Points: {totalPoints}
-          </h1>
-        </div>
-        <Separator className="mb-6 mt-6 bg-zinc-700 " />
+  
+
         <div className="flex flex-col gap-4 sm:gap-6 mb-2 sm:mb-4">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
-            Hackathon Badges
-          </h1>
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
+              Hackathon Badges
+            </h1>
+            <div className="px-4 py-2 border rounded border-red-500 ">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                Total Points: {totalPoints}
+              </h2>
+            </div>
+          </div>
         </div>
         <Separator className="mb-6 mt-6 bg-zinc-700 " />
         {rewards.length === 0 ? (

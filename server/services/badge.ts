@@ -20,6 +20,7 @@ export interface AssignBadgeResult {
 export interface BadgeData {
   name: string;
   image_path: string;
+  completed_requirement: Requirement;
 }
 
 export async function getAllBadges(): Promise<Badge[]> {
@@ -73,6 +74,17 @@ export async function assignBadgeAcademy(
       !completedRequirements.some((req: any) => req.id == currentRequirement.id)
     ) {
       completedRequirements.push(currentRequirement);
+    
+      // only display the badge if it is not already awarded
+      (badgeToReturn.badges as BadgeData[]).push({
+        name: badge.name,
+        image_path: badgeImage,
+        completed_requirement: currentRequirement,
+      });
+      badgeToReturn.success = true;
+      badgeToReturn.message = "Badge assigned successfully";
+      badgeToReturn.badge_id = badge.id;
+      badgeToReturn.user_id = body.userId;
     }
 
     const allRequirementsCompleted = badgeRequirements?.every((req: any) =>
@@ -81,16 +93,9 @@ export async function assignBadgeAcademy(
 
     const someRequirementsCompleted = completedRequirements.length > 0;
     let badgeStatus = BadgeAwardStatus.pending;
+
     if (allRequirementsCompleted) {
       badgeStatus = BadgeAwardStatus.approved;
-      (badgeToReturn.badges as BadgeData[]).push({
-        name: badge.name,
-        image_path: badgeImage,
-      });
-      badgeToReturn.success = true;
-      badgeToReturn.message = "Badge assigned successfully";
-      badgeToReturn.badge_id = badge.id;
-      badgeToReturn.user_id = body.userId;
     } else if (someRequirementsCompleted) {
       badgeStatus = BadgeAwardStatus.pending;
     }
@@ -174,7 +179,9 @@ export async function getBadgeByCourseId(courseId: string): Promise<Badge[]> {
   }));
 }
 
-export async function getBadgesByHackathonId(hackathonId: string): Promise<Badge[]> {
+export async function getBadgesByHackathonId(
+  hackathonId: string
+): Promise<Badge[]> {
   const badges = await prisma.badge.findMany({
     where: {
       category: "hackathon",

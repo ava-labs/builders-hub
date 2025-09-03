@@ -167,6 +167,7 @@ async function awardBadgeUserWithTransaction(
       awardedBadges.push({
         name: badge.name,
         image_path: badge.image_path as string,
+        completed_requirement: currentRequirement!,
       });
     } else if (someRequirementsCompleted) {
       badgeStatus = BadgeAwardStatus.pending;
@@ -259,6 +260,7 @@ async function awardBadgeProjectWithTransaction(
       awardedBadges.push({
         name: badge.name,
         image_path: badge.image_path as string,
+        completed_requirement: currentRequirement!,
       });
     } else if (someRequirementsCompleted) {
       badgeStatus = BadgeAwardStatus.pending;
