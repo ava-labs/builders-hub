@@ -11,7 +11,7 @@ export type Requirement = {
     type?: 'course' | 'hackathon' 
     points?: number
     description?: string
-    
+    unlocked: boolean
    
 }
 

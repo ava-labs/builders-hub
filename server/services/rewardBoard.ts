@@ -13,6 +13,7 @@ export function parseBadgeMetadata(metadata: JsonValue): Requirement | null {
     points: metadataObject.points || undefined,
     description: metadataObject.description || undefined,
     id: metadataObject.id || "",
+    unlocked: metadataObject.unlocked || false,
   };
   return toReturn;
 }
@@ -26,9 +27,23 @@ export async function getRewardBoard(user_id: string): Promise<UserBadge[]> {
       badge: true,
     },
   });
-
-  // Map the result to the UserBadge type, flattening the badge fields
-  return userBadges.map((userBadge) => ({
+let badges=userBadges.map((userBadge) => {
+  const parsedRequirements = userBadge.badge.requirements.map((requirement) => parseBadgeMetadata(requirement)) as Requirement[];
+  
+  // Marcar como unlocked los requirements que están en evidence
+  if (Array.isArray(userBadge.evidence)) {
+    const evidenceArray = userBadge.evidence as Requirement[];
+    parsedRequirements.forEach((requirement) => {
+      const isInEvidence = evidenceArray.some((evidenceItem: any) => 
+        evidenceItem && evidenceItem.id === requirement.id
+      );
+      if (isInEvidence) {
+        requirement.unlocked = true;
+      }
+    });
+  }
+  
+  return {
     user_id: userBadge.user_id,
     badge_id: userBadge.badge_id,
     awarded_at: userBadge.awarded_at,
@@ -38,7 +53,25 @@ export async function getRewardBoard(user_id: string): Promise<UserBadge[]> {
     points: userBadge.badge.points,
     image_path: userBadge.badge.image_path,
     category: userBadge.badge.category,
-    requirements:userBadge.badge.requirements.map((requirement) => parseBadgeMetadata(requirement)) as Requirement[],
-  }));
+    evidence: userBadge.evidence,
+    requirements: parsedRequirements,
+  };
+});
+badges.forEach((badge) => {
+  if (Array.isArray(badge.evidence)) {
+    badge.points = badge.evidence.reduce(
+      (acc: number, requirement: any) => {
+        // Asegura que requirement no sea null y tenga la propiedad points
+        if (requirement && typeof requirement.points !== "undefined" && requirement.points !== null) {
+          return acc + parseInt(requirement.points.toString(), 10);
+        }
+        return acc;
+      },
+      0
+    );
+  }
+});
+  // Map the result to the UserBadge type, flattening the badge fields
+  return badges as unknown as UserBadge[];
 }
 

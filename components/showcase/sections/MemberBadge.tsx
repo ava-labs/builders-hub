@@ -20,7 +20,7 @@ export default function MemberBadge({badges, member}: {badges: UserBadge[], memb
     <>
       {badgesFiltered && badgesFiltered.length > 0 ? (
         <div className="flex flex-col gap-2 p-2">
-          <h2 className="text-sm font-bold">Badges</h2>
+          <h2 className="text-base text-center font-bold">Badges</h2>
           
           <div className="grid grid-cols-3 gap-1.5">
             {displayBadges.map((badge) => (
@@ -29,8 +29,8 @@ export default function MemberBadge({badges, member}: {badges: UserBadge[], memb
                 key={badge.badge_id} 
                 className="flex items-center
               backdrop-blur-sm
-           bg-gradient-to-r from-[#f29a9a] to-[#6b6b72]
-                justify-center w-16 h-16 rounded-2xl  border border-gray-200 dark:border-gray-700 hover:scale-110 transition-transform duration-200 overflow-hidden"
+          
+                justify-center w-16 h-16 rounded-2xl  border  dark:border-gray-700 hover:scale-110 transition-transform duration-200 overflow-hidden"
                 title={badge.name}
               >
         

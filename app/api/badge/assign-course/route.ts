@@ -7,7 +7,6 @@ export const POST = withAuth(async (req: NextRequest) => {
   try {
     const body = await req.json();
     const badge = await assignBadgeAcademy(body);
-    console.log("Badge asignado", badge);
     return NextResponse.json({ result:badge }, { status: 200 });
   } catch (error: any) {
     console.error('Error POST /api/badge/assign:', error.message);

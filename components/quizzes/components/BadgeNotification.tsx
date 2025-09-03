@@ -35,14 +35,7 @@ export const BadgeNotification = ({
             setBadges(badge.result.badges);
             setShowFireworks(true);
             setIsModalOpen(true);
-            // small delay for fade in
-            const timer = setTimeout(() => {
-              setShowFireworks(false);
-              setIsModalOpen(false);
-              handleModalClose();
-            }, 15000);
-
-            return () => clearTimeout(timer);
+   
           }
         })
         .catch((error) => {
@@ -87,37 +80,43 @@ export const BadgeNotification = ({
 
             {Array.isArray(badges) && badges.length === 1 ? (
               // Mostrar un solo badge
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center px-2 py-2  w-[250px]">
                 <Image
                   src={badges[0]?.image_path || ""}
                   alt={"badge"}
                   width={100}
                   height={100}
                 />
-                <p className="text-sm text-gray-500 text-center mt-2">
+                <p className="text-base dark:text-zinc-400 text-gray-500 text-center mt-2">
                   {"You have been awarded with a new badge"}
                 </p>
-                <h3 className="text-lg font-bold text-center mt-2">
+                <h3 className="text-base font-bold text-center mt-2">
                   {badges[0]?.name}
                 </h3>
+                <p className="text-base dark:text-zinc-400 text-gray-500 text-center mt-1">
+                  {badges[0]?.completed_requirement.description} : <span className="font-bold">{badges[0]?.completed_requirement.points} points</span>
+                </p>
               </div>
             ) : Array.isArray(badges) && badges.length > 1 ? (
               // Mostrar múltiples badges en mosaico
               <div className="flex flex-col items-center">
-                <p className="text-sm text-gray-500 text-center mb-4">
+                <p className="text-base text-gray-500 text-center mb-4">
                   {`You have been awarded with ${badges.length} new badges!`}
                 </p>
-                <div className="grid grid-cols-2 gap-4 max-w-md">
+                <div className={`grid ${badges.length > 2 ? 'grid-cols-3' : 'grid-cols-2'} gap-4 `}>
                   {badges.map((badge, index) => (
-                    <div key={index} className="flex flex-col items-center">
+                    <div key={index} className="flex flex-col items-center px-2 py-2 gap-4 w-[250px]">
                       <Image
                         src={badge.image_path}
                         alt={badge.name}
                         width={80}
                         height={80}
                       />
-                      <p className="text-xs text-center mt-1 text-gray-600">
+                      <p className="text-base font-bold text-center mt-1">
                         {badge.name}
+                      </p>
+                      <p className="text-base dark:text-zinc-400 text-gray-500 text-center mt-1">
+                        {badge.completed_requirement.description} : <span className="font-bold">{badge.completed_requirement.points} points</span>
                       </p>
                     </div>
                   ))}
@@ -133,7 +132,7 @@ export const BadgeNotification = ({
             )}
           </div>
         }
-        className="border border-red-500 z-50 w-[20%]! "
+        className="z-50 inline-block!  w-auto! max-w-[75vw]! border border-red-500"      
       />
     </div>
   );
