@@ -35,16 +35,6 @@
         "908",
         "909",
         "910",
-        "950",
-        "951",
-        "952",
-        "953",
-        "954",
-        "906",
-        "907",
-        "908",
-        "909",
-        "910",
         "911",
         "912",
         "913",
@@ -57,6 +47,11 @@
         "920",
         "921",
         "922",
+        "950",
+        "951",
+        "952",
+        "953",
+        "954",
         "923",
         "924",
         "925",
@@ -69,7 +64,17 @@
         "940",
         "941",
         "942",
-        "943"
+        "943",
+        "601",
+        "602",
+        "603",
+        "604",
+        "605",
+        "801",
+        "802",
+        "803",
+        "804",
+        "805"
       ]
     },
     "l1-tokenomics": {
@@ -755,7 +760,7 @@
       "explanation": "Defining your authentic 'why' and target audience should come first because your event's purpose drives every other decision from venue to content to success metrics.",
       "chapter": "Community Building"
     },
-    "906": {
+    "601": {
       "question": "What is the minimum recommended runway to have before starting your fundraising process?",
       "options": [
         "1 month",
@@ -770,7 +775,7 @@
       "explanation": "Having at least 6 months of runway allows you to negotiate from a position of strength and maintain maximum leverage during fundraising.",
       "chapter": "Fundraising"
     },
-    "907": {
+    "602": {
       "question": "Which of the following is NOT recommended for cold outreach to investors?",
       "options": [
         "Personalizing based on their investment thesis",
@@ -785,7 +790,7 @@
       "explanation": "Sending a comprehensive 20-page deck in cold outreach overwhelms investors. Start with a teaser deck of 3-5 slides instead.",
       "chapter": "Fundraising"
     },
-    "908": {
+    "603": {
       "question": "How should you think about fundraising timing in relation to your company's formation?",
       "options": [
         "Wait until you need money to start talking to investors",
@@ -800,7 +805,7 @@
       "explanation": "Fundraising starts the day you start your business because it's fundamentally about building relationships, which requires time and consistency.",
       "chapter": "Fundraising"
     },
-    "909": {
+    "604": {
       "question": "What percentage of your company should you typically expect to sell in a seed round?",
       "options": [
         "1-5%",
@@ -815,7 +820,7 @@
       "explanation": "The amount of equity sold in a seed round depends on multiple factors including valuation, capital needs, and investor requirements - there's no standard percentage.",
       "chapter": "Fundraising"
     },
-    "910": {
+    "605": {
       "question": "Which of the following should be included in a monthly investor update?",
       "options": [
         "Only positive news to maintain investor confidence",
@@ -1888,261 +1893,6 @@
       "explanation": "ValidatorManager extends ACP99Manager through inheritance, implementing the abstract base contract. This design pattern allows ValidatorManager to inherit the standardized validator management functions defined in ACP99Manager while adding its own concrete implementation of the initiate functions. The inheritance relationship ensures that all validator managers follow the same interface defined by ACP99Manager, providing consistency across different implementations.",
       "chapter": "Validator Manager Contract"
     },
-    "906": {
-      "question": "What is emerging as a crypto-friendly alternative to Delaware for Web3 company incorporation?",
-      "options": [
-        "New York",
-        "California",
-        "Wyoming",
-        "Florida"
-      ],
-      "correctAnswers": [
-        2
-      ],
-      "hint": "This state has implemented blockchain-friendly legislation.",
-      "explanation": "Wyoming has emerged as a crypto-friendly alternative to Delaware, offering favorable legislation for blockchain and cryptocurrency businesses.",
-      "chapter": "Legal Foundations"
-    },
-    "907": {
-      "question": "According to the Howey Test, which factor is NOT part of determining if a token is a security?",
-      "options": [
-        "Investment of money",
-        "Common enterprise",
-        "Decentralized governance",
-        "Expectation of profit from efforts of others"
-      ],
-      "correctAnswers": [
-        2
-      ],
-      "hint": "The Howey Test has four specific criteria.",
-      "explanation": "Decentralized governance is not part of the Howey Test. The test looks for: investment of money, common enterprise, expectation of profit, and profits from efforts of others.",
-      "chapter": "Legal Foundations"
-    },
-    "908": {
-      "question": "Which of the following is a good practice for Web3 founders?",
-      "options": [
-        "Vague classification for tokens",
-        "Operating without a legal entity",
-        "Making investment-style promises",
-        "Registering appropriate trademarks"
-      ],
-      "correctAnswers": [
-        3
-      ],
-      "hint": "Think about protecting intellectual property.",
-      "explanation": "Registering appropriate trademarks is a good practice for Web3 founders to protect their intellectual property and brand.",
-      "chapter": "Legal Foundations"
-    },
-    "909": {
-      "question": "What should a non-technical founder prioritize when assessing their project's security standards?",
-      "options": [
-        "Investing in expensive security tools",
-        "Hiring a large security team",
-        "Relying on third-party security assessments and implementing bug bounty programs",
-        "Moving all data to off-chain storage"
-      ],
-      "correctAnswers": [
-        2
-      ],
-      "hint": "Think about leveraging external expertise and community involvement.",
-      "explanation": "Non-technical founders should prioritize third-party security assessments and bug bounty programs to leverage external expertise in identifying vulnerabilities.",
-      "chapter": "Security Fundamentals"
-    },
-    "910": {
-      "question": "Which of these is NOT one of the three most overlooked components of IT governance in early-stage startups?",
-      "options": [
-        "Access management",
-        "Marketing strategy",
-        "Change management",
-        "Vendor management"
-      ],
-      "correctAnswers": [
-        1
-      ],
-      "hint": "Marketing is not an IT governance component.",
-      "explanation": "Marketing strategy is not an IT governance component. The three most overlooked components are access management, change management, and vendor management.",
-      "chapter": "Security Fundamentals"
-    },
-    "911": {
-      "question": "What is the recommended approach for managing private keys according to best practices?",
-      "options": [
-        "Store them in a cloud service for easy access",
-        "Keep them offline, encrypted, and split into different shards",
-        "Share them with all team members for redundancy",
-        "Store them in plain text in your code repository"
-      ],
-      "correctAnswers": [
-        1
-      ],
-      "hint": "Think about maximum security through separation and encryption.",
-      "explanation": "Best practice is to keep private keys offline, encrypted, and split into different shards to maximize security and prevent single points of failure.",
-      "chapter": "Security Fundamentals"
-    },
-    "912": {
-      "question": "Which type of data is most appropriate to store on-chain?",
-      "options": [
-        "Large media files",
-        "User personal information",
-        "Frequently updated state data",
-        "Ownership records and token information"
-      ],
-      "correctAnswers": [
-        3
-      ],
-      "hint": "Think about data that benefits from immutability and transparency.",
-      "explanation": "Ownership records and token information are most appropriate for on-chain storage as they benefit from blockchain's immutability and transparency.",
-      "chapter": "Security Fundamentals"
-    },
-    "913": {
-      "question": "What principle should guide admin privilege management in a Web3 startup?",
-      "options": [
-        "All team members should have admin rights for efficiency",
-        "No one should have admin rights by default, and access should require approval",
-        "Only the CTO should have permanent admin rights",
-        "Admin rights should rotate randomly among team members"
-      ],
-      "correctAnswers": [
-        1
-      ],
-      "hint": "Think about the principle of least privilege.",
-      "explanation": "The principle of least privilege should guide admin management - no one should have admin rights by default, and access should require explicit approval.",
-      "chapter": "Security Fundamentals"
-    },
-    "914": {
-      "question": "How does the business model canvas for Web3 differ from traditional canvases?",
-      "options": [
-        "It uses completely different components",
-        "It doesn't fundamentally differ, but expands the definition of 'customer' and includes unique value capture mechanisms",
-        "It focuses exclusively on token economics",
-        "It eliminates the need for revenue considerations"
-      ],
-      "correctAnswers": [
-        1
-      ],
-      "hint": "Web3 expands traditional concepts rather than replacing them.",
-      "explanation": "The Web3 business model canvas doesn't fundamentally differ but expands the definition of 'customer' to include various stakeholders and incorporates unique value capture mechanisms like tokenomics.",
-      "chapter": "Business Model Canvas"
-    },
-    "915": {
-      "question": "What does the module suggest about defining your target audience?",
-      "options": [
-        "Keep it broad to appeal to more users",
-        "Focus only on token holders",
-        "Be very specific about demographics and psychographics",
-        "Change it frequently to adapt to market conditions"
-      ],
-      "correctAnswers": [
-        2
-      ],
-      "hint": "Specificity helps in creating targeted solutions.",
-      "explanation": "The module emphasizes being very specific about demographics and psychographics when defining your target audience to create more effective solutions.",
-      "chapter": "Business Model Canvas"
-    },
-    "916": {
-      "question": "What common pitfall should Web3 founders avoid regarding tokens?",
-      "options": [
-        "Designing tokens with unclear use cases",
-        "Viewing tokens merely as speculative tools rather than representations of real value",
-        "Making tokens too accessible to users",
-        "Limiting token supply too severely"
-      ],
-      "correctAnswers": [
-        1
-      ],
-      "hint": "Think about the true purpose of tokens in a project.",
-      "explanation": "Founders should avoid viewing tokens merely as speculative tools and instead ensure they represent real value and utility within their ecosystem.",
-      "chapter": "Business Model Canvas"
-    },
-    "917": {
-      "question": "How should a founder approach feature development?",
-      "options": [
-        "Build a comprehensive suite of features before launch",
-        "Focus only on features that generate immediate revenue",
-        "Build bare-bones functionality and validate with users before expanding",
-        "Copy features from successful competitors"
-      ],
-      "correctAnswers": [
-        2
-      ],
-      "hint": "Think about the lean startup approach.",
-      "explanation": "Founders should build bare-bones functionality and validate with users before expanding, following lean startup principles to avoid wasting resources.",
-      "chapter": "Business Model Canvas"
-    },
-    "918": {
-      "question": "How should Web3 founders approach the revenue and cost sections of the business model canvas?",
-      "options": [
-        "Leave them blank until the business model is fully developed",
-        "Focus exclusively on token appreciation",
-        "Consider them from day one, even with an evolving business model",
-        "Prioritize them above all other canvas elements"
-      ],
-      "correctAnswers": [
-        2
-      ],
-      "hint": "Financial planning should start early.",
-      "explanation": "Founders should consider revenue and cost sections from day one, even with an evolving business model, to ensure financial sustainability.",
-      "chapter": "Business Model Canvas"
-    },
-    "919": {
-      "question": "What should be the primary focus when identifying potential Web3 users?",
-      "options": [
-        "Communities where blockchain is trending",
-        "Areas where traditional systems aren't working well",
-        "Friends and family who will give supportive feedback",
-        "Existing crypto investors"
-      ],
-      "correctAnswers": [
-        1
-      ],
-      "hint": "Think about where blockchain provides real value.",
-      "explanation": "The primary focus should be on areas where traditional systems aren't working well, as these represent genuine opportunities for blockchain solutions.",
-      "chapter": "User Personas"
-    },
-    "920": {
-      "question": "When is the optimal time to contact a new user after they sign up?",
-      "options": [
-        "Within 2-3 minutes",
-        "Within 24 hours",
-        "After a week of usage",
-        "Only after they report a problem"
-      ],
-      "correctAnswers": [
-        0
-      ],
-      "hint": "Quick engagement is key.",
-      "explanation": "The optimal time is within 2-3 minutes after signup, when the user is most engaged and receptive to guidance.",
-      "chapter": "User Personas"
-    },
-    "921": {
-      "question": "What approach to user engagement has proven effective for building retention in Web3 projects?",
-      "options": [
-        "Automated email sequences",
-        "Personal communication",
-        "Token airdrops",
-        "Formal quarterly surveys"
-      ],
-      "correctAnswers": [
-        1
-      ],
-      "hint": "Think about building genuine relationships.",
-      "explanation": "Personal communication has proven most effective for building retention in Web3 projects, as it creates stronger connections with users.",
-      "chapter": "User Personas"
-    },
-    "922": {
-      "question": "How should founders prioritize implementing user feedback?",
-      "options": [
-        "Focus on requests from the most vocal users",
-        "Implement whatever is easiest technically",
-        "Prioritize high-impact changes requiring minimal time",
-        "Wait until multiple versions of feedback can be implemented together"
-      ],
-      "correctAnswers": [
-        2
-      ],
-      "hint": "Think about maximizing value with limited resources.",
-      "explanation": "Founders should prioritize high-impact changes requiring minimal time to maximize value delivery with limited resources.",
-      "chapter": "User Personas"
-    },
     "701": {
       "question": "What is more valuable for an early-stage Web3 project?",
       "options": [
@@ -2217,6 +1967,81 @@
       "hint": "Start with purpose before logistics.",
       "explanation": "Defining your authentic 'why' and target audience should come first because your event's purpose drives every other decision from venue to content to success metrics.",
       "chapter": "Community Building"
+    },
+    "801": {
+      "question": "What is tokenomics primarily concerned with?",
+      "options": [
+        "Only the technical aspects of blockchain protocols",
+        "Rules and incentives that influence behaviors within an ecosystem",
+        "Maximizing short-term token price",
+        "Marketing strategies for token sales"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about how tokenomics guides participant behavior.",
+      "explanation": "Tokenomics is primarily concerned with the rules and incentives that influence behaviors within a blockchain ecosystem, creating economic models that align participant interests.",
+      "chapter": "Mastering Tokenomics"
+    },
+    "802": {
+      "question": "Which of the following is a common mistake in tokenomics design?",
+      "options": [
+        "Focusing on both Web3 and Web2 metrics",
+        "Designing incentives for all economic agents",
+        "Focusing only on early growth without considering long-term sustainability",
+        "Creating utility for token holders"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Consider what happens after initial incentives run out.",
+      "explanation": "A common mistake is focusing only on early growth without considering long-term sustainability. Many projects fail when initial token incentives deplete without building genuine product value.",
+      "chapter": "Mastering Tokenomics"
+    },
+    "803": {
+      "question": "For B2B protocols like Layer 1 platforms, the most effective token mechanics typically include:",
+      "options": [
+        "Simple airdrops to all users",
+        "Contract-based rewards tied to specific milestones",
+        "High initial token prices",
+        "Unlimited token supply"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "B2B relationships require more structured approaches.",
+      "explanation": "Contract-based rewards tied to specific milestones work best for B2B protocols because they align incentives with business outcomes and provide predictable value exchange.",
+      "chapter": "Mastering Tokenomics"
+    },
+    "804": {
+      "question": "When bootstrapping a new project, the ideal approach is:",
+      "options": [
+        "Maintain constant high incentives indefinitely",
+        "Start with low incentives and increase over time",
+        "Start with higher incentives and gradually reduce as network effects develop",
+        "Avoid incentives completely to attract genuine users"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about how to attract early users while building sustainability.",
+      "explanation": "Starting with higher incentives and gradually reducing them as network effects develop helps attract initial users while transitioning to sustainable growth driven by product value.",
+      "chapter": "Mastering Tokenomics"
+    },
+    "805": {
+      "question": "What should be the foundation of any tokenomics design?",
+      "options": [
+        "A good product that provides value",
+        "A large initial token supply",
+        "High token price at launch",
+        "Aggressive marketing campaign"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Tokenomics can't save a bad product.",
+      "explanation": "A good product that provides value should be the foundation of any tokenomics design. Without genuine utility and value, even the best tokenomics will eventually fail.",
+      "chapter": "Mastering Tokenomics"
     }
   }
 }
