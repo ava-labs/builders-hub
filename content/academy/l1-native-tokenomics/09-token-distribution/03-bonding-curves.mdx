@@ -1,0 +1,167 @@
+---
+title: Bonding Curves
+description: Learn about bonding curves and their role in token economics.
+updated: 2024-10-08
+authors: [owenwahlgren]
+icon: Book
+---
+
+**Bonding curves** are mathematical formulas used in blockchain and token economics to define the relationship between a token's price and its supply. They provide a mechanism for automated price discovery and liquidity, enabling decentralized issuance and trading of tokens without relying on traditional market makers or exchanges.
+
+---
+
+## Understanding Bonding Curves
+
+A bonding curve is a continuous token model where the price of a token is determined by a predefined mathematical function based on the total supply in circulation. As more tokens are purchased and the supply increases, the price per token rises according to the curve. Conversely, selling tokens decreases the supply and lowers the price.
+
+### Key Concepts
+
+- **Automated Market Maker (AMM)**: A system that provides liquidity and facilitates trading by automatically adjusting prices based on supply and demand.
+- **Price Function**: A mathematical formula that defines how the token price changes with supply.
+- **Liquidity Pool**: A reserve of tokens used to facilitate buying and selling without requiring counterparties.
+
+---
+
+## How Bonding Curves Work
+
+### Price Functions
+
+The bonding curve relies on a price function `P(S)`, where:
+
+- `P` is the price per token.
+- `S` is the current supply of tokens.
+
+Common price functions include linear, exponential, and sigmoid curves.
+
+#### Linear Bonding Curve
+
+A simple linear function:
+
+```
+P(S) = a * S + b
+```
+
+- `a` and `b` are constants defining the slope and intercept.
+
+#### Exponential Bonding Curve
+
+An exponential function:
+
+```
+P(S) = e^(k * S)
+```
+
+- `e` is the base of the natural logarithm.
+- `k` is a constant determining the rate of price increase.
+
+### Buying and Selling Tokens
+
+- **Buying Tokens**: To purchase tokens, a user pays an amount calculated by integrating the price function over the desired increase in supply.
+- **Selling Tokens**: To sell tokens, a user receives an amount calculated by integrating the price function over the desired decrease in supply.
+
+---
+
+## Applications of Bonding Curves
+
+### Token Launch Mechanisms
+
+Bonding curves enable projects to launch tokens without initial liquidity or listing on exchanges.
+
+- **Continuous Token Issuance**: Tokens can be minted on-demand as users buy them.
+- **Fair Price Discovery**: Prices adjust automatically based on demand.
+
+### Decentralized Finance (DeFi)
+
+Used in AMMs and liquidity pools to facilitate decentralized trading.
+
+- **Uniswap**: Utilizes bonding curves for token swaps.
+- **Balancer**: Manages portfolios using bonding curves.
+
+### Fundraising and DAOs
+
+Facilitate fundraising by allowing investors to buy tokens that represent shares or voting rights.
+
+- **Continuous Organizations**: Organizations that continuously raise funds through token sales governed by bonding curves.
+- **DAO Membership**: Tokens purchased via bonding curves grant access and voting power.
+
+---
+
+## Implementing Bonding Curves in Smart Contracts
+
+### Solidity Example
+
+Below is a simplified example of implementing a linear bonding curve in Solidity.
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract BondingCurve {
+    uint256 public totalSupply;
+    uint256 public constant a = 1e18; // Slope
+    uint256 public constant b = 1e18; // Intercept
+    mapping(address => uint256) public balances;
+
+    function buy() external payable {
+        uint256 tokensToMint = calculateTokensToMint(msg.value);
+        balances[msg.sender] += tokensToMint;
+        totalSupply += tokensToMint;
+    }
+
+    function sell(uint256 tokenAmount) external {
+        require(balances[msg.sender] >= tokenAmount, "Insufficient balance");
+        uint256 ethToReturn = calculateEthToReturn(tokenAmount);
+        balances[msg.sender] -= tokenAmount;
+        totalSupply -= tokenAmount;
+        payable(msg.sender).transfer(ethToReturn);
+    }
+
+    function calculatePrice(uint256 supply) public pure returns (uint256) {
+        return a * supply + b;
+    }
+
+    function calculateTokensToMint(uint256 ethAmount) public view returns (uint256) {
+        // Simplified calculation for demonstration purposes
+        uint256 tokens = ethAmount / calculatePrice(totalSupply);
+        return tokens;
+    }
+
+    function calculateEthToReturn(uint256 tokenAmount) public view returns (uint256) {
+        // Simplified calculation for demonstration purposes
+        uint256 ethAmount = tokenAmount * calculatePrice(totalSupply);
+        return ethAmount;
+    }
+}
+```
+
+Explanation
+
+- **`buy()`:** Users send ETH to buy tokens. The number of tokens minted is calculated based on the bonding curve.
+- **`sell()`:** Users can sell their tokens back for ETH. The amount of ETH returned is calculated based on the current supply.
+- **`calculatePrice()`:** Determines the price per token based on the total supply.
+
+<Callout>This is a simplified example and not suitable for production. Proper handling of floating-point arithmetic and security considerations is necessary.</Callout>
+
+### Considerations and Risks
+
+**Price Volatility**
+
+- **Speculation**: Prices can become volatile due to speculative trading.
+- **Market Manipulation**: Large trades may influence prices significantly.
+
+**Smart Contract Risks**
+
+- **Security Vulnerabilities**: Bugs in the contract can lead to loss of funds.
+- **Complexity**: Implementing accurate bonding curves requires careful mathematical and technical design.
+
+**Liquidity Concerns**
+
+- **Slippage**: Large trades may experience significant price slippage.
+- **Liquidity Pools**: Adequate reserves are necessary to handle buy and sell orders.
+
+## Conclusion
+
+Bonding curves offer a powerful tool for automated price discovery and token issuance in decentralized networks like Avalanche. They enable projects to create self-sustaining economies with built-in liquidity and dynamic pricing. Understanding bonding curves is essential for developers and stakeholders involved in tokenomics and decentralized finance.
+
+By carefully designing bonding curve parameters and smart contracts, projects can align incentives, promote fair participation, and foster sustainable growth within their ecosystems.
+<Quiz quizId="213"/>
