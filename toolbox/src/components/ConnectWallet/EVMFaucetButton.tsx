@@ -28,7 +28,13 @@ export const EVMFaucetButton = ({
   buttonProps,
   children,
 }: EVMFaucetButtonProps) => {
-  const { walletEVMAddress, isTestnet, cChainBalance } = useWalletStore();
+  const {
+    walletEVMAddress,
+    isTestnet,
+    cChainBalance,
+    updateL1Balance,
+    updateCChainBalance,
+  } = useWalletStore();
   const { requestTokens } = useBuilderHubFaucet();
   const l1List = useL1List();
 
@@ -57,6 +63,11 @@ export const EVMFaucetButton = ({
 
     try {
       await requestTokens(chainId);
+      // Refresh balances shortly after a successful request to reflect the drip
+      setTimeout(() => {
+        try { updateL1Balance(chainId.toString()); } catch {}
+        try { updateCChainBalance(); } catch {}
+      }, 3000);
     } catch (error) {
       console.error(`${chainConfig.name} token request error:`, error);
       const errorMessage =
