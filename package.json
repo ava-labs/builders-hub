@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "prebuild": "cd toolbox && node update_docker_tags.js",
     "build": "next build",
     "dev": "next dev --turbopack",
     "build:remote": "tsx ./utils/remote-content.mts",
