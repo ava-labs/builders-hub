@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 import { useL1ListStore } from '@/stores/l1ListStore'
 import { AddChainModal } from '@/components/ConnectWallet/AddChainModal'
 import { Button } from '@/components/ui/button'
-import { Wallet } from 'lucide-react'
 import { useWalletStore } from '@/stores/walletStore'
 import { createCoreWalletClient } from '@/coreViem'
 import { networkIDs } from '@avalabs/avalanchejs'
@@ -19,6 +18,7 @@ import { WalletInfo } from './components/WalletInfo'
 export function EvmNetworkWallet() {
   const [isAddNetworkModalOpen, setIsAddNetworkModalOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
+  const [isCoreWalletAvailable, setIsCoreWalletAvailable] = useState(false)
 
   const l1ListStore = useL1ListStore()
   const addL1 = l1ListStore((s: any) => s.addL1)
@@ -102,6 +102,24 @@ export function EvmNetworkWallet() {
     }
   }
 
+  useEffect(() => {
+    const isCoreWalletInjected = (): boolean => (
+      typeof window !== 'undefined' && !!window.avalanche?.request
+    )
+
+    setIsCoreWalletAvailable(isCoreWalletInjected())
+  }, [])
+
+  const handlePrimaryButtonClick = (): void => {
+    if (isCoreWalletAvailable) {
+      void handleConnect()
+      return
+    }
+    if (typeof window !== 'undefined') {
+      window.open('https://core.app/download', '_blank', 'noopener,noreferrer')
+    }
+  }
+
   const handleAddNetwork = () => {
     setIsAddNetworkModalOpen(true)
   }
@@ -112,13 +130,14 @@ export function EvmNetworkWallet() {
 
   // Show connect wallet button if no wallet is connected
   if (!walletEVMAddress) {
+    const buttonLabel = isCoreWalletAvailable ? 'Connect Core Wallet' : 'Download Core Wallet'
     return (
       <Button 
-        onClick={handleConnect} 
+        onClick={handlePrimaryButtonClick} 
         size="sm"
       >
-        <Wallet className="mr-2 h-4 w-4" />
-        <span className="text-sm">Connect Wallet</span>
+        <img src="/core-logo-dark.svg" alt="Core logo" className="mr-2 h-4 w-4 object-contain" />
+        <span className="text-sm">{buttonLabel}</span>
       </Button>
     )
   }
