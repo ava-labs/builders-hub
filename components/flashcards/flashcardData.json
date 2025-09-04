@@ -15,6 +15,12 @@
                 "pricing-strategies",
                 "mastering-tokenomics"
             ]
+        },
+        "fundraising": {
+            "title": "Fundraising",
+            "flashcardSets": [
+                "pitching-fundamentals"
+            ]
         }
     },
     "flashcardSets": {
@@ -308,6 +314,33 @@
                 "term": "Total Value Locked (TVL)",
                 "definition": "The combined value of cryptocurrency assets deposited in a DeFi protocol",
                 "example": "A lending protocol with $100M in TVL from user deposits across multiple asset types"
+            }
+        ],
+        "pitching-fundamentals": [
+            {
+                "term": "Pitch Deck Structure",
+                "definition": "The organization of visual and verbal elements in a presentation designed to secure investment",
+                "example": "Simple slides with visual cues paired with a memorized script that tells a complete story with beginning, middle, and end"
+            },
+            {
+                "term": "Narrative Framework",
+                "definition": "A storytelling structure that helps organize information in a way that resonates emotionally with listeners",
+                "example": "The Bridge Story shows how your solution connects a significant problem with an innovative solution, creating a clear path forward"
+            },
+            {
+                "term": "Metaphor Framework",
+                "definition": "A technique for explaining technical concepts by relating them to familiar ideas or experiences",
+                "example": "Comparing a new token incentive mechanism to how loyalty programs encourage repeat customers at coffee shops"
+            },
+            {
+                "term": "Context, Content, and Climb",
+                "definition": "A three-part structure for establishing credibility as an early-stage founder",
+                "example": "Explaining market positioning (context), user journey (content), and both short-term actions and long-term projections (climb)"
+            },
+            {
+                "term": "Anchoring Process",
+                "definition": "A preparation technique that helps speakers connect emotionally to their material before presenting",
+                "example": "Identifying the key topic 'community' for a section, connecting personally by reflecting on why building community matters to you, then choosing an appropriate energy level for delivery"
             }
         ]
     }
