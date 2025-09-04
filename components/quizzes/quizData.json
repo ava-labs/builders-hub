@@ -133,6 +133,16 @@
         "316"
       ]
     },
+    "fundraising": {
+      "title": "Fundraising",
+      "quizzes": [
+        "1101",
+        "1102",
+        "1103",
+        "1104",
+        "1105"
+      ]
+    },
     "multichain-architecture": {
       "title": "Multichain Architecture",
       "quizzes": [
@@ -1967,6 +1977,156 @@
       "hint": "Start with purpose before logistics.",
       "explanation": "Defining your authentic 'why' and target audience should come first because your event's purpose drives every other decision from venue to content to success metrics.",
       "chapter": "Community Building"
+    },
+    "801": {
+      "question": "What is tokenomics primarily concerned with?",
+      "options": [
+        "Only the technical aspects of blockchain protocols",
+        "Rules and incentives that influence behaviors within an ecosystem",
+        "Maximizing short-term token price",
+        "Marketing strategies for token sales"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about how tokenomics guides participant behavior.",
+      "explanation": "Tokenomics is primarily concerned with the rules and incentives that influence behaviors within a blockchain ecosystem, creating economic models that align participant interests.",
+      "chapter": "Mastering Tokenomics"
+    },
+    "802": {
+      "question": "Which of the following is a common mistake in tokenomics design?",
+      "options": [
+        "Focusing on both Web3 and Web2 metrics",
+        "Designing incentives for all economic agents",
+        "Focusing only on early growth without considering long-term sustainability",
+        "Creating utility for token holders"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Consider what happens after initial incentives run out.",
+      "explanation": "A common mistake is focusing only on early growth without considering long-term sustainability. Many projects fail when initial token incentives deplete without building genuine product value.",
+      "chapter": "Mastering Tokenomics"
+    },
+    "803": {
+      "question": "For B2B protocols like Layer 1 platforms, the most effective token mechanics typically include:",
+      "options": [
+        "Simple airdrops to all users",
+        "Contract-based rewards tied to specific milestones",
+        "High initial token prices",
+        "Unlimited token supply"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "B2B relationships require more structured approaches.",
+      "explanation": "Contract-based rewards tied to specific milestones work best for B2B protocols because they align incentives with business outcomes and provide predictable value exchange.",
+      "chapter": "Mastering Tokenomics"
+    },
+    "804": {
+      "question": "When bootstrapping a new project, the ideal approach is:",
+      "options": [
+        "Maintain constant high incentives indefinitely",
+        "Start with low incentives and increase over time",
+        "Start with higher incentives and gradually reduce as network effects develop",
+        "Avoid incentives completely to attract genuine users"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about how to attract early users while building sustainability.",
+      "explanation": "Starting with higher incentives and gradually reducing them as network effects develop helps attract initial users while transitioning to sustainable growth driven by product value.",
+      "chapter": "Mastering Tokenomics"
+    },
+    "805": {
+      "question": "What should be the foundation of any tokenomics design?",
+      "options": [
+        "A good product that provides value",
+        "A large initial token supply",
+        "High token price at launch",
+        "Aggressive marketing campaign"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Tokenomics can't save a bad product.",
+      "explanation": "A good product that provides value should be the foundation of any tokenomics design. Without genuine utility and value, even the best tokenomics will eventually fail.",
+      "chapter": "Mastering Tokenomics"
+    },
+    "1101": {
+      "question": "What should Web3 founders separate when creating their pitch?",
+      "options": [
+        "Technical and non-technical information",
+        "Short-term and long-term goals",
+        "Deck visuals from speaking script",
+        "Personal stories from business metrics"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about what you show versus what you say.",
+      "explanation": "Web3 founders should separate deck visuals from their speaking script. The deck should have minimal text with visual cues, while the script tells the complete story.",
+      "chapter": "Pitching"
+    },
+    "1102": {
+      "question": "Which framework helps translate complex technical concepts for non-technical investors?",
+      "options": [
+        "Hero's Journey",
+        "Context, Content, and Climb",
+        "Known truth → Your specific change → Vision of transformed future",
+        "Beginning, middle, end structure"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "This framework starts with something familiar and shows transformation.",
+      "explanation": "The 'Known truth → Your specific change → Vision of transformed future' framework helps translate complex technical concepts by starting with something investors understand and showing how your innovation transforms it.",
+      "chapter": "Pitching"
+    },
+    "1103": {
+      "question": "What is the most effective way for early-stage founders to build credibility?",
+      "options": [
+        "Overselling current progress",
+        "Focusing exclusively on team credentials",
+        "Owning their current stage honestly while demonstrating dedication",
+        "Emphasizing technical complexity"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Authenticity and commitment matter more than exaggeration.",
+      "explanation": "Early-stage founders build credibility best by owning their current stage honestly while demonstrating dedication. This shows self-awareness and commitment rather than trying to appear further along than they are.",
+      "chapter": "Pitching"
+    },
+    "1104": {
+      "question": "For a five-minute pitch, what approach to slides is most effective?",
+      "options": [
+        "Detailed technical diagrams",
+        "Minimal deck with cue words",
+        "Text-heavy explanations",
+        "Multiple animations per slide"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Less is more when time is limited.",
+      "explanation": "For a five-minute pitch, a minimal deck with cue words is most effective. This allows you to maintain eye contact and tell your story naturally rather than reading from slides.",
+      "chapter": "Pitching"
+    },
+    "1105": {
+      "question": "When discussing tokenomics in a pitch, founders should focus on:",
+      "options": [
+        "The technical mechanics of the token",
+        "Comparing to as many other tokens as possible",
+        "The change and incentives the token creates",
+        "Detailed economic models and formulas"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about what the token enables rather than how it works.",
+      "explanation": "When discussing tokenomics in a pitch, founders should focus on the change and incentives the token creates. This helps investors understand the value and behavior the token drives rather than getting lost in technical details.",
+      "chapter": "Pitching"
     },
     "801": {
       "question": "What is tokenomics primarily concerned with?",
