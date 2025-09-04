@@ -367,6 +367,13 @@ async function main(): Promise<void> {
       title: "P-Chain",
       description: "This page is an overview of the configurations and flags supported by P-Chain.",
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/config",
+    },
+    {
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/subnet-evm/1ab7114c339f866b65cc02dfd586b2ed9041dd0b/precompile/contracts/warp/README.md",
+      outputPath: "content/docs/avalanche-l1s/evm-configuration/warpmessenger.mdx",
+      title: "WarpMessenger Precompile - Technical Details",
+      description: "Technical documentation for the WarpMessenger precompile implementation in subnet-evm.",
+      contentUrl: "https://github.com/ava-labs/subnet-evm/blob/1ab7114c339f866b65cc02dfd586b2ed9041dd0b/precompile/contracts/warp/",
     }
   ];
 
