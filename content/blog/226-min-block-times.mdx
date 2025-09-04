@@ -1,0 +1,43 @@
+---
+title: ACP-226: Dynamic Minimum Block Times for Sub-Second Blocks
+description: ACP-226 replaces per-block gas cost with a dynamic minimum block delay to enable sub-second blocks, align with validator preferences, and prepare the network for higher gas targets.
+date: 2025-09-04
+authors: [meagfitzgerald]
+topics: [ACP, Block Time, C-Chain, Consensus, Performance]
+comments: true
+---
+
+<YouTube id="v792NyX58sI" />
+
+---
+
+## What's Changing?
+
+ACP-226 proposes swapping the old per-block gas cost for a simple, enforced minimum wait between blocks. New header fields — `timeMilliseconds`
+and `minimumBlockDelay` — make sub-second blocks possible and keep spacing consistent. The delay naturally gravitates toward
+the stake-weighted median preference of all validators (same control style as ACP-176), so cadence aligns with what validators actually want.
+
+## Why Change the Current Mechanism?
+
+The current gas check mechanism is overly simple and does not reliably prevent exceeding the target rate when priority fees already cover the
+costs. No enforced minimum time between blocks can allow for bursts and risk periods of network instability.
+
+ACP-226 introduces a minimum wait before the next block, enabling sub-second block production without network upgrades.
+
+## How the Dynamic Delay Work?
+
+The effective minimum delay uses a controller similar to ACP-176 with a dynamic Q parameter. Validators can set their
+preferred minimum delay and the network will converge around the stake-weighted median. While the ACP-176 dynamic fee
+mechanism still sets the target gas rate, ACP-226 reinforces network safety and prepares the network for higher targets
+and smoother UX.
+
+## Looking Ahead
+
+As gas targets climb, expect smaller, more frequent blocks and a snappier user experience. Parallel block checks (like SAE) and ongoing
+performance work make lower delays practical. We'll also share visuals that show how ACP-226 and ACP-176 fit together in practice.
+
+## References
+
+- Community meeting recording: https://www.youtube.com/watch?v=v792NyX58sI
+
+
