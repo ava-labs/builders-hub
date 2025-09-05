@@ -70,6 +70,13 @@
     "slug": "btic"
   },
   {
+    "chainId": "43114",
+    "chainName": "Avalanche C-Chain",
+    "chainLogoURI": "",
+    "subnetId": "11111111111111111111111111111111LpoYY",
+    "slug": "c-chain"
+  },
+  {
     "chainId": "35414",
     "chainName": "Cedomis",
     "chainLogoURI": "",
@@ -217,18 +224,11 @@
     "slug": "gunzilla-testnet"
   },
   {
-    "chainId": "35578",
+    "chainId": "68414",
     "chainName": "Henesys",
     "chainLogoURI": "",
-    "subnetId": "nBv88rWrKMXNGBmnwkA4P5HCRPcU1VVxenJGZnXZbc8CADqCQ",
-    "slug": "henesys"
-  },
-  {
-    "chainId": "68414",
-    "chainName": "Henesys MSU",
-    "chainLogoURI": "",
     "subnetId": "jmLmezoViv3F72XLzpdmSNk3qLEGb72g5EYkp3ij4wHXPF2KN",
-    "slug": "henesysmsu"
+    "slug": "henesys"
   },
   {
     "chainId": "1992",
