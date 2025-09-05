@@ -162,7 +162,8 @@ async function processFile(filePath: string) {
       console.log(`✓ No changes needed: ${filePath}`);
     }
   } catch (error) {
-    console.error(`❌ Error processing ${filePath}:`, error.message);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`❌ Error processing ${filePath}:`, message);
   }
 }
 
@@ -172,7 +173,7 @@ async function main() {
   if (args.length === 0) {
     // Process all SDK MDX files
     const sdkDir = 'content/docs/sdks/avalanche-sdk-typescript';
-    const files = [];
+    const files: string[] = [];
     
     function findMDXFiles(dir: string) {
       const entries = fs.readdirSync(dir, { withFileTypes: true });
