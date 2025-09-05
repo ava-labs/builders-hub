@@ -4,15 +4,33 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowUpDown, ArrowUp, ArrowDown, Activity, Users, BarChart3, Loader2, Search, ExternalLink } from "lucide-react";
+import {
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Activity,
+  Users,
+  BarChart3,
+  Loader2,
+  Search,
+  ExternalLink,
+} from "lucide-react";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { Area, AreaChart, XAxis, YAxis, CartesianGrid } from "recharts";
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 import l1ChainsData from "@/constants/l1-chains.json";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
+import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { TimeSeriesMetric, ICMMetric, TimeRange } from "@/types/stats";
 
 interface ChainOverviewMetrics {
@@ -40,7 +58,8 @@ interface OverviewMetrics {
 type SortDirection = "asc" | "desc";
 
 export default function AvalancheMetrics() {
-  const [overviewMetrics, setOverviewMetrics] = useState<OverviewMetrics | null>(null);
+  const [overviewMetrics, setOverviewMetrics] =
+    useState<OverviewMetrics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<string>("weeklyTxCount");
@@ -174,7 +193,9 @@ export default function AvalancheMetrics() {
 
     const aggregatedData = overviewMetrics.aggregated.totalTxCount.data;
     const today = new Date().toISOString().split("T")[0];
-    const finalizedData = aggregatedData.filter((dataPoint) => dataPoint.date !== today);
+    const finalizedData = aggregatedData.filter(
+      (dataPoint) => dataPoint.date !== today
+    );
     const chartData = finalizedData.map((dataPoint) => {
       const day = new Date(dataPoint.timestamp * 1000).toLocaleDateString(
         "en-US",
@@ -191,14 +212,23 @@ export default function AvalancheMetrics() {
       };
 
       validChains.forEach((chain) => {
-        const chainKey = chain.chainName.length > 10 ? chain.chainName.substring(0, 10) + "..." : chain.chainName;
-        const chainDataPoint = chain.txCount.data.find((point) => point.date === dataPoint.date);
-        const value = chainDataPoint && typeof chainDataPoint.value === "number" ? chainDataPoint.value : 0;
+        const chainKey =
+          chain.chainName.length > 10
+            ? chain.chainName.substring(0, 10) + "..."
+            : chain.chainName;
+        const chainDataPoint = chain.txCount.data.find(
+          (point) => point.date === dataPoint.date
+        );
+        const value =
+          chainDataPoint && typeof chainDataPoint.value === "number"
+            ? chainDataPoint.value
+            : 0;
         result[chainKey] = value;
         result[`${chainKey}_fullName`] = chain.chainName;
       });
 
-      result["Total"] = typeof dataPoint.value === "number" ? dataPoint.value : 0;
+      result["Total"] =
+        typeof dataPoint.value === "number" ? dataPoint.value : 0;
       result["Total_fullName"] = "Total";
       return result;
     });
@@ -278,7 +308,9 @@ export default function AvalancheMetrics() {
     }
 
     if (typeof aValue === "string" && typeof bValue === "string") {
-      return sortDirection === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+      return sortDirection === "asc"
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
     }
 
     const aNum = typeof aValue === "number" ? aValue : 0;
@@ -322,9 +354,18 @@ export default function AvalancheMetrics() {
   );
 
   const getActivityDots = (chain: ChainOverviewMetrics) => {
-    const txCount = typeof chain.txCount.current_value === "number" ? chain.txCount.current_value : 0;
-    const addrCount = typeof chain.activeAddresses.current_value === "number" ? chain.activeAddresses.current_value : 0;
-    const icmCount = typeof chain.icmMessages.current_value === "number" ? chain.icmMessages.current_value : 0;
+    const txCount =
+      typeof chain.txCount.current_value === "number"
+        ? chain.txCount.current_value
+        : 0;
+    const addrCount =
+      typeof chain.activeAddresses.current_value === "number"
+        ? chain.activeAddresses.current_value
+        : 0;
+    const icmCount =
+      typeof chain.icmMessages.current_value === "number"
+        ? chain.icmMessages.current_value
+        : 0;
 
     if (txCount === 0 && addrCount === 0 && icmCount === 0) return 0;
     if (txCount < 100 && addrCount < 1000 && icmCount < 10) return 1;
@@ -353,17 +394,19 @@ export default function AvalancheMetrics() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background text-foreground">
-        <main className="container mx-auto px-4 py-8 pb-24 space-y-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-orange-500 mx-auto mb-4" />
-              <p className="text-lg font-medium">Loading chain metrics...</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Fetching latest data from API
+        <div className="container mx-auto px-4 py-8 pb-24 space-y-12">
+          <div className="space-y-2">
+            <div>
+              <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">
+                Avalanche Mainnet L1 Stats
+              </h1>
+              <p className="text-base text-muted-foreground max-w-2xl leading-relaxed">
+                Loading comprehensive stats for Avalanche Mainnet L1s...
               </p>
             </div>
           </div>
-        </main>
+          <ChartSkeletonLoader />
+        </div>
 
         {/* Bubble Navigation */}
         <BubbleNavigation />
@@ -445,7 +488,9 @@ export default function AvalancheMetrics() {
           </div>
           <div className="flex flex-col items-end gap-2">
             <DateRangeFilter
-              onRangeChange={(range) => setTimeRange(range as "7d" | "30d" | "90d" | "all")}
+              onRangeChange={(range) =>
+                setTimeRange(range as "7d" | "30d" | "90d" | "all")
+              }
               defaultRange={timeRange}
             />
           </div>
@@ -455,7 +500,9 @@ export default function AvalancheMetrics() {
           <Card className="py-0 bg-card hover:border-border transition-colors">
             <CardContent className="p-6">
               <div className="space-y-3">
-                <h3 className="text-sm font-medium text-muted-foreground">Active Mainnet Avalanche L1s</h3>
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Active Mainnet Avalanche L1s
+                </h3>
                 <div className="space-y-1">
                   <p className="text-3xl font-bold text-foreground">
                     {overviewMetrics.chains.length}
@@ -468,7 +515,9 @@ export default function AvalancheMetrics() {
           <Card className="py-0 bg-card hover:border-border transition-colors">
             <CardContent className="p-6">
               <div className="space-y-3">
-                <h3 className="text-sm font-medium text-muted-foreground">Total Transactions ({timeRange})</h3>
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Total Transactions ({timeRange})
+                </h3>
                 <div className="space-y-1">
                   <p className="text-3xl font-bold text-foreground">
                     {formatNumber(
@@ -486,7 +535,9 @@ export default function AvalancheMetrics() {
           <Card className="py-0 bg-card hover:border-border transition-colors">
             <CardContent className="p-6">
               <div className="space-y-3">
-                <h3 className="text-sm font-medium text-muted-foreground">Active Addresses ({timeRange})</h3>
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Active Addresses ({timeRange})
+                </h3>
                 <div className="space-y-1">
                   <p className="text-3xl font-bold text-foreground">
                     {formatNumber(
@@ -520,7 +571,9 @@ export default function AvalancheMetrics() {
           <Card className="py-0 bg-green-500/10 border-green-500/20">
             <CardContent className="p-4">
               <div className="text-center space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">ICM Messages</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  ICM Messages
+                </p>
                 <p className="text-lg font-bold text-foreground">
                   {formatNumber(
                     overviewMetrics.aggregated.totalICMMessages.current_value
@@ -533,7 +586,9 @@ export default function AvalancheMetrics() {
           <Card className="py-0 bg-yellow-500/10 border-yellow-500/20">
             <CardContent className="p-4">
               <div className="text-center space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">Total Validators</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Total Validators
+                </p>
                 <p className="text-lg font-bold text-foreground">
                   {formatNumber(overviewMetrics.aggregated.totalValidators)}
                 </p>
