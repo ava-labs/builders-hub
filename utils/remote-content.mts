@@ -31,7 +31,7 @@ async function main(): Promise<void> {
     { name: 'Avalanche L1s', configs: getAvalancheL1sConfigs() },
     { name: 'Tooling', configs: getToolingConfigs() },
     { name: 'ACPs', configs: await getAcpsConfigs() },
-    { name: 'SDKS', configs: getSDKSConfigs() },
+    { name: 'SDKS', configs: await getSDKSConfigs() },
   ];
 
   // Flatten all configs for gitignore update

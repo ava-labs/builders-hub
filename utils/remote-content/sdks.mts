@@ -1,13 +1,7 @@
 import { FileConfig } from './shared.mts';
+import { getAllSDKConfigs } from './fetch-sdk-docs.mts';
 
-export function getSDKSConfigs(): FileConfig[] {
-  return [
-    {
-      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchejs/refs/heads/master/README.md",
-      outputPath: "content/docs/sdks/avalanchejs/installation.mdx",
-      title: "Installation",
-      description: "This page is an overview of the AvalancheJS installation.",
-      contentUrl: "https://github.com/ava-labs/avalanchejs/blob/refs/heads/master/",
-    }
-  ];
+export async function getSDKSConfigs(): Promise<FileConfig[]> {
+  // Use the dynamic fetching approach to get all SDK documentation
+  return await getAllSDKConfigs();
 } 

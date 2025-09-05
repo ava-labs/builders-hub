@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fixMDXSyntax } from '../fix-mdx-syntax.mts';
 
 export interface FileConfig {
   sourceUrl: string;
@@ -115,8 +116,40 @@ export function transformContent(content: string, customTitle: string, customDes
   const mathExpressions: string[] = [];
   const flowcharts: string[] = [];
   const preservedComponents: string[] = [];
+  const codeBlocks: string[] = [];
   
-  // Preserve problematic Callout components first
+  // Preserve div blocks and their content to prevent internal tag escaping
+  const divBlocks: string[] = [];
+  content = content.replace(/<div[^>]*>[\s\S]*?<\/div>/gi, (match) => {
+    const index = divBlocks.length;
+    divBlocks.push(match);
+    return `__DIV_BLOCK_${index}__`;
+  });
+  
+  // Preserve table rows to prevent img tags in tables from being escaped
+  const tableRows: string[] = [];
+  content = content.replace(/^\|.*\|$/gm, (match) => {
+    const index = tableRows.length;
+    tableRows.push(match);
+    return `__TABLE_ROW_${index}__`;
+  });
+  
+  // Preserve code blocks first to avoid processing their content
+  content = content
+    // Preserve fenced code blocks
+    .replace(/```[\s\S]*?```/g, (match) => {
+      const index = codeBlocks.length;
+      codeBlocks.push(match);
+      return `__CODE_BLOCK_${index}__`;
+    })
+    // Preserve inline code (including multiline)
+    .replace(/`[^`]*`/g, (match) => {
+      const index = codeBlocks.length;
+      codeBlocks.push(match);
+      return `__CODE_INLINE_${index}__`;
+    });
+  
+  // Preserve problematic Callout components
   content = content
     .replace(/<Callout\s+title="([^"]*?)"\s+icon\s*=\s*\{[^}]*\}\s*>/g, (match) => {
       const index = preservedComponents.length;
@@ -158,7 +191,10 @@ export function transformContent(content: string, customTitle: string, customDes
 
   // Fix common malformed HTML patterns very early in the process
   content = content
-    .replace(/<\/di>/g, '</div>'); // Fix specific malformed closing tag
+    .replace(/<\/di>/g, '</div>') // Fix specific malformed closing tag
+    // Fix image tags with broken attributes (like the ones in installation.mdx)
+    .replace(/<img([^>]*?)\s+\/>\s+alt="([^"]*?)"\s*\/>/g, '<img$1 alt="$2" />')
+    .replace(/<img([^>]*?)\s+\/>\s+([^/>]+)\s*\/>/g, '<img$1 $2 />'); // Fix attributes after self-closing
 
       // Convert GitHub-flavored markdown to MDX-compatible syntax
   content = content
@@ -168,7 +204,8 @@ export function transformContent(content: string, customTitle: string, customDes
     // Handle note/warning/info blocks
     .replace(/^:::(\s*note|tip|warning|info|caution)\s*$/gm, ':::$1')
     // Convert image syntax to MDX-compatible format BEFORE handling other ! characters
-    .replace(/!\[(.*?)\]\((.*?)\)/g, '<img alt="$1" src="$2" />')
+    // But preserve images that are inside markdown links
+    .replace(/(?<!\[)!\[(.*?)\]\((.*?)\)/g, '<img alt="$1" src="$2" />')
     // Convert admonitions to MDX callouts
     .replace(/^!!!\s+(\w+)\s*\n/gm, ':::$1\n')
     .replace(/^!!\s+(\w+)\s*\n/gm, '::$1\n')
@@ -182,6 +219,14 @@ export function transformContent(content: string, customTitle: string, customDes
     .replace(/\{\/\*\s*\*\/\}/g, '') // Remove empty comments
     .replace(/\{\s*\/\*\s*\*\/\s*\}/g, '') // Remove empty comments with spaces
     // Fix malformed img tags with extra spaces and slashes
+    .replace(/<img([^>]*?)\s+\/>\s+alt="([^"]*?)"\s*\/>/gi, (match, attrs, alt) => {
+      // Fix img tags where alt attribute is outside the tag
+      let cleanAttrs = attrs
+        .replace(/(\w+)=/g, ' $1=')
+        .replace(/=([^"'\s][^\s>]*)/g, '="$1"')
+        .trim();
+      return `<img${cleanAttrs ? ' ' + cleanAttrs : ''} alt="${alt}" />`;
+    })
     .replace(/<img([^>]*?)\s+\/\s+\/>/gi, (match, attrs) => {
       // Fix malformed img tags with extra spaces and slashes
       let cleanAttrs = attrs
@@ -250,6 +295,14 @@ edit_url: ${safeEditUrl}
 `;
 
   content = content.replace(/^(#{2,6})\s/gm, (match) => '#'.repeat(match.length - 1) + ' ');
+  
+  // Fix URLs that have been corrupted with spaces before applying link replacement
+  content = content
+    .replace(/https:\s+\/\//g, 'https://')
+    .replace(/http:\s+\/\//g, 'http://')
+    // Fix specific pattern where img tags get corrupted with attributes outside
+    .replace(/<img\s+src="([^"]+)"\s*\/>\s*alt="([^"]+)"\s*\/>/gi, '<img src="$1" alt="$2" />');
+  
   content = replaceRelativeLinks(content, sourceBaseUrl);
 
   // Helper: convert a fenced mermaid block to <Mermaid chart={`...`} />
@@ -279,17 +332,47 @@ edit_url: ${safeEditUrl}
     return `<Mermaid chart={\`${inner}\`} />`;
   }
 
+  // Restore div blocks early to prevent their content from being escaped
+  content = content.replace(/__DIV_BLOCK_(\d+)__/g, (match, index) => {
+    let divContent = divBlocks[parseInt(index)];
+    // Fix any URL corruption within div blocks
+    divContent = divContent
+      .replace(/https:\s*\/\//g, 'https://')
+      .replace(/http:\s*\/\//g, 'http://');
+    return divContent;
+  });
+  
   // Restore preserved math expressions, flowcharts, and components
   content = content
     .replace(/__MATH_BLOCK_(\d+)__/g, (match, index) => mathExpressions[parseInt(index)])
     .replace(/__MATH_INLINE_(\d+)__/g, (match, index) => mathExpressions[parseInt(index)])
     .replace(/__FLOWCHART_(\d+)__/g, (match, index) => convertMermaidFenceToComponent(flowcharts[parseInt(index)]))
-    .replace(/__CALLOUT_(\d+)__/g, (match, index) => preservedComponents[parseInt(index)]);
+    .replace(/__CALLOUT_(\d+)__/g, (match, index) => preservedComponents[parseInt(index)])
+    .replace(/__CODE_BLOCK_(\d+)__/g, (match, index) => codeBlocks[parseInt(index)])
+    .replace(/__CODE_INLINE_(\d+)__/g, (match, index) => codeBlocks[parseInt(index)])
+    .replace(/__TABLE_ROW_(\d+)__/g, (match, index) => tableRows[parseInt(index)]);
 
   // Final cleanup fixes - apply these last to catch any issues from earlier transformations
   content = content
     .replace(/<\/di>/g, '</div>') // Fix malformed closing div tags
     .replace(/<imgsrc=/g, '<img src=') // Fix missing space in img tags
+    // Fix escaped tags
+    .replace(/&lt;(p|a|h[1-6]|span|div)(\s+[^&]*?)?&gt;/gi, '<$1$2>') // Unescape opening tags
+    .replace(/&lt;\/(p|a|h[1-6]|span|div)&gt;/gi, '</$1>') // Unescape closing tags
+    // Fix escaped img tags with malformed closing
+    .replace(/&lt;img\s+([^&]*?)\s*\/&gt;/gi, (match, attrs) => {
+      // Unescape the img tag and fix the closing
+      return `<img ${attrs} />`;
+    })
+    // Fix escaped img tags that have attributes after the closing
+    .replace(/&lt;img\s+([^&]*?)\s*\/&gt;\s*([^<\n]+)/gi, (match, attrs, trailing) => {
+      // Check if trailing content looks like attributes
+      if (trailing.includes('alt=') || trailing.includes('src=')) {
+        // Merge the attributes
+        return `<img ${attrs} ${trailing.trim()} />`;
+      }
+      return `<img ${attrs} />${trailing}`;
+    })
     .replace(/>\s*\/\s*\/>/g, ' />') // Fix malformed self-closing tags with extra slashes
     .replace(/<img([^>]*?)\s+\/>\s+\/>/g, '<img$1 />') // Fix double self-closing patterns
     .replace(/<img([^>]*?)>(?!\s*\/>)/g, '<img$1 />') // Make non-self-closing img tags self-closing
@@ -319,7 +402,13 @@ edit_url: ${safeEditUrl}
     .replace(/([`\w]+)\s*<=\s*([`\w()]+)/g, '$1 ≤ $2') // Replace <= with ≤ to avoid MDX parsing issues
     .replace(/([`\w]+)\s*>=\s*([`\w()]+)/g, '$1 ≥ $2') // Replace >= with ≥ to avoid MDX parsing issues
     .replace(/\s<>\s/g, ' ↔ ') // Replace empty angle brackets with bidirectional arrow to avoid MDX parsing issues
-    .replace(/`<>`/g, '`↔`'); // Replace backtick-wrapped empty angle brackets
+    .replace(/`<>`/g, '`↔`') // Replace backtick-wrapped empty angle brackets
+    // Fix standalone angle brackets that might cause JSX parsing issues
+    .replace(/([^<])<([^/>][^>]*)>([^<])/g, '$1&lt;$2&gt;$3') // Escape standalone angle brackets
+    .replace(/<([A-Z][a-zA-Z0-9]*)\s*\/>/g, '<$1 />') // Ensure proper spacing in self-closing JSX tags
+    // Don't escape valid HTML tags like div, span, p, etc.
+    .replace(/<((?!div|span|p|img|a|h[1-6]|ul|ol|li|table|tr|td|th|br|hr|code|pre|blockquote|em|strong|b|i)[a-z]+)>/g, '&lt;$1&gt;') // Escape non-standard lowercase HTML-like tags
+    .replace(/<\/((?!div|span|p|img|a|h[1-6]|ul|ol|li|table|tr|td|th|br|hr|code|pre|blockquote|em|strong|b|i)[a-z]+)>/g, '&lt;/$1&gt;'); // Escape non-standard lowercase closing tags
 
   return frontmatter + content;
 }
@@ -395,7 +484,11 @@ export async function processFile(fileConfig: FileConfig): Promise<void> {
     const contentBaseUrl = new URL('.', fileConfig.contentUrl).href;
     const editUrl = deriveEditUrlFromSourceUrl(fileConfig.sourceUrl);
 
-    const transformedContent = transformContent(content, fileConfig.title, fileConfig.description, contentBaseUrl, editUrl);
+    let transformedContent = transformContent(content, fileConfig.title, fileConfig.description, contentBaseUrl, editUrl);
+    
+    // Apply MDX syntax fixes as a final post-processing step
+    transformedContent = fixMDXSyntax(transformedContent);
+    
     const outputDir = path.dirname(fileConfig.outputPath);
     fs.mkdirSync(outputDir, { recursive: true });
 

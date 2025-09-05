@@ -1,74 +1,49 @@
 ---
 title: Overview
-description: Get started with Avalanche - RPC endpoints, faucets, and popular topics.
+description: Avalanche quick start; RPC, explorers, faucets, and popular topics.
 ---
 
-Welcome to Avalanche! This quick start guide provides essential information to get you building immediately.
+Welcome to Avalanche. This quick start has the essentials to get you building fast.
 
-## RPC Endpoints
+### Avalanche Mainnet
 
-### Avalanche Mainnet RPC Endpoints
+| Chain | RPC URL | WebSocket | Chain ID |
+|-------|---------|-----------|----------|
+| C‑Chain | https://api.avax.network/ext/bc/C/rpc | wss://api.avax.network/ext/bc/C/ws | `43114` |
 
-| Chain | Network | RPC URL | WebSocket URL | Chain ID | Symbol | Explorer |
-|-------|---------|---------|---------------|----------|--------|----------|
-| C‑Chain | Mainnet | https://api.avax.network/ext/bc/C/rpc | wss://api.avax.network/ext/bc/C/ws | `43114` | `AVAX` | https://subnets.avax.network/c-chain |
-| P‑Chain | Mainnet | https://api.avax.network/ext/P | - | - | `AVAX` | - |
-| X‑Chain | Mainnet | https://api.avax.network/ext/X | - | - | `AVAX` | - |
+- Add to wallet: visit the [C‑Chain explorer](https://subnets.avax.network/c-chain) and click "Add to Wallet" under "Chain Info".
 
-### Fuji Testnet RPC Endpoints
+### Fuji Testnet
 
-| Chain | Network | RPC URL | WebSocket URL | Chain ID | Symbol | Explorer |
-|-------|---------|---------|---------------|----------|--------|----------|
-| C‑Chain | Fuji Testnet | https://api.avax-test.network/ext/bc/C/rpc | wss://api.avax-test.network/ext/bc/C/ws | `43113` | `AVAX` | https://subnets-test.avax.network/c-chain |
-| P‑Chain | Fuji Testnet | https://api.avax-test.network/ext/P | - | - | `AVAX` | - |
-| X‑Chain | Fuji Testnet | https://api.avax-test.network/ext/X | - | - | `AVAX` | - |
+| Chain | RPC URL | WebSocket | Chain ID |
+|-------|---------|-----------|----------|
+| C‑Chain | https://api.avax-test.network/ext/bc/C/rpc | wss://api.avax-test.network/ext/bc/C/ws | `43113` |
 
-### Get Testnet AVAX
+- Add to wallet: visit the [Fuji C‑Chain explorer](https://subnets-test.avax.network/c-chain) and click "Add to Wallet".
 
-To obtain free testnet AVAX for development and testing:
+## Block Explorers
 
-1. **[Toolbox Faucet](/tools/l1-toolbox/faucet)** - Request testnet tokens directly with a BuilderHub account
-2. **[Core Wallet Faucet](https://faucet.avax.network/)** - Request a faucet coupon if you don't have mainnet AVAX
-3. **[Guild](https://guild.xyz/avalanche)** - Join the Guild and request a faucet coupon if you don't have mainnet AVAX
+<Cards>
+<Card title="Subnets Explorer" description="Official explorer for Avalanche networks" href="https://subnets.avax.network" />
+<Card title="Avascan" description="Rich analytics for Avalanche networks" href="https://avascan.info" />
+<Card title="SnowTrace" description="Etherscan-style explorer for C‑Chain" href="https://snowtrace.io" />
+<Card title="SnowPeer" description="Community explorer and tools" href="https://snowpeer.io" />
+</Cards>
+
+## Faucet
+
+- [Toolbox Faucet](/tools/l1-toolbox/faucet) — request testnet AVAX with a BuilderHub account
+- [Core Wallet Faucet](https://faucet.avax.network/) — get a faucet coupon if you don't have mainnet AVAX
+- [Guild](https://guild.xyz/avalanche) — join and request a faucet coupon if you don't have mainnet AVAX
 
 <Callout title="Note">
 If you already have AVAX on Mainnet, you can use that address to request testnet tokens from the faucet.
 </Callout>
 
-### Add Networks to Wallet
-
-Both Mainnet and Testnet explorers have an "Add to Wallet" button for easy MetaMask/wallet integration:
-
-- **Mainnet**: Visit the [C-Chain explorer](https://subnets.avax.network/c-chain) 
-- **Testnet**: Visit the [Fuji C-Chain explorer](https://subnets-test.avax.network/c-chain)
-
-Look for "Add Avalanche C-Chain to Wallet" under the "Chain Info" section.
-
-
-## Essential Links
-
-<Cards>
-<Card title="Build dApps" description="Deploy smart contracts on C-Chain" href="/docs/dapps" />
-<Card title="Create an L1" description="Build your own blockchain" href="/docs/avalanche-l1s" />
-<Card title="Run a Node" description="Participate in the Primary Network" href="/docs/primary-network" />
-</Cards>
-
 ## Popular Topics
 
 <Cards>
-<Card title="Smart Contract Development" description="Build and deploy Solidity contracts" href="/docs/dapps/smart-contract-dev" />
 <Card title="API Reference" description="Complete API documentation" href="/docs/apis" />
 <Card title="Cross-Chain Messaging" description="Connect L1s with Teleporter" href="/docs/cross-chain/teleporter" />
-<Card title="Avalanche CLI" description="Command-line tool for L1 development" href="/docs/tooling/create-avalanche-l1" />
+<Card title="Avalanche CLI" description="Command-line tool for L1 development" href="/docs/sdks/create-avalanche-l1" />
 </Cards>
-
-### Architecture
-
-Avalanche uses a unique [consensus mechanism](/docs/primary-network/avalanche-consensus) and consists of:
-
-- **[Primary Network](/docs/primary-network)**: The main network with X, P, and C-Chains
-- **[Avalanche L1s](/docs/avalanche-l1s)**: Custom blockchains with their own rules and tokens
-- **[Virtual Machines](/docs/avalanche-l1s/virtual-machines)**: Execution environments for different use cases
-
-
-
