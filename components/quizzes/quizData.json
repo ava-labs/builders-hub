@@ -22,8 +22,8 @@
         "117"
       ]
     },
-    "codebase-entrepreneur-academy": {
-      "title": "Codebase Entrepreneur Academy",
+    "codebase-entrepreneur-foundations": {
+      "title": "Codebase Entrepreneur Foundations",
       "quizzes": [
         "901",
         "902",
@@ -133,7 +133,7 @@
         "316"
       ]
     },
-    "fundraising": {
+    "codebase-entrepreneur-fundraising": {
       "title": "Fundraising",
       "quizzes": [
         "1101",
@@ -143,7 +143,7 @@
         "1105"
       ]
     },
-    "multichain-architecture": {
+    "multi-chain-architecture": {
       "title": "Multichain Architecture",
       "quizzes": [
         "401",
@@ -158,7 +158,7 @@
         "410"
       ]
     },
-    "web3-community-architect": {
+    "codebase-entrepreneur-community": {
       "title": "Web3 Community Architect",
       "quizzes": [
         "701",
@@ -167,6 +167,28 @@
         "704",
         "705"
       ]
+    },
+    "codebase-entrepreneur-go-to-market": {
+      "title": "Go-to-Market Strategies",
+      "quizzes": [
+        "923",
+        "924",
+        "925",
+        "926",
+        "927",
+        "928",
+        "929",
+        "930",
+        "931",
+        "940",
+        "941",
+        "942",
+        "943"
+      ]
+    },
+    "permissioned-l1s": {
+      "title": "Permissioned L1s",
+      "quizzes": []
     }
   },
   "quizzes": {
