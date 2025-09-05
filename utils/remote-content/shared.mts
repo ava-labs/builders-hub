@@ -224,6 +224,12 @@ export function transformContent(content: string, customTitle: string, customDes
       let cleanAttrs = attrs
         .replace(/(\w+)=/g, ' $1=')
         .replace(/=([^"'\s][^\s>]*)/g, '="$1"')
+        // Remove MDX/JS comments inside tag context
+        .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+        .replace(/\s\/\/[^>\n]*/g, ' ')
+        // Replace commas between attributes (but not inside quotes)
+        .replace(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/g, ' ')
+        .replace(/\s{2,}/g, ' ')
         .trim();
       return `<img${cleanAttrs ? ' ' + cleanAttrs : ''} alt="${alt}" />`;
     })
@@ -233,6 +239,10 @@ export function transformContent(content: string, customTitle: string, customDes
         .replace(/(\w+)=/g, ' $1=')
         .replace(/=([^"'\s][^\s>]*)/g, '="$1"')
         .replace(/=\.\//g, '="')
+        .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+        .replace(/\s\/\/[^>\n]*/g, ' ')
+        .replace(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/g, ' ')
+        .replace(/\s{2,}/g, ' ')
         .trim();
       return `<img${cleanAttrs ? ' ' + cleanAttrs : ''} />`;
     })
@@ -243,6 +253,10 @@ export function transformContent(content: string, customTitle: string, customDes
         .replace(/(\w+)=/g, ' $1=')
         .replace(/=([^"'\s][^\s>]*)/g, '="$1"') // Quote unquoted attribute values
         .replace(/=\.\//g, '="') // Fix malformed relative paths
+        .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+        .replace(/\s\/\/[^>\n]*/g, ' ')
+        .replace(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/g, ' ')
+        .replace(/\s{2,}/g, ' ')
         .trim();
       return `<img${cleanAttrs ? ' ' + cleanAttrs : ''} />`;
     })
@@ -257,6 +271,10 @@ export function transformContent(content: string, customTitle: string, customDes
         .replace(/(\w+)=/g, ' $1=')
         .replace(/=([^"'\s][^\s>]*)/g, '="$1"')
         .replace(/=\.\//g, '="')
+        .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+        .replace(/\s\/\/[^>\n]*/g, ' ')
+        .replace(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/g, ' ')
+        .replace(/\s{2,}/g, ' ')
         .trim();
       return `<${tag}${cleanAttrs ? ' ' + cleanAttrs : ''} />`;
     })
@@ -339,6 +357,16 @@ edit_url: ${safeEditUrl}
     divContent = divContent
       .replace(/https:\s*\/\//g, 'https://')
       .replace(/http:\s*\/\//g, 'http://');
+    // Sanitize JSX comments and stray commas or inline // comments inside tag bodies
+    divContent = divContent.replace(/<([A-Za-z][^>]*?)(\/)?>/g, (m, inside, selfClose) => {
+      let cleaned = String(inside)
+        .replace(/\{\/\*[\s\S]*?\*\/\}/g, '') // remove MDX comments inside tags
+        .replace(/\s\/\/[^>\n]*/g, ' ') // remove inline // comments inside tags
+        .replace(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/g, ' ') // replace commas between attrs
+        .replace(/\s{2,}/g, ' ') // collapse whitespace
+        .trim();
+      return `<${cleaned}${selfClose ? ' />' : '>'}`;
+    });
     return divContent;
   });
   
@@ -368,13 +396,21 @@ edit_url: ${safeEditUrl}
     .replace(/&lt;img\s+([^&]*?)\s*\/&gt;\s*([^<\n]+)/gi, (match, attrs, trailing) => {
       // Check if trailing content looks like attributes
       if (trailing.includes('alt=') || trailing.includes('src=')) {
-        // Merge the attributes
-        return `<img ${attrs} ${trailing.trim()} />`;
+        // Sanitize trailing attribute chunk (remove leading commas/comments)
+        const sanitizedTrailing = trailing
+          .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+          .replace(/\s\/\/[^>\n]*/g, ' ')
+          .replace(/^[,;:]+/, '')
+          .replace(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/g, ' ')
+          .replace(/\s{2,}/g, ' ')
+          .trim();
+        return `<img ${attrs} ${sanitizedTrailing} />`;
       }
       return `<img ${attrs} />${trailing}`;
     })
     .replace(/>\s*\/\s*\/>/g, ' />') // Fix malformed self-closing tags with extra slashes
     .replace(/<img([^>]*?)\s+\/>\s+\/>/g, '<img$1 />') // Fix double self-closing patterns
+    .replace(/<img([^>]*?)\s+\/\/\s*>/g, '<img$1 />') // Fix `<img ... //>` pattern
     .replace(/<img([^>]*?)>(?!\s*\/>)/g, '<img$1 />') // Make non-self-closing img tags self-closing
     .replace(/<img([^>]*?)\s+\/\s+\/>/g, '<img$1 />') // Fix spaced self-closing patterns
     // Fix malformed img tags with broken URLs and closing tags
