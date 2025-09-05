@@ -37,8 +37,13 @@ function getCertificateTemplate(courseId: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  let courseId: string = '';
+  let userName: string = '';
+
   try {
-    const { courseId, userName } = await req.json();
+    const requestData = await req.json();
+    courseId = requestData.courseId;
+    userName = requestData.userName;
     console.log('Certificate request:', { courseId, userName });
 
     if (!courseId || !userName) { return NextResponse.json({ error: 'Missing required fields' }, { status: 400 }); }
@@ -90,8 +95,15 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
+    console.error('Certificate generation error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate certificate, contact the Avalanche team.', details: (error as Error).message },
+      {
+        error: 'Failed to generate certificate, contact the Avalanche team.',
+        details: (error as Error).message,
+        stack: (error as Error).stack,
+        courseId,
+        userName: userName || 'undefined'
+      },
       { status: 500 }
     );
   }

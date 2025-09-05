@@ -22,61 +22,6 @@
         "117"
       ]
     },
-    "codebase-entrepreneur-foundations": {
-      "title": "Codebase Entrepreneur Foundations",
-      "quizzes": [
-        "901",
-        "902",
-        "903",
-        "904",
-        "905",
-        "906",
-        "907",
-        "908",
-        "909",
-        "910",
-        "911",
-        "912",
-        "913",
-        "914",
-        "915",
-        "916",
-        "917",
-        "918",
-        "919",
-        "920",
-        "921",
-        "922",
-        "950",
-        "951",
-        "952",
-        "953",
-        "954",
-        "923",
-        "924",
-        "925",
-        "926",
-        "927",
-        "928",
-        "929",
-        "930",
-        "931",
-        "940",
-        "941",
-        "942",
-        "943",
-        "601",
-        "602",
-        "603",
-        "604",
-        "605",
-        "801",
-        "802",
-        "803",
-        "804",
-        "805"
-      ]
-    },
     "l1-tokenomics": {
       "title": "L1 Tokenomics",
       "quizzes": [
@@ -133,17 +78,7 @@
         "316"
       ]
     },
-    "codebase-entrepreneur-fundraising": {
-      "title": "Fundraising",
-      "quizzes": [
-        "1101",
-        "1102",
-        "1103",
-        "1104",
-        "1105"
-      ]
-    },
-    "multi-chain-architecture": {
+    "multichain-architecture": {
       "title": "Multichain Architecture",
       "quizzes": [
         "401",
@@ -158,37 +93,33 @@
         "410"
       ]
     },
-    "codebase-entrepreneur-community": {
-      "title": "Web3 Community Architect",
+    "permissioned-l1s": {
+      "title": "Permissioned L1s",
+      "quizzes": []
+    },
+    "codebase-entrepreneur-foundations": {
+      "title": "Codebase Entrepreneur Foundations",
       "quizzes": [
-        "701",
-        "702",
-        "703",
-        "704",
-        "705"
+        "906"
+      ]
+    },
+    "codebase-entrepreneur-community": {
+      "title": "Mastering Tokenomics",
+      "quizzes": [
+        "801"
       ]
     },
     "codebase-entrepreneur-go-to-market": {
       "title": "Go-to-Market Strategies",
       "quizzes": [
-        "923",
-        "924",
-        "925",
-        "926",
-        "927",
-        "928",
-        "929",
-        "930",
-        "931",
-        "940",
-        "941",
-        "942",
-        "943"
+        "923"
       ]
     },
-    "permissioned-l1s": {
-      "title": "Permissioned L1s",
-      "quizzes": []
+    "codebase-entrepreneur-fundraising": {
+      "title": "Fundraising",
+      "quizzes": [
+        "601"
+      ]
     }
   },
   "quizzes": {

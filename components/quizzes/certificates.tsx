@@ -122,8 +122,10 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
     }
 
     setIsGenerating(true);
+    let response: Response | undefined;
+
     try {
-      const response = await fetch('/api/generate-certificate', {
+      response = await fetch('/api/generate-certificate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -135,7 +137,14 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate certificate');
+        // Try to get error details from response
+        try {
+          const errorData = await response.json();
+          console.error('Server error details:', errorData);
+          throw new Error(errorData.details || 'Failed to generate certificate');
+        } catch (jsonError) {
+          throw new Error(`Failed to generate certificate (${response.status})`);
+        }
       }
 
       const blob = await response.blob();
@@ -149,7 +158,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error generating certificate:', error);
-      alert('Failed to generate certificate. Please try again.');
+      alert(`Failed to generate certificate: ${(error as Error).message}`);
     } finally {
       setIsGenerating(false);
     }
