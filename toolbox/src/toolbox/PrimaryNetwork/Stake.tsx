@@ -11,8 +11,8 @@ import { Success } from '../../components/Success'
 import { createAvalancheWalletClient } from '@avalanche-sdk/client'
 import { avalanche, avalancheFuji } from '@avalanche-sdk/client/chains'
 import { prepareAddPermissionlessValidatorTxn } from '@avalanche-sdk/client/methods/wallet/pChain'
-import { signXPTransaction, sendXPTransaction } from '@avalanche-sdk/client/methods/wallet'
-import { AlertCircle, Shield, Clock, Award, Info } from 'lucide-react'
+import { sendXPTransaction } from '@avalanche-sdk/client/methods/wallet'
+import { AlertCircle } from 'lucide-react'
 import { networkIDs } from '@avalabs/avalanchejs'
 import { NodeCredentialInput, type NodeCredentials } from '../../components/NodeCredentialInput'
 import { Steps, Step } from 'fumadocs-ui/components/steps'
@@ -46,7 +46,7 @@ const DEFAULT_DELEGATOR_REWARD_PERCENTAGE = "2"
 const BUFFER_MINUTES = 5
 
 export default function Stake() {
-  const { coreWalletClient, pChainAddress, isTestnet, avalancheNetworkID } = useWalletStore()
+  const { coreWalletClient, pChainAddress, isTestnet, avalancheNetworkID, walletEVMAddress } = useWalletStore()
   
   const [nodeCredentials, setNodeCredentials] = useState<NodeCredentials | null>(null)
   const [stakeInAvax, setStakeInAvax] = useState<string>("")
@@ -62,6 +62,20 @@ export default function Stake() {
   const config = onFuji ? NETWORK_CONFIG.fuji : NETWORK_CONFIG.mainnet
   const networkName = onFuji ? 'Fuji' : 'Mainnet'
   
+  const avalancheClient = useMemo(() => {
+    if (!window?.avalanche || !walletEVMAddress || !isTestnet) {
+        return;
+    }
+    return createAvalancheWalletClient({
+        chain: isTestnet ? avalancheFuji : avalanche,
+        transport: {
+            type: "custom",
+            provider: window.avalanche!,
+        },
+        account: walletEVMAddress as `0x${string}`
+    })
+}, [isTestnet, walletEVMAddress]);
+
   // Initialize defaults
   if (!stakeInAvax) {
     setStakeInAvax(String(config.minStakeAvax))
@@ -138,17 +152,6 @@ export default function Stake() {
     return null
   }
   
-  const walletClient = useMemo(() => {
-    const hasCore = typeof window !== 'undefined' && (window as any).avalanche
-    const chainConfig = onFuji ? avalancheFuji : avalanche
-    
-    return createAvalancheWalletClient({
-      chain: chainConfig,
-      transport: hasCore ? { type: 'custom', provider: (window as any).avalanche } : { type: 'http' },
-      account: undefined,
-    })
-  }, [onFuji])
-  
   const submitStake = async () => {
     setError(null)
     setTxId("")
@@ -158,13 +161,17 @@ export default function Stake() {
       setError(validationError)
       return
     }
-    
+
+    if (!avalancheClient) {
+      setError("Avalanche client not found")
+      return
+    }
+
     try {
       setIsSubmitting(true)
-      
+
       const endUnix = Math.floor(new Date(endTime).getTime() / 1000)
-      
-      const { tx } = await prepareAddPermissionlessValidatorTxn(walletClient.pChain, {
+      const { tx } = await prepareAddPermissionlessValidatorTxn(avalancheClient.pChain, {
         nodeId: nodeCredentials!.nodeID,
         stakeInAvax: Number(stakeInAvax),
         end: endUnix,
@@ -177,31 +184,15 @@ export default function Stake() {
         signature: nodeCredentials!.proofOfPossession,
       })
       
-      const { signedTxHex } = await signXPTransaction(walletClient.pChain, {
-        tx,
+      const txResult = await sendXPTransaction(avalancheClient.pChain, {
+        tx: tx,
         chainAlias: 'P',
       })
-      
-      const { txHash } = await sendXPTransaction(walletClient.pChain, {
-        tx: signedTxHex,
-        chainAlias: 'P',
-      })
-      
-      setTxId(txHash)
+      await avalancheClient.waitForTxn(txResult);
+      setTxId(txResult.txHash)
+
     } catch (e: any) {
-      // Handle insufficient funds error
-      if (e?.message?.includes('Insufficient funds')) {
-        const match = e.message.match(/need (\d+) more units/)
-        if (match) {
-          const needed = BigInt(match[1])
-          const neededAvax = Number(needed) / 1e18
-          setError(`${e.message} (${neededAvax.toFixed(4)} AVAX)`)
-        } else {
-          setError(e.message)
-        }
-      } else {
-        setError(e?.message || 'Transaction failed. Please try again.')
-      }
+      setError(e.message)
     } finally {
       setIsSubmitting(false)
     }
@@ -218,7 +209,7 @@ export default function Stake() {
     <CheckWalletRequirements configKey={[WalletRequirementsConfigKey.PChainBalance]}>
       <Container
         title="Become a Validator"
-        description="Stake AVAX to become a validator on the Primary Network and earn staking rewards"
+        description="Stake AVAX to become a validator on the Primary Network"
       >
         <div className="space-y-6">
           <Steps>
@@ -228,15 +219,20 @@ export default function Stake() {
               <NodeCredentialInput onCredentialsChange={setNodeCredentials} />
               
               {nodeCredentials && (
-                <div className="flex items-start gap-2 p-3 mt-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <Shield className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                      Credentials loaded successfully
-                    </p>
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-mono truncate">
-                      {nodeCredentials.nodeID}
-                    </p>
+                <div className="mt-4 p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Node ID</div>
+                      <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all">{nodeCredentials.nodeID}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">BLS Public Key</div>
+                      <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all">{nodeCredentials.publicKey}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Proof of Possession</div>
+                      <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all">{nodeCredentials.proofOfPossession}</div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -310,27 +306,12 @@ export default function Stake() {
           </Steps>
           
           {/* Important Information */}
-          <div className="rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 border border-yellow-200 dark:border-yellow-800">
-            <h4 className="flex items-center gap-2.5 font-semibold text-yellow-900 dark:text-yellow-100 p-4 pb-3">
-              <Info className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-              Before you stake
-            </h4>
-            <div className="px-4 pb-4 pl-[3.75rem]">
-              <div className="grid gap-2 text-sm text-yellow-800 dark:text-yellow-200">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 flex-shrink-0" />
-                    <span>Your stake will be locked for the entire duration</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Award className="w-4 h-4 flex-shrink-0" />
-                    <span>Maintain &gt;80% uptime to receive rewards</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>Small transaction fees will apply</span>
-                  </div>
-              </div>
-            </div>
+          <div className="p-4 bg-yellow-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+            <ul className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1.5">
+              <li>Stake will be locked for the entire duration</li>
+              <li>Maintain &gt;80% uptime to receive rewards</li>
+              <li>Transaction fees apply</li>
+            </ul>
           </div>
           
           {/* Error Message */}
@@ -361,7 +342,7 @@ export default function Stake() {
             className="w-full"
             size="lg"
           >
-            Start Validating on {networkName}
+            Stake {networkName} Validator
           </Button>
         </div>
       </Container>
