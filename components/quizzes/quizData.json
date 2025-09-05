@@ -22,61 +22,6 @@
         "117"
       ]
     },
-    "codebase-entrepreneur-academy": {
-      "title": "Codebase Entrepreneur Academy",
-      "quizzes": [
-        "901",
-        "902",
-        "903",
-        "904",
-        "905",
-        "906",
-        "907",
-        "908",
-        "909",
-        "910",
-        "911",
-        "912",
-        "913",
-        "914",
-        "915",
-        "916",
-        "917",
-        "918",
-        "919",
-        "920",
-        "921",
-        "922",
-        "950",
-        "951",
-        "952",
-        "953",
-        "954",
-        "923",
-        "924",
-        "925",
-        "926",
-        "927",
-        "928",
-        "929",
-        "930",
-        "931",
-        "940",
-        "941",
-        "942",
-        "943",
-        "601",
-        "602",
-        "603",
-        "604",
-        "605",
-        "801",
-        "802",
-        "803",
-        "804",
-        "805"
-      ]
-    },
     "l1-tokenomics": {
       "title": "L1 Tokenomics",
       "quizzes": [
@@ -133,16 +78,6 @@
         "316"
       ]
     },
-    "fundraising": {
-      "title": "Fundraising",
-      "quizzes": [
-        "1101",
-        "1102",
-        "1103",
-        "1104",
-        "1105"
-      ]
-    },
     "multichain-architecture": {
       "title": "Multichain Architecture",
       "quizzes": [
@@ -158,14 +93,32 @@
         "410"
       ]
     },
-    "web3-community-architect": {
+    "permissioned-l1s": {
+      "title": "Permissioned L1s",
+      "quizzes": []
+    },
+    "codebase-entrepreneur-foundations": {
+      "title": "Foundations of a Web3 Venture",
+      "quizzes": [
+        "906"
+      ]
+    },
+    "codebase-entrepreneur-community": {
       "title": "Web3 Community Architect",
       "quizzes": [
-        "701",
-        "702",
-        "703",
-        "704",
-        "705"
+        "801"
+      ]
+    },
+    "codebase-entrepreneur-go-to-market": {
+      "title": "Go-to-Market Strategist",
+      "quizzes": [
+        "923"
+      ]
+    },
+    "codebase-entrepreneur-fundraising": {
+      "title": "Fundraising & Finance Pro",
+      "quizzes": [
+        "601"
       ]
     }
   },
@@ -1977,81 +1930,6 @@
       "hint": "Start with purpose before logistics.",
       "explanation": "Defining your authentic 'why' and target audience should come first because your event's purpose drives every other decision from venue to content to success metrics.",
       "chapter": "Community Building"
-    },
-    "801": {
-      "question": "What is tokenomics primarily concerned with?",
-      "options": [
-        "Only the technical aspects of blockchain protocols",
-        "Rules and incentives that influence behaviors within an ecosystem",
-        "Maximizing short-term token price",
-        "Marketing strategies for token sales"
-      ],
-      "correctAnswers": [
-        1
-      ],
-      "hint": "Think about how tokenomics guides participant behavior.",
-      "explanation": "Tokenomics is primarily concerned with the rules and incentives that influence behaviors within a blockchain ecosystem, creating economic models that align participant interests.",
-      "chapter": "Mastering Tokenomics"
-    },
-    "802": {
-      "question": "Which of the following is a common mistake in tokenomics design?",
-      "options": [
-        "Focusing on both Web3 and Web2 metrics",
-        "Designing incentives for all economic agents",
-        "Focusing only on early growth without considering long-term sustainability",
-        "Creating utility for token holders"
-      ],
-      "correctAnswers": [
-        2
-      ],
-      "hint": "Consider what happens after initial incentives run out.",
-      "explanation": "A common mistake is focusing only on early growth without considering long-term sustainability. Many projects fail when initial token incentives deplete without building genuine product value.",
-      "chapter": "Mastering Tokenomics"
-    },
-    "803": {
-      "question": "For B2B protocols like Layer 1 platforms, the most effective token mechanics typically include:",
-      "options": [
-        "Simple airdrops to all users",
-        "Contract-based rewards tied to specific milestones",
-        "High initial token prices",
-        "Unlimited token supply"
-      ],
-      "correctAnswers": [
-        1
-      ],
-      "hint": "B2B relationships require more structured approaches.",
-      "explanation": "Contract-based rewards tied to specific milestones work best for B2B protocols because they align incentives with business outcomes and provide predictable value exchange.",
-      "chapter": "Mastering Tokenomics"
-    },
-    "804": {
-      "question": "When bootstrapping a new project, the ideal approach is:",
-      "options": [
-        "Maintain constant high incentives indefinitely",
-        "Start with low incentives and increase over time",
-        "Start with higher incentives and gradually reduce as network effects develop",
-        "Avoid incentives completely to attract genuine users"
-      ],
-      "correctAnswers": [
-        2
-      ],
-      "hint": "Think about how to attract early users while building sustainability.",
-      "explanation": "Starting with higher incentives and gradually reducing them as network effects develop helps attract initial users while transitioning to sustainable growth driven by product value.",
-      "chapter": "Mastering Tokenomics"
-    },
-    "805": {
-      "question": "What should be the foundation of any tokenomics design?",
-      "options": [
-        "A good product that provides value",
-        "A large initial token supply",
-        "High token price at launch",
-        "Aggressive marketing campaign"
-      ],
-      "correctAnswers": [
-        0
-      ],
-      "hint": "Tokenomics can't save a bad product.",
-      "explanation": "A good product that provides value should be the foundation of any tokenomics design. Without genuine utility and value, even the best tokenomics will eventually fail.",
-      "chapter": "Mastering Tokenomics"
     },
     "1101": {
       "question": "What should Web3 founders separate when creating their pitch?",
