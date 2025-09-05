@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from "@/constants/l1-chains.json";
-import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, STATS_CONFIG,
+import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, STATS_CONFIG, createTimeSeriesMetric,
   getTimestampsFromTimeRange, createTimeSeriesMetricWithPeriodSum, createICMMetricWithPeriodSum } from "@/types/stats";
 
 const avalanche = new Avalanche({
@@ -88,6 +88,45 @@ async function getTimeSeriesData(
   }
 }
 
+// separate active addresses fetching with proper time intervals
+async function getActiveAddressesData(chainId: string, timeRange: string): Promise<TimeSeriesDataPoint[]> {
+  const intervalMapping = STATS_CONFIG.ACTIVE_ADDRESSES_INTERVALS[timeRange as keyof typeof STATS_CONFIG.ACTIVE_ADDRESSES_INTERVALS];
+  if (!intervalMapping) { return [] }
+
+  try {
+    const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
+    let allResults: any[] = [];   
+    const rlToken = process.env.METRICS_BYPASS_TOKEN || '';
+    const params: any = {
+      chainId: chainId,
+      metric: 'activeAddresses',
+      startTimestamp,
+      endTimestamp,
+      timeInterval: intervalMapping,
+      pageSize: 1,
+    };
+    
+    if (rlToken) { params.rltoken = rlToken; }   
+    const result = await avalanche.metrics.chains.getMetrics(params);
+    for await (const page of result) {
+      if (!page?.result?.results || !Array.isArray(page.result.results)) { continue; }
+      allResults = allResults.concat(page.result.results);
+      break;
+    }
+
+    return allResults
+      .sort((a: any, b: any) => b.timestamp - a.timestamp)
+      .map((result: any) => ({
+        timestamp: result.timestamp,
+        value: result.value || 0,
+        date: new Date(result.timestamp * 1000).toISOString().split('T')[0]
+      }));
+  } catch (error) {
+    console.warn(`Failed to fetch active addresses data for chain ${chainId}:`, error);
+    return [];
+  }
+}
+
 async function getICMData(chainId: string, timeRange: string): Promise<ICMDataPoint[]> {
   try {
     const getDaysFromTimeRange = (range: string): number => {
@@ -157,7 +196,7 @@ async function fetchChainMetrics(chain: any, timeRange: string): Promise<ChainOv
 
     const [txCountData, activeAddressesData, icmData, validatorCount] = await Promise.all([
       getTimeSeriesData('txCount', chain.chainId, timeRange, pageSize, fetchAllPages),
-      getTimeSeriesData('activeAddresses', chain.chainId, timeRange, pageSize, fetchAllPages),
+      getActiveAddressesData(chain.chainId, timeRange),
       getICMData(chain.chainId, timeRange),
       getValidatorCount(chain.subnetId),
     ]);
@@ -167,7 +206,7 @@ async function fetchChainMetrics(chain: any, timeRange: string): Promise<ChainOv
       chainName: chain.chainName,
       chainLogoURI: chain.logoUri,
       txCount: createTimeSeriesMetricWithPeriodSum(txCountData), // Period sum for overview
-      activeAddresses: createTimeSeriesMetricWithPeriodSum(activeAddressesData), // Period sum
+      activeAddresses: createTimeSeriesMetric(activeAddressesData),
       icmMessages: createICMMetricWithPeriodSum(icmData), // Period sum
       validatorCount,
     };
