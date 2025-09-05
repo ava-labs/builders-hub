@@ -116,7 +116,6 @@ export default function CrossChainTransfer({
                 addresses: [coreEthAddress],
                 sourceChain: 'P'
             });
-            console.log("P-Chain UTXOs:", pChainUTXOs.utxos, coreEthAddress);
             setP_To_C_UTXOs(pChainUTXOs.utxos as Utxo<TransferOutput>[]);
 
             // Check if the number of UTXOs has changed
@@ -299,8 +298,6 @@ export default function CrossChainTransfer({
                 setCompletedImportXPChain("P");
             } else {
                 // Import to C-Chain using evmImportTx function
-                console.log("Importing to C-Chain", walletEVMAddress);
-                console.log("Core wallet client", coreWalletClient);
                 const txnRequest = await avalancheClient.cChain.prepareImportTxn({
                     sourceChain: "P",
                     toAddress: walletEVMAddress as `0x${string}`,
