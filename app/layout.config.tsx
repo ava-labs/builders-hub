@@ -24,6 +24,7 @@ import {
   Ticket,
   Earth,
   ArrowLeftRight,
+  Webhook,
 } from 'lucide-react';
 import Image from 'next/image';
 import { SiGithub } from '@icons-pack/react-simple-icons';
@@ -113,7 +114,7 @@ export const stats: LinkItemType = {
 export const docsMenu: LinkItemType = {
   type: 'menu',
   text: 'Docs',
-  url: '/docs',
+  url: '/docs/quick-start',
   items: [
     {
       menu: {
@@ -149,11 +150,11 @@ export const docsMenu: LinkItemType = {
       },
     },
     {
-      icon: <MonitorCheck />,
-      text: 'Nodes & Validators',
+      icon: <Webhook />,
+      text: 'API Docs',
       description:
-        'Learn about hardware requirements, staking mechanisms, rewards, and best practices for running validator infra on Avalanche.',
-      url: '/docs/nodes',
+        'Complete API reference for Avalanche.',
+      url: '/docs/apis',
       menu: {
         className: 'lg:col-start-2',
       },

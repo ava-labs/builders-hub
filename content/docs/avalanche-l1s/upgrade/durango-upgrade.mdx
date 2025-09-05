@@ -20,9 +20,9 @@ Durango introduces following changes to Subnet-EVM:
 Avalanche Warp Messaging[​](#avalanche-warp-messaging "Direct link to heading")
 -------------------------------------------------------------------------------
 
-Avalanche Warp Messaging (AWM) is a new feature introduced with the Durango network upgrade. It enables native cross-Avalanche L1 communication and allows [Virtual Machine (VM)](/docs/quick-start/virtual-machines) developers to implement arbitrary communication protocols between any two Avalanche L1s. For more information about AWM see [here](/docs/cross-chain/avalanche-warp-messaging/overview).
+Avalanche Warp Messaging (AWM) is a new feature introduced with the Durango network upgrade. It enables native cross-Avalanche L1 communication and allows [Virtual Machine (VM)](/docs/avalanche-l1s/virtual-machines) developers to implement arbitrary communication protocols between any two Avalanche L1s. For more information about AWM see [here](/docs/cross-chain/avalanche-warp-messaging/overview).
 
-Warp Precompile must be enabled for Avalanche L1s after Durango. For more information the precompile and activation see [here](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#avalanche-warp-messaging)
+Warp Precompile must be enabled for Avalanche L1s after Durango. For more information the precompile and activation see [here](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#avalanche-warp-messaging)
 
 Events[​](#events "Direct link to heading")
 -------------------------------------------
@@ -38,9 +38,9 @@ Subnet-EVM Native Precompiles will start emitting events with the Durango networ
 
 ### Custom Events[​](#custom-events "Direct link to heading")
 
-Events above are already introduced and handled in Subnet-EVM native precompiles. If you have a custom precompile, you can start emitting your custom events using Durango activation. In order to do this you can define your custom event in your solidity interface and regenerate the go bindings using `precompilegen` tool, for more information see [here](/docs/virtual-machines/custom-precompiles/create-precompile).
+Events above are already introduced and handled in Subnet-EVM native precompiles. If you have a custom precompile, you can start emitting your custom events using Durango activation. In order to do this you can define your custom event in your solidity interface and regenerate the go bindings using `precompilegen` tool, for more information see [here](/docs/avalanche-l1s/custom-precompiles/create-precompile).
 
-Generally you will generate an `event.go` file in addition to your existing precompile files. You need to implement how to emit your events and your events' gas costs, as in [hello world example](/docs/virtual-machines/custom-precompiles/defining-precompile#event-file). In this guide we will use the hello world example to demonstrate how to emit custom events. The event that will be introduced is:
+Generally you will generate an `event.go` file in addition to your existing precompile files. You need to implement how to emit your events and your events' gas costs, as in [hello world example](/docs/avalanche-l1s/custom-precompiles/defining-precompile#event-file). In this guide we will use the hello world example to demonstrate how to emit custom events. The event that will be introduced is:
 
 ```go
 event GreetingChanged(address indexed sender, string oldGreeting, string newGreeting)
@@ -145,7 +145,7 @@ stateDB.AddLog(
 Manager Role[​](#manager-role "Direct link to heading")
 -------------------------------------------------------
 
-Durango introduces a new role called the manager role. The manager role is a mid-role between `Admin` and `Enabled`. The manager role is considered as an `Enabled` account and perform restricted state-changing operations in precompiles. Manager role also can modify other `Enabled` accounts. It can appoint new `Enabled` accounts and remove existing `Enabled` accounts. Manager role cannot modify other `Manager` or `Admin` accounts. For more information about AllowList see [here](/docs/avalanche-l1s/upgrade/customize-avalanche-l1#allowlist-interface).
+Durango introduces a new role called the manager role. The manager role is a mid-role between `Admin` and `Enabled`. The manager role is considered as an `Enabled` account and perform restricted state-changing operations in precompiles. Manager role also can modify other `Enabled` accounts. It can appoint new `Enabled` accounts and remove existing `Enabled` accounts. Manager role cannot modify other `Manager` or `Admin` accounts. For more information about AllowList see [here](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#allowlist-interface).
 
 If you have any precompile using AllowList, you can issue a call to `setManager` in your precompile to appoint new Manager accounts. For upgrades or new precompiles with AllowList config you can use `managerAddresses` as follow:
 

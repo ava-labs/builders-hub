@@ -1,0 +1,139 @@
+---
+title: Troubleshooting
+description: If you run into trouble deploying your Avalanche L1, use this document for tips to resolve common issues.
+---
+
+Deployment Times Out[​](#deployment-times-out "Direct link to heading")
+-----------------------------------------------------------------------
+
+During a local deployment, your network may fail to start. Your error may look something like this:
+
+```bash
+[~]$ avalanche blockchain deploy myblockchain
+
+✔ Local Network
+Deploying [myblockchain] to Local Network
+Backend controller started, pid: 26388, output at: /Users/user/.avalanche-cli/runs/server_20221231_111605/avalanche-cli-backend
+VMs ready.
+Starting network...
+..................................................................................
+..................................................................................
+......Error: failed to query network health: rpc error: code = DeadlineExceeded desc = context deadline exceeded
+```
+
+Avalanche-CLI only supports running one local Avalanche network at a time. If other instances of AvalancheGo are running concurrently, your Avalanche-CLI network fails to start.
+
+To test for this error, start by shutting down any Avalanche nodes started by Avalanche-CLI.
+
+```bash
+avalanche network clean --hard
+```
+
+Next, look for any lingering AvalancheGo processes with:
+
+```bash
+ps aux | grep avalanchego
+```
+
+If any processes are running, you need to stop them before you can launch your VM with Avalanche-CLI.
+
+<Callout type="warn">
+If you're running a validator node on the same box you're using Avalanche-CLI, **don't** end any of these lingering AvalancheGo processes. This may shut down your validator and could affect your validation uptime.
+</Callout>
+
+
+Incompatible RPC Version for Custom VM[​](#incompatible-rpc-version-for-custom-vm "Direct link to heading")
+-----------------------------------------------------------------------------------------------------------
+
+If you're locally deploying a custom VM, you may run into this error message.
+
+```bash
+[~]$ avalanche blockchain deploy myblockchain
+
+✔ Local Network
+Deploying [myblockchain] to Local Network
+Backend controller started, pid: 26388, output at: /Users/user/.avalanche-cli/runs/server_20221231_111605/avalanche-cli-backend
+VMs ready.
+Starting network...
+.........
+Blockchain has been deployed. Wait until network acknowledges...
+..................................................................................
+..................................................................................
+......Error: failed to query network health: rpc error: code = DeadlineExceeded desc = context deadline exceeded
+```
+
+This error has many possible causes, but a common cause is usually due to **an RPC protocol version mismatch.**
+
+AvalancheGo communicates with custom VMs over RPC using [gRPC](https://grpc.io/). gRPC defines a protocol specification shared by both AvalancheGo and the VM. **Both components must be running the same RPC version for VM deployment to work.**
+
+Your custom VM's RPC version is set by the version of AvalancheGo that you import. By default, Avalanche-CLI creates local Avalalanche networks that run the latest AvalancheGo release.
+
+### Example[​](#example "Direct link to heading")
+
+Here's an example with real numbers from the AvalancheGo compatibility page:
+
+- If the latest AvalancheGo release is version v1.10.11, then Avalanche-CLI deploys a network with RPC version 28.
+- For your deploy to be successful, your VM must also have RPC version 28. Because only AvalancheGo versions v1.10.9, v1.10.10 and v1.10.11 supports RPC version 28, your VM **must** import one of those versions.
+
+### Solution[​](#solution "Direct link to heading")
+
+Error: `RPCChainVM protocol version mismatch between AvalancheGo and Virtual Machine plugin`
+
+This error occurs when the RPCChainVM protocol version used by VMs like Subnet-EVM are incompatible with the protocol version of AvalancheGo.
+
+If your VM has an RPC version mismatch, you have two options:
+
+1.  Update the version of AvalancheGo you use in your VM. This is the correct long-term approach.
+2.  Use Avalanche-CLI to deploy an older version of AvalancheGo by using the `--avalanchego-version` flag. Both the [`blockchain deploy`](/docs/tooling/cli-commands#deploy) and [`network start`](/docs/tooling/cli-commands#start) commands support setting the AvalancheGo version explicitly.
+
+Although it's very important to keep your version of AvalancheGo up-to-date, this workaround helps you avoid broken builds in the short term.
+
+<Callout type="warn">
+You must upgrade to the latest AvalancheGo version when deploying publicly to Fuji Testnet or Avalanche Mainnet.
+</Callout>
+
+
+### More Information[​](#more-information "Direct link to heading")
+
+Similar version matching is required in different tools on the ecosystem. Here is a compatibility table showing which RPCChainVM Version implements the more recent releases of AvalancheGo, Subnet-EVM, Precompile-EVM and HyperSDK.
+
+|RPCChainVM|AvalancheGo       |Subnet-EVM     |Precompile-EVM |HyperSDK        |
+|----------|------------------|---------------|---------------|----------------|
+|26        |v1.10.1-v1.10.4   |v0.5.1-v0.5.2  |v0.1.0-v0.1.1  |v0.0.6-v0.0.9   |
+|27        |v1.10.5-v1.10.8   |v0.5.3         |v0.1.2         |v0.0.10-v0.0.12 |
+|28        |v1.10.9-v1.10.12  |v0.5.4-v0.5.6  |v0.1.3-v0.1.4  |v0.0.13-v0.0.15 |
+|30        |v1.10.15-v1.10.17 |v0.5.9-v0.5.10 |v0.1.6-v0.1.7  |-               |
+|29        |v1.10.13-v1.10.14 |v0.5.7-v0.5.8  |v0.1.5         |-               |
+|31        |v1.10.18- v1.10.19|v0.5.11        |v0.1.8         |v0.0.16 (latest)|
+|33        |v1.11.0           |v0.6.0-v0.6.1  |v0.2.0         |-               |
+|34        |v1.11.1- v1.11.2  |v0.6.2         |-              |-               |
+|35        |v1.11.3 (latest)  |v0.6.3 (latest)|v0.2.1 (latest)|-               |
+
+
+You can view the full RPC compatibility broken down by release version for each tool here:
+
+[AvalancheGo](https://github.com/ava-labs/avalanchego/blob/master/version/compatibility.json).
+
+[Subnet-EVM](https://github.com/ava-labs/subnet-evm/blob/master/compatibility.json).
+
+[Precompile-EVM](https://github.com/ava-labs/precompile-evm/blob/main/compatibility.json).
+
+<Callout title="Note">
+Updates to AvalancheGo's RPC version are **not** tied to its semantic version scheme. Minor AvalancheGo version bumps may include a breaking RPC version bump.
+</Callout>
+
+Fix for MacBook Air M1/M2: ‘Bad CPU type in executable' Error[​](#fix-for-macbook-air-m1m2-bad-cpu-type-in-executable-error "Direct link to heading")
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+When running `avalanche blockchain deploy` via the Avalanche-CLI, the terminal may throw an error that contains the following:
+
+```bash
+zsh: bad CPU type in executable:
+/Users/user.name/Downloads/build/avalanchego
+```
+
+This is because some Macs lack support for x86 binaries. Running the following command should fix this issue:
+
+```bash
+/usr/sbin/softwareupdate --install-rosetta
+```

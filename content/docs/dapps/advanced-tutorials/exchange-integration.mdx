@@ -33,7 +33,7 @@ binaries.
 
 ### Configuring an Avalanche Node
 
-All configuration options and their default values are described [here](/docs/nodes/configure/configs-flags).
+All configuration options and their default values are described [here](/docs/primary-network/configure/configs-flags).
 
 You can supply configuration options on the command line, or use a config file,
 which can be easier to work with when supplying many options. You can specify
@@ -43,7 +43,7 @@ a JSON file whose keys and values are option names and values.
 Individual chains, including the C-Chain, have their own configuration options
 which are separate from the node-level options. These can also be specified in a
 config file. For more details, see
-[here](/docs/nodes/chain-configs/c-chain).
+[here](/docs/primary-network/chain-configs/c-chain).
 
 The C-Chain config file should be at
 `$HOME/.avalanchego/configs/chains/C/config.json`. You can also tell AvalancheGo
@@ -85,7 +85,7 @@ default since AvalancheGo v1.4.10. To disable pruning, include
 
 Interacting with the C-Chain is identical to interacting with
 [`go-ethereum`](https://geth.ethereum.org/). You can find the reference material
-for C-Chain API [here](/docs/api-reference/c-chain/api).
+for C-Chain API [here](/docs/apis/c-chain/api).
 
 Please note that `personal_` namespace is turned off by default. To turn it on,
 you need to pass the appropriate command line switch to your node, like in the
@@ -118,7 +118,7 @@ can be found in the linked repository.
 Avalanche C-Chain transactions are identical to standard EVM transactions with 2 exceptions:
 
 - They must be signed with Avalanche's ChainID (43114).
-- The detailed dynamic gas fee can be found [here](/docs/api-reference/guides/txn-fees#c-chain-fees).
+- The detailed dynamic gas fee can be found [here](/docs/dapps/advanced-tutorials/dynamic-gas-fees).
 
 For development purposes, Avalanche supports all the popular tooling for
 Ethereum, so developers familiar with Ethereum and Solidity can feel right at
@@ -152,7 +152,7 @@ standard `go-ethereum` Ethereum client does not compute block hashes correctly
 [ExtDataHash](https://github.com/ava-labs/coreth/blob/2c3cfac5f766ce5f32a2eddc43451bdb473b84f1/core/types/block.go#L98)
 header field in Avalanche C-Chain blocks, which is used move AVAX between chains
 (X-Chain and P-Chain). You can read more about our multi-chain abstraction
-[here](/docs/quick-start/primary-network) (out of scope for a
+[here](/docs/primary-network) (out of scope for a
 normal C-Chain integration).
 
 If you plan on reading JSON responses directly or use web3.js (doesn't recompute
