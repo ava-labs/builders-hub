@@ -63,7 +63,7 @@ export default function Stake() {
   const networkName = onFuji ? 'Fuji' : 'Mainnet'
   
   const avalancheClient = useMemo(() => {
-    if (!window?.avalanche || !walletEVMAddress || !isTestnet) {
+    if (typeof window === 'undefined' || !window?.avalanche || !walletEVMAddress) {
         return;
     }
     return createAvalancheWalletClient({
