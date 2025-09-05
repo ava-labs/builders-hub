@@ -1,6 +1,6 @@
 "use client";
 
-import WNative from "../../../contracts/icm-contracts/compiled/WNative.json"
+import WrappedNativeToken from "../../../contracts/icm-contracts/compiled/WrappedNativeToken.json"
 import { useToolboxStore, useViemChainStore } from "../../stores/toolboxStore";
 import { useWalletStore } from "../../stores/walletStore";
 import { useErrorBoundary } from "react-error-boundary";
@@ -35,9 +35,9 @@ export default function DeployWrappedNative() {
             });
 
             const hash = await coreWalletClient.deployContract({
-                abi: WNative.abi,
-                bytecode: WNative.bytecode.object as `0x${string}`,
-                args: [],
+                abi: WrappedNativeToken.abi,
+                bytecode: WrappedNativeToken.bytecode.object as `0x${string}`,
+                args: ["WNT"],
                 chain: viemChain
             });
 
