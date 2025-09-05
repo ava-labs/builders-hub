@@ -397,12 +397,8 @@ export default function AvalancheMetrics() {
         <div className="container mx-auto px-4 py-8 pb-24 space-y-12">
           <div className="space-y-2">
             <div>
-              <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">
-                Avalanche Mainnet L1 Stats
-              </h1>
-              <p className="text-base text-muted-foreground max-w-2xl leading-relaxed">
-                Loading comprehensive stats for Avalanche Mainnet L1s...
-              </p>
+              <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">Avalanche Mainnet L1 Stats</h1>
+              <p className="text-base text-muted-foreground max-w-2xl leading-relaxed">Loading comprehensive stats for Avalanche Mainnet L1s...</p>
             </div>
           </div>
           <ChartSkeletonLoader />
