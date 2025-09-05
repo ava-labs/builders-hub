@@ -37,16 +37,22 @@ async function getTimeSeriesData(
     let allResults: any[] = [];
     
     const avalanche = new Avalanche({
-      chainId: chainId,
+      network: "mainnet"
     });
     
-    const result = await avalanche.metrics.chains.getMetrics({
+    const rlToken = process.env.METRICS_BYPASS_TOKEN || '';
+    const params: any = {
+      chainId: chainId,
       metric: metricType as any,
       startTimestamp,
       endTimestamp,
       timeInterval: "day",
       pageSize,
-    });
+    };
+    
+    if (rlToken) { params.rltoken = rlToken; }
+    
+    const result = await avalanche.metrics.chains.getMetrics(params);
 
     for await (const page of result) {
       if (!page?.result?.results || !Array.isArray(page.result.results)) {

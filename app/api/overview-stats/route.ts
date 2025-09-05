@@ -6,7 +6,6 @@ import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, STATS_C
 
 const avalanche = new Avalanche({
   network: "mainnet",
-  apiKey: process.env.GLACIER_API_KEY,
 });
 
 interface ChainOverviewMetrics {
@@ -54,14 +53,19 @@ async function getTimeSeriesData(
     const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
     let allResults: any[] = [];
     
-    const result = await avalanche.metrics.chains.getMetrics({
+    const rlToken = process.env.METRICS_BYPASS_TOKEN || '';
+    const params: any = {
       chainId: chainId,
       metric: metricType as any,
       startTimestamp,
       endTimestamp,
       timeInterval: "day",
       pageSize,
-    });
+    };
+    
+    if (rlToken) { params.rltoken = rlToken; }
+    
+    const result = await avalanche.metrics.chains.getMetrics(params);
 
     for await (const page of result) {
       if (!page?.result?.results || !Array.isArray(page.result.results)) { continue; }
@@ -121,10 +125,11 @@ async function getValidatorCount(subnetId: string): Promise<number | string> {
   try {
     if (!subnetId || subnetId === "N/A") { return "N/A"; }
 
-    const validatorResponse = await fetch(`https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?pageSize=1&subnetId=${subnetId}`, {
+    const rlToken = process.env.METRICS_BYPASS_TOKEN || '';
+    const url = `https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount?pageSize=1&subnetId=${subnetId}${rlToken ? `&rltoken=${rlToken}` : ''}`;   
+    const validatorResponse = await fetch(url, {
       headers: { 
         'Accept': 'application/json',
-        'x-glacier-api-key': process.env.GLACIER_API_KEY || '',
       },
     });
 

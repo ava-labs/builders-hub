@@ -12,8 +12,7 @@ interface PrimaryNetworkMetrics {
 }
 
 const avalanche = new Avalanche({
-  network: "mainnet",
-  apiKey: process.env.GLACIER_API_KEY,
+  network: "mainnet"
 });
 
 let cachedData: Map<string, { data: PrimaryNetworkMetrics; timestamp: number }> = new Map();
@@ -22,13 +21,18 @@ async function getTimeSeriesData(metricType: string, timeRange: string, pageSize
   try {
     const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
     let allResults: any[] = [];
-    
-    const result = await avalanche.metrics.networks.getStakingMetrics({
+
+    const rlToken = process.env.METRICS_BYPASS_TOKEN || '';
+    const params: any = {
       metric: metricType as any,
       startTimestamp,
       endTimestamp,
       pageSize,
-    });
+    };
+
+    if (rlToken) { params.rltoken = rlToken; }
+    
+    const result = await avalanche.metrics.networks.getStakingMetrics(params);
 
     for await (const page of result) {
       if (!page?.result?.results || !Array.isArray(page.result.results)) {
