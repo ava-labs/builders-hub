@@ -5,8 +5,6 @@ import { Button } from "./Button"
 
 import { Container } from "./Container"
 import { useWalletStore } from "../stores/walletStore"
-import { evmExport } from "../coreViem/methods/evmExport"
-import { pvmImport } from "../coreViem/methods/pvmImport"
 import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs'
 import { getRPCEndpoint } from '../coreViem/utils/rpc'
 import { useErrorBoundary } from "react-error-boundary"
@@ -33,6 +31,8 @@ export default function CrossChainTransfer({
     const [importLoading, setImportLoading] = useState<boolean>(false)
     const [exportTxId, setExportTxId] = useState<string>("")
     const [completedExportTxId, setCompletedExportTxId] = useState<string>("")
+    const [completedExportXPChain, setCompletedExportXPChain] = useState<"P" | "C">("P")
+    const [completedImportXPChain, setCompletedImportXPChain] = useState<"P" | "C">("P")
     const [importTxId, setImportTxId] = useState<string | null>(null)
     const [_currentStep, setCurrentStep] = useState<number>(1)
     const [step1Expanded, setStep1Expanded] = useState<boolean>(true)
@@ -116,6 +116,7 @@ export default function CrossChainTransfer({
                 addresses: [coreEthAddress],
                 sourceChain: 'P'
             });
+            console.log("P-Chain UTXOs:", pChainUTXOs.utxos, coreEthAddress);
             setP_To_C_UTXOs(pChainUTXOs.utxos as Utxo<TransferOutput>[]);
 
             // Check if the number of UTXOs has changed
@@ -222,23 +223,29 @@ export default function CrossChainTransfer({
         try {
             if (sourceChain === "c-chain") {
                 // C-Chain to P-Chain export using the evmExport function
-                const response = await evmExport(coreWalletClient, {
-                    amount,
-                    pChainAddress,
-                    walletEVMAddress
+                const txnRequest = await avalancheClient.cChain.prepareExportTxn({
+                    destinationChain: "P",
+                    exportedOutput: {
+                        addresses: [pChainAddress],
+                        amount: Number(amount),
+                    },
+                    fromAddress: walletEVMAddress as `0x${string}`
                 });
+                const txnResponse = await avalancheClient.sendXPTransaction(txnRequest);
+                await avalancheClient.waitForTxn(txnResponse);
 
-                console.log("Export transaction sent:", response);
+                console.log("P-Chain Export transaction sent:", txnResponse);
                 // Store the export transaction ID to trigger import
-                const txId = response.txID || String(response);
+                const txId = txnResponse.txHash;
                 setExportTxId(txId);
                 setCompletedExportTxId(txId);
+                setCompletedExportXPChain("C");
             } else {
                 // P-Chain to C-Chain export using the pvmExport function
                 console.log("Preparing P-Chain Export transaction", pChainAddress, amount);
                 const txnRequest = await avalancheClient.pChain.prepareExportTxn({
                     exportedOutputs: [{
-                        addresses: [pChainAddress],
+                        addresses: [coreEthAddress],
                         amount: Number(amount),
                     }],
                     destinationChain: "C"
@@ -250,6 +257,7 @@ export default function CrossChainTransfer({
                 const txId = txnResponse.txHash;
                 setExportTxId(txId);
                 setCompletedExportTxId(txId);
+                setCompletedExportXPChain("P");
             }
 
             await pollForUTXOChanges();
@@ -278,15 +286,17 @@ export default function CrossChainTransfer({
         try {
             if (destinationChain === "p-chain") {
                 // Import to P-Chain using pvmImport function
-                const response = await pvmImport(coreWalletClient, {
-                    pChainAddress
+                const txnRequest = await avalancheClient.pChain.prepareImportTxn({
+                    sourceChain: "C",
+                    importedOutput: {
+                        addresses: [pChainAddress],
+                    }
                 });
-                console.log("Import transaction sent:", response);
-                if (typeof response === 'object' && response !== null && 'txID' in response) {
-                    setImportTxId((response as any).txID);
-                } else {
-                    setImportTxId(String(response));
-                }
+                const txnResponse = await avalancheClient.sendXPTransaction(txnRequest);
+                await avalancheClient.waitForTxn(txnResponse);
+                console.log("P-Chain Import transaction sent:", txnResponse.txHash);
+                setImportTxId(String(txnResponse.txHash));
+                setCompletedImportXPChain("P");
             } else {
                 // Import to C-Chain using evmImportTx function
                 console.log("Importing to C-Chain", walletEVMAddress);
@@ -296,8 +306,10 @@ export default function CrossChainTransfer({
                     toAddress: walletEVMAddress as `0x${string}`,
                 });
                 const txnResponse = await avalancheClient.sendXPTransaction(txnRequest);
+                await avalancheClient.waitForTxn(txnResponse);
                 console.log("C-Chain Import transaction sent:", txnResponse.txHash);
                 setImportTxId(String(txnResponse.txHash));
+                setCompletedImportXPChain("C");
             }
 
             await pollForUTXOChanges();
@@ -552,6 +564,7 @@ export default function CrossChainTransfer({
                                     label="Export Transaction Completed"
                                     value={completedExportTxId}
                                     isTestnet={isTestnet}
+                                    xpChain={completedExportXPChain}
                                 />
                             </div>
                         )}
@@ -605,6 +618,7 @@ export default function CrossChainTransfer({
                                     label="Import Transaction Completed"
                                     value={importTxId}
                                     isTestnet={isTestnet}
+                                    xpChain={completedImportXPChain}
                                 />
                             </div>
                         )}

@@ -99,13 +99,14 @@
     "@scure/base" "1.1.5"
     micro-eth-signer "0.7.2"
 
-"@avalanche-sdk/client@^0.0.4-alpha.12":
-  version "0.0.4-alpha.12"
-  resolved "https://registry.yarnpkg.com/@avalanche-sdk/client/-/client-0.0.4-alpha.12.tgz#cfd22973d6441657917b728dd0cde5cfe712a345"
-  integrity sha512-0SuILrZXszPt8Po1QMWemT1NxDsgxpulSVpG//ASOfLjjpyx7oBzKrxfdThvcLO9glAHyHnqqHiK/5KPSZdzcg==
+"@avalanche-sdk/client@^0.0.4-alpha.13":
+  version "0.0.4-alpha.13"
+  resolved "https://registry.yarnpkg.com/@avalanche-sdk/client/-/client-0.0.4-alpha.13.tgz#923fb2bd57d492e72c324ffa7469eff09a01da6a"
+  integrity sha512-H2hCSt4rnEMd6pkolk0Q+/eaARcJ2f75VcZgIhAcuZoe2yX8sMW4gQUSI12hBKJpxVpUjkWOXxQo6M7ihuvjgw==
   dependencies:
     "@avalabs/avalanchejs" "^5.0.0"
     "@noble/hashes" "1.3.3"
+    "@noble/secp256k1" "^3.0.0"
     util "^0.12.5"
     viem "^2.33.3"
 
@@ -1200,6 +1201,11 @@
   version "2.2.3"
   resolved "https://registry.npmjs.org/@noble/secp256k1/-/secp256k1-2.2.3.tgz"
   integrity sha512-l7r5oEQym9Us7EAigzg30/PQAvynhMt2uoYtT3t26eGDVm9Yii5mZ5jWSWmZ/oSIR2Et0xfc6DXrG0bZ787V3w==
+
+"@noble/secp256k1@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@noble/secp256k1/-/secp256k1-3.0.0.tgz#29711361db8f37b1b7e0b8d80c933013fc887475"
+  integrity sha512-NJBaR352KyIvj3t6sgT/+7xrNyF9Xk9QlLSIqUGVUYlsnDTAUqY8LOmwpcgEx4AMJXRITQ5XEVHD+mMaPfr3mg==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"

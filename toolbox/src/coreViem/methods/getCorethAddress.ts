@@ -1,27 +1,33 @@
-import { networkIDs } from "@avalabs/avalanchejs";
-import { SigningKey } from "ethers";//TODO: remove etheres dependency
 import { WalletClient } from "viem";
-import {
-    utils,
-    secp256k1,
-} from "@avalabs/avalanchejs";
-import { Buffer as BufferPolyfill } from "buffer";
 import { CoreWalletRpcSchema } from "../rpcSchema";
-import { isTestnet } from "./isTestnet";
+import { isTestnet as _isTestnet } from "./isTestnet";
+import { getBech32AddressFromAccountOrClient } from "node_modules/@avalanche-sdk/client/dist/methods/wallet/utils";
+import { avalanche, avalancheFuji } from "@avalanche-sdk/client/chains";
+import { createAvalancheWalletCoreClient } from "@avalanche-sdk/client";
+import { networkIDs } from "@avalabs/avalanchejs";
 
 export async function getCorethAddress(client: WalletClient<any, any, any, CoreWalletRpcSchema>) {
-    const networkID = (await isTestnet(client)) ? networkIDs.FujiID : networkIDs.MainnetID
-
-    const pubkeys = await client.request({
-        method: "avalanche_getAccountPubKey",
-        params: []
-    }) as {evm: string, xp: string}
-
-    if (!pubkeys.xp.startsWith("0x")) {
-        pubkeys.xp = `0x${pubkeys.xp}`;
+    const account = client.account;
+    if (!account || !account.address) {
+        throw new Error("No account found");
     }
-    const compressed = SigningKey.computePublicKey(pubkeys.xp, true).slice(2);
-    const pubComp = BufferPolyfill.from(compressed, "hex");
-    const address = secp256k1.publicKeyBytesToAddress(pubComp);
-    return utils.format("C", networkIDs.getHRP(networkID), address)
+
+    const isTestnet = await _isTestnet(client);
+    const networkID = (isTestnet) ? networkIDs.FujiID : networkIDs.MainnetID
+
+    const avalancheClient = createAvalancheWalletCoreClient({
+        chain: isTestnet ? avalancheFuji : avalanche,
+        transport: {
+            type: "custom",
+            provider: window.avalanche!,
+        },
+        account: account.address as `0x${string}`
+    })
+
+    return await getBech32AddressFromAccountOrClient(
+        avalancheClient,
+        avalancheClient.account,
+        "C",
+        networkIDs.getHRP(networkID)
+    )
 }
