@@ -12,6 +12,8 @@ import TeleporterMessengerDeployerAddress from '../../../contracts/icm-contracts
 import TeleporterMessengerAddress from '../../../contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import { Container } from "../../components/Container";
 import { Step, Steps } from "fumadocs-ui/components/steps";
+import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 const MINIMUM_BALANCE = parseEther('11');
 
@@ -133,6 +135,9 @@ export default function TeleporterMessenger() {
     const hasEnoughBalance = deployerBalance >= MINIMUM_BALANCE;
 
     return (
+        <CheckWalletRequirements configKey={[
+            WalletRequirementsConfigKey.EVMChainBalance,
+        ]}>
         <Container
             title="Deploy ICM Messenger (formerly called TeleporterMessenger)"
             description="Deploy the ICM messenger contract to your L1 to enable cross-L1 messaging and applications like ICTT."
@@ -224,5 +229,6 @@ export default function TeleporterMessenger() {
                 />
             )}
         </Container >
+        </CheckWalletRequirements>
     );
 }

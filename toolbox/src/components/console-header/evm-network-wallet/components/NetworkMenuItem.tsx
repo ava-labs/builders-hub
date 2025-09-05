@@ -1,18 +1,13 @@
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Globe, Check, Trash2 } from 'lucide-react'
+import { L1ListItem } from '@/stores/l1ListStore'
 
 interface NetworkMenuItemProps {
-  network: {
-    id: string
-    name: string
-    coinName: string
-    logoUrl?: string
-    evmChainId?: number
-  }
+  network: L1ListItem
   isActive: boolean
-  onSelect: (network: any) => void
+  onSelect: (network: L1ListItem) => void
   isEditMode?: boolean
-  onRemove?: (network: any) => void
+  onRemove?: (network: L1ListItem) => void
   balance?: number | string
 }
 
@@ -35,7 +30,9 @@ export function NetworkMenuItem({
     return num.toFixed(4)
   }
 
-  const handleClick = () => {
+  const handleSelect: React.ComponentProps<typeof DropdownMenuItem>["onSelect"] = (e) => {
+    // Prevent the dropdown from auto-closing; parent decides when to close
+    e.preventDefault()
     if (isEditMode && onRemove && !isCChain(network.evmChainId)) {
       onRemove(network)
     } else if (!isEditMode) {
@@ -47,7 +44,7 @@ export function NetworkMenuItem({
 
   return (
     <DropdownMenuItem
-      onClick={handleClick}
+      onSelect={handleSelect}
       className={`flex items-center justify-between p-3 ${
         canRemove ? 'cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20' : 
         isEditMode && isCChain(network.evmChainId) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'

@@ -1,13 +1,7 @@
 "use client";
 
-import { lazy } from "react";
-import ToolboxConsoleWrapper from "../../../../toolbox/src/components/ToolboxConsoleWrapper";
-const Bridge = lazy(() => 
-  import("../../../../toolbox/src/components/CrossChainTransfer").then(module => ({
-    default: module.default
-  }))
-);
-
+import Bridge from "@/toolbox/src/components/CrossChainTransfer";
+import ToolboxConsoleWrapper from "@/toolbox/src/components/ToolboxConsoleWrapper";
 
 export default function Page() {
   return (

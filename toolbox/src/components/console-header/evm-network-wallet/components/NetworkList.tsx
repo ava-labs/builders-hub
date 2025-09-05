@@ -1,15 +1,14 @@
-import { useState } from 'react'
 import { DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { Edit3, X } from 'lucide-react'
 import { NetworkMenuItem } from './NetworkMenuItem'
+import { L1ListItem } from '@/stores/l1ListStore'
 
 interface NetworkListProps {
-  availableNetworks: any[]
-  getNetworkBalance: (network: any) => number | string
-  isNetworkActive: (network: any) => boolean
-  onNetworkSelect: (network: any) => void
-  onNetworkRemove?: (network: any) => void
+  availableNetworks: L1ListItem[]
+  getNetworkBalance: (network: L1ListItem) => number | string
+  isNetworkActive: (network: L1ListItem) => boolean
+  onNetworkSelect: (network: L1ListItem) => void
+  onNetworkRemove?: (network: L1ListItem) => void
+  isEditMode: boolean
 }
 
 export function NetworkList({ 
@@ -17,26 +16,13 @@ export function NetworkList({
   getNetworkBalance,
   isNetworkActive, 
   onNetworkSelect,
-  onNetworkRemove
+  onNetworkRemove,
+  isEditMode
 }: NetworkListProps) {
-  const [isEditMode, setIsEditMode] = useState(false)
-
   return (
     <>
       <div className="flex items-center justify-between px-2 py-1.5">
         <DropdownMenuLabel className="px-0">Select Network</DropdownMenuLabel>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsEditMode(!isEditMode)}
-          className="h-6 px-2 text-xs"
-        >
-          {isEditMode ? (
-            <X className="w-2 h-2" />
-          ) : (
-            <Edit3 className="w-2 h-2" />
-          )}
-        </Button>
       </div>
       <DropdownMenuSeparator />
 

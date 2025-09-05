@@ -164,7 +164,7 @@ function ConsoleDashboard() {
         </Link>
 
         {/* Validator Management */}
-        <Link href="/console/permissioned-l1s/manage-validators" className="group block">
+        <Link href="/console/permissioned-l1s/add-validator" className="group block">
           <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
             <div className="flex items-start justify-between mb-4">
               <div className="p-2 rounded-lg bg-muted">

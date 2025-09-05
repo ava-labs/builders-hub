@@ -11,6 +11,8 @@ import { Container } from "../../components/Container"
 import { ChevronDown, ChevronRight } from "lucide-react"
 import { getSubnetInfo } from "../../coreViem/utils/glacier"
 import { EVMAddressInput } from "../../components/EVMAddressInput"
+import { CheckWalletRequirements } from "@/components/CheckWalletRequirements"
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 type ViewData = {
   [key: string]: any
@@ -133,6 +135,9 @@ export default function ReadContract() {
 
   return (
 
+    <CheckWalletRequirements configKey={[
+      WalletRequirementsConfigKey.CoreWalletConnected,
+    ]}>
     <Container
       title="Read Proxy Contract"
       description="This will read the data from the ValidatorManager contract."
@@ -249,7 +254,7 @@ export default function ReadContract() {
         </div>
       )}
     </Container>
-
+    </CheckWalletRequirements>
   )
 }
 

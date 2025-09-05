@@ -18,26 +18,29 @@ import { ValidatorManagerDetails } from "../../components/ValidatorManagerDetail
 import { useCreateChainStore } from "../../stores/createChainStore";
 import SelectSafeWallet, { SafeSelection } from "../../components/SelectSafeWallet";
 
+import { CheckWalletRequirements } from "@/components/CheckWalletRequirements"
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
+
 export default function DeployPoAManager() {
     const { showBoundary } = useErrorBoundary();
     const { 
         poaManagerAddress,
         setPoaManagerAddress
     } = useToolboxStore();
-    const { walletEVMAddress, coreWalletClient, publicClient } = useWalletStore();
+    const { coreWalletClient, publicClient } = useWalletStore();
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
     const [isDeploying, setIsDeploying] = useState(false);
     const [isChecking, setIsChecking] = useState(false);
-    const [poaOwnerAddress, setPoaOwnerAddress] = useState("");
-    const [validatorManagerAddr, setValidatorManagerAddr] = useState("");
+    const [verifiedOwner, setVerifiedOwner] = useState<string | null>(null);
     const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
     const [safeSelection, setSafeSelection] = useState<SafeSelection>({ 
         safeAddress: '', 
         threshold: 0, 
         owners: [] 
     });
-    const [useSafeWallet, setUseSafeWallet] = useState(true);
+    const [safeError, setSafeError] = useState<string | null>(null);
+    
     const viemChain = useViemChainStore();
 
     const {
@@ -57,25 +60,9 @@ export default function DeployPoAManager() {
         isDetectingOwnerType
     } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
 
-    useEffect(() => {
-        if (walletEVMAddress && !poaOwnerAddress) {
-            setPoaOwnerAddress(walletEVMAddress);
-        }
-    }, [walletEVMAddress, poaOwnerAddress]);
+    
 
-    useEffect(() => {
-        if (validatorManagerAddress && !validatorManagerAddr) {
-            setValidatorManagerAddr(validatorManagerAddress);
-        }
-    }, [validatorManagerAddress, validatorManagerAddr]);
-
-    useEffect(() => {
-        if (useSafeWallet && safeSelection.safeAddress) {
-            setPoaOwnerAddress(safeSelection.safeAddress);
-        } else if (!useSafeWallet && walletEVMAddress && !poaOwnerAddress) {
-            setPoaOwnerAddress(walletEVMAddress);
-        }
-    }, [useSafeWallet, safeSelection.safeAddress, walletEVMAddress, poaOwnerAddress]);
+    const ownerAddress = safeSelection.safeAddress;
 
     useEffect(() => {
         if (poaManagerAddress) {
@@ -84,7 +71,11 @@ export default function DeployPoAManager() {
     }, [poaManagerAddress]);
 
     async function deployPoAManager() {
-        if (!poaOwnerAddress || !validatorManagerAddr) {
+        if (!safeSelection.safeAddress) {
+            setSafeError("Select an Ash account (Safe) to deploy");
+            return;
+        }
+        if (!ownerAddress || !validatorManagerAddress) {
             throw new Error("Owner address and validator manager address are required");
         }
 
@@ -98,7 +89,7 @@ export default function DeployPoAManager() {
             const hash = await coreWalletClient.deployContract({
                 abi: PoAManagerABI.abi,
                 bytecode: PoAManagerABI.bytecode.object as `0x${string}`,
-                args: [poaOwnerAddress as `0x${string}`, validatorManagerAddr as `0x${string}`],
+                args: [ownerAddress as `0x${string}`, validatorManagerAddress as `0x${string}`],
                 chain: viemChain,
             });
 
@@ -109,7 +100,8 @@ export default function DeployPoAManager() {
             }
 
             setPoaManagerAddress(receipt.contractAddress);
-            setIsInitialized(true); // Contract is initialized upon deployment
+            setIsInitialized(true);
+            setVerifiedOwner(ownerAddress);
         } catch (error) {
             showBoundary(error);
         } finally {
@@ -131,7 +123,7 @@ export default function DeployPoAManager() {
             // Check if owner is set to a non-zero address
             const isOwnerSet = owner && owner !== '0x0000000000000000000000000000000000000000';
             setIsInitialized(Boolean(isOwnerSet));
-            console.log('Contract owner:', owner, 'isInitialized:', Boolean(isOwnerSet));
+            setVerifiedOwner(owner);
         } catch (error) {
             console.error('Error checking initialization:', error);
             showBoundary(error);
@@ -141,6 +133,9 @@ export default function DeployPoAManager() {
     }
 
     return (
+        <CheckWalletRequirements configKey={[
+            WalletRequirementsConfigKey.EVMChainBalance,
+          ]}>
         <Container
             title="Deploy PoA Manager"
             description="Deploy and initialize the PoAManager contract to manage Proof of Authority validators."
@@ -181,55 +176,51 @@ export default function DeployPoAManager() {
                     )}
                 </div>
 
+                {Boolean(subnetIdL1) && (
+                    <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-yellow-800 dark:text-yellow-200 text-sm">
+                        <strong className="font-semibold">Heads up:</strong> Make sure your Validator Manager is deployed on the same chain as your
+                        {" "}
+                        <a
+                            href="https://wallet.ash.center/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline"
+                        >
+                            Ash Wallet
+                        </a>
+                        {" "}deployment. You can get your L1 indexed to ensure full compatibility. You can proceed with other multisig options, but some console tools may lose compatibility if you do.
+                    </div>
+                )}
+
                 <Steps>
                     <Step>
-                        <div className="flex flex-col gap-2">
-                            <h3 className="text-lg font-bold">Configure and Deploy PoA Manager</h3>
-                            <div className="text-sm">
-                                Deploy the <code>PoAManager</code> contract with the specified owner and validator manager addresses. 
-                                The contract will be initialized automatically during deployment.
+                        <h2 className="text-lg font-semibold">Configure and Deploy PoA Manager</h2>
+                        <p className="text-sm text-gray-500">
+                            Deploy the <code>PoAManager</code> contract with the specified owner and validator manager addresses. 
+                            The contract will be initialized automatically during deployment.
+                        </p>
+                        {viemChain && (
+                            <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                                Current chain: {viemChain.name} (ID: {viemChain.id})
                             </div>
+                        )}
 
-                            <div className="space-y-4">
+                        <div className="space-y-4">
                                 <div className="space-y-3">
-                                    <div className="flex items-center space-x-3">
-                                        <label className="flex items-center space-x-2">
-                                            <input
-                                                type="checkbox"
-                                                checked={useSafeWallet}
-                                                onChange={(e) => setUseSafeWallet(e.target.checked)}
-                                                disabled={isDeploying}
-                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                            />
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                Use Ash Wallet
-                                            </span>
-                                        </label>
-                                    </div>
+                                    <SelectSafeWallet
+                                        value={safeSelection.safeAddress}
+                                        onChange={(sel) => {
+                                            setSafeSelection(sel);
+                                            if (!sel.safeAddress) {
+                                                setSafeError("Select an Ash account (Safe)");
+                                            } else {
+                                                setSafeError(null);
+                                            }
+                                        }}
+                                        error={safeError}
+                                    />
 
-                                    {useSafeWallet ? (
-                                        <SelectSafeWallet
-                                            value={safeSelection.safeAddress}
-                                            onChange={setSafeSelection}
-                                            error={null}
-                                        />
-                                    ) : (
-                                        <Input
-                                            label="Owner Address"
-                                            value={poaOwnerAddress}
-                                            onChange={setPoaOwnerAddress}
-                                            disabled={isDeploying}
-                                            placeholder="Enter owner address"
-                                            button={<Button
-                                                onClick={() => setPoaOwnerAddress(walletEVMAddress)}
-                                                stickLeft
-                                            >
-                                                Fill from Wallet
-                                            </Button>}
-                                        />
-                                    )}
-
-                                    {useSafeWallet && safeSelection.safeAddress && (
+                                    {safeSelection.safeAddress && (
                                         <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded">
                                             <strong>Safe Details:</strong> {safeSelection.threshold}/{safeSelection.owners.length} multisig
                                             <br />
@@ -240,8 +231,7 @@ export default function DeployPoAManager() {
 
                                 <Input
                                     label="Validator Manager Address"
-                                    value={validatorManagerAddr}
-                                    onChange={() => {}} // No-op since it's read-only
+                                    value={validatorManagerAddress || ""}
                                     disabled={true}
                                     placeholder="Auto-filled from selected subnet"
                                 />
@@ -250,7 +240,7 @@ export default function DeployPoAManager() {
                                     variant="primary"
                                     onClick={deployPoAManager}
                                     loading={isDeploying}
-                                    disabled={isDeploying || !poaOwnerAddress || !validatorManagerAddr}
+                                    disabled={isDeploying || !ownerAddress || !validatorManagerAddress}
                                 >
                                     Deploy PoA Manager
                                 </Button>
@@ -262,17 +252,15 @@ export default function DeployPoAManager() {
                                     value={poaManagerAddress}
                                 />
                             )}
-                        </div>
                     </Step>
 
                     <Step>
-                        <div className="flex flex-col gap-2">
-                            <h3 className="text-lg font-bold">Verify Deployment</h3>
-                            <div className="text-sm">
-                                Verify that the PoA Manager was deployed and initialized correctly.
-                            </div>
+                        <h2 className="text-lg font-semibold">Verify Deployment</h2>
+                        <p className="text-sm text-gray-500">
+                            Verify that the PoA Manager was deployed and initialized correctly.
+                        </p>
 
-                            <div className="space-y-4">
+                        <div className="space-y-4">
                                 <EVMAddressInput
                                     label="PoA Manager Address"
                                     value={poaManagerAddress}
@@ -292,7 +280,7 @@ export default function DeployPoAManager() {
                                     <div className="space-y-2">
                                         <Success
                                             label="Contract Verified"
-                                            value={`Owner: ${poaOwnerAddress}`}
+                                            value={`Owner: ${verifiedOwner ?? ownerAddress}`}
                                         />
                                     </div>
                                 )}
@@ -303,10 +291,10 @@ export default function DeployPoAManager() {
                                     </div>
                                 )}
                             </div>
-                        </div>
                     </Step>
                 </Steps>
             </div>
         </Container>
+        </CheckWalletRequirements>
     );
 }

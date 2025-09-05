@@ -2,6 +2,7 @@ import { useWalletStore } from "./walletStore";
 import { getCreateChainStore } from "./createChainStore";
 import { getL1ListStore } from "./l1ListStore";
 import { getToolboxStore } from "./toolboxStore";
+import type { L1ListItem } from "./l1ListStore";
 
 export function resetAllStores() {
     const { isTestnet } = useWalletStore.getState();
@@ -17,8 +18,8 @@ export function resetAllStores() {
         getL1ListStore(isTestnet).getState().reset();
     }
 
-    const testnetChains = getL1ListStore(true).getState().l1List.map((l1) => l1.id);
-    const mainnetChains = getL1ListStore(false).getState().l1List.map((l1) => l1.id);
+    const testnetChains = getL1ListStore(true).getState().l1List.map((l1: L1ListItem) => l1.id);
+    const mainnetChains = getL1ListStore(false).getState().l1List.map((l1: L1ListItem) => l1.id);
     const allChainIds = [...new Set([...testnetChains, ...mainnetChains])];
 
     allChainIds.forEach((chainId) => {

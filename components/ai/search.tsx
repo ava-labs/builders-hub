@@ -13,7 +13,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Loader2, RefreshCw, Send, X, User, Bot, Sparkles, StopCircle, MessageCircleQuestion, ChevronRight, ChevronLeft, Maximize2, Minimize2 } from 'lucide-react';
+import { Loader2, RefreshCw, Send, X, User, Bot, Sparkles, StopCircle, HelpCircle, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '../../lib/cn';
 import { buttonVariants } from '../ui/button';
@@ -274,7 +274,7 @@ function SuggestedFollowUps({ questions, onQuestionClick }: {
           >
             <div className="flex items-start gap-2">
               <div className="mt-0.5 p-1 rounded-md bg-fd-muted/50 transition-all duration-200">
-                <MessageCircleQuestion className="size-3 text-red-600" />
+                <HelpCircle className="size-3 text-red-600" />
               </div>
               <span className="flex-1 text-fd-foreground/70 group-hover:text-fd-foreground leading-relaxed transition-colors duration-200">
                 {question}
@@ -896,7 +896,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
                     <div className="absolute inset-0 bg-gradient-to-br from-red-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     <div className="relative flex items-start gap-3">
                       <div className="mt-0.5 p-2 rounded-lg bg-fd-muted/50 transition-all duration-200">
-                        <MessageCircleQuestion className="size-4 text-red-600 transition-colors duration-200" />
+                        <HelpCircle className="size-4 text-red-600 transition-colors duration-200" />
                       </div>
                       <span className="flex-1 text-fd-foreground/80 group-hover:text-fd-foreground leading-relaxed transition-colors duration-200">
                         {question}
