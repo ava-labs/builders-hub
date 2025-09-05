@@ -1,33 +1,28 @@
+
+import { networkIDs, secp256k1 } from "@avalabs/avalanchejs";
 import { WalletClient } from "viem";
+import {
+    utils,
+} from "@avalabs/avalanchejs";
 import { CoreWalletRpcSchema } from "../rpcSchema";
-import { isTestnet as _isTestnet } from "./isTestnet";
-import { getBech32AddressFromAccountOrClient } from "node_modules/@avalanche-sdk/client/dist/methods/wallet/utils";
-import { avalanche, avalancheFuji } from "@avalanche-sdk/client/chains";
-import { createAvalancheWalletCoreClient } from "@avalanche-sdk/client";
-import { networkIDs } from "@avalabs/avalanchejs";
+import { isTestnet } from "./isTestnet";
+import { Point } from "@noble/secp256k1";
+import { XPAddress } from "@avalanche-sdk/client/accounts";
+
 
 export async function getCorethAddress(client: WalletClient<any, any, any, CoreWalletRpcSchema>) {
-    const account = client.account;
-    if (!account || !account.address) {
-        throw new Error("No account found");
-    }
+    const networkID = (await isTestnet(client)) ? networkIDs.FujiID : networkIDs.MainnetID;
+    const hrp = networkIDs.getHRP(networkID);
+    const pubkeys = await client.request({
+        method: "avalanche_getAccountPubKey",
+        params: []
+    }) as {evm: string, xp: string}
+    return `C-${publicKeyToXPAddress(pubkeys.evm, hrp)}`;
+}
 
-    const isTestnet = await _isTestnet(client);
-    const networkID = (isTestnet) ? networkIDs.FujiID : networkIDs.MainnetID
-
-    const avalancheClient = createAvalancheWalletCoreClient({
-        chain: isTestnet ? avalancheFuji : avalanche,
-        transport: {
-            type: "custom",
-            provider: window.avalanche!,
-        },
-        account: account.address as `0x${string}`
-    })
-
-    return await getBech32AddressFromAccountOrClient(
-        avalancheClient,
-        avalancheClient.account,
-        "C",
-        networkIDs.getHRP(networkID)
-    )
+const publicKeyToXPAddress = (publicKey: string, hrp: string) => {
+    const point = Point.fromHex(utils.strip0x(publicKey));
+    const compressedPubKey = new Uint8Array(point.toBytes(true));
+    const address = secp256k1.publicKeyBytesToAddress(compressedPubKey);
+    return utils.formatBech32(hrp, address) as XPAddress;
 }

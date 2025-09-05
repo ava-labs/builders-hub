@@ -1,13 +1,6 @@
 "use client";
 
-import { lazy } from "react";
-
-const TransactionAllowlist = lazy(() => 
-  import("../../../../toolbox/src/toolbox/Precompiles/TransactionAllowlist").then(module => ({
-    default: module.default
-  }))
-);
-
+import TransactionAllowlist from "@/toolbox/src/toolbox/Precompiles/TransactionAllowlist";
 
 export default function Page() {
   return (

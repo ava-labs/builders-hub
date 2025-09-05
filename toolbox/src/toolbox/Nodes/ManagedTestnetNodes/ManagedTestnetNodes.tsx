@@ -51,6 +51,7 @@ export default function ManagedTestnetNodes() {
     // Show create form state
     const [showCreateForm, setShowCreateForm] = useState(false);
 
+
     const handleLogin = () => {
         window.location.href = "/login";
     };
@@ -107,25 +108,30 @@ export default function ManagedTestnetNodes() {
         }
     };
 
-    const copyToClipboard = async (text: string, label: string) => {
-        try {
-            await navigator.clipboard.writeText(text);
-            setAlertDialogTitle("Copied!");
-            setAlertDialogMessage(`${label} has been copied to your clipboard.`);
-            setIsAlertDialogOpen(true);
-        } catch (error) {
-            setAlertDialogTitle("Copy Failed");
-            setAlertDialogMessage("Failed to copy to clipboard. Please copy manually.");
-            setIsAlertDialogOpen(true);
-        }
-    };
-
     const handleDeleteNode = async (node: NodeRegistration) => {
+        // If node_index is missing, allow account-only removal
         if (node.node_index === null || node.node_index === undefined) {
-            setAlertDialogTitle("Cannot Delete Node");
-            setAlertDialogMessage("This node cannot be deleted because it doesn't have a valid node index.");
-            setIsLoginError(false);
-            setIsAlertDialogOpen(true);
+            try {
+                const response = await fetch(`/api/managed-testnet-nodes?id=${encodeURIComponent(node.id)}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (!response.ok || data.error) {
+                    throw new Error(data.message || data.error || 'Failed to remove node from account');
+                }
+                setAlertDialogTitle("Removed from Account");
+                setAlertDialogMessage(data.message || "This node has been removed from your account.");
+                setIsLoginError(false);
+                setIsAlertDialogOpen(true);
+                fetchNodes();
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Failed to remove node from account';
+                setAlertDialogTitle("Remove Failed");
+                setAlertDialogMessage(errorMessage);
+                setIsLoginError(false);
+                setIsAlertDialogOpen(true);
+            }
             return;
         }
 
@@ -175,6 +181,7 @@ export default function ManagedTestnetNodes() {
             });
         }
     };
+
 
     // Load nodes when component mounts
     useEffect(() => {
@@ -238,11 +245,8 @@ export default function ManagedTestnetNodes() {
                 <div className="mb-8 not-prose">
                     <div className="flex items-center justify-between mb-6">
                         <div>
-                            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-1">
-                                Layer 1 Nodes
-                            </h2>
                             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                {nodes.length} / 3 active nodes
+                                <span className="font-semibold">{nodes.length}</span> / 3 active nodes
                             </p>
                         </div>
                         <Button 
@@ -255,6 +259,7 @@ export default function ManagedTestnetNodes() {
                         </Button>
                     </div>
                 </div>
+
 
                 {/* Create Node Form */}
                 {showCreateForm && (
@@ -269,7 +274,6 @@ export default function ManagedTestnetNodes() {
                 {/* Success Message */}
                 {registrationResponse && (
                     <SuccessMessage
-                        registrationResponse={registrationResponse}
                         onReset={handleReset}
                         onClose={() => setRegistrationResponse(null)}
                     />
@@ -285,7 +289,6 @@ export default function ManagedTestnetNodes() {
                         onShowCreateForm={() => setShowCreateForm(true)}
                         onConnectWallet={setConnectWalletModalNodeId}
                         onDeleteNode={handleDeleteNode}
-                        onCopyToClipboard={copyToClipboard}
                         deletingNodes={deletingNodes}
                     />
                 </div>

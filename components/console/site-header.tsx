@@ -27,9 +27,9 @@ export function SiteHeader() {
   const breadcrumbs = useBreadcrumbs(pathToBreadcrumb);
 
   return (
-    <header className="sticky top-0 z-50 flex h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur  transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) rounded-t-2xl">
+    <header className="sticky top-0 z-50 flex h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur  transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) rounded-t-2xl overflow-x-hidden min-w-0">
 
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
+      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6 min-w-0">
         <WalletBootstrap />
         <SidebarTrigger className="-ml-1" />
         
@@ -37,11 +37,10 @@ export function SiteHeader() {
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
         />
-        <Breadcrumb>
-          <BreadcrumbList>
-            {breadcrumbs.map((breadcrumb, index) => (
-              <div key={`${breadcrumb.href}-${index}`} className="flex items-center">
-                <BreadcrumbItem className="hidden md:block">
+        <Breadcrumb className="overflow-hidden min-w-0">
+          <BreadcrumbList className="flex-nowrap">
+            {breadcrumbs.map((breadcrumb, index) => (<>
+                <BreadcrumbItem key={`${breadcrumb.href}-${index}`} className="whitespace-nowrap">
                   {breadcrumb.isCurrentPage ? (
                     <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
                   ) : breadcrumb.href === "#" ? (
@@ -53,9 +52,9 @@ export function SiteHeader() {
                   )}
                 </BreadcrumbItem>
                 {index < breadcrumbs.length - 1 && (
-                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbSeparator key={`breadcrumb-separator-${index}`} />
                 )}
-              </div>
+              </>
             ))}
           </BreadcrumbList>
         </Breadcrumb>

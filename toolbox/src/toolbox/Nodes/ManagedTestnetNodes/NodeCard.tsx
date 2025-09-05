@@ -1,12 +1,7 @@
 "use client";
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { 
-    Copy, 
     Clock, 
-    Server, 
-    ChevronDown,
-    ChevronUp,
     Wallet,
     Trash2,
     XCircle,
@@ -15,12 +10,13 @@ import {
 } from "lucide-react";
 import { NodeRegistration } from "./types";
 import { calculateTimeRemaining, formatTimeRemaining, getStatusData } from "./useTimeRemaining";
+import { Button } from "../../../components/Button";
+import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock';
 
 interface NodeCardProps {
     node: NodeRegistration;
     onConnectWallet: (nodeId: string) => void;
     onDeleteNode: (node: NodeRegistration) => void;
-    onCopyToClipboard: (text: string, label: string) => void;
     isDeletingNode: boolean;
 }
 
@@ -28,15 +24,22 @@ export default function NodeCard({
     node, 
     onConnectWallet, 
     onDeleteNode, 
-    onCopyToClipboard, 
     isDeletingNode 
 }: NodeCardProps) {
-    const [expanded, setExpanded] = useState(false);
-    const [apiResponse, setApiResponse] = useState<any>(null);
-    const [loadingApiResponse, setLoadingApiResponse] = useState(false);
-
+    const [secondsUntilWalletEnabled, setSecondsUntilWalletEnabled] = useState<number>(0);
     const timeRemaining = calculateTimeRemaining(node.expires_at);
     const statusData = getStatusData(timeRemaining);
+    const nodeInfoJson = JSON.stringify({
+        jsonrpc: "2.0",
+        result: {
+            nodeID: node.node_id,
+            nodePOP: {
+                publicKey: node.public_key || "",
+                proofOfPossession: node.proof_of_possession || ""
+            }
+        },
+        id: 1
+    }, null, 2);
 
     const getStatusIcon = (iconType: 'expired' | 'warning' | 'active') => {
         switch (iconType) {
@@ -51,51 +54,37 @@ export default function NodeCard({
         }
     };
 
-    const toggleExpanded = async () => {
-        if (expanded) {
-            setExpanded(false);
-        } else {
-            setExpanded(true);
+    // Disable "Add to Wallet" for 10 seconds after node creation to allow bootstrapping
+    useEffect(() => {
+        const createdAtMs = new Date(node.created_at).getTime();
+        const elapsedSeconds = Math.floor((Date.now() - createdAtMs) / 1000);
+        const initialRemaining = Math.max(0, 10 - elapsedSeconds);
+        setSecondsUntilWalletEnabled(initialRemaining);
 
-            if (!apiResponse) {
-                setLoadingApiResponse(true);
-                
-                try {
-                    const response = await fetch('/api/managed-testnet-nodes', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ 
-                            action: 'status',
-                            subnetId: node.subnet_id 
-                        })
-                    });
+        if (initialRemaining === 0) return;
 
-                    const data = await response.json();
-                    setApiResponse(data);
-                } catch (error) {
-                    console.error('Failed to fetch API response:', error);
-                    setApiResponse({ error: 'Failed to fetch API response' });
-                } finally {
-                    setLoadingApiResponse(false);
+        const intervalId = window.setInterval(() => {
+            setSecondsUntilWalletEnabled(prev => {
+                if (prev <= 1) {
+                    window.clearInterval(intervalId);
+                    return 0;
                 }
-            }
-        }
-    };
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => window.clearInterval(intervalId);
+    }, [node.created_at]);
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors min-w-0">
             {/* Node Header */}
             <div className="p-4 border-b border-gray-100 dark:border-gray-700">
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                            <Server className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                        </div>
                         <div>
                             <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
-                                {node.chain_name || 'Unnamed Chain'}
+                                {node.chain_name || 'Unnamed Chain'} {node.node_index ? `Node ${node.node_index}` : ''}
                             </h3>
                             <div className="flex items-center gap-3">
                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${statusData.color}`}>
@@ -127,201 +116,68 @@ export default function NodeCard({
                                 })}
                             </div>
                         </div>
-                        {node.node_index !== null && node.node_index !== undefined && (
-                            <button
-                                onClick={() => onDeleteNode(node)}
-                                disabled={isDeletingNode}
-                                className="p-1.5 rounded-md bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-800/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Delete node"
-                            >
-                                {isDeletingNode ? (
-                                    <div className="w-3 h-3 animate-spin rounded-full border border-solid border-red-600 border-r-transparent"></div>
-                                ) : (
-                                    <Trash2 className="w-3 h-3 text-red-600 dark:text-red-400" />
-                                )}
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Node Details */}
-            <div className="p-4">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Left Column */}
-                    <div className="space-y-3">
-                        <div>
-                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">
-                                Subnet ID
-                            </label>
-                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600">
-                                <code className="text-xs font-mono text-gray-700 dark:text-gray-300 flex-1 truncate">
-                                    {node.subnet_id}
-                                </code>
-                                <button
-                                    onClick={() => onCopyToClipboard(node.subnet_id, "Subnet ID")}
-                                    className="p-1 rounded bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                                    title="Copy Subnet ID"
-                                >
-                                    <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">
-                                Node ID {node.node_index !== null && node.node_index !== undefined && `(Index: ${node.node_index})`}
-                            </label>
-                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600">
-                                <code className="text-xs font-mono text-gray-700 dark:text-gray-300 flex-1 truncate">
-                                    {node.node_id}
-                                </code>
-                                <button
-                                    onClick={() => onCopyToClipboard(node.node_id, "Node ID")}
-                                    className="p-1 rounded bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                                    title="Copy Node ID"
-                                >
-                                    <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
-                                </button>
-                            </div>
-                        </div>
+            {/* Node Details (compact) */}
+            <div className="p-4 space-y-2 min-w-0">
+                <div className="grid grid-cols-1 gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-28 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Subnet ID</span>
+                        <CodeBlock lang="json" allowCopy={true}>
+                            <Pre>{node.subnet_id}</Pre>
+                        </CodeBlock>
                     </div>
 
-                    {/* Right Column */}
-                    <div className="space-y-3">
-                        <div>
-                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">
-                                Blockchain ID
-                            </label>
-                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600">
-                                <code className="text-xs font-mono text-gray-700 dark:text-gray-300 flex-1 truncate">
-                                    {node.blockchain_id}
-                                </code>
-                                <button
-                                    onClick={() => onCopyToClipboard(node.blockchain_id, "Blockchain ID")}
-                                    className="p-1 rounded bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                                    title="Copy Blockchain ID"
-                                >
-                                    <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
-                                </button>
-                            </div>
-                        </div>
+                    <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-28 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Blockchain ID</span>
+                        <CodeBlock lang="json" allowCopy={true}>
+                            <Pre>{node.blockchain_id}</Pre>
+                        </CodeBlock>
+                    </div>
 
-                        <div>
-                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">
-                                RPC URL
-                            </label>
-                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600">
-                                <code className="text-xs font-mono text-gray-700 dark:text-gray-300 flex-1 truncate">
-                                    {node.rpc_url}
-                                </code>
-                                <button
-                                    onClick={() => onConnectWallet(node.id)}
-                                    className="p-1 rounded bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-800/30 transition-colors"
-                                    title="Connect Wallet to RPC"
-                                >
-                                    <Wallet className="w-3 h-3 text-blue-600 dark:text-blue-300" />
-                                </button>
-                                <button
-                                    onClick={() => onCopyToClipboard(node.rpc_url, "RPC URL")}
-                                    className="p-1 rounded bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                                    title="Copy RPC URL"
-                                >
-                                    <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
-                                </button>
-                            </div>
-                        </div>
+                    <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-28 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">RPC URL</span>
+                        <CodeBlock lang="json" allowCopy={true}>
+                            <Pre>{node.rpc_url}</Pre>
+                        </CodeBlock>
                     </div>
                 </div>
 
-                {/* Node JSON Dropdown */}
-                <div className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
-                    <button
-                        onClick={toggleExpanded}
-                        className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                {/* info.getNodeID API Response */}
+                <div className="mt-2 w-full max-w-full">
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">info.getNodeID API Response</p>
+                    <CodeBlock lang="json" allowCopy={true}>
+                        <Pre>{nodeInfoJson}</Pre>
+                    </CodeBlock>
+                </div>
+
+                {/* Primary Actions */}
+                <div className="mt-2 flex items-center justify-end gap-2 border-t border-gray-200 dark:border-gray-700 pt-3">
+                    <Button
+                        onClick={() => onConnectWallet(node.id)}
+                        variant="secondary"
+                        size="sm"
+                        stickLeft
+                        disabled={secondsUntilWalletEnabled > 0}
+                        icon={<Wallet className="w-4 h-4" />}
                     >
-                        {expanded ? (
-                            <ChevronUp className="w-4 h-4" />
-                        ) : (
-                            <ChevronDown className="w-4 h-4" />
-                        )}
-                        View Node Info
-                    </button>
-                    
-                    {expanded && (
-                        <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Subnet Status:</p>
-                                {apiResponse && !loadingApiResponse && (
-                                    <button
-                                        onClick={() => onCopyToClipboard(JSON.stringify(apiResponse, null, 2), "Subnet Status")}
-                                        className="p-1 rounded bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                                        title="Copy Subnet Status"
-                                    >
-                                        <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
-                                    </button>
-                                )}
-                            </div>
-                            {loadingApiResponse ? (
-                                <div className="flex items-center justify-center py-4">
-                                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-solid border-gray-300 border-r-transparent"></div>
-                                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading subnet status...</span>
-                                </div>
-                            ) : (
-                                (() => {
-                                    const status = apiResponse;
-                                    if (status?.error) {
-                                        return (
-                                            <div className="text-sm text-red-600 dark:text-red-400 p-2 bg-red-50 dark:bg-red-900/20 rounded">
-                                                Error: {status.error}
-                                            </div>
-                                        );
-                                    }
-                                    
-                                    if (status?.nodes && Array.isArray(status.nodes)) {
-                                        return (
-                                            <div className="space-y-2">
-                                                <div className="text-sm text-gray-600 dark:text-gray-400">
-                                                    Total nodes: {status.nodes.length}
-                                                </div>
-                                                {status.nodes.map((nodeData: any, index: number) => (
-                                                    <div key={index} className="p-2 bg-white dark:bg-gray-900 rounded border text-xs space-y-2">
-                                                        <div className="font-medium">Node #{nodeData.nodeIndex}</div>
-                                                        <div className="text-gray-500 dark:text-gray-500">
-                                                            Created: {nodeData.dateCreated ? new Date(nodeData.dateCreated).toLocaleString() : 'N/A'}
-                                                        </div>
-                                                        {nodeData.nodeInfo && (
-                                                            <div className="mt-2">
-                                                                <div className="flex items-center justify-between mb-1">
-                                                                    <span className="font-medium text-gray-700 dark:text-gray-300">Node Info:</span>
-                                                                    <button
-                                                                        onClick={() => onCopyToClipboard(JSON.stringify(nodeData.nodeInfo, null, 2), "Node Info")}
-                                                                        className="p-1 rounded bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                                                                        title="Copy Node Info"
-                                                                    >
-                                                                        <Copy className="w-3 h-3 text-gray-600 dark:text-gray-300" />
-                                                                    </button>
-                                                                </div>
-                                                                <pre className="text-xs bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded border font-mono text-gray-600 dark:text-gray-400 overflow-auto max-h-48">
-                                                                    {JSON.stringify(nodeData.nodeInfo, null, 2)}
-                                                                </pre>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        );
-                                    }
-                                    
-                                    return (
-                                        <pre className="text-xs bg-white dark:bg-gray-900 px-3 py-2 rounded border font-mono text-gray-600 dark:text-gray-400 overflow-auto max-h-64">
-                                            {JSON.stringify(status || { error: 'No data available' }, null, 2)}
-                                        </pre>
-                                    );
-                                })()
-                            )}
-                        </div>
-                    )}
+                        {secondsUntilWalletEnabled > 0
+                            ? `Add L1 to your wallet in ${secondsUntilWalletEnabled}s`
+                            : "Add to Wallet"}
+                    </Button>
+                    <Button
+                        onClick={() => onDeleteNode(node)}
+                        variant="danger"
+                        size="sm"
+                        loading={isDeletingNode}
+                        loadingText={node.node_index === null || node.node_index === undefined ? "Removing..." : "Deleting..."}
+                        className="!w-auto"
+                        icon={<Trash2 className="w-4 h-4" />}
+                    >
+                        {node.node_index === null || node.node_index === undefined ? 'Remove from Account' : 'Delete Node'}
+                    </Button>
                 </div>
             </div>
         </div>

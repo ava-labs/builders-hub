@@ -10,6 +10,8 @@ import { getRPCEndpoint } from "../../coreViem/utils/rpc"
 import { Input } from "../../components/Input"
 import SelectValidationID, { ValidationSelection } from "../../components/SelectValidationID"
 import SelectSubnetId from "../../components/SelectSubnetId"
+import { CheckWalletRequirements } from "@/components/CheckWalletRequirements"
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 // Helper function for delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -168,6 +170,9 @@ export default function ValidatorBalanceIncrease() {
   }
 
   return (
+    <CheckWalletRequirements configKey={[
+      WalletRequirementsConfigKey.PChainBalance,
+    ]}>
     <Container
       title="L1 Validator Balance Topup"
       description="Increase your validator's balance using funds from your P-Chain address."
@@ -337,5 +342,6 @@ export default function ValidatorBalanceIncrease() {
         </div>
       )}
     </Container>
+    </CheckWalletRequirements>
   )
 }

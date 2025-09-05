@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
+import { Avalanche } from "@avalanche-sdk/chainkit";
 
-const GLACIER_API_KEY = process.env.GLACIER_API_KEY;
+const avalanche = new Avalanche({
+  network: "mainnet",
+  apiKey: process.env.GLACIER_API_KEY,
+});
+
 const PRIMARY_NETWORK_SUBNET_ID = "11111111111111111111111111111111LpoYY";
 
 interface ValidatorGeolocation {
@@ -19,11 +24,6 @@ interface Validator {
   geolocation: ValidatorGeolocation;
 }
 
-interface ValidatorResponse {
-  validators: Validator[];
-  nextPageToken?: string;
-}
-
 interface CountryData {
   country: string;
   countryCode: string;
@@ -35,57 +35,43 @@ interface CountryData {
 }
 
 let cachedGeoData: { data: CountryData[]; timestamp: number } | null = null;
-const CACHE_DURATION = 10 * 60 * 1000;
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // updates every 24 hours
 
 async function fetchAllValidators(): Promise<Validator[]> {
-  if (!GLACIER_API_KEY) {
-    console.log('WARNING: GLACIER_API_KEY not found');
-    return [];
-  }
-
   try {
-    console.log('Fetching all validators with geolocation data...');
     const allValidators: Validator[] = [];
-    let nextPageToken: string | undefined;
-    let pageCount = 0;
+    const result = await avalanche.data.primaryNetwork.listValidators({
+      validationStatus: "active",
+      subnetId: PRIMARY_NETWORK_SUBNET_ID,
+    });
 
-    do {
-      const url = new URL('https://glacier-api.avax.network/v1/networks/mainnet/validators');
-      url.searchParams.set('pageSize', '100');
-      url.searchParams.set('subnetId', PRIMARY_NETWORK_SUBNET_ID);
-      url.searchParams.set('validationStatus', 'active');
+    for await (const page of result) {
+      if (!page?.result?.validators || !Array.isArray(page.result.validators)) {
+        console.warn('Invalid page structure:', page);
+        continue;
+      }
+
+      const validatorsWithGeo = page.result.validators
+        .filter((v: any) => v.geolocation && v.geolocation.country)
+        .map((v: any): Validator => ({
+          nodeId: v.nodeId,
+          amountStaked: v.amountStaked,
+          validationStatus: v.validationStatus,
+          avalancheGoVersion: v.avalancheGoVersion || 'unknown',
+          geolocation: {
+            city: v.geolocation.city,
+            country: v.geolocation.country,
+            countryCode: v.geolocation.countryCode,
+            latitude: v.geolocation.latitude,
+            longitude: v.geolocation.longitude,
+          }
+        }));
       
-      if (nextPageToken) {
-        url.searchParams.set('pageToken', nextPageToken);
-      }
-
-      const response = await fetch(url.toString(), {
-        headers: {
-          'x-glacier-api-key': GLACIER_API_KEY,
-          'Accept': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        console.error(`Glacier API failed with status: ${response.status}`);
-        break;
-      }
-
-      const data: ValidatorResponse = await response.json();
-      const validatorsWithGeo = data.validators.filter(v => v.geolocation && v.geolocation.country);
-      allValidators.push(...validatorsWithGeo); 
-      nextPageToken = data.nextPageToken;
-      pageCount++;
-
-      if (pageCount > 50) {
-        console.log('Reached maximum page limit');
-        break;
-      }
-      
-    } while (nextPageToken);
+      allValidators.push(...validatorsWithGeo);
+    }
     return allValidators;
   } catch (error) {
-    console.error('Error fetching validators:', error);
+    console.error('Error fetching validators with SDK:', error);
     return [];
   }
 }
@@ -177,20 +163,17 @@ export async function GET() {
       });
     }
 
-    const countryData = aggregateByCountry(validators);
-    
+    const countryData = aggregateByCountry(validators);    
     const countryDataWithCoords = countryData.map(country => ({
       ...country,
       ...latLngToSVG(country.latitude, country.longitude)
     }));
-
     cachedGeoData = {
       data: countryDataWithCoords,
       timestamp: Date.now()
     };
 
     const fetchTime = Date.now() - startTime;
-
     return NextResponse.json(countryDataWithCoords, {
       headers: {
         'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',

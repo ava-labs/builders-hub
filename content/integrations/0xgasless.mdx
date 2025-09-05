@@ -2,7 +2,7 @@
 title: 0xGasless
 category: Account Abstraction
 available: ["C-Chain"]
-description: 0xGasless Smart Account is a smart contract wallet focused on implementing Account Abstraction. It builds on the core concepts of Gnosis and Argent safes and is compliant with ERC-4337.
+description: 0xGasless offers AgentKit for on-chain agent execution and an Account Abstraction SDK for developers to build user friendly blockchain applications..
 logo: /images/0xGasless.png
 developer: 0xGasless
 website: https://0xgasless.com/
@@ -11,58 +11,67 @@ documentation: https://docs.0xgasless.com/
 
 ## Overview
 
-0xGasless is a cutting-edge software development toolkit (SDK) that empowers developers to build gasless dapps and autonomous AI agents on any EVM-compatible chain using the ERC-4337 standard.
+0xGasless AgentKit is an SDK that provides on‑chain execution for AI agents, enabling them to sign transactions, interact with smart contracts, swap tokens, deploy contracts, and manage wallets without gas.
 
-#0xGasless ERC-4337 SDK offers : 
+It also includes a complete account abstraction stack on ERC-4337 and ERC-7702, allowing developers to build seamless, user-friendly dApps with features like gasless transactions, batching, and session keys.
 
-- **Gas Sponsorship**: Dapps can sponsor user gas fees, improving onboarding and usability.
-- **Gas Payment Flexibility**: Users can pay gas fees in any token, offering seamless multi-token support.
-- **Smart Wallets for AI-Agents**:
-  - Enables autonomous AI agents by integrating secure, programmable smart wallets.
-  - Allows developers to set transaction limits, ensuring safety and control.
-  - Perfect for recurring payments (e.g., crypto-based Netflix subscriptions) with user-configurable settings.
-- **Transaction Optimization**: Reduces gas fees by batching transactions and executing them during low-fee periods.
-- **Cross-Chain Compatibility**: Operate seamlessly across multiple blockchain networks.
-- **Modular Design**: The SDK is very modularly designed to both vertical and horizontal scale. The SDK offers multiples options of customization in every component of a gasless architecture. Like multiple ways to fund and pay for your sponsorship via different types of paymasters, multiple ways to create smart wallets (for eg: social logins, passkeys, EOA wallets etc.), offers compatibility with multiple types of bundlers.
+## What we are offering
+
+0xGasless is an Account Abstraction platform and AI AgentKit enabling gasless smart accounts and autonomous on‑chain AI agents via ERC‑4337, with paymasters, bundlers, and LLM‑ready tools across EVM chains.
+
+### AA SDK
+
+- Bundler-as-a-Service
+- Paymaster-as-a-Service
+- ERC-4337 Smart Wallets
+- ERC-7702
+
+### AgentKit
+
+- Open-source [GitHub repo](https://github.com/0xgasless/agentkit) 
+- [NPM package](https://www.npmjs.com/package/@0xgasless/agentkit) 
+- 0xGasless Claude MCP: [NPM Package](https://www.npmjs.com/package/@0xgasless/mcp) & [Github Repo](https://github.com/0xgasless/mcp)
 
 In summary, the 0xGasless SDK represents a significant advancement in making blockchain technology more accessible and user-friendly while placing more emphasis on eliminating the complexities of gas fees, and enhancing security.
+
+## C‑Chain (Avalanche) notes:
+
+- **Native gas token**: AVAX (sponsored mode requires a funded paymaster).
+- Many stablecoins (e.g., USDT) use 6 decimals, format amounts correctly.
+- Ensure your API key is enabled for 43114 and that your paymaster gas tank is funded.
 
 
 ## Getting Started
 
 To get started with 0xGasless, follow these steps:
 
-1. **Sign Up**: Create an account on the [0xGasless Platform](https://dashboard.0xgasless.com/) to access the dashboard and developer tools.
-2. **Checkout Documentation**: Refer to the [0xGasless Documentation](https://docs.0xgasless.com/) for installation docs, API references, and integration references.
-3. **Funding The paymaster**: Follow the [documentation](https://docs.0xgasless.com/Getting%20Started/create-a-page) and checkout the [0xGasless Dashboard](https://dashboard.0xgasless.com/) to create and fund the paymaster.
-4. **Integrate the 0xGasless SDK**: Leverage 0xGasless's SDK [documentation](https://docs.0xgasless.com/Getting%20Started/create-a-page#step-1-obtain-required-api-keys) to integrate gasless transactions in your dapp.
-5. **Explore our Modular implementation**: The Gasless SDK is built in a modular way which offers a bunch of customization in every step of the Account Abstraction cycle, feel free to customize the implementation to your liking.
-5. **Test and Deploy**: Utilize 0xGasless's multi-chain support to deploy your dApp across different blockchain networks, thoroughly test the integration and ensure the paymaster gas tank is always funded for your users to have a smooth experience.
+1. **Sign up**: Create an account on the [0xGasless Platform](https://dashboard.0xgasless.com/) to access the dashboard and developer tools.
+2. **Read the documentation**: See the [0xGasless docs](https://docs.0xgasless.com/) for installation guides, API references, and integrations.
+3. **Fund the paymaster**: Follow the [guide](https://docs.0xgasless.com/Getting%20Started/create-a-page) and use the [dashboard](https://dashboard.0xgasless.com/) to create and fund the paymaster.
+4. **Integrate the SDK**: Obtain API keys and configure the smart account, bundler, and paymaster using the SDK [docs](https://docs.0xgasless.com/Getting%20Started/create-a-page#step-1-obtain-required-api-keys).
+5. **Explore modular options**: The SDK is modular; customize each step of the account abstraction cycle as needed.
+6. **Test and deploy**: Leverage multi-chain support, thoroughly test, and ensure the paymaster gas tank remains funded for a smooth UX.
 
 ## Documentation
 
-For detailed guides, API references, and integration examples, visit [0xGasless Documentation](https://docs.0xgasless.com/).
+- For detailed guides, API references, and integration examples, visit [0xGasless Documentation](https://docs.0xgasless.com/).
+
+- Dashboard for keys/paymasters: [0xGasless Dashboard](https://dashboard.0xgasless.com/).
 
 ## **Use Cases**
 
-Anything can be built using 0xGasless Account Abstraction SDK. Smart contract wallets is all about code. Any required feature can be written in the form of a code. 
+Anything can be built using the 0xGasless Account Abstraction SDK. Smart contract wallets are code; any required feature can be written as code.
 
-**AI Agents**  Streamline payment processes with smart accounts for AI Agents, The new era of AI demands a more secure and smoother infrastructure for AI agents to interact with the concept of money, and account abstraction is a perfect standard for AI agents to build their use cases.
-
-**DeFi Applications**:  Improve the accessibility and usability of decentralized finance (DeFi) platforms with gasless transactions and easy onboarding.
-
-**Enterprise Applications**  Use 0xgasless to manage complex access controls and transaction rules in enterprise blockchain solutions, providing scalability and secure integrations.  
-
-**Crypto Wallets**  Develop secure and flexible crypto wallets that leverage 0xgasless smart accounts for enhanced security, usability, and gasless transactions.  
-
-**Digital Identity Management**  Employ the 0xGasless SDK to manage digital identities with customizable transaction and access rules, enabling secure and scalable identity management.  
-
-**Blockchain Games**  Provide a seamless onboarding experience for players by allowing them to use social logins to manage their in-game assets and progress effortlessly.  
-
-**NFT Marketplaces**  Enable users to interact with NFT platforms easily using their existing social media accounts, improving user acquisition, engagement, and platform accessibility.  
+- **AI Agents**: Streamline payment processes with smart accounts. Account abstraction provides a secure infrastructure for agents interacting with money.
+- **DeFi Applications**: Improve accessibility and usability with gasless transactions and easy onboarding.
+- **Enterprise Applications**: Manage complex access controls and transaction rules with scalable, secure integrations.
+- **Crypto Wallets**: Develop secure and flexible wallets leveraging smart accounts for enhanced security, usability, and gasless transactions.
+- **Digital Identity Management**: Manage digital identities with customizable transaction and access rules for secure, scalable identity.
+- **Blockchain Games**: Provide seamless onboarding using social logins to manage in‑game assets and progress.
+- **NFT Marketplaces**: Let users interact with platforms using their existing social accounts to improve acquisition and engagement.
 
 
 ## Conclusion
 
-0xGasless stands as an advanced blockchain infrastructure platform with a primary emphasis on enhancing user experience through account abstraction. Leveraging ERC-4337, 0xGasless delivers a smart contract wallet solution, streamlining transactions and wallet management. This fosters a smoother interaction with decentralized applications (dApps), mitigating the usual complexity associated with Web3. Whether you're developing a DeFi platform, a gaming application, or an NFT marketplace, 0xGasless provides the tools you need to succeed.
+0xGasless stands as an advanced blockchain infrastructure platform with a primary emphasis on enhancing user experience through account abstraction. Leveraging ERC-4337, 0xGasless delivers a smart contract wallet solution, streamlining transactions and wallet management. This fosters a smoother interaction with decentralized applications (dApps), mitigating the usual complexity associated with Web3. Its modular SDK improves UX (gasless or token‑gas), security (programmable policies), and developer velocity (pluggable components) across dapps, agents, games, DeFi, and enterprises. On Avalanche C‑Chain and beyond, 0xGasless helps teams ship seamless, scalable, and secure web3 experiences.
 
