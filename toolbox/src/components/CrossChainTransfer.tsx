@@ -64,7 +64,7 @@ export default function CrossChainTransfer({
     const coreEthAddress = useWalletStore((s) => s.coreEthAddress);
 
     const avalancheClient = useMemo(() => {
-        if (!window?.avalanche || !walletEVMAddress || !isTestnet) {
+        if (typeof window === 'undefined' || !window?.avalanche || !walletEVMAddress || !isTestnet) {
             return;
         }
         return createAvalancheWalletClient({
