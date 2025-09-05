@@ -142,7 +142,7 @@ async function fetchChainMetrics(chain: any, timeRange: string): Promise<ChainOv
   const cacheKey = `${chain.chainId}-${timeRange}`;
   const cached = chainDataCache.get(cacheKey);
   
-  if (cached && Date.now() - cached.timestamp < STATS_CONFIG.CACHE.MEDIUM_DURATION) {
+  if (cached && Date.now() - cached.timestamp < STATS_CONFIG.CACHE.SHORT_DURATION) {
     return cached.data;
   }
 
