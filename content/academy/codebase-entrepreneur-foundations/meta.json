@@ -1,18 +1,18 @@
 {
-    "title": "Foundations",
-    "icon": "Coins",
-    "root": true,
-    "pages": [
-        "index",
-        "---Legal Foundations---",
-        "...01-legal-foundations",
-        "---Security Fundamentals---",
-        "...02-security-fundamentals",
-        "---Bussiness Model Canvas---",
-        "...03-business-model-canvas",
-        "---User Personas---",
-        "...04-user-personas",
-        "---Course Completion---",
-        "certificate"
-    ]
+        "title": "Foundations",
+        "icon": "Coins",
+        "root": true,
+        "pages": [
+                "index",
+                "---Legal Foundations---",
+                "...01-legal-foundations",
+                "---Security Fundamentals---",
+                "...01b-security-fundamentals",
+                "---Bussiness Model Canvas---",
+                "...02-business-model-canvas",
+                "---User Personas---",
+                "...03-user-personas",
+                "---Course Completion---",
+                "certificate"
+        ]
 }

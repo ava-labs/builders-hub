@@ -1,11 +1,12 @@
 "use client";
 
+import { SessionProvider } from "next-auth/react";
 import { UserButton } from "./UserButton";
 import { useEffect, useState } from "react";
 
 export function UserButtonWrapper() {
   const [isMounted, setIsMounted] = useState(false);
-  
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -15,5 +16,7 @@ export function UserButtonWrapper() {
     return null;
   }
 
-  return <UserButton />;
+  return <SessionProvider>
+    <UserButton />
+  </SessionProvider>;
 }

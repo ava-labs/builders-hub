@@ -16,8 +16,11 @@ export type L1ListItem = {
     validatorManagerAddress: string;
     logoUrl: string;
     wellKnownTeleporterRegistryAddress?: string;
-    faucetUrl?: string;
+    externalFaucetUrl?: string;
     explorerUrl?: string;
+    hasBuilderHubFaucet?: boolean;
+    dripAmount?: number;
+    features?: string[];
 };
 
 
@@ -27,7 +30,7 @@ const l1ListInitialStateFuji = {
         {
             id: "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp",
             name: "C-Chain",
-            description: "The C-Chain of the Avalanche Fuji Testnet is the EVM chain of the Primary Network. All funds are worthless and only for testing purposes.",
+            description: "Smart contract development blockchain",
             rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
             evmChainId: 43113,
             coinName: "AVAX",
@@ -37,13 +40,19 @@ const l1ListInitialStateFuji = {
             validatorManagerAddress: "",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
-            faucetUrl: "https://test.core.app/tools/testnet-faucet/?subnet=c&token=c",
-            explorerUrl: "https://subnets-test.avax.network/c-chain"
+            hasBuilderHubFaucet: true,
+            externalFaucetUrl: "https://core.app/tools/testnet-faucet",
+            explorerUrl: "https://subnets-test.avax.network/c-chain",
+            dripAmount: 3,
+            features: [
+                "EVM-compatible blockchain",
+                "Deploy smart contracts"
+            ]
         },
         {
             id: "98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp",
             name: "Echo",
-            description: "Echo is a testnet L1 for testing dApps utilizing Interchain Messaging. All funds are worthless and only for testing purposes.",
+            description: "Echo is a Testnet L1 for testing dApps utilizing ICM",
             rpcUrl: "https://subnets.avax.network/echo/testnet/rpc",
             evmChainId: 173750,
             coinName: "ECH",
@@ -53,24 +62,36 @@ const l1ListInitialStateFuji = {
             validatorManagerAddress: "0x0646263a231b4fde6f62d4de63e18df7e6ad94d6",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/7kyTY75fdtnO6mh7f0osix/4c92c93dd688082bfbb43d5d910cbfeb/Echo_Subnet_Logo.png",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
-            faucetUrl: "https://test.core.app/tools/testnet-faucet/?subnet=echo&token=echo",
+            hasBuilderHubFaucet: true,
+            externalFaucetUrl: "https://core.app/tools/testnet-faucet",
             explorerUrl: "https://subnets-test.avax.network/echo",
+            dripAmount: 3,
+            features: [
+                "EVM-compatible L1 chain",
+                "Deploy dApps & test interoperability with Echo"
+            ]
         },
         {
             id: "2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY",
             name: "Dispatch",
-            description: "Dispatch is a testnet Subnet for testing dApps utilizing Interchain Messaging. All funds are worthless and only for testing purposes.",
+            description: "Dispatch is a Testnet L1 for testing dApps utilizing ICM",
             rpcUrl: "https://subnets.avax.network/dispatch/testnet/rpc",
             evmChainId: 779672,
-            coinName: "DISP",
+            coinName: "DIS",
             isTestnet: true,
             subnetId: "7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5",
             wrappedTokenAddress: "",
             validatorManagerAddress: "",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/60XrKdf99PqQKrHiuYdwTE/908622f5204311dbb11be9c6008ead44/Dispatch_Subnet_Logo.png",
             wellKnownTeleporterRegistryAddress: "0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228",
-            faucetUrl: "https://test.core.app/tools/testnet-faucet/?subnet=dispatch&token=dispatch",
-            explorerUrl: "https://subnets-test.avax.network/dispatch"
+            hasBuilderHubFaucet: true,
+            externalFaucetUrl: "https://core.app/tools/testnet-faucet",
+            explorerUrl: "https://subnets-test.avax.network/dispatch",
+            dripAmount: 3,
+            features: [
+                "EVM-compatible L1 chain",
+                "Deploy dApps & test interoperability with Dispatch"
+            ]
         }
     ] as L1ListItem[],
 }
@@ -90,6 +111,7 @@ const l1ListInitialStateMainnet = {
             validatorManagerAddress: "",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
             wellKnownTeleporterRegistryAddress: "0x7C43605E14F391720e1b37E49C78C4b03A488d98",
+            hasBuilderHubFaucet: false,
             explorerUrl: "https://subnets.avax.network/c-chain"
         }
     ] as L1ListItem[],

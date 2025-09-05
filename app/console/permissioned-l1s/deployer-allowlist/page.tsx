@@ -1,13 +1,6 @@
 "use client";
 
-import { lazy } from "react";
-
-const DeployerAllowlist = lazy(() => 
-  import("../../../../toolbox/src/toolbox/Precompiles/DeployerAllowlist").then(module => ({
-    default: module.default
-  }))
-);
-
+import DeployerAllowlist from "@/toolbox/src/toolbox/Precompiles/DeployerAllowlist";
 
 export default function Page() {
   return (
