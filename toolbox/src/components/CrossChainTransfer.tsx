@@ -210,7 +210,7 @@ export default function CrossChainTransfer({
 
     // Add handlers for buttons
     const handleExport = async () => {
-        if (!validateAmount()) return;
+        if (!validateAmount() || !avalancheClient) return;
 
         if (typeof window === 'undefined' || !walletEVMAddress || !pChainAddress || !coreWalletClient) {
             setError("Wallet not connected or required data missing.");
@@ -276,7 +276,7 @@ export default function CrossChainTransfer({
     }
 
     const handleImport = async () => {
-        if (typeof window === 'undefined' || !walletEVMAddress || !pChainAddress || !coreWalletClient) {
+        if (typeof window === 'undefined' || !walletEVMAddress || !pChainAddress || !coreWalletClient || !avalancheClient) {
             setImportError("Wallet not connected or required data missing.");
             return;
         }
