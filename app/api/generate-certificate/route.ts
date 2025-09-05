@@ -3,10 +3,10 @@ import { PDFDocument } from 'pdf-lib';
 
 const courseMapping: Record<string, string> = {
   'avalanche-fundamentals': 'Avalanche Fundamentals',
-  'codebase-entrepreneur-foundations': 'Codebase Entrepreneur Foundations',
-  'codebase-entrepreneur-go-to-market': 'Codebase Entrepreneur Go-to-Market',
-  'codebase-entrepreneur-community': 'Codebase Entrepreneur Community',
-  'codebase-entrepreneur-fundraising': 'Codebase Entrepreneur Fundraising',
+  'codebase-entrepreneur-foundations': 'Foundations of a Web3 Venture',
+  'codebase-entrepreneur-go-to-market': 'Go-to-Market Strategist',
+  'codebase-entrepreneur-community': 'Web3 Community Architect',
+  'codebase-entrepreneur-fundraising': 'Fundraising & Finance Pro',
 };
 
 const certificateTemplates: Record<string, string> = {
