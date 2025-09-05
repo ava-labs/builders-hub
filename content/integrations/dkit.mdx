@@ -1,0 +1,73 @@
+---
+title: dKiT API/SDK
+category: Crosschain Solutions
+available: ["C-Chain"]
+description: "dKit is a production-ready cross-chain DEX aggregation API/SDK that enables native swaps across 15+ blockchains including Avalanche by routing liquidity through THORChain, Chainflip, Maya, Jupiter, Garden and 1inch."
+logo: /images/dkit.png
+developer: dKit Team
+website: https://dkit.xyz/
+documentation: https://docs.dkit.xyz/
+---
+
+## Overview
+
+dKiT is a unified cross-chain DEX aggregation layer that lets dApps execute **native** token swaps across 19+ blockchains including Avalanche’s C-Chain—via a single API/SDK. It abstracts multiple protocols and aggregators behind one interface, providing best-price discovery, non-custodial execution, and real-time tracking.
+
+## Features
+
+- **Native Cross-Chain Swaps**: Swap native assets (e.g. BTC ↔ AVAX).  
+- **Smart Routing**: Finds optimal routes across multiple protocols and DEX aggregators. 
+- **Streaming Swaps**: Splits large trades to reduce price impact. 
+- **One-Transaction UX**: “One-signature” Cross-Chain Swaps.  
+- **Revenue & Fee Streaming**: Add custom affiliate fees and automatically stream them to your wallets.  
+- **Broad Wallet Support**: Easily integrate 20+ wallets (EVM, Solana, Cosmos, hardware, and WalletConnect). 
+- **Avalanche Support**: Support for Avalanche (C-Chain) cross-chain swaps.
+
+## Getting Started
+
+1. **Review the Docs**  
+   Browse the [dKit Documentation](https://docs.dkit.xyz/) to understand concepts, endpoints, and workflows.
+
+2. **Get an API Key**  
+   Request API keys on [dkit.xyz](https://dkit.xyz/get-api-key) → **Get API Key**.
+
+3. **Install & Configure**  
+   - Use the SDK (e.g., `@doritokit/sdk`) or call the REST API directly.  
+   - Provide any required API keys (e.g., EVM explorers or UTXO helpers).  
+   - Enable Avalanche (C-Chain) within your chain list.
+
+4. **Quote → Execute → Track**  
+   - Call `/v1/quote` to get the best route and expected output.  
+   - Execute the transaction 
+   - Poll `/v1/track` to monitor progress, including streaming status.
+
+5. **Monetize**  
+   Configure **affiliate fees** so a share of volume routed via your app is streamed to your addresses.
+
+## Documentation
+
+- **Introduction & Concepts**: [docs.dkit.xyz](https://docs.dkit.xyz/)  
+- **API Reference / Swagger**: [api.dkit.xyz](https://api.dkit.xyz)  
+- **Quick Start**: End-to-end example for quoting, executing, and tracking swaps  
+- **Revenue Generation**: [docs.dkit.xyz/revenue-generation](https://docs.dkit.xyz/revenue-generation)  
+- **Status Page**: [dkit.instatus.com](https://dkit.instatus.com)
+
+## Supported Protocols & Aggregators
+
+- **THORChain** 
+- **Chainflip**   
+- **MayaChain**   
+- **Jupiter**  
+- **1inch**  
+- **Garden Finance** 
+
+## Use Cases
+
+- **Cross-Chain Swaps in Any dApp**: Add native BTC ↔ EVM/Solana/Cosmos swaps to wallets and DEXs. 
+- **Cross-Chain DEX / Router**: Power a trading interface with best-price discovery and cross-chain support.  
+- **Bridgeless Asset Migration**: Let users move assets across ecosystems without using wrapped tokens or CEXs.    
+- **Affiliate Monetization**: Stream fees on every swaps.
+
+## Conclusion
+
+dKit delivers a reliable, developer-friendly cross-chain aggregation layer for Avalanche’s C-Chain and beyond. With native swaps, smart routing and fee monetization, it’s a fast way to ship a seamless cross-chain experience in production.
