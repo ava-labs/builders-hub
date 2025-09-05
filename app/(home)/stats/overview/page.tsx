@@ -178,24 +178,18 @@ export default function AvalancheMetrics() {
       return { chartData: [], topChains: [] };
     }
 
-    const validChains = overviewMetrics.chains
+    const allValidChains = overviewMetrics.chains
       .filter(
-        (chain) =>
-          typeof chain.txCount.current_value === "number" &&
-          chain.txCount.current_value > 0
+        (chain) => typeof chain.txCount.current_value === "number" && chain.txCount.current_value > 0
       )
       .sort(
-        (a, b) =>
-          (b.txCount.current_value as number) -
-          (a.txCount.current_value as number)
-      )
-      .slice(0, CHART_CONFIG.maxTopChains);
+        (a, b) => (b.txCount.current_value as number) - (a.txCount.current_value as number)
+      );
 
+    const validChains = allValidChains.slice(0, CHART_CONFIG.maxTopChains);
     const aggregatedData = overviewMetrics.aggregated.totalTxCount.data;
     const today = new Date().toISOString().split("T")[0];
-    const finalizedData = aggregatedData.filter(
-      (dataPoint) => dataPoint.date !== today
-    );
+    const finalizedData = aggregatedData.filter((dataPoint) => dataPoint.date !== today);
     const chartData = finalizedData.map((dataPoint) => {
       const day = new Date(dataPoint.timestamp * 1000).toLocaleDateString(
         "en-US",
@@ -463,11 +457,38 @@ export default function AvalancheMetrics() {
   }
 
   const CHART_CONFIG = {
-    colors: ["#667eea", "#764ba2", "#f093fb", "#4facfe", "#43e97b", "#38f9d7"],
+    colors: ["#0ea5e9", "#8b5cf6", "#f97316", "#22c55e", "#ec4899"],
     maxTopChains: 5,
   };
 
   const { chartData, topChains } = getChartData();
+
+  const getYAxisDomain = (data: any[]): [number, number] => {
+    if (data.length === 0) return [0, 100];
+    const allValues = data.flatMap((dataPoint) => {
+      return topChains
+        .map((chain) => {
+          const chainKey = chain.chainName.length > 10 ? chain.chainName.substring(0, 10) + "..." : chain.chainName;
+          return dataPoint[chainKey] || 0;
+        }).filter((val) => val > 0);
+    });
+
+    if (allValues.length === 0) return [0, 100];
+
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+
+    if (min > 100) {
+      const baseStart = min * 0.7;
+      const padding = (max - min) * 0.2; // More padding for better visibility
+      console.log(`Applying Y-axis offset: ${baseStart} to ${max + padding}`);
+      return [baseStart, max + padding];
+    }
+    const padding = (max - min) * 0.1;
+    return [0, max + padding];
+  };
+
+  const yAxisDomain = getYAxisDomain(chartData);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -599,10 +620,7 @@ export default function AvalancheMetrics() {
               <BarChart3 className="h-5 w-5 text-orange-500" />
               Daily Transaction Trends - Top L1s ({timeRange})
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Daily transaction volumes showing total activity across top L1s
-              for the selected time range
-            </p>
+            <p className="text-sm text-muted-foreground">Stacked daily transaction volumes showing total activity across top L1s for the selected time range</p>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[350px] w-full">
@@ -670,6 +688,7 @@ export default function AvalancheMetrics() {
                   }}
                 />
                 <YAxis
+                  domain={yAxisDomain}
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
