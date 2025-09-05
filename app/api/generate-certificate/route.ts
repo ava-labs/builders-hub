@@ -11,10 +11,10 @@ const courseMapping: Record<string, string> = {
 
 const certificateTemplates: Record<string, string> = {
   'avalanche-fundamentals': 'AvalancheAcademy_Certificate.pdf',
-  'codebase-entrepreneur-foundations': 'EntrepreneurAcademy_Foundations_Certificate.pdf',
-  'codebase-entrepreneur-go-to-market': 'EntrepreneurAcademy_GTM_Certificate.pdf',
-  'codebase-entrepreneur-community': 'EntrepreneurAcademy_Community_Certificate.pdf',
-  'codebase-entrepreneur-fundraising': 'EntrepreneurAcademy_Fundraising_Certificate.pdf',
+  'codebase-entrepreneur-foundations': 'CodebaseEntrepreneur_Foundations_Certificate.pdf',
+  'codebase-entrepreneur-go-to-market': 'CodebaseEntrepreneur_GTM_Certificate.pdf',
+  'codebase-entrepreneur-community': 'CodebaseEntrepreneur_Community_Certificate.pdf',
+  'codebase-entrepreneur-fundraising': 'CodebaseEntrepreneur_Fundraising_Certificate.pdf',
 };
 
 function getCourseName(courseId: string): string {
@@ -22,22 +22,43 @@ function getCourseName(courseId: string): string {
 }
 
 function getCertificateTemplate(courseId: string): string {
-  return certificateTemplates[courseId] || 'AvalancheAcademy_Certificate.pdf';
+  // Check if we have a specific template for this course
+  if (certificateTemplates[courseId]) {
+    return certificateTemplates[courseId];
+  }
+
+  // Fallback for codebase entrepreneur courses
+  if (courseId.startsWith('codebase-entrepreneur')) {
+    return 'CodebaseEntrepreneur_Certificate.pdf';
+  }
+
+  // Default fallback
+  return 'AvalancheAcademy_Certificate.pdf';
 }
 
 export async function POST(req: NextRequest) {
   try {
     const { courseId, userName } = await req.json();
+    console.log('Certificate request:', { courseId, userName });
+
     if (!courseId || !userName) { return NextResponse.json({ error: 'Missing required fields' }, { status: 400 }); }
     const courseName = getCourseName(courseId);
     const templateFile = getCertificateTemplate(courseId);
+    console.log('Template info:', { courseName, templateFile });
+
     const protocol = req.headers.get('x-forwarded-proto') || 'http';
     const host = req.headers.get('host') || 'localhost:3000';
     const serverUrl = `${protocol}://${host}`;
     const templateUrl = `${serverUrl}/certificates/${templateFile}`;
-    const templateResponse = await fetch(templateUrl);
+    console.log('Fetching template from:', templateUrl);
 
-    if (!templateResponse.ok) { throw new Error(`Failed to fetch template: ${templateFile}`); }
+    const templateResponse = await fetch(templateUrl);
+    console.log('Template response status:', templateResponse.status);
+
+    if (!templateResponse.ok) {
+      console.error('Failed to fetch template:', templateFile, 'Status:', templateResponse.status);
+      throw new Error(`Failed to fetch template: ${templateFile} (Status: ${templateResponse.status})`);
+    }
 
     const templateArrayBuffer = await templateResponse.arrayBuffer();
     const pdfDoc = await PDFDocument.load(templateArrayBuffer);
@@ -45,12 +66,18 @@ export async function POST(req: NextRequest) {
 
     try {
       // fills the form fields in our certificate template
+      console.log('Filling form fields for template:', templateFile);
+      const fields = form.getFields();
+      console.log('Available form fields:', fields.map(field => field.getName()));
+
       form.getTextField('FullName').setText(userName);
       form.getTextField('Class').setText(courseName);
       form.getTextField('Awarded').setText(new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }));
       form.getTextField('Id').setText(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
     } catch (error) {
-      throw new Error('Failed to fill form fields');
+      console.error('Error filling form fields:', error);
+      console.error('Available form fields:', form.getFields().map(field => field.getName()));
+      throw new Error(`Failed to fill form fields: ${(error as Error).message}`);
     }
 
     form.flatten();
