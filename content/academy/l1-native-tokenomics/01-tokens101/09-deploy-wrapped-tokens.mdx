@@ -15,90 +15,56 @@ In this section, we will deploy and interact with a wrapped token using the Dev 
 <Step>
 
 #### 1. Deploy Wrapped Native Token with the Dev Console
-Use the Dev Console to deploy a wrapped native token without setting up a local project.
+Use the Dev Console to easily deploy a wrapped native token without any setup or command line tools.
 
-Steps:
-- Open the Dev Console → L1 → Genesis Builder
-- Go to “Pre-Deployed Contracts” and enable “Wrapped Native Token”
-- Generate the genesis and launch your L1 (or use your existing L1 if already configured)
-- After launch, note the Wrapped Token address shown for your L1 in the Dev Console
+The Dev Console provides a simple interface to deploy wrapped native tokens directly from your browser. This eliminates the need to:
+- Set up a local development environment
+- Install and configure Foundry
+- Manage private keys manually
+- Write deployment scripts
 
-If you need a reference implementation, here is a minimal wrapper in Solidity:
-
-```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-contract WrappedToken is ERC20 {
-    address public nativeTokenHolder;
-
-    constructor() ERC20("Wrapped Token", "WTKN") {}
-
-    function deposit() external payable {
-        _mint(msg.sender, msg.value);
-        nativeTokenHolder = msg.sender;
-    }
-
-    function withdraw(uint256 amount) external {
-        _burn(msg.sender, amount);
-        payable(msg.sender).transfer(amount);
-    }
-}
-```
+You can deploy a wrapped native token in just a few clicks using the integrated deployment tool below.
 
 </Step>
 <Step>
 
-### Open the Dev Console Inline
+### Deploy Your Wrapped Native Token
 
-<ToolboxMdxWrapper />
+Use the integrated Dev Console below to deploy your wrapped native token:
+
+<ToolboxMdxWrapper toolName="DeployWrappedNative" />
 
 </Step>
 
 <Step>
 
-### Save the Wrapped Token Address
+### Note Your Wrapped Token Address
 
-Save the `Deployed to` address in an environment variable.
-
-```bash
-export WRAPPED_TOKEN=<address>
-```
+After deployment, the Dev Console will display your wrapped token address. You can copy this address for use in other tools and interactions. The address will be automatically saved in the Dev Console session for easy reference across different tools.
 
 </Step>
 
 <Step>
 
-### Interacting with the Deployed Contract
-Once the wrapper is deployed via the Dev Console, you can interact with it using the console tools or any ERC‑20 compatible wallet/tooling.
+### Interacting with Your Wrapped Token
 
+Once deployed, you can interact with your wrapped native token using various methods:
 
-<Accordions>
-<Accordion title="Depositing Native Tokens (Wrapping)">
+**Using the Dev Console:**
+- The Dev Console provides additional tools for interacting with ERC-20 tokens
+- Look for token interaction tools in the ICTT section
+- These tools provide a user-friendly interface without requiring command-line knowledge
 
-To deposit native tokens and mint wrapped tokens, use the following `cast send` command:
+**Using Wallets:**
+- Import the token address into MetaMask or other EVM-compatible wallets
+- The wrapped token will appear as a standard ERC-20 token
+- You can send, receive, and view balances directly in your wallet
 
-```bash
-cast send $WRAPPED_TOKEN "deposit()" --value <AMOUNT> --rpc-url myblockchain --private-key $PK
-```
+**Key Functions:**
+- **Deposit/Wrap**: Convert native tokens to wrapped tokens (increases your wrapped token balance)
+- **Withdraw/Unwrap**: Convert wrapped tokens back to native tokens (decreases your wrapped token balance)
 
-- `<AMOUNT>`: The amount of native tokens you want to wrap (in wei).
-</Accordion>
-<Accordion title="Withdrawing Native Tokens (Unwrapping)">
-
-To burn the wrapped tokens and retrieve the equivalent amount of native tokens:
-
-```bash
-cast send $WRAPPED_TOKEN "withdraw(uint256)" <AMOUNT> --rpc-url myblockchain --private-key $PK
-```
-
-- `<AMOUNT>`: The number of wrapped tokens to burn and convert back to native tokens.
-</Accordion>
-</Accordions>
-
-You can use the following page for [**wei conversions**](https://snowtrace.io/unitconverter).
+The wrapped token maintains a 1:1 ratio with the native token, making it perfect for DeFi integrations and cross-chain applications.
 
 </Step>
 
