@@ -109,6 +109,134 @@ export const convertAngleBracketLinks: TransformFunction = (content) => {
   return content.replace(/<((https?:\/\/[^\s>]+))>/g, '[$2]($1)');
 };
 
+export const escapeJSXExpressions: TransformFunction = (content) => {
+  // Escape problematic JSX-like expressions in markdown that cause acorn parsing errors
+  // But preserve actual MDX comments and JSX attributes
+  let result = content;
+  
+  // Helper function to check if we're in a code context
+  const isInCodeContext = (text: string, offset: number): boolean => {
+    // Check if we're inside a code block
+    const codeBlockRegex = /```[\s\S]*?```/g;
+    let m;
+    while ((m = codeBlockRegex.exec(text)) !== null) {
+      if (m.index <= offset && offset < m.index + m[0].length) {
+        return true;
+      }
+    }
+    
+    // Check if we're inside an inline code span
+    const beforeCode = text.substring(0, offset);
+    const afterCode = text.substring(offset);
+    const beforeBackticks = (beforeCode.match(/`/g) || []).length;
+    const afterBackticks = (afterCode.match(/`/g) || []).length;
+    if (beforeBackticks % 2 === 1) {
+      return true;
+    }
+    
+    return false;
+  };
+  
+  // Escape all curly braces that aren't in code contexts or JSX attributes
+  result = result.replace(/\{/g, (match, offset) => {
+    // Skip if already escaped
+    if (offset > 0 && result[offset - 1] === '\\') {
+      return match;
+    }
+    
+    // Check if this is inside a JSX attribute (style, className, etc.)
+    const beforeMatch = result.substring(Math.max(0, offset - 20), offset);
+    if (beforeMatch.match(/\w+=$/)) {
+      // This is likely a JSX attribute value, don't escape
+      return match;
+    }
+    
+    // Check if we're in a code context
+    if (isInCodeContext(result, offset)) {
+      return match;
+    }
+    
+    // Check if this starts an MDX comment
+    if (result.substring(offset, offset + 3) === '{/*') {
+      return match;
+    }
+    
+    return '\\{';
+  });
+  
+  result = result.replace(/\}/g, (match, offset) => {
+    // Skip if already escaped (check for preceding \{)
+    const beforeMatch = result.substring(Math.max(0, offset - 50), offset);
+    if (beforeMatch.includes('\\{') && !beforeMatch.includes('\\}')) {
+      // There's an unmatched escaped opening brace, so we should escape this too
+    }
+    
+    // Check if this is inside a JSX attribute (style, className, etc.)
+    const beforeMatchShort = result.substring(Math.max(0, offset - 20), offset);
+    if (beforeMatchShort.match(/\w+=.*$/)) {
+      // This is likely a JSX attribute value, don't escape
+      return match;
+    }
+    
+    // Check if we're in a code context
+    if (isInCodeContext(result, offset)) {
+      return match;
+    }
+    
+    // Check if this ends an MDX comment
+    if (result.substring(offset - 2, offset + 1) === '*/}') {
+      return match;
+    }
+    
+    return '\\}';
+  });
+  
+  return result;
+};
+
+export const escapeGenericTypes: TransformFunction = (content) => {
+  // Escape generic type syntax that can cause MDX parsing issues
+  // e.g., Record<string, Type> becomes Record&lt;string, Type&gt;
+  return content
+    // Handle generic types in table cells (but not in code blocks or inline code)
+    .replace(/([A-Za-z_][A-Za-z0-9_]*)<([^>]+)>/g, (match, typeName, genericParams, offset) => {
+      // Check if we're inside a code block
+      const beforeMatch = content.substring(0, offset);
+      const afterMatch = content.substring(offset + match.length);
+      
+      // Count backticks to see if we're in inline code
+      const beforeBackticks = (beforeMatch.match(/`/g) || []).length;
+      const afterBackticks = (afterMatch.match(/`/g) || []).length;
+      if (beforeBackticks % 2 === 1 && afterBackticks % 2 === 1) {
+        // We're inside inline code, don't escape
+        return match;
+      }
+      
+      // Check if we're in a code block
+      const codeBlockRegex = /```[\s\S]*?```/g;
+      let isInCodeBlock = false;
+      let m;
+      while ((m = codeBlockRegex.exec(content)) !== null) {
+        if (m.index <= offset && offset < m.index + m[0].length) {
+          isInCodeBlock = true;
+          break;
+        }
+      }
+      if (isInCodeBlock) {
+        return match;
+      }
+      
+      // Check if this looks like an HTML tag (has attributes or is self-closing)
+      if (genericParams.includes('=') || match.endsWith('/>')) {
+        // This is likely actual HTML/JSX, don't escape
+        return match;
+      }
+      
+      // Escape the angle brackets
+      return `${typeName}&lt;${genericParams}&gt;`;
+    });
+};
+
 export const fixUnicodeMathSymbols: TransformFunction = (content) => {
   return content
     // Replace mathematical comparison operators (Unicode)
@@ -163,6 +291,8 @@ export const crossChainPipeline: TransformFunction[] = [
 
 export const sdksPipeline: TransformFunction[] = [
   fixDetailsTags,
+  escapeJSXExpressions,
+  escapeGenericTypes,
   ...defaultPipeline,
 ];
 
