@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { FileConfig } from './shared.mts';
+import { smartSplitSlugToTitle } from './string-utils.mts';
 
 interface GitHubTreeItem {
   path: string;
@@ -106,13 +107,7 @@ function mapDocsToConfigs(
     };
 
     // Build a human title from a slug (fallback)
-    const toTitle = (slug: string) => slugTitleMap[slug] || slug
-      .replace(/\.(md|mdx)$/i, '')
-      .replace(/[-_]/g, ' ')
-      .split(' ')
-      .filter(Boolean)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+    const toTitle = (slug: string) => slugTitleMap[slug] || smartSplitSlugToTitle(slug);
 
     // Determine a better slug candidate for section titles
     let slugCandidate = filenameBase;

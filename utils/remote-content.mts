@@ -1,5 +1,6 @@
 // Main orchestrator script for remote content processing
 import { updateGitignore, processFile, type FileConfig } from './remote-content/shared.mts';
+import { parsers } from './remote-content/parsers/index.mts';
 import { getCrossChainConfigs } from './remote-content/cross-chain.mts';
 import { getApisConfigs } from './remote-content/apis.mts';
 import { getPrimaryNetworkConfigs } from './remote-content/primary-network.mts';
@@ -14,7 +15,7 @@ async function processSection(sectionName: string, configs: FileConfig[]): Promi
   console.log(`\n🔄 Processing ${sectionName} section (${configs.length} files)...`);
   
   for (const fileConfig of configs) {
-    await processFile(fileConfig);
+    await processFile(fileConfig, parsers[sectionName]);
   }
   
   console.log(`✅ Completed ${sectionName} section`);
