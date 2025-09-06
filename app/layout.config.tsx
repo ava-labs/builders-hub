@@ -115,7 +115,7 @@ export const stats: LinkItemType = {
 export const docsMenu: LinkItemType = {
   type: 'menu',
   text: 'Docs',
-  url: '/docs/quick-start',
+  url: '/docs',
   items: [
     {
       menu: {
@@ -136,13 +136,13 @@ export const docsMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Sprout />,
-      text: 'Avalanche Protocol',
-      description: 'Learn about the Avalanche Protocol',
+      text: 'Quick Start',
+      description: 'Get started with Avalanche',
       url: '/docs/quick-start',
     },
     {
       icon: <Logs />,
-      text: 'Avalanche L1s',
+      text: 'Layer 1s',
       description:
         "Build your own sovereign Layer 1 blockchain using Avalanche's battle-tested infrastructure and tooling.",
       url: '/docs/avalanche-l1s',

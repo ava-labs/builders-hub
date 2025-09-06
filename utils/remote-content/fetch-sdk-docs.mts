@@ -132,8 +132,8 @@ function mapDocsToConfigs(
     if (sdkDisplay) {
       if (isReadme && pathParts.length === 2) {
         // Top-level SDK README (e.g., chainkit/README.md)
-        title = `${sdkDisplay} SDK Overview`;
-        description = `Overview and guide for the ${sdkDisplay} SDK.`;
+        title = `${sdkDisplay} SDK`;
+        description = `Guide for the ${sdkDisplay} SDK.`;
       } else {
         // Child pages should not be prefixed with SDK name
         title = titleBase;
