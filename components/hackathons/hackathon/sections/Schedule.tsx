@@ -262,13 +262,18 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                                 </div>
                               )}
                               {!activityIsOcurring && dateIsCurrentDate && (
-                                <div className='border dark:bg-zinc-800 bg-zinc-300 flex items-center justify-center gap-1 rounded-full text-xs font-medium text-center w-1/3 sm:w-auto sm:px-3 py-1 border-none'>
+                                <Link
+                                  href='https://calendar.google.com/calendar/u/0?cid=Y182Yzc1ODAyNWRlNDIxNTNkZjFkNTljMmRiOTMyMWM5YzhmYTM5ZWEzZWE0M2I0ZGJlZDlkMDhhNjdkOWU5Y2NjQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20'
+                                  target='_blank'
+                                  rel='noopener noreferrer'
+                                  className='border dark:bg-zinc-800 bg-zinc-300 flex items-center justify-center gap-1 rounded-full text-xs font-medium text-center w-1/3 sm:w-auto sm:px-3 py-1 border-none'
+                                >
                                   <LinkIcon
                                     size={16}
                                     className='!text-zinc-900 dark:!text-zinc-50'
                                   />
-                                  Zoom
-                                </div>
+                                  Get Link in Agenda
+                                </Link>
                               )}
                             </div>
                             <div className='flex flex-col items-center justify-center h-full'>
