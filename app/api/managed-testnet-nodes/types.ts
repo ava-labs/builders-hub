@@ -27,6 +27,16 @@ export interface CreateNodeRequest {
   blockchainId: string;
 }
 
+export interface CreateNodeResponse {
+  node: any; // Will be NodeRegistration from Prisma
+  nodeID: string;
+  nodePOP: {
+    publicKey: string;
+    proofOfPossession: string;
+  };
+  nodeIndex: number;
+}
+
 // Zod schemas for runtime validation
 export const NodeInfoSchema = z.object({
   nodeIndex: z.number().int().nonnegative(),
