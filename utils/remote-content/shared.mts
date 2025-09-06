@@ -345,6 +345,11 @@ edit_url: ${safeEditUrl}
     }
 
     // Escape backticks to avoid breaking the template literal
+    // Important: escape backslashes first to prevent sequences like \uXXXX from being parsed
+    inner = inner.replace(/\\/g, '\\\\');
+    // Escape template literal interpolation markers
+    inner = inner.replace(/\$\{/g, '\\\${');
+    // Finally, escape backticks
     inner = inner.replace(/`/g, '\\`');
 
     return `<Mermaid chart={\`${inner}\`} />`;
