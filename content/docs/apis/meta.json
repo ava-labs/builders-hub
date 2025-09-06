@@ -4,7 +4,6 @@
   "icon": "Settings",
   "root": true,
   "pages": [
-    "index",
     "---Primary Network---",
    "c-chain",
    "p-chain",

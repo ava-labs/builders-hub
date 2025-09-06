@@ -225,8 +225,8 @@ export async function getAllSDKConfigs(): Promise<FileConfig[]> {
   // Add main Avalanche SDK TypeScript README
   configs.push({
     sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanche-sdk-typescript/main/README.md",
-    outputPath: "content/docs/sdks/avalanche-sdk-typescript/installation.mdx",
-    title: "Installation",
+    outputPath: "content/docs/sdks/avalanche-sdk-typescript/overview.mdx",
+    title: "Overview",
     description: "This page is an overview of the Avalanche SDK Typescript installation.",
     contentUrl: "https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/",
   });

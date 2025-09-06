@@ -4,9 +4,8 @@
     "icon": "Code",
     "root": true,
     "pages": [
-      "index",
       "---Avalanche SDK Typescript---",
-      "avalanche-sdk-typescript/installation",
+      "avalanche-sdk-typescript/overview",
       "avalanche-sdk-typescript/chainkit",
       "avalanche-sdk-typescript/client",
       "avalanche-sdk-typescript/interchain",

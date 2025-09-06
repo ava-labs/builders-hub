@@ -31,13 +31,6 @@ export function getPrimaryNetworkConfigs(): FileConfig[] {
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/config/",
     },
     {
-      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/subnets/config.md",
-      outputPath: "content/docs/primary-network/configure/avalanche-l1-configs.mdx",
-      title: "Avalanche L1 Configs",
-      description: "This page describes the configuration options available for Avalanche L1s.",
-      contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/subnets/",
-    },
-    {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/cube-signer-sidecar/main/README.md",
       outputPath: "content/docs/primary-network/configure/cube-signer.mdx",
       title: "Cube Signer Sidecar",

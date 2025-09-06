@@ -155,6 +155,9 @@ package-lock.json
 
 
 
+
+
+
 # Remote content output paths
 content/docs/acps/103-dynamic-fees.mdx
 content/docs/acps/108-evm-event-importing.mdx
@@ -195,8 +198,11 @@ content/docs/apis/metrics-api.mdx
 content/docs/apis/p-chain/api.mdx
 content/docs/apis/subnet-evm-api.mdx
 content/docs/apis/x-chain/api.mdx
+content/docs/avalanche-l1s/configure/avalanche-l1-configs.mdx
 content/docs/avalanche-l1s/subnet-evm/config.mdx
 content/docs/avalanche-l1s/validator-manager/contract.mdx
+content/docs/avalanche-l1s/validator-manager/pos-migration.mdx
+content/docs/avalanche-l1s/validator-manager/state-transition.mdx
 content/docs/cross-chain/avalanche-warp-messaging/deep-dive.mdx
 content/docs/cross-chain/avalanche-warp-messaging/evm-integration.mdx
 content/docs/cross-chain/avalanche-warp-messaging/run-relayer.mdx
@@ -214,7 +220,6 @@ content/docs/primary-network/chain-configs/p-chain/p-chain.mdx
 content/docs/primary-network/chain-configs/p-chain/subnets.mdx
 content/docs/primary-network/chain-configs/p-chain/validators-versioning.mdx
 content/docs/primary-network/chain-configs/x-chain.mdx
-content/docs/primary-network/configure/avalanche-l1-configs.mdx
 content/docs/primary-network/configure/configs-flags.mdx
 content/docs/primary-network/configure/cube-signer.mdx
 content/docs/sdks/avalanche-sdk-typescript/chainkit/CONTRIBUTING.mdx
@@ -809,8 +814,8 @@ content/docs/sdks/avalanche-sdk-typescript/chainkit/sdks/webhooks/index.mdx
 content/docs/sdks/avalanche-sdk-typescript/client/TYPEDOC.mdx
 content/docs/sdks/avalanche-sdk-typescript/client/examples/index.mdx
 content/docs/sdks/avalanche-sdk-typescript/client/index.mdx
-content/docs/sdks/avalanche-sdk-typescript/installation.mdx
 content/docs/sdks/avalanche-sdk-typescript/interchain/index.mdx
+content/docs/sdks/avalanche-sdk-typescript/overview.mdx
 content/docs/sdks/avalanchejs/installation.mdx
 content/docs/tooling/cli-commands.mdx
 

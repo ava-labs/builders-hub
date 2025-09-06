@@ -8,9 +8,6 @@
     "index",
     "avalanche-consensus",
     "avax-token",
-    "---Networks---",
-    "networks/mainnet",
-    "networks/fuji-testnet",
     "---Run a Node---",
     "system-requirements",
     "using-install-script",
@@ -20,14 +17,15 @@
     "on-third-party-services",
     "run-a-node/common-errors",
     "---Configure a Node---",
-    "configure",
+    "configure/configs-flags",
+    "configure/cube-signer",
     "chain-configs",
+    "---Maintain a Node---",
+    "...maintain",
     "---Validation & Staking---",
     "validate/validate-vs-delegate",
     "validate/how-to-stake",
     "validate/node-validator",
-    "rewards-formula",
-    "---Maintenance---",
-    "...maintain"
+    "rewards-formula"
   ]
 }

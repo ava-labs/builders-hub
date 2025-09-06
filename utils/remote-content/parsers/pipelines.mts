@@ -58,6 +58,20 @@ export const fixMalformedHTML: TransformFunction = (content) => {
   return fixed;
 };
 
+export const fixImageAltText: TransformFunction = (content) => {
+  // Fix malformed img tags where alt attribute is placed outside the tag
+  // This specific pattern appears in SDK documentation where the alt text is misplaced
+  let fixed = content;
+  
+  // Pattern: <img src="..." /> alt="text" />
+  fixed = fixed.replace(/(<img\s+[^>]*?)\s*\/>\s*alt="([^"]*?)"\s*\/>/gi, '$1 alt="$2" />');
+  
+  // Handle pattern without the trailing />
+  fixed = fixed.replace(/(<img\s+[^>]*?)\s*\/>\s*alt="([^"]*?)"\s*(?!\/)/gi, '$1 alt="$2" />');
+  
+  return fixed;
+};
+
 export const aggressivelyFixMalformedHTML: TransformFunction = (content) => {
   return content
     // Fix tags with spaces, like < / div >
@@ -146,6 +160,17 @@ export const convertAngleBracketLinks: TransformFunction = (content) => {
   // Finds raw http links inside angle brackets and converts them to markdown links.
   // e.g., <http://example.com> -> [http://example.com](http://example.com)
   return content.replace(/<((https?:\/\/[^\s>]+))>/g, '[$2]($1)');
+};
+
+export const convertMermaidBlocks: TransformFunction = (content) => {
+  // Convert standard Mermaid code blocks to <Mermaid> component format
+  return content.replace(/```mermaid\n([\s\S]*?)\n```/g, (match, diagramContent) => {
+    // Escape backticks in the diagram content for the template literal
+    const escapedContent = diagramContent.replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+    
+    // Return the Mermaid component with the diagram content
+    return `<Mermaid chart={\`${escapedContent}\`} />`;
+  });
 };
 
 export const escapeJSXExpressions: TransformFunction = (content) => {
@@ -329,15 +354,22 @@ export const crossChainPipeline: TransformFunction[] = [
 ];
 
 export const sdksPipeline: TransformFunction[] = [
+  fixImageAltText,
   escapeJSXExpressions,
   escapeGenericTypes,
   fixHTMLTags,
   ...defaultPipeline,
 ];
 
+export const avalancheL1sPipeline: TransformFunction[] = [
+  convertMermaidBlocks,
+  ...defaultPipeline,
+];
+
 export const acpsPipeline: TransformFunction[] = [
   aggressivelyFixMalformedHTML,
   convertAngleBracketLinks,
+  convertMermaidBlocks,
   fixUnicodeMathSymbols,
   fixCodeBlockLanguage,
   ...defaultPipeline,
