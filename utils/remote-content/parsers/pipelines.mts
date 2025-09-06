@@ -86,21 +86,47 @@ export const removeInvalidClosingTags: TransformFunction = (content) => {
   return content.replace(/<\/img>/g, '');
 };
 
-export const fixDetailsTags: TransformFunction = (content) => {
+export const fixHTMLTags: TransformFunction = (content) => {
   let fixed = content;
 
   // First, fix any escaped HTML entities in common HTML tags
   fixed = fixed
+    // Details and summary tags
     .replace(/&lt;\/summary&gt;/gi, '</summary>')
     .replace(/&lt;summary&gt;/gi, '<summary>')
     .replace(/&lt;\/details&gt;/gi, '</details>')
     .replace(/&lt;details&gt;/gi, '<details>')
+    // Text formatting tags
     .replace(/&lt;\/ins&gt;/gi, '</ins>')
     .replace(/&lt;ins&gt;/gi, '<ins>')
     .replace(/&lt;\/del&gt;/gi, '</del>')
     .replace(/&lt;del&gt;/gi, '<del>')
     .replace(/&lt;\/mark&gt;/gi, '</mark>')
-    .replace(/&lt;mark&gt;/gi, '<mark>');
+    .replace(/&lt;mark&gt;/gi, '<mark>')
+    // Heading tags
+    .replace(/&lt;\/h([1-6])&gt;/gi, '</h$1>')
+    .replace(/&lt;h([1-6])&gt;/gi, '<h$1>')
+    // Common inline tags
+    .replace(/&lt;\/strong&gt;/gi, '</strong>')
+    .replace(/&lt;strong&gt;/gi, '<strong>')
+    .replace(/&lt;\/em&gt;/gi, '</em>')
+    .replace(/&lt;em&gt;/gi, '<em>')
+    .replace(/&lt;\/code&gt;/gi, '</code>')
+    .replace(/&lt;code&gt;/gi, '<code>')
+    .replace(/&lt;\/a&gt;/gi, '</a>')
+    .replace(/&lt;a&gt;/gi, '<a>')
+    // Block-level tags
+    .replace(/&lt;\/div&gt;/gi, '</div>')
+    .replace(/&lt;div&gt;/gi, '<div>')
+    .replace(/&lt;\/p&gt;/gi, '</p>')
+    .replace(/&lt;p&gt;/gi, '<p>')
+    // List tags
+    .replace(/&lt;\/ul&gt;/gi, '</ul>')
+    .replace(/&lt;ul&gt;/gi, '<ul>')
+    .replace(/&lt;\/ol&gt;/gi, '</ol>')
+    .replace(/&lt;ol&gt;/gi, '<ol>')
+    .replace(/&lt;\/li&gt;/gi, '</li>')
+    .replace(/&lt;li&gt;/gi, '<li>');
 
   // Forcefully ensure that details, summary, and closing details tags
   // are treated as block-level elements by wrapping them in newlines.
@@ -305,7 +331,7 @@ export const crossChainPipeline: TransformFunction[] = [
 export const sdksPipeline: TransformFunction[] = [
   escapeJSXExpressions,
   escapeGenericTypes,
-  fixDetailsTags,
+  fixHTMLTags,
   ...defaultPipeline,
 ];
 
