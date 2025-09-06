@@ -12,6 +12,7 @@ import { SearchRootProvider } from "./searchRootProvider";
 import { Banner } from "fumadocs-ui/components/banner";
 import "./global.css";
 import "katex/dist/katex.css";
+import { ClientProvider } from './layout.client';
 
 export const metadata = createMetadata({
   title: {
@@ -38,6 +39,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
     >
       <PHProvider>
+      <ClientProvider>
         <body className="flex min-h-screen flex-col">
           <SearchRootProvider>{children}</SearchRootProvider>
           <Chatbot />
@@ -45,6 +47,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <PrivacyPolicyBox />
           </div>
         </body>
+        </ClientProvider>
       </PHProvider>
     </html>
   );

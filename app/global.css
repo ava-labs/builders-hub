@@ -1,12 +1,128 @@
-@import 'tailwindcss';
-@import 'leaflet/dist/leaflet.css';
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
-@import 'fumadocs-ui/css/neutral.css';
-@import 'fumadocs-ui/css/preset.css';
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
 
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
 @plugin 'tailwindcss-animate';
+
+@layer base {
+  :root {
+    /* Light mode variables */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 5%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5%;
+    --primary: 0 0% 10%;
+    --primary-foreground: 0 0% 99%;
+    --secondary: 0 0% 93%;
+    --secondary-foreground: 0 0% 12%;
+    --muted: 0 0% 93%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 0 0% 93%;
+    --accent-foreground: 0 0% 12%;
+    --border: 0 0% 86%;
+    --input: 0 0% 86%;
+    --ring: 0 0% 10%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark mode variables */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 4%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 0 0% 90%;
+    --primary-foreground: 0 0% 5%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 90%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 100%;
+    --border: 0 0% 14%;
+    --input: 0 0% 14%;
+    --ring: 0 0% 80%;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-radial {
+    background-image: radial-gradient(circle, var(--tw-gradient-stops));
+  }
+  .bg-repeat-gradient-to-r {
+    background-image: repeating-linear-gradient(
+      to right,
+      var(--tw-gradient-stops)
+    );
+  }
+  .bg-repeat-gradient-to-br {
+    background-image: repeating-linear-gradient(
+      to bottom right,
+      var(--tw-gradient-stops)
+    );
+  }
+}
+
+@layer utilities {
+  @keyframes stroke {
+    from {
+      stroke-dasharray: 1000;
+    }
+    to {
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 2000;
+    }
+  }
+  .animate-stroke {
+    animation: stroke 5s linear infinite;
+  }
+}
+
+@layer base {
+  :root {
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
+  }
+  button {
+    cursor: pointer;
+  }
+}
+/* @plugin "@tailwindcss/typography"; */
+
+@layer utilities {
+  .border-opacity-[amount] {
+    border-color: color-mix(
+      in srgb,
+      currentColor,
+      transparent calc(100% - var(--amount))
+    );
+  }
+}
+
+@layer utilities {
+  .text-opacity-[amount] {
+    color: color-mix(
+      in srgb,
+      currentColor,
+      transparent calc(100% - var(--amount))
+    );
+  }
+}
+
+/* .light .prose :where(a:not([data-card])):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+    color: #18181B; 
+  }
+  .light .prose :where(h3):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+    color: #18181B; 
+  } */
 
 @media (min-width: 768px) {
   #nd-sidebar > div:first-child {
@@ -17,12 +133,12 @@
 
 .prose
   :where(ul > li):not(
-    :where([class~='not-prose'], [class~='not-prose'] *)
+    :where([class~="not-prose"], [class~="not-prose"] *)
   )::marker {
   color: #e84142;
 }
 
-div.group\/accordion h3  {
+div.group\/accordion h3 {
   margin-top: 0 !important;
 }
 
@@ -235,31 +351,31 @@ nav a:not(:first-child) {
 }
 
 @media (max-width: 639px) {
-  [data-state='open'][data-orientation='horizontal'] {
+  [data-state="open"][data-orientation="horizontal"] {
     max-height: 75vh !important;
     overflow-y: auto !important;
     overscroll-behavior: contain !important;
   }
 
-  [data-state='open'][data-orientation='horizontal']::-webkit-scrollbar {
+  [data-state="open"][data-orientation="horizontal"]::-webkit-scrollbar {
     width: 4px;
   }
 
-  [data-state='open'][data-orientation='horizontal']::-webkit-scrollbar-thumb {
+  [data-state="open"][data-orientation="horizontal"]::-webkit-scrollbar-thumb {
     background-color: rgba(156, 163, 175, 0.5);
     border-radius: 2px;
   }
 
-  div[class*='flex flex-col sm:hidden']:nth-last-of-type(-n + 3) > a {
+  div[class*="flex flex-col sm:hidden"]:nth-last-of-type(-n + 3) > a {
     display: none;
   }
 
   /* for hiding avagpt */
-  [data-open='true'] {
+  [data-open="true"] {
     z-index: 250;
   }
 
-  [data-state='open'] {
+  [data-state="open"] {
     z-index: 450;
   }
 }
@@ -526,7 +642,7 @@ html body[data-scroll-locked] {
     );
   }
 
-    .bg-repeat-gradient-to-br {
+  .bg-repeat-gradient-to-br {
     background-image: repeating-linear-gradient(
       to bottom right,
       var(--tw-gradient-stops)
@@ -578,3 +694,229 @@ html body[data-scroll-locked] {
     display: none;
   }
 }
+
+
+.list-none a {
+    white-space: nowrap;
+  }
+  
+  .custom-markdown-editor .mdxeditor-toolbar {
+    background-color: #27272ab2 !important;
+    width: fit-content;
+    color: #fafafa !important;
+  
+    ._selectTrigger_uazmk_307 {
+      background-color: #fafafa !important;
+      color: #27272ab2 !important;
+    }
+    ._selectTrigger_uazmk_307 svg {
+      color: #27272ab2 !important;
+    }
+    svg {
+      color: #fafafa !important;
+    }
+  }
+  
+  .custom-markdown-editor {
+    ol,
+    ul,
+    menu {
+      margin-left: 24px;
+      list-style: revert;
+    }
+  }
+  
+  .custom-markdown-editor ._contentEditable_uazmk_379 {
+    min-height: 256px;
+    background-color: transparent;
+    border: solid 1px var(--default-border-color);
+    color: var(--primary-text-color);
+    border-radius: 6px;
+  
+    ._code_1tncs_52 {
+      color: #27272a;
+    }
+    h1 {
+      font-size: 2.25rem; /* Example size */
+      font-weight: 700; /* Example weight */
+    }
+  
+    h2 {
+      font-size: 1.875rem;
+      font-weight: 600;
+    }
+  
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+  
+    h4 {
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
+  
+    h5 {
+      font-size: 1.125rem;
+      font-weight: 400;
+    }
+  
+    h6 {
+      font-size: 1rem;
+      font-weight: 400;
+    }
+  }
+  
+  .mdxeditor-root-contenteditable {
+    margin-top: 20px !important;
+  }
+  
+  ._placeholder_uazmk_1084 {
+    color: #6b6b74 !important;
+  }
+  
+  ._toolbarToggleItem_uazmk_206[data-state="on"],
+  ._toolbarButton_uazmk_237[data-state="on"],
+  ._toolbarToggleItem_uazmk_206:active,
+  ._toolbarButton_uazmk_237:active {
+    background-color: #000 !important;
+  }
+  
+  /* For dark mode support */
+  @media (prefers-color-scheme: dark) {
+    ._placeholder_uazmk_1084 {
+      color: #a1a1aa !important;
+    }
+  }
+  
+  /* Dark mode, light mode variables */
+  
+  :root {
+    --primary-text-color: #18181b;
+    --secondary-text-color: #5a5a5f;
+    --white-text-color: #000;
+    --black-background-color: #fff;
+    --default-border-color: #d4d4d8;
+    --default-background-color: #fafafa;
+    --category-bg-color: #e4e4e7;
+    --drop-shadow: #ffffff66;
+    --category-bg: #f4f4f5;
+  }
+  
+  /* light */
+  .dark {
+    --primary-text-color: #fafafa;
+    --secondary-text-color: #9f9fa9;
+    --white-text-color: #fff;
+    --black-background-color: #000;
+    --default-border-color: #27272a;
+    --default-background-color: #09090b;
+    --category-bg-color: #27272a;
+    --drop-shadow: #16161699;
+    --category-bg: #18181b;
+  
+    .bg-card-grad {
+      background-image: url(../public/ambassador-dao-images/how-it-works.svg);
+      background-repeat: no-repeat;
+      background-position: right center;
+      background-size: cover;
+      position: relative;
+      border: none;
+    }
+  
+    header a[data-active="true"] {
+      color: #fafafa !important;
+    }
+  
+    .bg-welcome {
+      background-image: url(../public/ambassador-dao-images/welcome.svg);
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+  
+    .trophy {
+      background-image: url(../public/ambassador-dao-images/trophy.svg);
+      background-repeat: no-repeat;
+      background-position: right center;
+      background-size: contain;
+      position: relative;
+    }
+  }
+  .markdownDescription {
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+  
+    h2 {
+      font-size: 1.625rem;
+      font-weight: 600;
+    }
+  
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
+  
+    h4 {
+      font-size: 1rem;
+      font-weight: 500;
+    }
+  
+    h5 {
+      font-size: 0.875rem;
+      font-weight: 400;
+    }
+  
+    h6 {
+      font-size: 0.75rem;
+      font-weight: 400;
+    }
+  }
+  
+  header a[data-active="true"] {
+    color: #000000 !important;
+  }
+  
+  .bg-welcome {
+    background-image: url(../public/ambassador-dao-images/welcome2.svg);
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+  
+  .red-card-bg {
+    background-image: url(../public/ambassador-dao-images/red-card-bg.svg);
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: cover;
+    position: relative;
+  }
+  
+  .blue-card-bg {
+    background-image: url(../public/ambassador-dao-images/blue-card-bg.svg);
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: cover;
+    position: relative;
+  }
+  
+  .trophy {
+    background-image: url(../public/ambassador-dao-images/trophy.svg);
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: contain;
+    position: relative;
+  }
+  
+  .bg-card-grad {
+    background: linear-gradient(
+      91.94deg,
+      rgba(0, 0, 0, 0.12) 0%,
+      rgba(0, 0, 0, 0) 51.64%
+    );
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: cover;
+    position: relative;
+    border: 1px solid #f4f4f5;
+  }
