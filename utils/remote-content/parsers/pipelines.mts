@@ -89,6 +89,19 @@ export const removeInvalidClosingTags: TransformFunction = (content) => {
 export const fixDetailsTags: TransformFunction = (content) => {
   let fixed = content;
 
+  // First, fix any escaped HTML entities in common HTML tags
+  fixed = fixed
+    .replace(/&lt;\/summary&gt;/gi, '</summary>')
+    .replace(/&lt;summary&gt;/gi, '<summary>')
+    .replace(/&lt;\/details&gt;/gi, '</details>')
+    .replace(/&lt;details&gt;/gi, '<details>')
+    .replace(/&lt;\/ins&gt;/gi, '</ins>')
+    .replace(/&lt;ins&gt;/gi, '<ins>')
+    .replace(/&lt;\/del&gt;/gi, '</del>')
+    .replace(/&lt;del&gt;/gi, '<del>')
+    .replace(/&lt;\/mark&gt;/gi, '</mark>')
+    .replace(/&lt;mark&gt;/gi, '<mark>');
+
   // Forcefully ensure that details, summary, and closing details tags
   // are treated as block-level elements by wrapping them in newlines.
   // This is an aggressive approach to fix stubborn MDX parsing errors.
@@ -250,9 +263,9 @@ export const fixUnicodeMathSymbols: TransformFunction = (content) => {
     .replace(/⇔/g, '&lt;=&gt;')
     .replace(/\s<>\s/g, ' &lt;-&gt; ')
     .replace(/\s<->\s/g, ' &lt;-&gt; ')
-    // Replace ASCII comparison operators that can cause MDX issues
-    .replace(/([^<>=!])<=/g, '$1&lt;=')
-    .replace(/([^<>=!])>=/g, '$1&gt;=')
+    // Replace ASCII comparison operators that can cause MDX issues (but not HTML tags)
+    .replace(/([^<>=!\w/])<=/g, '$1&lt;=')
+    .replace(/([^<>=!\w/])>=/g, '$1&gt;=')
     // Fix table formatting issues with backslashes and asterisks
     .replace(/\\\*/g, '\\\\*')
     // Replace other common mathematical symbols that might cause MDX issues
@@ -290,9 +303,9 @@ export const crossChainPipeline: TransformFunction[] = [
 ];
 
 export const sdksPipeline: TransformFunction[] = [
-  fixDetailsTags,
   escapeJSXExpressions,
   escapeGenericTypes,
+  fixDetailsTags,
   ...defaultPipeline,
 ];
 
