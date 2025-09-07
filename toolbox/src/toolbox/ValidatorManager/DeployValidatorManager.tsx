@@ -13,6 +13,11 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Success } from "../../components/Success";
 import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
+import versions from "../../versions.json";
+
+const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+const VALIDATOR_MANAGER_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`;
+const VALIDATOR_MESSAGES_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorMessages.sol`;
 
 function calculateLibraryHash(libraryPath: string) {
     const hash = keccak256(
@@ -119,6 +124,9 @@ export default function DeployValidatorContracts() {
                             <p className="text-sm text-gray-500">
                                 This will deploy the <code>ValidatorMessages</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ValidatorMessages</code> is a library required by the <code>ValidatorManager</code> family of contracts.
                             </p>
+                            <p className="text-sm text-gray-500">
+                                Library source: <a href={VALIDATOR_MESSAGES_SOURCE_URL} target="_blank" rel="noreferrer">ValidatorMessages.sol</a> @ <code>{ICM_COMMIT.slice(0, 7)}</code>
+                            </p>
 
                             <Button
                                 variant="primary"
@@ -143,6 +151,9 @@ export default function DeployValidatorContracts() {
                             <h2 className="text-lg font-semibold">Deploy Validator Manager Contract</h2>
                             <p className="text-sm text-gray-500">
                                 This will deploy the <code>ValidatorManager</code> contract to the EVM network <code>{viemChain?.id}</code>. It is the interface for managing the validators for it's L1. The contract emits the ICM messages to change the L1s validator set on the P-Chain.
+                            </p>
+                            <p className="text-sm text-gray-500">
+                                Contract source: <a href={VALIDATOR_MANAGER_SOURCE_URL} target="_blank" rel="noreferrer">ValidatorManager.sol</a> @ <code>{ICM_COMMIT.slice(0, 7)}</code>
                             </p>
 
                             <Button

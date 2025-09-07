@@ -6,9 +6,10 @@ interface SuccessProps {
     label: string;
     value: string;
     isTestnet?: boolean;
+    xpChain?: "P" | "C";
 }
 
-export const Success = ({ label, value, isTestnet = true }: SuccessProps) => {
+export const Success = ({ label, value, isTestnet = true, xpChain = "P" }: SuccessProps) => {
     const [copied, setCopied] = useState(false);
     if (!value) return null;
 
@@ -25,7 +26,7 @@ export const Success = ({ label, value, isTestnet = true }: SuccessProps) => {
     
     const getExplorerUrl = () => {
         if (isPChainTxId) {
-            return `${baseUrl}/p-chain/tx/${value}`;
+            return `${baseUrl}/${xpChain === "P" ? "p-chain" : "c-chain"}/tx/${value}`;
         }
         return null;
     };

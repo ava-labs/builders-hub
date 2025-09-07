@@ -8,7 +8,6 @@
     "build:remote": "tsx ./utils/remote-content.mts",
     "start": "pnpm build:remote && next build && next start",
     "check-links": "tsx .github/linkChecker.ts",
-    "update-stats": "node ./scripts/update-stats.js",
     "postinstall": "prisma generate && fumadocs-mdx && cd toolbox && yarn"
   },
   "dependencies": {
@@ -17,6 +16,7 @@
     "@ai-sdk/react": "^1.2.12",
     "@avalabs/avacloud-sdk": "^0.12.2",
     "@avalabs/avalanchejs": "^5.0.0",
+    "@avalanche-sdk/client": "^0.0.4-alpha.13",
     "@fireworks-js/react": "^2.10.8",
     "@avalanche-sdk/chainkit": "^0.3.0-alpha.1",
     "@fumadocs/cli": "^0.2.1",

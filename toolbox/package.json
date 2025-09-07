@@ -28,6 +28,8 @@
   "dependencies": {
     "@avalabs/avacloud-sdk": "^0.12.1",
     "@avalabs/avalanchejs": "^5.0.0",
+    "@avalanche-sdk/client": "^0.0.4-alpha.13",
+    "@noble/secp256k1": "^3.0.0",
     "@radix-ui/react-alert-dialog": "^1.1.13",
     "@radix-ui/react-checkbox": "^1.2.3",
     "@radix-ui/react-dialog": "^1.1.11",
@@ -50,6 +52,7 @@
     "ethers": "^6.13.5",
     "fumadocs-ui": "^15.2.12",
     "lucide-react": "^0.483.0",
+    "next": "15.2.4",
     "non.geist": "^1.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

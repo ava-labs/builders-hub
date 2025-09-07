@@ -16,6 +16,9 @@ import { CheckWalletRequirements } from "../../components/CheckWalletRequirement
 import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 import { Checkbox } from "../../components/Checkbox";
 
+const PROXYADMIN_SOURCE_URL = "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.0/contracts/proxy/transparent/ProxyAdmin.sol";
+const TRANSPARENT_PROXY_SOURCE_URL = "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.0/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
 export default function DeployProxyContract() {
     const { showBoundary } = useErrorBoundary();
     const { coreWalletClient, publicClient } = useWalletStore();
@@ -123,6 +126,9 @@ export default function DeployProxyContract() {
                         <p className="text-sm text-gray-500">
                             This will deploy the <code>ProxyAdmin</code> contract to the EVM network <code>{viemChain?.id}</code>. <code>ProxyAdmin</code> is used to manage upgrades to the implementation for the proxy contract. For production L1s this should be a multisig wallet, since it can take full control over the L1 validator set by arbitrarily changing the implementation of the ValidatorManager contract.
                         </p>
+                        <p className="text-sm text-gray-500">
+                            Contract source: <a href={PROXYADMIN_SOURCE_URL} target="_blank" rel="noreferrer">ProxyAdmin.sol</a> @ <code>v4.9.0</code>
+                        </p>
 
                         <Button
                             variant="primary"
@@ -145,6 +151,9 @@ export default function DeployProxyContract() {
                         <h2 className="text-lg font-semibold">Deploy Transparent Proxy Contract</h2>
                         <p className="text-sm text-gray-500">
                             The proxy requires the <code>ProxyAdmin</code> contract at address: <code>{proxyAdminAddress || "Not deployed"}</code>
+                        </p>
+                        <p className="text-sm text-gray-500">
+                            Contract source: <a href={TRANSPARENT_PROXY_SOURCE_URL} target="_blank" rel="noreferrer">TransparentUpgradeableProxy.sol</a> @ <code>v4.9.0</code>
                         </p>
 
 
