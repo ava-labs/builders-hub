@@ -3,12 +3,12 @@ import * as React from "react";
 import { useState, useEffect } from "react";
 import { Area,AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ReferenceLine } from "recharts";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import {type ChartConfig, ChartContainer,ChartTooltip,ChartTooltipContent } from "@/components/ui/chart";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel } from "lucide-react";
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, ChartDataPoint, TimeRange } from "@/types/stats";
+import {TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, ChartDataPoint, TimeRange } from "@/types/stats";
 
 interface CChainMetrics {
   activeAddresses: TimeSeriesMetric;
@@ -160,7 +160,9 @@ export default function ChainMetricsPage({
   ): ChartDataPoint[] => {
     if (!metrics || !metrics[metricKey]?.data) return [];
     const today = new Date().toISOString().split("T")[0];
-    const finalizedData = metrics[metricKey].data.filter((point) => point.date !== today);
+    const finalizedData = metrics[metricKey].data.filter(
+      (point) => point.date !== today
+    );
 
     return finalizedData
       .map((point: TimeSeriesDataPoint) => ({
@@ -262,6 +264,55 @@ export default function ChainMetricsPage({
         year: "numeric",
       });
     }
+  };
+
+  const calculateAverage = (
+    data: ChartDataPoint[] | ICMChartDataPoint[]
+  ): number => {
+    if (!data || data.length === 0) return 0;
+    const sum = data.reduce((acc, point) => {
+      if ("value" in point) {
+        return acc + (typeof point.value === "number" ? point.value : 0);
+      } else if ("messageCount" in point) {
+        return acc + point.messageCount;
+      }
+      return acc;
+    }, 0);
+
+    return sum / data.length;
+  };
+
+  const AVERAGE_LINE_COLOR = "#8b5cf6";
+  const toShowAverageLine = (metricKey: string): boolean => {
+    return ["activeAddresses", "activeSenders", "txCount", "gasUsed"].includes(metricKey);
+  };
+
+  const getAverageLineProps = (
+    chartData: ChartDataPoint[] | ICMChartDataPoint[],
+    metricKey: string,
+    isICMChart: boolean = false
+  ) => {
+    const average = calculateAverage(chartData);
+    const formattedValue = isICMChart ? formatNumber(average) : formatTooltipValue(average, metricKey).replace(/^[^:]*:\s*/, "");
+
+    return {
+      y: average,
+      stroke: AVERAGE_LINE_COLOR,
+      strokeDasharray: "8 4",
+      strokeWidth: 2,
+      opacity: 0.9,
+      label: {
+        value: `Avg: ${formattedValue}`,
+        position: "insideTopLeft" as const,
+        style: {
+          textAnchor: "start" as const,
+          fontSize: "11px",
+          fill: AVERAGE_LINE_COLOR,
+          fontWeight: "600",
+          fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+        },
+      },
+    };
   };
 
   const formatTooltipValue = (value: number, metricKey: string): string => {
@@ -876,6 +927,11 @@ export default function ChainMetricsPage({
                               return null;
                             }}
                           />
+                          {toShowAverageLine(config.metricKey) && (
+                            <ReferenceLine
+                              {...getAverageLineProps(chartData, config.metricKey, true)}
+                            />
+                          )}
                           <Bar
                             dataKey="messageCount"
                             fill={config.chartConfig.messageCount.color}
@@ -961,6 +1017,11 @@ export default function ChainMetricsPage({
                                 opacity={0.6}
                               />
                             ))}
+                          {toShowAverageLine(config.metricKey) && (
+                            <ReferenceLine
+                              {...getAverageLineProps(chartData, config.metricKey, false)}
+                            />
+                          )}
                           <Area
                             dataKey="value"
                             type="natural"
