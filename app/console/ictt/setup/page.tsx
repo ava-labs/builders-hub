@@ -9,15 +9,19 @@ import DeployERC20TokenRemote from "../../../../toolbox/src/toolbox/ICTT/DeployE
 import DeployNativeTokenRemote from "../../../../toolbox/src/toolbox/ICTT/DeployNativeTokenRemote";
 import RegisterWithHome from "../../../../toolbox/src/toolbox/ICTT/RegisterWithHome";
 import AddCollateral from "../../../../toolbox/src/toolbox/ICTT/AddCollateral";
+import DeployWrappedNative from "@/toolbox/src/toolbox/ICTT/DeployWrappedNative";
 
 export default function Page() {
   const steps: StepDefinition[] = [
     {
-      type: "single",
-      key: "deploy-test-erc20",
-      title: "Deploy Test ERC20",
+      type: "branch",
+      key: "deploy-source-token",
+      title: "Deploy Source Token",
       optional: true,
-      component: DeployExampleERC20,
+      options: [
+        { key: "deploy-test-erc20", label: "Deploy Test ERC20", component: DeployExampleERC20 },
+        { key: "deploy-wrapped-native", label: "Deploy Wrapped Native Token", component: DeployWrappedNative },
+      ],
     },
     {
       type: "single",

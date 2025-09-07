@@ -1,39 +1,14 @@
 "use client";
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ReferenceLine } from "recharts";
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
-import {type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent} from "@/components/ui/chart";
+import { Area,AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ReferenceLine } from "recharts";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
-import { Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel } from "lucide-react";
+import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel } from "lucide-react";
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-
-interface TimeSeriesDataPoint {
-  timestamp: number;
-  value: number | string;
-  date: string;
-}
-
-interface TimeSeriesMetric {
-  data: TimeSeriesDataPoint[];
-  current_value: number | string;
-  change_24h: number;
-  change_percentage_24h: number;
-}
-
-interface ICMDataPoint {
-  timestamp: number;
-  date: string;
-  messageCount: number;
-}
-
-interface ICMMetric {
-  data: ICMDataPoint[];
-  current_value: number;
-  change_24h: number;
-  change_percentage_24h: number;
-}
+import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, ChartDataPoint, TimeRange } from "@/types/stats";
 
 interface CChainMetrics {
   activeAddresses: TimeSeriesMetric;
@@ -53,11 +28,6 @@ interface CChainMetrics {
   feesPaid: TimeSeriesMetric;
   icmMessages: ICMMetric;
   last_updated: number;
-}
-
-interface ChartDataPoint {
-  day: string;
-  value: number;
 }
 
 interface ICMChartDataPoint {
@@ -80,9 +50,7 @@ export default function ChainMetricsPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = React.useState<
-    "7d" | "30d" | "90d" | "all"
-  >("30d");
+  const [timeRange, setTimeRange] = React.useState<TimeRange>("30d");
 
   const fetchData = async () => {
     try {
@@ -191,21 +159,35 @@ export default function ChainMetricsPage({
     metricKey: keyof Omit<CChainMetrics, "last_updated" | "icmMessages">
   ): ChartDataPoint[] => {
     if (!metrics || !metrics[metricKey]?.data) return [];
+    const today = new Date().toISOString().split("T")[0];
+    const finalizedData = metrics[metricKey].data.filter((point) => point.date !== today);
 
-    return metrics[metricKey].data.map((point: TimeSeriesDataPoint) => ({
-      day: point.date,
-      value:
-        typeof point.value === "string" ? parseFloat(point.value) : point.value,
-    }));
+    return finalizedData
+      .map((point: TimeSeriesDataPoint) => ({
+        day: point.date,
+        value:
+          typeof point.value === "string"
+            ? parseFloat(point.value)
+            : point.value,
+      }))
+      .reverse();
   };
 
   const getICMChartData = (): ICMChartDataPoint[] => {
     if (!metrics?.icmMessages?.data) return [];
 
-    return metrics.icmMessages.data.map((point: ICMDataPoint) => ({
-      day: point.date,
-      messageCount: point.messageCount,
-    }));
+    // Filter out today's incomplete data - only show finalized days
+    const today = new Date().toISOString().split("T")[0];
+    const finalizedData = metrics.icmMessages.data.filter(
+      (point) => point.date !== today
+    );
+
+    return finalizedData
+      .map((point: ICMDataPoint) => ({
+        day: point.date,
+        messageCount: point.messageCount,
+      }))
+      .reverse();
   };
 
   const getYAxisDomain = (

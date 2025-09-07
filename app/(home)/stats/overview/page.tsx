@@ -20,54 +20,53 @@ import {
   ArrowDown,
   Activity,
   Users,
-  FileCode,
   BarChart3,
   Loader2,
   Search,
   ExternalLink,
 } from "lucide-react";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
-import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
+import { Area, AreaChart, XAxis, YAxis, CartesianGrid } from "recharts";
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 import l1ChainsData from "@/constants/l1-chains.json";
+import DateRangeFilter from "@/components/ui/DateRangeFilter";
+import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
+import { TimeSeriesMetric, ICMMetric, TimeRange } from "@/types/stats";
 
-interface ChainMetrics {
+interface ChainOverviewMetrics {
   chainId: string;
   chainName: string;
   chainLogoURI: string;
-  day1TxCount: number | string;
-  day2TxCount: number | string;
-  day3TxCount: number | string;
-  day4TxCount: number | string;
-  day5TxCount: number | string;
-  day6TxCount: number | string;
-  day7TxCount: number | string;
-  weeklyTxCount: number | string;
-  weeklyContractsDeployed: number | string;
-  weeklyActiveAddresses: number | string;
-  totalIcmMessages: number | string;
+  txCount: TimeSeriesMetric;
+  activeAddresses: TimeSeriesMetric;
+  icmMessages: ICMMetric;
   validatorCount: number | string;
 }
 
-type SortField = keyof ChainMetrics;
+interface OverviewMetrics {
+  chains: ChainOverviewMetrics[];
+  aggregated: {
+    totalTxCount: TimeSeriesMetric;
+    totalActiveAddresses: TimeSeriesMetric;
+    totalICMMessages: ICMMetric;
+    totalValidators: number;
+    activeChains: number;
+  };
+  last_updated: number;
+}
+
 type SortDirection = "asc" | "desc";
 
 export default function AvalancheMetrics() {
-  const [chainMetrics, setChainMetrics] = useState<ChainMetrics[]>([]);
+  const [overviewMetrics, setOverviewMetrics] =
+    useState<OverviewMetrics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<SortField>("weeklyTxCount");
+  const [sortField, setSortField] = useState<string>("weeklyTxCount");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [visibleCount, setVisibleCount] = useState(25);
   const [searchTerm, setSearchTerm] = useState("");
+  const [timeRange, setTimeRange] = useState<TimeRange>("30d");
 
   const getChainSlug = (chainId: string, chainName: string): string | null => {
     const chain = l1ChainsData.find(
@@ -78,166 +77,157 @@ export default function AvalancheMetrics() {
     return chain?.slug || null;
   };
 
-  const parseCSV = (csvText: string): ChainMetrics[] => {
-    const lines = csvText.trim().split("\n");
-    const headers = lines[0].split(",");
-    const data: ChainMetrics[] = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
-      const values: string[] = [];
-      let current = "";
-      let inQuotes = false;
-
-      for (let j = 0; j < line.length; j++) {
-        const char = line[j];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === "," && !inQuotes) {
-          values.push(current);
-          current = "";
-        } else {
-          current += char;
-        }
-      }
-      values.push(current);
-
-      if (values.length >= headers.length) {
-        const chainName = values[1].replace(/"/g, "");
-        const chainLogoURI = values[2].replace(/"/g, "");
-        const parseMetricValue = (value: string): number | string => {
-          if (value === "N/A" || value === "") return "N/A";
-          const parsed = Number.parseInt(value);
-          return isNaN(parsed) ? "N/A" : parsed;
-        };
-
-        data.push({
-          chainId: values[0],
-          chainName: chainName.toUpperCase(),
-          chainLogoURI: chainLogoURI,
-          day1TxCount: parseMetricValue(values[4]),
-          day2TxCount: parseMetricValue(values[5]),
-          day3TxCount: parseMetricValue(values[6]),
-          day4TxCount: parseMetricValue(values[7]),
-          day5TxCount: parseMetricValue(values[8]),
-          day6TxCount: parseMetricValue(values[9]),
-          day7TxCount: parseMetricValue(values[10]),
-          weeklyTxCount: parseMetricValue(values[11]),
-          weeklyContractsDeployed: parseMetricValue(values[12]),
-          weeklyActiveAddresses: parseMetricValue(values[13]),
-          totalIcmMessages: parseMetricValue(values[14]),
-          validatorCount: parseMetricValue(values[15]),
-        });
-      }
-    }
-
-    return data;
-  };
-
   useEffect(() => {
-    const fetchCSVData = async () => {
+    const fetchMetrics = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await fetch("/data/chain-metrics.csv");
+        const response = await fetch(
+          `/api/overview-stats?timeRange=${timeRange}`
+        );
         if (!response.ok) {
-          throw new Error(`Failed to fetch CSV: ${response.status}`);
+          throw new Error(`Failed to fetch metrics: ${response.status}`);
         }
 
-        const csvText = await response.text();
-        const metrics = parseCSV(csvText);
-        setChainMetrics(metrics);
-
-        const lastModified = response.headers.get("last-modified");
-        if (lastModified) {
-          setLastUpdated(new Date(lastModified).toLocaleDateString());
-        } else {
-          setLastUpdated(new Date().toLocaleDateString());
-        }
+        const metrics = await response.json();
+        setOverviewMetrics(metrics);
       } catch (err: any) {
-        console.error("Error fetching CSV data:", err);
+        console.error("Error fetching metrics data:", err);
         setError(err?.message || "Failed to load metrics data");
       }
 
       setLoading(false);
     };
 
-    fetchCSVData();
-  }, []);
+    fetchMetrics();
+  }, [timeRange]);
 
-  const formatNumber = (num: number): string => {
-    if (num === 0) return "0";
-    if (num < 1000) return num.toLocaleString();
-    if (num < 1000000) return `${(num / 1000).toFixed(1)}K`;
-    return `${(num / 1000000).toFixed(1)}M`;
+  const formatNumber = (num: number | string): string => {
+    if (num === "N/A" || num === "" || num === null || num === undefined)
+      return "N/A";
+    const numValue = typeof num === "string" ? Number.parseFloat(num) : num;
+    if (isNaN(numValue)) return "N/A";
+
+    if (numValue >= 1e12) {
+      return `${(numValue / 1e12).toFixed(2)}T`;
+    } else if (numValue >= 1e9) {
+      return `${(numValue / 1e9).toFixed(2)}B`;
+    } else if (numValue >= 1e6) {
+      return `${(numValue / 1e6).toFixed(2)}M`;
+    } else if (numValue >= 1e3) {
+      return `${(numValue / 1e3).toFixed(2)}K`;
+    }
+    return numValue.toLocaleString();
   };
 
   const formatFullNumber = (num: number): string => {
     return num.toLocaleString();
   };
 
-  const getChartData = () => {
-    const validChains = chainMetrics
-      .filter(
-        (chain) =>
-          typeof chain.weeklyTxCount === "number" && chain.weeklyTxCount > 0
-      )
-      .sort((a, b) => (b.weeklyTxCount as number) - (a.weeklyTxCount as number))
-      .slice(0, 5);
+  const formatDateLabel = (dateString: string): string => {
+    const date = new Date(dateString);
 
-    const today = new Date();
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      days.push(
-        date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-      );
+    if (timeRange === "all") {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      });
+    } else {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+    }
+  };
+
+  const formatTooltipDate = (payload: any): string => {
+    // Use the stored timestamp/date from chart data instead of parsing label
+    const dataPoint = chartData.find((d) => d.day === payload);
+    if (dataPoint && dataPoint.fullDate) {
+      // Use ISO date string for reliable parsing
+      const date = new Date(dataPoint.fullDate);
+
+      if (timeRange === "all") {
+        return date.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        });
+      } else {
+        return date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+      }
     }
 
-    const dayKeys = [
-      "day1TxCount",
-      "day2TxCount",
-      "day3TxCount",
-      "day4TxCount",
-      "day5TxCount",
-      "day6TxCount",
-      "day7TxCount",
-    ] as const;
+    // Fallback - try to parse the label directly with current year
+    const currentYear = new Date().getFullYear();
+    const date = new Date(`${payload}, ${currentYear}`);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
 
-    const chartData = days.map((day, index) => {
-      const dayKey = dayKeys[index];
-      const dataPoint: any = { day };
+  const getChartData = () => {
+    if (!overviewMetrics) {
+      return { chartData: [], topChains: [] };
+    }
 
-      let topChainsTotal = 0;
+    const allValidChains = overviewMetrics.chains
+      .filter(
+        (chain) => typeof chain.txCount.current_value === "number" && chain.txCount.current_value > 0
+      )
+      .sort(
+        (a, b) => (b.txCount.current_value as number) - (a.txCount.current_value as number)
+      );
+
+    const validChains = allValidChains.slice(0, CHART_CONFIG.maxTopChains);
+    const aggregatedData = overviewMetrics.aggregated.totalTxCount.data;
+    const today = new Date().toISOString().split("T")[0];
+    const finalizedData = aggregatedData.filter((dataPoint) => dataPoint.date !== today);
+    const chartData = finalizedData.map((dataPoint) => {
+      const day = new Date(dataPoint.timestamp * 1000).toLocaleDateString(
+        "en-US",
+        {
+          month: "short",
+          day: "numeric",
+        }
+      );
+
+      const result: any = {
+        day,
+        timestamp: dataPoint.timestamp,
+        fullDate: dataPoint.date,
+      };
+
       validChains.forEach((chain) => {
         const chainKey =
           chain.chainName.length > 10
             ? chain.chainName.substring(0, 10) + "..."
             : chain.chainName;
+        const chainDataPoint = chain.txCount.data.find(
+          (point) => point.date === dataPoint.date
+        );
         const value =
-          typeof chain[dayKey] === "number" ? (chain[dayKey] as number) : 0;
-        dataPoint[chainKey] = value;
-        dataPoint[`${chainKey}_fullName`] = chain.chainName;
-        topChainsTotal += value;
+          chainDataPoint && typeof chainDataPoint.value === "number"
+            ? chainDataPoint.value
+            : 0;
+        result[chainKey] = value;
+        result[`${chainKey}_fullName`] = chain.chainName;
       });
 
-      const totalDayTransactions = chainMetrics.reduce((sum, chain) => {
-        const value =
-          typeof chain[dayKey] === "number" ? (chain[dayKey] as number) : 0;
-        return sum + value;
-      }, 0);
-
-      const othersTotal = totalDayTransactions - topChainsTotal;
-      if (othersTotal > 0) {
-        dataPoint["Others"] = othersTotal;
-        dataPoint["Others_fullName"] = "Others";
-      }
-
-      return dataPoint;
+      result["Total"] =
+        typeof dataPoint.value === "number" ? dataPoint.value : 0;
+      result["Total_fullName"] = "Total";
+      return result;
     });
 
+    chartData.reverse();
     return { chartData, topChains: validChains };
   };
 
@@ -247,7 +237,7 @@ export default function AvalancheMetrics() {
     },
   };
 
-  const handleSort = (field: SortField) => {
+  const handleSort = (field: string) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
@@ -257,13 +247,59 @@ export default function AvalancheMetrics() {
     setVisibleCount(25);
   };
 
-  const filteredData = chainMetrics.filter((chain) => {
+  const chains = overviewMetrics?.chains || [];
+
+  const filteredData = chains.filter((chain) => {
     return chain.chainName.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   const sortedData = [...filteredData].sort((a, b) => {
-    const aValue = a[sortField];
-    const bValue = b[sortField];
+    let aValue: any;
+    let bValue: any;
+
+    switch (sortField) {
+      case "chainName":
+        aValue = a.chainName;
+        bValue = b.chainName;
+        break;
+      case "weeklyTxCount":
+        aValue =
+          typeof a.txCount.current_value === "number"
+            ? a.txCount.current_value
+            : 0;
+        bValue =
+          typeof b.txCount.current_value === "number"
+            ? b.txCount.current_value
+            : 0;
+        break;
+      case "weeklyActiveAddresses":
+        aValue =
+          typeof a.activeAddresses.current_value === "number"
+            ? a.activeAddresses.current_value
+            : 0;
+        bValue =
+          typeof b.activeAddresses.current_value === "number"
+            ? b.activeAddresses.current_value
+            : 0;
+        break;
+      case "totalIcmMessages":
+        aValue =
+          typeof a.icmMessages.current_value === "number"
+            ? a.icmMessages.current_value
+            : 0;
+        bValue =
+          typeof b.icmMessages.current_value === "number"
+            ? b.icmMessages.current_value
+            : 0;
+        break;
+      case "validatorCount":
+        aValue = typeof a.validatorCount === "number" ? a.validatorCount : 0;
+        bValue = typeof b.validatorCount === "number" ? b.validatorCount : 0;
+        break;
+      default:
+        aValue = 0;
+        bValue = 0;
+    }
 
     if (typeof aValue === "string" && typeof bValue === "string") {
       return sortDirection === "asc"
@@ -287,7 +323,7 @@ export default function AvalancheMetrics() {
     field,
     children,
   }: {
-    field: SortField;
+    field: string;
     children: React.ReactNode;
   }) => (
     <Button
@@ -311,18 +347,24 @@ export default function AvalancheMetrics() {
     </Button>
   );
 
-  const getActivityDots = (
-    transactions: number | string,
-    addresses: number | string,
-    icmMessages: number | string
-  ) => {
-    const txCount = typeof transactions === "number" ? transactions : 0;
-    const addrCount = typeof addresses === "number" ? addresses : 0;
-    const icmCount = typeof icmMessages === "number" ? icmMessages : 0;
+  const getActivityDots = (chain: ChainOverviewMetrics) => {
+    const txCount =
+      typeof chain.txCount.current_value === "number"
+        ? chain.txCount.current_value
+        : 0;
+    const addrCount =
+      typeof chain.activeAddresses.current_value === "number"
+        ? chain.activeAddresses.current_value
+        : 0;
+    const icmCount =
+      typeof chain.icmMessages.current_value === "number"
+        ? chain.icmMessages.current_value
+        : 0;
 
     if (txCount === 0 && addrCount === 0 && icmCount === 0) return 0;
     if (txCount < 100 && addrCount < 1000 && icmCount < 10) return 1;
     if (txCount < 1000 && addrCount < 10000 && icmCount < 100) return 2;
+
     return 3;
   };
 
@@ -346,17 +388,15 @@ export default function AvalancheMetrics() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background text-foreground">
-        <main className="container mx-auto px-4 py-8 pb-24 space-y-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-orange-500 mx-auto mb-4" />
-              <p className="text-lg font-medium">Loading chain metrics...</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Fetching latest data from CSV
-              </p>
+        <div className="container mx-auto px-4 py-8 pb-24 space-y-12">
+          <div className="space-y-2">
+            <div>
+              <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">Avalanche Mainnet L1 Stats</h1>
+              <p className="text-base text-muted-foreground max-w-2xl leading-relaxed">Loading comprehensive stats for Avalanche Mainnet L1s...</p>
             </div>
           </div>
-        </main>
+          <ChartSkeletonLoader />
+        </div>
 
         {/* Bubble Navigation */}
         <BubbleNavigation />
@@ -389,7 +429,7 @@ export default function AvalancheMetrics() {
     );
   }
 
-  if (chainMetrics.length === 0) {
+  if (!overviewMetrics || overviewMetrics.chains.length === 0) {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <main className="container mx-auto px-4 py-8 pb-24 space-y-8">
@@ -403,7 +443,7 @@ export default function AvalancheMetrics() {
                   No Data Available
                 </h3>
                 <p className="text-muted-foreground text-sm">
-                  No chain metrics found in the CSV file.
+                  No chain metrics found from the API.
                 </p>
               </CardContent>
             </Card>
@@ -416,16 +456,39 @@ export default function AvalancheMetrics() {
     );
   }
 
+  const CHART_CONFIG = {
+    colors: ["#0ea5e9", "#8b5cf6", "#f97316", "#22c55e", "#ec4899"],
+    maxTopChains: 5,
+  };
+
   const { chartData, topChains } = getChartData();
 
-  const areaColors = [
-    "#667eea",
-    "#764ba2",
-    "#f093fb",
-    "#4facfe",
-    "#43e97b",
-    "#38f9d7",
-  ];
+  const getYAxisDomain = (data: any[]): [number, number] => {
+    if (data.length === 0) return [0, 100];
+    const allValues = data.flatMap((dataPoint) => {
+      return topChains
+        .map((chain) => {
+          const chainKey = chain.chainName.length > 10 ? chain.chainName.substring(0, 10) + "..." : chain.chainName;
+          return dataPoint[chainKey] || 0;
+        }).filter((val) => val > 0);
+    });
+
+    if (allValues.length === 0) return [0, 100];
+
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+
+    if (min > 100) {
+      const baseStart = min * 0.7;
+      const padding = (max - min) * 0.2; // More padding for better visibility
+      console.log(`Applying Y-axis offset: ${baseStart} to ${max + padding}`);
+      return [baseStart, max + padding];
+    }
+    const padding = (max - min) * 0.1;
+    return [0, max + padding];
+  };
+
+  const yAxisDomain = getYAxisDomain(chartData);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -436,13 +499,17 @@ export default function AvalancheMetrics() {
               Avalanche Mainnet L1 Stats
             </h1>
             <p className="text-base text-muted-foreground max-w-2xl leading-relaxed">
-              An opinionated collection of stats for the Avalanche Mainnet L1s.
-              Updated daily. Click on any chain name to view detailed metrics.
+              Opinionated stats for Avalanche Mainnet L1s. Click on any chain to
+              view detailed metrics.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Last updated</span>
-            <span className="font-medium">{lastUpdated || "Just now"}</span>
+          <div className="flex flex-col items-end gap-2">
+            <DateRangeFilter
+              onRangeChange={(range) =>
+                setTimeRange(range as "7d" | "30d" | "90d" | "all")
+              }
+              defaultRange={timeRange}
+            />
           </div>
         </div>
 
@@ -451,14 +518,11 @@ export default function AvalancheMetrics() {
             <CardContent className="p-6">
               <div className="space-y-3">
                 <h3 className="text-sm font-medium text-muted-foreground">
-                  Total Mainnet L1s
+                  Active Mainnet Avalanche L1s
                 </h3>
                 <div className="space-y-1">
                   <p className="text-3xl font-bold text-foreground">
-                    {chainMetrics.length}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Active blockchain networks
+                    {overviewMetrics.chains.length}
                   </p>
                 </div>
               </div>
@@ -469,22 +533,16 @@ export default function AvalancheMetrics() {
             <CardContent className="p-6">
               <div className="space-y-3">
                 <h3 className="text-sm font-medium text-muted-foreground">
-                  Weekly Transactions
+                  Total Transactions ({timeRange})
                 </h3>
                 <div className="space-y-1">
                   <p className="text-3xl font-bold text-foreground">
                     {formatNumber(
-                      chainMetrics.reduce((sum, chain) => {
-                        const tx =
-                          typeof chain.weeklyTxCount === "number"
-                            ? chain.weeklyTxCount
-                            : 0;
-                        return sum + tx;
-                      }, 0)
+                      typeof overviewMetrics.aggregated.totalTxCount
+                        .current_value === "number"
+                        ? overviewMetrics.aggregated.totalTxCount.current_value
+                        : 0
                     )}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Across all L1 chains
                   </p>
                 </div>
               </div>
@@ -495,22 +553,17 @@ export default function AvalancheMetrics() {
             <CardContent className="p-6">
               <div className="space-y-3">
                 <h3 className="text-sm font-medium text-muted-foreground">
-                  Active Addresses
+                  Active Addresses ({timeRange})
                 </h3>
                 <div className="space-y-1">
                   <p className="text-3xl font-bold text-foreground">
                     {formatNumber(
-                      chainMetrics.reduce((sum, chain) => {
-                        const addresses =
-                          typeof chain.weeklyActiveAddresses === "number"
-                            ? chain.weeklyActiveAddresses
-                            : 0;
-                        return sum + addresses;
-                      }, 0)
+                      typeof overviewMetrics.aggregated.totalActiveAddresses
+                        .current_value === "number"
+                        ? overviewMetrics.aggregated.totalActiveAddresses
+                            .current_value
+                        : 0
                     )}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Weekly active users
                   </p>
                 </div>
               </div>
@@ -518,48 +571,15 @@ export default function AvalancheMetrics() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <Card className="py-0 bg-blue-500/10 border-blue-500/20">
             <CardContent className="p-4">
               <div className="text-center space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">
-                  Weekly Active Chains
+                  Active Chains ({timeRange})
                 </p>
                 <p className="text-lg font-bold text-foreground">
-                  {
-                    chainMetrics.filter((chain) => {
-                      const txCount =
-                        typeof chain.weeklyTxCount === "number"
-                          ? chain.weeklyTxCount
-                          : 0;
-                      const addrCount =
-                        typeof chain.weeklyActiveAddresses === "number"
-                          ? chain.weeklyActiveAddresses
-                          : 0;
-                      return txCount > 0 || addrCount > 0;
-                    }).length
-                  }
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="py-0 bg-purple-500/10 border-purple-500/20">
-            <CardContent className="p-4">
-              <div className="text-center space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Contracts Deployed
-                </p>
-                <p className="text-lg font-bold text-foreground">
-                  {formatNumber(
-                    chainMetrics.reduce((sum, chain) => {
-                      const contracts =
-                        typeof chain.weeklyContractsDeployed === "number"
-                          ? chain.weeklyContractsDeployed
-                          : 0;
-                      return sum + contracts;
-                    }, 0)
-                  )}
+                  {overviewMetrics.aggregated.activeChains}
                 </p>
               </div>
             </CardContent>
@@ -573,13 +593,7 @@ export default function AvalancheMetrics() {
                 </p>
                 <p className="text-lg font-bold text-foreground">
                   {formatNumber(
-                    chainMetrics.reduce((sum, chain) => {
-                      const icmMessages =
-                        typeof chain.totalIcmMessages === "number"
-                          ? chain.totalIcmMessages
-                          : 0;
-                      return sum + icmMessages;
-                    }, 0)
+                    overviewMetrics.aggregated.totalICMMessages.current_value
                   )}
                 </p>
               </div>
@@ -593,15 +607,7 @@ export default function AvalancheMetrics() {
                   Total Validators
                 </p>
                 <p className="text-lg font-bold text-foreground">
-                  {formatNumber(
-                    chainMetrics.reduce((sum, chain) => {
-                      const validators =
-                        typeof chain.validatorCount === "number"
-                          ? chain.validatorCount
-                          : 0;
-                      return sum + validators;
-                    }, 0)
-                  )}
+                  {formatNumber(overviewMetrics.aggregated.totalValidators)}
                 </p>
               </div>
             </CardContent>
@@ -612,44 +618,21 @@ export default function AvalancheMetrics() {
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
               <BarChart3 className="h-5 w-5 text-orange-500" />
-              Daily Transaction Trends - Top L1s
+              Daily Transaction Trends - Top L1s ({timeRange})
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Stacked daily transaction volumes showing total activity across
-              top L1s over the past 7 days
-            </p>
+            <p className="text-sm text-muted-foreground">Stacked daily transaction volumes showing total activity across top L1s for the selected time range</p>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[350px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={chartData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                >
-                  <defs>
-                    {topChains.map((_, index) => (
-                      <linearGradient
-                        key={index}
-                        id={`gradient-${index}`}
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor={areaColors[index]}
-                          stopOpacity={0.6}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor={areaColors[index]}
-                          stopOpacity={0.1}
-                        />
-                      </linearGradient>
-                    ))}
+              <AreaChart
+                data={chartData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <defs>
+                  {topChains.map((_, index) => (
                     <linearGradient
-                      id="gradient-others"
+                      key={index}
+                      id={`gradient-${index}`}
                       x1="0"
                       y1="0"
                       x2="0"
@@ -657,113 +640,144 @@ export default function AvalancheMetrics() {
                     >
                       <stop
                         offset="5%"
-                        stopColor={areaColors[5]}
-                        stopOpacity={0.6}
+                        stopColor={CHART_CONFIG.colors[index]}
+                        stopOpacity={0.8}
                       />
                       <stop
                         offset="95%"
-                        stopColor={areaColors[5]}
+                        stopColor={CHART_CONFIG.colors[index]}
                         stopOpacity={0.1}
                       />
                     </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-muted/30"
-                  />
-                  <XAxis
-                    dataKey="day"
-                    className="text-xs"
-                    tick={{ fontSize: 12 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    className="text-xs"
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => formatNumber(value)}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <ChartTooltip
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        const validPayload = payload
-                          .filter(
-                            (entry) =>
-                              typeof entry.value === "number" && entry.value > 0
-                          )
-                          .sort(
-                            (a, b) => (b.value as number) - (a.value as number)
-                          );
+                  ))}
+                  <linearGradient
+                    id="gradient-others"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="5%"
+                      stopColor={CHART_CONFIG.colors[5]}
+                      stopOpacity={0.8}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={CHART_CONFIG.colors[5]}
+                      stopOpacity={0.1}
+                    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  vertical={false}
+                  strokeDasharray="3 3"
+                  className="stroke-muted/30"
+                />
+                <XAxis
+                  dataKey="day"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  minTickGap={32}
+                  tickFormatter={(value) => formatDateLabel(value)}
+                  tick={{
+                    fontFamily:
+                      'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                    fontSize: 12,
+                  }}
+                />
+                <YAxis
+                  domain={yAxisDomain}
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tickFormatter={(value) => formatNumber(value)}
+                  tick={{
+                    fontFamily:
+                      'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                    fontSize: 12,
+                  }}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const validPayload = payload
+                        .filter(
+                          (entry) =>
+                            typeof entry.value === "number" && entry.value > 0
+                        )
+                        .sort(
+                          (a, b) => (b.value as number) - (a.value as number)
+                        );
 
-                        return (
-                          <div className="bg-background border border-border rounded-lg shadow-lg p-4 min-w-[250px]">
-                            <p className="font-semibold text-sm mb-3">
-                              {label} Transactions
-                            </p>
-                            <div className="space-y-2">
-                              {validPayload.map((entry, index) => {
-                                const fullName =
-                                  chartData.find((d) => d.day === label)?.[
-                                    `${entry.dataKey}_fullName`
-                                  ] || entry.dataKey;
-                                return (
-                                  <div
-                                    key={index}
-                                    className="flex items-center justify-between gap-3"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <div
-                                        className="w-3 h-3 rounded-sm"
-                                        style={{ backgroundColor: entry.color }}
-                                      />
-                                      <span className="text-sm font-medium">
-                                        {fullName}
-                                      </span>
-                                    </div>
-                                    <span className="text-sm font-mono font-semibold">
-                                      {formatFullNumber(entry.value as number)}
+                      return (
+                        <div className="bg-background border border-border rounded-lg shadow-lg p-4 min-w-[250px]">
+                          <p className="font-semibold text-sm mb-3">
+                            {formatTooltipDate(label)}
+                          </p>
+                          <div className="space-y-2">
+                            {validPayload.map((entry, index) => {
+                              const fullName =
+                                chartData.find((d) => d.day === label)?.[
+                                  `${entry.dataKey}_fullName`
+                                ] || entry.dataKey;
+                              return (
+                                <div
+                                  key={index}
+                                  className="flex items-center justify-between gap-3"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-3 h-3 rounded-sm"
+                                      style={{ backgroundColor: entry.color }}
+                                    />
+                                    <span className="text-sm font-medium">
+                                      {fullName}
                                     </span>
                                   </div>
-                                );
-                              })}
-                            </div>
+                                  <span className="text-sm font-mono font-semibold">
+                                    {formatFullNumber(entry.value as number)} tx
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  {topChains.map((chain, index) => {
-                    const key =
-                      chain.chainName.length > 10
-                        ? chain.chainName.substring(0, 10) + "..."
-                        : chain.chainName;
-                    return (
-                      <Area
-                        key={index}
-                        type="monotone"
-                        dataKey={key}
-                        stackId="1"
-                        stroke={areaColors[index]}
-                        strokeWidth={2}
-                        fill={`url(#gradient-${index})`}
-                        fillOpacity={0.4}
-                      />
-                    );
-                  })}
-                  <Area
-                    type="monotone"
-                    dataKey="Others"
-                    stackId="1"
-                    stroke={areaColors[5]}
-                    strokeWidth={2}
-                    fill="url(#gradient-others)"
-                    fillOpacity={0.4}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                {topChains.map((chain, index) => {
+                  const key =
+                    chain.chainName.length > 10
+                      ? chain.chainName.substring(0, 10) + "..."
+                      : chain.chainName;
+                  return (
+                    <Area
+                      key={index}
+                      type="monotone"
+                      dataKey={key}
+                      stackId="1"
+                      stroke={CHART_CONFIG.colors[index]}
+                      strokeWidth={2}
+                      fill={`url(#gradient-${index})`}
+                      fillOpacity={1}
+                    />
+                  );
+                })}
+                <Area
+                  type="monotone"
+                  dataKey="Others"
+                  stackId="1"
+                  stroke={CHART_CONFIG.colors[5]}
+                  strokeWidth={2}
+                  fill="url(#gradient-others)"
+                  fillOpacity={1}
+                />
+              </AreaChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -802,25 +816,16 @@ export default function AvalancheMetrics() {
                     <SortButton field="weeklyTxCount">
                       <span className="hidden lg:flex items-center gap-1">
                         <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        Weekly Transactions
+                        Transactions ({timeRange})
                       </span>
-                      <span className="lg:hidden">Weekly Tx</span>
-                    </SortButton>
-                  </TableHead>
-                  <TableHead className="font-medium text-center min-w-[140px] text-muted-foreground">
-                    <SortButton field="weeklyContractsDeployed">
-                      <span className="hidden lg:flex items-center gap-1">
-                        <FileCode className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                        Contracts Deployed
-                      </span>
-                      <span className="lg:hidden">Contracts</span>
+                      <span className="lg:hidden">Transactions</span>
                     </SortButton>
                   </TableHead>
                   <TableHead className="font-medium text-center min-w-[140px] text-muted-foreground">
                     <SortButton field="weeklyActiveAddresses">
                       <span className="hidden lg:flex items-center gap-1">
                         <Users className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                        Active Addresses
+                        Active Addresses ({timeRange})
                       </span>
                       <span className="lg:hidden">Addresses</span>
                     </SortButton>
@@ -892,57 +897,47 @@ export default function AvalancheMetrics() {
                       <TableCell className="text-center">
                         <span
                           className={`font-mono font-semibold text-sm ${
-                            typeof chain.weeklyTxCount === "number" &&
-                            chain.weeklyTxCount > 0
+                            typeof chain.txCount.current_value === "number" &&
+                            chain.txCount.current_value > 0
                               ? "text-foreground"
                               : "text-muted-foreground"
                           }`}
                         >
-                          {typeof chain.weeklyTxCount === "number"
-                            ? formatFullNumber(chain.weeklyTxCount)
-                            : chain.weeklyTxCount}
+                          {typeof chain.txCount.current_value === "number"
+                            ? formatFullNumber(chain.txCount.current_value)
+                            : chain.txCount.current_value}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
                         <span
                           className={`font-mono font-semibold text-sm ${
-                            typeof chain.weeklyContractsDeployed === "number" &&
-                            chain.weeklyContractsDeployed > 0
+                            typeof chain.activeAddresses.current_value ===
+                              "number" &&
+                            chain.activeAddresses.current_value > 0
                               ? "text-foreground"
                               : "text-muted-foreground"
                           }`}
                         >
-                          {typeof chain.weeklyContractsDeployed === "number"
-                            ? formatFullNumber(chain.weeklyContractsDeployed)
-                            : chain.weeklyContractsDeployed}
+                          {typeof chain.activeAddresses.current_value ===
+                          "number"
+                            ? formatFullNumber(
+                                chain.activeAddresses.current_value
+                              )
+                            : chain.activeAddresses.current_value}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
                         <span
                           className={`font-mono font-semibold text-sm ${
-                            typeof chain.weeklyActiveAddresses === "number" &&
-                            chain.weeklyActiveAddresses > 0
+                            typeof chain.icmMessages.current_value ===
+                              "number" && chain.icmMessages.current_value > 0
                               ? "text-foreground"
                               : "text-muted-foreground"
                           }`}
                         >
-                          {typeof chain.weeklyActiveAddresses === "number"
-                            ? formatFullNumber(chain.weeklyActiveAddresses)
-                            : chain.weeklyActiveAddresses}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span
-                          className={`font-mono font-semibold text-sm ${
-                            typeof chain.totalIcmMessages === "number" &&
-                            chain.totalIcmMessages > 0
-                              ? "text-foreground"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {typeof chain.totalIcmMessages === "number"
-                            ? formatFullNumber(chain.totalIcmMessages)
-                            : chain.totalIcmMessages}
+                          {typeof chain.icmMessages.current_value === "number"
+                            ? formatFullNumber(chain.icmMessages.current_value)
+                            : chain.icmMessages.current_value}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
@@ -960,13 +955,7 @@ export default function AvalancheMetrics() {
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <ActivityIndicator
-                          count={getActivityDots(
-                            chain.weeklyTxCount,
-                            chain.weeklyActiveAddresses,
-                            chain.totalIcmMessages
-                          )}
-                        />
+                        <ActivityIndicator count={getActivityDots(chain)} />
                       </TableCell>
                       <TableCell className="text-center">
                         {chainSlug ? (
@@ -1010,10 +999,6 @@ export default function AvalancheMetrics() {
           <p className="text-sm text-muted-foreground mb-2">
             Showing {Math.min(visibleCount, sortedData.length)} of{" "}
             {sortedData.length} chains
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Data is updated daily via automated script. Chain logos and metrics
-            are fetched from CSV data source.
           </p>
         </div>
       </main>

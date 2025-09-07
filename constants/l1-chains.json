@@ -28,6 +28,13 @@
     "slug": "as0314t1tp"
   },
   {
+    "chainId": "43114",
+    "chainName": "Avalanche C-Chain",
+    "chainLogoURI": "",
+    "subnetId": "11111111111111111111111111111111LpoYY",
+    "slug": "c-chain"
+  },
+  {
     "chainId": "40404",
     "chainName": "Bango",
     "chainLogoURI": "",
@@ -47,6 +54,13 @@
     "chainLogoURI": "",
     "subnetId": "eYwmVU67LmSfZb1RwqCMhBYkFyG8ftxn6jAwqzFmxC9STBWLC",
     "slug": "beam"
+  },
+  {
+    "chainId": "836",
+    "chainName": "Binary Holdings",
+    "chainLogoURI": "",
+    "subnetId": "23dqTMHK186m4Rzcn1ukJdmHy13nqido4LjTp5Kh9W6qBKaFib",
+    "slug": "binary-holdings"
   },
   {
     "chainId": "46975",
@@ -133,11 +147,18 @@
     "slug": "dexalot"
   },
   {
+    "chainId": "202110",
+    "chainName": "Dinari Financial Network",
+    "chainLogoURI": "",
+    "subnetId": "2Ee4oBUute1PV5XaeS4b256eLH98r4NE8YgzX5nSX4cUxvtgre",
+    "slug": "dinari-financial-network"
+  },
+  {
     "chainId": "53935",
-    "chainName": "DFK",
+    "chainName": "DeFi Kingdoms",
     "chainLogoURI": "",
     "subnetId": "Vn3aX6hNRstj5VHHm63TCgPNaeGnRSqCYXQqemSqDd2TQH4qJ",
-    "slug": "dfk"
+    "slug": "defikingdoms"
   },
   {
     "chainId": "7979",
@@ -217,18 +238,11 @@
     "slug": "gunzilla-testnet"
   },
   {
-    "chainId": "35578",
+    "chainId": "68414",
     "chainName": "Henesys",
     "chainLogoURI": "",
-    "subnetId": "nBv88rWrKMXNGBmnwkA4P5HCRPcU1VVxenJGZnXZbc8CADqCQ",
-    "slug": "henesys"
-  },
-  {
-    "chainId": "68414",
-    "chainName": "Henesys MSU",
-    "chainLogoURI": "",
     "subnetId": "jmLmezoViv3F72XLzpdmSNk3qLEGb72g5EYkp3ij4wHXPF2KN",
-    "slug": "henesysmsu"
+    "slug": "henesys"
   },
   {
     "chainId": "1992",

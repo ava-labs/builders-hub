@@ -1,23 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Avalanche } from "@avalanche-sdk/chainkit";
-
-const avalanche = new Avalanche({
-  network: "mainnet",
-  apiKey: process.env.GLACIER_API_KEY,
-});
-
-interface TimeSeriesDataPoint {
-  timestamp: number;
-  value: number | string;
-  date: string;
-}
-
-interface TimeSeriesMetric {
-  data: TimeSeriesDataPoint[];
-  current_value: number | string;
-  change_24h: number;
-  change_percentage_24h: number;
-}
+import { TimeSeriesDataPoint, TimeSeriesMetric, STATS_CONFIG, getTimestampsFromTimeRange, createTimeSeriesMetric } from "@/types/stats";
 
 interface PrimaryNetworkMetrics {
   validator_count: TimeSeriesMetric;
@@ -28,47 +11,28 @@ interface PrimaryNetworkMetrics {
   last_updated: number;
 }
 
-let cachedData: Map<string, { data: PrimaryNetworkMetrics; timestamp: number }> = new Map();
-const CACHE_DURATION = 24 * 60 * 60 * 1000;
+const avalanche = new Avalanche({
+  network: "mainnet"
+});
 
-function getTimestampsFromTimeRange(timeRange: string): { startTimestamp: number; endTimestamp: number } {
-  const now = Math.floor(Date.now() / 1000);
-  let startTimestamp: number;
-  
-  switch (timeRange) {
-    case '7d':
-      startTimestamp = now - (7 * 24 * 60 * 60);
-      break;
-    case '30d':
-      startTimestamp = now - (30 * 24 * 60 * 60);
-      break;
-    case '90d':
-      startTimestamp = now - (90 * 24 * 60 * 60);
-      break;
-    case 'all':
-      startTimestamp = 1600646400;
-      break;
-    default:
-      startTimestamp = now - (30 * 24 * 60 * 60);
-  }
-  
-  return {
-    startTimestamp,
-    endTimestamp: now
-  };
-}
+let cachedData: Map<string, { data: PrimaryNetworkMetrics; timestamp: number }> = new Map();
 
 async function getTimeSeriesData(metricType: string, timeRange: string, pageSize: number = 365, fetchAllPages: boolean = false): Promise<TimeSeriesDataPoint[]> {
   try {
     const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
     let allResults: any[] = [];
-    
-    const result = await avalanche.metrics.networks.getStakingMetrics({
+
+    const rlToken = process.env.METRICS_BYPASS_TOKEN || '';
+    const params: any = {
       metric: metricType as any,
       startTimestamp,
       endTimestamp,
       pageSize,
-    });
+    };
+
+    if (rlToken) { params.rltoken = rlToken; }
+    
+    const result = await avalanche.metrics.networks.getStakingMetrics(params);
 
     for await (const page of result) {
       if (!page?.result?.results || !Array.isArray(page.result.results)) {
@@ -95,35 +59,6 @@ async function getTimeSeriesData(metricType: string, timeRange: string, pageSize
     return [];
   }
 }
-
-function createTimeSeriesMetric(data: TimeSeriesDataPoint[]): TimeSeriesMetric {
-  if (data.length === 0) {
-    return {
-      data: [],
-      current_value: 'N/A',
-      change_24h: 0,
-      change_percentage_24h: 0
-    };
-  }
-
-  const current = data[0];
-  const previous = data.length > 1 ? data[1] : current;
-  
-  const currentVal = typeof current.value === 'string' ? parseFloat(current.value) : current.value;
-  const previousVal = typeof previous.value === 'string' ? parseFloat(previous.value) : previous.value;
-  
-  const change = currentVal - previousVal;
-  const changePercentage = previousVal !== 0 ? (change / previousVal) * 100 : 0;
-
-  return {
-    data,
-    current_value: current.value,
-    change_24h: change,
-    change_percentage_24h: changePercentage
-  };
-}
-
-
 
 async function fetchValidatorVersions() {
   try {
@@ -162,7 +97,7 @@ export async function GET(request: Request) {
     
     const cached = cachedData.get(timeRange);
     
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    if (cached && Date.now() - cached.timestamp < STATS_CONFIG.CACHE.SHORT_DURATION) {
       return NextResponse.json(cached.data, {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -176,8 +111,8 @@ export async function GET(request: Request) {
     }
     
     const startTime = Date.now();
-    const fetchAllPages = timeRange === 'all' || timeRange === '90d' || timeRange === '30d';
-    const pageSize = timeRange === 'all' ? 2000 : timeRange === '90d' ? 500 : 365;
+    const config = STATS_CONFIG.TIME_RANGES[timeRange as keyof typeof STATS_CONFIG.TIME_RANGES] || STATS_CONFIG.TIME_RANGES['30d'];
+    const { pageSize, fetchAllPages } = config;
 
     const [
       validatorCountData,

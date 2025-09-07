@@ -1,33 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Avalanche } from "@avalanche-sdk/chainkit";
-
-interface TimeSeriesDataPoint {
-  timestamp: number;
-  value: number | string;
-  date: string;
-}
-
-interface TimeSeriesMetric {
-  data: TimeSeriesDataPoint[];
-  current_value: number | string;
-  change_24h: number;
-  change_percentage_24h: number;
-}
-
-interface ICMDataPoint {
-  timestamp: number;
-  date: string;
-  messageCount: number;
-  incomingCount: number;
-  outgoingCount: number;
-}
-
-interface ICMMetric {
-  data: ICMDataPoint[];
-  current_value: number;
-  change_24h: number;
-  change_percentage_24h: number;
-}
+import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, STATS_CONFIG,
+  getTimestampsFromTimeRange, createTimeSeriesMetric, createICMMetric } from "@/types/stats";
 
 interface ChainMetrics {
   activeAddresses: TimeSeriesMetric;
@@ -50,34 +24,6 @@ interface ChainMetrics {
 }
 
 let cachedData: Map<string, { data: ChainMetrics; timestamp: number; icmTimeRange: string }> = new Map();
-const CACHE_DURATION = 6 * 60 * 60 * 1000; // backend cache updates every 6 hours
-
-function getTimestampsFromTimeRange(timeRange: string): { startTimestamp: number; endTimestamp: number } {
-  const now = Math.floor(Date.now() / 1000);
-  let startTimestamp: number;
-  
-  switch (timeRange) {
-    case '7d':
-      startTimestamp = now - (7 * 24 * 60 * 60);
-      break;
-    case '30d':
-      startTimestamp = now - (30 * 24 * 60 * 60);
-      break;
-    case '90d':
-      startTimestamp = now - (90 * 24 * 60 * 60);
-      break;
-    case 'all':
-      startTimestamp = 1600646400;
-      break;
-    default:
-      startTimestamp = now - (30 * 24 * 60 * 60);
-  }
-  
-  return {
-    startTimestamp,
-    endTimestamp: now
-  };
-}
 
 async function getTimeSeriesData(
   metricType: string, 
@@ -91,16 +37,22 @@ async function getTimeSeriesData(
     let allResults: any[] = [];
     
     const avalanche = new Avalanche({
-      chainId: chainId,
+      network: "mainnet"
     });
     
-    const result = await avalanche.metrics.chains.getMetrics({
+    const rlToken = process.env.METRICS_BYPASS_TOKEN || '';
+    const params: any = {
+      chainId: chainId,
       metric: metricType as any,
       startTimestamp,
       endTimestamp,
       timeInterval: "day",
       pageSize,
-    });
+    };
+    
+    if (rlToken) { params.rltoken = rlToken; }
+    
+    const result = await avalanche.metrics.chains.getMetrics(params);
 
     for await (const page of result) {
       if (!page?.result?.results || !Array.isArray(page.result.results)) {
@@ -126,37 +78,6 @@ async function getTimeSeriesData(
     console.warn(`Failed to fetch ${metricType} data for chain ${chainId}:`, error);
     return [];
   }
-}
-
-function createTimeSeriesMetric(data: TimeSeriesDataPoint[]): TimeSeriesMetric {
-  if (data.length === 0) {
-    return {
-      data: [],
-      current_value: 0,
-      change_24h: 0,
-      change_percentage_24h: 0
-    };
-  }
-
-  const sortedData = data.sort((a, b) => a.timestamp - b.timestamp);
-  const currentValue = sortedData[sortedData.length - 1]?.value || 0;
-  
-  let comparisonIndex = 1;
-  const previousValue = sortedData.length > comparisonIndex ? 
-    sortedData[sortedData.length - 1 - comparisonIndex]?.value || 0 : 0;
-  
-  const currentNum = typeof currentValue === 'number' ? currentValue : parseFloat(String(currentValue)) || 0;
-  const previousNum = typeof previousValue === 'number' ? previousValue : parseFloat(String(previousValue)) || 0;
-  
-  const change = currentNum - previousNum;
-  const changePercentage = previousNum !== 0 ? (change / previousNum) * 100 : 0;
-
-  return {
-    data: sortedData,
-    current_value: currentValue,
-    change_24h: change,
-    change_percentage_24h: changePercentage
-  };
 }
 
 async function getICMData(chainId: string, timeRange: string): Promise<ICMDataPoint[]> {
@@ -200,30 +121,6 @@ async function getICMData(chainId: string, timeRange: string): Promise<ICMDataPo
   }
 }
 
-function createICMMetric(data: ICMDataPoint[]): ICMMetric {
-  if (data.length === 0) {
-    return {
-      data: [],
-      current_value: 0,
-      change_24h: 0,
-      change_percentage_24h: 0
-    };
-  }
-
-  const sortedData = data.sort((a, b) => a.timestamp - b.timestamp);
-  const currentValue = sortedData[sortedData.length - 1]?.messageCount || 0;
-  const previousValue = sortedData.length > 1 ? sortedData[sortedData.length - 2]?.messageCount || 0 : 0;
-  
-  const change = currentValue - previousValue;
-  const changePercentage = previousValue !== 0 ? (change / previousValue) * 100 : 0;
-
-  return {
-    data: sortedData,
-    current_value: currentValue,
-    change_24h: change,
-    change_percentage_24h: changePercentage
-  };
-}
 
 export async function GET(
   request: Request,
@@ -250,7 +147,7 @@ export async function GET(
     
     const cached = cachedData.get(cacheKey);
     
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    if (cached && Date.now() - cached.timestamp < STATS_CONFIG.CACHE.LONG_DURATION) {
       if (cached.icmTimeRange !== timeRange) {
         try {
           const newICMData = await getICMData(chainId, timeRange);
@@ -277,8 +174,8 @@ export async function GET(
     }
     
     const startTime = Date.now();
-    const fetchAllPages = timeRange === 'all' || timeRange === '90d' || timeRange === '30d';
-    const pageSize = timeRange === 'all' ? 2000 : timeRange === '90d' ? 500 : 365;
+    const config = STATS_CONFIG.TIME_RANGES[timeRange as keyof typeof STATS_CONFIG.TIME_RANGES] || STATS_CONFIG.TIME_RANGES['30d'];
+    const { pageSize, fetchAllPages } = config;
     
     const [
       activeAddressesData,
@@ -318,20 +215,20 @@ export async function GET(
 
     const metrics: ChainMetrics = {
       activeAddresses: createTimeSeriesMetric(activeAddressesData),
-      activeSenders: createTimeSeriesMetric(activeSendersData),
-      cumulativeAddresses: createTimeSeriesMetric(cumulativeAddressesData),
-      cumulativeDeployers: createTimeSeriesMetric(cumulativeDeployersData),
-      txCount: createTimeSeriesMetric(txCountData),
-      cumulativeTxCount: createTimeSeriesMetric(cumulativeTxCountData),
-      cumulativeContracts: createTimeSeriesMetric(cumulativeContractsData),
-      gasUsed: createTimeSeriesMetric(gasUsedData),
-      avgGps: createTimeSeriesMetric(avgGpsData),
-      maxGps: createTimeSeriesMetric(maxGpsData),
-      avgTps: createTimeSeriesMetric(avgTpsData),
-      maxTps: createTimeSeriesMetric(maxTpsData),
-      avgGasPrice: createTimeSeriesMetric(avgGasPriceData),
-      maxGasPrice: createTimeSeriesMetric(maxGasPriceData),
-      feesPaid: createTimeSeriesMetric(feesPaidData),
+      activeSenders: createTimeSeriesMetric(activeSendersData), 
+      cumulativeAddresses: createTimeSeriesMetric(cumulativeAddressesData), 
+      cumulativeDeployers: createTimeSeriesMetric(cumulativeDeployersData), 
+      txCount: createTimeSeriesMetric(txCountData), 
+      cumulativeTxCount: createTimeSeriesMetric(cumulativeTxCountData), 
+      cumulativeContracts: createTimeSeriesMetric(cumulativeContractsData), 
+      gasUsed: createTimeSeriesMetric(gasUsedData), 
+      avgGps: createTimeSeriesMetric(avgGpsData), 
+      maxGps: createTimeSeriesMetric(maxGpsData), 
+      avgTps: createTimeSeriesMetric(avgTpsData), 
+      maxTps: createTimeSeriesMetric(maxTpsData), 
+      avgGasPrice: createTimeSeriesMetric(avgGasPriceData), 
+      maxGasPrice: createTimeSeriesMetric(maxGasPriceData), 
+      feesPaid: createTimeSeriesMetric(feesPaidData), 
       icmMessages: createICMMetric(icmData),
       last_updated: Date.now()
     };
@@ -382,7 +279,7 @@ export async function GET(
       }
       
       return NextResponse.json(cached.data, {
-        status: 206, // Partial content
+        status: 206,
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',

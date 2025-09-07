@@ -181,6 +181,7 @@ export default function StepFlow({
                                 : isDone
                                 ? "border-green-500 text-green-600 dark:text-green-400"
                                 : "border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300",
+                                "optional" in s && s.optional ? "border-dashed" : ""
                             ].join(" ")}
                           >
                             <span
