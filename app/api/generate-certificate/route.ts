@@ -11,7 +11,7 @@ const courseMapping: Record<string, string> = {
 
 const certificateTemplates: Record<string, string> = {
   'avalanche-fundamentals': 'AvalancheAcademy_Certificate.pdf',
-  'codebase-entrepreneur-foundations': 'CodebaseEntrepreneur_Foundations_Certificate.pdf',
+  'codebase-entrepreneur-foundations': 'CodebaseEntrepreneur_Foundations_Certificate_interactive_fields.pdf',
   'codebase-entrepreneur-go-to-market': 'CodebaseEntrepreneur_GTM_Certificate.pdf',
   'codebase-entrepreneur-community': 'CodebaseEntrepreneur_Community_Certificate.pdf',
   'codebase-entrepreneur-fundraising': 'CodebaseEntrepreneur_Fundraising_Certificate.pdf',
