@@ -11,10 +11,10 @@ const courseMapping: Record<string, string> = {
 
 const certificateTemplates: Record<string, string> = {
   'avalanche-fundamentals': 'AvalancheAcademy_Certificate.pdf',
-  'codebase-entrepreneur-foundations': 'CodebaseEntrepreneur_Foundations_Certificate_interactive_fields.pdf',
-  'codebase-entrepreneur-go-to-market': 'CodebaseEntrepreneur_GTM_Certificate.pdf',
-  'codebase-entrepreneur-community': 'CodebaseEntrepreneur_Community_Certificate.pdf',
-  'codebase-entrepreneur-fundraising': 'CodebaseEntrepreneur_Fundraising_Certificate.pdf',
+  'codebase-entrepreneur-foundations': 'Codebase_EntrepreneurAcademy_Certificate_Foundations.pdf',
+  'codebase-entrepreneur-go-to-market': 'Codebase_EntrepreneurAcademy_Certificate_GTM.pdf',
+  'codebase-entrepreneur-community': 'Codebase_EntrepreneurAcademy_Certificate_Community.pdf',
+  'codebase-entrepreneur-fundraising': 'Codebase_EntrepreneurAcademy_Certificate_Fundraising.pdf',
 };
 
 function getCourseName(courseId: string): string {
@@ -29,7 +29,7 @@ function getCertificateTemplate(courseId: string): string {
 
   // Fallback for codebase entrepreneur courses
   if (courseId.startsWith('codebase-entrepreneur')) {
-    return 'CodebaseEntrepreneur_Certificate.pdf';
+    return 'Codebase_EntrepreneurAcademy_Certificate.pdf';
   }
 
   // Default fallback
@@ -97,7 +97,6 @@ export async function POST(req: NextRequest) {
               year: 'numeric',
             })
           );
-        console.log('Date is not working');
       }
     } catch (error) {
       throw new Error('Failed to fill form fields');
