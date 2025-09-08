@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, Suspense } from "react";
-import { ChevronRight, Layers, Users, MessagesSquare, ArrowUpDown, Settings, Droplets, Shield, Zap, Building2, Wrench } from "lucide-react";
+import { ChevronRight, Layers, Users, MessagesSquare, ArrowUpDown, Settings, Droplets } from "lucide-react";
 import Link from "next/link";
 
 function RedirectLogic() {
