@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import type { PChainOwner } from "./OwnerAddressesInput"
-import { SuggestedManagedTestnetNodes } from './SuggestedManagedTestnetNodes'
 import { AddValidatorControls } from './ValidatorListInput/AddValidatorControls'
 import { ValidatorsList } from './ValidatorListInput/ValidatorsList'
 
@@ -29,7 +28,6 @@ interface ValidatorListInputProps {
   userPChainBalanceNavax?: bigint | null;
   maxValidators?: number;
   selectedSubnetId?: string | null;
-  showSuggestedManagedNodes?: boolean;
 }
 
 export function ValidatorListInput({
@@ -42,50 +40,10 @@ export function ValidatorListInput({
   userPChainBalanceNavax = null,
   maxValidators,
   selectedSubnetId = null,
-  showSuggestedManagedNodes = false,
 }: ValidatorListInputProps) {
 
   const [error, setError] = useState<string | null>(null)
 
-  const handleAutofillFromManaged = (choice: {
-    id: string;
-    node_id: string;
-    chain_name: string | null;
-    public_key?: string;
-    proof_of_possession?: string;
-    subnet_id?: string;
-  }) => {
-    setError(null)
-    if (!choice.node_id) {
-      setError("Hosted node is missing NodeID")
-      return
-    }
-    const existing = validators.some((v) => v.nodeID === choice.node_id)
-    if (existing) {
-      setError("A validator with this NodeID already exists.")
-      return
-    }
-
-    const publicKey = (choice.public_key || "").trim()
-    const proof = (choice.proof_of_possession || "").trim()
-
-    const newValidator: ConvertToL1Validator = {
-      nodeID: choice.node_id,
-      nodePOP: { publicKey, proofOfPossession: proof },
-      validatorWeight: BigInt(100),
-      validatorBalance: BigInt(100000000),
-      remainingBalanceOwner: {
-        addresses: defaultAddress ? [defaultAddress] : [],
-        threshold: 1,
-      },
-      deactivationOwner: {
-        addresses: defaultAddress ? [defaultAddress] : [],
-        threshold: 1,
-      },
-    }
-
-    onChange([...validators, newValidator])
-  }
 
   const canAddMoreValidators = maxValidators === undefined || validators.length < maxValidators;
 
@@ -98,21 +56,13 @@ export function ValidatorListInput({
 
       <div className="bg-zinc-100/80 dark:bg-zinc-800/70 rounded-lg p-5 space-y-4 border border-zinc-200 dark:border-zinc-700 shadow-sm">
 
-        {/* Suggested hosted nodes for the selected Subnet */}
-        {showSuggestedManagedNodes && (
-          <SuggestedManagedTestnetNodes
-            managedNodes={[]}
-            selectedSubnetId={selectedSubnetId}
-            canAddMore={canAddMoreValidators}
-            onAdd={handleAutofillFromManaged}
-          />
-        )}
-
         {/* Add new validator section */}
         {canAddMoreValidators && (
           <AddValidatorControls
             defaultAddress={defaultAddress}
             canAddMore={canAddMoreValidators}
+            selectedSubnetId={selectedSubnetId}
+            existingNodeIds={validators.map(v => v.nodeID)}
             onAddValidator={(candidate) => {
               if (validators.some((v) => v.nodeID === candidate.nodeID)) {
                 setError("A validator with this NodeID already exists. NodeIDs must be unique.")
