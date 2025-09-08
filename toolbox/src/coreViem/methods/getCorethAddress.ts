@@ -1,27 +1,28 @@
-import { networkIDs } from "@avalabs/avalanchejs";
-import { SigningKey } from "ethers";//TODO: remove etheres dependency
+
+import { networkIDs, secp256k1 } from "@avalabs/avalanchejs";
 import { WalletClient } from "viem";
 import {
     utils,
-    secp256k1,
 } from "@avalabs/avalanchejs";
-import { Buffer as BufferPolyfill } from "buffer";
 import { CoreWalletRpcSchema } from "../rpcSchema";
 import { isTestnet } from "./isTestnet";
+import { Point } from "@noble/secp256k1";
+import { XPAddress } from "@avalanche-sdk/client/accounts";
+
 
 export async function getCorethAddress(client: WalletClient<any, any, any, CoreWalletRpcSchema>) {
-    const networkID = (await isTestnet(client)) ? networkIDs.FujiID : networkIDs.MainnetID
-
+    const networkID = (await isTestnet(client)) ? networkIDs.FujiID : networkIDs.MainnetID;
+    const hrp = networkIDs.getHRP(networkID);
     const pubkeys = await client.request({
         method: "avalanche_getAccountPubKey",
         params: []
     }) as {evm: string, xp: string}
+    return `C-${publicKeyToXPAddress(pubkeys.evm, hrp)}`;
+}
 
-    if (!pubkeys.xp.startsWith("0x")) {
-        pubkeys.xp = `0x${pubkeys.xp}`;
-    }
-    const compressed = SigningKey.computePublicKey(pubkeys.xp, true).slice(2);
-    const pubComp = BufferPolyfill.from(compressed, "hex");
-    const address = secp256k1.publicKeyBytesToAddress(pubComp);
-    return utils.format("C", networkIDs.getHRP(networkID), address)
+const publicKeyToXPAddress = (publicKey: string, hrp: string) => {
+    const point = Point.fromHex(utils.strip0x(publicKey));
+    const compressedPubKey = new Uint8Array(point.toBytes(true));
+    const address = secp256k1.publicKeyBytesToAddress(compressedPubKey);
+    return utils.formatBech32(hrp, address) as XPAddress;
 }

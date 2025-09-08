@@ -1,88 +1,21 @@
 "use client";
 import * as React from "react";
 import { useState, useEffect } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Pie,
-  PieChart,
-  ReferenceLine,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartStyle,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-} from "@/components/ui/chart";
+import {Area, AreaChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, ReferenceLine } from "recharts";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {type ChartConfig, ChartContainer, ChartStyle, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
-import {
-  Landmark,
-  Shield,
-  Loader2,
-  TrendingUp,
-  Monitor,
-  HandCoins,
-} from "lucide-react";
+import {Landmark, Shield, Loader2, TrendingUp, Monitor, HandCoins } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
+import {TimeSeriesDataPoint, ChartDataPoint, TimeRange, PrimaryNetworkMetrics, VersionCount } from "@/types/stats";
 
-interface TimeSeriesDataPoint {
-  timestamp: number;
-  value: number | string;
-  date: string;
-}
-
-interface TimeSeriesMetric {
-  data: TimeSeriesDataPoint[];
-  current_value: number | string;
-  change_24h: number;
-  change_percentage_24h: number;
-}
-
-interface PrimaryNetworkMetrics {
-  validator_count: TimeSeriesMetric;
-  validator_weight: TimeSeriesMetric;
-  delegator_count: TimeSeriesMetric;
-  delegator_weight: TimeSeriesMetric;
-  validator_versions: string;
-  last_updated: number;
-}
-
-interface ChartDataPoint {
-  day: string;
-  value: number;
-}
-
-interface VersionCount {
-  version: string;
-  count: number;
-  percentage: number;
-  amountStaked: number;
-  stakingPercentage: number;
-}
-
-export default function PrimaryNetworkMetrics() {
+export default function PrimaryNetworkValidatorMetrics() {
   const [metrics, setMetrics] = useState<PrimaryNetworkMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = React.useState<
-    "7d" | "30d" | "90d" | "all"
-  >("30d");
+  const [timeRange, setTimeRange] = React.useState<TimeRange>("30d");
   const [validatorVersions, setValidatorVersions] = useState<VersionCount[]>(
     []
   );
@@ -107,7 +40,6 @@ export default function PrimaryNetworkMetrics() {
       }
 
       setMetrics(primaryNetworkData);
-      setLastUpdated(new Date().toLocaleString());
 
       if (primaryNetworkData.validator_versions) {
         try {
@@ -227,8 +159,10 @@ export default function PrimaryNetworkMetrics() {
     >
   ): ChartDataPoint[] => {
     if (!metrics || !metrics[metricKey]?.data) return [];
+    const today = new Date().toISOString().split("T")[0];
+    const finalizedData = metrics[metricKey].data.filter((point) => point.date !== today);
 
-    return metrics[metricKey].data
+    return finalizedData
       .map((point: TimeSeriesDataPoint) => ({
         day: point.date,
         value:

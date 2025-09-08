@@ -8,7 +8,6 @@
     "build:remote": "tsx ./utils/remote-content.mts",
     "start": "pnpm build:remote && next build && next start",
     "check-links": "tsx .github/linkChecker.ts",
-    "update-stats": "node ./scripts/update-stats.js",
     "postinstall": "prisma generate && fumadocs-mdx && cd toolbox && yarn"
   },
   "dependencies": {

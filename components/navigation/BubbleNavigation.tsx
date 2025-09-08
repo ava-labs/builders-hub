@@ -12,7 +12,6 @@ const navItems: BubbleNavItem[] = [
   { id: "validators", label: "Validators", href: "/stats/primary-network/validators" },
   { id: "c-chain", label: "C-Chain", href: "/stats/primary-network/c-chain" },
   { id: "avalanche-l1s", label: "Avalanche L1s", href: "/stats/overview" },
-  { id: "staking", label: "Staking", href: "/stats/staking" },
 ];
 
 export default function BubbleNavigation() {

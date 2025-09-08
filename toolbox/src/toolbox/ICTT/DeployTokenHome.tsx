@@ -22,6 +22,7 @@ export default function DeployTokenHome() {
     const { showBoundary } = useErrorBoundary();
     const {
         exampleErc20Address,
+        wrappedNativeTokenAddress,
         setErc20TokenHomeAddress,
         erc20TokenHomeAddress,
         setNativeTokenHomeAddress,
@@ -41,7 +42,7 @@ export default function DeployTokenHome() {
     const [tokenType, setTokenType] = useState<"erc20" | "native">("erc20");
 
     useEffect(() => {
-        const tokenAddress = tokenType === "erc20" ? exampleErc20Address : selectedL1?.wrappedTokenAddress;
+        const tokenAddress = tokenType === "erc20" ? exampleErc20Address : (wrappedNativeTokenAddress || selectedL1?.wrappedTokenAddress);
         if (!tokenAddress) return;
         setTokenAddress(tokenAddress);
     }, [tokenType, selectedL1, exampleErc20Address]);
