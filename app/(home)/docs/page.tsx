@@ -304,7 +304,7 @@ function Features(): React.ReactElement {
     {
       id: 4,
       title: "Avalanche SDK",
-      description: "complete set of tools and libraries for developers to interact programmatically with the Avalanche blockchain ecosystem.",
+      description: "Complete set of tools and libraries for developers to interact programmatically with the Avalanche blockchain ecosystem.",
       icon: Github,
       href: "https://github.com/ava-labs/avalanche-sdk-typescript"
     }
