@@ -27,6 +27,7 @@ import { File, Folder, Files } from 'fumadocs-ui/components/files';
 import Mermaid from "@/components/content-design/mermaid";
 import type { MDXComponents } from 'mdx/types';
 import YouTube from '@/components/content-design/youtube';
+import { AddToWallet } from '@/components/ui/add-to-wallet';
 import { Feedback } from '@/components/ui/feedback';
 import posthog from 'posthog-js';
 import ToolboxMdxWrapper from "@/toolbox/src/components/ToolboxMdxWrapper"
@@ -120,6 +121,7 @@ export default async function Page(props: {
             File,
             Folder,
             Files,
+            AddToWallet,
             blockquote: Callout as unknown as FC<ComponentProps<'blockquote'>>,
             DocsCategory: () => <DocsCategory page={page} from={documentation} />,
           }}
