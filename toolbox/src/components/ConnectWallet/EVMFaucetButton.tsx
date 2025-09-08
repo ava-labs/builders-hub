@@ -45,6 +45,7 @@ export const EVMFaucetButton = ({
     if (isRequestingTokens || !walletEVMAddress) return;
     setIsRequestingTokens(true);
     const faucetRequest = requestTokens(chainId);
+    let loadingToastId: string | number | undefined;
 
     try {
       const loadingToastId = consoleToast.loading(`Requesting ${chainConfig.coinName} tokens...`);
@@ -66,6 +67,10 @@ export const EVMFaucetButton = ({
       }, 3000);
       setTimeout(() => {consoleToast.info("Your wallet balance has been refreshed")}, 3500);
     } catch (error) {
+      if (loadingToastId) {
+        consoleToast.dismiss(loadingToastId);
+      }
+
       console.error(`${chainConfig.name} token request error:`, error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 

@@ -26,7 +26,7 @@ export const toast = {
   },
 
   custom: (jsx: React.ReactNode) => {
-    return sonnerToast.custom(jsx);
+    return sonnerToast.custom(() => jsx as React.ReactElement);
   },
 
   promise: <T>(

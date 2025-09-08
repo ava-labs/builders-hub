@@ -19,9 +19,10 @@ export const PChainFaucetButton = ({ className, buttonProps, children }: PChainF
   const handlePChainTokenRequest = async () => {
     if (isRequestingPTokens || !pChainAddress) return;
     setIsRequestingPTokens(true);
+    let loadingToastId: string | number | undefined;
 
     try {
-      const loadingToastId = consoleToast.loading("Requesting P-Chain AVAX tokens...");
+      loadingToastId = consoleToast.loading("Requesting P-Chain AVAX tokens...");
       const response = await fetch(`/api/pchain-faucet?address=${pChainAddress}`);
       const rawText = await response.text();
 
@@ -55,7 +56,6 @@ export const PChainFaucetButton = ({ className, buttonProps, children }: PChainF
           consoleToast.info(`Transaction ID: ${data.txID}`);
         }
 
-        console.log("Token request successful, txID:", data.txID);
         setTimeout(() => {
           updatePChainBalance();
           consoleToast.info("Your P-Chain balance has been refreshed");
@@ -64,6 +64,10 @@ export const PChainFaucetButton = ({ className, buttonProps, children }: PChainF
         throw new Error(data.message || "Failed to get tokens");
       }
     } catch (error) {
+      if (loadingToastId) {
+        consoleToast.dismiss(loadingToastId);
+      }
+
       console.error("P-Chain token request error:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 
