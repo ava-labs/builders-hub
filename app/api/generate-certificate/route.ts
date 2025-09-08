@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
               year: 'numeric',
             })
           );
+        console.log('Date is not working');
       }
     } catch (error) {
       throw new Error('Failed to fill form fields');
