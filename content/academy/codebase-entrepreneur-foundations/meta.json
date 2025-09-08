@@ -1,6 +1,6 @@
 {
     "title": "Foundations",
-    "icon": "Coins",
+    "icon": "Building",
     "root": true,
     "pages": [
         "index",

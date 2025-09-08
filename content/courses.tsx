@@ -188,7 +188,7 @@ const officialCourses: Course[] = [
         slug: "codebase-entrepreneur-go-to-market",
         icon: <SquareStackIcon />,
         status: "featured",
-        duration: "3 hours",
+        duration: "1 hour",
         languages: [],
         tools: ["Codebase"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
