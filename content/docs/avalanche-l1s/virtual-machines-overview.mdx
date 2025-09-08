@@ -1,0 +1,82 @@
+---
+title: Virtual Machines
+description: Learn about blockchain VMs and how you can build a custom VM-enabled blockchain in Avalanche.
+---
+
+A **Virtual Machine** (VM) is the blueprint for a blockchain, meaning it defines a blockchain's complete application logic by specifying the blockchain's state, state transitions, transaction rules, and API interface.
+
+Developers can use the same VM to create multiple blockchains, each of which follows identical rules but is independent of all others.
+
+All Avalanche validators of the **Avalanche Primary Network** are required to run three VMs:
+
+- **Coreth**: Defines the Contract Chain (C-Chain); supports smart contract functionality and is EVM-compatible.
+- **Platform VM**: Defines the Platform Chain (P-Chain); supports operations on staking and Avalanche L1s.
+- **Avalanche VM**: Defines the Exchange Chain (X-Chain); supports operations on Avalanche Native Tokens.
+
+All three can easily be run on any computer with [AvalancheGo](/docs/nodes).
+
+## Custom VMs on Avalanche
+
+Developers with advanced use-cases for utilizing distributed ledger technology are often forced to build everything from scratch - networking, consensus, and core infrastructure - before even starting on the actual application.
+
+Avalanche eliminates this complexity by:
+
+- Providing VMs as simple blueprints for defining blockchain behavior
+- Supporting development in any programming language with familiar tools
+- Handling all low-level infrastructure automatically
+
+This lets developers focus purely on building their dApps, ecosystems, and communities, rather than wrestling with blockchain fundamentals.
+  
+### How Custom VMs Work
+
+Customized VMs can communicate with Avalanche over a language agnostic request-response protocol known as [RPC](https://en.wikipedia.org/wiki/Remote_procedure_call). This allows the VM framework to open a world of endless possibilities, as developers can implement their dApps using the languages, frameworks, and libraries of their choice.
+
+Validators can install additional VMs on their node to validate additional [Avalanche L1s](/docs/avalanche-l1s) in the Avalanche ecosystem. In exchange, validators receive staking rewards in the form of a reward token determined by the Avalanche L1s.
+
+## Building a Custom VM
+
+You can start building your first custom virtual machine in two ways:
+
+1. Use the ready-to-deploy Subnet-EVM for Solidity-based development
+2. Create a custom VM in Golang, Rust, or your preferred language
+
+The choice depends on your needs. Subnet-EVM provides a quick start with Ethereum compatibility, while custom VMs offer maximum flexibility.
+
+### Golang Examples
+
+<Cards>
+  <Card
+    href="https://github.com/ava-labs/timestampvm"
+    title="TimestampVM"
+    description="A decentralized timestamp blockchain written in Golang (recommended for beginners)"
+  />
+  <Card
+    href="https://github.com/ava-labs/coreth"
+    title="Coreth"
+    description="An implementation of EVM that powers the Avalanche C-Chain and supports Solidity smart contracts"
+  />
+  <Card
+    href="https://github.com/ava-labs/subnet-evm"
+    title="Subnet-EVM"
+    description="An implementation of EVM that can be deployed to a custom Avalanche L1"
+  />
+  <Card
+    href="https://github.com/ava-labs/xsvm"
+    title="XSVM"
+    description="An example of Interchain Messaging that implements Cross-Avalanche L1 asset transfers"
+  />
+</Cards>
+
+See here for a tutorial on [How to Build a Simple Golang VM](/docs/avalanche-l1s/golang-vms/simple-golang-vm).
+
+### Rust Examples
+
+<Cards>
+  <Card
+    href="https://github.com/ava-labs/timestampvm-rs"
+    title="TimestampVM RS"
+    description="A Rust implementation of TimestampVM"
+  />
+</Cards>
+
+See here for a tutorial on [How to Build a Simple Rust VM](/docs/avalanche-l1s/rust-vms/setting-up-environment).

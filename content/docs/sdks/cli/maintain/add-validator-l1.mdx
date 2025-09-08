@@ -1,0 +1,109 @@
+---
+title: Add Validator
+description:  Learn how to add a validator to an Avalanche L1.
+---
+
+
+### Add a Validator to an Avalanche L1
+
+```bash
+avalanche blockchain addValidator <blockchainName>
+```
+
+#### Choose Network
+Choose the network where the operation will be
+
+```bash
+? Choose a network for the operation: 
+  ▸ Local Network
+    Devnet
+    Fuji Testnet
+    Mainnet
+```
+
+#### Choose P-Chain Fee Payer
+
+Choose the key that will be used to pay for the transaction fees on the P-Chain.
+
+```bash
+? Which key should be used to pay for transaction fees on P-Chain?: 
+  ▸ Use stored key
+    Use ledger
+```
+
+#### Enter Node ID
+
+Enter the NodeID of the node you want to add as a blockchain validator.
+
+```bash
+✗ What is the NodeID of the node you want to add as a blockchain validator?:  
+```
+
+<Callout>
+You can find the NodeID in the node's configuration file or the console when first started with avalanchego.
+An example of a NodeID is `NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg`
+</Callout>
+
+#### Enter the BLS Public Key
+
+Enter the public key of the node's BLS
+
+```bash
+Next, we need the public key and proof of possession of the node's BLS
+Check https://build.avax.network/docs/apis/info-api#infogetnodeid for instructions on calling info.getNodeID API
+✗ What is the node's BLS public key?:
+```
+
+<Callout>
+You can find the BLS public key in the node's configuration file or the console when first started with avalanchego.
+</Callout>
+
+#### Enter BLS Proof of Possession
+
+Enter the proof of possession of the node's BLS
+
+```bash
+✗ What is the node's BLS proof of possession?:
+```
+
+<Callout>
+You can find the BLS proof of possession in the node's configuration file or the console when first started with avalanchego.
+</Callout>
+
+#### Enter AVAX Balance
+
+This balance will be used to pay the P-Chain continuous staking fee.
+
+```bash
+✗ What balance would you like to assign to the validator (in AVAX)?: 
+```
+
+#### Enter Leftover AVAX Address
+
+This address will receive any leftover AVAX when the node is removed from the validator set.
+
+```bash
+? Which key would you like to set as change owner for leftover AVAX if the node is removed from validator set?: 
+ ▸ Get address from an existing stored key (created from avalanche key create or avalanche key import)
+    Custom
+```
+
+#### Enter Disable Validator Address
+
+This address will be able to disable the validator using P-Chain transactions.
+
+```bash
+ Which address do you want to be able to disable the validator using P-Chain transactions?: 
+  ▸ Get address from an existing stored key (created from avalanche key create or avalanche key import)
+    Custom
+```
+
+### Proof of Stake specific parameters
+
+If your network was created with Proof of Stake validator manager, you will be asked for the following additional parameters. You can also pass these parameters as flags to the command.
+
+```bash
+--delegation-fee uint16                delegation fee (in bips)
+--stake-amount uint                    amount of native tokens to stake
+--staking-period duration              how long this validator will be staking
+```

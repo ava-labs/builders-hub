@@ -40,6 +40,10 @@ const config = {
         protocol: 'https',
         hostname: 'cdn.prod.website-files.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'img.shields.io',
+      },
     ],
   },
   async rewrites() {
