@@ -103,7 +103,7 @@ export function AddValidatorControls({ defaultAddress = "", canAddMore, onAddVal
               : ""
           )}
         >
-          Paste JSON
+          Paste info.getNodeID API Response
         </Button>
         <Button
           variant="outline"
