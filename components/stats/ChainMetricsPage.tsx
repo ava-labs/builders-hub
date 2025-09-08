@@ -1,14 +1,14 @@
 "use client";
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { Area,AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ReferenceLine } from "recharts";
-import {Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {type ChartConfig, ChartContainer,ChartTooltip,ChartTooltipContent } from "@/components/ui/chart";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ReferenceLine } from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
-import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel } from "lucide-react";
-import BubbleNavigation from "@/components/navigation/BubbleNavigation";
+import { Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel } from "lucide-react";
+import { StatsBubbleNav } from "@/components/stats/stats-bubble-nav";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import {TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, ChartDataPoint, TimeRange } from "@/types/stats";
+import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, ChartDataPoint, TimeRange } from "@/types/stats";
 
 interface CChainMetrics {
   activeAddresses: TimeSeriesMetric;
@@ -673,7 +673,7 @@ export default function ChainMetricsPage({
           </div>
           <ChartSkeletonLoader />
         </div>
-        <BubbleNavigation />
+        <StatsBubbleNav />
       </div>
     );
   }
@@ -782,11 +782,11 @@ export default function ChainMetricsPage({
               const chartData = isICMChart
                 ? getICMChartData()
                 : getChartData(
-                    config.metricKey as keyof Omit<
-                      CChainMetrics,
-                      "last_updated" | "icmMessages"
-                    >
-                  );
+                  config.metricKey as keyof Omit<
+                    CChainMetrics,
+                    "last_updated" | "icmMessages"
+                  >
+                );
               const yAxisDomain = getYAxisDomain(chartData, isICMChart);
               const currentValue = getCurrentValue(config.metricKey);
               const { change, isPositive } = getValueChange(config.metricKey);
@@ -833,25 +833,23 @@ export default function ChainMetricsPage({
                         {isICMChart
                           ? `${formatNumber(currentValue)} Messages`
                           : formatTooltipValue(
-                              typeof currentValue === "string"
-                                ? parseFloat(currentValue)
-                                : currentValue,
-                              config.metricKey
-                            )}
+                            typeof currentValue === "string"
+                              ? parseFloat(currentValue)
+                              : currentValue,
+                            config.metricKey
+                          )}
                       </div>
                       {change > 0 && (
                         <div
-                          className={`flex items-center gap-1 text-sm ${
-                            isPositive ? "text-green-600" : "text-red-600"
-                          }`}
+                          className={`flex items-center gap-1 text-sm ${isPositive ? "text-green-600" : "text-red-600"
+                            }`}
                           title={`Change compared to ${getComparisonPeriodLabel(
                             timeRange
                           )}`}
                         >
                           <TrendingUp
-                            className={`h-4 w-4 ${
-                              isPositive ? "" : "rotate-180"
-                            }`}
+                            className={`h-4 w-4 ${isPositive ? "" : "rotate-180"
+                              }`}
                           />
                           {change.toFixed(1)}%
                         </div>
@@ -859,9 +857,8 @@ export default function ChainMetricsPage({
                     </div>
                     <ChartContainer
                       config={config.chartConfig}
-                      className={`aspect-auto w-full font-mono ${
-                        isICMChart ? "h-[300px]" : "h-[250px]"
-                      }`}
+                      className={`aspect-auto w-full font-mono ${isICMChart ? "h-[300px]" : "h-[250px]"
+                        }`}
                     >
                       {isICMChart ? (
                         <BarChart
@@ -1041,7 +1038,7 @@ export default function ChainMetricsPage({
       </div>
 
       {/* Bubble Navigation */}
-      <BubbleNavigation />
+      <StatsBubbleNav />
     </div>
   );
 }

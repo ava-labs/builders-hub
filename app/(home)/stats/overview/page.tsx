@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { Area, AreaChart, XAxis, YAxis, CartesianGrid } from "recharts";
-import BubbleNavigation from "@/components/navigation/BubbleNavigation";
+import { StatsBubbleNav } from "@/components/stats/stats-bubble-nav";
 import l1ChainsData from "@/constants/l1-chains.json";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
@@ -399,7 +399,7 @@ export default function AvalancheMetrics() {
         </div>
 
         {/* Bubble Navigation */}
-        <BubbleNavigation />
+        <StatsBubbleNav />
       </div>
     );
   }
@@ -424,7 +424,7 @@ export default function AvalancheMetrics() {
         </main>
 
         {/* Bubble Navigation */}
-        <BubbleNavigation />
+        <StatsBubbleNav />
       </div>
     );
   }
@@ -451,7 +451,7 @@ export default function AvalancheMetrics() {
         </main>
 
         {/* Bubble Navigation */}
-        <BubbleNavigation />
+        <StatsBubbleNav />
       </div>
     );
   }
@@ -561,7 +561,7 @@ export default function AvalancheMetrics() {
                       typeof overviewMetrics.aggregated.totalActiveAddresses
                         .current_value === "number"
                         ? overviewMetrics.aggregated.totalActiveAddresses
-                            .current_value
+                          .current_value
                         : 0
                     )}
                   </p>
@@ -721,7 +721,7 @@ export default function AvalancheMetrics() {
                             {validPayload.map((entry, index) => {
                               const fullName =
                                 chartData.find((d) => d.day === label)?.[
-                                  `${entry.dataKey}_fullName`
+                                `${entry.dataKey}_fullName`
                                 ] || entry.dataKey;
                               return (
                                 <div
@@ -896,12 +896,11 @@ export default function AvalancheMetrics() {
                       </TableCell>
                       <TableCell className="text-center">
                         <span
-                          className={`font-mono font-semibold text-sm ${
-                            typeof chain.txCount.current_value === "number" &&
+                          className={`font-mono font-semibold text-sm ${typeof chain.txCount.current_value === "number" &&
                             chain.txCount.current_value > 0
-                              ? "text-foreground"
-                              : "text-muted-foreground"
-                          }`}
+                            ? "text-foreground"
+                            : "text-muted-foreground"
+                            }`}
                         >
                           {typeof chain.txCount.current_value === "number"
                             ? formatFullNumber(chain.txCount.current_value)
@@ -910,30 +909,28 @@ export default function AvalancheMetrics() {
                       </TableCell>
                       <TableCell className="text-center">
                         <span
-                          className={`font-mono font-semibold text-sm ${
-                            typeof chain.activeAddresses.current_value ===
-                              "number" &&
+                          className={`font-mono font-semibold text-sm ${typeof chain.activeAddresses.current_value ===
+                            "number" &&
                             chain.activeAddresses.current_value > 0
-                              ? "text-foreground"
-                              : "text-muted-foreground"
-                          }`}
+                            ? "text-foreground"
+                            : "text-muted-foreground"
+                            }`}
                         >
                           {typeof chain.activeAddresses.current_value ===
-                          "number"
+                            "number"
                             ? formatFullNumber(
-                                chain.activeAddresses.current_value
-                              )
+                              chain.activeAddresses.current_value
+                            )
                             : chain.activeAddresses.current_value}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
                         <span
-                          className={`font-mono font-semibold text-sm ${
-                            typeof chain.icmMessages.current_value ===
-                              "number" && chain.icmMessages.current_value > 0
-                              ? "text-foreground"
-                              : "text-muted-foreground"
-                          }`}
+                          className={`font-mono font-semibold text-sm ${typeof chain.icmMessages.current_value ===
+                            "number" && chain.icmMessages.current_value > 0
+                            ? "text-foreground"
+                            : "text-muted-foreground"
+                            }`}
                         >
                           {typeof chain.icmMessages.current_value === "number"
                             ? formatFullNumber(chain.icmMessages.current_value)
@@ -942,12 +939,11 @@ export default function AvalancheMetrics() {
                       </TableCell>
                       <TableCell className="text-center">
                         <span
-                          className={`font-mono font-semibold text-sm ${
-                            typeof chain.validatorCount === "number" &&
+                          className={`font-mono font-semibold text-sm ${typeof chain.validatorCount === "number" &&
                             chain.validatorCount > 0
-                              ? "text-foreground"
-                              : "text-muted-foreground"
-                          }`}
+                            ? "text-foreground"
+                            : "text-muted-foreground"
+                            }`}
                         >
                           {typeof chain.validatorCount === "number"
                             ? formatFullNumber(chain.validatorCount)
@@ -1004,7 +1000,7 @@ export default function AvalancheMetrics() {
       </main>
 
       {/* Bubble Navigation */}
-      <BubbleNavigation />
+      <StatsBubbleNav />
     </div>
   );
 }

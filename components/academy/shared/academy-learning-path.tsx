@@ -1,78 +1,24 @@
-"use client";
-
-import { useState, useEffect } from 'react';
 import LearningTree from '@/components/academy/learning-tree';
-import { cn } from '@/utils/cn';
 
 interface AcademyLearningPathProps {
     defaultPathType: 'avalanche' | 'entrepreneur';
     showToggle?: boolean;
 }
 
-const ACADEMY_PATH_KEY = 'academy-selected-path';
-
 export function AcademyLearningPath({ defaultPathType, showToggle = true }: AcademyLearningPathProps) {
-    const [pathType, setPathType] = useState<'avalanche' | 'entrepreneur'>(defaultPathType);
-
-    // Load saved preference on mount
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const savedPath = localStorage.getItem(ACADEMY_PATH_KEY) as 'avalanche' | 'entrepreneur' | null;
-            if (savedPath && (savedPath === 'avalanche' || savedPath === 'entrepreneur')) {
-                setPathType(savedPath);
-            }
-        }
-    }, []);
-
-    // Save preference when it changes
-    const handlePathChange = (newPath: 'avalanche' | 'entrepreneur') => {
-        setPathType(newPath);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem(ACADEMY_PATH_KEY, newPath);
-        }
-    };
+    const pathType = defaultPathType;
 
     return (
         <div className="mb-20">
             <div className="text-center mb-12">
-                {showToggle && (
-                    <div className="flex justify-center mb-6">
-                        <div className="inline-flex items-center gap-0 p-1 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-lg">
-                            <button
-                                onClick={() => handlePathChange('avalanche')}
-                                className={cn(
-                                    "px-6 py-2 rounded-full text-sm font-medium transition-all duration-200",
-                                    pathType === 'avalanche'
-                                        ? "bg-red-500 text-white shadow-sm"
-                                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700/50"
-                                )}
-                            >
-                                Developer
-                            </button>
-                            <button
-                                onClick={() => handlePathChange('entrepreneur')}
-                                className={cn(
-                                    "px-6 py-2 rounded-full text-sm font-medium transition-all duration-200",
-                                    pathType === 'entrepreneur'
-                                        ? "bg-red-500 text-white shadow-sm"
-                                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700/50"
-                                )}
-                            >
-                                Entrepreneur
-                            </button>
-                        </div>
-                    </div>
-                )}
-
                 <h2 className="text-3xl sm:text-4xl font-bold text-zinc-900 dark:text-white mb-8">
                     Learning Path for{" "}
                     {pathType === 'avalanche' ? (
-                        <>
-                            <span className="text-red-600">Avalanche Developer </span>
-                            Academy
-                        </>
+                        "Avalanche"
                     ) : (
-                        <>Codebase Entrepreneur Academy</>
+                        <>
+                            Codebase <span className="text-red-600">Entrepreneur Academy</span>
+                        </>
                     )}
                 </h2>
 
