@@ -61,6 +61,7 @@
     "react-syntax-highlighter": "^15.6.1",
     "recharts": "^2.15.1",
     "shadcn": "^2.10.0",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.0.1",
     "viem": "^2.23.0",
     "vitest": "^3.0.5",
