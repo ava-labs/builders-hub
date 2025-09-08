@@ -88,6 +88,10 @@ export async function POST(req: NextRequest) {
     const fields = form.getFields();
     console.log('Total form fields found:', fields.length);
 
+    // Quick summary of all field names
+    const fieldNames = fields.map(f => f.getName());
+    console.log('All field names in PDF:', fieldNames);
+
     // If no fields found, this might be the issue
     if (fields.length === 0) {
       console.error('WARNING: No form fields found in the PDF!');
@@ -97,6 +101,37 @@ export async function POST(req: NextRequest) {
     fields.forEach(field => {
       const fieldName = field.getName();
       console.log(`Field found: "${fieldName}" (Type: ${field.constructor.name})`);
+
+      // Additional debugging for text fields
+      if (field.constructor.name === 'PDFTextField') {
+        const textField = field as any;
+        console.log(`  - Max Length: ${textField.getMaxLength() || 'No limit'}`);
+        console.log(`  - Is Required: ${textField.isRequired()}`);
+        console.log(`  - Current Value: "${textField.getText() || 'Empty'}"`);
+      }
+    });
+
+    // Try to find fields with similar names (case-insensitive)
+    console.log('\n=== FIELD NAME ANALYSIS ===');
+    const nameVariations = ['Name', 'name', 'NAME', 'FullName', 'fullname', 'Full Name', 'full name'];
+    const dateVariations = ['Date', 'date', 'DATE', 'Awarded', 'awarded', 'Award Date'];
+
+    nameVariations.forEach(variation => {
+      try {
+        const field = form.getTextField(variation);
+        console.log(`✓ Found field with name "${variation}"`);
+      } catch (e) {
+        // Field doesn't exist with this name
+      }
+    });
+
+    dateVariations.forEach(variation => {
+      try {
+        const field = form.getTextField(variation);
+        console.log(`✓ Found field with name "${variation}"`);
+      } catch (e) {
+        // Field doesn't exist with this name
+      }
     });
 
     try {
