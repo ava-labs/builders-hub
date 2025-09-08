@@ -123,8 +123,8 @@ export default function ConvertToL1() {
                         label="Initial Validators"
                         description="Specify the initial validator set for the L1 below. You need to add at least one validator. If converting a pre-existing Subnet with validators, you must establish a completely new validator set for the L1 conversion. The existing Subnet validators cannot be transferred. For each new validator, you need to specify NodeID, the consensus weight, the initial balance and an address or a multi-sig that can deactivate the validator and that receives its remaining balance. The sum of the initial balances of the validators needs to be paid when issuing this transaction."
                         userPChainBalanceNavax={rawPChainBalanceNavax}
-                        showSuggestedManagedNodes={isTestnet}
                         selectedSubnetId={selection.subnetId}
+                        isTestnet={isTestnet}
                     />
 
                     <Button

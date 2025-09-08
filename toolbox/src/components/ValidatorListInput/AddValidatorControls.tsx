@@ -23,6 +23,7 @@ interface Props {
   onAddValidator: (validator: ConvertToL1Validator) => void
   selectedSubnetId?: string | null
   existingNodeIds?: string[]
+  isTestnet?: boolean
 }
 
 export function AddValidatorControls({ 
@@ -30,7 +31,8 @@ export function AddValidatorControls({
   canAddMore, 
   onAddValidator, 
   selectedSubnetId = null,
-  existingNodeIds = []
+  existingNodeIds = [],
+  isTestnet = false
 }: Props) {
   const [activeTab, setActiveTab] = useState<"managed" | "json" | "manual">("json")
   const [jsonInput, setJsonInput] = useState("")
@@ -69,15 +71,15 @@ export function AddValidatorControls({
     return () => { isMounted = false }
   }, [])
 
-  // Auto-select managed tab if there are available nodes for the selected subnet
+  // Auto-select managed tab if there are available nodes for the selected subnet and we're on testnet
   useEffect(() => {
-    if (managedNodesLoaded) {
+    if (managedNodesLoaded && isTestnet) {
       const filteredNodes = managedNodes.filter(n => !selectedSubnetId || n.subnet_id === selectedSubnetId)
       if (filteredNodes.length > 0) {
         setActiveTab("managed")
       }
     }
-  }, [managedNodes, managedNodesLoaded, selectedSubnetId])
+  }, [managedNodes, managedNodesLoaded, selectedSubnetId, isTestnet])
 
   const handleAutofillFromManaged = (choice: ManagedTestnetNodeSuggestion) => {
     setError(null)
@@ -184,10 +186,12 @@ export function AddValidatorControls({
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "managed" | "json" | "manual")}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="managed">
-            Select Managed Node
-          </TabsTrigger>
+        <TabsList className={`grid w-full ${isTestnet ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          {isTestnet && (
+            <TabsTrigger value="managed">
+              Select Managed Node
+            </TabsTrigger>
+          )}
           <TabsTrigger value="json">
             Paste info.getNodeID API Response
           </TabsTrigger>
@@ -196,7 +200,8 @@ export function AddValidatorControls({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="managed" className="space-y-4">
+        {isTestnet && (
+          <TabsContent value="managed" className="space-y-4">
           {!managedNodesLoaded ? (
             <div className="text-sm text-zinc-600 dark:text-zinc-400">Loading managed testnet nodes...</div>
           ) : filteredManagedNodes.length === 0 ? (
@@ -245,7 +250,8 @@ export function AddValidatorControls({
               ))}
             </div>
           )}
-        </TabsContent>
+          </TabsContent>
+        )}
 
         <TabsContent value="json" className="space-y-4">
           <p className="text-sm text-zinc-600 dark:text-zinc-400">

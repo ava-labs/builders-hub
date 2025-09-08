@@ -28,6 +28,7 @@ interface ValidatorListInputProps {
   userPChainBalanceNavax?: bigint | null;
   maxValidators?: number;
   selectedSubnetId?: string | null;
+  isTestnet?: boolean;
 }
 
 export function ValidatorListInput({
@@ -40,6 +41,7 @@ export function ValidatorListInput({
   userPChainBalanceNavax = null,
   maxValidators,
   selectedSubnetId = null,
+  isTestnet = false,
 }: ValidatorListInputProps) {
 
   const [error, setError] = useState<string | null>(null)
@@ -63,6 +65,7 @@ export function ValidatorListInput({
             canAddMore={canAddMoreValidators}
             selectedSubnetId={selectedSubnetId}
             existingNodeIds={validators.map(v => v.nodeID)}
+            isTestnet={isTestnet}
             onAddValidator={(candidate) => {
               if (validators.some((v) => v.nodeID === candidate.nodeID)) {
                 setError("A validator with this NodeID already exists. NodeIDs must be unique.")
