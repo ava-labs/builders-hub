@@ -29,4 +29,11 @@ export const consoleToast = {
   dismiss: (toastId?: string | number) => {
     return toast.dismiss(toastId);
   },
+
+  action: (message: string, options: { 
+    description?: string; 
+    action: { label: string; onClick: () => void; }; 
+  }) => {
+    return toast.action(message, options);
+  },
 };

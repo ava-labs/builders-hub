@@ -75,7 +75,9 @@ export const EVMFaucetButton = ({
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 
       if (errorMessage.includes("login") || errorMessage.includes("401")) {
-        consoleToast.error(`Authentication Required: You need to be logged in to request free tokens from the ${chainConfig.name} Faucet. Please login first.`);
+        consoleToast.action(`Authentication Required: You need to be logged in to request free tokens from the ${chainConfig.name} Faucet.`,
+          {action: {label: "Login", onClick: () => (window.location.href = "/login")}}
+        );
       } else if (errorMessage.includes("rate limit") || errorMessage.includes("429")) {
         consoleToast.warning("Rate Limited: Please wait before requesting tokens again. Try again in a few minutes.");
       } else {
