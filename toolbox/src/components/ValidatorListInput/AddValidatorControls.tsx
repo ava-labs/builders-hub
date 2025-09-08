@@ -116,7 +116,7 @@ export function AddValidatorControls({ defaultAddress = "", canAddMore, onAddVal
               : ""
           )}
         >
-          Enter Manually
+          Enter NodeID and BLS PoP Manually
         </Button>
       </div>
 
