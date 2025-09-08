@@ -11,7 +11,15 @@ Welcome to Avalanche. This quick start has the essentials to get you building fa
 |-------|---------|-----------|----------|
 | C‑Chain | https://api.avax.network/ext/bc/C/rpc | wss://api.avax.network/ext/bc/C/ws | `43114` |
 
-- Add to wallet: visit the [C‑Chain explorer](https://subnets.avax.network/c-chain) and click "Add to Wallet" under "Chain Info".
+
+<AddToWallet network={{
+  chainId: '0xa86a',
+  chainName: 'Avalanche C-Chain',
+  nativeCurrency: { name: 'Avalanche', symbol: 'AVAX', decimals: 18 },
+  rpcUrls: ['https://api.avax.network/ext/bc/C/rpc'],
+  blockExplorerUrls: ['https://subnets.avax.network/c-chain'],
+  iconUrls: ['https://cryptologos.cc/logos/avalanche-avax-logo.png']
+}} variant="compact" />
 
 ### Fuji Testnet
 
@@ -19,7 +27,15 @@ Welcome to Avalanche. This quick start has the essentials to get you building fa
 |-------|---------|-----------|----------|
 | C‑Chain | https://api.avax-test.network/ext/bc/C/rpc | wss://api.avax-test.network/ext/bc/C/ws | `43113` |
 
-- Add to wallet: visit the [Fuji C‑Chain explorer](https://subnets-test.avax.network/c-chain) and click "Add to Wallet".
+
+<AddToWallet network={{
+  chainId: '0xa869',
+  chainName: 'Avalanche Fuji Testnet',
+  nativeCurrency: { name: 'Avalanche', symbol: 'AVAX', decimals: 18 },
+  rpcUrls: ['https://api.avax-test.network/ext/bc/C/rpc'],
+  blockExplorerUrls: ['https://subnets-test.avax.network/c-chain'],
+  iconUrls: ['https://cryptologos.cc/logos/avalanche-avax-logo.png']
+}} variant="compact" />
 
 ## Block Explorers
 

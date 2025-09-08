@@ -11,7 +11,7 @@
     "[Wrench][Using Console](https://build.avax.network/console/layer-1/create)",
     "[SquareTerminal][Using Avalanche CLI](https://build.avax.network/docs/tooling/create-avalanche-l1)",
     "[Globe][Using BaaS Providers](https://build.avax.network/integrations#Blockchain%20as%20a%20Service)",
-    "---Run a Node---",
+    "---Run an L1 Node---",
     "run-a-node/using-docker",
     "run-a-node/using-binary",
     "run-a-node/from-source",
