@@ -274,6 +274,11 @@ const data = {
           url: "/console/utilities/format-converter",
           icon: Wrench,
         },
+        {
+          title: "Migrate VMC From V1 to V2",
+          url: "/console/utilities/vmcMigrateFromV1",
+          icon: Wrench,
+        },
       ],
     },
   ],

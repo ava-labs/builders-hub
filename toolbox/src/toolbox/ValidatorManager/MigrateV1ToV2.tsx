@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useErrorBoundary } from "react-error-boundary";
 import { useWalletStore } from "../../stores/walletStore";
 import { useViemChainStore, useToolboxStore } from "../../stores/toolboxStore";
 import { Chain } from "viem";
@@ -13,7 +12,6 @@ import { ExternalLink } from "lucide-react";
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
 
 export default function MigrateV1ToV2() {
-  const { showBoundary } = useErrorBoundary();
   const { coreWalletClient, publicClient } = useWalletStore();
   const viemChain = useViemChainStore();
   const { validatorManagerAddress, setValidatorManagerAddress } = useToolboxStore();
@@ -118,7 +116,6 @@ export default function MigrateV1ToV2() {
       }
     } catch (error: any) {
       setError(error.message || "An unknown error occurred");
-      showBoundary(error);
     } finally {
       setIsProcessing(false);
     }
@@ -143,6 +140,18 @@ export default function MigrateV1ToV2() {
             </ul>
             You need to provide the validation ID, the latest nonce received from the P-Chain,
             and the address of the Validator Manager contract.
+          </p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+            For full details about the migration process, see the{" "}
+            <a 
+              href="https://github.com/ava-labs/icm-contracts/blob/validator-manager-v2.1.0/contracts/validator-manager/MigratingFromV1.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:underline inline-flex items-center gap-1"
+            >
+              official migration guide
+              <ExternalLink className="h-3 w-3" />
+            </a>.
           </p>
         </div>
 
@@ -171,7 +180,7 @@ export default function MigrateV1ToV2() {
             label="Received Nonce"
             value={receivedNonce}
             onChange={setReceivedNonce}
-            helperText="The latest nonce received from the P-Chain"
+            helperText="The latest nonce received from the P-Chain (typically 0)"
             error={receivedNonceError}
           />
 
