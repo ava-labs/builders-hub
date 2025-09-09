@@ -184,10 +184,10 @@ function AllCategories(): React.ReactElement {
     },
     {
       id: 5,
-      title: "Developer Tools",
-      description: "CLI tools and utilities for development",
+      title: "Builder Console",
+      description: "Tools and utilities for development",
       icon: Wrench,
-      href: "/tools/l1-toolbox",
+      href: "/console",
       badge: "Tools"
     }
   ];
