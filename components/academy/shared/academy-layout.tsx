@@ -45,7 +45,6 @@ export function AcademyLayout({ config, blogs = [], children, afterLearningPath 
                         {/* Learning Tree Section */}
                         <AcademyLearningPath
                             defaultPathType={config.pathType}
-                            showToggle={false}
                         />
 
                         {/* Custom content after learning path */}

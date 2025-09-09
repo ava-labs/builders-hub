@@ -2,10 +2,9 @@ import LearningTree from '@/components/academy/learning-tree';
 
 interface AcademyLearningPathProps {
     defaultPathType: 'avalanche' | 'entrepreneur';
-    showToggle?: boolean;
 }
 
-export function AcademyLearningPath({ defaultPathType, showToggle = true }: AcademyLearningPathProps) {
+export function AcademyLearningPath({ defaultPathType }: AcademyLearningPathProps) {
     const pathType = defaultPathType;
 
     return (
