@@ -14,7 +14,8 @@ import { prepareAddPermissionlessValidatorTxn } from '@avalanche-sdk/client/meth
 import { sendXPTransaction } from '@avalanche-sdk/client/methods/wallet'
 import { AlertCircle } from 'lucide-react'
 import { networkIDs } from '@avalabs/avalanchejs'
-import { NodeCredentialInput, type NodeCredentials } from '../../components/NodeCredentialInput'
+import { AddValidatorControls } from '../../components/ValidatorListInput/AddValidatorControls'
+import type { ConvertToL1Validator } from '../../components/ValidatorListInput'
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 
 // Network-specific constants
@@ -48,7 +49,7 @@ const BUFFER_MINUTES = 5
 export default function Stake() {
   const { coreWalletClient, pChainAddress, isTestnet, avalancheNetworkID, walletEVMAddress } = useWalletStore()
   
-  const [nodeCredentials, setNodeCredentials] = useState<NodeCredentials | null>(null)
+  const [validator, setValidator] = useState<ConvertToL1Validator | null>(null)
   const [stakeInAvax, setStakeInAvax] = useState<string>("")
   const [endTime, setEndTime] = useState<string>("")
   const [delegatorRewardPercentage, setDelegatorRewardPercentage] = useState<string>(DEFAULT_DELEGATOR_REWARD_PERCENTAGE)
@@ -106,19 +107,19 @@ export default function Stake() {
       return 'Connect Core Wallet to get your P-Chain address'
     }
     
-    if (!nodeCredentials) {
-      return 'Please provide node credentials'
+    if (!validator) {
+      return 'Please provide validator credentials'
     }
     
-    if (!nodeCredentials.nodeID?.startsWith('NodeID-')) {
+    if (!validator.nodeID?.startsWith('NodeID-')) {
       return 'Invalid NodeID format'
     }
     
-    if (!nodeCredentials.publicKey?.startsWith('0x')) {
+    if (!validator.nodePOP.publicKey?.startsWith('0x')) {
       return 'Invalid BLS Public Key format'
     }
     
-    if (!nodeCredentials.proofOfPossession?.startsWith('0x')) {
+    if (!validator.nodePOP.proofOfPossession?.startsWith('0x')) {
       return 'Invalid BLS Signature format'
     }
     
@@ -172,7 +173,7 @@ export default function Stake() {
 
       const endUnix = Math.floor(new Date(endTime).getTime() / 1000)
       const { tx } = await prepareAddPermissionlessValidatorTxn(avalancheClient.pChain, {
-        nodeId: nodeCredentials!.nodeID,
+        nodeId: validator!.nodeID,
         stakeInAvax: Number(stakeInAvax),
         end: endUnix,
         rewardAddresses: [pChainAddress!],
@@ -180,8 +181,8 @@ export default function Stake() {
         delegatorRewardPercentage: Number(delegatorRewardPercentage),
         threshold: 1,
         locktime: 0,
-        publicKey: nodeCredentials!.publicKey,
-        signature: nodeCredentials!.proofOfPossession,
+        publicKey: validator!.nodePOP.publicKey,
+        signature: validator!.nodePOP.proofOfPossession,
       })
       
       const txResult = await sendXPTransaction(avalancheClient.pChain, {
@@ -216,22 +217,27 @@ export default function Stake() {
             <Step>
               <h3 className="text-lg font-semibold mb-4">Node Credentials</h3>
               
-              <NodeCredentialInput onCredentialsChange={setNodeCredentials} />
+              <AddValidatorControls
+                defaultAddress={pChainAddress || ""}
+                canAddMore={!validator}
+                onAddValidator={setValidator}
+                isTestnet={false}
+              />
               
-              {nodeCredentials && (
+              {validator && (
                 <div className="mt-4 p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
                   <div className="space-y-3">
                     <div>
                       <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Node ID</div>
-                      <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all">{nodeCredentials.nodeID}</div>
+                      <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all">{validator.nodeID}</div>
                     </div>
                     <div>
                       <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">BLS Public Key</div>
-                      <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all">{nodeCredentials.publicKey}</div>
+                      <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all">{validator.nodePOP.publicKey}</div>
                     </div>
                     <div>
                       <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Proof of Possession</div>
-                      <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all">{nodeCredentials.proofOfPossession}</div>
+                      <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all">{validator.nodePOP.proofOfPossession}</div>
                     </div>
                   </div>
                 </div>
