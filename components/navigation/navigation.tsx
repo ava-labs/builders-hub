@@ -53,7 +53,7 @@ export function DocsDropdown({
             icon: <></>,
             url: "",
           },
-      ]
+        ]
       : []),
     {
       title: "Avalanche Protocol",
