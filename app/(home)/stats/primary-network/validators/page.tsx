@@ -1,15 +1,15 @@
 "use client";
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, ReferenceLine } from "recharts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { type ChartConfig, ChartContainer, ChartStyle, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import {Area, AreaChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, ReferenceLine } from "recharts";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {type ChartConfig, ChartContainer, ChartStyle, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
-import { Landmark, Shield, Loader2, TrendingUp, Monitor, HandCoins } from "lucide-react";
+import {Landmark, Shield, Loader2, TrendingUp, Monitor, HandCoins } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
-import { StatsBubbleNav } from "@/components/stats/stats-bubble-nav";
+import {StatsBubbleNav } from "@/components/stats/stats-bubble-nav";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import { TimeSeriesDataPoint, ChartDataPoint, TimeRange, PrimaryNetworkMetrics, VersionCount } from "@/types/stats";
+import {TimeSeriesDataPoint, ChartDataPoint, TimeRange, PrimaryNetworkMetrics, VersionCount } from "@/types/stats";
 
 export default function PrimaryNetworkValidatorMetrics() {
   const [metrics, setMetrics] = useState<PrimaryNetworkMetrics | null>(null);
@@ -81,7 +81,8 @@ export default function PrimaryNetworkValidatorMetrics() {
           setValidatorVersions(versionArray);
         } catch (err) {
           setVersionsError(
-            `Failed to parse validator versions data: ${err instanceof Error ? err.message : "Unknown error"
+            `Failed to parse validator versions data: ${
+              err instanceof Error ? err.message : "Unknown error"
             }`
           );
         }
@@ -589,14 +590,16 @@ export default function PrimaryNetworkValidatorMetrics() {
                       </div>
                       {change > 0 && (
                         <div
-                          className={`flex items-center gap-1 text-sm ${isPositive ? "text-green-600" : "text-red-600"
+                          className={`flex items-center gap-1 text-sm ${
+                            isPositive ? "text-green-600" : "text-red-600"
                             }`}
                           title={`Change compared to ${getComparisonPeriodLabel(
                             timeRange
                           )}`}
                         >
                           <TrendingUp
-                            className={`h-4 w-4 ${isPositive ? "" : "rotate-180"
+                            className={`h-4 w-4 ${
+                              isPositive ? "" : "rotate-180"
                               }`}
                           />
                           {change.toFixed(1)}%
