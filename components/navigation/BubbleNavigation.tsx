@@ -9,9 +9,9 @@ interface BubbleNavItem {
 }
 
 const navItems: BubbleNavItem[] = [
-  { id: "validators", label: "Validators", href: "/stats/primary-network/validators" },
-  { id: "c-chain", label: "C-Chain", href: "/stats/primary-network/c-chain" },
   { id: "avalanche-l1s", label: "Avalanche L1s", href: "/stats/overview" },
+  { id: "c-chain", label: "C-Chain", href: "/stats/primary-network/c-chain" },
+  { id: "validators", label: "Validators", href: "/stats/primary-network/validators" },
 ];
 
 export default function BubbleNavigation() {

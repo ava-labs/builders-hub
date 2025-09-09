@@ -4,6 +4,7 @@
       "title": "Avalanche Fundamentals",
       "quizzes": [
         "101",
+        "101",
         "102",
         "103",
         "104",
@@ -100,25 +101,45 @@
     "codebase-entrepreneur-foundations": {
       "title": "Foundations of a Web3 Venture",
       "quizzes": [
-        "906"
+        "906",
+        "907",
+        "909",
+        "910",
+        "914",
+        "915",
+        "919",
+        "920"
       ]
     },
     "codebase-entrepreneur-community": {
       "title": "Web3 Community Architect",
       "quizzes": [
-        "801"
+        "701",
+        "702",
+        "801",
+        "802"
       ]
     },
     "codebase-entrepreneur-go-to-market": {
       "title": "Go-to-Market Strategist",
       "quizzes": [
-        "923"
+        "923",
+        "924",
+        "928",
+        "929",
+        "940",
+        "941"
       ]
     },
     "codebase-entrepreneur-fundraising": {
       "title": "Fundraising & Finance Pro",
       "quizzes": [
-        "601"
+        "601",
+        "602",
+        "901",
+        "902",
+        "1101",
+        "1102"
       ]
     }
   },

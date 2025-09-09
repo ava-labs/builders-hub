@@ -25,13 +25,6 @@ export function GenesisInput({
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{label}</span>
         </div>
-        <div className="text-sm text-zinc-600 dark:text-zinc-400">
-          Use the{" "}
-          <a href="https://build.avax.network/tools/l1-toolbox#genesisBuilder" className="text-primary hover:text-primary/80 dark:text-primary/90 dark:hover:text-primary/70">
-            Genesis Builder
-          </a>{" "}
-          to configure the permissions, tokenomics and transaction fees for your L1. The there generated  genesis file is filled automatically below and can be modified as needed.
-        </div>
         <div className="relative">
           <textarea
             value={value}

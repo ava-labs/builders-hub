@@ -9,16 +9,15 @@ export async function GET(
 ): Promise<ImageResponse> {
   const { searchParams } = request.nextUrl;
   const rawTitle = searchParams.get('title');
-  // Remove the suffix if present
   const title = rawTitle?.replace(/\s*\|\s*Avalanche Builder Hub$/, '');
   const description = searchParams.get('description');
 
   const fonts = await loadFonts();
 
   return createOGResponse({
-    title: title ?? 'Guides',
-    description: description ?? 'Guides and tutorials for building on Avalanche',
-    path: 'guides',
+    title: title ?? 'Blog',
+    description: description ?? 'Takeaways and tutorials from building a network of fast, efficient, highly-optimized chains.',
+    path: 'blog',
     fonts
   });
 }

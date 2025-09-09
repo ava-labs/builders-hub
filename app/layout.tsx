@@ -9,7 +9,6 @@ import { baseUrl, createMetadata } from "@/utils/metadata";
 import Chatbot from "@/components/ui/chatbot";
 import { PrivacyPolicyBox } from "@/components/privacy-policy";
 import { SearchRootProvider } from "./searchRootProvider";
-import { Banner } from "fumadocs-ui/components/banner";
 import "./global.css";
 import "katex/dist/katex.css";
 
