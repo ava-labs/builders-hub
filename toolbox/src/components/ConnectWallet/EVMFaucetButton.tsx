@@ -72,7 +72,7 @@ export const EVMFaucetButton = ({
           const currentUrl = window.location.href;
           const loginUrl = `/login?callbackUrl=${encodeURIComponent(currentUrl)}`;
           setTimeout(() => {
-            consoleToast.action("Authentication Required: You need to be logged in to request free tokens from the ${chainConfig.name} Faucet.",
+            consoleToast.action(`Please Login/Signup to request free tokens from the ${chainConfig.name} Faucet.`,
               {action: {label: "Login", onClick: () => (window.location.href = loginUrl)}});
           }, 3000);
           return "Authentication required";
