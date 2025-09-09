@@ -561,7 +561,7 @@ export default function AvalancheMetrics() {
                       typeof overviewMetrics.aggregated.totalActiveAddresses
                         .current_value === "number"
                         ? overviewMetrics.aggregated.totalActiveAddresses
-                          .current_value
+                        .current_value
                         : 0
                     )}
                   </p>
@@ -721,7 +721,7 @@ export default function AvalancheMetrics() {
                             {validPayload.map((entry, index) => {
                               const fullName =
                                 chartData.find((d) => d.day === label)?.[
-                                `${entry.dataKey}_fullName`
+                              `${entry.dataKey}_fullName`
                                 ] || entry.dataKey;
                               return (
                                 <div
