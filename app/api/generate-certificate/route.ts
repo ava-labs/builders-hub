@@ -113,8 +113,8 @@ export async function POST(req: NextRequest) {
 
     // Try to find fields with similar names (case-insensitive)
     console.log('\n=== FIELD NAME ANALYSIS ===');
-    const nameVariations = ['Name', 'name', 'NAME', 'FullName', 'fullname', 'Full Name', 'full name'];
-    const dateVariations = ['Date', 'date', 'DATE', 'Awarded', 'awarded', 'Award Date'];
+    const nameVariations = ['Name', 'name', 'NAME', 'FullName', 'fullname', 'Full Name', 'full name', 'Enter Name', 'enter name'];
+    const dateVariations = ['Date', 'date', 'DATE', 'Awarded', 'awarded', 'Award Date', 'Enter Date', 'enter date'];
 
     nameVariations.forEach(variation => {
       try {
@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
         console.log('=== FILLING CODEBASE ENTREPRENEUR CERTIFICATE ===');
         // Codebase Entrepreneur certificates: only Name and Date
         console.log('Attempting to get Name field...');
-        const nameField = form.getTextField('Name');
+        const nameField = form.getTextField('Enter Name');
         console.log('Name field retrieved:', !!nameField);
 
         console.log('Setting Name field with:', userName);
@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
         console.log('Name set successfully');
 
         console.log('Attempting to get Date field...');
-        const dateField = form.getTextField('Date');
+        const dateField = form.getTextField('Enter Date');
         console.log('Date field retrieved:', !!dateField);
 
         const dateString = new Date().toLocaleDateString('en-US', {
