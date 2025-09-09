@@ -1,0 +1,22 @@
+import { getAuthSession } from "@/lib/auth/authSession";
+import { withAuthRole } from "@/lib/protectedRoute";
+import { SetWinner } from "@/server/services/set-project-winner";
+import { NextRequest, NextResponse } from "next/server";
+
+export const PUT = withAuthRole("hackathon_judge", async (req: NextRequest) => {
+  const body = await req.json();
+  const session = await getAuthSession();
+  const name = session?.user.name || "user";
+
+  try {
+    const badge = await SetWinner(body.project_id, body.IsWinner, name);
+
+    return NextResponse.json(badge, { status: 200 });
+  } catch (error) {
+    console.error("Error checking user by email:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+});

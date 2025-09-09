@@ -64,7 +64,7 @@ export const RewardCard = ({
                   {name}
                 </div>
                 <div 
-                  className="text-base text-gray-600 dark:text-white line-clamp-2"
+                  className="text-base text-gray-600 dark:text-white line-clamp-3"
                   title={description}
                 >
                   {description}
