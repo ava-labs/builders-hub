@@ -897,7 +897,6 @@ export default function AvalancheMetrics() {
                       <TableCell className="text-center">
                         <span
                           className={`font-mono font-semibold text-sm ${
-                            
                             typeof chain.txCount.current_value === "number" &&
                             chain.txCount.current_value > 0
                               ? "text-foreground"
@@ -913,23 +912,23 @@ export default function AvalancheMetrics() {
                         <span
                           className={`font-mono font-semibold text-sm ${
                             typeof chain.activeAddresses.current_value ===
-                            "number" &&
+                              "number" &&
                             chain.activeAddresses.current_value > 0
                               ? "text-foreground"
                               : "text-muted-foreground"
                           }`}
                         >
                           {typeof chain.activeAddresses.current_value ===
-                            "number"
+                              "number"
                             ? formatFullNumber(
-                              chain.activeAddresses.current_value
-                            )
+                                chain.activeAddresses.current_value
+                              )
                             : chain.activeAddresses.current_value}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
                         <span
-                         className={`font-mono font-semibold text-sm ${
+                          className={`font-mono font-semibold text-sm ${
                             typeof chain.icmMessages.current_value ===
                               "number" && chain.icmMessages.current_value > 0
                               ? "text-foreground"
@@ -943,10 +942,11 @@ export default function AvalancheMetrics() {
                       </TableCell>
                       <TableCell className="text-center">
                         <span
-                          className={`font-mono font-semibold text-sm ${typeof chain.validatorCount === "number" &&
+                          className={`font-mono font-semibold text-sm ${
+                            typeof chain.validatorCount === "number" &&
                             chain.validatorCount > 0
-                            ? "text-foreground"
-                            : "text-muted-foreground"
+                              ? "text-foreground"
+                              : "text-muted-foreground"
                             }`}
                         >
                           {typeof chain.validatorCount === "number"
