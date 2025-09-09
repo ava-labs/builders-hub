@@ -10,6 +10,8 @@ import { Container } from "../../components/Container";
 import { ResultField } from "../../components/ResultField";
 import { ExternalLink } from "lucide-react";
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
+import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 export default function MigrateV1ToV2() {
   const { coreWalletClient, publicClient } = useWalletStore();
@@ -122,10 +124,13 @@ export default function MigrateV1ToV2() {
   };
 
   return (
-    <Container
-      title="Migrate Validator from V1 to V2"
-      description="Migrate validators from the Validator Manager contract v1 to v2"
-    >
+    <CheckWalletRequirements configKey={[
+      WalletRequirementsConfigKey.EVMChainBalance,
+    ]}>
+      <Container
+        title="Migrate Validator from V1 to V2"
+        description="Migrate validators from the Validator Manager contract v1 to v2"
+      >
       <div className="space-y-6">
         <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm mb-4">
           <p className="mb-2"><strong>Note:</strong> This tool is only required if your L1 has the Validator Manager contract version 1 deployed. If you have deployed the Validator Manager contract with this Toolbox, it is already the version 2. In this case you don't need to do this!</p>
@@ -220,5 +225,6 @@ export default function MigrateV1ToV2() {
         </form>
       </div>
     </Container>
+    </CheckWalletRequirements>
   );
 }
