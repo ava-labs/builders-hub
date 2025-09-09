@@ -896,11 +896,13 @@ export default function AvalancheMetrics() {
                       </TableCell>
                       <TableCell className="text-center">
                         <span
-                          className={`font-mono font-semibold text-sm ${typeof chain.txCount.current_value === "number" &&
+                          className={`font-mono font-semibold text-sm ${
+                            
+                            typeof chain.txCount.current_value === "number" &&
                             chain.txCount.current_value > 0
-                            ? "text-foreground"
-                            : "text-muted-foreground"
-                            }`}
+                              ? "text-foreground"
+                              : "text-muted-foreground"
+                          }`}
                         >
                           {typeof chain.txCount.current_value === "number"
                             ? formatFullNumber(chain.txCount.current_value)
@@ -909,12 +911,13 @@ export default function AvalancheMetrics() {
                       </TableCell>
                       <TableCell className="text-center">
                         <span
-                          className={`font-mono font-semibold text-sm ${typeof chain.activeAddresses.current_value ===
+                          className={`font-mono font-semibold text-sm ${
+                            typeof chain.activeAddresses.current_value ===
                             "number" &&
                             chain.activeAddresses.current_value > 0
-                            ? "text-foreground"
-                            : "text-muted-foreground"
-                            }`}
+                              ? "text-foreground"
+                              : "text-muted-foreground"
+                          }`}
                         >
                           {typeof chain.activeAddresses.current_value ===
                             "number"
@@ -926,11 +929,12 @@ export default function AvalancheMetrics() {
                       </TableCell>
                       <TableCell className="text-center">
                         <span
-                          className={`font-mono font-semibold text-sm ${typeof chain.icmMessages.current_value ===
-                            "number" && chain.icmMessages.current_value > 0
-                            ? "text-foreground"
-                            : "text-muted-foreground"
-                            }`}
+                         className={`font-mono font-semibold text-sm ${
+                            typeof chain.icmMessages.current_value ===
+                              "number" && chain.icmMessages.current_value > 0
+                              ? "text-foreground"
+                              : "text-muted-foreground"
+                          }`}
                         >
                           {typeof chain.icmMessages.current_value === "number"
                             ? formatFullNumber(chain.icmMessages.current_value)
