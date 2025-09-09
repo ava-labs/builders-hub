@@ -25,7 +25,7 @@ export class BadgeAssignmentService {
 
       // Determine the badge category
       const category = this.determineBadgeCategory(body);
-      console.log("category in assignBadge", category);
+    
       if (category === null) {
         return {
           success: false,
@@ -103,11 +103,10 @@ export class BadgeAssignmentService {
       return BadgeCategory.academy;
     }
     
-
-    
     if (body.projectId) {
       return BadgeCategory.project;
     }
+
 
     return null;
   }
@@ -130,9 +129,9 @@ export class BadgeAssignmentService {
     switch (category) {
       case BadgeCategory.academy:
         return !!(body.userId && body.courseId);
-   
       case BadgeCategory.project:
         return !!(body.userId && body.projectId);
+    
       default:
         return false;
     }

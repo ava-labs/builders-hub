@@ -3,9 +3,9 @@ import { Badge, BadgeAwardStatus, Requirement } from "@/types/badge";
 import { parseBadgeMetadata } from "./rewardBoard";
 
 export enum BadgeCategory {
-  academy ,
-  project ,
-
+  academy,
+  project,
+  requirement,
 }
 
 export interface AssignBadgeBody {
@@ -14,7 +14,7 @@ export interface AssignBadgeBody {
   userId: string;
   hackathonId?: string;
   projectId?: string;
-  
+  requirementId?: string; // For social badges - specific requirement to fulfill
 }
 
 export interface AssignBadgeResult {
@@ -199,7 +199,6 @@ export async function getBadgesByHackathonId(
   const filteredBadges = badges.filter((badge) =>
     badge.requirements?.some((req: any) => req.hackathon == hackathonId)
   );
-  console.log("filteredBadges", filteredBadges);
   if (filteredBadges.length === 0) {
     throw new Error(`Badge not found for hackathon ID: ${hackathonId}`);
   }
