@@ -82,7 +82,6 @@ export class BadgeByRequirementStrategy implements BadgeAssignmentStrategy {
   }
 
   getRequiredRole(): string | null {
-    // Social badges can be assigned by any authenticated user
     return null;
   }
 }
