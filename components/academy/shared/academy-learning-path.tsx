@@ -16,7 +16,7 @@ export function AcademyLearningPath({ defaultPathType }: AcademyLearningPathProp
                         "Avalanche"
                     ) : (
                         <>
-                            Codebase <span className="text-red-600">Entrepreneur Academy</span>
+                            Codebase Entrepreneur Academy
                         </>
                     )}
                 </h2>
