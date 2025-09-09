@@ -140,14 +140,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
         // Try to get error details from response
         try {
           const errorData = await response.json();
-          console.error('=== SERVER ERROR DETAILS ===');
-          console.error('Full error data:', errorData);
-          console.error('Course ID:', errorData.courseId);
-          console.error('Template File:', errorData.templateFile);
-          console.error('Error Message:', errorData.details);
-          if (errorData.stack) {
-            console.error('Stack trace:', errorData.stack);
-          }
+          console.error('Server error details:', errorData);
           throw new Error(errorData.details || 'Failed to generate certificate');
         } catch (jsonError) {
           throw new Error(`Failed to generate certificate (${response.status})`);
