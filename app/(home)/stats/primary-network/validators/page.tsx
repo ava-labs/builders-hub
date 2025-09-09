@@ -592,7 +592,7 @@ export default function PrimaryNetworkValidatorMetrics() {
                         <div
                           className={`flex items-center gap-1 text-sm ${
                             isPositive ? "text-green-600" : "text-red-600"
-                            }`}
+                          }`}
                           title={`Change compared to ${getComparisonPeriodLabel(
                             timeRange
                           )}`}
@@ -600,7 +600,7 @@ export default function PrimaryNetworkValidatorMetrics() {
                           <TrendingUp
                             className={`h-4 w-4 ${
                               isPositive ? "" : "rotate-180"
-                              }`}
+                            }`}
                           />
                           {change.toFixed(1)}%
                         </div>
