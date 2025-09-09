@@ -919,7 +919,7 @@ export default function AvalancheMetrics() {
                           }`}
                         >
                           {typeof chain.activeAddresses.current_value ===
-                              "number"
+                          "number"
                             ? formatFullNumber(
                                 chain.activeAddresses.current_value
                               )
@@ -947,7 +947,7 @@ export default function AvalancheMetrics() {
                             chain.validatorCount > 0
                               ? "text-foreground"
                               : "text-muted-foreground"
-                            }`}
+                          }`}
                         >
                           {typeof chain.validatorCount === "number"
                             ? formatFullNumber(chain.validatorCount)
