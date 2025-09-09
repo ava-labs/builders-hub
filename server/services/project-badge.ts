@@ -8,10 +8,11 @@ import {
 } from "./badge";
 import { Badge, BadgeAwardStatus, ProjectBadge, Requirement, UserBadge } from "@/types/badge";
 
-export async function assignBadgeProject(
+
+export async function assignBadgeProject (
   body: AssignBadgeBody,
   awarded_by: string
-): Promise<AssignBadgeResult> {
+): Promise<AssignBadgeResult>  {
   const badgesHackathon = await getBadgesByHackathonId(body.hackathonId!);
 
   let badgeToReturn: AssignBadgeResult = {
@@ -37,7 +38,11 @@ export async function assignBadgeProject(
       },
     },
     include: {
-      members: true,
+      members: {
+        where: {
+          status: "Confirmed",
+        },
+      },
     },
   });
 

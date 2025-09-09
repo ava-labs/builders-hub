@@ -2,11 +2,19 @@ import { prisma } from "@/prisma/prisma";
 import { Badge, BadgeAwardStatus, Requirement } from "@/types/badge";
 import { parseBadgeMetadata } from "./rewardBoard";
 
+export enum BadgeCategory {
+  academy ,
+  project ,
+
+}
+
 export interface AssignBadgeBody {
+  category?: BadgeCategory;
   courseId?: string;
   userId: string;
   hackathonId?: string;
   projectId?: string;
+  
 }
 
 export interface AssignBadgeResult {
