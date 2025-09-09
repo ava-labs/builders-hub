@@ -3,7 +3,7 @@
  * ensures toasts work properly when toolbox components are used in console
  */
 
-import { toast } from "@/lib/toast";
+import { toast } from "../../../lib/toast";
 
 export const consoleToast = {
   success: (message: string) => {
@@ -35,5 +35,16 @@ export const consoleToast = {
     action: { label: string; onClick: () => void; }; 
   }) => {
     return toast.action(message, options);
+  },
+
+  promise: <T>(
+    promise: Promise<T>,
+    {loading, success, error}: {
+      loading: string;
+      success: string | ((data: T) => string);
+      error: string | ((error: any) => string);
+    }
+  ) => {
+    return toast.promise(promise, {loading, success, error});
   },
 };

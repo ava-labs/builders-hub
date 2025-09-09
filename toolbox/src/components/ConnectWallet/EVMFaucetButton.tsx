@@ -45,46 +45,51 @@ export const EVMFaucetButton = ({
     if (isRequestingTokens || !walletEVMAddress) return;
     setIsRequestingTokens(true);
     const faucetRequest = requestTokens(chainId);
-    let loadingToastId: string | number | undefined;
+
+    consoleToast.promise(faucetRequest, {
+      loading: `Requesting ${chainConfig.coinName} tokens...`,
+      success: (result) => {
+        const txHash = result.txHash;
+        const successMessage = txHash ? `${chainConfig.coinName} tokens sent! TX: ${txHash.substring(0, 10)}...` : `${chainConfig.coinName} tokens sent successfully!`;
+        if (result.txHash) { setTimeout(() => consoleToast.info(`Transaction hash: ${result.txHash}`), 2000) }
+
+        setTimeout(async () => {
+          try {
+            updateL1Balance(chainId.toString());
+          } catch {}
+          try {
+            updateCChainBalance();
+          } catch {}
+        }, 3000);
+
+        setTimeout(() => consoleToast.info("Your wallet balance has been refreshed"), 3500);
+        return successMessage;
+      },
+      error: (error) => {
+        console.error(`${chainConfig.name} token request error:`, error);
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        if (errorMessage.includes("login") || errorMessage.includes("401")) {
+          const currentUrl = window.location.href;
+          const loginUrl = `/login?callbackUrl=${encodeURIComponent(currentUrl)}`;
+          setTimeout(() => {
+            consoleToast.action("Authentication Required: You need to be logged in to request free tokens from the ${chainConfig.name} Faucet.",
+              {action: {label: "Login", onClick: () => (window.location.href = loginUrl)}});
+          }, 3000);
+          return "Authentication required";
+        } else if (errorMessage.includes("rate limit") || errorMessage.includes("429")) {
+          setTimeout(() => {
+            consoleToast.warning("Rate Limited: Please wait before requesting tokens again. Try again in a few minutes.");
+          }, 500);
+          return "Rate limited";
+        } else {
+          return `Faucet Error - Chain: ${chainConfig.name}, Address: ${walletEVMAddress?.substring(0, 10)}..., Error: ${errorMessage}`;
+        }
+      },
+    });
 
     try {
-      const loadingToastId = consoleToast.loading(`Requesting ${chainConfig.coinName} tokens...`);
-      const result = await faucetRequest;
-      consoleToast.dismiss(loadingToastId);
-
-      const txHash = result.txHash;
-      consoleToast.success(txHash ? `${chainConfig.coinName} tokens sent! TX: ${txHash.substring(0, 10)}...` : `${chainConfig.coinName} tokens sent successfully!`);
-
-      if (result.txHash) { consoleToast.info(`Transaction hash: ${result.txHash}`) }
-
-      setTimeout(async () => {
-        try {
-          updateL1Balance(chainId.toString());
-        } catch {}
-        try {
-          updateCChainBalance();
-        } catch {}
-      }, 3000);
-      setTimeout(() => {consoleToast.info("Your wallet balance has been refreshed")}, 3500);
+      await faucetRequest;
     } catch (error) {
-      if (loadingToastId) {
-        consoleToast.dismiss(loadingToastId);
-      }
-
-      console.error(`${chainConfig.name} token request error:`, error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-
-      if (errorMessage.includes("login") || errorMessage.includes("401")) {
-        const currentUrl = window.location.href;
-        const loginUrl = `/login?callbackUrl=${encodeURIComponent(currentUrl)}`;
-        consoleToast.action(`Authentication Required: You need to be logged in to request free tokens from the ${chainConfig.name} Faucet.`,
-          {action: {label: "Login", onClick: () => (window.location.href = loginUrl)}}
-        );
-      } else if (errorMessage.includes("rate limit") || errorMessage.includes("429")) {
-        consoleToast.warning("Rate Limited: Please wait before requesting tokens again. Try again in a few minutes.");
-      } else {
-        consoleToast.error(`Faucet Error - Chain: ${chainConfig.name}, Address: ${walletEVMAddress?.substring(0, 10)}..., Error: ${errorMessage}`);
-      }
     } finally {
       setIsRequestingTokens(false);
     }
