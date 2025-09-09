@@ -47,12 +47,12 @@ export function DocsDropdown({
   const options: Option[] = [
     ...(buttonStyle === "Docs"
       ? [
-      {
-        title: "Docs",
-        description: "",
-        icon: <></>,
-        url: "",
-      },
+          {
+            title: "Docs",
+            description: "",
+            icon: <></>,
+            url: "",
+          },
       ]
       : []),
     {
