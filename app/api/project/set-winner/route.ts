@@ -9,6 +9,18 @@ export const PUT = withAuthRole("hackathon_judge", async (req: NextRequest) => {
   const name = session?.user.name || "user";
 
   try {
+    if (!body.project_id) {
+      return NextResponse.json(
+        { error: "project_id parameter is required" },
+        { status: 400 }
+      );
+    }
+    if (!body.IsWinner) {
+      return NextResponse.json(
+        { error: "IsWinner parameter is required" },
+        { status: 400 }
+      );
+    }
     const badge = await SetWinner(body.project_id, body.IsWinner, name);
 
     return NextResponse.json(badge, { status: 200 });
