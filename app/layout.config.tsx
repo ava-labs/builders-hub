@@ -121,11 +121,11 @@ export const docsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-            src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/customizing-evm-DkMcINMgCwhkuHuumtAZtrPzROU74M.jpg"
-            alt='Preview'
-            width={900}
-            height={400}
-            className='rounded-t-lg object-cover  w-full h-auto'
+                src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/customizing-evm-DkMcINMgCwhkuHuumtAZtrPzROU74M.jpg"
+                alt='Preview'
+                width={900}
+                height={400}
+              className='rounded-t-lg object-cover  w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
