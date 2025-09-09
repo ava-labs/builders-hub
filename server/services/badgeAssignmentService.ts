@@ -108,7 +108,7 @@ export class BadgeAssignmentService {
     }
 
 
-    return null;
+    return BadgeCategory.requirement;
   }
 
   /**
