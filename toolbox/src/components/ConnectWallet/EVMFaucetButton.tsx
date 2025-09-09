@@ -48,10 +48,22 @@ export const EVMFaucetButton = ({
 
     consoleToast.promise(faucetRequest, {
       loading: `Requesting ${chainConfig.coinName} tokens...`,
-      success: (result) => {
-        const txHash = result.txHash;
-        const successMessage = txHash ? `${chainConfig.coinName} tokens sent! TX: ${txHash.substring(0, 10)}...` : `${chainConfig.coinName} tokens sent successfully!`;
-        if (result.txHash) { setTimeout(() => consoleToast.info(`Transaction hash: ${result.txHash}`), 2000) }
+        success: (result) => {
+          const txHash = result.txHash;
+          const successMessage = txHash ? `${chainConfig.coinName} tokens sent! TX: ${txHash.substring(0, 10)}...` : `${chainConfig.coinName} tokens sent successfully!`;
+          if (result.txHash && chainConfig.explorerUrl) {
+            const explorerUrl = `${chainConfig.explorerUrl}/tx/${result.txHash}`;
+            setTimeout(() => {
+              consoleToast.action(`View transaction on explorer`, {
+                action: { 
+                  label: "Open Explorer", 
+                  onClick: () => window.open(explorerUrl, '_blank') 
+                }
+              });
+            }, 2000);
+          } else if (result.txHash) {
+            setTimeout(() => consoleToast.info(`Transaction hash: ${result.txHash}`), 2000);
+          }
 
         setTimeout(async () => {
           try {

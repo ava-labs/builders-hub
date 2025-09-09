@@ -54,7 +54,17 @@ export const PChainFaucetButton = ({ className, buttonProps, children }: PChainF
       loading: "Requesting P-Chain AVAX tokens...",
       success: (data) => {
         const successMessage = data.txID ? `P-Chain AVAX tokens sent! TX: ${data.txID.substring(0, 10)}...` : "P-Chain AVAX tokens sent successfully!";
-        if (data.txID) { setTimeout(() => consoleToast.info(`Transaction ID: ${data.txID}`), 2000) }
+        if (data.txID) {
+          const explorerUrl = `https://subnets.avax.network/p-chain/tx/${data.txID}`;
+          setTimeout(() => {
+            consoleToast.action(`View P-Chain transaction on explorer`, {
+              action: { 
+                label: "Open Explorer", 
+                onClick: () => window.open(explorerUrl, '_blank') 
+              }
+            });
+          }, 2000);
+        }
         setTimeout(() => {
           updatePChainBalance();
           consoleToast.info("Your P-Chain balance has been refreshed");
