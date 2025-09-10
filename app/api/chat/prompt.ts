@@ -21,7 +21,7 @@ export function generateSystemPrompt(relevantContext: string) {
     - Console: https://build.avax.network/console
     - Documentation: https://build.avax.network/docs
     - Academy: https://build.avax.network/academy
-    - Guides: https://build.avax.network/guides
+    - Blog: https://build.avax.network/blog
     - Integrations: https://build.avax.network/integrations
 
     Console tools (link to specific pages):
