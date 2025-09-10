@@ -55,7 +55,7 @@ export async function assignBadgeByRequirement(
           awarded_by: awardedBy,
           status: BadgeAwardStatus.approved,
           requirements_version: 1,
-          requirements_snapshot: badge.requirements || [],
+          
           evidence: fulfilledRequirement ? [fulfilledRequirement] : [],
         },
       });
@@ -106,7 +106,7 @@ export async function getBadgesByRequirementId(
     id: badge.id,
     name: badge.name,
     description: badge.description,
-    points: badge.points,
+    
     image_path: badge.image_path,
     category: badge.category,
     requirements: badge.requirements?.map((requirement) =>

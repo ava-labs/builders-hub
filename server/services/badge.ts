@@ -134,7 +134,6 @@ export async function assignBadgeAcademy(
           awarded_by: "system",
           status: badgeStatus,
           requirements_version: 1,
-          requirements_snapshot: badgeRequirements,
           evidence: completedRequirements,
         },
       });
@@ -178,7 +177,7 @@ export async function getBadgeByCourseId(courseId: string): Promise<Badge[]> {
     id: badge.id,
     name: badge.name,
     description: badge.description,
-    points: badge.points,
+    points: 0,
     image_path: badge.image_path,
     category: badge.category,
     requirements: badge.requirements.map((requirement) =>
@@ -207,7 +206,7 @@ export async function getBadgesByHackathonId(
     id: badge.id,
     name: badge.name,
     description: badge.description,
-    points: badge.points,
+    
     image_path: badge.image_path,
     category: badge.category,
     requirements: badge.requirements.map((requirement) =>

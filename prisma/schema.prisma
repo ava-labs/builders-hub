@@ -143,7 +143,6 @@ model Badge {
   id          String         @id @default(uuid())
   name        String
   description String
-  points      Int
   image_path  String
   category    String
   requirements Json[]        @default([])
@@ -161,7 +160,6 @@ model UserBadge {
   awarded_at DateTime @default(now())
   awarded_by String?
   requirements_version Int              @default(1)
-  requirements_snapshot Json            @default("{}")
   evidence             Json?            
   status Int  @db.SmallInt
   @@unique([user_id, badge_id])

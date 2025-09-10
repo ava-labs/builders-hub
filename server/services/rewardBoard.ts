@@ -50,13 +50,15 @@ let badges=userBadges.map((userBadge) => {
     awarded_by: userBadge.awarded_by,
     name: userBadge.badge.name,
     description: userBadge.badge.description,
-    points: userBadge.badge.points,
+    points: 0, // Se calculará después
     image_path: userBadge.badge.image_path,
     category: userBadge.badge.category,
     evidence: userBadge.evidence,
     requirements: parsedRequirements,
   };
 });
+
+// Calcular los puntos totales basándose en los requirements del evidence
 badges.forEach((badge) => {
   if (Array.isArray(badge.evidence)) {
     badge.points = badge.evidence.reduce(
@@ -69,8 +71,11 @@ badges.forEach((badge) => {
       },
       0
     );
+  } else {
+    badge.points = 0;
   }
 });
+
   // Map the result to the UserBadge type, flattening the badge fields
   return badges as unknown as UserBadge[];
 }
