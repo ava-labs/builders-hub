@@ -18,7 +18,7 @@ const quickLinks = [
     title: "Faucet",
     description: "Get testnet AVAX",
     icon: Droplet,
-    href: "https://build.avax.network/tools/l1-toolbox#faucet"
+    href: "/console/primary-network/faucet"
   },
   {
     id: 2,
@@ -29,10 +29,10 @@ const quickLinks = [
   },
   {
     id: 3,
-    title: "L1 Toolbox",
-    description: "Launch your own L1",
+    title: "Create New L1",
+    description: "Use our Builder Console to create a new L1",
     icon: Wrench,
-    href: "/tools/l1-toolbox"
+    href: "/console/layer-1/create"
   },
   {
     id: 4,

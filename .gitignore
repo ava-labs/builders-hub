@@ -131,6 +131,7 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+yarn.lock
 pnpm-lock.yaml
 package-lock.json
 !next-env.d.ts

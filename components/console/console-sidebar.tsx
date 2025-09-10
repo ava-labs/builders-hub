@@ -27,7 +27,8 @@ import {
   Hexagon,
   SlidersVertical,
   SquareMinus,
-  SquarePlus
+  SquarePlus,
+  HandCoins
 } from "lucide-react";
 
 import {
@@ -68,6 +69,11 @@ const data = {
           title: "Node Setup",
           url: "/console/primary-network/node-setup",
           icon: Server,
+        },
+        {
+          title: "Stake",
+          url: "/console/primary-network/stake",
+          icon: HandCoins,
         },
         {
           title: "Testnet Faucet",
@@ -266,6 +272,11 @@ const data = {
         {
           title: "Format Converter",
           url: "/console/utilities/format-converter",
+          icon: Wrench,
+        },
+        {
+          title: "Migrate VMC From V1 to V2",
+          url: "/console/utilities/vmcMigrateFromV1",
           icon: Wrench,
         },
       ],

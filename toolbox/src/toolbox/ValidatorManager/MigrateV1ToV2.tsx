@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useErrorBoundary } from "react-error-boundary";
 import { useWalletStore } from "../../stores/walletStore";
 import { useViemChainStore, useToolboxStore } from "../../stores/toolboxStore";
 import { Chain } from "viem";
@@ -11,9 +10,10 @@ import { Container } from "../../components/Container";
 import { ResultField } from "../../components/ResultField";
 import { ExternalLink } from "lucide-react";
 import ValidatorManagerABI from "../../../contracts/icm-contracts/compiled/ValidatorManager.json";
+import { CheckWalletRequirements } from "../../components/CheckWalletRequirements";
+import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements";
 
 export default function MigrateV1ToV2() {
-  const { showBoundary } = useErrorBoundary();
   const { coreWalletClient, publicClient } = useWalletStore();
   const viemChain = useViemChainStore();
   const { validatorManagerAddress, setValidatorManagerAddress } = useToolboxStore();
@@ -118,17 +118,19 @@ export default function MigrateV1ToV2() {
       }
     } catch (error: any) {
       setError(error.message || "An unknown error occurred");
-      showBoundary(error);
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <Container
-      title="Migrate Validator from V1 to V2"
-      description="Migrate validators from the Validator Manager contract v1 to v2"
-    >
+    <CheckWalletRequirements configKey={[
+      WalletRequirementsConfigKey.EVMChainBalance,
+    ]}>
+      <Container
+        title="Migrate Validator from V1 to V2"
+        description="Migrate validators from the Validator Manager contract v1 to v2"
+      >
       <div className="space-y-6">
         <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm mb-4">
           <p className="mb-2"><strong>Note:</strong> This tool is only required if your L1 has the Validator Manager contract version 1 deployed. If you have deployed the Validator Manager contract with this Toolbox, it is already the version 2. In this case you don't need to do this!</p>
@@ -143,6 +145,18 @@ export default function MigrateV1ToV2() {
             </ul>
             You need to provide the validation ID, the latest nonce received from the P-Chain,
             and the address of the Validator Manager contract.
+          </p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+            For full details about the migration process, see the{" "}
+            <a 
+              href="https://github.com/ava-labs/icm-contracts/blob/validator-manager-v2.1.0/contracts/validator-manager/MigratingFromV1.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:underline inline-flex items-center gap-1"
+            >
+              official migration guide
+              <ExternalLink className="h-3 w-3" />
+            </a>.
           </p>
         </div>
 
@@ -171,7 +185,7 @@ export default function MigrateV1ToV2() {
             label="Received Nonce"
             value={receivedNonce}
             onChange={setReceivedNonce}
-            helperText="The latest nonce received from the P-Chain"
+            helperText="The latest nonce received from the P-Chain (typically 0)"
             error={receivedNonceError}
           />
 
@@ -211,5 +225,6 @@ export default function MigrateV1ToV2() {
         </form>
       </div>
     </Container>
+    </CheckWalletRequirements>
   );
 }

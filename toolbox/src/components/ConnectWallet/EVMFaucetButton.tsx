@@ -1,17 +1,9 @@
 "use client";
 import { useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../AlertDialog";
 import { useWalletStore } from "../../stores/walletStore";
 import { useBuilderHubFaucet } from "../../hooks/useBuilderHubFaucet";
 import { useL1List, type L1ListItem } from "../../stores/l1ListStore";
+import { consoleToast } from "../../lib/console-toast";
 
 const LOW_BALANCE_THRESHOLD = 1;
 
@@ -39,10 +31,6 @@ export const EVMFaucetButton = ({
   const l1List = useL1List();
 
   const [isRequestingTokens, setIsRequestingTokens] = useState(false);
-  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
-  const [alertDialogTitle, setAlertDialogTitle] = useState("Error");
-  const [alertDialogMessage, setAlertDialogMessage] = useState("");
-  const [isLoginError, setIsLoginError] = useState(false);
 
   const chainConfig = l1List.find(
     (chain: L1ListItem) =>
@@ -53,38 +41,67 @@ export const EVMFaucetButton = ({
     return null;
   }
 
-  const handleLogin = () => {
-    window.location.href = "/login";
-  };
-
   const handleTokenRequest = async () => {
     if (isRequestingTokens || !walletEVMAddress) return;
     setIsRequestingTokens(true);
+    const faucetRequest = requestTokens(chainId);
+
+    consoleToast.promise(faucetRequest, {
+      loading: `Requesting ${chainConfig.coinName} tokens...`,
+        success: (result) => {
+          const txHash = result.txHash;
+          const successMessage = txHash ? `${chainConfig.coinName} tokens sent! TX: ${txHash.substring(0, 10)}...` : `${chainConfig.coinName} tokens sent successfully!`;
+          if (result.txHash && chainConfig.explorerUrl) {
+            const explorerUrl = `${chainConfig.explorerUrl}/tx/${result.txHash}`;
+            setTimeout(() => {
+              consoleToast.action(`View transaction on explorer`, {
+                action: { 
+                  label: "Open Explorer", 
+                  onClick: () => window.open(explorerUrl, '_blank') 
+                }
+              });
+            }, 2000);
+          } else if (result.txHash) {
+            setTimeout(() => consoleToast.info(`Transaction hash: ${result.txHash}`), 2000);
+          }
+
+        setTimeout(async () => {
+          try {
+            updateL1Balance(chainId.toString());
+          } catch {}
+          try {
+            updateCChainBalance();
+          } catch {}
+        }, 3000);
+
+        setTimeout(() => consoleToast.info("Your wallet balance has been refreshed"), 3500);
+        return successMessage;
+      },
+      error: (error) => {
+        console.error(`${chainConfig.name} token request error:`, error);
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        if (errorMessage.includes("login") || errorMessage.includes("401")) {
+          const currentUrl = window.location.href;
+          const loginUrl = `/login?callbackUrl=${encodeURIComponent(currentUrl)}`;
+          setTimeout(() => {
+            consoleToast.action(`Please Login/Signup to request free tokens from the ${chainConfig.name} Faucet.`,
+              {action: {label: "Login", onClick: () => (window.location.href = loginUrl)}});
+          }, 3000);
+          return "Authentication required";
+        } else if (errorMessage.includes("rate limit") || errorMessage.includes("429")) {
+          setTimeout(() => {
+            consoleToast.warning("Rate Limited: Please wait before requesting tokens again. Try again in a few minutes.");
+          }, 500);
+          return "Rate limited";
+        } else {
+          return `Faucet Error - Chain: ${chainConfig.name}, Address: ${walletEVMAddress?.substring(0, 10)}..., Error: ${errorMessage}`;
+        }
+      },
+    });
 
     try {
-      await requestTokens(chainId);
-      // Refresh balances shortly after a successful request to reflect the drip
-      setTimeout(() => {
-        try { updateL1Balance(chainId.toString()); } catch {}
-        try { updateCChainBalance(); } catch {}
-      }, 3000);
+      await faucetRequest;
     } catch (error) {
-      console.error(`${chainConfig.name} token request error:`, error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      if (errorMessage.includes("login") || errorMessage.includes("401")) {
-        setAlertDialogTitle("Authentication Required");
-        setAlertDialogMessage(
-          `You need to be logged in to request free tokens from the ${chainConfig.name} Faucet.`
-        );
-        setIsLoginError(true);
-        setIsAlertDialogOpen(true);
-      } else {
-        setAlertDialogTitle("Faucet Request Failed");
-        setAlertDialogMessage(errorMessage);
-        setIsLoginError(false);
-        setIsAlertDialogOpen(true);
-      }
     } finally {
       setIsRequestingTokens(false);
     }
@@ -97,46 +114,14 @@ export const EVMFaucetButton = ({
   } ${isRequestingTokens ? "opacity-50 cursor-not-allowed" : ""}`;
 
   return (
-    <>
-      <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{alertDialogTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {alertDialogMessage}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex gap-2">
-            {isLoginError ? (
-              <>
-                <AlertDialogAction
-                  onClick={handleLogin}
-                  className="bg-blue-500 hover:bg-blue-600"
-                >
-                  Login
-                </AlertDialogAction>
-                <AlertDialogAction className="bg-zinc-200 hover:bg-zinc-300 text-zinc-800">
-                  Close
-                </AlertDialogAction>
-              </>
-            ) : (
-              <AlertDialogAction>OK</AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <button
-        {...buttonProps}
-        onClick={handleTokenRequest}
-        disabled={isRequestingTokens}
-        className={className || defaultClassName}
-        title={`Get free ${chainConfig.coinName} tokens`}
-      >
-        {isRequestingTokens
-          ? "Requesting..."
-          : children || `${chainConfig.coinName} Faucet`}
-      </button>
-    </>
+    <button
+      {...buttonProps}
+      onClick={handleTokenRequest}
+      disabled={isRequestingTokens}
+      className={className || defaultClassName}
+      title={`Get free ${chainConfig.coinName} tokens`}
+    >
+      {isRequestingTokens ? "Requesting..." : children || `${chainConfig.coinName} Faucet`}
+    </button>
   );
 };

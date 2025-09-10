@@ -1,13 +1,11 @@
 "use client";
 
-import { ReactNode } from "react"
-import { ConsoleSidebar } from "../../components/console/console-sidebar"
-import { SiteHeader } from "../../components/console/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
-import { SessionProvider } from "next-auth/react"
+import { ReactNode } from "react";
+import { ConsoleSidebar } from "../../components/console/console-sidebar";
+import { SiteHeader } from "../../components/console/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SessionProvider } from "next-auth/react";
+import { Toaster } from "sonner";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
@@ -25,10 +23,11 @@ export default function Layout({ children }: { children: ReactNode }) {
         <SidebarInset className="bg-white dark:bg-gray-800 h-[calc(100vh-1rem)] overflow-hidden m-2">
           <SiteHeader />
           <div className="flex flex-1 flex-col gap-4 p-8 overflow-y-auto h-[calc(100vh-var(--header-height)-1rem)]">
-              {children}
+            {children}
           </div>
         </SidebarInset>
       </SidebarProvider>
+      <Toaster position="bottom-right" richColors expand={true} visibleToasts={5} />
     </SessionProvider>
-  )
+  );
 }

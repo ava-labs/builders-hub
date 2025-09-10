@@ -10,11 +10,11 @@ const courseMapping: Record<string, string> = {
 };
 
 const certificateTemplates: Record<string, string> = {
-  'avalanche-fundamentals': 'AvalancheAcademy_Certificate.pdf',
-  'codebase-entrepreneur-foundations': 'CodebaseEntrepreneur_Foundations_Certificate_interactive_fields.pdf',
-  'codebase-entrepreneur-go-to-market': 'CodebaseEntrepreneur_GTM_Certificate.pdf',
-  'codebase-entrepreneur-community': 'CodebaseEntrepreneur_Community_Certificate.pdf',
-  'codebase-entrepreneur-fundraising': 'CodebaseEntrepreneur_Fundraising_Certificate.pdf',
+  'avalanche-fundamentals': 'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf',
+  'codebase-entrepreneur-foundations': 'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Foundations.pdf',
+  'codebase-entrepreneur-go-to-market': 'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_GTM.pdf',
+  'codebase-entrepreneur-community': 'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Community.pdf',
+  'codebase-entrepreneur-fundraising': 'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Fundraising.pdf',
 };
 
 function getCourseName(courseId: string): string {
@@ -27,13 +27,8 @@ function getCertificateTemplate(courseId: string): string {
     return certificateTemplates[courseId];
   }
 
-  // Fallback for codebase entrepreneur courses
-  if (courseId.startsWith('codebase-entrepreneur')) {
-    return 'CodebaseEntrepreneur_Certificate.pdf';
-  }
-
-  // Default fallback
-  return 'AvalancheAcademy_Certificate.pdf';
+  // No fallback - throw error for unknown courses
+  throw new Error(`No certificate template found for course: ${courseId}`);
 }
 
 export async function POST(req: NextRequest) {
@@ -47,23 +42,18 @@ export async function POST(req: NextRequest) {
     }
 
     const courseName = getCourseName(courseId);
-    const templateFile = getCertificateTemplate(courseId);
-
-    const protocol = req.headers.get('x-forwarded-proto') || 'http';
-    const host = req.headers.get('host') || 'localhost:3000';
-    const serverUrl = `${protocol}://${host}`;
-    const templateUrl = `${serverUrl}/certificates/${templateFile}`;
+    const templateUrl = getCertificateTemplate(courseId);
 
     const templateResponse = await fetch(templateUrl);
     if (!templateResponse.ok) {
-      throw new Error(`Failed to fetch template: ${templateFile}`);
+      throw new Error(`Failed to fetch template: ${templateUrl}`);
     }
 
     const templateArrayBuffer = await templateResponse.arrayBuffer();
     const pdfDoc = await PDFDocument.load(templateArrayBuffer);
     const form = pdfDoc.getForm();
 
-    const isAvalancheTemplate = templateFile === 'AvalancheAcademy_Certificate.pdf';
+    const isAvalancheTemplate = templateUrl.includes('AvalancheAcademy_Certificate.pdf');
 
     try {
       if (isAvalancheTemplate) {
@@ -87,9 +77,9 @@ export async function POST(req: NextRequest) {
           );
       } else {
         // Codebase Entrepreneur certificates: only Name and Date
-        form.getTextField('Name').setText(userName);
+        form.getTextField('Enter Name').setText(userName);
         form
-          .getTextField('Date')
+          .getTextField('Enter Date')
           .setText(
             new Date().toLocaleDateString('en-US', {
               day: 'numeric',

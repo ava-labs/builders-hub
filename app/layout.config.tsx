@@ -14,8 +14,10 @@ import {
   BriefcaseBusiness,
   MessageSquareQuote,
   Github,
+  Hexagon,
   Waypoints,
   HandCoins,
+  Network,
   Wallet,
   Search,
   Cloud,
@@ -27,7 +29,6 @@ import {
   Triangle,
 } from 'lucide-react';
 import Image from 'next/image';
-import { SiGithub } from '@icons-pack/react-simple-icons';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
 
 export const integrationsMenu: LinkItemType = {
@@ -95,7 +96,6 @@ export const integrationsMenu: LinkItemType = {
         className: 'lg:col-start-3 lg:row-start-2',
       },
     },
-
   ],
 };
 
@@ -106,9 +106,32 @@ export const blogMenu: LinkItemType = {
 };
 
 export const stats: LinkItemType = {
-  type: "main",
+  type: "menu",
   text: "Stats",
-  url: "/stats/primary-network/validators",
+  url: "/stats/overview",
+  items: [
+    {
+      icon: <Logs />,
+      text: "Avalanche L1s",
+      url: "/stats/overview",
+      description:
+      "View the latest metrics for all Avalanche L1s in the network.",
+    },
+    {
+      icon: <Network />,
+      text: "C-Chain",
+      url: "/stats/primary-network/c-chain",
+      description:
+      "View the latest metrics for the Avalanche C-Chain.",
+    },
+    {
+      icon: <Hexagon />,
+      text: "Primary Network Validators",
+      url: "/stats/primary-network/validators",
+      description:
+      "View the latest metrics for the Avalanche Primary Network validators.",
+    },
+  ],
 };
 
 export const docsMenu: LinkItemType = {
