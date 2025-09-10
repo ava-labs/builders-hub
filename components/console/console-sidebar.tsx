@@ -41,10 +41,36 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarFooter,
-  SidebarRail,
 } from "@/components/ui/sidebar";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { CONSOLE_TOOL_GROUPS } from "@/constants/console-tools";
+
+const iconComponents: Record<string, any> = {
+  network: Network,
+  box: Box,
+  messagesSquare: MessagesSquare,
+  wrench: Wrench,
+  droplets: Droplets,
+  arrowLeft: ArrowLeft,
+  shield: Shield,
+  gitMerge: GitMerge,
+  server: Server,
+  telescope: Telescope,
+  arrowLeftRight: ArrowLeftRight,
+  calculator: Calculator,
+  coins: Coins,
+  globe: Globe,
+  arrowUpDown: ArrowUpDown,
+  shieldCheck: ShieldCheck,
+  shieldUser: ShieldUser,
+  squareTerminal: SquareTerminal,
+  hexagon: Hexagon,
+  slidersVertical: SlidersVertical,
+  squareMinus: SquareMinus,
+  squarePlus: SquarePlus,
+  handCoins: HandCoins,
+  layers: Layers,
+};
 
 // Navigation data structure matching user specification
 const data = {
@@ -60,223 +86,16 @@ const data = {
         icon: ArrowLeft,
       },
   ],
-  navGroups: [
-    {
-      title: "Primary Network",
-      icon: Network,
-      items: [
-        {
-          title: "Node Setup",
-          url: "/console/primary-network/node-setup",
-          icon: Server,
-        },
-        {
-          title: "Stake",
-          url: "/console/primary-network/stake",
-          icon: HandCoins,
-        },
-        {
-          title: "Testnet Faucet",
-          url: "/console/primary-network/faucet",
-          icon: Droplets,
-        },
-        {
-          title: "C/P-Chain Bridge",
-          url: "/console/primary-network/c-p-bridge",
-          icon: ArrowLeftRight,
-        },
-        {
-          title: "Ethereum Bridge",
-          url: "https://core.app/bridge",
-          icon: ArrowUpDown,
-        },
-        {
-          title: "AVAX Unit Converter",
-          url: "/console/primary-network/unit-converter",
-          icon: Calculator,
-        },
-      ],
-    },
-    {
-      title: "Layer 1",
-      icon: Box,
-      items: [
-        {
-          title: "Create New L1",
-          url: "/console/layer-1/create",
-          icon: Layers,
-        },
-        {
-          title: "L1 Node Setup",
-          url: "/console/layer-1/l1-node-setup",
-          icon: Server,
-        },
-        {
-          title: "L1 Validator Balance",
-          url: "/console/layer-1/l1-validator-balance",
-          icon: Coins,
-        },
-        {
-          title: "Explorer Setup",
-          url: "/console/layer-1/explorer-setup",
-          icon: Telescope,
-        },
-      ],
-    },
-
-    {
-      title: "Free Testnet Infrastructure",
-      icon: Box,
-      items: [
-        {
-          title: "Nodes",
-          url: "/console/testnet-infra/nodes",
-          icon: Layers,
-        },
-        {
-          title: "ICM Relayer",
-          url: "/console/testnet-infra/icm-relayer",
-          icon: Layers,
-          comingSoon: true,
-        },
-      ],
-    },
-
-    {
-      title: "L1 Tokenomics",
-      icon: Coins,
-      items: [
-        {
-          title: "Transaction Fee Parameters",
-          url: "/console/l1-tokenomics/fee-manager",
-          icon: Coins,
-        },
-        {
-          title: "Fee Distributions",
-          url: "/console/l1-tokenomics/reward-manager",
-          icon: Coins,
-        },
-        {
-          title: "Mint Native Coins",
-          url: "/console/l1-tokenomics/native-minter",
-          icon: Coins,
-        },
-      ],
-    },
-    {
-      title: "Permissioned L1s",
-      icon: Shield,
-      items: [
-        {
-          title: "Validator Manager Setup",
-          url: "/console/permissioned-l1s/validator-manager-setup",
-          icon: SquareTerminal,
-        },
-        {
-          title: "Multisig Setup",
-          url: "/console/permissioned-l1s/multisig-setup",
-          icon: ShieldUser,
-        },
-        {
-          title: "Query Validator Set",
-          url: "/console/layer-1/validator-set",
-          icon: Hexagon,
-        },
-        {
-          title: "Add Validator",
-          url: "/console/permissioned-l1s/add-validator",
-          icon: SquarePlus,
-        },
-        {
-          title: "Remove Validator",
-          url: "/console/permissioned-l1s/remove-validator",
-          icon: SquareMinus,
-        },
-        {
-          title: "Change Validator Weight",
-          url: "/console/permissioned-l1s/change-validator-weight",
-          icon: SlidersVertical,
-        }
-      ],
-    },
-    {
-      title: "L1 Access Restrictions",
-      icon: Shield,
-      items: [
-        {
-          title: "Contract Deployer Allowlist",
-          url: "/console/permissioned-l1s/deployer-allowlist",
-          icon: ShieldCheck,
-        },
-        {
-          title: "Transactor Allowlist",
-          url: "/console/permissioned-l1s/transactor-allowlist",
-          icon: ShieldUser,
-        },
-      ],
-    },
-    {
-      title: "Permissionless L1s",
-      icon: Globe,
-      items: [
-        {
-          title: "Migrate from Permissioned L1",
-          url: "/console/permissionless-l1s/deploy-reward-manager",
-          icon: GitMerge,
-          comingSoon: true,
-        },
-        {
-          title: "Stake & Unstake",
-          url: "/console/permissionless-l1s/manage-validators",
-          icon: Hexagon,
-          comingSoon: true,
-        },
-      ],
-    },
-    {
-      title: "Interchain Messaging",
-      icon: MessagesSquare,
-      items: [
-        {
-          title: "Setup",
-          url: "/console/icm/setup",
-          icon: SquareTerminal,
-        },
-        {
-          title: "Test Connection",
-          url: "/console/icm/test-connection",
-          icon: MessagesSquare,
-        },
-      ],
-    },
-    {
-      title: "Interchain Token Transfer",
-      icon: ArrowLeftRight,
-      items: [
-        {
-          title: "Bridge Setup",
-          url: "/console/ictt/setup",
-          icon: SquareTerminal,
-        },
-        {
-          title: "Token Transfer",
-          url: "/console/ictt/token-transfer",
-          icon: ArrowLeftRight,
-        },
-      ],
-    },
-    {
-      title: "Utilities",
-      icon: Wrench,
-      items: [
-        {
-          title: "Format Converter",
-          url: "/console/utilities/format-converter",
-          icon: Wrench,
-        },
-      ],
-    },
-  ],
+  navGroups: CONSOLE_TOOL_GROUPS.map((group) => ({
+    title: group.title,
+    icon: iconComponents[group.icon] ?? Box,
+    items: group.items.map((item) => ({
+      title: item.title,
+      url: item.externalUrl ? item.externalUrl : (item.path ? `/console/${item.path}` : '#'),
+      icon: iconComponents[item.icon] ?? Wrench,
+      comingSoon: item.comingSoon,
+    })),
+  })),
   navSecondary: [],
 };
 

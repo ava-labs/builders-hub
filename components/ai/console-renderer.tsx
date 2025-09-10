@@ -3,50 +3,11 @@ import { ChevronRight, Loader2, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import React from 'react';
+import ToolboxConsoleWrapper from '../../toolbox/src/components/ToolboxConsoleWrapper';
+import { CONSOLE_COMPONENT_MAP } from '@/constants/console-tools';
 
-// Console component mapping - maps console paths to their actual components
-const consoleComponentMap: Record<string, () => Promise<{ default: React.ComponentType<any> }>> = {
-  // Primary Network
-  'primary-network/faucet': () => import('../../toolbox/src/toolbox/Wallet/Faucet'),
-  'primary-network/unit-converter': () => import('../../toolbox/src/toolbox/Conversion/UnitConverter'),
-  'primary-network/stake': () => import('../../toolbox/src/toolbox/PrimaryNetwork/Stake'),
-  
-  // Layer 1
-  'layer-1/create': () => import('../../app/console/layer-1/create/page'),
-  'layer-1/validator-set': () => import('../../toolbox/src/toolbox/ValidatorManager/QueryL1ValidatorSet'),
-  
-  // Permissioned L1s
-  'permissioned-l1s/add-validator': () => import('../../toolbox/src/toolbox/ValidatorManager/AddValidator/AddValidator'),
-  'permissioned-l1s/remove-validator': () => import('../../toolbox/src/toolbox/ValidatorManager/RemoveValidator/RemoveValidator'),
-  'permissioned-l1s/change-validator-weight': () => import('../../toolbox/src/toolbox/ValidatorManager/ChangeWeight/ChangeWeight'),
-  'permissioned-l1s/validator-manager-setup': () => import('../../toolbox/src/toolbox/ValidatorManager/DeployValidatorManager'),
-  'permissioned-l1s/deployer-allowlist': () => import('../../toolbox/src/toolbox/Precompiles/DeployerAllowlist'),
-  'permissioned-l1s/transactor-allowlist': () => import('../../toolbox/src/toolbox/Precompiles/TransactionAllowlist'),
-  
-  // ICM
-  'icm/setup': () => import('../../app/console/icm/setup/page'),
-  
-  // ICTT
-  'ictt/setup': () => import('../../app/console/ictt/setup/page'),
-  'ictt/token-transfer': () => import('../../toolbox/src/toolbox/ICTT/TestSend'),
-  
-  // L1 Tokenomics
-  'l1-tokenomics/fee-manager': () => import('../../toolbox/src/toolbox/Precompiles/FeeManager'),
-  'l1-tokenomics/reward-manager': () => import('../../toolbox/src/toolbox/Precompiles/RewardManager'),
-  'l1-tokenomics/native-minter': () => import('../../toolbox/src/toolbox/Precompiles/NativeMinter'),
-  
-  // Utilities
-  'utilities/format-converter': () => import('../../toolbox/src/toolbox/Conversion/FormatConverter'),
-  
-  // Testnet Infrastructure
-  'testnet-infra/nodes': () => import('../../toolbox/src/toolbox/Nodes/ManagedTestnetNodes'),
-  
-  // Additional commonly used tools
-  'primary-network/node-setup': () => import('../../toolbox/src/toolbox/Nodes/AvalancheGoDockerPrimaryNetwork'),
-  'layer-1/l1-node-setup': () => import('../../toolbox/src/toolbox/Nodes/AvalancheGoDockerL1'),
-  'layer-1/l1-validator-balance': () => import('../../toolbox/src/toolbox/L1/QueryL1Details'),
-  'layer-1/explorer-setup': () => import('../../toolbox/src/toolbox/L1/SelfHostedExplorer'),
-};
+// Use shared component map
+const consoleComponentMap = CONSOLE_COMPONENT_MAP;
 
 // Dynamic imports for console header components
 const WalletBootstrap = dynamic(() => import('../../toolbox/src/components/console-header/wallet-bootstrap'), {
@@ -158,7 +119,9 @@ export const ConsoleToolRenderer = ({ consolePath }: { consolePath: string }) =>
       
       {/* Main component content */}
       <div className="p-6">
-        <Component />
+        <ToolboxConsoleWrapper>
+          <Component />
+        </ToolboxConsoleWrapper>
       </div>
     </div>
   );
