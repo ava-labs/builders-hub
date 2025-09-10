@@ -204,7 +204,7 @@ async function awardBadgeUserWithTransaction(
           awarded_by: awarded_by,
           status: badgeStatus,
           requirements_version: 1,
-          requirements_snapshot: badgeRequirements,
+          
           evidence: completedRequirements,
         },
       });
@@ -296,7 +296,7 @@ async function awardBadgeProjectWithTransaction(
         awarded_by: awarded_by,
         status: badgeStatus,
         requirements_version: 1,
-        requirements_snapshot: badge.requirements,
+       
         evidence: completedRequirements,
       },
     });
