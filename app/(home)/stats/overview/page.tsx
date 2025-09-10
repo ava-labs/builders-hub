@@ -4,27 +4,10 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  Activity,
-  Users,
-  BarChart3,
-  Loader2,
-  Search,
-  ExternalLink,
-} from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Activity, Users, BarChart3, Search, ExternalLink } from "lucide-react";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { Area, AreaChart, XAxis, YAxis, CartesianGrid } from "recharts";
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
@@ -66,7 +49,7 @@ export default function AvalancheMetrics() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [visibleCount, setVisibleCount] = useState(25);
   const [searchTerm, setSearchTerm] = useState("");
-  const [timeRange, setTimeRange] = useState<TimeRange>("30d");
+  const [timeRange, setTimeRange] = useState<TimeRange>("1y");
 
   const getChainSlug = (chainId: string, chainName: string): string | null => {
     const chain = l1ChainsData.find(
@@ -506,7 +489,7 @@ export default function AvalancheMetrics() {
           <div className="flex flex-col items-end gap-2">
             <DateRangeFilter
               onRangeChange={(range) =>
-                setTimeRange(range as "7d" | "30d" | "90d" | "all")
+                setTimeRange(range as "30d" | "90d" | "1y" | "all")
               }
               defaultRange={timeRange}
             />

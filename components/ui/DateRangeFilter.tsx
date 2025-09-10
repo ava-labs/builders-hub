@@ -8,7 +8,7 @@ interface DateRangeFilterProps {
 
 export default function DateRangeFilter({
   onRangeChange,
-  defaultRange = "30d",
+  defaultRange = "1y",
 }: DateRangeFilterProps) {
   const [activeRange, setActiveRange] = useState(defaultRange);
 
@@ -17,9 +17,9 @@ export default function DateRangeFilter({
   }, [defaultRange]);
 
   const ranges = [
-    { label: "7d", value: "7d" },
     { label: "30d", value: "30d" },
     { label: "90d", value: "90d" },
+    { label: "1y", value: "1y" },
     { label: "ALL", value: "all" },
   ];
 
