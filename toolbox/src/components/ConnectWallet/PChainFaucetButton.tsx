@@ -81,11 +81,13 @@ export const PChainFaucetButton = ({ className, buttonProps, children }: PChainF
           setTimeout(() => {
             consoleToast.action("Please Login/Signup to request free tokens from the P-Chain Faucet.",
               {action: {label: "Login", onClick: () => (window.location.href = loginUrl)}});
-            }, 3000);
+            }, 2000);
           return "Authentication required";
         } else if (errorMessage.includes("rate limit") || errorMessage.includes("429")) {
           setTimeout(() => {
-            consoleToast.warning("Rate Limited: Please wait before requesting tokens again. Try again in a few minutes.")
+            const timestampMatch = errorMessage.match(/You can try again after (.+?)\./);
+            const timeInfo = timestampMatch ? timestampMatch[1] : "24 hours";
+            consoleToast.warning(`Rate Limited: You can request P-Chain tokens again after ${timeInfo}. Each address can only request tokens once per day.`);
           }, 500);
           return "Rate limited";
         } else { return `P-Chain Faucet Error: ${errorMessage}` }

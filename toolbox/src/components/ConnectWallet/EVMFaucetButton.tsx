@@ -74,7 +74,7 @@ export const EVMFaucetButton = ({
           } catch {}
         }, 3000);
 
-        setTimeout(() => consoleToast.info("Your wallet balance has been refreshed"), 3500);
+        setTimeout(() => consoleToast.info("Your wallet balance has been refreshed"), 2000);
         return successMessage;
       },
       error: (error) => {
@@ -86,11 +86,13 @@ export const EVMFaucetButton = ({
           setTimeout(() => {
             consoleToast.action(`Please Login/Signup to request free tokens from the ${chainConfig.name} Faucet.`,
               {action: {label: "Login", onClick: () => (window.location.href = loginUrl)}});
-          }, 3000);
+          }, 2000);
           return "Authentication required";
         } else if (errorMessage.includes("rate limit") || errorMessage.includes("429")) {
           setTimeout(() => {
-            consoleToast.warning("Rate Limited: Please wait before requesting tokens again. Try again in a few minutes.");
+            const timestampMatch = errorMessage.match(/You can try again after (.+?)\./);
+            const timeInfo = timestampMatch ? timestampMatch[1] : "24 hours";
+            consoleToast.warning(`Rate Limited: You can request tokens again after ${timeInfo}. Each address can only request tokens once per day.`);
           }, 500);
           return "Rate limited";
         } else {

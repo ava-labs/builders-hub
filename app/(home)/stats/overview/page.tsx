@@ -172,14 +172,26 @@ export default function AvalancheMetrics() {
     const validChains = allValidChains.slice(0, CHART_CONFIG.maxTopChains);
     const aggregatedData = overviewMetrics.aggregated.totalTxCount.data;
     const today = new Date().toISOString().split("T")[0];
-    const finalizedData = aggregatedData.filter((dataPoint) => dataPoint.date !== today);
+    let finalizedData = aggregatedData.filter((dataPoint) => dataPoint.date !== today);
+
+    if (timeRange === "all" && finalizedData.length > 365) {
+      const sampleRate = Math.ceil(finalizedData.length / 365);
+      finalizedData = finalizedData.filter((_, index) => index % sampleRate === 0);
+    }
+    
     const chartData = finalizedData.map((dataPoint) => {
       const day = new Date(dataPoint.timestamp * 1000).toLocaleDateString(
         "en-US",
-        {
-          month: "short",
-          day: "numeric",
-        }
+        timeRange === "all"
+          ? {
+              month: "short",
+              day: "numeric",
+              year: "2-digit",
+            }
+          : {
+              month: "short",
+              day: "numeric",
+            }
       );
 
       const result: any = {
