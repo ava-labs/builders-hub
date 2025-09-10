@@ -41,6 +41,7 @@ function getResetTime(timestamp: number): string {
   const diffMinutes = Math.ceil(diffMs / (1000 * 60));
   
   let relativeTime = '';
+  
   if (diffHours >= 1) {
     relativeTime = `in about ${diffHours} hour${diffHours > 1 ? 's' : ''}`;
   } else if (diffMinutes > 1) {
