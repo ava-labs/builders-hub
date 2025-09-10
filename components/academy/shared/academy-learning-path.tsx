@@ -65,14 +65,17 @@ export function AcademyLearningPath({ defaultPathType, showToggle = true }: Acad
                 )}
 
                 <h2 className="text-3xl sm:text-4xl font-bold text-zinc-900 dark:text-white mb-8">
-                    Learning Path for{" "}
+                    Learning Paths for{" "}
                     {pathType === 'avalanche' ? (
                         <>
-                            <span className="text-red-600">Avalanche Developer </span>
+                            Avalanche 
+                            <span className="text-red-600"> Developer </span>
                             Academy
                         </>
                     ) : (
-                        <>Codebase Entrepreneur Academy</>
+                        <>Codebase 
+                        <span className="text-red-600"> Entrepreneur </span>
+                        Academy</>
                     )}
                 </h2>
 

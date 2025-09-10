@@ -8,6 +8,7 @@ import Quiz from '@/components/quizzes/quiz';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Linkedin, Twitter, Award, Share2 } from 'lucide-react';
 import { AwardBadgeWrapper } from './components/awardBadgeWrapper';
+import { useRouter } from 'next/navigation';
 
 interface CertificatePageProps {
   courseId: string;
@@ -45,6 +46,7 @@ interface QuizDataStructure {
 const quizData = quizDataImport as QuizDataStructure;
 
 const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
+  const router = useRouter();
   const [completedQuizzes, setCompletedQuizzes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userName, setUserName] = useState('');
@@ -53,6 +55,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   const [totalQuizzes, setTotalQuizzes] = useState(0);
   const [correctlyAnsweredQuizzes, setCorrectlyAnsweredQuizzes] = useState(0);
   const [shouldShowCertificate, setShouldShowCertificate] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   useEffect(() => {
     const fetchQuizzes = () => {
@@ -156,6 +159,17 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
+      
+      // Show success message and redirect
+      setShowSuccessMessage(true);
+      setTimeout(() => {
+        // Redirect to the appropriate academy page
+        if (courseId.startsWith('codebase-entrepreneur-')) {
+          router.push('/academy/codebase-entrepreneur');
+        } else {
+          router.push('/academy');
+        }
+      }, 3000);
     } catch (error) {
       console.error('Error generating certificate:', error);
       alert(`Failed to generate certificate: ${(error as Error).message}`);
@@ -223,7 +237,27 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
         );
       })}
 
-      {allQuizzesCompleted && (
+      {showSuccessMessage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-md w-full mx-4 transform transition-all">
+            <div className="flex items-center justify-center mb-4">
+              <Award className="w-12 h-12 text-green-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-center text-gray-800 dark:text-white mb-4">
+              Certificate Downloaded!
+            </h3>
+            <p className="text-center text-gray-600 dark:text-gray-300">
+              Your certificate has been successfully generated and downloaded. 
+              You'll be redirected to the academy page in a moment...
+            </p>
+            <div className="mt-6 flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {allQuizzesCompleted && !showSuccessMessage && (
 
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
           <AwardBadgeWrapper courseId={courseId} isCompleted={allQuizzesCompleted} />

@@ -3,11 +3,10 @@ import type { AcademyConfig } from './types';
 export const codebaseEntrepreneurConfig: AcademyConfig = {
     id: 'codebase-entrepreneur',
     name: 'Codebase Entrepreneur Academy',
-    heroTitle: 'Codebase Entrepreneur',
-    heroAccent: 'Academy',
+    heroTitle: 'Codebase',
+    heroAccent: 'Entrepreneur',
     heroDescription: 'Join the next generation of Web3 entrepreneurs. Learn how to build, launch, and scale your blockchain startup with guidance from industry experts and successful founders.',
     pathType: 'entrepreneur',
-    useRedAccent: false,
     showBlogs: false,
     features: {
         codebaseBlogs: {

@@ -2,7 +2,7 @@ import { HeroBackground } from '@/components/landing/hero';
 import { AcademyHero } from './academy-hero';
 import { AcademyLearningPath } from './academy-learning-path';
 import { AcademyBlogSection } from './academy-blog-section';
-import type { AcademyConfig } from '@/lib/academy/types';
+import type { AcademyLandingPageConfig } from './types';
 
 interface BlogPage {
     url: string;
@@ -18,7 +18,7 @@ interface BlogPage {
 }
 
 interface AcademyLayoutProps {
-    config: AcademyConfig;
+    config: AcademyLandingPageConfig;
     blogs?: BlogPage[];
     children?: React.ReactNode;
     afterLearningPath?: React.ReactNode;
@@ -33,7 +33,6 @@ export function AcademyLayout({ config, blogs = [], children, afterLearningPath 
                     title={config.heroTitle}
                     accent={config.heroAccent}
                     description={config.heroDescription}
-                    useRedAccent={config.useRedAccent}
                 />
 
                 <div className="pb-12 sm:pb-24">

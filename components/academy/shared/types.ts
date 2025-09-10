@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export interface AcademyConfig {
+export interface AcademyLandingPageConfig {
     id: string;
     name: string;
     heroTitle: string;
@@ -10,14 +10,15 @@ export interface AcademyConfig {
     customContent?: ReactNode;
     showBlogs?: boolean;
     features?: {
-        codebaseBlogs?: {
+        successStories?: {
             title: string;
-            blogs: Array<{
+            stories: Array<{
                 id: string;
-                title: string;
+                company: string;
                 description: string;
-                date?: string;
-                link: string;
+                founder?: string;
+                imageUrl?: string;
+                link?: string;
             }>;
         };
     };
