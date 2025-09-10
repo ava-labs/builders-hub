@@ -19,7 +19,7 @@ export type Badge = {
     id: string
     name: string
     description: string
-    points: number
+    points?: number
     image_path: string
     category: string
     requirements?: Requirement[]

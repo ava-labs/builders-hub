@@ -130,7 +130,7 @@ export const AuthOptions: NextAuthOptions = {
         if (account?.provider == 'github') {
           await badgeAssignmentService.assignBadge({
             userId: dbUser.id,
-            requirementId: 'c21d8d8d-47ae-46e9-9df0-bfebf77bf58e',
+            requirementId: 'GitHub',
             category: BadgeCategory.requirement,
           });
          
