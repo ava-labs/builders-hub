@@ -11,7 +11,7 @@ export function StatsBubbleNav() {
         } else if (pathname.startsWith("/stats/l1/")) {
             return "";
         }
-        return "validators";
+        return "overview";
     };
 
     return <BubbleNavigation config={statsBubbleConfig} getActiveItem={getActiveItem} />;
