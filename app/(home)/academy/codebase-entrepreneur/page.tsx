@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
 import { AcademyLayout } from '@/components/academy/shared/academy-layout';
 import { codebaseEntrepreneurConfig } from '@/lib/academy/codebase-entrepreneur.config';
-import { SuccessStories } from '@/components/academy/codebase-entrepreneur/success-stories';
+import { CodebaseBlogs } from '@/components/academy/codebase-entrepreneur/codebase-blogs';
 
 export const metadata: Metadata = createMetadata({
     title: 'Codebase Entrepreneur Academy',
@@ -34,11 +34,11 @@ export default function CodebaseEntrepreneurPage(): React.ReactElement {
             config={codebaseEntrepreneurConfig}
             afterLearningPath={
                 <>
-                    {/* Success Stories - now appears after learning tree */}
-                    {features?.successStories && (
-                        <SuccessStories
-                            title={features.successStories.title}
-                            stories={features.successStories.stories}
+                    {/* Codebase Blogs - now appears after learning tree */}
+                    {features?.codebaseBlogs && (
+                        <CodebaseBlogs
+                            title={features.codebaseBlogs.title}
+                            blogs={features.codebaseBlogs.blogs}
                         />
                     )}
                 </>
