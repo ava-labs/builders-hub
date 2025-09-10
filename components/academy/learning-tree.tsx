@@ -9,6 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 // Import configs
 import { avalancheLearningPaths, avalancheCategoryStyles } from './learning-path-configs/avalanche-developer.config';
 import { entrepreneurLearningPaths, entrepreneurCategoryStyles } from './learning-path-configs/codebase-entrepreneur.config';
+import type { CourseNode } from './learning-path-configs/avalanche-developer.config';
 
 interface LearningTreeProps {
   pathType?: 'avalanche' | 'entrepreneur';
