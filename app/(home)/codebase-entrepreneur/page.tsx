@@ -1,8 +1,13 @@
 import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
 import { AcademyLayout } from '@/components/academy/shared/academy-layout';
+<<<<<<< HEAD:app/(home)/academy/codebase-entrepreneur/page.tsx
 import { codebaseEntrepreneurConfig } from '@/lib/academy/codebase-entrepreneur.config';
+import { CodebaseBlogs } from '@/components/academy/codebase-entrepreneur/codebase-blogs';
+=======
+import { codebaseEntrepreneurLandingPageConfig } from '@/components/academy/landing-page-configs/codebase-entrepreneur.config';
 import { SuccessStories } from '@/components/academy/codebase-entrepreneur/success-stories';
+>>>>>>> origin/avalanche-and-entrepreny-display:app/(home)/codebase-entrepreneur/page.tsx
 
 export const metadata: Metadata = createMetadata({
     title: 'Codebase Entrepreneur Academy',
@@ -27,18 +32,18 @@ export const metadata: Metadata = createMetadata({
 });
 
 export default function CodebaseEntrepreneurPage(): React.ReactElement {
-    const { features } = codebaseEntrepreneurConfig;
+    const { features } = codebaseEntrepreneurLandingPageConfig;
 
     return (
         <AcademyLayout
-            config={codebaseEntrepreneurConfig}
+            config={codebaseEntrepreneurLandingPageConfig}
             afterLearningPath={
                 <>
-                    {/* Success Stories - now appears after learning tree */}
-                    {features?.successStories && (
-                        <SuccessStories
-                            title={features.successStories.title}
-                            stories={features.successStories.stories}
+                    {/* Codebase Blogs - now appears after learning tree */}
+                    {features?.codebaseBlogs && (
+                        <CodebaseBlogs
+                            title={features.codebaseBlogs.title}
+                            blogs={features.codebaseBlogs.blogs}
                         />
                     )}
                 </>

@@ -4,10 +4,9 @@ interface AcademyHeroProps {
     title: string;
     accent: string;
     description: string;
-    useRedAccent?: boolean;
 }
 
-export function AcademyHero({ title, accent, description, useRedAccent = true }: AcademyHeroProps) {
+export function AcademyHero({ title, accent, description }: AcademyHeroProps) {
     return (
         <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
             {/* Background gradient */}
@@ -21,8 +20,11 @@ export function AcademyHero({ title, accent, description, useRedAccent = true }:
                             <span className="text-zinc-900 dark:text-white">
                                 {title}{" "}
                             </span>
-                            <span className={useRedAccent ? "text-red-600" : "text-zinc-900 dark:text-white"}>
+                            <span className="text-red-600">
                                 {accent}
+                            </span>
+                            <span className="text-zinc-900 dark:text-white">
+                                {" "}Academy
                             </span>
                         </h1>
 

@@ -11,13 +11,19 @@ export function AcademyLearningPath({ defaultPathType }: AcademyLearningPathProp
         <div className="mb-20">
             <div className="text-center mb-12">
                 <h2 className="text-3xl sm:text-4xl font-bold text-zinc-900 dark:text-white mb-8">
-                    Learning Path for{" "}
+                    Learning Paths for{" "}
                     {pathType === 'avalanche' ? (
                         "Avalanche"
                     ) : (
                         <>
-                            Codebase Entrepreneur Academy
+                            Avalanche 
+                            <span className="text-red-600"> Developer </span>
+                            Academy
                         </>
+                    ) : (
+                        <>Codebase 
+                        <span className="text-red-600"> Entrepreneur </span>
+                        Academy</>
                     )}
                 </h2>
 
