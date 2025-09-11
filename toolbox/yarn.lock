@@ -40,10 +40,10 @@
     "@scure/base" "1.1.5"
     micro-eth-signer "0.7.2"
 
-"@avalanche-sdk/client@^0.0.4-alpha.13":
-  version "0.0.4-alpha.13"
-  resolved "https://registry.yarnpkg.com/@avalanche-sdk/client/-/client-0.0.4-alpha.13.tgz#923fb2bd57d492e72c324ffa7469eff09a01da6a"
-  integrity sha512-H2hCSt4rnEMd6pkolk0Q+/eaARcJ2f75VcZgIhAcuZoe2yX8sMW4gQUSI12hBKJpxVpUjkWOXxQo6M7ihuvjgw==
+"@avalanche-sdk/client@^0.0.4-alpha.14":
+  version "0.0.4-alpha.14"
+  resolved "https://registry.yarnpkg.com/@avalanche-sdk/client/-/client-0.0.4-alpha.14.tgz#a8fe2188658fd265776fc970760da6c209380746"
+  integrity sha512-XlmTx/H6sZY7XmY3siHJ3weSRwxk9bK68W+lGjUIbRJ1y+rDa+Dz9Znu/gdiocZnQIFICg74BHiaD5k95iToSg==
   dependencies:
     "@avalabs/avalanchejs" "^5.0.0"
     "@noble/hashes" "1.3.3"

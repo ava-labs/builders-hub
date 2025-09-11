@@ -29,6 +29,8 @@ import type { MDXComponents } from 'mdx/types';
 import YouTube from '@/components/content-design/youtube';
 import { Feedback } from '@/components/ui/feedback';
 import posthog from 'posthog-js';
+import { APIPage } from "fumadocs-openapi/ui";
+import { openapi } from "@/lib/openapi";
 
 export const dynamicParams = false;
 export const revalidate = false;
@@ -51,14 +53,12 @@ export default async function Page(props: {
       toc={toc}
       full={page.data.full}
       tableOfContent={{
-        style: 'clerk',
+        style: "clerk",
         single: false,
-        footer: (
-          <BackToTop />
-        ),
+        footer: <BackToTop />,
       }}
       article={{
-        className: 'max-sm:pb-16',
+        className: "max-sm:pb-16",
       }}
     >
       <DocsTitle>{page.data.title}</DocsTitle>
@@ -67,8 +67,8 @@ export default async function Page(props: {
         <MDX
           components={{
             ...defaultComponents,
-            ...((await import('lucide-react')) as unknown as MDXComponents),
-
+            ...((await import("lucide-react")) as unknown as MDXComponents),
+            APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
             Popup,
             PopupContent,
             PopupTrigger,
@@ -85,20 +85,24 @@ export default async function Page(props: {
             File,
             Folder,
             Files,
-            blockquote: Callout as unknown as FC<ComponentProps<'blockquote'>>,
-            DocsCategory: () => <DocsCategory page={page} from={documentation} />,
+            blockquote: Callout as unknown as FC<ComponentProps<"blockquote">>,
+            DocsCategory: () => (
+              <DocsCategory page={page} from={documentation} />
+            ),
           }}
         />
-        {page.data.index ? <DocsCategory page={page} from={documentation} /> : null}
+        {page.data.index ? (
+          <DocsCategory page={page} from={documentation} />
+        ) : null}
       </DocsBody>
       <Feedback
         path={path}
         title={page.data.title}
-        pagePath={`/docs/${page.slugs.join('/')}`}
+        pagePath={`/docs/${page.slugs.join("/")}`}
         editUrl={editUrl}
         onRateAction={async (url, feedback) => {
-          'use server';
-          await posthog.capture('on_rate_document', feedback);
+          "use server";
+          await posthog.capture("on_rate_document", feedback);
         }}
       />
     </DocsPage>
