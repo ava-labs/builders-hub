@@ -6,7 +6,7 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/comp
 import {type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel } from "lucide-react";
-import { StatsBubbleNav } from "@/components/stats/stats-bubble-nav";
+import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import {TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, ChartDataPoint, TimeRange } from "@/types/stats";
 

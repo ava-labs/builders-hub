@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
 import { AcademyLayout } from '@/components/academy/shared/academy-layout';
-import { codebaseEntrepreneurLandingPageConfig } from '@/components/academy/landing-page-configs/codebase-entrepreneur.config';
+import { codebaseEntrepreneurLandingPageConfig } from './codebase-entrepreneur.config';
 import { CodebaseBlogs } from '@/components/academy/codebase-entrepreneur/codebase-blogs';
 
 export const metadata: Metadata = createMetadata({

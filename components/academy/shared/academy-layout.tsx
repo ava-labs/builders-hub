@@ -3,7 +3,7 @@ import { AcademyHero } from './academy-hero';
 import { AcademyLearningPath } from './academy-learning-path';
 import { AcademyBlogSection } from './academy-blog-section';
 import type { AcademyLandingPageConfig } from './academy-types';
-import { AcademyBubbleNav } from './academy-bubble-nav';
+import { AcademyBubbleNav } from './academy-bubble.config';
 
 interface BlogPage {
     url: string;

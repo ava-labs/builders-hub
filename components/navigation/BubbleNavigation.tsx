@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/utils/cn";
-import type { BubbleNavigationConfig } from "./configs/bubble-navigation.types";
+import type { BubbleNavigationConfig } from "./bubble-navigation.types";
 
 interface BubbleNavigationProps {
   config: BubbleNavigationConfig;

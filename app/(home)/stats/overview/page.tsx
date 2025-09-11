@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowUpDown, ArrowUp, ArrowDown, Activity, Users, BarChart3, Search, ExternalLink } from "lucide-react";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { Area, AreaChart, XAxis, YAxis, CartesianGrid } from "recharts";
-import { StatsBubbleNav } from "@/components/stats/stats-bubble-nav";
+import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";

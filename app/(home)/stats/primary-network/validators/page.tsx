@@ -7,7 +7,7 @@ import {type ChartConfig, ChartContainer, ChartStyle, ChartTooltip, ChartTooltip
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import {Landmark, Shield, TrendingUp, Monitor, HandCoins } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
-import {StatsBubbleNav } from "@/components/stats/stats-bubble-nav";
+import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import {TimeSeriesDataPoint, ChartDataPoint, TimeRange, PrimaryNetworkMetrics, VersionCount } from "@/types/stats";
 
