@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await sendOTP(email);
+    await sendOTP(email.tolowerCase());
 
     return NextResponse.json(
       { message: 'OTP sent correctly' },
