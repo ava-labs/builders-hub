@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
 import { blog } from '@/lib/source';
 import { AcademyLayout } from '@/components/academy/shared/academy-layout';
-import { avalancheDeveloperLandingPageConfig } from '@/components/academy/landing-page-configs/avalanche-developer.config';
+import { avalancheDeveloperLandingPageConfig } from '@/app/(home)/academy/avalanche-developer.config';
 
 export const metadata: Metadata = createMetadata({
   title: 'Academy',

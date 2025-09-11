@@ -10,15 +10,14 @@ export interface AcademyLandingPageConfig {
     customContent?: ReactNode;
     showBlogs?: boolean;
     features?: {
-        successStories?: {
+        codebaseBlogs?: {
             title: string;
-            stories: Array<{
+            blogs: Array<{
                 id: string;
-                company: string;
+                title: string;
                 description: string;
-                founder?: string;
-                imageUrl?: string;
-                link?: string;
+                date?: string;
+                link: string;
             }>;
         };
     };

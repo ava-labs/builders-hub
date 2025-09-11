@@ -1,6 +1,6 @@
-import type { AcademyConfig } from './types';
+import type { AcademyLandingPageConfig } from '@/components/academy/shared/academy-types';
 
-export const avalancheDeveloperConfig: AcademyConfig = {
+export const avalancheDeveloperLandingPageConfig: AcademyLandingPageConfig = {
     id: 'avalanche-developer',
     name: 'Avalanche Developer Academy',
     heroTitle: 'Avalanche',

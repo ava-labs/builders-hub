@@ -2,9 +2,8 @@ import { HeroBackground } from '@/components/landing/hero';
 import { AcademyHero } from './academy-hero';
 import { AcademyLearningPath } from './academy-learning-path';
 import { AcademyBlogSection } from './academy-blog-section';
-import type { AcademyLandingPageConfig } from './types';
+import type { AcademyLandingPageConfig } from './academy-types';
 import { AcademyBubbleNav } from './academy-bubble-nav';
-import type { AcademyConfig } from '@/lib/academy/types';
 
 interface BlogPage {
     url: string;

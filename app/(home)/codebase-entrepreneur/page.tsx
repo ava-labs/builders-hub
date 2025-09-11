@@ -1,13 +1,8 @@
 import type { Metadata } from 'next';
 import { createMetadata } from '@/utils/metadata';
 import { AcademyLayout } from '@/components/academy/shared/academy-layout';
-<<<<<<< HEAD:app/(home)/academy/codebase-entrepreneur/page.tsx
-import { codebaseEntrepreneurConfig } from '@/lib/academy/codebase-entrepreneur.config';
-import { CodebaseBlogs } from '@/components/academy/codebase-entrepreneur/codebase-blogs';
-=======
 import { codebaseEntrepreneurLandingPageConfig } from '@/components/academy/landing-page-configs/codebase-entrepreneur.config';
-import { SuccessStories } from '@/components/academy/codebase-entrepreneur/success-stories';
->>>>>>> origin/avalanche-and-entrepreny-display:app/(home)/codebase-entrepreneur/page.tsx
+import { CodebaseBlogs } from '@/components/academy/codebase-entrepreneur/codebase-blogs';
 
 export const metadata: Metadata = createMetadata({
     title: 'Codebase Entrepreneur Academy',

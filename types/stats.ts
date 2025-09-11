@@ -50,7 +50,7 @@ export interface VersionCount {
   stakingPercentage: number;
 }
 
-export type TimeRange = "7d" | "30d" | "90d" | "all";
+export type TimeRange = "30d" | "90d" | "1y" | "all";
 
 // shareable config constants
 export const STATS_CONFIG = {
@@ -59,12 +59,12 @@ export const STATS_CONFIG = {
     SHORT_DURATION: 4 * 60 * 60 * 1000,  // 4 hours - for overview/aggregated data
   },
   TIME_RANGES: {
-    '7d': { days: 7, pageSize: 365, fetchAllPages: false },
     '30d': { days: 30, pageSize: 365, fetchAllPages: false },
     '90d': { days: 90, pageSize: 500, fetchAllPages: true },
+    '1y': { days: 365, pageSize: 1000, fetchAllPages: true },
     'all': { startTimestamp: 1600646400, pageSize: 2000, fetchAllPages: true }
   },
-  ACTIVE_ADDRESSES_INTERVALS: {'7d': 'week', '30d': 'month', '90d': null, 'all': null}, // separate time intervals to avoid double-counting for active addresses
+  ACTIVE_ADDRESSES_INTERVALS: {'30d': 'month', '90d': null, '1y': null, 'all': null}, // separate time intervals to avoid double-counting for active addresses
   AVALANCHE_GENESIS_TIMESTAMP: 1600646400,
   DATA_OFFSET_DAYS: 1,
 } as const;

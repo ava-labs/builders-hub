@@ -50,7 +50,7 @@ export default function ChainMetricsPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = React.useState<TimeRange>("30d");
+  const [timeRange, setTimeRange] = React.useState<TimeRange>("1y");
 
   const fetchData = async () => {
     try {
@@ -377,14 +377,14 @@ export default function ChainMetricsPage({
 
     let comparisonIndex = 1;
     switch (timeRange) {
-      case "7d":
-        comparisonIndex = Math.min(7, data.length - 1);
-        break;
       case "30d":
         comparisonIndex = Math.min(30, data.length - 1);
         break;
       case "90d":
         comparisonIndex = Math.min(90, data.length - 1);
+        break;
+      case "1y":
+        comparisonIndex = Math.min(365, data.length - 1);
         break;
       case "all":
         comparisonIndex = data.length - 1;
@@ -433,31 +433,31 @@ export default function ChainMetricsPage({
 
   function getTimeRangeLabel(range: string): string {
     switch (range) {
-      case "7d":
-        return "7 days";
       case "30d":
         return "30 days";
       case "90d":
         return "90 days";
+      case "1y":
+        return "1 year";
       case "all":
         return "all time";
       default:
-        return "30 days";
+        return "1 year";
     }
   }
 
   function getComparisonPeriodLabel(range: string): string {
     switch (range) {
-      case "7d":
-        return "7 days ago";
       case "30d":
         return "30 days ago";
       case "90d":
         return "90 days ago";
+      case "1y":
+        return "1 year ago";
       case "all":
         return "the beginning of the dataset";
       default:
-        return "30 days ago";
+        return "1 year ago";
     }
   }
 
@@ -815,9 +815,9 @@ export default function ChainMetricsPage({
                           defaultRange={timeRange}
                           onRangeChange={(range) => {
                             if (
-                              range === "7d" ||
                               range === "30d" ||
                               range === "90d" ||
+                              range === "1y" ||
                               range === "all"
                             ) {
                               setTimeRange(range);
