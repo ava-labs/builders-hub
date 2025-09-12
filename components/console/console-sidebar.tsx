@@ -222,9 +222,8 @@ const data = {
       items: [
         {
           title: "Migrate from Permissioned L1",
-          url: "/console/permissionless-l1s/deploy-reward-manager",
+          url: "/console/permissionless-l1s/staking-manager-setup",
           icon: GitMerge,
-          comingSoon: true,
         },
         {
           title: "Stake & Unstake",

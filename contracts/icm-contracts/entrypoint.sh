@@ -35,6 +35,7 @@ for file in \
     /teleporter_src/out/TeleporterRegistry.sol/TeleporterRegistry.json \
     /teleporter_src/out/TeleporterMessenger.sol/TeleporterMessenger.json \
     /teleporter_src/out/NativeTokenStakingManager.sol/NativeTokenStakingManager.json \
+    /teleporter_src/out/ERC20TokenStakingManager.sol/ERC20TokenStakingManager.json \
     /teleporter_src/out/ExampleERC20.sol/ExampleERC20.json \
     /teleporter_src/out/ERC20TokenHome.sol/ERC20TokenHome.json \
     /teleporter_src/out/ERC20TokenRemote.sol/ERC20TokenRemote.json \
