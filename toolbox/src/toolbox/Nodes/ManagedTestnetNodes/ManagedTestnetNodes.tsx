@@ -1,7 +1,12 @@
+/**
+ * REFACTORED VERSION - ManagedTestnetNodes component using the new hook
+ * This demonstrates how much cleaner the component becomes with the extracted logic
+ */
+
 "use client";
 
 import { useWalletStore } from "../../../stores/walletStore";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Container } from "../../../components/Container";
 import { Button } from "../../../components/Button";
 import { AddChainModal } from "../../../components/ConnectWallet/AddChainModal";
@@ -20,37 +25,27 @@ import {
     X,
 } from "lucide-react";
 
-import { 
-    NodeRegistration,
-    RegisterSubnetResponse 
-} from "./types";
+import { useManagedTestnetNodes } from "./useManagedTestnetNodes";
+import { NodeCreationResult } from "./api-types";
 import CreateNodeForm from "./CreateNodeForm";
 import SuccessMessage from "./SuccessMessage";
 import NodesList from "./NodesList";
 
-export default function ManagedTestnetNodes() {
+export default function ManagedTestnetNodesRefactored() {
     const { avalancheNetworkID, isTestnet } = useWalletStore();
     const { addL1 } = useL1ListStore()();
 
-    // Shared state
+    // Use the new hook for all node management logic
+    const nodeManager = useManagedTestnetNodes();
+
+    // UI state only
     const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
     const [alertDialogTitle, setAlertDialogTitle] = useState("Error");
     const [alertDialogMessage, setAlertDialogMessage] = useState("");
     const [isLoginError, setIsLoginError] = useState(false);
-
-    // Create node state
-    const [registrationResponse, setRegistrationResponse] = useState<RegisterSubnetResponse | null>(null);
+    const [registrationResponse, setRegistrationResponse] = useState<NodeCreationResult | null>(null);
     const [connectWalletModalNodeId, setConnectWalletModalNodeId] = useState<string | null>(null);
-
-    // Manage nodes state
-    const [nodes, setNodes] = useState<NodeRegistration[]>([]);
-    const [isLoadingNodes, setIsLoadingNodes] = useState(true);
-    const [nodesError, setNodesError] = useState<string | null>(null);
-    const [deletingNodes, setDeletingNodes] = useState<Set<string>>(new Set());
-
-    // Show create form state
     const [showCreateForm, setShowCreateForm] = useState(false);
-
 
     const handleLogin = () => {
         window.location.href = "/login";
@@ -70,123 +65,16 @@ export default function ManagedTestnetNodes() {
         setAlertDialogMessage("");
         setIsLoginError(false);
         setShowCreateForm(false);
+        nodeManager.clearError();
     };
 
-    const handleRegistration = (response: RegisterSubnetResponse) => {
+    const handleRegistration = (response: NodeCreationResult) => {
         setRegistrationResponse(response);
         setShowCreateForm(false);
-        fetchNodes();
+        // No need to manually fetch nodes - the hook handles this automatically!
     };
 
-    // Manage nodes logic
-    const fetchNodes = async () => {
-        setIsLoadingNodes(true);
-        setNodesError(null);
-
-        try {
-            const response = await fetch('/api/managed-testnet-nodes', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || data.error) {
-                throw new Error(data.message || data.error || 'Failed to fetch nodes');
-            }
-
-            if (data.nodes) {
-                setNodes(data.nodes);
-            }
-        } catch (error) {
-            console.error("Failed to fetch nodes:", error);
-            setNodesError(error instanceof Error ? error.message : 'Failed to fetch nodes');
-        } finally {
-            setIsLoadingNodes(false);
-        }
-    };
-
-    const handleDeleteNode = async (node: NodeRegistration) => {
-        // If node_index is missing, allow account-only removal
-        if (node.node_index === null || node.node_index === undefined) {
-            try {
-                const response = await fetch(`/api/managed-testnet-nodes?id=${encodeURIComponent(node.id)}`, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const data = await response.json();
-                if (!response.ok || data.error) {
-                    throw new Error(data.message || data.error || 'Failed to remove node from account');
-                }
-                setAlertDialogTitle("Removed from Account");
-                setAlertDialogMessage(data.message || "This node has been removed from your account.");
-                setIsLoginError(false);
-                setIsAlertDialogOpen(true);
-                fetchNodes();
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Failed to remove node from account';
-                setAlertDialogTitle("Remove Failed");
-                setAlertDialogMessage(errorMessage);
-                setIsLoginError(false);
-                setIsAlertDialogOpen(true);
-            }
-            return;
-        }
-
-        setDeletingNodes(prev => new Set(prev).add(node.id));
-        
-        try {
-            const response = await fetch(`/api/managed-testnet-nodes/${node.subnet_id}/${node.node_index}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            const data = await response.json();
-            
-            if (!response.ok || data.error) {
-                throw new Error(data.message || data.error || 'Failed to delete node');
-            }
-
-            setAlertDialogTitle("Node Deleted");
-            setAlertDialogMessage(data.message || "The node has been successfully removed from the subnet.");
-            setIsLoginError(false);
-            setIsAlertDialogOpen(true);
-            
-            // Refresh the nodes list
-            fetchNodes();
-        } catch (error) {
-            console.error('Failed to delete node:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Failed to delete node';
-            
-            // Check for authentication errors
-            if (errorMessage.includes('Authentication required') || errorMessage.includes('401')) {
-                setAlertDialogTitle("Authentication Required");
-                setAlertDialogMessage("Please sign in to delete nodes. Use the login button above to authenticate.");
-                setIsLoginError(true);
-            } else {
-                setAlertDialogTitle("Delete Failed");
-                setAlertDialogMessage(errorMessage);
-                setIsLoginError(false);
-            }
-            setIsAlertDialogOpen(true);
-        } finally {
-            setDeletingNodes(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(node.id);
-                return newSet;
-            });
-        }
-    };
-
-
-    // Load nodes when component mounts
-    useEffect(() => {
-        fetchNodes();
-    }, []);
+    // Components now handle their own node operations via the hook
 
     // If not on testnet, show disabled message
     if (!isTestnet) {
@@ -241,18 +129,19 @@ export default function ManagedTestnetNodes() {
                 title="Hosted L1 Testnet Nodes"
                 description="Free cloud-hosted Avalanche nodes for testing. Create an Avalanche Builder Account to get started."
             >
-                {/* Stats Section */}
+                {/* Stats Section - now using hook state directly */}
                 <div className="mb-8 not-prose">
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                <span className="font-semibold">{nodes.length}</span> / 3 active nodes
+                                <span className="font-semibold">{nodeManager.nodes.length}</span> / 3 active nodes
                             </p>
                         </div>
                         <Button 
                             onClick={() => setShowCreateForm(true)}
                             className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 !w-auto"
                             size="sm"
+                            disabled={!nodeManager.canCreateNode}
                         >
                             <Plus className="w-4 h-4 mr-2" />
                             Add a node for a new L1
@@ -260,12 +149,11 @@ export default function ManagedTestnetNodes() {
                     </div>
                 </div>
 
-
-                {/* Create Node Form */}
+                {/* Create Node Form - now uses hook directly */}
                 {showCreateForm && (
                     <CreateNodeForm
                         onClose={() => setShowCreateForm(false)}
-                        onRegister={handleRegistration}
+                        onSuccess={handleRegistration}
                         onError={handleError}
                         avalancheNetworkID={avalancheNetworkID}
                     />
@@ -279,24 +167,20 @@ export default function ManagedTestnetNodes() {
                     />
                 )}
 
-                {/* Nodes List */}
+                {/* Nodes List - now self-contained with hook */}
                 <div className="not-prose">
                     <NodesList
-                        nodes={nodes}
-                        isLoadingNodes={isLoadingNodes}
-                        nodesError={nodesError}
-                        onRefresh={fetchNodes}
                         onShowCreateForm={() => setShowCreateForm(true)}
                         onConnectWallet={setConnectWalletModalNodeId}
-                        onDeleteNode={handleDeleteNode}
-                        deletingNodes={deletingNodes}
+                        onDeleteError={handleError}
+                        onDeleteSuccess={(message) => handleError("Node Deleted", message)}
                     />
                 </div>
             </Container>
 
-            {/* Connect Wallet Modal */}
+            {/* Connect Wallet Modal - using hook's getNodeById utility */}
             {connectWalletModalNodeId && (() => {
-                const selectedNode = nodes.find(n => n.id === connectWalletModalNodeId);
+                const selectedNode = nodeManager.getNodeById(connectWalletModalNodeId);
                 return selectedNode ? (
                     <AddChainModal
                         onClose={() => setConnectWalletModalNodeId(null)}
