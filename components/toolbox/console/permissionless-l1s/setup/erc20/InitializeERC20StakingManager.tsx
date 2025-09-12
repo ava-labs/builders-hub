@@ -13,14 +13,15 @@ import { ResultField } from "@/components/toolbox/components/ResultField";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import SelectSubnet, { SubnetSelection } from '@/components/toolbox/components/SelectSubnet';
 import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';
-import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
+import { Callout } from "fumadocs-ui/components/callout";
+import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json";
 import { parseEther } from "viem";
 import versions from '@/scripts/versions.json';
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
-const INITIALIZE_FUNCTION_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/NativeTokenStakingManager.sol#L43`;
+const INITIALIZE_FUNCTION_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ERC20TokenStakingManager.sol#L53`;
 
-export default function InitializeNativeStakingManager() {
+export default function InitializeERC20StakingManager() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const [stakingManagerAddressInput, setStakingManagerAddressInput] = useState<string>("");
     const [isChecking, setIsChecking] = useState(false);
@@ -40,10 +41,11 @@ export default function InitializeNativeStakingManager() {
     const [maximumStakeMultiplier, setMaximumStakeMultiplier] = useState<string>("10");
     const [weightToValueFactor, setWeightToValueFactor] = useState<string>("1");
     const [rewardCalculatorAddress, setRewardCalculatorAddress] = useState<string>("");
+    const [stakingTokenAddress, setStakingTokenAddress] = useState<string>("");
     
     const { coreWalletClient, publicClient } = useWalletStore();
     const viemChain = useViemChainStore();
-    const { nativeStakingManagerAddress: storedStakingManagerAddress, rewardCalculatorAddress: storedRewardCalculatorAddress } = useToolboxStore();
+    const { erc20StakingManagerAddress: storedStakingManagerAddress, rewardCalculatorAddress: storedRewardCalculatorAddress } = useToolboxStore();
     
     // Get validator manager details from subnet ID
     const {
@@ -81,7 +83,7 @@ export default function InitializeNativeStakingManager() {
             // Try to check initialization by reading a setting that would be 0 if not initialized
             const data = await publicClient.readContract({
                 address: stakingManagerAddressInput as `0x${string}`,
-                abi: NativeTokenStakingManager.abi,
+                abi: ERC20TokenStakingManager.abi,
                 functionName: 'minimumStakeAmount',
             });
             
@@ -90,14 +92,19 @@ export default function InitializeNativeStakingManager() {
             
             if (initialized) {
                 // If initialized, get more details
-                const [settings] = await Promise.all([
+                const [settings, token] = await Promise.all([
                     publicClient.readContract({
                         address: stakingManagerAddressInput as `0x${string}`,
-                        abi: NativeTokenStakingManager.abi,
+                        abi: ERC20TokenStakingManager.abi,
                         functionName: 'minimumStakeAmount',
+                    }),
+                    publicClient.readContract({
+                        address: stakingManagerAddressInput as `0x${string}`,
+                        abi: ERC20TokenStakingManager.abi,
+                        functionName: 'erc20',
                     })
                 ]);
-                setInitEvent({ minimumStakeAmount: settings });
+                setInitEvent({ minimumStakeAmount: settings, stakingToken: token });
             }
         } catch (error) {
             setIsInitialized(false);
@@ -113,6 +120,7 @@ export default function InitializeNativeStakingManager() {
         try {
             if (!validatorManagerAddress) throw new Error("Validator Manager address required");
             if (!rewardCalculatorAddress) throw new Error("Reward Calculator address required");
+            if (!stakingTokenAddress) throw new Error("Staking Token address required");
             if (!blockchainId) throw new Error("Blockchain ID not found. Please select a valid subnet.");
             
             // Create settings object
@@ -131,9 +139,9 @@ export default function InitializeNativeStakingManager() {
             // Estimate gas for initialization
             const gasEstimate = await publicClient.estimateContractGas({
                 address: stakingManagerAddressInput as `0x${string}`,
-                abi: NativeTokenStakingManager.abi,
+                abi: ERC20TokenStakingManager.abi,
                 functionName: 'initialize',
-                args: [settings],
+                args: [settings, stakingTokenAddress as `0x${string}`],
                 account: coreWalletClient.account.address,
             });
 
@@ -142,9 +150,9 @@ export default function InitializeNativeStakingManager() {
 
             const hash = await coreWalletClient.writeContract({
                 address: stakingManagerAddressInput as `0x${string}`,
-                abi: NativeTokenStakingManager.abi,
+                abi: ERC20TokenStakingManager.abi,
                 functionName: 'initialize',
-                args: [settings],
+                args: [settings, stakingTokenAddress as `0x${string}`],
                 chain: viemChain,
                 gas: gasWithBuffer,
             });
@@ -163,14 +171,14 @@ export default function InitializeNativeStakingManager() {
             WalletRequirementsConfigKey.EVMChainBalance,
         ]}>
             <Container
-                title="Initialize Native Token Staking Manager"
-                description="Initialize the Native Token Staking Manager contract with the required configuration."
+                title="Initialize ERC20 Token Staking Manager"
+                description="Initialize the ERC20 Token Staking Manager contract with the required configuration."
             >
                 <Steps>
                     <Step>
                         <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
                         <p className="text-sm text-gray-500">
-                            Choose the L1 subnet where the Native Token Staking Manager will be initialized. The Validator Manager address and blockchain ID will be automatically derived from your selection.
+                            Choose the L1 subnet where the ERC20 Token Staking Manager will be initialized. The Validator Manager address and blockchain ID will be automatically derived from your selection.
                         </p>
                         <SelectSubnet
                             value={subnetSelection.subnetId}
@@ -182,23 +190,31 @@ export default function InitializeNativeStakingManager() {
                         {subnetSelection.subnet && !subnetSelection.subnet.isL1 && (
                             <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
                                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                    <strong>Note:</strong> This subnet has not been converted to an L1 yet. Native Token Staking Manager can only be initialized for L1s.
+                                    <strong>Note:</strong> This subnet has not been converted to an L1 yet. ERC20 Token Staking Manager can only be initialized for L1s.
+                                </p>
+                            </div>
+                        )}
+                        
+                        {validatorManagerAddress && (
+                            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+                                <p className="text-sm">
+                                    <strong>Validator Manager Address:</strong> <code>{validatorManagerAddress}</code>
                                 </p>
                             </div>
                         )}
                     </Step>
                     
                     <Step>
-                        <h2 className="text-lg font-semibold">Select Native Token Staking Manager</h2>
+                        <h2 className="text-lg font-semibold">Select ERC20 Token Staking Manager</h2>
                         <p className="text-sm text-gray-500">
-                            Select the Native Token Staking Manager contract you want to initialize.
+                            Select the ERC20 Token Staking Manager contract you want to initialize.
                         </p>
                         <p className="text-sm text-gray-500">
                             Initialize function source: <a href={INITIALIZE_FUNCTION_SOURCE_URL} target="_blank" rel="noreferrer">initialize()</a> @ <code>{ICM_COMMIT.slice(0, 7)}</code>
                         </p>
 
                         <EVMAddressInput
-                            label="Native Token Staking Manager Address"
+                            label="ERC20 Token Staking Manager Address"
                             value={stakingManagerAddressInput}
                             onChange={setStakingManagerAddressInput}
                             disabled={isInitializing}
@@ -215,9 +231,9 @@ export default function InitializeNativeStakingManager() {
                     </Step>
                     
                     <Step>
-                        <h2 className="text-lg font-semibold">Configure Reward Calculator</h2>
+                        <h2 className="text-lg font-semibold">Configure Staking Token & Rewards</h2>
                         <p className="text-sm text-gray-500">
-                            Set the Reward Calculator contract address that determines how rewards are distributed to validators. The Validator Manager address and Uptime Blockchain ID are automatically derived from your subnet selection.
+                            Set the ERC20 token that will be used for staking and the Reward Calculator contract address. The Validator Manager address and Uptime Blockchain ID are automatically derived from your subnet selection.
                         </p>
 
                         <div className="space-y-4">
@@ -231,6 +247,21 @@ export default function InitializeNativeStakingManager() {
                                     </p>
                                 </div>
                             )}
+                            
+                            <EVMAddressInput
+                                label="Staking Token Address (ERC20)"
+                                value={stakingTokenAddress}
+                                onChange={setStakingTokenAddress}
+                                disabled={isInitializing}
+                                helperText="The ERC20 token that validators and delegators will stake"
+                            />
+                            
+                            <Callout type="warn">
+                                <p className="font-semibold mb-1">Important: Token Requirements</p>
+                                <p>The ERC20 token must implement the <code>IERC20Mintable</code> interface. 
+                                This allows the staking manager to mint rewards. Care should be taken to enforce that only 
+                                authorized users (i.e., the staking manager contract) are able to mint the ERC20 staking token.</p>
+                            </Callout>
                             
                             <EVMAddressInput
                                 label="Reward Calculator Address"
@@ -249,7 +280,7 @@ export default function InitializeNativeStakingManager() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input
-                                label="Minimum Stake Amount (in native tokens)"
+                                label="Minimum Stake Amount (in tokens)"
                                 value={minimumStakeAmount}
                                 onChange={setMinimumStakeAmount}
                                 type="number"
@@ -259,7 +290,7 @@ export default function InitializeNativeStakingManager() {
                             />
                             
                             <Input
-                                label="Maximum Stake Amount (in native tokens)"
+                                label="Maximum Stake Amount (in tokens)"
                                 value={maximumStakeAmount}
                                 onChange={setMaximumStakeAmount}
                                 type="number"
@@ -313,7 +344,7 @@ export default function InitializeNativeStakingManager() {
                             variant="primary"
                             onClick={handleInitialize}
                             loading={isInitializing}
-                            disabled={isInitializing || !subnetSelection.subnetId || !subnetSelection.subnet?.isL1 || !validatorManagerAddress || !rewardCalculatorAddress || !blockchainId}
+                            disabled={isInitializing || !subnetSelection.subnetId || !subnetSelection.subnet?.isL1 || !validatorManagerAddress || !rewardCalculatorAddress || !stakingTokenAddress || !blockchainId}
                         >
                             Initialize Contract
                         </Button>
