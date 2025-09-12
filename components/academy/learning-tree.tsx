@@ -167,7 +167,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                 )}
 
                 <Link
-                  href={`/academy/${node.slug}`}
+                  href={pathType === 'entrepreneur' ? `/codebase-entrepreneur-academy/${node.slug}` : `/academy/${node.slug}`}
                   className="block relative group"
                 >
                   <div
@@ -281,7 +281,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
               onMouseLeave={() => setHoveredNode(null)}
             >
               <Link
-                href={`/academy/${node.slug}`}
+                href={pathType === 'entrepreneur' ? `/codebase-entrepreneur-academy/${node.slug}` : `/academy/${node.slug}`}
                 className="block relative group w-full"
               >
                 <div
