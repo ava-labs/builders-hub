@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
 import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
@@ -166,7 +166,7 @@ export default function UpgradeProxy() {
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.EVMChainBalance
         ]}>
-            <Container
+            <ContainerLegacy
                 title="Upgrade Proxy Implementation"
                 description="This will upgrade the proxy implementation to the desired implementation."
             >
@@ -229,7 +229,7 @@ export default function UpgradeProxy() {
                     label="Current Implementation"
                     value={"No change needed"}
                 />}
-            </Container>
+            </ContainerLegacy>
         </CheckWalletRequirements>
     );
 };

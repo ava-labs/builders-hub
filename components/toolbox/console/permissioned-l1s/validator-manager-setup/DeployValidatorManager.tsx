@@ -7,7 +7,7 @@ import { Button } from "@/components/toolbox/components/Button";
 import { keccak256 } from 'viem';
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import ValidatorMessagesABI from "@/contracts/icm-contracts/compiled/ValidatorMessages.json";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Success } from "@/components/toolbox/components/Success";
 import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
@@ -130,7 +130,7 @@ export default function DeployValidatorContracts() {
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.EVMChainBalance,
         ]}>
-            <Container
+            <ContainerLegacy
                 title="Deploy Validator Contracts"
                 description="Deploy the ValidatorMessages library and ValidatorManager contract to the EVM network."
             >
@@ -193,7 +193,7 @@ export default function DeployValidatorContracts() {
                         </Step>
                     </Steps>
                 </div>
-            </Container>
+            </ContainerLegacy>
         </CheckWalletRequirements>
     );
 }

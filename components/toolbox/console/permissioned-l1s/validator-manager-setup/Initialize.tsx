@@ -9,7 +9,7 @@ import { AbiEvent } from 'viem';
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import { utils } from "@avalabs/avalanchejs";
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
@@ -167,7 +167,7 @@ export default function Initialize() {
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.EVMChainBalance,
         ]}>
-            <Container
+            <ContainerLegacy
                 title="Initial Validator Manager Configuration"
                 description="This will initialize the ValidatorManager contract with the initial configuration."
             >
@@ -259,7 +259,7 @@ export default function Initialize() {
                         showCheck={isInitialized}
                     />
                 )}
-            </Container>
+            </ContainerLegacy>
         </CheckWalletRequirements>
 
     );

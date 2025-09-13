@@ -1,47 +1,36 @@
 "use client"
 
+import { ConsoleToolMetadata } from "@/types/consoleTools"
 import type { ReactNode } from "react"
+import { CheckWalletRequirements } from "./CheckWalletRequirements"
 
-type ColorTheme = "red" | "blue" | "green" | "purple" | "orange" | "cyan" | "amber" | "emerald" | "indigo" | "pink"
-
-interface ContainerProps {
-  title: string
+interface ToolContainerProps {
+  consoleToolMetadata: ConsoleToolMetadata
   children: ReactNode
-  description?: ReactNode
-  subDescription?: string
-  showConfetti?: boolean
-  logoSrc?: string
-  logoAlt?: string
-  logoColorTheme?: ColorTheme
 }
 
 // simplified container does not use color themes currently
 
-export function Container({
-  title,
+export function ToolContainer({
+  consoleToolMetadata,
   children,
-  description,
-  subDescription,
-}: ContainerProps) {
+}: ToolContainerProps) {
 
-  return (<>
-    <div className="space-y-3 prose">
-      <h3 className="text-xl md:text-2xl font-semibold leading-tight text-foreground">{title}</h3>
-      {description && (
-        <div className="text-sm text-muted-foreground leading-relaxed">
-          {description}
-        </div>
-      )}
-      {subDescription && (
-        <p className="text-sm text-muted-foreground leading-relaxed">{subDescription}</p>
-      )}
-    </div>
+  return (
+    <CheckWalletRequirements configKey={consoleToolMetadata.walletRequirements}>
+      <div className="space-y-3 prose">
+        <h3 className="text-xl md:text-2xl font-semibold leading-tight text-foreground">{consoleToolMetadata.title}</h3>
+        {consoleToolMetadata.description && (
+          <div className="text-sm text-muted-foreground leading-relaxed">
+            {consoleToolMetadata.description}
+          </div>
+        )}
+      </div>
 
-
-    <div className="space-y-8 text-foreground prose">
-      {children}
-    </div>
-  </>
+      <div className="space-y-8 text-foreground prose">
+        {children}
+      </div>
+    </CheckWalletRequirements>
   )
 }
 

@@ -6,7 +6,7 @@ import type { AbiEvent } from "viem"
 import { useEffect, useState } from "react"
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json"
 import { Button } from "@/components/toolbox/components/Button"
-import { Container } from "@/components/toolbox/components/Container"
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy"
 import { ChevronDown, ChevronRight } from "lucide-react"
 import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier"
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput"
@@ -142,7 +142,7 @@ export default function ReadContract() {
     <CheckWalletRequirements configKey={[
       WalletRequirementsConfigKey.CoreWalletConnected,
     ]}>
-      <Container
+      <ContainerLegacy
         title="Read Proxy Contract"
         description="This will read the data from the ValidatorManager contract."
       >
@@ -257,7 +257,7 @@ export default function ReadContract() {
             </div>
           </div>
         )}
-      </Container>
+      </ContainerLegacy>
     </CheckWalletRequirements>
   )
 }

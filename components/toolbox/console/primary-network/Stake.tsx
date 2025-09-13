@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/toolbox/components/Button'
 import { Input } from '@/components/toolbox/components/Input'
-import { Container } from '@/components/toolbox/components/Container'
+import { ContainerLegacy } from '@/components/toolbox/components/ContainerLegacy'
 import { CheckWalletRequirements } from '@/components/toolbox/components/CheckWalletRequirements'
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements'
 import { useWalletStore } from '@/components/toolbox/stores/walletStore'
@@ -208,7 +208,7 @@ export default function Stake() {
 
   return (
     <CheckWalletRequirements configKey={[WalletRequirementsConfigKey.PChainBalance]}>
-      <Container
+      <ContainerLegacy
         title="Become a Validator"
         description="Stake AVAX to become a validator on the Primary Network"
       >
@@ -351,7 +351,7 @@ export default function Stake() {
             Stake {networkName} Validator
           </Button>
         </div>
-      </Container>
+      </ContainerLegacy>
     </CheckWalletRequirements>
   )
 }

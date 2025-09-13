@@ -9,7 +9,7 @@ import { createPublicClient, http } from 'viem';
 import ICMDemoABI from "@/contracts/example-contracts/compiled/ICMDemo.json";
 import { utils } from "@avalabs/avalanchejs";
 import { Input } from "@/components/toolbox/components/Input";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useEffect } from "react";
@@ -169,7 +169,7 @@ export default function SendICMMessage() {
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.EVMChainBalance,
         ]}>
-            <Container title="Send ICM Message">
+            <ContainerLegacy title="Send ICM Message">
                 <div className="space-y-4">
                     <Input
                         value={icmReceiverAddress}
@@ -231,7 +231,7 @@ export default function SendICMMessage() {
                         </div>
                     </div>
                 </div>
-            </Container>
+            </ContainerLegacy>
         </CheckWalletRequirements>
     );
 }

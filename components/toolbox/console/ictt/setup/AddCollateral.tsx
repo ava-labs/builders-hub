@@ -12,7 +12,7 @@ import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput
 import { utils } from "@avalabs/avalanchejs";
 import { Note } from "@/components/toolbox/components/Note";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 import ERC20TokenRemoteABI from "@/contracts/icm-contracts/compiled/ERC20TokenRemote.json";
 import { getToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
@@ -323,7 +323,7 @@ export default function AddCollateral() {
     }, [erc20TokenRemoteAddress, nativeTokenRemoteAddress, selectedL1?.name]);
 
     return (
-        <Container
+        <ContainerLegacy
             title="Add Collateral"
             description="Approve and add collateral (ERC20 tokens) to the Token Home contract on the source chain for a remote bridge contract on the current chain."
         >
@@ -434,6 +434,6 @@ export default function AddCollateral() {
             {lastAddCollateralTxId && (
                 <Success label="Add Collateral Transaction ID" value={lastAddCollateralTxId} />
             )}
-        </Container>
+        </ContainerLegacy>
     );
 }

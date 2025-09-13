@@ -16,7 +16,7 @@ import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
 export default function DeployNativeTokenRemote() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
@@ -192,7 +192,7 @@ export default function DeployNativeTokenRemote() {
             docsLink="https://build.avax.network/docs/avalanche-l1s/upgrade/customize-avalanche-l1#network-upgrades-enabledisable-precompiles"
             docsLinkText="Learn how to activate the Native Minter precompile"
         >
-            <Container
+            <ContainerLegacy
                 title="Deploy Native Token Remote Contract"
                 description="Deploy the NativeTokenRemote contract for your native token."
             >
@@ -313,7 +313,7 @@ export default function DeployNativeTokenRemote() {
                 >
                     {nativeTokenRemoteAddress ? "Re-Deploy Native Token Remote" : "Deploy Native Token Remote"}
                 </Button>
-            </Container>
+            </ContainerLegacy>
         </CheckPrecompile>
     );
 } 

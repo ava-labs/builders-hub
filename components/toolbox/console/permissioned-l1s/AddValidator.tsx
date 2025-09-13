@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { Container } from '@/components/toolbox/components/Container';
+import { ContainerLegacy } from '@/components/toolbox/components/ContainerLegacy';
 import { Button } from '@/components/toolbox/components/Button';
 import { AlertCircle } from 'lucide-react';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
@@ -186,7 +186,7 @@ const AddValidatorExpert: React.FC = () => {
       WalletRequirementsConfigKey.EVMChainBalance,
       WalletRequirementsConfigKey.PChainBalance
     ]}>
-      <Container title="Add New Validator" description="Add a validator to your L1 by following these steps in order.">
+      <ContainerLegacy title="Add New Validator" description="Add a validator to your L1 by following these steps in order.">
         <div className="space-y-6">
           {globalError && (
             <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
@@ -344,7 +344,7 @@ const AddValidatorExpert: React.FC = () => {
             </Button>
           )}
         </div>
-      </Container>
+      </ContainerLegacy>
     </CheckWalletRequirements>
   );
 };

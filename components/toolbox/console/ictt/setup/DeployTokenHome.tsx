@@ -12,7 +12,7 @@ import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import { createPublicClient, http } from "viem";
 import { Note } from "@/components/toolbox/components/Note";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
 import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
@@ -153,7 +153,7 @@ export default function DeployTokenHome() {
     }
 
     return (
-        <Container
+        <ContainerLegacy
             title="Deploy Token Home Contract"
             description="Deploy the TokenHome contract for your token."
         >
@@ -240,6 +240,6 @@ export default function DeployTokenHome() {
             >
                 {getTokenHomeAddress() ? "Re-Deploy Token Home" : "Deploy Token Home"}
             </Button>
-        </Container>
+        </ContainerLegacy>
     );
 } 

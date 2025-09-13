@@ -15,7 +15,7 @@ import { utils } from "@avalabs/avalanchejs";
 import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
 
 export default function DeployERC20TokenRemote() {
@@ -206,7 +206,7 @@ export default function DeployERC20TokenRemote() {
     }
 
     return (
-        <Container
+        <ContainerLegacy
             title="Deploy ERC20 Token Remote Contract"
             description="Deploy the ERC20TokenRemote contract for your ERC20 token."
         >
@@ -308,6 +308,6 @@ export default function DeployERC20TokenRemote() {
             >
                 {erc20TokenRemoteAddress ? "Re-Deploy ERC20 Token Remote" : "Deploy ERC20 Token Remote"}
             </Button>
-        </Container>
+        </ContainerLegacy>
     );
 } 

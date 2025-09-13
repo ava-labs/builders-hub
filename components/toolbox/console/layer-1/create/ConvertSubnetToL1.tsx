@@ -5,18 +5,24 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { type ConvertToL1Validator } from "@/components/toolbox/components/ValidatorListInput";
-import { Container } from "@/components/toolbox/components/Container";
+import { ToolContainer } from "@/components/toolbox/components/Container";
 import { ValidatorListInput } from "@/components/toolbox/components/ValidatorListInput";
 import InputChainId from "@/components/toolbox/components/InputChainId";
 import SelectSubnet, { SubnetSelection } from "@/components/toolbox/components/SelectSubnet";
 import { Callout } from "fumadocs-ui/components/callout";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { getPChainBalance } from "@/components/toolbox/coreViem/methods/getPChainbalance";
-import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
+import { ConsoleToolMetadata, BaseConsoleToolProps, withConsoleToolMetadata } from "@/types/consoleTools";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
-export default function ConvertSubnetToL1() {
+const convertSubnetToL1Metadata: ConsoleToolMetadata = {
+    title: "Convert Subnet to L1",
+    description: "This will convert your Subnet to an L1.",
+    walletRequirements: [WalletRequirementsConfigKey.PChainBalance],
+}
+
+function ConvertSubnetToL1Base({onSuccess}: BaseConsoleToolProps) {
     const {
         subnetId: storeSubnetId,
         chainID: storeChainID,
@@ -80,19 +86,16 @@ export default function ConvertSubnetToL1() {
         try {
             const txID = await convertSubnetToL1Tx;
             setConvertToL1TxId(txID);
+            onSuccess?.();
         } finally {
             setIsConverting(false);
         }
     }
 
     return (
-        <CheckWalletRequirements configKey={[
-            WalletRequirementsConfigKey.PChainBalance
-        ]}>
-            <Container
-                title="Convert Subnet to L1"
-                description="This will convert your Subnet to an L1."
-            >
+        <ToolContainer
+            consoleToolMetadata={convertSubnetToL1Metadata}
+        >
                 <div className="space-y-4">
                     <SelectSubnet
                         value={selection.subnetId}
@@ -143,8 +146,8 @@ export default function ConvertSubnetToL1() {
                         {selection.subnet?.isL1 ? "Subnet Already Converted to L1" : "Convert to L1"}
                     </Button>
                 </div>
-
-            </Container>
-        </CheckWalletRequirements>
+        </ToolContainer>
     );
 };
+
+export default withConsoleToolMetadata(ConvertSubnetToL1Base, convertSubnetToL1Metadata);

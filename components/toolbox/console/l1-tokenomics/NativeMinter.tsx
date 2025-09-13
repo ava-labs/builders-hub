@@ -5,7 +5,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import nativeMinterAbi from "@/contracts/precompiles/NativeMinter.json";
@@ -70,7 +70,7 @@ export default function NativeMinter() {
         configKey="contractNativeMinterConfig"
         precompileName="Native Minter"
       >
-        <Container
+        <ContainerLegacy
           title="Mint Native Tokens"
           description="This will mint native tokens to the specified address."
         >
@@ -112,7 +112,7 @@ export default function NativeMinter() {
                 : "Mint Native Tokens"}
             </Button>
           </div>
-        </Container>
+        </ContainerLegacy>
 
         <AllowlistComponent
           precompileAddress={DEFAULT_NATIVE_MINTER_ADDRESS}
