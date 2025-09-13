@@ -3,10 +3,10 @@ import * as React from "react";
 import { useState, useEffect } from "react";
 import { Area,AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ReferenceLine } from "recharts";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {type ChartConfig, ChartContainer,ChartTooltip,ChartTooltipContent } from "@/components/ui/chart";
+import {type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import {Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Zap, Gauge, DollarSign, TrendingDown, Clock, Fuel } from "lucide-react";
-import BubbleNavigation from "@/components/navigation/BubbleNavigation";
+import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import {TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, ChartDataPoint, TimeRange } from "@/types/stats";
 
@@ -673,7 +673,7 @@ export default function ChainMetricsPage({
           </div>
           <ChartSkeletonLoader />
         </div>
-        <BubbleNavigation />
+        <StatsBubbleNav />
       </div>
     );
   }
@@ -1041,7 +1041,7 @@ export default function ChainMetricsPage({
       </div>
 
       {/* Bubble Navigation */}
-      <BubbleNavigation />
+      <StatsBubbleNav />
     </div>
   );
 }

@@ -11,10 +11,6 @@
     "l1-tokenomics",
     "l1-validator-management",
     "permissioned-l1s",
-    "l1-native-tokenomics",
-    "codebase-entrepreneur-foundations",
-    "codebase-entrepreneur-fundraising",
-    "codebase-entrepreneur-community",
-    "codebase-entrepreneur-go-to-market"
+    "l1-native-tokenomics"
   ]
 }

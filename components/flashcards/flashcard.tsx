@@ -1,7 +1,7 @@
 "use client"
 import type React from "react"
 import { useState, useEffect } from "react"
-import { ChevronLeft, ChevronRight, RotateCw, Eye, EyeOff, HelpCircle, ArrowRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, RotateCw, EyeOff, HelpCircle, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { saveFlashcardProgress, getFlashcardProgress, resetFlashcardProgress } from "@/utils/quizzes/indexedDB"
