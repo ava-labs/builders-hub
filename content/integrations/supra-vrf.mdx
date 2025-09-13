@@ -1,0 +1,102 @@
+---
+title: Supra dVRF
+category: VRF
+available: ["C-Chain", "EVM L1s"]
+description: Supra dVRF work behind the scenes to make dApps more engaging, fair, and secure.
+logo: /images/supra.png
+developer: Supra Labs
+website: https://supra.com/
+documentation: https://docs.supra.com/dvrf
+---
+
+## Overview
+
+For Web3 dApps, you need randomness that's decentralized and verifiably recorded on-chain.
+
+That’s exactly what Supra dVRF solves. With a novel on-chain randomness generation mechanism, Supra’s decentralized dVRF is designed to power dApps with effectively random outcomes that are responsive, scalable, and easily verifiable.
+
+- **Low-Latency Response**: The novel architecture of Supra dVRFs can compute and ship random outcomes in just moments, not minutes.
+
+- **Designed to Scale**: Our network leverages batching to achieve greater network efficiency as well as lower costs.
+
+- **Truly Decentralized**: Supra dVRFs use a secret sharing algorithm to distribute power across multiple nodes, so no one node has the power to compromise your apps or users.
+
+- **Natively Cross-chain**: Supra dVRF solves on-chain randomness for Web3 at large, not just a few networks. We’re already on 27 networks like Aptos, Arbitrum, Avalanche, Ethereum, Optimism, and Polygon.
+
+## Documentation
+
+1. **Supra dVRF**: Integrate [Supra dVRF](https://docs.supra.com/dvrf/build-with-supra-dvrf/getting-started) for tamper-proof, unbiased, and cryptographically verifiable random numbers to be employed by smart contracts. You can also explore Supra dVRF dashboard [HERE.](https://supra.com/data/dvrf)
+
+2. **Explore Supra's Layer 1**: Check [Docs](https://docs.supra.com/) to start building with the Full Supra Stack.
+
+## Get Started
+
+Supra’s dVRF can provide the exact properties required for a random number generator (RNG) to be fair with tamper-proof, unbiased, and cryptographically verifiable random numbers to be employed by smart contracts.
+
+- **Unbiased and Unpredictable** - The threshold signature of the nonce, client-provided input, and blockhash of the transaction that requests the randomness (which is unknown at the time of request) is used as the seed for the RNG function.
+
+- **Tamper Proof and Verifiable** - Cryptographic proof will be provided to verify that random numbers were generated and communicated with the highest fidelity.
+
+## How to subscribe to consume random numbers:
+
+#### Subscription Model
+
+Think of it like a prepaid phone plan, but for random numbers. You deposit funds upfront, and Supra uses them to pay gas fees for your VRF callbacks.
+
+- **Predictable costs:** Set gas limits upfront, no surprises
+
+- **Simplified contracts:** Your VRF consumer contracts don't need to handle payments
+
+- **Bulk management:** One subscription can serve multiple contracts
+
+- **Reliability:** Reserved minimum balance ensures your requests don't fail due to insufficient funds
+
+#### Why use subscriptions?
+
+- You create a subscription with your wallet address as the manager.
+
+- Deposit funds into your subscription account.
+
+- Register (whitelist) your smart contracts under this subscription.
+
+- When your contracts request random numbers, Supra automatically pays the callback gas fees from your subscription balance.
+
+- No need to handle gas payments in your contract code - it's all automated!
+
+**To start using dVRF, you need to create a subscription that will manage your random number requests and handle gas payments for callbacks. You can create a subscription in two ways: using the new web interface or through on-chain functions.**
+
+1. **Via the web interface**: The easiest way to create your dVRF subscription is through subscription manager UI at [supra.com/data/dvrf.](https://supra.com/data/dvrf)
+
+
+2. **Via Onchain functions**: For developers who prefer programmatic subscription creation, you can interact directly with the smart contracts.
+
+- EVM Chains
+
+```
+// Interface for dVRF 3.0 Deposit Contract
+interface IDeposit {
+    function addClientToWhitelist(
+        uint128 maxGasPrice, 
+        uint128 maxGasLimit
+    ) external payable;
+}
+```
+
+- Supra L1
+
+```
+// Create subscription on Supra L1
+public entry fun create_subscription(
+    sender: &signer,
+    max_gas_fee: u64,
+    initial_deposit: u64
+) {
+    // Call the deposit module to create subscription
+    deposit::add_client_to_whitelist(sender, max_gas_fee);
+    deposit::deposit_fund(sender, initial_deposit);
+}
+```
+
+- **Verification**: Use web interface or getSubscriptionByClient() function, After creating your subscription, verify it's working correctly.
+
+You can explore more on how to Integrate and learn more from our broader [Documentation.](https://docs.supra.com/dvrf/build-with-supra-dvrf/create-your-subscription)
