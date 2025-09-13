@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useMemo } from 'react';
-import { Container } from '@/components/toolbox/components/Container';
+import { ContainerLegacy } from '@/components/toolbox/components/ContainerLegacy';
 import { Button } from '@/components/toolbox/components/Button';
 import { AlertCircle } from 'lucide-react';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
@@ -97,7 +97,7 @@ const ChangeWeightStateless: React.FC = () => {
       WalletRequirementsConfigKey.EVMChainBalance,
       WalletRequirementsConfigKey.PChainBalance
     ]}>
-      <Container title="Change Consensus Weight of Validators" description="Modify a validator's consensus weight by following these steps in order. The consensus weight determines the validator's influence in the network. On average a validator will produce blocks proportional to its weight in relation to the total weight of all validators.">
+      <ContainerLegacy title="Change Consensus Weight of Validators" description="Modify a validator's consensus weight by following these steps in order. The consensus weight determines the validator's influence in the network. On average a validator will produce blocks proportional to its weight in relation to the total weight of all validators.">
         <div className="space-y-6">
           {globalError && (
             <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
@@ -223,7 +223,7 @@ const ChangeWeightStateless: React.FC = () => {
             </Button>
           )}
         </div>
-      </Container>
+      </ContainerLegacy>
     </CheckWalletRequirements>
   );
 };

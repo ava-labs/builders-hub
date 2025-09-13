@@ -1,6 +1,6 @@
 import { type StepDefinition } from "@/components/console/step-flow";
 import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
-import AvalancheGoDockerL1 from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
+import AvalancheGoDockerL1 from "@/components/toolbox/console/layer-1/L1NodeSetupDocker";
 import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1";
 import ManagedTestnetNodes from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes";
 

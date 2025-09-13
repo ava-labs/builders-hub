@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
 import rewardManagerAbi from "@/contracts/precompiles/RewardManager.json";
@@ -206,7 +206,7 @@ export default function RewardManager() {
         configKey="rewardManagerConfig"
         precompileName="Reward Manager"
       >
-        <Container
+        <ContainerLegacy
           title="Reward Manager"
           description="Manage reward settings for the network"
         >
@@ -358,7 +358,7 @@ export default function RewardManager() {
               </div>
             </div>
           </div>
-        </Container>
+        </ContainerLegacy>
 
         <AllowlistComponent
           precompileAddress={DEFAULT_REWARD_MANAGER_ADDRESS}

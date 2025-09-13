@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
 import TransparentUpgradeableProxyABI from "@/contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { Callout } from "fumadocs-ui/components/callout";
@@ -110,7 +110,7 @@ export default function DeployProxyContract() {
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.EVMChainBalance,
         ]}>
-            <Container
+            <ContainerLegacy
                 title="Deploy Proxy Contracts"
                 description="Deploy ProxyAdmin and TransparentUpgradeableProxy contracts to the EVM network."
             >
@@ -201,7 +201,7 @@ export default function DeployProxyContract() {
 
                     </Step>
                 </Steps>
-            </Container>
+            </ContainerLegacy>
         </CheckWalletRequirements>
     );
 }

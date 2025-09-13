@@ -5,7 +5,7 @@ import { utils } from "@avalabs/avalanchejs";
 import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 
 // Utility functions for conversions
 export const hexToBytes = (hex: string): Uint8Array => {
@@ -257,7 +257,7 @@ export default function FormatConverter() {
   }, [hexToUnformat]);
 
   return (
-    <Container
+    <ContainerLegacy
       title="Format Converter"
       description="Convert between different encodings"
       logoColorTheme="red"
@@ -376,6 +376,6 @@ export default function FormatConverter() {
           )}
         </div>
       </div>
-    </Container>
+    </ContainerLegacy>
   );
 }

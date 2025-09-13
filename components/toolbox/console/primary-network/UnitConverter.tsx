@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/toolbox/components/Button";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 
 export default function UnitConverter() {
     const [amount, setAmount] = useState<string>("1.00");
@@ -106,7 +106,7 @@ export default function UnitConverter() {
     }, [amount, selectedUnit]);
 
     return (
-        <Container
+        <ContainerLegacy
             title="AVAX Unit Converter"
             description="Convert between AVAX, P-Chain nAVAX, and C-Chain wei"
             logoColorTheme="red"
@@ -177,6 +177,6 @@ export default function UnitConverter() {
                     Reset
                 </Button>
             </div>
-        </Container>
+        </ContainerLegacy>
     );
 }

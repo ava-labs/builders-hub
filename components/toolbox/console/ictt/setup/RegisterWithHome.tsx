@@ -14,7 +14,7 @@ import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput
 import { utils } from "@avalabs/avalanchejs";
 import { ListContractEvents } from "@/components/toolbox/components/ListContractEvents";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 
 export default function RegisterWithHome() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
@@ -175,7 +175,7 @@ export default function RegisterWithHome() {
     }, [erc20TokenRemoteAddress, nativeTokenRemoteAddress]);
 
     return (
-        <Container
+        <ContainerLegacy
             title="Register Remote Contract with Home"
             description="Register the remote contract with the home contract."
         >
@@ -259,6 +259,6 @@ export default function RegisterWithHome() {
                     />
                 </div>
             )}
-        </Container>
+        </ContainerLegacy>
     );
 }

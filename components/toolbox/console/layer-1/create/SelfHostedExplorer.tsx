@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Container } from "@/components/toolbox/components/Container";
+import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
 import { Input } from "@/components/toolbox/components/Input";
 import { getBlockchainInfo, getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
 import InputChainId from "@/components/toolbox/components/InputChainId";
@@ -328,7 +328,7 @@ export default function BlockScout() {
 
   return (
     <>
-      <Container
+      <ContainerLegacy
         title="Self-hosted Explorer Setup"
         description="This will set up a self-hosted explorer with its own RPC Node leveraging Docker Compose."
       >
@@ -602,7 +602,7 @@ export default function BlockScout() {
             )}
           </>)}
         </Steps>
-      </Container>
+      </ContainerLegacy>
     </>
   );
 };

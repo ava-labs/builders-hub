@@ -3,7 +3,7 @@
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
-import { Container } from "../../components/Container";
+import { ToolContainer } from "../../components/Container";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputSubnetId from "../../components/InputSubnetId";
 import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
@@ -19,8 +19,15 @@ import { AddToWalletStep } from "../../components/AddToWalletStep";
 import { ConfigureNodeType } from "../../components/ConfigureNodeType";
 import { generateDockerCommand } from "./create/config";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
+import { ConsoleToolMetadata, BaseConsoleToolProps, withConsoleToolMetadata } from "@/types/consoleTools";
 
-export default function AvalanchegoDocker() {
+const l1NodeSetupDockerMetadata: ConsoleToolMetadata = {
+    title: "L1 Node Setup with Docker",
+    description: "This will start a Docker container running an RPC or validator node that tracks your L1.",
+    walletRequirements: [],
+}
+
+function L1NodeSetupDockerBase({onSuccess}: BaseConsoleToolProps) {
     const [chainId, setChainId] = useState("");
     const [subnetId, setSubnetId] = useState("");
     const [subnet, setSubnet] = useState<any>(null);
@@ -151,11 +158,9 @@ export default function AvalanchegoDocker() {
     const isCustomVM = blockchainInfo && blockchainInfo.vmId !== SUBNET_EVM_VM_ID;
 
     return (
-        <>
-            <Container
-                title="L1 Node Setup with Docker"
-                description="This will start a Docker container running an RPC or validator node that tracks your L1."
-            >
+        <ToolContainer
+            consoleToolMetadata={l1NodeSetupDockerMetadata}
+        >
                 <Steps>
                     <Step>
                         <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
@@ -382,14 +387,14 @@ export default function AvalanchegoDocker() {
 
                 </Steps>
 
-                {chainAddedToWallet && (
-                    <>
-                        <Success label="Node Setup Complete" value={chainAddedToWallet} />
-                        <Button onClick={handleReset} className="mt-4 w-full">Reset</Button>
-                    </>
-                )}
-
-            </Container >
-        </>
+            {chainAddedToWallet && (
+                <>
+                    <Success label="Node Setup Complete" value={chainAddedToWallet} />
+                    <Button onClick={handleReset} className="mt-4 w-full">Reset</Button>
+                </>
+            )}
+        </ToolContainer>
     );
 };
+
+export default withConsoleToolMetadata(L1NodeSetupDockerBase, l1NodeSetupDockerMetadata);

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import { AlertCircle, Loader2, CheckCircle2, ArrowUpRight, RefreshCw } from "lucide-react"
 import { Button } from "../../components/Button"
-import { Container } from "../../components/Container"
+import { ContainerLegacy } from "../../components/ContainerLegacy"
 import { Context, pvm, utils } from "@avalabs/avalanchejs"
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import { bytesToHex } from "viem"
@@ -173,7 +173,7 @@ export default function ValidatorBalanceIncrease() {
     <CheckWalletRequirements configKey={[
       WalletRequirementsConfigKey.PChainBalance,
     ]}>
-      <Container
+      <ContainerLegacy
         title="L1 Validator Balance Topup"
         description="Increase your validator's balance using funds from your P-Chain address."
       >
@@ -341,7 +341,7 @@ export default function ValidatorBalanceIncrease() {
             <div className="absolute top-0 left-1/3 w-3 h-3 bg-purple-500 rounded-full animate-confetti-3"></div>
           </div>
         )}
-      </Container>
+      </ContainerLegacy>
     </CheckWalletRequirements>
   )
 }
