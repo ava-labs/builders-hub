@@ -92,8 +92,6 @@ export class BadgeAssignmentService {
   private determineBadgeCategory(body: AssignBadgeBody): BadgeCategory | null {
     // If category is already specified, use it
 
-    console.log("body", body);
-
     if (body.category !== undefined) {
       return body.category;
     }

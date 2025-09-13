@@ -3,7 +3,7 @@ import { withAuthRole } from "@/lib/protectedRoute";
 import { SetWinner } from "@/server/services/set-project-winner";
 import { NextRequest, NextResponse } from "next/server";
 
-export const PUT = withAuthRole("hackathon_judge", async (req: NextRequest) => {
+export const PUT = withAuthRole("badge_admin", async (req: NextRequest) => {
   const body = await req.json();
   const session = await getAuthSession();
   const name = session?.user.name || "user";
