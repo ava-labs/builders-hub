@@ -12,37 +12,33 @@ import SelectSubnet, { SubnetSelection } from "@/components/toolbox/components/S
 import { Callout } from "fumadocs-ui/components/callout";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { getPChainBalance } from "@/components/toolbox/coreViem/methods/getPChainbalance";
-import { Success } from "@/components/toolbox/components/Success";
 import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
-export default function ConvertToL1() {
+export default function ConvertSubnetToL1() {
     const {
         subnetId: storeSubnetId,
         chainID: storeChainID,
-        managerAddress,
-        setManagerAddress,
-        convertToL1TxId,
+        managerAddress: validatorManagerAddress,
+        setManagerAddress: setValidatorManagerAddress,
         setConvertToL1TxId,
     } = useCreateChainStore()();
+    const { coreWalletClient, pChainAddress, isTestnet } = useWalletStore();
 
     const [selection, setSelection] = useState<SubnetSelection>({
         subnetId: storeSubnetId,
         subnet: null
     });
-    const [chainID, setChainID] = useState(storeChainID);
-    const [isConverting, setIsConverting] = useState(false);
+    const [validatorManagerChainID, setValidatorManagerChainID] = useState(storeChainID);
     const [validators, setValidators] = useState<ConvertToL1Validator[]>([]);
-    const { coreWalletClient, pChainAddress, isTestnet } = useWalletStore();
-    const [criticalError, setCriticalError] = useState<Error | null>(null);
 
+    const [isConverting, setIsConverting] = useState(false);
+    
+    const { sendCoreWalletNotSetNotification, sendConvertSubnetToL1Notifications } = useConsoleNotifications();
+
+    // TO-DO do we need this?
     const [rawPChainBalanceNavax, setRawPChainBalanceNavax] = useState<bigint | null>(null);
-
-    // Throw critical errors during render
-    if (criticalError) {
-        throw criticalError;
-    }
-
     useEffect(() => {
         const isMounted = { current: true };
 
@@ -64,24 +60,26 @@ export default function ConvertToL1() {
 
     async function handleConvertToL1() {
         if (!coreWalletClient) {
-            setCriticalError(new Error('Core wallet not found'));
+            sendCoreWalletNotSetNotification();
             return;
         }
 
         setConvertToL1TxId("");
         setIsConverting(true);
-        try {
-            const txID = await coreWalletClient.convertToL1({
-                managerAddress,
-                subnetId: selection.subnetId,
-                chainId: chainID,
-                subnetAuth: [0],
-                validators
-            });
 
+        const convertSubnetToL1Tx = coreWalletClient.convertToL1({
+            subnetId: selection.subnetId,
+            chainId: validatorManagerChainID,
+            managerAddress: validatorManagerAddress,
+            subnetAuth: [0],
+            validators
+        });
+
+        sendConvertSubnetToL1Notifications(convertSubnetToL1Tx);
+
+        try {
+            const txID = await convertSubnetToL1Tx;
             setConvertToL1TxId(txID);
-        } catch (error) {
-            setCriticalError(error instanceof Error ? error : new Error(String(error)));
         } finally {
             setIsConverting(false);
         }
@@ -108,15 +106,15 @@ export default function ConvertToL1() {
                         <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">With the conversion of the Subnet to an L1, the validator set of the L1 will be managed by a validator manager contract. This contract can implement Proof-of-Authority, Proof-of-Stake or any custom logic to determine the validator set. The contract can be deployed on a blockchain of the L1, the C-Chain or any other blockchain in the Avalanche network.</p>
                     </div>
                     <InputChainId
-                        value={chainID}
-                        onChange={setChainID}
+                        value={validatorManagerChainID}
+                        onChange={setValidatorManagerChainID}
                         error={null}
                         label="Validator Manager Blockchain ID"
                         helperText="The ID of the blockchain where the validator manager contract is deployed. This can be a chain of the L1 itself, the C-Chain or any other blockchain in the Avalanche network."
                     />
                     <EVMAddressInput
-                        value={managerAddress}
-                        onChange={setManagerAddress}
+                        value={validatorManagerAddress}
+                        onChange={setValidatorManagerAddress}
                         label="Validator Manager Contract Address"
                         disabled={isConverting}
                         helperText="The address of the validator manager contract (or a proxy pointing for it) on the blockchain. This contract will manage the validator set of the L1. A chain created with the Toolbox will have a pre-deployed proxy contract at the address 0xfacade0000000000000000000000000000000000. After the conversion you can point this proxy to a reference implementation of the validator manager contract or a custom version of it."
@@ -139,17 +137,13 @@ export default function ConvertToL1() {
                     <Button
                         variant="primary"
                         onClick={handleConvertToL1}
-                        disabled={!selection.subnetId || !managerAddress || validators.length === 0 || (selection.subnet?.isL1)}
+                        disabled={!selection.subnetId || !validatorManagerAddress || validators.length === 0 || (selection.subnet?.isL1)}
                         loading={isConverting}
                     >
                         {selection.subnet?.isL1 ? "Subnet Already Converted to L1" : "Convert to L1"}
                     </Button>
                 </div>
 
-                <Success
-                    label="Subnet to L1 Conversion Successful"
-                    value={convertToL1TxId}
-                />
             </Container>
         </CheckWalletRequirements>
     );
