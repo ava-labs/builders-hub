@@ -13,7 +13,7 @@ import { ExternalLink } from "lucide-react";
 export default function DeployExampleERC20() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { exampleErc20Address, setExampleErc20Address } = useToolboxStore();
-    const { coreWalletClient } = useWalletStore();
+    const { coreWalletClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
     const [isDeploying, setIsDeploying] = useState(false);
     const { walletChainId } = useWalletStore();
@@ -24,6 +24,11 @@ export default function DeployExampleERC20() {
     }
 
     async function handleDeploy() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setIsDeploying(true);
         try {
             if (!viemChain) throw new Error("No chain selected");
@@ -33,12 +38,13 @@ export default function DeployExampleERC20() {
             });
 
             const hash = await coreWalletClient.deployContract({
-                abi: ExampleERC20.abi,
+                abi: ExampleERC20.abi as any,
                 bytecode: ExampleERC20.bytecode.object as `0x${string}`,
                 args: [],
-                chain: viemChain
+                chain: viemChain,
+                account: walletEVMAddress as `0x${string}`
             });
-
+            
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
             if (!receipt.contractAddress) {

@@ -1,4 +1,4 @@
-import { createWalletClient, custom, rpcSchema, DeployContractParameters } from 'viem'
+import { createWalletClient, custom, rpcSchema, DeployContractParameters, DeployContractReturnType, WriteContractReturnType, SendTransactionReturnType } from 'viem'
 import { addChain, CoreWalletAddChainParameters } from './overrides/addChain'
 import { CoreWalletRpcSchema } from './rpcSchema'
 import { isTestnet } from './methods/isTestnet'
@@ -20,19 +20,44 @@ import { registerL1Validator } from './methods/registerL1Validator'
 import { RegisterL1ValidatorParams } from './methods/registerL1Validator'
 import { setL1ValidatorWeight } from './methods/setL1ValidatorWeight'
 import { SetL1ValidatorWeightParams } from './methods/setL1ValidatorWeight'
+import { ExtractWarpMessageFromTxResponse } from './methods/extractWarpMessageFromPChainTx'
+import { ExtractChainInfoResponse } from './methods/extractChainInfo'
 
-export function createCoreWalletClient(account: `0x${string}`) {
+// Extract the return type from CoreWalletRpcSchema for getEthereumChain
+type GetEthereumChainResponse = Extract<CoreWalletRpcSchema[number], { Method: 'wallet_getEthereumChain' }>['ReturnType'];
+
+// Type for the extended wallet client with all custom methods
+export type CoreWalletClientType = ReturnType<typeof createWalletClient<any, any, any, CoreWalletRpcSchema>> & {
+    addChain: (args: CoreWalletAddChainParameters) => Promise<void>;
+    sendTransaction: (args: any) => Promise<SendTransactionReturnType>;
+    writeContract: (args: any) => Promise<WriteContractReturnType>;
+    deployContract: (args: DeployContractParameters) => Promise<DeployContractReturnType>;
+    isTestnet: () => Promise<boolean>;
+    getPChainAddress: () => Promise<string>;
+    getCorethAddress: () => Promise<string>;
+    createSubnet: (args: CreateSubnetParams) => Promise<string>;
+    createChain: (args: CreateChainParams) => Promise<string>;
+    convertToL1: (args: ConvertToL1Params) => Promise<string>;
+    registerL1Validator: (args: RegisterL1ValidatorParams) => Promise<string>;
+    setL1ValidatorWeight: (args: SetL1ValidatorWeightParams) => Promise<string>;
+    extractWarpMessageFromPChainTx: (args: ExtractWarpMessageFromTxParams) => Promise<ExtractWarpMessageFromTxResponse>;
+    getEthereumChain: () => Promise<GetEthereumChainResponse>;
+    extractChainInfo: (args: ExtractChainInfoParams) => Promise<ExtractChainInfoResponse>;
+    getPChainBalance: () => Promise<bigint>;
+};
+
+export function createCoreWalletClient(account: `0x${string}`): CoreWalletClientType | null {
     // Check if we're in a browser environment
     const isClient = typeof window !== 'undefined'
 
     // Only create a wallet client if we're in a browser
     if (!isClient) {
-        return null as any; // Return null for SSR
+        return null; // Return null for SSR
     }
 
     // Check if window.avalanche exists and is an object
     if (!window.avalanche || typeof window.avalanche !== 'object') {
-        return null as any; // Return null if Core wallet is not found
+        return null; // Return null if Core wallet is not found
     }
 
     return createWalletClient({
@@ -58,5 +83,5 @@ export function createCoreWalletClient(account: `0x${string}`) {
         getEthereumChain: () => getEthereumChain(client),
         extractChainInfo: (args: ExtractChainInfoParams) => extractChainInfo(client, args),
         getPChainBalance: () => getPChainBalance(client),
-    }))
+    }));
 }

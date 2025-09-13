@@ -292,6 +292,12 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   };
 
   const executeDirectTransaction = async () => {
+    if (!coreWalletClient) {
+      onError('Core wallet not found');
+      return;
+    }
+
+
     if (!poaManagerAddress) {
       onError('PoAManager address not found');
       return;
@@ -310,7 +316,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
 
       // Wait for transaction receipt
       const receipt = await publicClient.waitForTransactionReceipt({
-        hash: txHash,
+        hash: txHash as `0x${string}`,
       });
 
       if (receipt.status === 'reverted') {

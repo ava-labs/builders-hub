@@ -143,6 +143,11 @@ export default function ICMRelayer() {
     };
 
     const sendOneCoin = async (chainId: string) => {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setIsSending(true);
         try {
             const chain = l1List.find((l1: L1ListItem) => l1.id === chainId);
@@ -179,7 +184,7 @@ export default function ICMRelayer() {
                 nonce: nextNonce,
             });
 
-            await publicClient.waitForTransactionReceipt({ hash: txHash });
+            await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
             await fetchBalances();
         } catch (error) {
             setCriticalError(error instanceof Error ? error : new Error(String(error)));

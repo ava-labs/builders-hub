@@ -100,6 +100,12 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
     }, [fixedRPCUrl]);
 
     async function handleAddChain() {
+
+        if (!coreWalletClient) {
+            setLocalError("Core wallet not found");
+            return;
+        }
+
         try {
             setIsAddingChain(true)
 
@@ -118,10 +124,10 @@ export const AddChainModal: React.FC<AddChainModalProps> = ({
 
             await coreWalletClient.addChain({ chain: { ...viemChain, isTestnet: isTestnet } });
             await coreWalletClient.switchChain({
-                id: `0x${evmChainId.toString(16)}`,
+                id: evmChainId,
             });
 
-            await onAddChain({
+            onAddChain({
                 id: chainId,
                 name: chainName,
                 rpcUrl: rpcUrl,
@@ -269,6 +275,12 @@ function LoadFromCoreWallet({ onLookup }: { onLookup: ({ rpcUrl, coinName }: { r
     }, [walletChainId]);
 
     async function lookup() {
+
+        if (!coreWalletClient) {
+            setLocalError("Core wallet not found");
+            return;
+        }
+
         setLocalError("");
         setIsLookingUp(true);
         try {
@@ -289,7 +301,7 @@ function LoadFromCoreWallet({ onLookup }: { onLookup: ({ rpcUrl, coinName }: { r
             }
 
             await coreWalletClient.switchChain({
-                id: `0x${evmChainId.toString(16)}`,
+                id: evmChainId,
             });
 
             const evmInfo = await coreWalletClient.getEthereumChain();

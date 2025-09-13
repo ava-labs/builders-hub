@@ -68,6 +68,12 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
   const handleInitiateChangeWeight = async () => {
     setErrorState(null);
     setTxSuccess(null);
+
+    if (!coreWalletClient) {
+      setErrorState("Core wallet not found");
+      return;
+    }
+
     if (!validation.validationId.trim()) {
       setErrorState("Validation ID is required"); return;
     }

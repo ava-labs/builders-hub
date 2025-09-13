@@ -62,6 +62,11 @@ export default function CreateChain() {
 
 
     async function handleCreateSubnet() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setIsCreatingSubnet(true);
 
         try {
@@ -79,6 +84,11 @@ export default function CreateChain() {
     }
 
     async function handleCreateChain() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setIsCreatingChain(true);
 
         try {

@@ -163,6 +163,11 @@ const SubmitPChainTxChangeWeight: React.FC<SubmitPChainTxChangeWeightProps> = ({
     setErrorState(null);
     setTxSuccess(null);
 
+    if (!coreWalletClient) {
+      setErrorState("Core wallet not found");
+      return;
+    }
+
     if (!evmTxHash.trim()) {
       setErrorState("EVM transaction hash is required.");
       onError("EVM transaction hash is required.");

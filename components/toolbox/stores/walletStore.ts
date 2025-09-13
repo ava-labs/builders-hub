@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { networkIDs } from "@avalabs/avalanchejs";
-import { createCoreWalletClient } from '../coreViem';
+import { createCoreWalletClient, CoreWalletClientType } from '../coreViem';
 import { createPublicClient, custom, http } from 'viem';
 import { avalancheFuji } from 'viem/chains';
 import { zeroAddress } from 'viem';
@@ -11,7 +11,7 @@ import { useMemo } from 'react';
 // Types for better type safety
 interface WalletState {
   // Core wallet state
-  coreWalletClient: ReturnType<typeof createCoreWalletClient>;
+  coreWalletClient: CoreWalletClientType | null;
   publicClient: ReturnType<typeof createPublicClient>;
   
   // Wallet connection data
@@ -22,7 +22,7 @@ interface WalletState {
   
   // Network state
   avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID;
-  isTestnet: boolean | undefined;
+  isTestnet: boolean;
   evmChainName: string;
   
   // Balance state - support individual L1 balances by chain ID
@@ -41,8 +41,8 @@ interface WalletState {
 
 interface WalletActions {
   // Simplified setters - group related updates
-  updateWalletConnection: (data: {
-    coreWalletClient?: ReturnType<typeof createCoreWalletClient>;
+  updateWalletConnection: (data: { 
+    coreWalletClient?: CoreWalletClientType | null;
     walletEVMAddress?: string;
     walletChainId?: number;
     pChainAddress?: string;
@@ -112,7 +112,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     avalancheNetworkID: networkIDs.FujiID as typeof networkIDs.FujiID | typeof networkIDs.MainnetID,
     pChainAddress: "",
     coreEthAddress: "",
-    isTestnet: undefined as boolean | undefined,
+    isTestnet: false,
     evmChainName: "",
     balances: {
       pChain: 0,

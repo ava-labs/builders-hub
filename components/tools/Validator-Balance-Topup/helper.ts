@@ -39,9 +39,9 @@ export function getAddresses(privateKeyHex: string): { C: `0x${string}`, P: stri
         "fuji",
         secp256k1.publicKeyBytesToAddress(publicKey)
     )}`;
-    const cChainAddress = Address.fromPublicKey(publicKey) as `0x${string}`;
+    const cChainAddress = Address.fromPublicKey(publicKey);
     return {
-        C: cChainAddress,
+        C: cChainAddress as `0x${string}`,
         P: pChainAddress
     };
 }

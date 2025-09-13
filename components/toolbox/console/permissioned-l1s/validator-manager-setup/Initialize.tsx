@@ -123,10 +123,15 @@ export default function Initialize() {
     }
 
     async function handleInitialize() {
-        if (!proxyAddress || !window.avalanche) return;
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
 
         setIsInitializing(true);
         try {
+            if (!proxyAddress) throw new Error('Proxy address is required');
+            
             const formattedSubnetId = subnetIDHex.startsWith('0x') ? subnetIDHex : `0x${subnetIDHex}`;
             const formattedAdmin = adminAddress as `0x${string}`;
 

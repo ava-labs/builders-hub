@@ -20,7 +20,7 @@ const TRANSPARENT_PROXY_SOURCE_URL = "https://github.com/OpenZeppelin/openzeppel
 
 export default function DeployProxyContract() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
-    const { coreWalletClient, publicClient } = useWalletStore();
+    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const [isDeployingProxyAdmin, setIsDeployingProxyAdmin] = useState(false);
     const [isDeployingProxy, setIsDeployingProxy] = useState(false);
     const [implementationAddress, setImplementationAddress] = useState<string>("");
@@ -35,15 +35,22 @@ export default function DeployProxyContract() {
     }
 
     async function deployProxyAdmin() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setIsDeployingProxyAdmin(true);
         setProxyAdminAddress("");
         try {
+            if (!viemChain) throw new Error("Viem chain not found");
             await coreWalletClient.addChain({ chain: viemChain });
-            await coreWalletClient.switchChain({ id: viemChain!.id });
+            await coreWalletClient.switchChain({ id: viemChain.id });
             const hash = await coreWalletClient.deployContract({
-                abi: ProxyAdminABI.abi,
+                abi: ProxyAdminABI.abi as any,
                 bytecode: ProxyAdminABI.bytecode.object as `0x${string}`,
                 chain: viemChain,
+                account: walletEVMAddress as `0x${string}`
             });
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -61,6 +68,11 @@ export default function DeployProxyContract() {
     }
 
     async function deployTransparentProxy() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setIsDeployingProxy(true);
         setProxyAddress("");
         try {
@@ -73,10 +85,11 @@ export default function DeployProxyContract() {
 
             // Deploy the proxy using implementation address and proxy admin address
             const hash = await coreWalletClient.deployContract({
-                abi: TransparentUpgradeableProxyABI.abi,
+                abi: TransparentUpgradeableProxyABI.abi as any,
                 bytecode: TransparentUpgradeableProxyABI.bytecode.object as `0x${string}`,
                 args: [implementationAddress, proxyAdminAddress, "0x"], // No initialization data
                 chain: viemChain,
+                account: walletEVMAddress as `0x${string}`
             });
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });

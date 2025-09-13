@@ -235,6 +235,11 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   const handleSubmitPChainTx = async () => {
     setErrorState(null);
     setTxSuccess(null);
+    
+    if (!coreWalletClient) {
+      setErrorState("Core wallet not found");
+      return;
+    }
 
     if (!evmTxHash.trim()) {
       setErrorState("EVM transaction hash is required.");

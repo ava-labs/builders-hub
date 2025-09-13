@@ -63,6 +63,11 @@ export default function ConvertToL1() {
     }, [pChainAddress, coreWalletClient]);
 
     async function handleConvertToL1() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setConvertToL1TxId("");
         setIsConverting(true);
         try {

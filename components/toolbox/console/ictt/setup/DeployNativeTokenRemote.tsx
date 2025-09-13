@@ -119,6 +119,11 @@ export default function DeployNativeTokenRemote() {
     }, [sourceToolboxStore.erc20TokenHomeAddress]);
 
     async function handleDeploy() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setLocalError("");
         setIsDeploying(true);
 
@@ -156,10 +161,11 @@ export default function DeployNativeTokenRemote() {
             console.log("Deploying NativeTokenRemote with args:", constructorArgs);
 
             const hash = await coreWalletClient.deployContract({
-                abi: NativeTokenRemote.abi,
+                abi: NativeTokenRemote.abi as any,
                 bytecode: NativeTokenRemote.bytecode.object as `0x${string}`,
                 args: constructorArgs,
-                chain: viemChain
+                chain: viemChain,
+                account: walletEVMAddress as `0x${string}`
             });
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });

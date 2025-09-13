@@ -140,6 +140,11 @@ export default function DeployERC20TokenRemote() {
     }, [sourceChainId]);
 
     async function handleDeploy() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setLocalError("");
         setIsDeploying(true);
 
@@ -177,9 +182,10 @@ export default function DeployERC20TokenRemote() {
             console.log("Deploying ERC20TokenRemote with args:", constructorArgs);
 
             const hash = await coreWalletClient.deployContract({
-                abi: ERC20TokenRemote.abi,
+                abi: ERC20TokenRemote.abi as any,
                 bytecode: ERC20TokenRemote.bytecode.object as `0x${string}`,
                 args: constructorArgs,
+                account: walletEVMAddress as `0x${string}`,
                 chain: viemChain
             });
 

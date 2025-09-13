@@ -124,6 +124,10 @@ export default function UpgradeProxy() {
     }
 
     async function handleUpgrade() {
+        if (!coreWalletClient) {
+            throw new Error('Core wallet not found');
+        }
+
         if (!desiredImplementation) {
             throw new Error('Implementation address is required');
         }

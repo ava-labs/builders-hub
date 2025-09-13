@@ -19,7 +19,7 @@ export default function DeployWrappedNative() {
     const selectedL1 = useSelectedL1()();
     const wrappedNativeTokenAddress = wrappedNativeTokenAddressStore || selectedL1?.wrappedTokenAddress;
 
-    const { coreWalletClient } = useWalletStore();
+    const { coreWalletClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
     const [isDeploying, setIsDeploying] = useState(false);
     const { walletChainId } = useWalletStore();
@@ -30,6 +30,11 @@ export default function DeployWrappedNative() {
     }
 
     async function handleDeploy() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setIsDeploying(true);
         try {
             if (!viemChain) throw new Error("No chain selected");
@@ -39,10 +44,11 @@ export default function DeployWrappedNative() {
             });
 
             const hash = await coreWalletClient.deployContract({
-                abi: WrappedNativeToken.abi,
+                abi: WrappedNativeToken.abi as any,
                 bytecode: WrappedNativeToken.bytecode.object as `0x${string}`,
                 args: ["WNT"],
-                chain: viemChain
+                chain: viemChain,
+                account: walletEVMAddress as `0x${string}`
             });
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });

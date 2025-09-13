@@ -19,8 +19,13 @@ export const ChainSelector = ({ enforceChainId }: { enforceChainId?: number }) =
     }
 
     const handleSwitchChain = useCallback((chainId: number) => {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         coreWalletClient.switchChain({
-            id: `0x${chainId.toString(16)}`,
+            id: chainId,
         }).catch((error: unknown) => setCriticalError(error instanceof Error ? error : new Error(String(error))));
     }, [coreWalletClient]);
 

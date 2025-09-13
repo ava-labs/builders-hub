@@ -21,7 +21,7 @@ const TELEPORTER_REGISTRY_SOURCE_URL = `https://github.com/ava-labs/icm-contract
 export default function TeleporterRegistry() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { setTeleporterRegistryAddress, teleporterRegistryAddress } = useToolboxStore();
-    const { coreWalletClient, publicClient } = useWalletStore();
+    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const [isDeploying, setIsDeploying] = useState(false);
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
@@ -32,18 +32,24 @@ export default function TeleporterRegistry() {
     }
 
     async function handleDeploy() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setIsDeploying(true);
         setTeleporterRegistryAddress("");
         try {
             // Get messenger address
-            const messengerAddress = TeleporterMessengerAddress.content.trim() as `0x${string}`;
+            const messengerAddress = TeleporterMessengerAddress.content.trim();
 
             const hash = await coreWalletClient.deployContract({
                 bytecode: TeleporterRegistryBytecode.content.trim() as `0x${string}`,
-                abi: TeleporterRegistryManualyCompiled.abi,
+                abi: TeleporterRegistryManualyCompiled.abi as any,
                 args: [
                     [{ version: 1n, protocolAddress: messengerAddress }]
                 ],
+                account: walletEVMAddress as `0x${string}`,
                 chain: viemChain,
             });
 

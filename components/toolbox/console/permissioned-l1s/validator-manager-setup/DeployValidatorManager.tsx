@@ -28,7 +28,7 @@ function calculateLibraryHash(libraryPath: string) {
 export default function DeployValidatorContracts() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { validatorMessagesLibAddress, setValidatorMessagesLibAddress, setValidatorManagerAddress, validatorManagerAddress } = useToolboxStore();
-    const { coreWalletClient, publicClient } = useWalletStore();
+    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const [isDeployingMessages, setIsDeployingMessages] = useState(false);
     const [isDeployingManager, setIsDeployingManager] = useState(false);
     const viemChain = useViemChainStore();
@@ -59,15 +59,22 @@ export default function DeployValidatorContracts() {
     };
 
     async function deployValidatorMessages() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setIsDeployingMessages(true);
         setValidatorMessagesLibAddress("");
         try {
+            if (!viemChain) throw new Error("Viem chain not found");
             await coreWalletClient.addChain({ chain: viemChain });
-            await coreWalletClient.switchChain({ id: viemChain!.id });
+            await coreWalletClient.switchChain({ id: viemChain.id });
             const hash = await coreWalletClient.deployContract({
-                abi: ValidatorMessagesABI.abi,
+                abi: ValidatorMessagesABI.abi as any,
                 bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
                 chain: viemChain,
+                account: walletEVMAddress as `0x${string}`
             });
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -85,6 +92,11 @@ export default function DeployValidatorContracts() {
     }
 
     async function deployValidatorManager() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setIsDeployingManager(true);
         setValidatorManagerAddress("");
         try {
@@ -93,10 +105,11 @@ export default function DeployValidatorContracts() {
             await coreWalletClient.switchChain({ id: viemChain!.id });
 
             const hash = await coreWalletClient.deployContract({
-                abi: ValidatorManagerABI.abi,
+                abi: ValidatorManagerABI.abi as any,
                 bytecode: getLinkedBytecode(),
                 args: [0],
                 chain: viemChain,
+                account: walletEVMAddress as `0x${string}`
             });
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });

@@ -6,11 +6,11 @@ export const TestnetMainnetSwitch = () => {
     const isTestnet = useWalletStore(state => state.isTestnet);
 
     const handleSwitchToTestnet = () => {
-        coreWalletClient.switchChain({ id: avalancheFuji.id })
+        coreWalletClient!.switchChain({ id: avalancheFuji.id })
     }
 
     const handleSwitchToMainnet = () => {
-        coreWalletClient.switchChain({ id: avalanche.id })
+        coreWalletClient!.switchChain({ id: avalanche.id })
     }
 
 
