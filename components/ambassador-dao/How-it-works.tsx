@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ListChecks } from 'lucide-react';
-import { AuthModal } from './sections/auth-modal';
-
+import React, { useState } from "react";
+import { ListChecks } from "lucide-react";
+import { AuthModal } from "./sections/auth-modal";
+import { useRouter } from "next/navigation";
 interface Step {
   number: number;
   title: string;
@@ -16,9 +16,8 @@ interface HowItWorksProps {
 }
 
 const HowItWorks: React.FC<HowItWorksProps> = ({ steps }) => {
-
-const [openAuthModal, setOpenAuthModal] = useState(false);
-
+  const [openAuthModal, setOpenAuthModal] = useState(false);
+  const router = useRouter();
 
   return (
     <div className="dark:bg-black bg-white text-[var(--white-text-color)] py-8">
@@ -59,7 +58,7 @@ const [openAuthModal, setOpenAuthModal] = useState(false);
                   className={`${
                     step.number === 1 ? "cursor-pointer" : ""
                   } rounded-lg py-6 px-2 min-h-[80px] flex items-center text-wrap`}
-                  onClick={() => step.number === 1 && setOpenAuthModal(true)}
+                  onClick={() => step.number === 1 && router.push("/login")}
                 >
                   <h3 className="text-base font-medium dark:text-white text-black">
                     {step.title}
