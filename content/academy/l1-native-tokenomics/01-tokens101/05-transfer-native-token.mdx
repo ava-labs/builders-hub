@@ -1,0 +1,74 @@
+---
+title: Transfer Native Tokens
+description: Learn how to transfer native tokens using Core Wallet
+updated: 2024-05-31
+authors: [ashucoder9]
+icon: Terminal
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In this exercise, you will learn how to transfer native tokens (AVAX) between accounts using Core Wallet. We'll demonstrate this using the Fuji testnet.
+
+<Steps>
+<Step>
+
+## Open Core Wallet
+
+First, make sure you have Core Wallet installed. If you don't have Core Wallet installed already, click the Download Core Wallet button below.
+
+<ToolboxMdxWrapper />
+
+</Step>
+<Step>
+
+## Switch to Fuji Testnet
+
+<ToolboxMdxWrapper enforceChainId={43113} />
+
+</Step>
+<Step>
+
+## Get Test AVAX
+
+Before transferring tokens, ensure you have some test AVAX:
+
+Copy the coupon code:
+
+```
+avalanche-academy25
+```
+
+Now head to the [Avalanche Faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c) and claim some AVAX tokens on the C-Chain of the Fuji testnet. Enter the coupon code in the according field.
+
+</Step>
+<Step>
+
+## Transfer AVAX
+
+To transfer AVAX to another address:
+
+1. Click the "Send" button in Core Wallet
+2. Enter the recipient's address
+3. Enter the amount of AVAX to send
+4. Review the transaction details
+5. Click "Send" to confirm
+
+</Step>
+<Step>
+
+## Verify the Transfer
+
+To verify the transfer was successful:
+
+1. Check the transaction status in Core Wallet
+2. View the transaction details on the [Fuji Explorer](https://testnet.snowtrace.io)
+3. The recipient can check their balance in their Core Wallet
+
+</Step>
+</Steps>
+
+<Callout>
+Remember that you need to have enough AVAX in your wallet to cover both the transfer amount and the gas fees. Always double-check the recipient address before sending to avoid any loss of funds.
+</Callout>
+
+Now that you know how to transfer native tokens, you can proceed to learn about transferring ERC-20 tokens in the next section.

@@ -1,16 +1,9 @@
 "use client";
 
-import { lazy } from "react";
-
-const RemoveValidator = lazy(() =>
-  import("../../../../toolbox/src/toolbox/ValidatorManager/RemoveValidator/RemoveValidator").then(
-    (module) => ({ default: module.default })
-  )
-);
-
+import ChangeWeight from "@/components/toolbox/console/permissioned-l1s/ChangeWeight";
 
 export default function Page() {
   return (
-    <RemoveValidator />
+    <ChangeWeight />
   );
 }

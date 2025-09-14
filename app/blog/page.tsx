@@ -2,6 +2,19 @@ import Link from 'next/link';
 import { blog } from '@/lib/source';
 import { HeroBackground } from '@/components/landing/hero';
 import { ArrowRight, Twitter } from 'lucide-react';
+import { createMetadata } from '@/utils/metadata';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = createMetadata({
+    title: 'Blog',
+    description: 'Takeaways and tutorials from building a network of fast, efficient, highly-optimized chains.',
+    openGraph: {
+        images: '/api/og/blog',
+    },
+    twitter: {
+        images: '/api/og/blog',
+    },
+});
 
 export default function Page(): React.ReactElement {
     const blogs = [...blog.getPages()].sort(

@@ -75,6 +75,11 @@ const config = {
         permanent: true,
       },
       {
+        source: '/tools/:path*',
+        destination: '/console',
+        permanent: true,
+      },
+      {
         source: '/guides',
         destination: '/blog',
         permanent: true,
@@ -249,6 +254,16 @@ const config = {
       }, {
         source: "/academy/l1-validator-management",
         destination: "/academy/permissioned-l1s",
+        permanent: true,
+      },
+      {
+        source: "/console/permissioned-l1s/transactor-allowlist",
+        destination: "/console/l1-access-restrictions/transactor-allowlist",
+        permanent: true,
+      },
+      {
+        source: "/console/permissioned-l1s/deployer-allowlist",
+        destination: "/console/l1-access-restrictions/deployer-allowlist",
         permanent: true,
       },
     ];

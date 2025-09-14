@@ -1,0 +1,96 @@
+---
+title: Vesting Schedules
+description: Learn about vesting schedules and how to implement them in Solidity.
+updated: 2024-10-08
+authors: [owenwahlgren]
+icon: Book
+---
+
+**Vesting schedules** are mechanisms used in blockchain projects to release tokens to team members, investors, or other stakeholders over a specified period. This approach helps align incentives, prevent immediate sell-offs, and promote long-term commitment to the project.
+
+---
+
+## Understanding Vesting Schedules
+
+A vesting schedule dictates how and when tokens are released to a recipient. Common elements include:
+
+- **Cliff Period**: An initial period during which no tokens are vested.
+- **Vesting Period**: The total duration over which tokens are gradually released.
+- **Release Interval**: The frequency at which tokens are released (e.g., monthly, quarterly).
+- **Total Allocation**: The total number of tokens to be vested.
+
+### Types of Vesting Schedules
+
+1. **Linear Vesting**: Tokens are released uniformly over the vesting period.
+2. **Graded Vesting**: Tokens vest in portions at different intervals.
+3. **Cliff Vesting**: All or a significant portion of tokens vest after the cliff period.
+
+---
+
+## Implementing Vesting Schedules in Solidity
+
+Smart contracts can automate vesting schedules, ensuring transparency and trustlessness. Below is an example of a simple Solidity contract implementing a linear vesting schedule.
+
+### Example Solidity Contract
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract TokenVesting {
+    address public beneficiary;
+    uint256 public start;
+    uint256 public duration;
+    uint256 public cliff;
+    uint256 public totalTokens;
+    uint256 public released;
+
+    IERC20 public token;
+
+    constructor(
+        address _token,
+        address _beneficiary,
+        uint256 _start,
+        uint256 _cliffDuration,
+        uint256 _duration,
+        uint256 _totalTokens
+    ) {
+        require(_beneficiary != address(0), "Invalid beneficiary");
+        require(_cliffDuration <= _duration, "Cliff longer than duration");
+        require(_duration > 0, "Duration must be > 0");
+
+        token = IERC20(_token);
+        beneficiary = _beneficiary;
+        start = _start;
+        cliff = _start + _cliffDuration;
+        duration = _duration;
+        totalTokens = _totalTokens;
+    }
+
+    function release() public {
+        require(block.timestamp >= cliff, "Cliff period not reached");
+        uint256 unreleased = releasableAmount();
+        require(unreleased > 0, "No tokens to release");
+
+        released += unreleased;
+        token.transfer(beneficiary, unreleased);
+    }
+
+    function releasableAmount() public view returns (uint256) {
+        return vestedAmount() - released;
+    }
+
+    function vestedAmount() public view returns (uint256) {
+        if (block.timestamp < cliff) {
+            return 0;
+        } else if (block.timestamp >= start + duration) {
+            return totalTokens;
+        } else {
+            return (totalTokens * (block.timestamp - start)) / duration;
+        }
+    }
+}
+
+interface IERC20 {
+    function transfer(address recipient, uint256 amount) external returns (bool);
+}

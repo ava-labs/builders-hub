@@ -18,20 +18,20 @@ const development = [
   {
     id: 5,
     label: "Tools",
-    title: "<strong>Builder</strong> Tooling",
+    title: "Builder Console",
     description:
-      "Leverage our Builder Tooling to launch your L1 blockchain.",
+      "Leverage our Builder Console to launch your L1 blockchain.",
     icon: Wrench,
-    href: "/tools/l1-toolbox"
+    href: "/console"
   },
   {
     id: 6,
     label: "Faucet",
-    title: "Testnet <strong>Faucet</strong>.",
+    title: "Free Testnet Tokens",
     description:
       "Instant access to testnet tokens for seamless development and testing across multiple Avalanche L1s.",
     icon: Droplets,
-    href: "https://core.app/tools/testnet-faucet/"
+    href: "/console/primary-network/faucet"
   },
 ];
 

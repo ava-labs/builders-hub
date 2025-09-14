@@ -25,13 +25,31 @@ async function defaultIdentifier(): Promise<string> {
 }
 
 function getResetTime(timestamp: number): string {
-  const resetTime = new Date(timestamp);
-  return resetTime.toLocaleString('en-US', { 
+  const resetTime = new Date(timestamp); 
+  const localString = resetTime.toLocaleString('en-US', { 
     month: 'long', 
     day: 'numeric', 
     hour: 'numeric', 
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZoneName: 'short'
   });
+  
+  // add relative time for better user experience
+  const now = Date.now();
+  const diffMs = timestamp - now;
+  const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
+  const diffMinutes = Math.ceil(diffMs / (1000 * 60));
+  
+  let relativeTime = '';
+  if (diffHours >= 1) {
+    relativeTime = `in about ${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+  } else if (diffMinutes > 1) {
+    relativeTime = `in about ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`;
+  } else {
+    relativeTime = 'in less than a minute';
+  }
+  
+  return `${localString} (${relativeTime})`;
 }
 
 export function rateLimit(handler: Function, options?: Partial<RateLimitOptions>) {

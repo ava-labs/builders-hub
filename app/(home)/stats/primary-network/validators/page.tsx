@@ -1,227 +1,21 @@
 "use client";
-
 import * as React from "react";
 import { useState, useEffect } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  XAxis,
-  Label,
-  Pie,
-  PieChart,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartStyle,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-} from "@/components/ui/chart";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import {
-  Landmark,
-  Shield,
-  Loader2,
-  TrendingUp,
-  Monitor,
-  HandCoins,
-} from "lucide-react";
+import {Area, AreaChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, ReferenceLine } from "recharts";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {type ChartConfig, ChartContainer, ChartStyle, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import DateRangeFilter from "@/components/ui/DateRangeFilter";
+import {Landmark, Shield, TrendingUp, Monitor, HandCoins } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
+import BubbleNavigation from "@/components/navigation/BubbleNavigation";
+import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
+import {TimeSeriesDataPoint, ChartDataPoint, TimeRange, PrimaryNetworkMetrics, VersionCount } from "@/types/stats";
 
-interface PrimaryNetworkMetrics {
-  // Validator versions JSON string
-  validator_versions: string;
-  // 30 days of delegator count
-  delegator_count_day1: number | string;
-  delegator_count_day2: number | string;
-  delegator_count_day3: number | string;
-  delegator_count_day4: number | string;
-  delegator_count_day5: number | string;
-  delegator_count_day6: number | string;
-  delegator_count_day7: number | string;
-  delegator_count_day8: number | string;
-  delegator_count_day9: number | string;
-  delegator_count_day10: number | string;
-  delegator_count_day11: number | string;
-  delegator_count_day12: number | string;
-  delegator_count_day13: number | string;
-  delegator_count_day14: number | string;
-  delegator_count_day15: number | string;
-  delegator_count_day16: number | string;
-  delegator_count_day17: number | string;
-  delegator_count_day18: number | string;
-  delegator_count_day19: number | string;
-  delegator_count_day20: number | string;
-  delegator_count_day21: number | string;
-  delegator_count_day22: number | string;
-  delegator_count_day23: number | string;
-  delegator_count_day24: number | string;
-  delegator_count_day25: number | string;
-  delegator_count_day26: number | string;
-  delegator_count_day27: number | string;
-  delegator_count_day28: number | string;
-  delegator_count_day29: number | string;
-  delegator_count_day30: number | string;
-  // 30 days of delegator weight
-  delegator_weight_day1: number | string;
-  delegator_weight_day2: number | string;
-  delegator_weight_day3: number | string;
-  delegator_weight_day4: number | string;
-  delegator_weight_day5: number | string;
-  delegator_weight_day6: number | string;
-  delegator_weight_day7: number | string;
-  delegator_weight_day8: number | string;
-  delegator_weight_day9: number | string;
-  delegator_weight_day10: number | string;
-  delegator_weight_day11: number | string;
-  delegator_weight_day12: number | string;
-  delegator_weight_day13: number | string;
-  delegator_weight_day14: number | string;
-  delegator_weight_day15: number | string;
-  delegator_weight_day16: number | string;
-  delegator_weight_day17: number | string;
-  delegator_weight_day18: number | string;
-  delegator_weight_day19: number | string;
-  delegator_weight_day20: number | string;
-  delegator_weight_day21: number | string;
-  delegator_weight_day22: number | string;
-  delegator_weight_day23: number | string;
-  delegator_weight_day24: number | string;
-  delegator_weight_day25: number | string;
-  delegator_weight_day26: number | string;
-  delegator_weight_day27: number | string;
-  delegator_weight_day28: number | string;
-  delegator_weight_day29: number | string;
-  delegator_weight_day30: number | string;
-  // 30 days of validator count
-  validator_count_day1: number | string;
-  validator_count_day2: number | string;
-  validator_count_day3: number | string;
-  validator_count_day4: number | string;
-  validator_count_day5: number | string;
-  validator_count_day6: number | string;
-  validator_count_day7: number | string;
-  validator_count_day8: number | string;
-  validator_count_day9: number | string;
-  validator_count_day10: number | string;
-  validator_count_day11: number | string;
-  validator_count_day12: number | string;
-  validator_count_day13: number | string;
-  validator_count_day14: number | string;
-  validator_count_day15: number | string;
-  validator_count_day16: number | string;
-  validator_count_day17: number | string;
-  validator_count_day18: number | string;
-  validator_count_day19: number | string;
-  validator_count_day20: number | string;
-  validator_count_day21: number | string;
-  validator_count_day22: number | string;
-  validator_count_day23: number | string;
-  validator_count_day24: number | string;
-  validator_count_day25: number | string;
-  validator_count_day26: number | string;
-  validator_count_day27: number | string;
-  validator_count_day28: number | string;
-  validator_count_day29: number | string;
-  validator_count_day30: number | string;
-  // 30 days of validator weight
-  validator_weight_day1: number | string;
-  validator_weight_day2: number | string;
-  validator_weight_day3: number | string;
-  validator_weight_day4: number | string;
-  validator_weight_day5: number | string;
-  validator_weight_day6: number | string;
-  validator_weight_day7: number | string;
-  validator_weight_day8: number | string;
-  validator_weight_day9: number | string;
-  validator_weight_day10: number | string;
-  validator_weight_day11: number | string;
-  validator_weight_day12: number | string;
-  validator_weight_day13: number | string;
-  validator_weight_day14: number | string;
-  validator_weight_day15: number | string;
-  validator_weight_day16: number | string;
-  validator_weight_day17: number | string;
-  validator_weight_day18: number | string;
-  validator_weight_day19: number | string;
-  validator_weight_day20: number | string;
-  validator_weight_day21: number | string;
-  validator_weight_day22: number | string;
-  validator_weight_day23: number | string;
-  validator_weight_day24: number | string;
-  validator_weight_day25: number | string;
-  validator_weight_day26: number | string;
-  validator_weight_day27: number | string;
-  validator_weight_day28: number | string;
-  validator_weight_day29: number | string;
-  validator_weight_day30: number | string;
-}
-
-interface ChartDataPoint {
-  day: string;
-  value: number;
-}
-
-interface ValidatorInfo {
-  txHash: string;
-  nodeId: string;
-  subnetId: string;
-  amountStaked: string;
-  delegationFee: string;
-  startTimestamp: number;
-  endTimestamp: number;
-  blsCredentials: {
-    publicKey: string;
-    proofOfPossession: string;
-  };
-  delegatorCount: number;
-  amountDelegated: string;
-  rewards: {
-    validationRewardAmount: string;
-    delegationRewardAmount: string;
-    rewardAddresses: string[];
-    rewardTxHash: string;
-  };
-  validationStatus: string;
-  avalancheGoVersion?: string; // This is what we're looking for
-}
-
-interface ValidatorsResponse {
-  nextPageToken?: string;
-  validators: ValidatorInfo[];
-}
-
-interface VersionCount {
-  version: string;
-  count: number;
-  percentage: number;
-  amountStaked: number; // in AVAX
-  stakingPercentage: number;
-}
-
-export default function PrimaryNetworkMetrics() {
+export default function PrimaryNetworkValidatorMetrics() {
   const [metrics, setMetrics] = useState<PrimaryNetworkMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = React.useState("30d");
+  const [timeRange, setTimeRange] = React.useState<TimeRange>("1y");
   const [validatorVersions, setValidatorVersions] = useState<VersionCount[]>(
     []
   );
@@ -232,7 +26,9 @@ export default function PrimaryNetworkMetrics() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/primary-network-stats");
+      const response = await fetch(
+        `/api/primary-network-stats?timeRange=${timeRange}`
+      );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -244,7 +40,6 @@ export default function PrimaryNetworkMetrics() {
       }
 
       setMetrics(primaryNetworkData);
-      setLastUpdated(new Date().toLocaleString());
 
       if (primaryNetworkData.validator_versions) {
         try {
@@ -286,7 +81,9 @@ export default function PrimaryNetworkMetrics() {
           setValidatorVersions(versionArray);
         } catch (err) {
           setVersionsError(
-            `Failed to parse validator versions data: ${err instanceof Error ? err.message : "Unknown error"}`
+            `Failed to parse validator versions data: ${
+              err instanceof Error ? err.message : "Unknown error"
+            }`
           );
         }
       }
@@ -299,7 +96,7 @@ export default function PrimaryNetworkMetrics() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [timeRange]);
 
   const formatNumber = (num: number | string): string => {
     if (num === "N/A" || num === "") return "N/A";
@@ -325,74 +122,201 @@ export default function PrimaryNetworkMetrics() {
     } else if (avaxValue >= 1e3) {
       return `${(avaxValue / 1e3).toFixed(2)}K AVAX`;
     }
-    return `${avaxValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} AVAX`;
+    return `${avaxValue.toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+    })} AVAX`;
   };
 
-  const getChartData = (metricPrefix: string): ChartDataPoint[] => {
-    if (!metrics) return [];
+  const formatWeightForAxis = (weight: number | string): string => {
+    if (weight === "N/A" || weight === "") return "N/A";
+    const numValue =
+      typeof weight === "string" ? Number.parseFloat(weight) : weight;
+    if (isNaN(numValue)) return "N/A";
 
-    const today = new Date();
-    const chartData: ChartDataPoint[] = [];
-    const daysToShow = timeRange === "7d" ? 7 : 30;
+    const avaxValue = numValue / 1e9;
 
-    for (let i = daysToShow - 1; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dayLabel = date.toISOString().split("T")[0]; // Use ISO format for consistency
+    if (avaxValue >= 1e12) {
+      return `${(avaxValue / 1e12).toFixed(2)}T`;
+    } else if (avaxValue >= 1e9) {
+      return `${(avaxValue / 1e9).toFixed(2)}B`;
+    } else if (avaxValue >= 1e6) {
+      return `${(avaxValue / 1e6).toFixed(2)}M`;
+    } else if (avaxValue >= 1e3) {
+      return `${(avaxValue / 1e3).toFixed(2)}K`;
+    }
+    return avaxValue.toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+    });
+  };
 
-      const dayKey =
-        `${metricPrefix}_day${daysToShow - i}` as keyof PrimaryNetworkMetrics;
-      const value = metrics[dayKey];
-      const numValue =
-        typeof value === "string" ? Number.parseFloat(value) : value;
+  const getChartData = (
+    metricKey: keyof Pick<
+      PrimaryNetworkMetrics,
+      | "validator_count"
+      | "validator_weight"
+      | "delegator_count"
+      | "delegator_weight"
+    >
+  ): ChartDataPoint[] => {
+    if (!metrics || !metrics[metricKey]?.data) return [];
+    const today = new Date().toISOString().split("T")[0];
+    const finalizedData = metrics[metricKey].data.filter((point) => point.date !== today);
 
-      chartData.push({
-        day: dayLabel,
-        value: isNaN(numValue as number) ? 0 : (numValue as number),
+    return finalizedData
+      .map((point: TimeSeriesDataPoint) => ({
+        day: point.date,
+        value:
+          typeof point.value === "string"
+            ? parseFloat(point.value)
+            : point.value,
+      }))
+      .reverse();
+  };
+
+  const getYearBoundaries = (data: ChartDataPoint[]): string[] => {
+    if (timeRange !== "all" || data.length === 0) return [];
+    const yearMap = new Map<number, string>();
+    data.forEach((point) => {
+      const date = new Date(point.day);
+      const year = date.getFullYear();
+      if (!yearMap.has(year)) {
+        yearMap.set(year, point.day);
+      }
+    });
+
+    const sortedYears = Array.from(yearMap.keys()).sort((a, b) => a - b);
+    return sortedYears.slice(1).map((year) => yearMap.get(year)!);
+  };
+
+  const formatDateLabel = (dateString: string): string => {
+    const date = new Date(dateString);
+
+    if (timeRange === "all") {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      });
+    } else {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
       });
     }
-
-    return chartData;
   };
 
-  const getCurrentValue = (metricPrefix: string): number | string => {
-    if (!metrics) return "N/A";
-    const currentKey = `${metricPrefix}_day1` as keyof PrimaryNetworkMetrics;
-    return metrics[currentKey] || "N/A";
+  const formatTooltipDate = (dateString: string): string => {
+    const date = new Date(dateString);
+
+    if (timeRange === "all") {
+      return date.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+    } else {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+  };
+
+  const formatTooltipValue = (value: number, metricKey: string): string => {
+    switch (metricKey) {
+      case "validator_count":
+        return `${formatNumber(value)} Validators`;
+
+      case "validator_weight":
+        return `${formatWeight(value)} Staked`;
+
+      case "delegator_count":
+        return `${formatNumber(value)} Delegators`;
+
+      case "delegator_weight":
+        return `${formatWeight(value)} Delegated Stake`;
+
+      default:
+        return formatNumber(value);
+    }
+  };
+
+  const getCurrentValue = (
+    metricKey: keyof Pick<
+      PrimaryNetworkMetrics,
+      | "validator_count"
+      | "validator_weight"
+      | "delegator_count"
+      | "delegator_weight"
+    >
+  ): number | string => {
+    if (!metrics || !metrics[metricKey]) return "N/A";
+    return metrics[metricKey].current_value;
   };
 
   const getValueChange = (
-    metricPrefix: string
+    metricKey: keyof Pick<
+      PrimaryNetworkMetrics,
+      | "validator_count"
+      | "validator_weight"
+      | "delegator_count"
+      | "delegator_weight"
+    >
   ): { change: number; isPositive: boolean } => {
-    if (!metrics) return { change: 0, isPositive: true };
-
-    const currentKey = `${metricPrefix}_day1` as keyof PrimaryNetworkMetrics;
-    const previousKey = `${metricPrefix}_day2` as keyof PrimaryNetworkMetrics;
-
-    const current =
-      typeof metrics[currentKey] === "string"
-        ? Number.parseFloat(metrics[currentKey] as string)
-        : metrics[currentKey];
-    const previous =
-      typeof metrics[previousKey] === "string"
-        ? Number.parseFloat(metrics[previousKey] as string)
-        : metrics[previousKey];
-
     if (
-      isNaN(current as number) ||
-      isNaN(previous as number) ||
-      previous === 0
+      !metrics ||
+      !metrics[metricKey]?.data ||
+      metrics[metricKey].data.length === 0
     ) {
       return { change: 0, isPositive: true };
     }
 
-    const change =
-      (((((current as number) - previous) as number) / previous) as number) *
-      100;
-    return { change: Math.abs(change), isPositive: change >= 0 };
+    const data = metrics[metricKey].data;
+    const currentValue = data[0];
+    let comparisonIndex = 1;
+    switch (timeRange) {
+      case "30d":
+        comparisonIndex = Math.min(30, data.length - 1);
+        break;
+      case "90d":
+        comparisonIndex = Math.min(90, data.length - 1);
+        break;
+      case "1y":
+        comparisonIndex = Math.min(365, data.length - 1);
+        break;
+      case "all":
+        comparisonIndex = data.length - 1;
+        break;
+    }
+
+    if (comparisonIndex >= data.length) {
+      return { change: 0, isPositive: true };
+    }
+
+    const comparisonValue = data[comparisonIndex];
+
+    const currentVal =
+      typeof currentValue.value === "string"
+        ? parseFloat(currentValue.value)
+        : currentValue.value;
+    const comparisonVal =
+      typeof comparisonValue.value === "string"
+        ? parseFloat(comparisonValue.value)
+        : comparisonValue.value;
+
+    if (isNaN(currentVal) || isNaN(comparisonVal) || comparisonVal === 0) {
+      return { change: 0, isPositive: true };
+    }
+
+    const changePercentage =
+      ((currentVal - comparisonVal) / comparisonVal) * 100;
+
+    return {
+      change: Math.abs(changePercentage),
+      isPositive: changePercentage >= 0,
+    };
   };
 
-  // Prepare pie chart data
   const getPieChartData = () => {
     if (!validatorVersions.length) return [];
 
@@ -402,11 +326,10 @@ export default function PrimaryNetworkMetrics() {
       percentage: version.percentage,
       amountStaked: version.amountStaked,
       stakingPercentage: version.stakingPercentage,
-      fill: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`, // Direct color values
+      fill: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`,
     }));
   };
 
-  // Generate chart config for versions
   const getVersionsChartConfig = (): ChartConfig => {
     const config: ChartConfig = {
       count: {
@@ -417,7 +340,7 @@ export default function PrimaryNetworkMetrics() {
     validatorVersions.forEach((version, index) => {
       config[version.version] = {
         label: version.version,
-        color: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`, // Blue variations
+        color: `hsl(${195 + index * 15}, 100%, ${65 - index * 8}%)`,
       };
     });
 
@@ -431,8 +354,10 @@ export default function PrimaryNetworkMetrics() {
     {
       title: "Validator Count",
       icon: Monitor,
-      metricPrefix: "validator_count",
-      description: `Number of active validators over the past ${timeRange === "7d" ? "7" : "30"} days`,
+      metricKey: "validator_count" as const,
+      description: `Number of active validators over the past ${getTimeRangeLabel(
+        timeRange
+      )}`,
       chartConfig: {
         value: {
           label: "Validator Count",
@@ -443,8 +368,10 @@ export default function PrimaryNetworkMetrics() {
     {
       title: "Validator Weight",
       icon: Landmark,
-      metricPrefix: "validator_weight",
-      description: `Total validator weight over the past ${timeRange === "7d" ? "7" : "30"} days`,
+      metricKey: "validator_weight" as const,
+      description: `Total validator weight over the past ${getTimeRangeLabel(
+        timeRange
+      )}`,
       chartConfig: {
         value: {
           label: "Validator Weight",
@@ -455,42 +382,81 @@ export default function PrimaryNetworkMetrics() {
     {
       title: "Delegator Count",
       icon: HandCoins,
-      metricPrefix: "delegator_count",
-      description: `Number of active delegators over the past ${timeRange === "7d" ? "7" : "30"} days`,
+      metricKey: "delegator_count" as const,
+      description: `Number of active delegators over the past ${getTimeRangeLabel(
+        timeRange
+      )}`,
       chartConfig: {
         value: {
           label: "Delegator Count",
-          color: "#40c9ff",
+          color: "#8b5cf6",
         },
       } satisfies ChartConfig,
     },
     {
       title: "Delegator Weight",
       icon: Landmark,
-      metricPrefix: "delegator_weight",
-      description: `Total delegator weight over the past ${timeRange === "7d" ? "7" : "30"} days`,
+      metricKey: "delegator_weight" as const,
+      description: `Total delegator weight over the past ${getTimeRangeLabel(
+        timeRange
+      )}`,
       chartConfig: {
         value: {
           label: "Delegator Weight",
-          color: "#40c9ff",
+          color: "#a855f7",
         },
       } satisfies ChartConfig,
     },
   ];
 
+  function getTimeRangeLabel(range: string): string {
+    switch (range) {
+      case "30d":
+        return "30 days";
+      case "90d":
+        return "90 days";
+      case "1y":
+        return "1 year";
+      case "all":
+        return "all time";
+      default:
+        return "1 year";
+    }
+  }
+
+  function getComparisonPeriodLabel(range: string): string {
+    switch (range) {
+      case "30d":
+        return "30 days ago";
+      case "90d":
+        return "90 days ago";
+      case "1y":
+        return "1 year ago";
+      case "all":
+        return "the beginning of the dataset";
+      default:
+        return "1 year ago";
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-        <div className="container mx-auto p-6">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-muted-foreground">
-                Fetching real-time Primary Network data...
+        <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
+          <div className="space-y-2">
+            <div>
+              <h1 className="text-2xl md:text-5xl mb-4">
+                Primary Network Validator Metrics
+              </h1>
+              <p className="text-zinc-400 text-md text-left">
+                Real-time insights into the Avalanche Primary Network
+                performance and validator distribution
               </p>
             </div>
           </div>
+          <ChartSkeletonLoader />
         </div>
+        <BubbleNavigation />
       </div>
     );
   }
@@ -519,18 +485,16 @@ export default function PrimaryNetworkMetrics() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto mt-4 p-6 space-y-12">
+      <div className="container mx-auto mt-4 p-6 pb-24 space-y-12">
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl md:text-5xl mb-4">
-                Primary Network Validator Metrics
-              </h1>
-              <p className="text-zinc-400 text-md text-left">
-                Real-time insights into the Avalanche Primary Network
-                performance and validator distribution
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl md:text-5xl mb-4">
+              Primary Network Validator Metrics
+            </h1>
+            <p className="text-zinc-400 text-md text-left">
+              Real-time insights into the Avalanche Primary Network performance
+              and validator distribution
+            </p>
           </div>
         </div>
 
@@ -541,23 +505,25 @@ export default function PrimaryNetworkMetrics() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {chartConfigs.map((config) => {
-              const currentValue = getCurrentValue(config.metricPrefix);
+              const currentValue = getCurrentValue(config.metricKey);
               const Icon = config.icon;
 
               return (
                 <div
-                  key={config.metricPrefix}
+                  key={config.metricKey}
                   className="text-center p-6 rounded-lg bg-card border"
                 >
-                  <Icon
-                    className="h-8 w-8 mx-auto mb-3"
-                    style={{ color: "#40c9ff" }}
-                  />
-                  <p className="text-sm text-muted-foreground mb-1">
-                    {config.title}
-                  </p>
-                  <p className="text-xl font-semibold">
-                    {config.metricPrefix.includes("weight")
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <Icon
+                      className="h-5 w-5"
+                      style={{ color: config.chartConfig.value.color }}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      {config.title}
+                    </p>
+                  </div>
+                  <p className="text-3xl font-mono font-semibold">
+                    {config.metricKey.includes("weight")
                       ? formatWeight(currentValue)
                       : formatNumber(currentValue)}
                   </p>
@@ -579,67 +545,46 @@ export default function PrimaryNetworkMetrics() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {chartConfigs.map((config, index) => {
-              const chartData = getChartData(config.metricPrefix);
-              const currentValue = getCurrentValue(config.metricPrefix);
-              const { change, isPositive } = getValueChange(
-                config.metricPrefix
-              );
+              const chartData = getChartData(config.metricKey);
+              const currentValue = getCurrentValue(config.metricKey);
+              const { change, isPositive } = getValueChange(config.metricKey);
               const Icon = config.icon;
 
               return (
-                <Card key={config.metricPrefix} className="w-full">
+                <Card key={config.metricKey} className="w-full">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className="flex items-center gap-2 font-medium">
                           <Icon
                             className="h-5 w-5"
-                            style={{ color: "#40c9ff" }}
+                            style={{ color: config.chartConfig.value.color }}
                           />
                           {config.title}
                         </CardTitle>
                         <CardDescription>{config.description}</CardDescription>
                       </div>
-                      {/* Replaced CardAction with direct div and moved controls to header */}
-                      <div className="flex items-center gap-2">
-                        <ToggleGroup
-                          type="single"
-                          value={timeRange}
-                          onValueChange={setTimeRange}
-                          variant="outline"
-                          className="hidden sm:flex"
-                        >
-                          <ToggleGroupItem value="30d">
-                            Last 30 days
-                          </ToggleGroupItem>
-                          <ToggleGroupItem value="7d">
-                            Last 7 days
-                          </ToggleGroupItem>
-                        </ToggleGroup>
-                        <Select value={timeRange} onValueChange={setTimeRange}>
-                          <SelectTrigger
-                            className="w-40 sm:hidden"
-                            size="sm"
-                            aria-label="Select a value"
-                          >
-                            <SelectValue placeholder="Last 30 days" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                            <SelectItem value="30d" className="rounded-lg">
-                              Last 30 days
-                            </SelectItem>
-                            <SelectItem value="7d" className="rounded-lg">
-                              Last 7 days
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <div className="flex items-center gap-2 px-2">
+                        <DateRangeFilter
+                          defaultRange={timeRange}
+                          onRangeChange={(range) => {
+                            if (
+                              range === "30d" ||
+                              range === "90d" ||
+                              range === "1y" ||
+                              range === "all"
+                            ) {
+                              setTimeRange(range);
+                            }
+                          }}
+                        />
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
                     <div className="flex items-center gap-4 mb-4">
-                      <div className="text-2xl font-bold">
-                        {config.metricPrefix.includes("weight")
+                      <div className="text-2xl font-mono">
+                        {config.metricKey.includes("weight")
                           ? formatWeight(currentValue)
                           : formatNumber(currentValue)}
                       </div>
@@ -648,9 +593,14 @@ export default function PrimaryNetworkMetrics() {
                           className={`flex items-center gap-1 text-sm ${
                             isPositive ? "text-green-600" : "text-red-600"
                           }`}
+                          title={`Change compared to ${getComparisonPeriodLabel(
+                            timeRange
+                          )}`}
                         >
                           <TrendingUp
-                            className={`h-4 w-4 ${isPositive ? "" : "rotate-180"}`}
+                            className={`h-4 w-4 ${
+                              isPositive ? "" : "rotate-180"
+                            }`}
                           />
                           {change.toFixed(1)}%
                         </div>
@@ -658,12 +608,12 @@ export default function PrimaryNetworkMetrics() {
                     </div>
                     <ChartContainer
                       config={config.chartConfig}
-                      className="aspect-auto h-[250px] w-full"
+                      className="aspect-auto w-full font-mono h-[250px]"
                     >
                       <AreaChart data={chartData}>
                         <defs>
                           <linearGradient
-                            id={`fill-${config.metricPrefix}`}
+                            id={`fill-${config.metricKey}`}
                             x1="0"
                             y1="0"
                             x2="0"
@@ -688,41 +638,62 @@ export default function PrimaryNetworkMetrics() {
                           axisLine={false}
                           tickMargin={8}
                           minTickGap={32}
-                          tickFormatter={(value) => {
-                            const date = new Date(value);
-                            return date.toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            });
+                          tickFormatter={(value) => formatDateLabel(value)}
+                          tick={{
+                            fontFamily:
+                              'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          }}
+                        />
+                        <YAxis
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                          tickFormatter={(value) =>
+                            config.metricKey.includes("weight")
+                              ? formatWeightForAxis(value)
+                              : formatNumber(value)
+                          }
+                          tick={{
+                            fontFamily:
+                              'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
                           }}
                         />
                         <ChartTooltip
                           cursor={false}
                           content={
                             <ChartTooltipContent
-                              labelFormatter={(value) => {
-                                return new Date(value).toLocaleDateString(
-                                  "en-US",
-                                  {
-                                    month: "short",
-                                    day: "numeric",
-                                  }
-                                );
-                              }}
+                              labelFormatter={(value) =>
+                                formatTooltipDate(value)
+                              }
                               indicator="dot"
                               formatter={(value) => [
-                                config.metricPrefix.includes("weight")
-                                  ? formatWeight(value as number)
-                                  : formatNumber(value as number),
-                                config.title,
+                                formatTooltipValue(
+                                  value as number,
+                                  config.metricKey
+                                ),
+                                "",
                               ]}
+                              className="font-mono"
                             />
                           }
                         />
+                        {timeRange === "all" &&
+                          getYearBoundaries(chartData).map(
+                            (yearBoundary, idx) => (
+                              <ReferenceLine
+                                key={`year-${idx}`}
+                                x={yearBoundary}
+                                stroke="#d1d5db"
+                                strokeWidth={1}
+                                strokeDasharray="3 3"
+                                opacity={0.6}
+                              />
+                            )
+                          )}
                         <Area
                           dataKey="value"
                           type="natural"
-                          fill={`url(#fill-${config.metricPrefix})`}
+                          fill={`url(#fill-${config.metricKey})`}
                           stroke={`var(--color-value)`}
                           strokeWidth={2}
                         />
@@ -752,7 +723,7 @@ export default function PrimaryNetworkMetrics() {
               <Card data-chart="pie-count" className="flex flex-col">
                 <ChartStyle id="pie-count" config={versionsChartConfig} />
                 <CardHeader className="items-center pb-0">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 font-medium">
                     <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
                     By Validator Count
                   </CardTitle>
@@ -773,13 +744,13 @@ export default function PrimaryNetworkMetrics() {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                              <div className="rounded-lg border bg-background p-2 shadow-sm">
+                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                                 <div className="grid gap-2">
                                   <div className="flex flex-col">
                                     <span className="text-[0.70rem] uppercase text-muted-foreground">
                                       {data.version}
                                     </span>
-                                    <span className="font-bold text-muted-foreground">
+                                    <span className="font-mono font-bold text-muted-foreground">
                                       {data.count} validators (
                                       {data.percentage.toFixed(1)}%)
                                     </span>
@@ -809,7 +780,7 @@ export default function PrimaryNetworkMetrics() {
               <Card data-chart="pie-stake" className="flex flex-col">
                 <ChartStyle id="pie-stake" config={versionsChartConfig} />
                 <CardHeader className="items-center pb-0">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 font-medium">
                     <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
                     By Stake Weight
                   </CardTitle>
@@ -830,13 +801,13 @@ export default function PrimaryNetworkMetrics() {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                              <div className="rounded-lg border bg-background p-2 shadow-sm">
+                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
                                 <div className="grid gap-2">
                                   <div className="flex flex-col">
                                     <span className="text-[0.70rem] uppercase text-muted-foreground">
                                       {data.version}
                                     </span>
-                                    <span className="font-bold text-muted-foreground">
+                                    <span className="font-mono font-bold text-muted-foreground">
                                       {data.amountStaked.toLocaleString(
                                         undefined,
                                         { maximumFractionDigits: 0 }
@@ -871,7 +842,7 @@ export default function PrimaryNetworkMetrics() {
           {/* Detailed Version Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2">
+              <CardTitle className="text-xl flex items-center gap-2 font-medium">
                 <Shield className="h-5 w-5" style={{ color: "#40c9ff" }} />
                 Detailed Version Breakdown
               </CardTitle>
@@ -914,7 +885,7 @@ export default function PrimaryNetworkMetrics() {
                             <span className="text-sm text-muted-foreground">
                               Validators:
                             </span>
-                            <span className="font-semibold">
+                            <span className="font-mono font-semibold">
                               {versionInfo.count} (
                               {versionInfo.percentage.toFixed(1)}%)
                             </span>
@@ -923,7 +894,7 @@ export default function PrimaryNetworkMetrics() {
                             <span className="text-sm text-muted-foreground">
                               Staked:
                             </span>
-                            <span className="font-semibold">
+                            <span className="font-mono font-semibold">
                               {versionInfo.amountStaked.toLocaleString(
                                 undefined,
                                 { maximumFractionDigits: 0 }
@@ -975,6 +946,9 @@ export default function PrimaryNetworkMetrics() {
           <ValidatorWorldMap />
         </section>
       </div>
+
+      {/* Bubble Navigation */}
+      <BubbleNavigation />
     </div>
   );
 }

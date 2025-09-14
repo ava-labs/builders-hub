@@ -1,12 +1,6 @@
 "use client";
 
-import { lazy } from "react";
-
-const AddValidator = lazy(() =>
-  import("../../../../toolbox/src/toolbox/ValidatorManager/AddValidator/AddValidator").then(
-    (module) => ({ default: module.default })
-  )
-);
+import AddValidator from "@/components/toolbox/console/permissioned-l1s/AddValidator";
 
 export default function Page() {
   return (
