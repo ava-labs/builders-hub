@@ -4,6 +4,7 @@ import Image from "next/image";
 import { BadgeCardProps } from "../types/badgeCard";
 import { Card, CardContent } from "@/components/ui/card";
 import "./reward-card.css";
+import { Separator } from "@/components/ui/separator";
 
 export const RewardCard = ({
   name,
@@ -98,11 +99,15 @@ export const RewardCard = ({
                         style={{textDecoration: requirement.unlocked ?  "line-through" : "none"}}
                         title={requirement.description}
                       >
-                        {requirement.description}: <span className="font-bold">{requirement.points} points</span>
+                        {requirement.description}: <span className="font-bold">{Number(requirement.points ?? 0)} points</span>
                       </span>
                     </li>
                   ))}
                 </ul>
+                <Separator className="bg-zinc-700 my-2"/>
+                <span className="font-bold">
+                  {requirements?.reduce((acc, requirement) => acc + Number(requirement.points ?? 0), 0)} points
+                </span>
               </div>
             </CardContent>
           </Card>

@@ -42,7 +42,7 @@ export class ProjectBadgeStrategy implements BadgeAssignmentStrategy {
 
   getRequiredRole(): string | null {
     // Project badges require hackathon_judge role
-    return "hackathon_judge";
+    return "badge_admin";
   }
 }
 

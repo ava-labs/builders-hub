@@ -28,7 +28,7 @@ export const POST = withAuth(async (req: NextRequest) => {
     
     // Use the user's name as awardedBy
     const badge = await badgeAssignmentService.assignBadge(body, session?.user.name || undefined);
-    console.log("badge assigned", badge);
+
     return NextResponse.json({ result: badge }, { status: 200 });
   } catch (error: any) {
     console.error('Error POST /api/badge/assign:', error.message);
