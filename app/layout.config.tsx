@@ -511,9 +511,9 @@ export const baseOptions: BaseLayoutProps = {
     github,
     userMenu,
     ambassadorMenu,
-    {
-      type: "custom",
-      children: <AuthButton />,
-    },
+    // {
+    //   type: "custom",
+    //   children: <AuthButton />,
+    // },
   ],
 };
