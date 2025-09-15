@@ -3,7 +3,7 @@
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
-import { ToolContainer } from "../../components/Container";
+import { ToolContainer } from "../../components/ToolContainer";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputSubnetId from "../../components/InputSubnetId";
 import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";

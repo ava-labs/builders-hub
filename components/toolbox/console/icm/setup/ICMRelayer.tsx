@@ -12,7 +12,7 @@ import { RefreshCw } from 'lucide-react';
 
 import versions from '@/scripts/versions.json';
 import { Note } from '@/components/toolbox/components/Note';
-import { ContainerLegacy } from '@/components/toolbox/components/ContainerLegacy';
+import { Container } from '@/components/toolbox/components/Container';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { CheckWalletRequirements } from '@/components/toolbox/components/CheckWalletRequirements';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
@@ -202,7 +202,7 @@ export default function ICMRelayer() {
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.EVMChainBalance,
         ]}>
-            <ContainerLegacy
+            <Container
                 title="ICM Relayer"
                 description="Configure the ICM Relayer for cross-chain message delivery."
             >
@@ -317,7 +317,7 @@ export default function ICMRelayer() {
                     code={relayerDockerCommand()}
                     lang="sh"
                 />
-            </ContainerLegacy>
+            </Container>
         </CheckWalletRequirements>
     );
 }

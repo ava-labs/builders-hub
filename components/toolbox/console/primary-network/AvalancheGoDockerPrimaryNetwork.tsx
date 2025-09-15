@@ -2,7 +2,7 @@
 
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
+import { Container } from "@/components/toolbox/components/Container";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
@@ -51,7 +51,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
 
     return (
         <>
-            <ContainerLegacy
+            <Container
                 title="Primary Network Node Setup with Docker"
                 description="Set up a Docker container running a validator or RPC node for the Avalanche Primary Network (P-Chain, X-Chain, and C-Chain)."
             >
@@ -196,7 +196,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
                 </Steps>
 
 
-            </ContainerLegacy>
+            </Container>
         </>
     );
 }

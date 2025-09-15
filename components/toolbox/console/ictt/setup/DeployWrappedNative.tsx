@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
 import { http, createPublicClient } from "viem";
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
+import { Container } from "@/components/toolbox/components/Container";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
@@ -69,7 +69,7 @@ export default function DeployWrappedNative() {
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.EVMChainBalance
         ]}>
-            <ContainerLegacy title="Deploy Wrapped Native Token" description="Deploy a Wrapped Native token contract for testing. If a wrapped native token like WAVAX is already available on this chain, you can skip this step and reference that token directly in your configuration.">
+            <Container title="Deploy Wrapped Native Token" description="Deploy a Wrapped Native token contract for testing. If a wrapped native token like WAVAX is already available on this chain, you can skip this step and reference that token directly in your configuration.">
                 <div className="space-y-4">
                     <div className="">
                         This will deploy an Wrapped Native token contract to your connected network (Chain ID: <code>{walletChainId}</code>).
@@ -92,7 +92,7 @@ export default function DeployWrappedNative() {
                         value={wrappedNativeTokenAddress || ""}
                     />
                 </div>
-            </ContainerLegacy>
+            </Container>
         </CheckWalletRequirements>
     );
 }

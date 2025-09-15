@@ -14,7 +14,7 @@ import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import { utils } from '@avalabs/avalanchejs';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
-import { ContainerLegacy } from '@/components/toolbox/components/ContainerLegacy';
+import { Container } from '@/components/toolbox/components/Container';
 import { ResultField } from '@/components/toolbox/components/ResultField';
 import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
 import { useAvaCloudSDK } from "@/components/toolbox/stores/useAvaCloudSDK";
@@ -185,7 +185,7 @@ export default function InitValidatorSet() {
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.EVMChainBalance,
         ]}>
-            <ContainerLegacy
+            <Container
                 title="Initialize Validator Set"
                 description="This will initialize the ValidatorManager contract."
             >
@@ -256,7 +256,7 @@ export default function InitValidatorSet() {
                         showCheck={true}
                     />
                 )}
-            </ContainerLegacy>
+            </Container>
         </CheckWalletRequirements>
     );
 }

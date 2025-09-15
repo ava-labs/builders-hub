@@ -2,7 +2,7 @@
 
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
+import { Container } from "@/components/toolbox/components/Container";
 import { Button } from "@/components/toolbox/components/Button";
 import { AddChainModal } from "@/components/toolbox/components/ConnectWallet/AddChainModal";
 import { useL1ListStore } from "@/components/toolbox/stores/l1ListStore";
@@ -191,7 +191,7 @@ export default function ManagedTestnetNodes() {
     // If not on testnet, show disabled message
     if (!isTestnet) {
         return (
-            <ContainerLegacy
+            <Container
                 title="Hosted L1 Testnet Nodes"
                 description="We recommend using cloud-hosted Avalanche nodes with open ports for testing, as running a node locally can be challenging and may introduce security risks when configuring the required ports. To simplify the process, the Avalanche Builder Hub provides free access to hosted testnet nodes, allowing developers to quickly experiment without managing their own infrastructure. This service is completely free to use, but you'll need to create an Avalanche Builder Account to get started."
             >
@@ -206,7 +206,7 @@ export default function ManagedTestnetNodes() {
                         Builder Hub Nodes are only available on testnet. Switch to Fuji testnet to create and manage nodes for your L1s.
                     </p>
                 </div>
-            </ContainerLegacy>
+            </Container>
         );
     }
 
@@ -237,7 +237,7 @@ export default function ManagedTestnetNodes() {
                 </AlertDialogContent>
             </AlertDialog>
 
-            <ContainerLegacy
+            <Container
                 title="Hosted L1 Testnet Nodes"
                 description="Free cloud-hosted Avalanche nodes for testing. Create an Avalanche Builder Account to get started."
             >
@@ -292,7 +292,7 @@ export default function ManagedTestnetNodes() {
                         deletingNodes={deletingNodes}
                     />
                 </div>
-            </ContainerLegacy>
+            </Container>
 
             {/* Connect Wallet Modal */}
             {connectWalletModalNodeId && (() => {

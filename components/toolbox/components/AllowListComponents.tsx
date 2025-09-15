@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useWalletStore } from "../stores/walletStore";
 import { useViemChainStore } from "../stores/toolboxStore";
-import { ContainerLegacy } from "./ContainerLegacy";
+import { Container } from "./Container";
 import { Button } from "./Button";
 import { EVMAddressInput } from "./EVMAddressInput";
 import { ResultField } from "./ResultField";
@@ -80,7 +80,7 @@ export function SetEnabledComponent({
   );
 
   return (
-    <ContainerLegacy
+    <Container
       title={`Set Enabled ${precompileType}`}
       description={`These addresses can use the ${precompileType} (e.g., mint native tokens) but cannot modify the allow list.`}
     >
@@ -115,7 +115,7 @@ export function SetEnabledComponent({
           />
         )}
       </div>
-    </ContainerLegacy>
+    </Container>
   );
 };
 
@@ -190,7 +190,7 @@ export function SetManagerComponent({
   );
 
   return (
-    <ContainerLegacy
+    <Container
       title={`Set Manager ${precompileType}`}
       description={`These addresses can add or remove Enabled addresses but cannot modify Admins or Managers.`}
     >
@@ -225,7 +225,7 @@ export function SetManagerComponent({
           />
         )}
       </div>
-    </ContainerLegacy>
+    </Container>
   );
 }
 
@@ -301,7 +301,7 @@ export function SetAdminComponent({
   );
 
   return (
-    <ContainerLegacy
+    <Container
       title={`Set Admin ${precompileType}`}
       description={`These addresses have full control over the allow list, including the ability to add or remove Admins, Managers, and Enabled addresses.`}
     >
@@ -336,7 +336,7 @@ export function SetAdminComponent({
           />
         )}
       </div>
-    </ContainerLegacy>
+    </Container>
   );
 }
 
@@ -412,7 +412,7 @@ export function RemoveAllowListComponent({
   );
 
   return (
-    <ContainerLegacy
+    <Container
       title={`Remove from ${precompileType} Allowlist`}
       description={`Remove all permissions for an address. This will prevent the address from using the ${precompileType} or modifying the allow list.`}
     >
@@ -447,7 +447,7 @@ export function RemoveAllowListComponent({
           />
         )}
       </div>
-    </ContainerLegacy>
+    </Container>
   );
 }
 
@@ -495,7 +495,7 @@ export function ReadAllowListComponent({
   const canRead = Boolean(readAddress && !isReading);
 
   return (
-    <ContainerLegacy
+    <Container
       title={`Read ${precompileType} Allowlist`}
       description={`Check the current role of an address in the ${precompileType} allow list. Roles include Admin, Manager, Enabled, or None.`}
     >
@@ -537,7 +537,7 @@ export function ReadAllowListComponent({
           </div>
         )}
       </div>
-    </ContainerLegacy>
+    </Container>
   );
 }
 

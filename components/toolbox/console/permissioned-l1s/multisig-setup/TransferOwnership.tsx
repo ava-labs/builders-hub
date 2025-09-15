@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
+import { Container } from "@/components/toolbox/components/Container";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
 import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValidatorManagerDetails";
@@ -130,7 +130,7 @@ export default function TransferOwnership() {
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.EVMChainBalance,
         ]}>
-            <ContainerLegacy
+            <Container
                 title="Transfer Validator Manager Ownership"
                 description="This will transfer the ownership of the Validator Manager to a new address, which could be an EOA, StakingManager or PoAManager."
             >
@@ -215,7 +215,7 @@ export default function TransferOwnership() {
                         showCheck={!!receipt.transactionHash}
                     />
                 )}
-            </ContainerLegacy>
+            </Container>
         </CheckWalletRequirements>
     );
 };

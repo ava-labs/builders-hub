@@ -5,7 +5,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
+import { Container } from "@/components/toolbox/components/Container";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import feeManagerAbi from "@/contracts/precompiles/FeeManager.json";
 import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
@@ -130,7 +130,7 @@ export default function FeeManager() {
         configKey="feeManagerConfig"
         precompileName="Fee Manager"
       >
-        <ContainerLegacy
+        <Container
           title="Fee Configuration"
           description="Configure the dynamic fee parameters for the chain."
         >
@@ -235,9 +235,9 @@ export default function FeeManager() {
               />
             )}
           </div>
-        </ContainerLegacy>
+        </Container>
 
-        <ContainerLegacy
+        <Container
           title="Current Fee Configuration"
           description="View the current fee configuration and last change timestamp."
         >
@@ -272,7 +272,7 @@ export default function FeeManager() {
               </div>
             )}
           </div>
-        </ContainerLegacy>
+        </Container>
 
         <AllowlistComponent
           precompileAddress={DEFAULT_FEE_MANAGER_ADDRESS}

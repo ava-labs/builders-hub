@@ -7,7 +7,7 @@ import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
 import ICMDemoABI from "@/contracts/example-contracts/compiled/ICMDemo.json";
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
+import { Container } from "@/components/toolbox/components/Container";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
@@ -78,7 +78,7 @@ export default function DeployICMDemo() {
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.EVMChainBalance,
         ]}>
-            <ContainerLegacy
+            <Container
                 title="Deploy ICM Demo contract"
                 description="Deploy a demo contract that can receive messages from the C-Chain using Avalanche's Inter-Chain Messaging (ICM) protocol."
             >
@@ -111,7 +111,7 @@ export default function DeployICMDemo() {
                     />
                 </div>
 
-            </ContainerLegacy>
+            </Container>
         </CheckWalletRequirements>
     );
 }

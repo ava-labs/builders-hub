@@ -3,7 +3,7 @@
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import { useState, useEffect } from "react"
 import { Calendar, Clock, Users, Coins, Info, Copy, Check, Search, ChevronDown } from "lucide-react"
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy"
+import { Container } from "@/components/toolbox/components/Container"
 import { Button } from "@/components/toolbox/components/Button"
 import { networkIDs } from "@avalabs/avalanchejs"
 
@@ -182,7 +182,7 @@ export default function QueryL1ValidatorSet() {
   }, [validators]);
 
   return (
-    <ContainerLegacy title="L1 Validators" description="Query the validators of an L1 from the P-Chain using the Avalanche API">
+    <Container title="L1 Validators" description="Query the validators of an L1 from the P-Chain using the Avalanche API">
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-4 border border-zinc-200 dark:border-zinc-800 relative overflow-visible">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-900/10 dark:to-transparent pointer-events-none rounded-lg"></div>
 
@@ -653,7 +653,7 @@ export default function QueryL1ValidatorSet() {
           animation: fadeIn 0.3s ease-out forwards;
         }
       `}} />
-    </ContainerLegacy>
+    </Container>
   )
 }
 

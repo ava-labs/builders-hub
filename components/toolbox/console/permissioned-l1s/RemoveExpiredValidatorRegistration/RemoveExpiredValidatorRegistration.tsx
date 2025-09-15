@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import type { Abi, AbiEvent, Address, Log } from 'viem'
 import { bytesToHex, hexToBytes } from 'viem'
 import { AlertCircle } from "lucide-react"
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy"
+import { Container } from "@/components/toolbox/components/Container"
 import { Button } from "@/components/toolbox/components/Button"
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId"
 import { ValidatorManagerDetails } from "@/components/toolbox/components/ValidatorManagerDetails"
@@ -364,7 +364,7 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
   }
 
   return (
-    <ContainerLegacy
+    <Container
       title="Remove Expired Validator Registration"
       description="Fetch InitiatedValidatorRegistration logs and show only expired PendingAdded registrations."
     >
@@ -513,7 +513,7 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
           <p className="text-xs text-zinc-500 dark:text-zinc-400">No InitiatedValidatorRegistration events found in the selected block range.</p>
         )}
       </div>
-    </ContainerLegacy>
+    </Container>
   )
 }
 

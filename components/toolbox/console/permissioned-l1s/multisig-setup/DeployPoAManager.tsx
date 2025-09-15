@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import PoAManagerABI from "@/contracts/icm-contracts/compiled/PoAManager.json";
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
+import { Container } from "@/components/toolbox/components/Container";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Success } from "@/components/toolbox/components/Success";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
@@ -144,7 +144,7 @@ export default function DeployPoAManager() {
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.EVMChainBalance,
         ]}>
-            <ContainerLegacy
+            <Container
                 title="Deploy PoA Manager"
                 description="Deploy and initialize the PoAManager contract to manage Proof of Authority validators."
             >
@@ -302,7 +302,7 @@ export default function DeployPoAManager() {
                         </Step>
                     </Steps>
                 </div>
-            </ContainerLegacy>
+            </Container>
         </CheckWalletRequirements>
     );
 }

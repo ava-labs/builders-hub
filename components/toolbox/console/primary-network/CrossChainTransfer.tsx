@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { Loader2, ArrowDownUp, Clock } from "lucide-react"
 import { Button } from "@/components/toolbox/components/Button"
 
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy"
+import { Container } from "@/components/toolbox/components/Container"
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs'
 import { getRPCEndpoint } from '@/components/toolbox/coreViem/utils/rpc'
@@ -426,7 +426,7 @@ export default function CrossChainTransfer({
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.CoreWalletConnected
         ]}>
-            <ContainerLegacy
+            <Container
                 title="Cross-chain transfer"
                 description="Transfer AVAX between Platform (P) and Contract (C) chains."
             >
@@ -683,7 +683,7 @@ export default function CrossChainTransfer({
                         </Button>
                     )}
                 </div>
-            </ContainerLegacy>
+            </Container>
         </CheckWalletRequirements>
     )
 }

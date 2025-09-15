@@ -6,7 +6,7 @@ import { useViemChainStore, useToolboxStore } from "@/components/toolbox/stores/
 import { Chain } from "viem";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
+import { Container } from "@/components/toolbox/components/Container";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import { ExternalLink } from "lucide-react";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
@@ -127,7 +127,7 @@ export default function MigrateV1ToV2() {
     <CheckWalletRequirements configKey={[
       WalletRequirementsConfigKey.EVMChainBalance,
     ]}>
-      <ContainerLegacy
+      <Container
         title="Migrate Validator from V1 to V2"
         description="Migrate validators from the Validator Manager contract v1 to v2"
       >
@@ -224,7 +224,7 @@ export default function MigrateV1ToV2() {
             )}
           </form>
         </div>
-      </ContainerLegacy>
+      </Container>
     </CheckWalletRequirements>
   );
 }

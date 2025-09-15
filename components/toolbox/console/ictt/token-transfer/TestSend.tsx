@@ -18,7 +18,7 @@ import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput
 import { Token, TokenInput } from "@/components/toolbox/components/TokenInputToolbox";
 import { utils } from "@avalabs/avalanchejs";
 import SelectBlockchain, { type BlockchainSelection } from "@/components/toolbox/components/SelectBlockchain";
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
+import { Container } from "@/components/toolbox/components/Container";
 import { Toggle } from "@/components/toolbox/components/Toggle";
 import { Ellipsis } from "lucide-react";
 
@@ -477,7 +477,7 @@ export default function TokenBridge() {
     const [isGasLimitEditing, setIsGasLimitEditing] = useState(false);
 
     return (
-        <ContainerLegacy
+        <Container
             title="Cross-Chain Token Bridge"
             description={`Send tokens from the current chain (${selectedL1?.name}) to another chain.`}
         >
@@ -669,6 +669,6 @@ export default function TokenBridge() {
                     </div>
                 </div>
             )}
-        </ContainerLegacy>
+        </Container>
     );
 }

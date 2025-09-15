@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useMemo } from 'react'
 import { AlertCircle } from "lucide-react"
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy"
+import { Container } from "@/components/toolbox/components/Container"
 import { Button } from "@/components/toolbox/components/Button"
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId"
 import { ValidatorManagerDetails } from "@/components/toolbox/components/ValidatorManagerDetails"
@@ -96,7 +96,7 @@ const RemoveValidatorExpert: React.FC = () => {
       WalletRequirementsConfigKey.EVMChainBalance,
       WalletRequirementsConfigKey.PChainBalance
     ]}>
-      <ContainerLegacy
+      <Container
         title="Remove Validator"
         description="Remove a validator from an Avalanche L1 by following these steps in order."
       >
@@ -224,7 +224,7 @@ const RemoveValidatorExpert: React.FC = () => {
             </Button>
           )}
         </div>
-      </ContainerLegacy>
+      </Container>
     </CheckWalletRequirements>
   )
 }

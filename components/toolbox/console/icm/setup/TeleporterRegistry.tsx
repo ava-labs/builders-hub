@@ -9,7 +9,7 @@ import { Success } from "@/components/toolbox/components/Success";
 import TeleporterRegistryBytecode from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterRegistry_Bytecode_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import TeleporterRegistryManualyCompiled from '@/contracts/icm-contracts/compiled/TeleporterRegistry.json';
-import { ContainerLegacy } from "@/components/toolbox/components/ContainerLegacy";
+import { Container } from "@/components/toolbox/components/Container";
 import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import versions from '@/scripts/versions.json';
@@ -71,7 +71,7 @@ export default function TeleporterRegistry() {
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.EVMChainBalance,
         ]}>
-            <ContainerLegacy
+            <Container
                 title="Deploy ICM Registry"
                 description="Deploy the ICM Registry contract to your L1."
             >
@@ -96,7 +96,7 @@ export default function TeleporterRegistry() {
                     label="TeleporterRegistry Address"
                     value={teleporterRegistryAddress}
                 />
-            </ContainerLegacy>
+            </Container>
         </CheckWalletRequirements>
     );
 }

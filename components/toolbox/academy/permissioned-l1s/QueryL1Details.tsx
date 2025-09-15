@@ -10,7 +10,7 @@ import {
   Database,
   ExternalLink,
 } from "lucide-react"
-import { ContainerLegacy } from "../../components/ContainerLegacy"
+import { Container } from "../../components/Container"
 import SelectSubnet, { SubnetSelection } from "../../components/SelectSubnet"
 
 export default function QueryL1Details() {
@@ -32,7 +32,7 @@ export default function QueryL1Details() {
   }
 
   return (
-    <ContainerLegacy title="Subnet Details" description="Query the data of the Subnet from the P-Chain using the Avalanche API">
+    <Container title="Subnet Details" description="Query the data of the Subnet from the P-Chain using the Avalanche API">
       <div className="relative z-0">
         {/* Background gradient effect - blue for both light and dark mode */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-900/10 dark:to-cyan-900/5 pointer-events-none"></div>
@@ -284,7 +284,7 @@ export default function QueryL1Details() {
           </div>
         )}
       </div>
-    </ContainerLegacy>
+    </Container>
   )
 }
 

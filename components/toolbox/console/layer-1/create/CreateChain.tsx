@@ -11,7 +11,7 @@ import generateName from 'boring-name-generator'
 import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import InputSubnetId from "@/components/toolbox/components/InputSubnetId";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
-import { ToolContainer } from "@/components/toolbox/components/Container";
+import { ToolContainer } from "@/components/toolbox/components/ToolContainer";
 
 import { ConsoleToolMetadata, BaseConsoleToolProps, withConsoleToolMetadata } from "@/types/consoleTools";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";

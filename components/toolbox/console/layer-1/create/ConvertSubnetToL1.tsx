@@ -5,7 +5,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { type ConvertToL1Validator } from "@/components/toolbox/components/ValidatorListInput";
-import { ToolContainer } from "@/components/toolbox/components/Container";
+import { ToolContainer } from "@/components/toolbox/components/ToolContainer";
 import { ValidatorListInput } from "@/components/toolbox/components/ValidatorListInput";
 import InputChainId from "@/components/toolbox/components/InputChainId";
 import SelectSubnet, { SubnetSelection } from "@/components/toolbox/components/SelectSubnet";
