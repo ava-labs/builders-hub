@@ -19,7 +19,7 @@ import { AddToWalletStep } from "../../components/AddToWalletStep";
 import { ConfigureNodeType } from "../../components/ConfigureNodeType";
 import { generateDockerCommand } from "./create/config";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
-import { ConsoleToolMetadata, BaseConsoleToolProps, withConsoleToolMetadata } from "@/types/consoleTools";
+import { ConsoleToolMetadata, BaseConsoleToolProps, withConsoleToolMetadata } from "@/types/consoleTool";
 
 const l1NodeSetupDockerMetadata: ConsoleToolMetadata = {
     title: "L1 Node Setup with Docker",

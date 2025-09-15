@@ -13,7 +13,7 @@ import InputSubnetId from "@/components/toolbox/components/InputSubnetId";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
 import { ToolContainer } from "@/components/toolbox/components/ToolContainer";
 
-import { ConsoleToolMetadata, BaseConsoleToolProps, withConsoleToolMetadata } from "@/types/consoleTools";
+import { ConsoleToolMetadata, BaseConsoleToolProps, withConsoleToolMetadata } from "@/types/consoleTool";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";

@@ -12,7 +12,7 @@ import SelectSubnet, { SubnetSelection } from "@/components/toolbox/components/S
 import { Callout } from "fumadocs-ui/components/callout";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { getPChainBalance } from "@/components/toolbox/coreViem/methods/getPChainbalance";
-import { ConsoleToolMetadata, BaseConsoleToolProps, withConsoleToolMetadata } from "@/types/consoleTools";
+import { ConsoleToolMetadata, BaseConsoleToolProps, withConsoleToolMetadata } from "@/types/consoleTool";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 

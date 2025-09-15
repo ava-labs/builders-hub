@@ -1,6 +1,6 @@
 "use client"
 
-import { ConsoleToolMetadata } from "@/types/consoleTools"
+import { ConsoleToolMetadata } from "@/types/consoleTool"
 import type { ReactNode } from "react"
 import { CheckWalletRequirements } from "./CheckWalletRequirements"
 

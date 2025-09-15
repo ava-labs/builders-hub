@@ -12,6 +12,7 @@ export interface ConsoleToolMetadata {
 
 // Props interface for console tools
 export interface BaseConsoleToolProps {
+    /** Function to call when the tool succeeds. This can be used to navigate the user to the next step. */
     onSuccess?: () => void;
 }
 
