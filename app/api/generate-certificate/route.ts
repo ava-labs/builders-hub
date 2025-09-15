@@ -3,42 +3,98 @@ import { PDFDocument } from 'pdf-lib';
 
 const courseMapping: Record<string, string> = {
   'avalanche-fundamentals': 'Avalanche Fundamentals',
+  'codebase-entrepreneur-foundations': 'Foundations of a Web3 Venture',
+  'codebase-entrepreneur-go-to-market': 'Go-to-Market Strategist',
+  'codebase-entrepreneur-community': 'Web3 Community Architect',
+  'codebase-entrepreneur-fundraising': 'Fundraising & Finance Pro',
+};
+
+const certificateTemplates: Record<string, string> = {
+  'avalanche-fundamentals': 'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf',
+  'codebase-entrepreneur-foundations': 'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Foundations.pdf',
+  'codebase-entrepreneur-go-to-market': 'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_GTM.pdf',
+  'codebase-entrepreneur-community': 'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Community.pdf',
+  'codebase-entrepreneur-fundraising': 'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase_EntrepreneurAcademy_Certificate_Fundraising.pdf',
 };
 
 function getCourseName(courseId: string): string {
   return courseMapping[courseId] || courseId;
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const { courseId, userName } = await req.json();
-    if (!courseId || !userName) { return NextResponse.json({ error: 'Missing required fields' }, { status: 400 }); }
-    const courseName = getCourseName(courseId);
-    const protocol = req.headers.get('x-forwarded-proto') || 'http';
-    const host = req.headers.get('host') || 'localhost:3000';
-    const serverUrl = `${protocol}://${host}`;
-    const templateUrl = `${serverUrl}/certificates/AvalancheAcademy_Certificate.pdf`;
-    const templateResponse = await fetch(templateUrl);
+function getCertificateTemplate(courseId: string): string {
+  // Check if we have a specific template for this course
+  if (certificateTemplates[courseId]) {
+    return certificateTemplates[courseId];
+  }
 
-    if (!templateResponse.ok) { throw new Error(`Failed to fetch template`); }
+  // No fallback - throw error for unknown courses
+  throw new Error(`No certificate template found for course: ${courseId}`);
+}
+
+export async function POST(req: NextRequest) {
+  let courseId: string = '';
+  let userName: string = '';
+
+  try {
+    ({ courseId, userName } = await req.json());
+    if (!courseId || !userName) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const courseName = getCourseName(courseId);
+    const templateUrl = getCertificateTemplate(courseId);
+
+    const templateResponse = await fetch(templateUrl);
+    if (!templateResponse.ok) {
+      throw new Error(`Failed to fetch template: ${templateUrl}`);
+    }
 
     const templateArrayBuffer = await templateResponse.arrayBuffer();
     const pdfDoc = await PDFDocument.load(templateArrayBuffer);
     const form = pdfDoc.getForm();
 
+    const isAvalancheTemplate = templateUrl.includes('AvalancheAcademy_Certificate.pdf');
+
     try {
-      // fills the form fields in our certificate template
-      form.getTextField('FullName').setText(userName);
-      form.getTextField('Class').setText(courseName);
-      form.getTextField('Awarded').setText(new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }));
-      form.getTextField('Id').setText(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
+      if (isAvalancheTemplate) {
+        // Original 4-field flow for Avalanche certificates
+        form.getTextField('FullName').setText(userName);
+        form.getTextField('Class').setText(courseName);
+        form
+          .getTextField('Awarded')
+          .setText(
+            new Date().toLocaleDateString('en-US', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })
+          );
+        form
+          .getTextField('Id')
+          .setText(
+            Math.random().toString(36).substring(2, 15) +
+            Math.random().toString(36).substring(2, 15)
+          );
+      } else {
+        // Codebase Entrepreneur certificates: only Name and Date
+        form.getTextField('Enter Name').setText(userName);
+        form
+          .getTextField('Enter Date')
+          .setText(
+            new Date().toLocaleDateString('en-US', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })
+          );
+      }
     } catch (error) {
       throw new Error('Failed to fill form fields');
     }
-    
+
     form.flatten();
     const pdfBytes = await pdfDoc.save();
-    return new NextResponse(pdfBytes, {
+    return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
@@ -47,7 +103,12 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: 'Failed to generate certificate, contact the Avalanche team.', details: (error as Error).message },
+      {
+        error: 'Failed to generate certificate, contact the Avalanche team.',
+        details: (error as Error).message,
+        courseId,
+        userName: userName || 'undefined',
+      },
       { status: 500 }
     );
   }

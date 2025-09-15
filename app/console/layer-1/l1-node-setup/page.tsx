@@ -1,13 +1,6 @@
 "use client";
 
-import { lazy } from "react";
-
-const L1NodeSetup = lazy(() => 
-  import("../../../../toolbox/src/toolbox/Nodes/AvalancheGoDockerL1").then(module => ({
-    default: module.default
-  }))
-);
-
+import L1NodeSetup from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
 
 export default function Page() {
   return (

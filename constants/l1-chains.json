@@ -1,0 +1,555 @@
+[
+  {
+    "chainId": "80000",
+    "chainName": "AIB Mainnet",
+    "chainLogoURI": "",
+    "subnetId": "2qJPnDkDH6hn3PVzxzkUdTqDD1HeAnTT8FL4t2BJagc2iuq8j7",
+    "slug": "aibmainnet"
+  },
+  {
+    "chainId": "8787",
+    "chainName": "Animalia",
+    "chainLogoURI": "",
+    "subnetId": "TfTBHvcxpBfxPntMpadskcZTH8AG5rgkrNyz2DzeByNMsZkMo",
+    "slug": "animalia"
+  },
+  {
+    "chainId": "4313",
+    "chainName": "Artery",
+    "chainLogoURI": "",
+    "subnetId": "25VdGtdQPejyffNLpTqh4BH2NABXT8Zxup6ee3B4htrMryofUB",
+    "slug": "artery"
+  },
+  {
+    "chainId": "65713",
+    "chainName": "AS0314T1TP",
+    "chainLogoURI": "",
+    "subnetId": "2vL4TMT23mZzTsdkSSMFWZArFNWskR3xRWvCLxdrgd4rCe6vVy",
+    "slug": "as0314t1tp"
+  },
+  {
+    "chainId": "43114",
+    "chainName": "Avalanche C-Chain",
+    "chainLogoURI": "",
+    "subnetId": "11111111111111111111111111111111LpoYY",
+    "slug": "c-chain"
+  },
+  {
+    "chainId": "40404",
+    "chainName": "Bango",
+    "chainLogoURI": "",
+    "subnetId": "2r7mmEKg3R2gTD22TtErn8KD8TmLeSjVXHdwMpH2S9BESUxH7q",
+    "slug": "bango"
+  },
+  {
+    "chainId": "5506",
+    "chainName": "Bangochain",
+    "chainLogoURI": "",
+    "subnetId": "4Wuefof5Lp2v5KfmJRnsGJz9HPX4UzWP7DZC5SyhQcXRQkyPp",
+    "slug": "bangochain"
+  },
+  {
+    "chainId": "4337",
+    "chainName": "Beam",
+    "chainLogoURI": "",
+    "subnetId": "eYwmVU67LmSfZb1RwqCMhBYkFyG8ftxn6jAwqzFmxC9STBWLC",
+    "slug": "beam"
+  },
+  {
+    "chainId": "836",
+    "chainName": "Binary Holdings",
+    "chainLogoURI": "",
+    "subnetId": "23dqTMHK186m4Rzcn1ukJdmHy13nqido4LjTp5Kh9W6qBKaFib",
+    "slug": "binary-holdings"
+  },
+  {
+    "chainId": "46975",
+    "chainName": "Blaze",
+    "chainLogoURI": "",
+    "subnetId": "j6HXQWdpRhX7yHMWLehUyYDjypHa455vP5tuiXZ81nkPgveFV",
+    "slug": "blaze"
+  },
+  {
+    "chainId": "1344",
+    "chainName": "Blitz",
+    "chainLogoURI": "",
+    "subnetId": "yPUx56ffTBML1QfomcBvwfBxfE3LSgqkBNfxTCpx5dr4NNFGB",
+    "slug": "blitz"
+  },
+  {
+    "chainId": "28530",
+    "chainName": "BTIC",
+    "chainLogoURI": "",
+    "subnetId": "2Ypm6RVhddu5Ps8DEbb35Y1PgX4uXE76yyxn6JMhnZy8ftAFLW",
+    "slug": "btic"
+  },
+  {
+    "chainId": "35414",
+    "chainName": "Cedomis",
+    "chainLogoURI": "",
+    "subnetId": "2LyJdHSdQDwg84nrbLrmtvEoAuudg41dWnhrbjMQUq78bdDHnT",
+    "slug": "cedomis"
+  },
+  {
+    "chainId": "2053",
+    "chainName": "Certalink",
+    "chainLogoURI": "",
+    "subnetId": "2hZa4RMWAkiQAQ5zpbPSkNziYSHyCqBGeKNnbqWfJL2GKmy8eq",
+    "slug": "certalink"
+  },
+  {
+    "chainId": "33210",
+    "chainName": "Cloudverse",
+    "chainLogoURI": "",
+    "subnetId": "4YtJVNm6KnytRaEDeezC3mHK5FnsP75Sjgxa5eiav3sxNUQD9",
+    "slug": "cloudverse"
+  },
+  {
+    "chainId": "42069",
+    "chainName": "Coqnet",
+    "chainLogoURI": "",
+    "subnetId": "5moznRzaAEhzWkNTQVdT1U4Kb9EU7dbsKZQNmHwtN5MGVQRyT",
+    "slug": "coqnet"
+  },
+  {
+    "chainId": "737373",
+    "chainName": "CX",
+    "chainLogoURI": "",
+    "subnetId": "WChFQ1twkXBLxZGo4qojC9AgizFrRdMRnPCK9FZmisY7z6pUs",
+    "slug": "cx"
+  },
+  {
+    "chainId": "707070",
+    "chainName": "CX Chain",
+    "chainLogoURI": "",
+    "subnetId": "yD6k6gVKmzFbefPcdYjsJz17KVQFSivTR1emJ5cTBvq2d8MRg",
+    "slug": "cxchain"
+  },
+  {
+    "chainId": "96786",
+    "chainName": "Delaunch",
+    "chainLogoURI": "",
+    "subnetId": "2ocjsdpN9czPYmHqS4Tc5Aydj4zk2WWVdX9jdXtqvMjQuf9pgV",
+    "slug": "delaunch"
+  },
+  {
+    "chainId": "75685",
+    "chainName": "Demo L1",
+    "chainLogoURI": "",
+    "subnetId": "2ZKrfJUwXDsp27ggtxTqhWnzV87GpHppu2XJsv2nmFkHefHZZ5",
+    "slug": "demol1"
+  },
+  {
+    "chainId": "432204",
+    "chainName": "Dexalot",
+    "chainLogoURI": "",
+    "subnetId": "wenKDikJWAYQs3f2v9JhV86fC6kHZwkFZsuUBftnmgZ4QXPnu",
+    "slug": "dexalot"
+  },
+  {
+    "chainId": "202110",
+    "chainName": "Dinari Financial Network",
+    "chainLogoURI": "",
+    "subnetId": "2Ee4oBUute1PV5XaeS4b256eLH98r4NE8YgzX5nSX4cUxvtgre",
+    "slug": "dinari-financial-network"
+  },
+  {
+    "chainId": "53935",
+    "chainName": "DeFi Kingdoms",
+    "chainLogoURI": "",
+    "subnetId": "Vn3aX6hNRstj5VHHm63TCgPNaeGnRSqCYXQqemSqDd2TQH4qJ",
+    "slug": "defikingdoms"
+  },
+  {
+    "chainId": "7979",
+    "chainName": "DOS",
+    "chainLogoURI": "",
+    "subnetId": "nQCwF6V9y8VFjvMuPeQVWWYn6ba75518Dpf6ZMWZNb3NyTA94",
+    "slug": "dos"
+  },
+  {
+    "chainId": "389",
+    "chainName": "ETX",
+    "chainLogoURI": "",
+    "subnetId": "q54cgHa9RN2NFp9qsfpPzVkhgn8xqDgKEQR1G997xZ1P5Dc8o",
+    "slug": "etx"
+  },
+  {
+    "chainId": "33345",
+    "chainName": "Even",
+    "chainLogoURI": "",
+    "subnetId": "VsxF67NQTACc2fLQL9fD3F8LzJ5eezcSGFNitGsk7VxKbPwcD",
+    "slug": "even"
+  },
+  {
+    "chainId": "33311",
+    "chainName": "Feature",
+    "chainLogoURI": "",
+    "subnetId": "29p4FdSKaXQPyw8sqhzJSK37FXuPHdyECau186qZSUNRhk3QuB",
+    "slug": "feature"
+  },
+  {
+    "chainId": "13322",
+    "chainName": "FIFA",
+    "chainLogoURI": "",
+    "subnetId": "h7egyVb6fKHMDpVaEsTEcy7YaEnXrayxZS4A1AEU4pyBzmwGp",
+    "slug": "fifa"
+  },
+  {
+    "chainId": "62786",
+    "chainName": "Frqtal",
+    "chainLogoURI": "",
+    "subnetId": "FAjUPxhRewh9vk8dSzcgRFZRLaCaNVg6gb5TcHwKsehuQ7k6p",
+    "slug": "frqtal"
+  },
+  {
+    "chainId": "62789",
+    "chainName": "Frqtalnet",
+    "chainLogoURI": "",
+    "subnetId": "5vcCHz5fgd1hWyXaKiLnMAVjmh4qW7yFxNbASBjxCXZYE445N",
+    "slug": "frqtalnet"
+  },
+  {
+    "chainId": "741741",
+    "chainName": "Goodcare",
+    "chainLogoURI": "",
+    "subnetId": "2TqrQau4E99KoUXcFjyf1Pek3rUHpDpqtN9rC5GDaCKFu7dfPo",
+    "slug": "goodcare"
+  },
+  {
+    "chainId": "6765897101",
+    "chainName": "Greendot",
+    "chainLogoURI": "",
+    "subnetId": "VzsCkPm6MjStgT2v5Qmcn5ycgMhj68rxPN4gX9eMgBbBXHYEu",
+    "slug": "greendot"
+  },
+  {
+    "chainId": "43419",
+    "chainName": "Gunzilla",
+    "chainLogoURI": "",
+    "subnetId": "2MbQjnTg3yxEtZBfnamboi7K9AajwNq7WExiwReBQSBtwbBVer",
+    "slug": "gunzilla"
+  },
+  {
+    "chainId": "43512",
+    "chainName": "Gunzilla Testnet",
+    "chainLogoURI": "",
+    "subnetId": "9ewhue9Lyryt1G4H1icgZotc6wRVwiPgmiVemSN24JXwg91JH",
+    "slug": "gunzilla-testnet"
+  },
+  {
+    "chainId": "68414",
+    "chainName": "Henesys",
+    "chainLogoURI": "",
+    "subnetId": "jmLmezoViv3F72XLzpdmSNk3qLEGb72g5EYkp3ij4wHXPF2KN",
+    "slug": "henesys"
+  },
+  {
+    "chainId": "1992",
+    "chainName": "Hubblenet",
+    "chainLogoURI": "",
+    "subnetId": "2mxZY7A2t1tuRMALW4BcBUPVGNR3LH1DXhftdbLAHm1QtDkFp8",
+    "slug": "hubblenet"
+  },
+  {
+    "chainId": "2345",
+    "chainName": "Ienium",
+    "chainLogoURI": "",
+    "subnetId": "7SeGzzeirxi9tAn594hTSmZb8BQdYzwNgWSHa9DqJ9hCUYbFx",
+    "slug": "ienium"
+  },
+  {
+    "chainId": "151122",
+    "chainName": "Intain Market",
+    "chainLogoURI": "",
+    "subnetId": "2UEGsEEjRyMSgD7cNufCGEXbPXsma7RctBgfRw3Haqkk8oByFa",
+    "slug": "intainmkt"
+  },
+  {
+    "chainId": "1216",
+    "chainName": "Intersect",
+    "chainLogoURI": "",
+    "subnetId": "2UPuVAx5yFubvDPm6CYywT4mYAdTW3zM1XXD7R7ic8s2zQhF8U",
+    "slug": "intersect"
+  },
+  {
+    "chainId": "6533",
+    "chainName": "Kali Chain",
+    "chainLogoURI": "",
+    "subnetId": "x1C95jnFyLV3x8tiiCW7ZFRoRFgq9SX1Yprwfxx4GCTujggYB",
+    "slug": "kalichain"
+  },
+  {
+    "chainId": "379",
+    "chainName": "Koroshi",
+    "chainLogoURI": "",
+    "subnetId": "pchqewRRQHwx1B3XJEq9p2HGSdjrHsyv48YzVUWXZbrmH4TM6",
+    "slug": "koroshi"
+  },
+  {
+    "chainId": "10849",
+    "chainName": "Lamina1",
+    "chainLogoURI": "",
+    "subnetId": "2hoHzxcZktxrTNoqCZhR9bEctc5oCuBqSp6SpRn6uvwxzLkvnD",
+    "slug": "lamina1"
+  },
+  {
+    "chainId": "50776",
+    "chainName": "LetsbuyHC",
+    "chainLogoURI": "",
+    "subnetId": "f6ewGNYxGRjQ1SFfhL2tiHCMHzz9AHdTuPe11dRNarGbp3dES",
+    "slug": "letsbuyhc"
+  },
+  {
+    "chainId": "62521",
+    "chainName": "Lucid",
+    "chainLogoURI": "",
+    "subnetId": "hbP3PrnQS71Py1VVxvHfnCnr7MWos3XQesEsCKQoA9hpciyVR",
+    "slug": "lucid"
+  },
+  {
+    "chainId": "17177",
+    "chainName": "Lylty",
+    "chainLogoURI": "",
+    "subnetId": "2iumcj2wiV9BQ96LRHpYNpD1SHhb8Vcvm8YUebZSqcFeJakTo6",
+    "slug": "lylty"
+  },
+  {
+    "chainId": "5419",
+    "chainName": "Marnisa",
+    "chainLogoURI": "",
+    "subnetId": "sZ1zmoQx3NeV8WB5D3np8xYUJ2p5hKfWFXDeuSGvxyZkCABs2",
+    "slug": "marnisa"
+  },
+  {
+    "chainId": "3454",
+    "chainName": "Masa",
+    "chainLogoURI": "",
+    "subnetId": "P8teobyNzpvniT7XGhXdEnkXiXvkk3eM4vSYtHUTAJcuV3jLb",
+    "slug": "masa"
+  },
+  {
+    "chainId": "13396",
+    "chainName": "Masa Network",
+    "chainLogoURI": "",
+    "subnetId": "yEQe3LdJgjxBqG28gRjLUu86qFCcNbWnkPtPr7ZHg8pLx1SUJ",
+    "slug": "masanetwork"
+  },
+  {
+    "chainId": "333000333",
+    "chainName": "Meld",
+    "chainLogoURI": "",
+    "subnetId": "2ibTg9ruyJRQf4NpRbkd1Utcfayo3gRRpkoWGCWNC3oXTZoYCe",
+    "slug": "meld"
+  },
+  {
+    "chainId": "1888",
+    "chainName": "Memoria",
+    "chainLogoURI": "",
+    "subnetId": "2sF5Pb165jhdeNSy2kT4WyDYazu3buh1WGh77oTBA9dDjBPtsy",
+    "slug": "memoria"
+  },
+  {
+    "chainId": "29111",
+    "chainName": "Mugen",
+    "chainLogoURI": "",
+    "subnetId": "LbvSkGmUJSpUby1gUrk4g9mmdeZQWcVGiFCXv57CJHBrxxEos",
+    "slug": "mugen"
+  },
+  {
+    "chainId": "8021",
+    "chainName": "Numi",
+    "chainLogoURI": "",
+    "subnetId": "2nCzBViQ5jxLaxkg9TABx6oXu1UGU7chM7G6XzPvW9ehP8RfrJ",
+    "slug": "numi"
+  },
+  {
+    "chainId": "1188811",
+    "chainName": "Numine",
+    "chainLogoURI": "",
+    "subnetId": "4iDWVgCCSu4Tafpg4bdhxu8q1ap8Rp2hMzG4UPxUhL9UVX6iU",
+    "slug": "numine"
+  },
+  {
+    "chainId": "5041",
+    "chainName": "Omochi",
+    "chainLogoURI": "",
+    "subnetId": "2mBbfPEFbdEqeaBvRLgvmQQA3cG5mbpqbC8fcXCTZaycXZrXDq",
+    "slug": "omochi"
+  },
+  {
+    "chainId": "5040",
+    "chainName": "Onigiri",
+    "chainLogoURI": "",
+    "subnetId": "2QiTdY87qfDRav1pSdxkGMqjRD6YXFscVd64W3L3V8v4re9CCo",
+    "slug": "onigiri"
+  },
+  {
+    "chainId": "58166",
+    "chainName": "Oumla",
+    "chainLogoURI": "",
+    "subnetId": "HXtMMwc6UwS8zK1G3kA9u6NGtUHrm56cnPm2WZBCU1bs2hHsM",
+    "slug": "oumla"
+  },
+  {
+    "chainId": "3011",
+    "chainName": "Playa3ull",
+    "chainLogoURI": "",
+    "subnetId": "2wLe8Ma7YcUmxMJ57JVWETMSHz1mjXmJc5gmssvKm3Pw8GkcFq",
+    "slug": "playa3ull"
+  },
+  {
+    "chainId": "504441",
+    "chainName": "Playdappne",
+    "chainLogoURI": "",
+    "subnetId": "2bSdrPJaGvsDFeJtC7v9ut4m2vLKBgs2dJzRsDpxYKbqTyBmr9",
+    "slug": "playdappne"
+  },
+  {
+    "chainId": "1080",
+    "chainName": "Playthink",
+    "chainLogoURI": "",
+    "subnetId": "T6XNCf5qHYhJigDcGtjTaGvfiQGRW8JVXTyPza9eZBfCGyDF",
+    "slug": "playthink"
+  },
+  {
+    "chainId": "16180",
+    "chainName": "PLYR",
+    "chainLogoURI": "",
+    "subnetId": "axp7DUSPvFghTM883ug2B8btAReBAACxD1VyENmRDStH4Lfed",
+    "slug": "plyr"
+  },
+  {
+    "chainId": "357",
+    "chainName": "Pulsar",
+    "chainLogoURI": "",
+    "subnetId": "DxanjptkyaeM1eUew2gzUMngHM3n5ttUyMj7BuHw9riXh9pJC",
+    "slug": "pulsar"
+  },
+  {
+    "chainId": "12150",
+    "chainName": "Quboid Chain",
+    "chainLogoURI": "",
+    "subnetId": "26wQKuvA5kjwrKDaje7nmuJAx6Ke2bGvDDr3EiypNr53rH1pMc",
+    "slug": "qchain"
+  },
+  {
+    "chainId": "2044",
+    "chainName": "Shrapnel",
+    "chainLogoURI": "",
+    "subnetId": "Cv1gyKNUtPNAtFw8YcjbsD4a3HNRbNvinY7t2gnGK4J54rQK3",
+    "slug": "shrapnel"
+  },
+  {
+    "chainId": "6119",
+    "chainName": "SK Planet",
+    "chainLogoURI": "",
+    "subnetId": "yDxaSh2hoVxQKRHmacV1xFpuSgHf6Q6cCMu4v3GoLQnqQWk6L",
+    "slug": "skplanet"
+  },
+  {
+    "chainId": "9899",
+    "chainName": "Solert",
+    "chainLogoURI": "",
+    "subnetId": "2An23jRoEGZc5Fr9CQSw4vNnBRDX5Y56F27ChYz9Sa5Bg8L6JK",
+    "slug": "solert"
+  },
+  {
+    "chainId": "8227",
+    "chainName": "Space",
+    "chainLogoURI": "",
+    "subnetId": "hkugVjqegihrQcggCnScNW8yQctyY7Z7oj2Mj5tGxWGXNa5iQ",
+    "slug": "space"
+  },
+  {
+    "chainId": "1234",
+    "chainName": "Step Network",
+    "chainLogoURI": "",
+    "subnetId": "7f9jciLEX25NPJEaAz1X7XF44B1Q9UBwq6PdnCHm5mnUq1e1C",
+    "slug": "stepnetwork"
+  },
+  {
+    "chainId": "5566",
+    "chainName": "StraitsX",
+    "chainLogoURI": "",
+    "subnetId": "2W9sERL7Zf7NrWpz7Bzg3fKSEt46gSQaKAU7ntTMSShLy64yMz",
+    "slug": "straitsx"
+  },
+  {
+    "chainId": "62707",
+    "chainName": "Tele1",
+    "chainLogoURI": "",
+    "subnetId": "V9cD5JH4TYcw9241zgxrXXEj3k3rZJJLNL2UEPv5ujDip1m3m",
+    "slug": "tele1"
+  },
+  {
+    "chainId": "70953",
+    "chainName": "Tele2",
+    "chainLogoURI": "",
+    "subnetId": "2BNnJuF7QiSjnEhvRStKE6ksugnAyF1e42j3u6VWMCL4c8D3bJ",
+    "slug": "tele2"
+  },
+  {
+    "chainId": "61587",
+    "chainName": "TGP",
+    "chainLogoURI": "",
+    "subnetId": "2eq3DtJp4cWzvGd8Q3ZFo8VpZmmD235Xoxgq6CmX8anZ69M54",
+    "slug": "tgp"
+  },
+  {
+    "chainId": "710420",
+    "chainName": "Tiltyard",
+    "chainLogoURI": "",
+    "subnetId": "23LsHpx3wTPtNC4PUaTdtNQkaGbLxwiGimnZjHaUc28qLHs7Dn",
+    "slug": "tiltyard"
+  },
+  {
+    "chainId": "84358",
+    "chainName": "Titan",
+    "chainLogoURI": "",
+    "subnetId": "2LbGgyVZE5aMMYPp3h1F2MkKbjefR51nSZWaZzarDZf8GThCcX",
+    "slug": "titan"
+  },
+  {
+    "chainId": "13790",
+    "chainName": "Tixchain",
+    "chainLogoURI": "",
+    "subnetId": "2BLtazsGwYAFEHpvZQGQUPavjQZ2YUqpvfYPdAdTtKpJ1m3eRK",
+    "slug": "tixchain"
+  },
+  {
+    "chainId": "21024",
+    "chainName": "TRX",
+    "chainLogoURI": "",
+    "subnetId": "JD8MbaUp75twdVJ7A4j2ryk7gFJ8FCgQeNLhvDv3y4up9bExp",
+    "slug": "trx"
+  },
+  {
+    "chainId": "40875",
+    "chainName": "V1Migrate",
+    "chainLogoURI": "",
+    "subnetId": "kf1sMrGJSA2x9yZfvjBJCHu3ZdTievrCyrbEEPKXbHMH2tXuA",
+    "slug": "v1migrate"
+  },
+  {
+    "chainId": "98968",
+    "chainName": "Wow",
+    "chainLogoURI": "",
+    "subnetId": "hqqtt4VGmzSACDn2yYxTFMhHu9RpFTECEhbexb4bXu2w6Pxtf",
+    "slug": "wow"
+  },
+  {
+    "chainId": "8888",
+    "chainName": "Xanachain",
+    "chainLogoURI": "",
+    "subnetId": "ii7zCu8JNnYYgPT8PwpVYiTS1gcK5RWJfsyuPXTDv8Bn9wspY",
+    "slug": "xanachain"
+  },
+  {
+    "chainId": "27827",
+    "chainName": "Zeroone",
+    "chainLogoURI": "",
+    "subnetId": "nKJuE11HePLrmp391sfoFVqZR7Fw5VJ1XjyznsogsjebxwiAg",
+    "slug": "zeroonemainnet"
+  }
+]

@@ -1,13 +1,6 @@
 "use client";
 
-import { lazy } from "react";
-
-const PrimaryNetworkNodeSetup = lazy(() => 
-  import("../../../../toolbox/src/toolbox/Nodes/AvalancheGoDockerPrimaryNetwork").then(module => ({
-    default: module.default
-  }))
-);
-
+import PrimaryNetworkNodeSetup from "@/components/toolbox/console/primary-network/AvalancheGoDockerPrimaryNetwork";
 
 export default function Page() {
   return (

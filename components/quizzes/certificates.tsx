@@ -7,7 +7,6 @@ import quizDataImport from '@/components/quizzes/quizData.json';
 import Quiz from '@/components/quizzes/quiz';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Linkedin, Twitter, Award, Share2 } from 'lucide-react';
-import { AwardBadgeWrapper } from './components/awardBadgeWrapper';
 
 interface CertificatePageProps {
   courseId: string;
@@ -117,8 +116,10 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
     }
 
     setIsGenerating(true);
+    let response: Response | undefined;
+
     try {
-      const response = await fetch('/api/generate-certificate', {
+      response = await fetch('/api/generate-certificate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -130,7 +131,14 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate certificate');
+        // Try to get error details from response
+        try {
+          const errorData = await response.json();
+          console.error('Server error details:', errorData);
+          throw new Error(errorData.details || 'Failed to generate certificate');
+        } catch (jsonError) {
+          throw new Error(`Failed to generate certificate (${response.status})`);
+        }
       }
 
       const blob = await response.blob();
@@ -144,7 +152,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error generating certificate:', error);
-      alert('Failed to generate certificate. Please try again.');
+      alert(`Failed to generate certificate: ${(error as Error).message}`);
     } finally {
       setIsGenerating(false);
     }
@@ -177,6 +185,19 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
     return <div>Loading...</div>;
   }
 
+  if (!quizData.courses[courseId]) {
+    return (
+      <div className="max-w-4xl mx-auto p-4">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">Course Not Found</h2>
+          <p className="text-red-600 dark:text-red-300">
+            The course "{courseId}" could not be found. Please check the course ID and try again.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-4">
       {!shouldShowCertificate && chapters.map((chapter) => {
@@ -195,14 +216,14 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
           </div>
         );
       })}
-      
+
       {allQuizzesCompleted && (
         
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
            <AwardBadgeWrapper courseId={courseId} isCompleted={allQuizzesCompleted} />
           <div className="flex items-center justify-center mb-6">
             <Award className="w-16 h-16 text-green-500 mr-4" />
-            <h2 className="text-3xl font-bold text-gray-800 dark:text-white" style={{ fontSize: '2rem', marginTop: '1em'}}>Congratulations!</h2>
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white" style={{ fontSize: '2rem', marginTop: '1em' }}>Congratulations!</h2>
           </div>
           <p className="text-center text-gray-600 dark:text-gray-300 mb-8">
             You've completed all quizzes for the {quizData.courses[courseId].title} course. Claim your certificate now!

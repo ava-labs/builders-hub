@@ -131,12 +131,15 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+yarn.lock
 pnpm-lock.yaml
 package-lock.json
 !next-env.d.ts
 .source
 .vercel
 .env*.local
+
+
 
 
 
@@ -150,6 +153,7 @@ content/docs/api-reference/metrics-api.mdx
 content/docs/api-reference/p-chain/api.mdx
 content/docs/api-reference/subnet-evm-api.mdx
 content/docs/api-reference/x-chain/api.mdx
+content/docs/avalanche-l1s/evm-configuration/warpmessenger.mdx
 content/docs/avalanche-l1s/validator-manager/contract.mdx
 content/docs/cross-chain/avalanche-warp-messaging/deep-dive.mdx
 content/docs/cross-chain/avalanche-warp-messaging/evm-integration.mdx
