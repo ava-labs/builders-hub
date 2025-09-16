@@ -51,9 +51,6 @@ export const AmbassadorCard = ({
   description: string;
   onClick: () => void;
 }) => {
-  //   const openInNewTab = (url: string) => {
-  //     window.open(url, "_blank", "noopener,noreferrer");
-  //   };
 
   return (
     <>

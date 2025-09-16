@@ -84,7 +84,13 @@ const AmbasssadorDao = () => {
             <AmbassadorCard
               title='Become a Member'
               description='Reach 70,000+  talent from one single dashboard'
-              onClick={() => setOpenAuthModal(true)}
+              onClick={() =>
+                window.open(
+                  "https://job-boards.greenhouse.io/avalabs",
+                  "_blank",
+                  "noopener,noreferrer"
+                )
+              }
             />
           )}
           {user?.role !== "AMBASSADOR" && (
