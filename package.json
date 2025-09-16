@@ -8,7 +8,9 @@
     "build:remote": "tsx ./utils/remote-content.mts",
     "start": "pnpm build:remote && next build && next start",
     "check-links": "tsx .github/linkChecker.ts",
-    "postinstall": "prisma generate && fumadocs-mdx && node ./scripts/update_docker_tags.mjs"
+    "postinstall": "prisma generate && fumadocs-mdx && node ./scripts/update_docker_tags.mjs",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
@@ -134,6 +136,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4.0.9",
     "@tailwindcss/typography": "^0.5.16",
     "@types/mdx": "^2.0.13",
@@ -142,6 +145,8 @@
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "dotenv": "^16.4.7",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.7",
     "postcss": "^8.5.3",
     "prisma": "^6.4.1",
     "tailwindcss": "^4.0.9",
