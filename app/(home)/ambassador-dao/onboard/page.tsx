@@ -336,7 +336,6 @@ const TalentForm = () => {
       },
       {
         onSuccess: () => {
-          console.log("success");
           if (isEditProfilePage) {
             return;
           } else {

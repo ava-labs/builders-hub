@@ -67,12 +67,10 @@ axiosInstance.interceptors.response.use(
     // Check if it's one of the passcode endpoints first
     if (isPasscodeUrl(originalUrl) && error.response?.status === 401) {
       // Just return the error as is without refresh token attempts or page redirects
-      console.log("Handling 401 from passcode endpoint");
       return Promise.reject(error);
     }
 
     if (isRefreshTokenUrl(originalUrl)) {
-      console.log("Silently handling refresh token error");
       window.location.href = "/";
       return Promise.reject(new Error("Session expired"));
     }

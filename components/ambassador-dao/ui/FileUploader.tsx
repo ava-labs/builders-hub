@@ -132,7 +132,6 @@ const FileUploader: React.FC<FileUploaderProps> = ({
             <X
               onClick={(e) => {
                   e.stopPropagation()
-                  console.log("removeFile", previewUrl);
                   removeFile?.(previewUrl)
               }}
               className="h-4 w-4 flex justify-end absolute right-0 top-0 z-50"
