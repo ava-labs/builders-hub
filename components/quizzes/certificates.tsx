@@ -63,6 +63,10 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       }));
       setQuizzes(quizzesWithChapters);
       setTotalQuizzes(courseQuizzes.length);
+      // If no quizzes found, set loading to false to prevent infinite loading
+      if (courseQuizzes.length === 0) {
+        setIsLoading(false);
+      }
     };
 
     fetchQuizzes();
@@ -76,7 +80,6 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
           return response && response.isCorrect ? quiz.id : null;
         })
       );
-  
       const completedIds = completed.filter((id): id is string => id !== null);
       setCompletedQuizzes(completedIds);
       setCorrectlyAnsweredQuizzes(completedIds.length);
@@ -88,22 +91,21 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
     }
   }, [quizzes]);
 
-  
   useEffect(() => {
     if (totalQuizzes > 0 && correctlyAnsweredQuizzes === totalQuizzes) {
-      
-       setShouldShowCertificate(true);
 
-       setTimeout(() => {
-     
-       }, 3000);
+      setShouldShowCertificate(true);
+
+      setTimeout(() => {
+
+      }, 3000);
     }
   }, [correctlyAnsweredQuizzes, totalQuizzes]);
-  
+
   const handleQuizCompleted = (quizId: string) => {
     if (!completedQuizzes.includes(quizId)) {
-       setCompletedQuizzes(prev => [...prev, quizId]);
-       setCorrectlyAnsweredQuizzes(prev => prev + 1);
+      setCompletedQuizzes(prev => [...prev, quizId]);
+      setCorrectlyAnsweredQuizzes(prev => prev + 1);
     }
   };
 
@@ -202,7 +204,6 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
     <div className="max-w-4xl mx-auto p-4">
       {!shouldShowCertificate && chapters.map((chapter) => {
         const chapterQuizzes = quizzesByChapter[chapter];
-       
         return (
           <div key={chapter} className="mb-8">
             <h3 className="text-xl font-medium mb-4">{chapter}</h3>
@@ -218,9 +219,8 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       })}
 
       {allQuizzesCompleted && (
-        
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
-           <AwardBadgeWrapper courseId={courseId} isCompleted={allQuizzesCompleted} />
+          <AwardBadgeWrapper courseId={courseId} isCompleted={allQuizzesCompleted} />
           <div className="flex items-center justify-center mb-6">
             <Award className="w-16 h-16 text-green-500 mr-4" />
             <h2 className="text-3xl font-bold text-gray-800 dark:text-white" style={{ fontSize: '2rem', marginTop: '1em' }}>Congratulations!</h2>
@@ -280,6 +280,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
           </div>
         </div>
       )}
+      
       {!allQuizzesCompleted && (
         <div className="mt-12 bg-muted rounded-lg shadow-lg p-8">
           <Share2 className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
