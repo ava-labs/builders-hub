@@ -41,12 +41,15 @@ const isRefreshTokenUrl = (url: string | undefined): boolean => {
 // Fix this function to properly check for either endpoint
 const isPasscodeUrl = (url: string | undefined): boolean => {
   if (!url) return false;
-  return url.includes(VERIFY_PASSCODE_ENDPOINT) || url.includes(REQUEST_PASSCODE_ENDPOINT);
+  return (
+    url.includes(VERIFY_PASSCODE_ENDPOINT) ||
+    url.includes(REQUEST_PASSCODE_ENDPOINT)
+  );
 };
 
 refreshAxiosInstance.interceptors.response.use(
-  response => response,
-  error => Promise.reject(error)
+  (response) => response,
+  (error) => Promise.reject(error)
 );
 
 axiosInstance.interceptors.request.use(
@@ -75,10 +78,7 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(new Error("Session expired"));
     }
 
-    if (
-      error.response?.status !== 401 ||
-      originalRequest._retry
-    ) {
+    if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
     }
 
@@ -103,7 +103,7 @@ axiosInstance.interceptors.response.use(
       return axiosInstance(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError);
-      
+
       window.location.href = "/";
       return Promise.reject(new Error("Session expired"));
     } finally {
