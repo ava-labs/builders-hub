@@ -11,7 +11,6 @@ import axiosInstance from "./axios";
 import axios from "axios";
 
 export const useFetchOpportunity = (filters = {}) => {
-  console.log(filters);
   return useQuery({
     queryKey: ["opportunity", filters],
     queryFn: async () => {
@@ -86,8 +85,7 @@ export const useSubmitOpportunityComment = (opportunity_id: string) => {
       );
       return res.data as any;
     },
-    onSuccess: (data) => {
-      console.log(data);
+    onSuccess: () => {
       queryclient.invalidateQueries({ queryKey: ["opportunity-comments"] });
     },
     onError: (err) => errorMsg(err),
@@ -106,8 +104,7 @@ export const useEditOpportunityComment = (comment_id: string) => {
       );
       return res.data as any;
     },
-    onSuccess: (data) => {
-      console.log(data);
+    onSuccess: () => {
       queryclient.invalidateQueries({ queryKey: ["opportunity-comments"] });
     },
     onError: (err) => errorMsg(err),
@@ -127,7 +124,6 @@ export const useReplyOpportunityComment = (opportunity_id: string) => {
       return res.data as any;
     },
     onSuccess: (data) => {
-      console.log(data);
       queryclient.invalidateQueries({
         queryKey: ["opportunity-comments-replies"],
       });
@@ -165,8 +161,7 @@ export const useDeleteOpportunityComment = (comment_id: string) => {
       );
       return res.data as any;
     },
-    onSuccess: (data) => {
-      console.log(data);
+    onSuccess: () => {
       queryclient.invalidateQueries({ queryKey: ["opportunity-comments"] });
     },
     onError: (err) => errorMsg(err),

@@ -4,13 +4,13 @@ import { Upload, X, FileText, Loader2 } from "lucide-react";
 type FileUploaderProps = {
   files?: File[] | File | null;
   setFiles?: React.Dispatch<React.SetStateAction<File[]>>;
-  handleFileUpload: any
+  handleFileUpload: any;
   removeFile?: any;
-  
+
   singleFile?: boolean;
   previewUrl?: string | null;
   fileName?: string;
-  
+
   isUploading?: boolean;
   accept: string;
   maxFiles?: number;
@@ -45,7 +45,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   maxSize = "Max 1 MB files are allowed",
   allowedFileTypes,
   height = "h-32",
-  fileSize
+  fileSize,
 }) => {
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -70,35 +70,35 @@ const FileUploader: React.FC<FileUploaderProps> = ({
     if (!files || !Array.isArray(files) || files.length === 0) return null;
 
     return (
-      <div className="w-full mb-4">
+      <div className='w-full mb-4'>
         {files.map((file, index) => (
           <div
             key={index}
-            className="flex items-center justify-between p-3 border border-[var(--default-border-color)] rounded-md mb-2"
+            className='flex items-center justify-between p-3 border border-[var(--default-border-color)] rounded-md mb-2'
           >
-            <div className="flex items-center">
+            <div className='flex items-center'>
               <FileText
-                className="h-5 w-5 mr-2"
-                color="var(--white-text-color)"
+                className='h-5 w-5 mr-2'
+                color='var(--white-text-color)'
               />
-              <div className="text-sm">
-                <p className="text-[var(--primary-text-color)] font-medium">
+              <div className='text-sm'>
+                <p className='text-[var(--primary-text-color)] font-medium'>
                   {file.name}
                 </p>
-                <p className="text-xs text-[var(--secondary-text-color)]">
+                <p className='text-xs text-[var(--secondary-text-color)]'>
                   {Math.round(file.size / 1024)}kb
                 </p>
               </div>
             </div>
             <button
-              type="button"
+              type='button'
               onClick={(e) => {
                 e.stopPropagation();
                 removeFile(index);
               }}
-              className="text-gray-500 hover:text-gray-700"
+              className='text-gray-500 hover:text-gray-700'
             >
-              <X className="h-4 w-4" color="var(--white-text-color)" />
+              <X className='h-4 w-4' color='var(--white-text-color)' />
             </button>
           </div>
         ))}
@@ -111,37 +111,36 @@ const FileUploader: React.FC<FileUploaderProps> = ({
 
     return (
       <div
-        className="rounded-md my-2 flex flex-col border border-[var(--default-border-color)] p-3 text-sm cursor-pointer"
+        className='rounded-md my-2 flex flex-col border border-[var(--default-border-color)] p-3 text-sm cursor-pointer'
         onClick={() => document.getElementById(inputId)?.click()}
       >
         {previewUrl && (
-          <div className="rounded flex items-center overflow-hidden relative">
-            <div className="flex gap-3">
+          <div className='rounded flex items-center overflow-hidden relative'>
+            <div className='flex gap-3'>
               <img
                 src={previewUrl}
-                alt="File preview"
-                className="object-cover w-12 h-12 rounded-full"
+                alt='File preview'
+                className='object-cover w-12 h-12 rounded-full'
               />
-              <div className="flex flex-col">
-                <span className="truncate">{fileName}</span>
-                <p className="text-xs text-left text-[var(--secondary-text-color)]">
+              <div className='flex flex-col'>
+                <span className='truncate'>{fileName}</span>
+                <p className='text-xs text-left text-[var(--secondary-text-color)]'>
                   {fileSize && `${Math.round(fileSize / 1024)}kb`}
                 </p>
               </div>
             </div>
             <X
               onClick={(e) => {
-                  e.stopPropagation()
-                  console.log("removeFile", previewUrl);
-                  removeFile?.(previewUrl)
+                e.stopPropagation();
+                removeFile?.(previewUrl);
               }}
-              className="h-4 w-4 flex justify-end absolute right-0 top-0 z-50"
-              color="var(--white-text-color)"
+              className='h-4 w-4 flex justify-end absolute right-0 top-0 z-50'
+              color='var(--white-text-color)'
             />
             <input
-              type="file"
+              type='file'
               accept={accept}
-              className="hidden"
+              className='hidden'
               id={inputId}
               onChange={(e) => {
                 if (e.target.files && e.target.files.length > 0) {
@@ -150,8 +149,6 @@ const FileUploader: React.FC<FileUploaderProps> = ({
                 }
               }}
             />
-
-         
           </div>
         )}
       </div>
@@ -176,23 +173,23 @@ const FileUploader: React.FC<FileUploaderProps> = ({
       >
         {isUploading ? (
           <Loader2
-            className="animate-spin"
+            className='animate-spin'
             size={24}
-            color="var(--white-text-color)"
+            color='var(--white-text-color)'
           />
         ) : (
           <>
             <Upload
               size={24}
-              className="text-[#6b6b74] dark:text-[#A1A1AA] mb-2"
-              color="var(--white-text-color)"
+              className='text-[#6b6b74] dark:text-[#A1A1AA] mb-2'
+              color='var(--white-text-color)'
             />
-            <p className="text-sm text-[#6b6b74] dark:text-[#A1A1AA]">
+            <p className='text-sm text-[#6b6b74] dark:text-[#A1A1AA]'>
               Drag your file(s) or{" "}
               <input
-                type="file"
+                type='file'
                 accept={accept}
-                className="hidden"
+                className='hidden'
                 id={inputId}
                 multiple={!singleFile}
                 onChange={(e) => {
@@ -209,14 +206,14 @@ const FileUploader: React.FC<FileUploaderProps> = ({
               />
               <label
                 htmlFor={inputId}
-                className="text-[var(--primary-text-color)] underline cursor-pointer ml-1"
+                className='text-[var(--primary-text-color)] underline cursor-pointer ml-1'
                 onClick={(e) => e.stopPropagation()}
               >
                 browse
               </label>
             </p>
             {(maxSize || allowedFileTypes) && (
-              <p className="text-xs text-[#6b6b74] dark:text-[#A1A1AA] mt-1">
+              <p className='text-xs text-[#6b6b74] dark:text-[#A1A1AA] mt-1'>
                 {maxSize} {allowedFileTypes ? `(${allowedFileTypes})` : ""}
               </p>
             )}
@@ -227,22 +224,22 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   };
 
   return (
-    <div className="mb-6">
+    <div className='mb-6'>
       {label && (
-        <label className="block text-sm">
+        <label className='block text-sm'>
           {label}
-          {required && <span className="text-[#FB2C36]">*</span>}
+          {required && <span className='text-[#FB2C36]'>*</span>}
         </label>
       )}
 
       {recommendedSize && (
-        <p className="text-xs text-[#6b6b74] dark:text-[#A1A1AA] mb-2">
+        <p className='text-xs text-[#6b6b74] dark:text-[#A1A1AA] mb-2'>
           {recommendedSize}
         </p>
       )}
 
       {description && (
-        <p className="text-xs text-[#6b6b74] dark:text-[#A1A1AA] mb-2">
+        <p className='text-xs text-[#6b6b74] dark:text-[#A1A1AA] mb-2'>
           {description}
         </p>
       )}
