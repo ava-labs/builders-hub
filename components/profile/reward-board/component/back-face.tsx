@@ -1,6 +1,5 @@
 import * as React from "react";
 import { Text } from "@react-three/drei";
-import * as THREE from "three";
 
 export function BackFace({
   name,
@@ -27,7 +26,16 @@ export function BackFace({
       
       <mesh position={[0, 0, -0.010]}>
         <circleGeometry args={[plateRadius, DISC.segments]} />
-        <meshStandardMaterial color={"#3f3f46"} toneMapped={false}   />
+        {/* <meshBasicMaterial color={"#999B9B"} toneMapped={false} 
+        /> */}
+          <meshPhysicalMaterial
+          roughness={0.7}
+          metalness={0.85}
+          envMapIntensity={0.5}
+          color={"#999B9B"}
+          clearcoat={0.1}
+          clearcoatRoughness={0.2}
+        />
       </mesh>
 
 
@@ -47,9 +55,9 @@ export function BackFace({
         sdfGlyphSize={128}
         glyphGeometryDetail={16}
         material-toneMapped={false}
-        // 👉 medimos la altura real del bloque
+        
         onSync={(troika: any) => {
-          // blockBounds: [minX, minY, maxX, maxY]
+        
           const b = troika.textRenderInfo?.blockBounds;
           if (b) {
             const h = b[3] - b[1]; // maxY - minY
@@ -61,7 +69,7 @@ export function BackFace({
         {name}
       </Text>
 
-      {/* DESCRIPCIÓN: va justo debajo del título medido */}
+      
       {description && (
         <Text
           position={[0, TITLE_TOP_Y - titleHeight - GAP_Y, -0.0082]}
