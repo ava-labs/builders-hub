@@ -4,18 +4,12 @@ import { Canvas } from "@react-three/fiber";
 import { Html, useTexture,Text  } from "@react-three/drei";
 import * as THREE from "three";
 import type { BadgeCardProps } from "../types/badgeCard";
-import { BackFaceText } from "./back-face";
+import { BackFace } from "./back-face";
+import { CircularFrame } from "./circular-frame";
 
-// ===== Tamaños afinados para "medalla" =====
-const FRAME = {
-  majorRadius: 1.0, // radio del aro
-  tubeRadius: 0.1, // grosor del aro
-  tubularSegments: 80,
-  radialSegments: 26,
-};
 const DISC = {
   radius: 0.92, // radio del disco (imagen)
-  segments: 96,
+  segments: 90,
 };
 type DragState = { x: number; y: number; rx: number; ry: number } | null;
 
@@ -23,7 +17,7 @@ type DragState = { x: number; y: number; rx: number; ry: number } | null;
 function ImageDisc({ url, isUnlocked }: { url: string; isUnlocked: boolean }) {
   const texture = useTexture(url);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 8;
+  texture.anisotropy = 2;
 
   return (
     <mesh position={[0, 0, 0.01]}>
@@ -42,29 +36,7 @@ function ImageDisc({ url, isUnlocked }: { url: string; isUnlocked: boolean }) {
   );
 }
 
-// ---------- Aro con grosor ----------
-function CircularFrame({ color = "#999B9B" }: { color?: string }) {
-  return (
-    <mesh>
-      <torusGeometry
-        args={[
-          FRAME.majorRadius,
-          FRAME.tubeRadius,
-          FRAME.radialSegments,
-          FRAME.tubularSegments,
-        ]}
-      />
-      <meshPhysicalMaterial
-        roughness={0.35}
-        metalness={0.85}
-        envMapIntensity={1.0}
-        color={color}
-        clearcoat={0.6}
-        clearcoatRoughness={0.25}
-      />
-    </mesh>
-  );
-}
+
 export const RewardCard = ({
   name,
   description,
@@ -76,7 +48,7 @@ export const RewardCard = ({
   const groupRef = useRef<THREE.Group | null>(null);
   const dragging = useRef<DragState>(null);
   const [baseRot, setBaseRot] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [_, force] = useState(0);
+  const [, force] = useState(0);
 
   const sensitivity = 0.008;
   const maxTilt = Math.PI / 5;
@@ -98,8 +70,8 @@ export const RewardCard = ({
     if (!dragging.current) return;
     const dx = e.clientX - dragging.current.x;
     const dy = e.clientY - dragging.current.y;
-    const nextY = dragging.current.ry + dx * sensitivity;
-    const nextX = dragging.current.rx - dy * sensitivity;
+    const nextY = dragging.current.ry + dx * sensitivity; // yaw
+    const nextX = dragging.current.rx - dy * sensitivity; // pitch
     const clampedX = Math.max(-maxTilt, Math.min(maxTilt, nextX));
     setBaseRot({ x: clampedX, y: nextY });
     force((t) => t + 1);
@@ -108,17 +80,24 @@ export const RewardCard = ({
     (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
     dragging.current = null;
   };
-  
-  const wrapperHeight = 320;
+  const norm = (a: number) => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  const yaw = norm(baseRot.y);
+  const backVisible = yaw > Math.PI / 2 && yaw < (3 * Math.PI) / 2;
+
+  const wrapperHeight = 280;
+  const totalPoints =
+    requirements?.reduce((acc: number, r: any) => acc + Number(r.points ?? 0), 0) ?? 0;
 
   return (
-    <div className={`w-full max-w-sm mx-auto ${className ?? ""}`} style={{ userSelect: "none" }}>
+    <div className={`w-full max-w-sm mx-auto mb-0 pb-0 ${className ?? ""}`} style={{ userSelect: "none" }}>
       <div
         style={{
           width: "100%",
           height: wrapperHeight,
           cursor: dragging.current ? "grabbing" : "grab",
           touchAction: "none",
+          filter:"none",
+          WebkitFilter: "none",
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -127,9 +106,10 @@ export const RewardCard = ({
       >
         <Canvas
           camera={{ position: [0, 0, 4.1], fov: 45 }}
-          gl={{ antialias: true, alpha: true }}
+          gl={{ antialias: true, alpha: true,outputColorSpace: THREE.SRGBColorSpace,toneMapping: THREE.ACESFilmicToneMapping,toneMappingExposure: 1.0 }}
           style={{ background: "transparent" }}
         >
+          
           <ambientLight intensity={0.85} />
           <directionalLight position={[2.2, 3, 5]} intensity={1.15} />
           <directionalLight position={[-3, -2, -4]} intensity={0.45} />
@@ -141,13 +121,36 @@ export const RewardCard = ({
             }}
           >
             <CircularFrame color="#999B9B" />
-            {/* Frente: disco con imagen */}
             <ImageDisc url={image} isUnlocked={!!is_unlocked} />
+            {backVisible && <BackFace name={name} description={description} DISC={DISC} />}
 
-   
           </group>
         </Canvas>
       </div>
+
+      {requirements && requirements.length > 0 && (
+        <div className="mt-1 rounded-xl border border-zinc-700/50 bg-zinc-900/60 p-3 text-sm text-zinc-200">
+          <div className="font-semibold mb-2">Requirements</div>
+          <ul className="space-y-1.5">
+            {requirements.map((r) => (
+              <li key={String(r.id)} className="flex items-start gap-2">
+                <span className="mt-1 inline-block w-1.5 h-1.5 rounded-full bg-gradient-to-r from-red-500 to-zinc-600" />
+                <span
+                  className={r.unlocked ? "line-through " : ""}
+                  title={r.description}
+                >
+                  {r.description}: <b>{Number(r.points ?? 0)} pts</b>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="h-px my-2 bg-zinc-700/60" />
+          <div>
+            <span className="font-semibold">Total: </span>
+            <span className="font-bold">{totalPoints} pts</span>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+}
