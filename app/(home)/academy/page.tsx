@@ -16,7 +16,7 @@ export const metadata: Metadata = createMetadata({
       alt: 'Avalanche Academy',
     },
   },
-  twitter: {
+  X: {
     images: {
       url: '/api/og/academy',
       width: 1200,

@@ -57,7 +57,7 @@ export async function generateMetadata({
       openGraph: {
         images: `/api/og/hackathons/${id}`,
       },
-      twitter: {
+      X: {
         images: `/api/og/hackathons/${id}`,
       },
     });

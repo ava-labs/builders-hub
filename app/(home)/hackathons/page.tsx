@@ -13,7 +13,7 @@ export const metadata: Metadata = createMetadata({
   openGraph: {
     images: '/api/og/hackathons',
   },
-  twitter: {
+  X: {
     images: '/api/og/hackathons',
   },
 });

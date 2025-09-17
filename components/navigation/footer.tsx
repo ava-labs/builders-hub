@@ -61,7 +61,7 @@ export function Footer() {
               <FooterLink href="https://medium.com/@avaxdevelopers" external>Medium</FooterLink>
               <FooterLink href="https://www.youtube.com/@Avalancheavax" external>Youtube</FooterLink>
               <FooterLink href="https://t.me/+KDajA4iToKY2ZjBk" external>Telegram</FooterLink>
-              <FooterLink href="https://twitter.com/AvaxDevelopers" external>Twitter</FooterLink>
+              <FooterLink href="https://x.com/AvaxDevelopers" external>X</FooterLink>
               <FooterLink href="https://www.avax.network/blog" external>Blog</FooterLink>
               <FooterLink href="https://www.linkedin.com/company/avalancheavax" external>LinkedIn</FooterLink>
             </div>

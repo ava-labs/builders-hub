@@ -1,7 +1,7 @@
 type Instructor = {
     name: string;
     title: string;
-    twitter: string;
+    x: string;
     linkedin: string;
     github: string;
 };
@@ -11,7 +11,7 @@ const instructors: Instructor[] = [
         name: "Martin Eckardt",
         title: "Sr. Director of Developer Relations",
 
-        twitter: "https://x.com/martin_eckardt",
+        x: "https://x.com/martin_eckardt",
         linkedin: "https://www.linkedin.com/in/eckardt/",
         github: "https://github.com/martineckardt",
     },
@@ -19,7 +19,7 @@ const instructors: Instructor[] = [
         name: "Andrea Vargas",
         title: "Sr. Developer Relations Engineer",
 
-        twitter: "https://x.com/Andyvargtz",
+        x: "https://x.com/Andyvargtz",
         linkedin: "https://www.linkedin.com/in/andyvargtz/",
         github: "https://github.com/andyvargtz",
     },
@@ -27,7 +27,7 @@ const instructors: Instructor[] = [
         name: "Ash",
         title: "Developer Relations Engineer",
 
-        twitter: "https://x.com/ashngmi",
+        x: "https://x.com/ashngmi",
         linkedin: "https://www.linkedin.com/in/andyvargtz/",
         github: "https://github.com/ashucoder9",
     },
@@ -35,7 +35,7 @@ const instructors: Instructor[] = [
         name: "Owen Wahlgren",
         title: "Developer Relations Engineer",
 
-        twitter: "https://x.com/owenwahlgren",
+        x: "https://x.com/owenwahlgren",
         linkedin: "https://www.linkedin.com/in/owenwahlgren/",
         github: "https://github.com/owenwahlgren",
     },
@@ -43,7 +43,7 @@ const instructors: Instructor[] = [
         name: "Sarp",
         title: "Sr. Developer Relations Engineer",
 
-        twitter: "https://x.com/satatocom",
+        x: "https://x.com/satatocom",
         linkedin: "https://www.linkedin.com/in/sarptaylan/",
         github: "https://github.com/0xstt",
     },
@@ -51,7 +51,7 @@ const instructors: Instructor[] = [
         name: "Aaron Buchwald",
         title: "HyperSDK Lead Engineer",
 
-        twitter: "https://x.com/AaronBuchwald",
+        x: "https://x.com/AaronBuchwald",
         linkedin: "",
         github: "",
     },
@@ -59,7 +59,7 @@ const instructors: Instructor[] = [
         name: "Ilya",
         title: "Sr. Developer Relations Engineer",
 
-        twitter: "https://x.com/containerman17",
+        x: "https://x.com/containerman17",
         linkedin: "",
         github: "",
     },
@@ -67,7 +67,7 @@ const instructors: Instructor[] = [
         name: "Rodrigo Villar",
         title: "Developer Relations Engineer",
 
-        twitter: "https://x.com/rrodrigovillar",
+        x: "https://x.com/rrodrigovillar",
         linkedin: "",
         github: "",
     },
@@ -75,7 +75,7 @@ const instructors: Instructor[] = [
         name: "Nicolas Arnedo",
         title: "Developer Relations Engineer",
 
-        twitter: "https://x.com/navilla_eth",
+        x: "https://x.com/navilla_eth",
         linkedin: "https://www.linkedin.com/in/nicolasarnedo/",
         github: "https://github.com/navillanueva",
     },
@@ -83,7 +83,7 @@ const instructors: Instructor[] = [
         name: "Michael Martin",
         title: "Codebase Director",
 
-        twitter: "https://x.com/mmartinxyz",
+        x: "https://x.com/mmartinxyz",
         linkedin: "https://www.linkedin.com/in/michaeltmartin/",
         github: "",
     },
@@ -91,7 +91,7 @@ const instructors: Instructor[] = [
         name: "Doro Unger-Lee",
         title: "Senior Developer Relations",
 
-        twitter: "https://x.com/doroungerlee",
+        x: "https://x.com/doroungerlee",
         linkedin: "https://www.linkedin.com/in/doro-unger-lee/",
         github: "",
     },

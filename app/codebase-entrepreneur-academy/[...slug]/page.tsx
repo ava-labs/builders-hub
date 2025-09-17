@@ -64,7 +64,7 @@ export default async function Page(props: {
               <div>Instructors:</div>
               <Instructors names={course?.instructors || []} />
             </div>
-            <Link href="https://t.me/codebaseacademy" target='_blank' className={cn(buttonVariants({ size: 'lg', variant: 'secondary' }))}>
+            <Link href="https://t.me/avalancheacademy" target='_blank' className={cn(buttonVariants({ size: 'lg', variant: 'secondary' }))}>
               Join Telegram Course Chat
             </Link>
           </div>

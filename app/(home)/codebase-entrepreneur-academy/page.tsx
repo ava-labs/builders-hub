@@ -17,7 +17,7 @@ export const metadata: Metadata = createMetadata({
             alt: 'Codebase Entrepreneur Academy',
         },
     },
-    twitter: {
+    X: {
         images: {
             url: '/api/og/codebase-entrepreneur-academy',
             width: 1200,

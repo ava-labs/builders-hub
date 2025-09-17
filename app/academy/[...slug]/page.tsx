@@ -166,7 +166,7 @@ export async function generateMetadata(props: {
       url: `/academy/${page.slugs.join('/')}`,
       images: image,
     },
-    twitter: {
+    X: {
       images: image,
     },
   });

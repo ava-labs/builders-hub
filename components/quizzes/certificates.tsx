@@ -197,7 +197,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
 
   const shareOnTwitter = () => {
     const text = `I just completed the ${quizData.courses[courseId].title} course on Avalanche Academy!`;
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
+    const url = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
     window.open(url, '_blank');
   };
 
@@ -314,7 +314,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
                 onClick={shareOnTwitter}
               >
                 <Twitter className="mr-2 h-5 w-5" />
-                Twitter
+                X
               </button>
             </div>
           </div>

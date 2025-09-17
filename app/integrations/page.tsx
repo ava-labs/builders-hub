@@ -18,7 +18,7 @@ export const metadata: Metadata = createMetadata({
       alt: 'Integrations with Avalanche',
     },
   },
-  twitter: {
+  X: {
     images: {
       url: '/api/og/integrations',
       width: 1200,
