@@ -63,12 +63,3 @@ export function faucetRateLimit(handler: Function, options?: FaucetRateLimitOpti
     }
   };
 }
-
-// Optional cleanup function
-export async function cleanupOldFaucetRateLimits(olderThanDays: number = 7) {
-  const cutoffDate = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
-  const { count } = await prisma.faucetRateLimit.deleteMany({
-    where: { last_request: { lt: cutoffDate } }
-  });
-  return count;
-}
