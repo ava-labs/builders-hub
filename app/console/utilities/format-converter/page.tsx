@@ -1,6 +1,6 @@
 "use client";
 
-import FormatConverter from "@/toolbox/src/toolbox/Conversion/FormatConverter";
+import FormatConverter from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
 
 export default function Page() {
   return (

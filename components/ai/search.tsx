@@ -119,10 +119,10 @@ function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
           type={isLoading ? 'button' : 'submit'}
           className={cn(
             'mb-[7px] mr-2 p-1.5 rounded-lg transition-all shrink-0',
-            isLoading 
-              ? 'bg-fd-background hover:bg-fd-muted text-fd-foreground border border-fd-border' 
-              : input.length > 0 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
+            isLoading
+              ? 'bg-fd-background hover:bg-fd-muted text-fd-foreground border border-fd-border'
+              : input.length > 0
+                ? 'bg-red-600 hover:bg-red-700 text-white'
                 : 'text-fd-muted-foreground cursor-not-allowed hover:text-fd-muted-foreground/70',
           )}
           disabled={!isLoading && input.length === 0}
@@ -223,33 +223,33 @@ const roleIcon: Record<string, ReactElement> = {
 
 function parseFollowUpQuestions(content: string): string[] {
   if (!content) return [];
-  
+
   const match = content.match(/---FOLLOW-UP-QUESTIONS---([\s\S]*?)---END-FOLLOW-UP-QUESTIONS---/);
   if (!match) return [];
-  
+
   const questionsText = match[1].trim();
   const questions = questionsText
     .split('\n')
     .map(line => line.replace(/^\d+\.\s*/, '').trim())
     .filter(q => q.length > 0);
-  
+
   return questions;
 }
 
 function removeFollowUpQuestions(content: string): string {
   if (!content) return '';
-  
+
   // Remove the follow-up questions section and any trailing whitespace
   // Also handle partial matches during streaming
   let cleaned = content
     .replace(/---FOLLOW-UP-QUESTIONS---[\s\S]*?---END-FOLLOW-UP-QUESTIONS---/g, '')
     .replace(/---FOLLOW-UP-QUESTIONS---[\s\S]*$/g, '') // Remove incomplete section at end
     .trim();
-  
+
   return cleaned;
 }
 
-function SuggestedFollowUps({ questions, onQuestionClick }: { 
+function SuggestedFollowUps({ questions, onQuestionClick }: {
   questions: string[];
   onQuestionClick: (question: string) => void;
 }) {
@@ -288,14 +288,14 @@ function SuggestedFollowUps({ questions, onQuestionClick }: {
 }
 
 // Extract tool references from message content
-function extractToolReferences(content: string): string[] {
-  const toolPattern = /tools\/l1-toolbox#(\w+)/g;
-  const matches = content.matchAll(toolPattern);
-  return Array.from(matches, m => m[1]);
-}
+// function extractToolReferences(content: string): string[] {
+//   const toolPattern = /tools\/l1-toolbox#(\w+)/g;
+//   const matches = content.matchAll(toolPattern);
+//   return Array.from(matches, m => m[1]);
+// }
 
-function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReference }: { 
-  message: Message; 
+function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReference }: {
+  message: Message;
   isLast: boolean;
   onFollowUpClick: (question: string) => void;
   isStreaming?: boolean;
@@ -303,33 +303,33 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
 }) {
   const isUser = message.role === 'user';
   const isMobile = useIsMobile();
-  
+
   // Parse content immediately - this should happen synchronously
   const cleanContent = isUser ? message.content : removeFollowUpQuestions(message.content);
   const followUpQuestions = isUser ? [] : parseFollowUpQuestions(message.content);
-  
+
   // Extract tool references from AI responses - only on desktop
   const [detectedTools, setDetectedTools] = useState<string[]>([]);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
-  
-  useEffect(() => {
-    if (!isUser && !isStreaming && !isMobile) {
-      const toolRefs = extractToolReferences(message.content);
-      // Only keep unique tool references
-      const uniqueTools = Array.from(new Set(toolRefs));
-      setDetectedTools(uniqueTools);
-      
-      // Always auto-open the first tool reference if we haven't already
-      if (uniqueTools.length > 0 && onToolReference && !hasAutoOpened) {
-        setHasAutoOpened(true);
-        // Add a small delay to ensure the component is ready
-        setTimeout(() => {
-          onToolReference(uniqueTools[0]);
-        }, 100);
-      }
-    }
-  }, [message.content, isUser, isStreaming, onToolReference, isMobile, hasAutoOpened]);
-  
+
+  // useEffect(() => {
+  //   if (!isUser && !isStreaming && !isMobile) {
+  //     const toolRefs = extractToolReferences(message.content);
+  //     // Only keep unique tool references
+  //     const uniqueTools = Array.from(new Set(toolRefs));
+  //     setDetectedTools(uniqueTools);
+
+  //     // Always auto-open the first tool reference if we haven't already
+  //     if (uniqueTools.length > 0 && onToolReference && !hasAutoOpened) {
+  //       setHasAutoOpened(true);
+  //       // Add a small delay to ensure the component is ready
+  //       setTimeout(() => {
+  //         onToolReference(uniqueTools[0]);
+  //       }, 100);
+  //     }
+  //   }
+  // }, [message.content, isUser, isStreaming, onToolReference, isMobile, hasAutoOpened]);
+
   return (
     <div className={cn(
       'group relative',
@@ -349,7 +349,7 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <Markdown text={cleanContent} onToolClick={isMobile ? undefined : onToolReference} />
           </div>
-          
+
           {/* Show all tools referenced */}
           {!isUser && detectedTools.length > 0 && !isMobile && onToolReference && (
             <div className="mt-3 flex flex-wrap gap-2">
@@ -373,10 +373,10 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
           )}
         </div>
       </div>
-      
+
       {/* Show follow-up suggestions only for the last assistant message and not while streaming */}
       {!isUser && isLast && !isStreaming && followUpQuestions.length > 0 && (
-        <SuggestedFollowUps 
+        <SuggestedFollowUps
           questions={followUpQuestions}
           onQuestionClick={onFollowUpClick}
         />
@@ -414,23 +414,23 @@ function Markdown({ text, onToolClick }: { text: string; onToolClick?: (toolId: 
 
         // Custom link component to intercept tool clicks
         const LinkWithToolDetection = (props: ComponentProps<'a'>) => {
-          const href = props.href || '';
-          const toolMatch = href.match(/tools\/l1-toolbox#(\w+)/);
-          
-          if (toolMatch && onToolClick) {
-            return (
-              <a
-                {...props}
-                href={href}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onToolClick(toolMatch[1]);
-                }}
-                className={cn(props.className, "cursor-pointer hover:underline text-red-600")}
-              />
-            );
-          }
-          
+          // const href = props.href || '';
+          // const toolMatch = href.match(/tools\/l1-toolbox#(\w+)/);
+
+          // if (toolMatch && onToolClick) {
+          //   return (
+          //     <a
+          //       {...props}
+          //       href={href}
+          //       onClick={(e) => {
+          //         e.preventDefault();
+          //         onToolClick(toolMatch[1]);
+          //       }}
+          //       className={cn(props.className, "cursor-pointer hover:underline text-red-600")}
+          //     />
+          //   );
+          // }
+
           // On mobile or when no handler, just use regular link
           return <Link {...props} />;
         };
@@ -443,7 +443,7 @@ function Markdown({ text, onToolClick }: { text: string; onToolClick?: (toolId: 
             img: undefined, // use JSX
           })
           .catch(() => text);
-        
+
         map.set(text, result);
       }
 
@@ -462,14 +462,14 @@ function Markdown({ text, onToolClick }: { text: string; onToolClick?: (toolId: 
 }
 
 // Dynamically import the ToolboxApp to avoid SSR issues
-const ToolboxApp = dynamic(() => import('../../toolbox/src/toolbox/ToolboxApp'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex justify-center items-center h-full">
-      <Loader2 className="size-6 animate-spin text-fd-muted-foreground" />
-    </div>
-  ),
-});
+// const ToolboxApp = dynamic(() => import('../../toolbox/src/toolbox/ToolboxApp'), {
+//   ssr: false,
+//   loading: () => (
+//     <div className="flex justify-center items-center h-full">
+//       <Loader2 className="size-6 animate-spin text-fd-muted-foreground" />
+//     </div>
+//   ),
+// });
 
 
 
@@ -481,18 +481,18 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
   const [viewMode, setViewMode] = useState<'big' | 'small'>('big'); // Default to big view
   const isMobile = useIsMobile();
   const toolSwitchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Define handleCloseTool before useEffect that uses it
   const handleCloseTool = () => {
     if (isClosing) return; // Prevent multiple close attempts
-    
+
     setIsClosing(true);
-    
+
     // Clear any pending tool switches
     if (toolSwitchTimeoutRef.current) {
       clearTimeout(toolSwitchTimeoutRef.current);
     }
-    
+
     // Don't clear the hash, just hide the tool
     setTimeout(() => {
       if (selectedTool) {
@@ -502,7 +502,7 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
       setIsClosing(false);
     }, 50);
   };
-  
+
   // Handle tool selection
   const handleToolSelect = (toolId: string) => {
     if (!isMobile && !isClosing) {
@@ -510,25 +510,25 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
       if (selectedTool === toolId) {
         return;
       }
-      
+
       // Clear any existing timeout
       if (toolSwitchTimeoutRef.current) {
         clearTimeout(toolSwitchTimeoutRef.current);
       }
-      
+
       // Remove from closedTools if it was there
       setClosedTools(prev => {
         const newSet = new Set(prev);
         newSet.delete(toolId);
         return newSet;
       });
-      
+
       // Switch to the new tool immediately
       setSelectedTool(toolId);
       props.onToolSelect?.(toolId);
     }
   };
-  
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -537,42 +537,42 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
       }
     };
   }, []);
-  
+
   // Add escape key handler to close toolbox
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && selectedTool && !isClosing) {
-        e.preventDefault();
-        e.stopPropagation();
-        handleCloseTool();
-      }
-    };
-    
-    if (selectedTool) {
-      document.addEventListener('keydown', handleEscape, true);
-      return () => document.removeEventListener('keydown', handleEscape, true);
-    }
-  }, [selectedTool, isClosing]);
-  
+  // useEffect(() => {
+  //   const handleEscape = (e: KeyboardEvent) => {
+  //     if (e.key === 'Escape' && selectedTool && !isClosing) {
+  //       e.preventDefault();
+  //       e.stopPropagation();
+  //       handleCloseTool();
+  //     }
+  //   };
+
+  //   if (selectedTool) {
+  //     document.addEventListener('keydown', handleEscape, true);
+  //     return () => document.removeEventListener('keydown', handleEscape, true);
+  //   }
+  // }, [selectedTool, isClosing]);
+
   // Component to render the tool - memoized to prevent re-renders
-  const ToolRenderer = React.memo(({ toolId }: { toolId: string }) => {
-    useEffect(() => {
-      // Always update the hash when toolId changes
-      if (toolId && !isClosing) {
-        // Use replaceState to avoid adding to browser history
-        const newHash = `#${toolId}`;
-        if (window.location.hash !== newHash) {
-          window.history.replaceState(null, '', newHash);
-          // Dispatch a hashchange event to notify the toolbox
-          window.dispatchEvent(new HashChangeEvent('hashchange'));
-        }
-      }
-    }, [toolId]);
-    
-    return <ToolboxApp embedded />;
-  });
-  
-  ToolRenderer.displayName = 'ToolRenderer';
+  // const ToolRenderer = React.memo(({ toolId }: { toolId: string }) => {
+  //   useEffect(() => {
+  //     // Always update the hash when toolId changes
+  //     if (toolId && !isClosing) {
+  //       // Use replaceState to avoid adding to browser history
+  //       const newHash = `#${toolId}`;
+  //       if (window.location.hash !== newHash) {
+  //         window.history.replaceState(null, '', newHash);
+  //         // Dispatch a hashchange event to notify the toolbox
+  //         window.dispatchEvent(new HashChangeEvent('hashchange'));
+  //       }
+  //     }
+  //   }, [toolId]);
+
+  //   return <ToolboxApp embedded />;
+  // });
+
+  // ToolRenderer.displayName = 'ToolRenderer';
 
   return (
     <Dialog {...props}>
@@ -595,7 +595,7 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
               )}
             >
               <div className="flex h-full bg-fd-background/95 backdrop-blur-sm rounded-xl border border-fd-border shadow-2xl overflow-hidden flex-col">
-                <SmallViewContent 
+                <SmallViewContent
                   onExpand={() => setViewMode('big')}
                 />
               </div>
@@ -623,22 +623,22 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
                   "hidden md:flex md:flex-col",
                   selectedTool ? "md:w-[40%] md:border-r md:border-fd-border" : "md:w-full"
                 )}>
-                  <Content 
+                  <Content
                     onToolReference={handleToolSelect}
                     onCollapse={() => setViewMode('small')}
                   />
                 </div>
-                
+
                 {/* Mobile view - chat only */}
                 <div className="flex md:hidden flex-col w-full">
                   <Content onCollapse={() => setViewMode('small')} />
                 </div>
-                
+
                 {/* Desktop tool panel */}
-                {selectedTool && !isMobile && (
+                {/*  {selectedTool && !isMobile && (
                   <div key={selectedTool} className="hidden md:flex md:w-[60%] md:flex-col bg-fd-muted/20">
                     <div className="toolbox-embedded-header flex items-center justify-between border-b border-fd-border px-4 py-3 relative z-[9999]">
-                      <a 
+                      <a
                         href={`/tools/l1-toolbox#${selectedTool}`}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -660,9 +660,9 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
                     </div>
                     <div className="flex-1 overflow-auto bg-fd-background relative">
                       <ToolRenderer toolId={selectedTool} />
-                    </div>
+                    </div> 
                   </div>
-                )}
+                )}*/}
               </div>
             </DialogContent>
           </>
@@ -674,7 +674,7 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
 
 function SmallViewContent({ onExpand }: { onExpand: () => void }) {
   const [selectedModel, setSelectedModel] = useState<'anthropic' | 'openai'>('anthropic');
-  
+
   const chat = useChat({
     id: 'search',
     streamProtocol: 'data',
@@ -721,7 +721,7 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
           </DialogClose>
         </div>
       </div>
-      
+
       <List className="flex-1">
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center p-6">
@@ -738,9 +738,9 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
         ) : (
           <div className="divide-y divide-fd-border">
             {messages.map((item, index) => (
-              <Message 
-                key={item.id} 
-                message={item} 
+              <Message
+                key={item.id}
+                message={item}
                 isLast={index === messages.length - 1}
                 onFollowUpClick={async (question) => {
                   await chat.append({
@@ -769,9 +769,9 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
         )}
         {messages.length > 0 && <SearchAIActions />}
       </List>
-      
+
       <SearchAIInput className="px-3 pb-3 pt-2" />
-      
+
       <div className="px-3 py-2 text-center">
         <p className="text-[10px] text-fd-muted-foreground flex items-center justify-center gap-1">
           Powered by
@@ -799,7 +799,7 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
 
 function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: string) => void; onCollapse?: () => void }) {
   const [selectedModel, setSelectedModel] = useState<'anthropic' | 'openai'>('anthropic');
-  
+
   const chat = useChat({
     id: 'search',
     streamProtocol: 'data',
@@ -866,7 +866,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
           </DialogClose>
         </div>
       </div>
-      
+
       <List className="flex-1">
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center p-8">
@@ -880,7 +880,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
                   Ask me anything about the documentation or get help with your code.
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8">
                 {suggestedQuestions.map((question, index) => (
                   <button
@@ -910,9 +910,9 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
         ) : (
           <div className="divide-y divide-fd-border">
             {messages.map((item, index) => (
-              <Message 
-                key={item.id} 
-                message={item} 
+              <Message
+                key={item.id}
+                message={item}
                 isLast={index === messages.length - 1}
                 onFollowUpClick={handleSuggestionClick}
                 isStreaming={isLoading && index === messages.length - 1 && item.role === 'assistant'}
@@ -937,9 +937,9 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
         )}
         {messages.length > 0 && <SearchAIActions />}
       </List>
-      
+
       <SearchAIInput />
-      
+
       <div className="px-4 py-2 text-center">
         <p className="text-xs text-fd-muted-foreground flex items-center justify-center gap-1">
           Powered by

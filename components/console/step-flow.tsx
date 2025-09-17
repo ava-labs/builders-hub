@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
+import Link from "next/link";
 
 type SingleStep = {
   type: "single";
   key: string;
   title: string;
-  description?: string;
   optional?: boolean;
   component: React.ComponentType;
 };
@@ -21,107 +21,97 @@ type BranchStep = {
   type: "branch";
   key: string;
   title: string;
-  description?: string;
   optional?: boolean;
   options: BranchOption[];
 };
 
 export type StepDefinition = SingleStep | BranchStep;
 
-export type StepFlowProps = {
+type StepFlowProps = {
   steps: StepDefinition[];
   className?: string;
-  initialStepIndex?: number;
-  initialBranchSelections?: Record<string, string>;
   onFinish?: () => void;
+  basePath: string;
+  currentStepKey: string;
 };
 
 export default function StepFlow({
   steps,
   className,
-  initialStepIndex = 0,
-  initialBranchSelections,
   onFinish,
+  basePath,
+  currentStepKey,
 }: StepFlowProps) {
-  const [currentIndex, setCurrentIndex] = useState<number>(initialStepIndex);
-  const [branchSelections, setBranchSelections] = useState<Record<string, string>>(
-    () => {
-      const defaults: Record<string, string> = { ...(initialBranchSelections || {}) };
-      for (const step of steps) {
-        if (step.type === "branch") {
-          if (!defaults[step.key]) {
-            defaults[step.key] = step.options[0]?.key;
-          }
+  // Find which step we're on - could be a single step or a branch option
+  const { currentIndex, currentStep, selectedBranchOption } = useMemo(() => {
+    // First check if it's a single step
+    const singleStepIndex = steps.findIndex((s) => s.type === "single" && s.key === currentStepKey);
+    if (singleStepIndex !== -1) {
+      return {
+        currentIndex: singleStepIndex,
+        currentStep: steps[singleStepIndex],
+        selectedBranchOption: undefined
+      };
+    }
+
+    // Check if it's a branch option
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
+      if (step.type === "branch") {
+        const option = step.options.find(opt => opt.key === currentStepKey);
+        if (option) {
+          return {
+            currentIndex: i,
+            currentStep: step,
+            selectedBranchOption: option
+          };
         }
       }
-      return defaults;
     }
-  );
+
+    return { currentIndex: -1, currentStep: undefined, selectedBranchOption: undefined };
+  }, [currentStepKey, steps]);
+
+  if (currentIndex < 0 || !currentStep) {
+    return <div>Step &quot;{currentStepKey}&quot; not found.</div>;
+  }
 
   const totalSteps = steps.length;
   const atFirst = currentIndex <= 0;
   const atLast = currentIndex >= totalSteps - 1;
 
-  const currentStep = steps[currentIndex];
-
   const CurrentComponent = useMemo(() => {
     if (currentStep.type === "single") return currentStep.component;
-    const selectedKey = branchSelections[currentStep.key] || currentStep.options[0]?.key;
-    const selected = currentStep.options.find((o) => o.key === selectedKey) || currentStep.options[0];
-    return selected.component;
-  }, [currentStep, branchSelections]);
+    // For branch steps, use the selected option's component
+    return selectedBranchOption?.component || currentStep.options[0].component;
+  }, [currentStep, selectedBranchOption]);
 
-  type NavItem = {
-    key: string;
-    label: string;
-    stepIndex: number;
-    isBranchOption: boolean;
-    branchKey?: string;
-    optionKey?: string;
-  };
+  const prevLink = useMemo(() => {
+    if (atFirst) return null;
+    const prevStep = steps[currentIndex - 1];
 
-  const navItems: NavItem[] = useMemo(() => {
-    const items: NavItem[] = [];
-    steps.forEach((s, idx) => {
-      if (s.type === "branch") {
-        s.options.forEach((opt) => {
-          items.push({
-            key: `${s.key}:${opt.key}`,
-            label: opt.label,
-            stepIndex: idx,
-            isBranchOption: true,
-            branchKey: s.key,
-            optionKey: opt.key,
-          });
-        });
-      } else {
-        items.push({
-          key: s.key,
-          label: s.title,
-          stepIndex: idx,
-          isBranchOption: false,
-        });
-      }
-    });
-    return items;
-  }, [steps]);
-
-  const goNext = () => {
-    if (atLast) {
-      onFinish?.();
-      return;
+    // When navigating back from any step, we need to determine the appropriate destination
+    if (prevStep.type === "single") {
+      return `${basePath}/${prevStep.key}`;
+    } else {
+      // For branch steps, we should go to the first option by default
+      // The user can then select a different option if they want
+      return `${basePath}/${prevStep.options[0].key}`;
     }
-    setCurrentIndex((i) => Math.min(i + 1, totalSteps - 1));
-  };
+  }, [atFirst, currentIndex, steps, basePath]);
 
-  const goPrev = () => {
-    setCurrentIndex((i) => Math.max(i - 1, 0));
-  };
+  const nextLink = useMemo(() => {
+    if (atLast) return null;
+    const nextStep = steps[currentIndex + 1];
 
-  const skipStep = () => {
-    if (!("optional" in currentStep) || !currentStep.optional) return;
-    goNext();
-  };
+    // When navigating forward, determine the appropriate destination
+    if (nextStep.type === "single") {
+      return `${basePath}/${nextStep.key}`;
+    } else {
+      // For branch steps, go to the first option by default
+      return `${basePath}/${nextStep.options[0].key}`;
+    }
+  }, [atLast, currentIndex, steps, basePath]);
 
   return (
     <div className={className}>
@@ -130,20 +120,20 @@ export default function StepFlow({
           {steps.map((s, stepIdx) => {
             const isDoneStep = stepIdx < currentIndex;
             const isActiveStep = stepIdx === currentIndex;
-            return (
-              <li key={s.key} className="flex items-center gap-3">
-                {s.type === "single" ? (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentIndex(stepIdx)}
+
+            if (s.type === "single") {
+              return (
+                <li key={s.key} className="flex items-center gap-3">
+                  <Link
+                    href={`${basePath}/${s.key}`}
                     className={[
                       "inline-flex items-center gap-2 rounded-md px-3 py-1.5 border",
                       isActiveStep
                         ? "border-blue-500 text-blue-600 dark:text-blue-400"
                         : isDoneStep
-                        ? "border-green-500 text-green-600 dark:text-green-400"
-                        : "border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300",
-                      "optional" in s && s.optional ? "border-dashed" : ""
+                          ? "border-green-500 text-green-600 dark:text-green-400"
+                          : "border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300",
+                      s.optional ? "border-dashed" : "",
                     ].join(" ")}
                   >
                     <span
@@ -152,44 +142,49 @@ export default function StepFlow({
                         isActiveStep
                           ? "bg-blue-600 text-white"
                           : isDoneStep
-                          ? "bg-green-600 text-white"
-                          : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200",
-                        
+                            ? "bg-green-600 text-white"
+                            : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200",
                       ].join(" ")}
                     >
                       {stepIdx + 1}
                     </span>
                     <span>{s.title}</span>
-                  </button>
-                ) : (
+                  </Link>
+                  {stepIdx < steps.length - 1 && (
+                    <span className="text-zinc-400 ml-3">→</span>
+                  )}
+                </li>
+              );
+            } else {
+              // Branch step
+              return (
+                <li key={s.key} className="flex items-center gap-3">
                   <div className="flex flex-col items-center gap-2">
                     {s.options.map((opt, optIdx) => {
-                      const isActive = isActiveStep && (branchSelections[s.key] || s.options[0]?.key) === opt.key;
-                      const isDone = isDoneStep;
+                      const isOptionActive = isActiveStep && selectedBranchOption?.key === opt.key;
                       return (
-                        <React.Fragment key={`${s.key}:${opt.key}`}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCurrentIndex(stepIdx);
-                              setBranchSelections((prev) => ({ ...prev, [s.key]: opt.key }));
-                            }}
+                        <React.Fragment key={opt.key}>
+                          <Link
+                            href={`${basePath}/${opt.key}`}
                             className={[
                               "inline-flex items-center gap-2 rounded-md px-3 py-1.5 border",
-                              isActive
+                              isOptionActive
                                 ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                                : isDone
+                                : isDoneStep
                                 ? "border-green-500 text-green-600 dark:text-green-400"
                                 : "border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300",
-                                "optional" in s && s.optional ? "border-dashed" : ""
+                              s.optional
+                                ? "border-dashed"
+                                : "",
                             ].join(" ")}
+                            style={{ display: "inline-flex", visibility: "visible", opacity: 1 }}
                           >
                             <span
                               className={[
                                 "flex h-5 w-5 items-center justify-center rounded-full text-[11px]",
-                                isActive
+                                isOptionActive
                                   ? "bg-blue-600 text-white"
-                                  : isDone
+                                  : isDoneStep
                                   ? "bg-green-600 text-white"
                                   : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200",
                               ].join(" ")}
@@ -197,20 +192,22 @@ export default function StepFlow({
                               {stepIdx + 1}
                             </span>
                             <span>{opt.label}</span>
-                          </button>
+                          </Link>
                           {optIdx < s.options.length - 1 && (
-                            <span className="text-xs uppercase tracking-wide text-zinc-500">or</span>
+                            <span className="text-xs uppercase tracking-wide text-zinc-500">
+                              or
+                            </span>
                           )}
                         </React.Fragment>
                       );
                     })}
                   </div>
-                )}
-                {stepIdx < steps.length - 1 && (
-                  <span className="text-zinc-400">→</span>
-                )}
-              </li>
-            );
+                  {stepIdx < steps.length - 1 && (
+                    <span className="text-zinc-400 ml-3">→</span>
+                  )}
+                </li>
+              );
+            }
           })}
         </ol>
       </nav>
@@ -221,32 +218,50 @@ export default function StepFlow({
         </div>
 
         <div className="mt-6 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={goPrev}
-            disabled={atFirst}
-            className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm disabled:opacity-50"
-          >
-            Back
-          </button>
+          {prevLink ? (
+            <Link
+              href={prevLink}
+              className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm"
+            >
+              Back
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm disabled:opacity-50"
+            >
+              Back
+            </button>
+          )}
 
           <div className="flex items-center gap-2">
-            {("optional" in currentStep && currentStep.optional) && (
-              <button
-                type="button"
-                onClick={skipStep}
+            {"optional" in currentStep && currentStep.optional && nextLink && (
+              <Link
+                href={nextLink}
                 className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm"
               >
                 Skip
-              </button>
+              </Link>
             )}
-            <button
-              type="button"
-              onClick={goNext}
-              className="rounded-md bg-blue-600 text-white px-4 py-2 text-sm"
-            >
-              {atLast ? "Finish" : "Next"}
-            </button>
+            {atLast ? (
+              <button
+                type="button"
+                onClick={onFinish}
+                className="rounded-md bg-blue-600 text-white px-4 py-2 text-sm"
+              >
+                Finish
+              </button>
+            ) : (
+              nextLink && (
+                <Link
+                  href={nextLink}
+                  className="rounded-md bg-blue-600 text-white px-4 py-2 text-sm"
+                >
+                  Next
+                </Link>
+              )
+            )}
           </div>
         </div>
       </div>

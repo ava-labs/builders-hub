@@ -1,6 +1,6 @@
 "use client";
 
-import RewardManager from "@/toolbox/src/toolbox/Precompiles/RewardManager";
+import RewardManager from "@/components/toolbox/console/l1-tokenomics/RewardManager";
 
 export default function Page() {
   return (

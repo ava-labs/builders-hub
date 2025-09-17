@@ -1,6 +1,6 @@
 "use client";
 
-import RemoveValidator from "@/toolbox/src/toolbox/ValidatorManager/RemoveValidator/RemoveValidator";
+import RemoveValidator from "@/components/toolbox/console/permissioned-l1s/RemoveValidator";
 
 export default function Page() {
   return (

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimited, getUserId, validateSubnetId, jsonOk, jsonError } from './utils';
 import { builderHubAddNode, selectNewestNode, createDbNode, getUserNodes } from './service';
-import { getBlockchainInfo } from '../../../toolbox/src/coreViem/utils/glacier';
+import { getBlockchainInfo } from '../../../components/toolbox/coreViem/utils/glacier';
 import { CreateNodeRequest, SubnetStatusResponse } from './types';
 import { prisma } from '@/prisma/prisma';
-import { SUBNET_EVM_VM_ID } from './constants';
+import { SUBNET_EVM_VM_ID } from '@/constants/console';
 
 // Types moved to ./types
 
@@ -46,7 +46,7 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
 
     if (!subnetId || !blockchainId) {
       return NextResponse.json(
-        { 
+        {
           error: 'Bad request',
           message: 'Both subnetId and blockchainId are required'
         },
@@ -56,7 +56,7 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
 
     if (!validateSubnetId(subnetId)) {
       return NextResponse.json(
-        { 
+        {
           error: 'Bad request',
           message: 'Invalid subnet ID format'
         },
@@ -90,7 +90,7 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
     } else {
       return jsonError(502, 'No nodes returned from Builder Hub');
     }
-      
+
   } catch (error) {
     return jsonError(500, error instanceof Error ? error.message : 'Failed to create node', error);
   }

@@ -28,10 +28,10 @@
         "toolbox/src/*"
       ],
       "@/stores/*": [
-        "toolbox/src/stores/*"
+        "components/toolbox/stores/*"
       ],
       "@console-header/*": [
-        "toolbox/src/components/console-header/*"
+        "components/toolbox/components/console-header/*"
       ]
     },
     "plugins": [
@@ -44,8 +44,10 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
-, "utils/remote-content.mts", "hooks/getLucideIcon.tsz"  ],
+    ".next/types/**/*.ts",
+    "utils/remote-content.mts",
+    "hooks/getLucideIcon.tsz"
+  ],
   "exclude": [
     "node_modules"
   ]
