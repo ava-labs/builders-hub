@@ -1,7 +1,6 @@
 import { prisma } from "@/prisma/prisma";
 import { UserBadge, Requirement, Badge } from "@/types/badge";
 import { JsonValue } from "@prisma/client/runtime/library";
-import { continents } from '../../types/infrabuidlForm';
 
 // Utility function to safely convert JSON metadata
 export function parseBadgeMetadata(metadata: JsonValue): Requirement | null {
@@ -29,8 +28,7 @@ export async function getRewardBoard(user_id: string): Promise<UserBadge[]> {
   });
 let badges=userBadges.map((userBadge) => {
   const parsedRequirements = userBadge.badge.requirements.map((requirement) => parseBadgeMetadata(requirement)) as Requirement[];
-  
-  // Marcar como unlocked los requirements que están en evidence
+
   if (Array.isArray(userBadge.evidence)) {
     const evidenceArray = userBadge.evidence as Requirement[];
     parsedRequirements.forEach((requirement) => {
@@ -50,7 +48,7 @@ let badges=userBadges.map((userBadge) => {
     awarded_by: userBadge.awarded_by,
     name: userBadge.badge.name,
     description: userBadge.badge.description,
-    points: 0, // Se calculará después
+    points: 0, 
     image_path: userBadge.badge.image_path,
     category: userBadge.badge.category,
     evidence: userBadge.evidence,
@@ -58,12 +56,11 @@ let badges=userBadges.map((userBadge) => {
   };
 });
 
-// Calcular los puntos totales basándose en los requirements del evidence
+
 badges.forEach((badge) => {
   if (Array.isArray(badge.evidence)) {
     badge.points = badge.evidence.reduce(
       (acc: number, requirement: any) => {
-        // Asegura que requirement no sea null y tenga la propiedad points
         if (requirement && typeof requirement.points !== "undefined" && requirement.points !== null) {
           return acc + parseInt(requirement.points.toString(), 10);
         }
