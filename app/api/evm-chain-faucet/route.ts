@@ -3,7 +3,7 @@ import { createWalletClient, http, parseEther, createPublicClient, defineChain, 
 import { privateKeyToAccount } from 'viem/accounts';
 import { avalancheFuji } from 'viem/chains';
 import { getAuthSession } from '@/lib/auth/authSession';
-import { rateLimit } from '@/lib/rateLimit';
+import { faucetRateLimit } from '@/lib/faucetRateLimit';
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
@@ -211,7 +211,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   const chainId = request.nextUrl.searchParams.get('chainId');
-  const rateLimitHandler = rateLimit(handleFaucetRequest, {
+  const rateLimitHandler = faucetRateLimit(handleFaucetRequest, {
     windowMs: 24 * 60 * 60 * 1000,
     maxRequests: 1,
     identifier: async (_req: NextRequest) => {

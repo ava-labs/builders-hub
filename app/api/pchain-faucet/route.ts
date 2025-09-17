@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TransferableOutput, addTxSignatures, pvm, utils, Context } from "@avalabs/avalanchejs";
 import { getAuthSession } from '@/lib/auth/authSession';
-import { rateLimit } from '@/lib/rateLimit';
+import { faucetRateLimit } from '@/lib/faucetRateLimit';
 
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
 const FAUCET_P_CHAIN_ADDRESS = process.env.FAUCET_P_CHAIN_ADDRESS;
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return validationResponse;
   }
 
-  const rateLimitHandler = rateLimit(handleFaucetRequest, {
+  const rateLimitHandler = faucetRateLimit(handleFaucetRequest, {
     windowMs: 24 * 60 * 60 * 1000,
     maxRequests: 1
   });

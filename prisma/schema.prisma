@@ -53,6 +53,7 @@ model User {
   hackathons          Hackathon[]
   badges              UserBadge[]
   managedTestnetNodes NodeRegistration[]
+  consoleLog          ConsoleLog[]
 }
 
 model VerificationToken {
@@ -195,4 +196,29 @@ model NodeRegistration {
   @@index([user_id])
   @@index([status])
   @@index([subnet_id])
+}
+
+model ConsoleLog {
+  id          String   @id @default(uuid())
+  user_id     String
+  title       String
+  description String?
+  status      String   // success, error, warning, info
+  event_type  String?  // subnet_created, chain_created, etc.
+  data        Json?    // Flexible JSON data
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@index([user_id])
+  @@index([created_at])
+}
+
+model FaucetRateLimit {
+  user_id      String
+  identifier   String
+  last_request DateTime @db.Timestamptz(3)
+  count        Int      @default(1)
+  
+  @@id([user_id, identifier])
+  @@index([last_request])
 }
