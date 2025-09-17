@@ -11,22 +11,32 @@ import {
 import { NodeRegistration } from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/types";
 import { calculateTimeRemaining, formatTimeRemaining, getStatusData } from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/useTimeRemaining";
 import { Button } from "@/components/toolbox/components/Button";
+import { useWallet } from "@/components/toolbox/hooks/useWallet";
 import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock';
 
 interface NodeCardProps {
     node: NodeRegistration;
-    onConnectWallet: (nodeId: string) => void;
     onDeleteNode: (node: NodeRegistration) => void;
     isDeletingNode: boolean;
 }
 
 export default function NodeCard({
     node,
-    onConnectWallet,
     onDeleteNode,
     isDeletingNode
 }: NodeCardProps) {
+    const { addChain } = useWallet();
     const [secondsUntilWalletEnabled, setSecondsUntilWalletEnabled] = useState<number>(0);
+    const [isConnecting, setIsConnecting] = useState(false);
+
+    const handleConnectWallet = async () => {
+        setIsConnecting(true);
+        await addChain({
+            rpcUrl: node.rpc_url,
+            allowLookup: false
+        });
+        setIsConnecting(false);
+    };
     const timeRemaining = calculateTimeRemaining(node.expires_at);
     const statusData = getStatusData(timeRemaining);
     const nodeInfoJson = JSON.stringify({
@@ -156,11 +166,12 @@ export default function NodeCard({
                 {/* Primary Actions */}
                 <div className="mt-2 flex items-center justify-end gap-2 border-t border-gray-200 dark:border-gray-700 pt-3">
                     <Button
-                        onClick={() => onConnectWallet(node.id)}
+                        onClick={handleConnectWallet}
                         variant="secondary"
                         size="sm"
                         stickLeft
-                        disabled={secondsUntilWalletEnabled > 0}
+                        disabled={secondsUntilWalletEnabled > 0 || isConnecting}
+                        loading={isConnecting}
                         icon={<Wallet className="w-4 h-4" />}
                     >
                         {secondsUntilWalletEnabled > 0

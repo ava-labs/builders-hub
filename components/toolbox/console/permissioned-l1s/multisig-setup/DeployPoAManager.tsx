@@ -26,7 +26,7 @@ export default function DeployPoAManager() {
         poaManagerAddress,
         setPoaManagerAddress
     } = useToolboxStore();
-    const { coreWalletClient, publicClient } = useWalletStore();
+    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
     const [isDeploying, setIsDeploying] = useState(false);
@@ -73,6 +73,11 @@ export default function DeployPoAManager() {
     }, [poaManagerAddress]);
 
     async function deployPoAManager() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         if (!safeSelection.safeAddress) {
             setSafeError("Select an Ash account (Safe) to deploy");
             return;
@@ -89,10 +94,11 @@ export default function DeployPoAManager() {
             await coreWalletClient.switchChain({ id: viemChain!.id });
 
             const hash = await coreWalletClient.deployContract({
-                abi: PoAManagerABI.abi,
+                abi: PoAManagerABI.abi as any,
                 bytecode: PoAManagerABI.bytecode.object as `0x${string}`,
                 args: [ownerAddress as `0x${string}`, validatorManagerAddress as `0x${string}`],
                 chain: viemChain,
+                account: walletEVMAddress as `0x${string}`
             });
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });

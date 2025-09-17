@@ -80,6 +80,11 @@ export default function DeployTokenHome() {
     }, [tokenAddress, viemChain?.id]);
 
     async function handleDeploy() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setDeployError("");
         if (!teleporterRegistryAddress) {
             setDeployError("Teleporter Registry address is required. Please deploy it first.");
@@ -114,10 +119,11 @@ export default function DeployTokenHome() {
             }
 
             const hash = await coreWalletClient.deployContract({
-                abi: tokenType === "erc20" ? ERC20TokenHome.abi : NativeTokenHome.abi,
+                abi: (tokenType === "erc20" ? ERC20TokenHome.abi : NativeTokenHome.abi) as any,
                 bytecode: tokenType === "erc20" ? ERC20TokenHome.bytecode.object as `0x${string}` : NativeTokenHome.bytecode.object as `0x${string}`,
                 args,
-                chain: viemChain
+                chain: viemChain,
+                account: walletEVMAddress as `0x${string}`,
             });
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash });

@@ -12,8 +12,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { Success } from "@/components/toolbox/components/Success"
 import { AmountInput } from "@/components/toolbox/components/AmountInput"
 import { StepCard, StepIndicator } from "@/components/toolbox/components/StepCard"
-import { createAvalancheWalletClient } from "@avalanche-sdk/client"
-import { avalanche, avalancheFuji } from "@avalanche-sdk/client/chains"
+import { useWallet } from "@/components/toolbox/hooks/useWallet"
 
 export default function CrossChainTransfer({
     suggestedAmount = "0.0",
@@ -43,7 +42,6 @@ export default function CrossChainTransfer({
     const isFetchingRef = useRef(false)
     const [criticalError, setCriticalError] = useState<Error | null>(null)
 
-
     // Add states for step collapse timing
     const [step1AutoCollapse, setStep1AutoCollapse] = useState(false)
     const [step2AutoCollapse, setStep2AutoCollapse] = useState(false)
@@ -58,12 +56,13 @@ export default function CrossChainTransfer({
         throw criticalError;
     }
 
-
     const {
         coreWalletClient,
         updateCChainBalance,
         updatePChainBalance
     } = useWalletStore()
+
+    const { avalancheWalletClient } = useWallet();
 
     const isTestnet = useWalletStore((s) => s.isTestnet);
     const cChainBalance = useWalletStore((s) => s.balances.cChain);
@@ -71,20 +70,6 @@ export default function CrossChainTransfer({
     const pChainAddress = useWalletStore((s) => s.pChainAddress);
     const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
     const coreEthAddress = useWalletStore((s) => s.coreEthAddress);
-
-    const avalancheClient = useMemo(() => {
-        if (typeof window === 'undefined' || !window?.avalanche || !walletEVMAddress || isTestnet === undefined) {
-            return;
-        }
-        return createAvalancheWalletClient({
-            chain: isTestnet ? avalancheFuji : avalanche,
-            transport: {
-                type: "custom",
-                provider: window.avalanche!,
-            },
-            account: walletEVMAddress as `0x${string}`
-        })
-    }, [isTestnet, walletEVMAddress]);
 
     // Calculate total AVAX in UTXOs
     const totalCToPUtxoAmount = cToP_UTXOs.reduce((sum, utxo) => {
@@ -169,11 +154,11 @@ export default function CrossChainTransfer({
 
     // Initial fetch of UTXOs and balances
     useEffect(() => {
-        if (avalancheClient && walletEVMAddress) {
+        if (avalancheWalletClient && walletEVMAddress) {
             fetchUTXOs();
             onBalanceChanged();
         }
-    }, [avalancheClient, walletEVMAddress, pChainAddress, fetchUTXOs, onBalanceChanged])
+    }, [avalancheWalletClient, walletEVMAddress, pChainAddress, fetchUTXOs, onBalanceChanged])
 
     // Persistent polling for pending export UTXOs
     useEffect(() => {
@@ -227,9 +212,9 @@ export default function CrossChainTransfer({
 
     // Add handlers for buttons
     const handleExport = async () => {
-        if (!validateAmount() || !avalancheClient) return;
+        if (!validateAmount()) return;
 
-        if (typeof window === 'undefined' || !walletEVMAddress || !pChainAddress || !coreWalletClient) {
+        if (!pChainAddress || !coreWalletClient || !avalancheWalletClient) {
             setError("Wallet not connected or required data missing.");
             return;
         }
@@ -241,7 +226,7 @@ export default function CrossChainTransfer({
         try {
             if (sourceChain === "c-chain") {
                 // C-Chain to P-Chain export using the evmExport function
-                const txnRequest = await avalancheClient.cChain.prepareExportTxn({
+                const txnRequest = await avalancheWalletClient.cChain.prepareExportTxn({
                     destinationChain: "P",
                     exportedOutput: {
                         addresses: [pChainAddress],
@@ -249,8 +234,8 @@ export default function CrossChainTransfer({
                     },
                     fromAddress: walletEVMAddress as `0x${string}`
                 });
-                const txnResponse = await avalancheClient.sendXPTransaction(txnRequest);
-                await avalancheClient.waitForTxn(txnResponse);
+                const txnResponse = await avalancheWalletClient.sendXPTransaction(txnRequest);
+                await avalancheWalletClient.waitForTxn(txnResponse);
 
                 console.log("P-Chain Export transaction sent:", txnResponse);
                 // Store the export transaction ID to trigger import
@@ -261,15 +246,15 @@ export default function CrossChainTransfer({
             } else {
                 // P-Chain to C-Chain export using the pvmExport function
                 console.log("Preparing P-Chain Export transaction", pChainAddress, amount);
-                const txnRequest = await avalancheClient.pChain.prepareExportTxn({
+                const txnRequest = await avalancheWalletClient.pChain.prepareExportTxn({
                     exportedOutputs: [{
                         addresses: [coreEthAddress],
                         amount: Number(amount),
                     }],
                     destinationChain: "C"
                 });
-                const txnResponse = await avalancheClient.sendXPTransaction(txnRequest);
-                await avalancheClient.waitForTxn(txnResponse);
+                const txnResponse = await avalancheWalletClient.sendXPTransaction(txnRequest);
+                await avalancheWalletClient.waitForTxn(txnResponse);
 
                 console.log("P-Chain Export transaction sent:", txnResponse,);
                 const txId = txnResponse.txHash;
@@ -293,7 +278,7 @@ export default function CrossChainTransfer({
     }
 
     const handleImport = async () => {
-        if (typeof window === 'undefined' || !walletEVMAddress || !pChainAddress || !coreWalletClient || !avalancheClient) {
+        if (!pChainAddress || !coreWalletClient || !avalancheWalletClient) {
             setImportError("Wallet not connected or required data missing.");
             return;
         }
@@ -304,25 +289,25 @@ export default function CrossChainTransfer({
         try {
             if (destinationChain === "p-chain") {
                 // Import to P-Chain using pvmImport function
-                const txnRequest = await avalancheClient.pChain.prepareImportTxn({
+                const txnRequest = await avalancheWalletClient.pChain.prepareImportTxn({
                     sourceChain: "C",
                     importedOutput: {
                         addresses: [pChainAddress],
                     }
                 });
-                const txnResponse = await avalancheClient.sendXPTransaction(txnRequest);
-                await avalancheClient.waitForTxn(txnResponse);
+                const txnResponse = await avalancheWalletClient.sendXPTransaction(txnRequest);
+                await avalancheWalletClient.waitForTxn(txnResponse);
                 console.log("P-Chain Import transaction sent:", txnResponse.txHash);
                 setImportTxId(String(txnResponse.txHash));
                 setCompletedImportXPChain("P");
             } else {
                 // Import to C-Chain using evmImportTx function
-                const txnRequest = await avalancheClient.cChain.prepareImportTxn({
+                const txnRequest = await avalancheWalletClient.cChain.prepareImportTxn({
                     sourceChain: "P",
                     toAddress: walletEVMAddress as `0x${string}`,
                 });
-                const txnResponse = await avalancheClient.sendXPTransaction(txnRequest);
-                await avalancheClient.waitForTxn(txnResponse);
+                const txnResponse = await avalancheWalletClient.sendXPTransaction(txnRequest);
+                await avalancheWalletClient.waitForTxn(txnResponse);
                 console.log("C-Chain Import transaction sent:", txnResponse.txHash);
                 setImportTxId(String(txnResponse.txHash));
                 setCompletedImportXPChain("C");

@@ -15,7 +15,6 @@ interface NodesListProps {
     nodesError: string | null;
     onRefresh: () => void;
     onShowCreateForm: () => void;
-    onConnectWallet: (nodeId: string) => void;
     onDeleteNode: (node: NodeRegistration) => void;
     deletingNodes: Set<string>;
 }
@@ -26,7 +25,6 @@ export default function NodesList({
     nodesError,
     onRefresh,
     onShowCreateForm,
-    onConnectWallet,
     onDeleteNode,
     deletingNodes
 }: NodesListProps) {
@@ -89,7 +87,6 @@ export default function NodesList({
                     <NodeCard
                         key={node.id}
                         node={node}
-                        onConnectWallet={onConnectWallet}
                         onDeleteNode={onDeleteNode}
                         isDeletingNode={deletingNodes.has(node.id)}
                     />

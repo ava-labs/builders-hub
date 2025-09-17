@@ -16,7 +16,7 @@ export const SENDER_C_CHAIN_ADDRESS = "0x05c474824e7d2cc67cf22b456f7cf60c0e3a128
 
 export default function DeployICMDemo() {
     const { setIcmReceiverAddress, icmReceiverAddress } = useToolboxStore();
-    const { coreWalletClient, publicClient } = useWalletStore();
+    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
     const [isDeploying, setIsDeploying] = useState(false);
     const [isTeleporterDeployed, setIsTeleporterDeployed] = useState(false);
@@ -45,12 +45,18 @@ export default function DeployICMDemo() {
     }, [selectedL1?.evmChainId]);
 
     async function handleDeploy() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         setIsDeploying(true);
         setIcmReceiverAddress("");
         try {
             const hash = await coreWalletClient.deployContract({
-                abi: ICMDemoABI.abi,
+                abi: ICMDemoABI.abi as any,
                 bytecode: ICMDemoABI.bytecode.object as `0x${string}`,
+                account: walletEVMAddress as `0x${string}`,
                 chain: viemChain
             });
 
