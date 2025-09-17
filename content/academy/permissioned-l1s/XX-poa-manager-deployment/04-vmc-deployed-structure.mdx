@@ -1,0 +1,165 @@
+---
+title: VMC Deployed Structure
+description: Summary of deployed smart contract structure up until this point
+updated: 2025-01-01
+authors: [nicolasarnedo]
+icon: FileCode
+---
+
+## Overview
+
+Understanding the ValidatorManager contract structure is essential for proper initialization and operation. This section covers the contract's architecture, state variables, and initialization process.
+
+## Contract Inheritance
+
+The ValidatorManager follows a structured inheritance pattern:
+
+```solidity
+contract ValidatorManager is 
+    IValidatorManager, 
+    Initializable, 
+    OwnableUpgradeable, 
+    ACP99Manager 
+{
+    // Implementation
+}
+```
+
+### Inherited Contracts
+
+1. **IValidatorManager**: Defines the interface
+2. **Initializable**: Enables proxy-safe initialization
+3. **OwnableUpgradeable**: Provides access control
+4. **ACP99Manager**: Implements ACP-99 standard
+
+## State Variables
+
+### Core Configuration
+
+```solidity
+struct ValidatorManagerSettings {
+    address admin;           // Initial owner address
+    bytes32 subnetID;       // Your L1's subnet ID
+    uint64 churnPeriodSeconds;      // Time window for changes
+    uint8 maximumChurnPercentage;   // Max change per period
+}
+```
+
+### Validator Tracking
+
+```solidity
+struct Validator {
+    ValidatorStatus status;  // Active, Pending, Removed
+    bytes nodeID;           // Validator's node ID
+    uint64 weight;          // Voting weight
+    uint64 startedAt;       // Registration timestamp
+    uint64 endedAt;         // Removal timestamp
+}
+```
+
+## Initialization Function
+
+The `initialize` function sets up the ValidatorManager:
+
+```solidity
+function initialize(
+    ValidatorManagerSettings calldata settings
+) external initializer {
+    // Set up ownership
+    __Ownable_init(settings.admin);
+    
+    // Store configuration
+    _subnetID = settings.subnetID;
+    _churnPeriodSeconds = settings.churnPeriodSeconds;
+    _maximumChurnPercentage = settings.maximumChurnPercentage;
+}
+```
+
+### Initialization Parameters
+
+1. **admin**: Address that will own the contract
+2. **subnetID**: Your L1's unique identifier
+3. **churnPeriodSeconds**: Anti-spam protection period
+4. **maximumChurnPercentage**: Limits rapid validator changes
+
+<Callout type="info">
+The churn mechanism prevents rapid validator set changes that could destabilize the network. It limits how much stake can be added or removed within a time window.
+</Callout>
+
+## Churn Protection
+
+### How Churn Works
+
+The churn mechanism tracks validator changes over time:
+
+```solidity
+struct ValidatorChurnPeriod {
+    uint256 startTime;      // Period start
+    uint64 initialWeight;   // Weight at start
+    uint64 totalWeight;     // Current total weight
+    uint64 churnAmount;     // Amount changed
+}
+```
+
+### Churn Calculation
+
+- Tracks changes within `churnPeriodSeconds`
+- Limits changes to `maximumChurnPercentage` of total weight
+- Resets after period expires
+- Prevents network instability
+
+## Key Functions Overview
+
+### Owner Functions
+
+Only the contract owner can call:
+- `initiateValidatorRegistration()`: Add new validator
+- `initiateValidatorRemoval()`: Remove validator
+- `initiateValidatorWeightUpdate()`: Change voting weight
+
+### Public Functions
+
+Anyone can call these to complete pending operations:
+- `completeValidatorRegistration()`: Finalize addition
+- `completeValidatorRemoval()`: Finalize removal
+- `completeValidatorWeightUpdate()`: Finalize weight change
+
+### Query Functions
+
+Read-only functions for information:
+- `getValidator()`: Get validator details
+- `getWeight()`: Get total or individual weight
+- `subnetID()`: Get the L1's ID
+- `owner()`: Get contract owner
+
+## Storage Layout
+
+Understanding storage is crucial for upgrades:
+
+1. **Proxy Storage**: State variables live here
+2. **Implementation Logic**: Functions live here
+3. **Storage Slots**: Must maintain order in upgrades
+
+## Events
+
+The contract emits events for tracking:
+
+```solidity
+event ValidatorRegistered(bytes nodeID, uint64 weight);
+event ValidatorRemoved(bytes nodeID);
+event ValidatorWeightUpdated(bytes nodeID, uint64 newWeight);
+```
+
+## Security Considerations
+
+1. **Owner Privileges**: Owner has full control
+2. **Churn Limits**: Prevents rapid changes
+3. **Two-Phase Operations**: Prevents front-running
+4. **Message Validation**: Verifies P-Chain messages
+
+## Next Steps
+
+With understanding of the contract structure:
+1. Set initial configuration parameters
+2. Initialize the ValidatorManager
+3. Begin managing your validator set

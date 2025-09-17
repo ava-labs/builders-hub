@@ -1,0 +1,32 @@
+---
+title: Upgrade Proxy
+description: Learn how to point your proxy contract to the Validator Manager implementation
+updated: 2025-07-31
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import UpgradeProxy from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy.tsx"
+
+After deploying both the the validator manager contract, we will need to link them by upgrading the proxy to point to your Validator Manager implementation.
+
+Since the **ProxyAdmin** contract was deployed through the genesis with the deployer address set to the owner of the contract, we will call the *upgradeToAndCall()* function.
+
+![Validator Manager Deployment Upgrade Proxy Part 1](/common-images/permissioned-l1s/VMCDeploy3.png)
+
+This will cause the **TransparentUpgradeableProxy** contract to (via *delegatecall*) call our newly deployed **Validator Manager** contract, instead of the empty contract it previously had set by default.
+
+![Validator Manager Deployment Upgrade Proxy Part 2](/common-images/permissioned-l1s/VMCDeploy4.png)
+
+## Perform the Upgrade
+
+- **Proxy Address**: set to 0xfacade...
+- **ProxyAdmin Address**: set to 0xdad....
+- **Desired Implementation**: set to address of deployed Validator Manager contract on your L1
+- **Current Implementation**: set to 0x121212...212
+
+<Callout type="info">
+Make sure you have your L1 selected in the wallet component below
+</Callout>
+
+<UpgradeProxy />

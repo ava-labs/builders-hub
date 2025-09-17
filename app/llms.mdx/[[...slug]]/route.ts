@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getLLMText } from '@/lib/getLLMText';
-import { documentation, academy, guide, integration } from '@/lib/source';
+import { documentation, academy, blog, integration } from '@/lib/source';
 import { notFound } from 'next/navigation';
 
 export const revalidate = false;
@@ -43,15 +43,15 @@ export async function GET(
     if (page) {
       return new NextResponse(await getLLMText(page));
     }
-  } else if (section === 'guides') {
+  } else if (section === 'blog') {
     // First try with the slug as-is
-    let page = guide.getPage(restSlug);
+    let page = blog.getPage(restSlug);
     if (page) {
       return new NextResponse(await getLLMText(page));
     }
     
     // Try with index appended
-    page = guide.getPage([...restSlug, 'index']);
+    page = blog.getPage([...restSlug, 'index']);
     if (page) {
       return new NextResponse(await getLLMText(page));
     }
@@ -81,8 +81,8 @@ export function generateStaticParams() {
     ...academy.generateParams().map(params => ({
       slug: ['academy', ...params.slug]
     })),
-    ...guide.generateParams().map(params => ({
-      slug: ['guides', ...params.slug]
+    ...blog.generateParams().map(params => ({
+      slug: ['blog', ...params.slug]
     })),
     ...integration.generateParams().map(params => ({
       slug: ['integrations', ...params.slug]

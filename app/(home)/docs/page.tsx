@@ -184,10 +184,10 @@ function AllCategories(): React.ReactElement {
     },
     {
       id: 5,
-      title: "Developer Tools",
-      description: "CLI tools and utilities for development",
+      title: "Builder Console",
+      description: "Tools and utilities for development",
       icon: Wrench,
-      href: "/tools/l1-toolbox",
+      href: "/console",
       badge: "Tools"
     }
   ];
@@ -282,10 +282,10 @@ function Features(): React.ReactElement {
   const toolsFeatures = [
     {
       id: 1,
-      title: "L1 Toolbox",
+      title: "Builder Console",
       description: "Simple atomic tools to launch and maintain your L1",
       icon: Wrench,
-      href: "/tools/l1-toolbox"
+      href: "/console"
     },
     {
       id: 2,
@@ -300,6 +300,13 @@ function Features(): React.ReactElement {
       description: "Containerized Development Environment including Avalanche CLI, Foundry and our interoperability contract implementations",
       icon: Github,
       href: "https://github.com/ava-labs/avalanche-starter-kit"
+    },
+    {
+      id: 4,
+      title: "Avalanche SDK",
+      description: "Complete set of tools and libraries for developers to interact programmatically with the Avalanche blockchain ecosystem.",
+      icon: Github,
+      href: "https://github.com/ava-labs/avalanche-sdk-typescript"
     }
   ];
 

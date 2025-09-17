@@ -24,7 +24,14 @@
         "./.source/index.ts"
       ],
       "@/*": [
-        "./*"
+        "./*",
+        "toolbox/src/*"
+      ],
+      "@/stores/*": [
+        "components/toolbox/stores/*"
+      ],
+      "@console-header/*": [
+        "components/toolbox/components/console-header/*"
       ]
     },
     "plugins": [
@@ -37,8 +44,10 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
-, "utils/remote-content.mts"  ],
+    ".next/types/**/*.ts",
+    "utils/remote-content.mts",
+    "hooks/getLucideIcon.tsz"
+  ],
   "exclude": [
     "node_modules"
   ]

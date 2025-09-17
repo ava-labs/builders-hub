@@ -1,0 +1,49 @@
+---
+title: Deploy Validator Manager
+description: Deploy and configure the Validator Manager implementation contract
+updated: 2025-07-31
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import DeployValidatorManager from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx"
+
+First you will need to deploy the actual Validator Manager implementation that contains the logic for managing validators. 
+
+Building on the image shown in the introduction, now our L1 will have these contracts deployed:
+
+![Validator Manager Deployment](/common-images/permissioned-l1s/VMCDeploy2.png)
+
+## Implementation Contract
+
+The Validator Manager implementation:
+- Contains all validator management logic
+- Implements the ACP99Manager standard
+- Handles P-Chain communication
+- Can be upgraded without losing state
+
+## Validator Messages Library
+
+The ValidatorManager contract requires a separate library contract called **ValidatorMessages** to be deployed first. This library handles all the message encoding and decoding for communication with the P-Chain.
+
+**Why a separate library?**
+- Solidity requires libraries to be deployed independently before they can be linked
+- The ValidatorManager bytecode contains placeholders that get replaced with the library's deployed address
+- This allows multiple validator managers to share the same message handling code
+
+**What it does:**
+- Packs validator registration messages for the P-Chain
+- Unpacks responses from the P-Chain 
+- Handles weight updates and conversion messages
+- Ensures consistent message formatting across all validator operations
+
+<Callout type="info">
+The library deployment is a one-time operation - once deployed, multiple validator manager contracts can reference the same library instance.
+</Callout>
+
+## Deploy the Implementation
+
+<ToolboxMdxWrapper walletMode="l1">
+    <DeployValidatorManager />
+</ToolboxMdxWrapper>

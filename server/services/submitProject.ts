@@ -40,87 +40,100 @@ export const validateProject = (projectData: Partial<Project>): Validation[] =>
 export async function createProject(
   projectData: Partial<Project>
 ): Promise<Project> {
-  const isDraft = projectData.isDraft ?? false;
-  if (!isDraft) {
-    const errors = validateProject(projectData);
-    console.log("errors", errors);
-    if (errors.length > 0) {
-      throw new ValidationError("Project validation failed", errors);
+  // Atomic transaction to prevent race conditions and duplication
+  return await prisma.$transaction(async (tx) => {
+    const isDraft = projectData.isDraft ?? false;
+    if (!isDraft) {
+      const errors = validateProject(projectData);
+      console.log("errors", errors);
+      if (errors.length > 0) {
+        throw new ValidationError("Project validation failed", errors);
+      }
     }
-  }
-  const existingProject = await prisma.project.findFirst({
-    where: {
-      hackaton_id: projectData.hackaton_id,
-      members: {
-        some: {
-          user_id: projectData.user_id,
+
+    //Find existing project WITHIN transaction
+    const existingProject = await tx.project.findFirst({
+      where: {
+        hackaton_id: projectData.hackaton_id,
+        members: {
+          some: {
+            user_id: projectData.user_id,
+            status: "Confirmed",
+          },
         },
       },
-    },
-    include: {
-      members: true,
-    },
-  });
-
-  const newProjectData = await prisma.project.upsert({
-    where: {
-      id: existingProject?.id || "",
-    },
-    update: {
-      project_name: projectData.project_name ?? "",
-      short_description: projectData.short_description ?? "",
-      full_description: projectData.full_description ?? "",
-      tech_stack: projectData.tech_stack ?? "",
-      github_repository: projectData.github_repository ?? "",
-      demo_link: projectData.demo_link ?? "",
-      explanation: projectData.explanation ?? "",
-      is_preexisting_idea: projectData.is_preexisting_idea ?? false,
-      logo_url: projectData.logo_url ?? "",
-      cover_url: projectData.cover_url ?? "",
-      demo_video_link: projectData.demo_video_link ?? "",
-      screenshots: projectData.screenshots ?? [],
-      tracks: projectData.tracks ?? [],
-    },
-    create: {
-      hackathon: {
-        connect: { id: projectData.hackaton_id },
+      include: {
+        members: true,
       },
-      project_name: projectData.project_name ?? "",
-      short_description: projectData.short_description ?? "",
-      full_description: projectData.full_description ?? "",
-      tech_stack: projectData.tech_stack ?? "",
-      github_repository: projectData.github_repository ?? "",
-      demo_link: projectData.demo_link ?? "",
-      is_preexisting_idea: projectData.is_preexisting_idea ?? false,
-      logo_url: projectData.logo_url ?? "",
-      cover_url: projectData.cover_url ?? "",
-      demo_video_link: projectData.demo_video_link ?? "",
-      screenshots: projectData.screenshots ?? [],
-      tracks: projectData.tracks ?? [],
-      explanation: projectData.explanation ?? "",
-    },
-  });
-if(!existingProject || existingProject.members.length === 0){
-  const user = await prisma.user.findUnique({
-    where: {
-      id: projectData.user_id as string,
-    },
-  });
+    });
 
-  await prisma.member.create({
-    data: {
-      user_id: projectData.user_id as string,
-      project_id: newProjectData.id,
-      role: "Member",
-      status: "Confirmed",
-      email: user?.email ?? "",
-    },
-  });
-}
+    if (existingProject) {
+      // Update existing project
+      const updatedProject = await tx.project.update({
+        where: { id: existingProject.id },
+        data: {
+          project_name: projectData.project_name ?? "",
+          short_description: projectData.short_description ?? "",
+          full_description: projectData.full_description ?? "",
+          tech_stack: projectData.tech_stack ?? "",
+          github_repository: projectData.github_repository ?? "",
+          demo_link: projectData.demo_link ?? "",
+          explanation: projectData.explanation ?? "",
+          is_preexisting_idea: projectData.is_preexisting_idea ?? false,
+          logo_url: projectData.logo_url ?? "",
+          cover_url: projectData.cover_url ?? "",
+          demo_video_link: projectData.demo_video_link ?? "",
+          screenshots: projectData.screenshots ?? [],
+          tracks: projectData.tracks ?? [],
+        },
+      });
 
-  projectData.id = newProjectData.id;
-  revalidatePath("/api/projects/");
-  return newProjectData as unknown as Project;
+      projectData.id = updatedProject.id;
+      revalidatePath("/api/projects/");
+      return updatedProject as unknown as Project;
+    } else {
+      // Create new project AND member atomically
+      const newProjectData = await tx.project.create({
+        data: {
+          hackathon: {
+            connect: { id: projectData.hackaton_id },
+          },
+          project_name: projectData.project_name ?? "",
+          short_description: projectData.short_description ?? "",
+          full_description: projectData.full_description ?? "",
+          tech_stack: projectData.tech_stack ?? "",
+          github_repository: projectData.github_repository ?? "",
+          demo_link: projectData.demo_link ?? "",
+          is_preexisting_idea: projectData.is_preexisting_idea ?? false,
+          logo_url: projectData.logo_url ?? "",
+          cover_url: projectData.cover_url ?? "",
+          demo_video_link: projectData.demo_video_link ?? "",
+          screenshots: projectData.screenshots ?? [],
+          tracks: projectData.tracks ?? [],
+          explanation: projectData.explanation ?? "",
+          // Member created together with project
+          members: {
+            create: {
+              user_id: projectData.user_id as string,
+              role: "Member",
+              status: "Confirmed",
+              email: (await tx.user.findUnique({
+                where: { id: projectData.user_id as string },
+              }))?.email ?? "",
+            },
+          },
+        },
+      });
+
+      projectData.id = newProjectData.id;
+      revalidatePath("/api/projects/");
+      return newProjectData as unknown as Project;
+    }
+  }, {
+    // Transaction configuration for better performance
+    maxWait: 5000, // Maximum 5 seconds waiting for lock
+    timeout: 10000, // Maximum 10 seconds executing transaction
+  });
 }
 
 function normalizeUser(user: Partial<User>): User {
