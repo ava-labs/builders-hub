@@ -1,11 +1,70 @@
 "use client";
-import React, { useState } from "react";
-import Image from "next/image";
-import { BadgeCardProps } from "../types/badgeCard";
-import { Card, CardContent } from "@/components/ui/card";
-import "./reward-card.css";
-import { Separator } from "@/components/ui/separator";
+import React, { useMemo, useRef, useState, useEffect } from "react";
+import { Canvas } from "@react-three/fiber";
+import { Html, useTexture,Text  } from "@react-three/drei";
+import * as THREE from "three";
+import type { BadgeCardProps } from "../types/badgeCard";
+import { BackFaceText } from "./back-face";
 
+// ===== Tamaños afinados para "medalla" =====
+const FRAME = {
+  majorRadius: 1.0, // radio del aro
+  tubeRadius: 0.1, // grosor del aro
+  tubularSegments: 80,
+  radialSegments: 26,
+};
+const DISC = {
+  radius: 0.92, // radio del disco (imagen)
+  segments: 96,
+};
+type DragState = { x: number; y: number; rx: number; ry: number } | null;
+
+// ---------- Frontal: imagen circular ----------
+function ImageDisc({ url, isUnlocked }: { url: string; isUnlocked: boolean }) {
+  const texture = useTexture(url);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+
+  return (
+    <mesh position={[0, 0, 0.01]}>
+      <circleGeometry args={[DISC.radius, DISC.segments]} />
+      <meshPhysicalMaterial
+        map={texture}
+        roughness={0.65}
+        metalness={0.0}
+        clearcoat={0.05}
+        clearcoatRoughness={0.6}
+        transparent={false}
+        color={isUnlocked ? 0xffffff : 0x9e9e9e}
+        toneMapped
+      />
+    </mesh>
+  );
+}
+
+// ---------- Aro con grosor ----------
+function CircularFrame({ color = "#999B9B" }: { color?: string }) {
+  return (
+    <mesh>
+      <torusGeometry
+        args={[
+          FRAME.majorRadius,
+          FRAME.tubeRadius,
+          FRAME.radialSegments,
+          FRAME.tubularSegments,
+        ]}
+      />
+      <meshPhysicalMaterial
+        roughness={0.35}
+        metalness={0.85}
+        envMapIntensity={1.0}
+        color={color}
+        clearcoat={0.6}
+        clearcoatRoughness={0.25}
+      />
+    </mesh>
+  );
+}
 export const RewardCard = ({
   name,
   description,
@@ -14,104 +73,80 @@ export const RewardCard = ({
   is_unlocked,
   requirements,
 }: BadgeCardProps) => {
-  const [isFlipped, setIsFlipped] = useState(false);
+  const groupRef = useRef<THREE.Group | null>(null);
+  const dragging = useRef<DragState>(null);
+  const [baseRot, setBaseRot] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [_, force] = useState(0);
 
-  const handleClick = () => {
-    setIsFlipped(!isFlipped);
+  const sensitivity = 0.008;
+  const maxTilt = Math.PI / 5;
+
+  const applyRotation = (g: THREE.Group | null, x: number, y: number) => {
+    if (!g) return;
+    g.rotation.set(x, y, 0);
   };
 
+  useEffect(() => {
+    applyRotation(groupRef.current, baseRot.x, baseRot.y);
+  }, [baseRot]);
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    dragging.current = { x: e.clientX, y: e.clientY, rx: baseRot.x, ry: baseRot.y };
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current) return;
+    const dx = e.clientX - dragging.current.x;
+    const dy = e.clientY - dragging.current.y;
+    const nextY = dragging.current.ry + dx * sensitivity;
+    const nextX = dragging.current.rx - dy * sensitivity;
+    const clampedX = Math.max(-maxTilt, Math.min(maxTilt, nextX));
+    setBaseRot({ x: clampedX, y: nextY });
+    force((t) => t + 1);
+  };
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
+    dragging.current = null;
+  };
+  
+  const wrapperHeight = 320;
+
   return (
-    <div
-      className={`reward-card w-full max-w-sm mx-auto  ${
-        isFlipped ? "flipped" : ""
-      }`}
-      onClick={handleClick}
-      style={{ cursor: "pointer" }}
-    >
+    <div className={`w-full max-w-sm mx-auto ${className ?? ""}`} style={{ userSelect: "none" }}>
       <div
-        className={`reward-card-container rounded-2xl border shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105  ${
-          className ?? ""
-        }`}
+        style={{
+          width: "100%",
+          height: wrapperHeight,
+          cursor: dragging.current ? "grabbing" : "grab",
+          touchAction: "none",
+        }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
       >
-        {/* front */}
-        <div className="reward-card-front">
-          <Card className="h-full border-0 shadow-none bg-transparent">
-            <CardContent className="p-0 h-full flex flex-col">
-              <div className="relative px-2 sm:px-4  sm:pt-2 flex flex-col items-center min-h-[100px] sm:min-h-[120px]">
-                <div className="relative w-18 h-18 sm:w-20 sm:h-20">
-                  <Image
-                    src={image}
-                    alt={name + " icon"}
-                    width={128}
-                    height={128}
-                    className="object-contain w-full h-full"
-                    draggable={false}
-                    quality={90}
-                    priority={false}
-                    unoptimized={false}
-                    style={{
-                      imageRendering: "crisp-edges",
-                      filter: is_unlocked ? "none" : "grayscale(100%)",
-                    }}
-                    
-                  />
-                </div>
-              </div>
-              <div className="px-4 sm:px-6 pb-4 sm:pb-6 text-center">
-                <div 
-                  className="text-base font-bold dark:text-white text-gray-900 mb-1 sm:mb-2 line-clamp-2"
-                  title={name}
-                >
-                  {name}
-                </div>
-                <div 
-                  className="text-base text-gray-600 dark:text-white line-clamp-3"
-                  title={description}
-                >
-                  {description}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <Canvas
+          camera={{ position: [0, 0, 4.1], fov: 45 }}
+          gl={{ antialias: true, alpha: true }}
+          style={{ background: "transparent" }}
+        >
+          <ambientLight intensity={0.85} />
+          <directionalLight position={[2.2, 3, 5]} intensity={1.15} />
+          <directionalLight position={[-3, -2, -4]} intensity={0.45} />
 
-        {/* back */}
-        <div className="reward-card-back">
-          <Card className="h-full border-0 shadow-none bg-transparent">
-            <CardContent className="p-0 h-full flex flex-col">
-              <div className="px-6 pt-6 pb-2">
-                <h3 className="text-base text-center font-semibold dark:text-white text-gray-900 mb-4">
-                  Requirements
-                </h3>
-              </div>
-              <div className="flex-1 px-6 pb-6 overflow-y-auto max-h-48">
-                <ul className="text-left ">
-                  {requirements?.map((requirement) => (
+          <group
+            ref={(node) => {
+              groupRef.current = node;
+              if (node) applyRotation(node, baseRot.x, baseRot.y);
+            }}
+          >
+            <CircularFrame color="#999B9B" />
+            {/* Frente: disco con imagen */}
+            <ImageDisc url={image} isUnlocked={!!is_unlocked} />
 
-                    <li 
-                      key={requirement.id} 
-                      className="flex items-start space-x-3 text-sm text-gray-700 dark:text-gray-300"
-                    >
-                      <span className="flex-shrink-0 w-2 h-2 bg-gradient-to-r from-red-500 to-zinc-700 rounded-full mt-2"></span>
-             
-                      <span 
-                        className="leading-relaxed " 
-                        style={{textDecoration: requirement.unlocked ?  "line-through" : "none"}}
-                        title={requirement.description}
-                      >
-                        {requirement.description}: <span className="font-bold">{Number(requirement.points ?? 0)} points</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <Separator className="bg-zinc-700 my-2"/>
-                <span className="font-bold">
-                  {requirements?.reduce((acc, requirement) => acc + Number(requirement.points ?? 0), 0)} points
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+   
+          </group>
+        </Canvas>
       </div>
     </div>
   );
