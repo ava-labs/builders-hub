@@ -13,9 +13,8 @@ export const academyBubbleConfig: BubbleNavigationConfig = {
     focusRingColor: "focus:ring-red-500",
     pulseColor: "bg-red-200/40",
     darkPulseColor: "dark:bg-red-400/40",
-    buttonPadding: "px-3 py-1.5",
+    buttonPadding: "px-4 py-2",
     buttonSpacing: "space-x-3",
-    buttonScale: "scale-90",
 };
 
 export function AcademyBubbleNav() {

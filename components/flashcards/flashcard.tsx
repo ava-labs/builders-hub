@@ -173,7 +173,10 @@ const CleanFlashcard: React.FC<FlashcardProps> = ({ flashcardSetId, quizUrl }) =
                                 {currentCard.example && (
                                     <div>
                                         <h4 className="text-sm font-semibold text-primary mb-2 uppercase tracking-wide">Example</h4>
-                                        <p className="text-muted-foreground italic leading-relaxed">{currentCard.example}</p>
+                                        <p 
+                                            className="text-muted-foreground italic leading-relaxed"
+                                            dangerouslySetInnerHTML={{ __html: currentCard.example }}
+                                        />
                                     </div>
                                 )}
                             </div>

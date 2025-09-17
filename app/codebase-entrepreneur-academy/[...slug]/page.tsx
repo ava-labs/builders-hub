@@ -134,7 +134,7 @@ export async function generateMetadata(props: {
       url: `/codebase-entrepreneur-academy/${page.slugs.join('/')}`,
       images: image,
     },
-    twitter: {
+    X: {
       images: image,
     },
   });

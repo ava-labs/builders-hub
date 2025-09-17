@@ -8,7 +8,7 @@ export function AcademyLearningPath({ defaultPathType }: AcademyLearningPathProp
     const pathType = defaultPathType;
 
     return (
-        <div className="mb-20">
+        <div id="learning-path-section" className="mb-20 scroll-mt-20">
             <div className="text-center mb-12">
                 <h2 className="text-3xl sm:text-4xl font-bold text-zinc-900 dark:text-white mb-8">
                     Learning Path for{" "}

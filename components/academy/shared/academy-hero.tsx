@@ -1,3 +1,5 @@
+'use client';
+
 import { ChevronDown } from 'lucide-react';
 
 interface AcademyHeroProps {
@@ -7,6 +9,13 @@ interface AcademyHeroProps {
 }
 
 export function AcademyHero({ title, accent, description }: AcademyHeroProps) {
+    const handleScrollToLearningPath = () => {
+        const learningPathSection = document.getElementById('learning-path-section');
+        if (learningPathSection) {
+            learningPathSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
     return (
         <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
             {/* Background gradient */}
@@ -34,11 +43,15 @@ export function AcademyHero({ title, accent, description }: AcademyHeroProps) {
                         </p>
 
                         {/* Visual separator - positioned at bottom */}
-                        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-4 text-zinc-400 dark:text-zinc-600">
-                            <div className="h-px w-12 bg-gradient-to-r from-transparent to-zinc-300 dark:to-zinc-700" />
+                        <button
+                            onClick={handleScrollToLearningPath}
+                            className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-4 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors cursor-pointer group"
+                            aria-label="Scroll to learning path"
+                        >
+                            <div className="h-px w-12 bg-gradient-to-r from-transparent to-zinc-300 dark:to-zinc-700 group-hover:to-zinc-400 dark:group-hover:to-zinc-600 transition-all" />
                             <ChevronDown className="h-5 w-5 animate-bounce" />
-                            <div className="h-px w-12 bg-gradient-to-l from-transparent to-zinc-300 dark:to-zinc-700" />
-                        </div>
+                            <div className="h-px w-12 bg-gradient-to-l from-transparent to-zinc-300 dark:to-zinc-700 group-hover:to-zinc-400 dark:group-hover:to-zinc-600 transition-all" />
+                        </button>
                     </div>
                 </div>
             </div>
