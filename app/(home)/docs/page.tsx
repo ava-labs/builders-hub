@@ -25,7 +25,7 @@ export const metadata: Metadata = createMetadata({
       alt: 'Avalanche Documentation',
     },
   },
-  X: {
+  twitter: {
     images: {
       url: '/api/og/docs',
       width: 1200,

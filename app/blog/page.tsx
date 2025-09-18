@@ -11,7 +11,7 @@ export const metadata: Metadata = createMetadata({
     openGraph: {
         images: '/api/og/blog',
     },
-    X: {
+    twitter: {
         images: '/api/og/blog',
     },
 });

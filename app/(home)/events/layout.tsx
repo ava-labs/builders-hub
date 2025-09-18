@@ -13,7 +13,7 @@ export const metadata: Metadata = createMetadata({
       alt: 'Avalanche Events',
     },
   },
-  X: {
+  twitter: {
     images: {
       url: '/api/og/events',
       width: 1200,

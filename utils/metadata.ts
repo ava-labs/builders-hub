@@ -11,12 +11,12 @@ export function createMetadata(override: Metadata): Metadata {
       siteName: 'Avalanche Builder Hub',
       ...override.openGraph,
     },
-    X: {
+    twitter: {
       card: 'summary_large_image',
       title: override.title ?? undefined,
       description: override.description ?? undefined,
       images: '/logo.png',
-      ...override.X,
+      ...override.twitter,
     },
   };
 }
