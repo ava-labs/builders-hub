@@ -26,7 +26,7 @@ export const entrepreneurLearningPaths: CourseNode[] = [
     // Second Layer  
     {
         id: "codebase-gtm",
-        name: "Level 2: Go To Market Strategist",
+        name: "Level 2: Go-To-Market Strategist",
         description: "Master go-to-market strategies for Web3 products and services.",
         slug: "go-to-market",
         category: "Business Strategy",
