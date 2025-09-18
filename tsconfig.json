@@ -47,7 +47,7 @@
     ".next/types/**/*.ts",
     "utils/remote-content.mts",
     "hooks/getLucideIcon.tsz"
-  ],
+, "content/avalanche-apis/test/index."  ],
   "exclude": [
     "node_modules"
   ]

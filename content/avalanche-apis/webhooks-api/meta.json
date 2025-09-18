@@ -1,0 +1,22 @@
+{
+  "title": "Webhooks API",
+  "description": "Manage webhooks for real-time notifications",
+  "icon": "Webhook",
+  "root": true,
+  "pages": [
+    "---Webhook Management---",
+    "createWebhook",
+    "getWebhook",
+    "listWebhooks",
+    "updateWebhook",
+    "deactivateWebhook",
+    "---Address Management---",
+    "addAddressesToWebhook",
+    "removeAddressesFromWebhook", 
+    "getAddressesFromWebhook",
+    "sendAddressActivityWebhook",
+    "---Security---",
+    "generateOrRotateSharedSecret",
+    "getSharedSecret"
+  ]
+}

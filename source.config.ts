@@ -81,6 +81,23 @@ export const blog = defineCollections({
   }),
 });
 
+export const apiReferences = defineCollections({
+  type: 'doc',
+  dir: 'content/avalanche-apis',
+  schema: frontmatterSchema.extend({
+    index: z.boolean().default(false),
+    edit_url: z.string().optional(),
+  }),
+});
+
+export const apiMeta = defineCollections({
+  type: 'meta',
+  dir: 'content/avalanche-apis',
+  schema: metaSchema.extend({
+    description: z.string().optional(),
+  }),
+});
+
 export default defineConfig({
   lastModifiedTime: 'git',
   mdxOptions: {

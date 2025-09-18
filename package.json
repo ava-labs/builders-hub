@@ -29,7 +29,7 @@
     "@next/mdx": "^15.5.3",
     "@next/third-parties": "^15.5.3",
     "@noble/bls12-381": "^1.4.0",
-    "@noble/curves": "^2.0.0",
+    "@noble/curves": "^1.9.1",
     "@noble/hashes": "1.8.0",
     "@prisma/client": "^6.16.1",
     "@radix-ui/react-accordion": "^1.2.12",
