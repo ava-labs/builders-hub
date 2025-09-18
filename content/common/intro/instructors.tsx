@@ -75,7 +75,7 @@ const instructors: Instructor[] = [
         name: "Nicolas Arnedo",
         title: "Developer Relations Engineer",
 
-        twitter: "https://x.com/navilla_eth",
+        twitter: "https://x.com/nicolas_arnedo_",
         linkedin: "https://www.linkedin.com/in/nicolasarnedo/",
         github: "https://github.com/navillanueva",
     },
