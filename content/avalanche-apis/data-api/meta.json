@@ -1,9 +1,9 @@
 {
   "title": "Data API",
-  "description": "Comprehensive API for Avalanche blockchain data",
   "icon": "Database",
   "root": true,
   "pages": [
+    "index",
     "---Health Check---",
     "health-check/data-health-check",
     "---EVM Chains---",

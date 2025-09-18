@@ -1,9 +1,9 @@
 {
   "title": "Webhooks API",
-  "description": "Manage webhooks for real-time notifications",
   "icon": "Webhook",
   "root": true,
   "pages": [
+    "index",
     "---Webhook Management---",
     "createWebhook",
     "getWebhook",
