@@ -40,7 +40,7 @@ import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWr
 import CrossChainTransfer from "@/components/toolbox/console/primary-network/CrossChainTransfer"
 import AvalancheGoDocker from '@/components/toolbox/console/layer-1/AvalancheGoDockerL1';
 import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain"
-import ConvertToL1 from "@/components/toolbox/console/layer-1/create/ConvertToL1"
+import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1"
 import GenesisBuilder from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
 import DeployExampleERC20 from '@/components/toolbox/console/ictt/setup/DeployExampleERC20';
 import DeployTokenHome from '@/components/toolbox/console/ictt/setup/DeployTokenHome';
@@ -59,7 +59,7 @@ const toolboxComponents = {
   GenesisBuilder,
   CreateChain,
   AvalancheGoDocker,
-  ConvertToL1,
+  ConvertToL1: ConvertSubnetToL1,
   DeployExampleERC20,
   DeployTokenHome,
   DeployERC20TokenRemote,

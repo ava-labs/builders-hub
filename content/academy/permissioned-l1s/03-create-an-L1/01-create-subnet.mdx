@@ -10,6 +10,8 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Button } from '@/components/ui/button';
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
 import ManagedTestnetNodes from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes";
+import AvalancheGoDocker from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
+import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
 
 In the [Avalanche Fundamentals course](/academy/avalanche-fundamentals), you learned how to quickly set up an L1 using the [Developer Console](https://build.avax.network/tools/l1-toolbox). This section provides an in depth review of that flow, understanding what comes pre-configured in our genesis, and laying the foundation for what we will need for our Permissioned L1.
 
@@ -68,7 +70,7 @@ On **Step 2: Create a Chain** select the *Genesis JSON* tab to the right and ski
 
 Launch a node to track your Subnet. This node will become a validator for your Subnet, and later will be managed by the Validator Manager contract when we convert to L1.
 
-Use our free managed testnet infrastructure - no Docker installation or AWS account required:
+Use our *free managed testnet infrastructure* - no Docker installation or AWS account required:
 
 <ToolboxMdxWrapper walletMode="testnet-mainnet">
     <ManagedTestnetNodes />
@@ -78,6 +80,20 @@ Use our free managed testnet infrastructure - no Docker installation or AWS acco
 
 After creating nodes, you can view and manage them at the [Testnet Infrastructure Console](/console/testnet-infra/nodes).
 
+<Callout type="warning">
+Managed nodes automatically shut down after 3 days. For production or extended testing, see the self-hosted option below.
+</Callout>
+
+### Production & Extended Testing Environments
+
+For production environments or extended testing periods, you should use Docker to run your nodes.
+
+**Docker Setup Guide:**
+
+<ToolboxMdxWrapper walletMode="testnet-mainnet">
+    <AvalancheGoDocker />
+</ToolboxMdxWrapper>
+
 </Step>
 </Steps>
 
@@ -85,4 +101,4 @@ After creating nodes, you can view and manage them at the [Testnet Infrastructur
 
 - **P-Chain Registry**: All validators and blockchains are registered on the P-Chain
 - **Subnet Foundation**: Your Subnet provides the blockchain infrastructure necessary for this course
-- **Managed Infrastructure**: Builder Hub provides free managed testnet nodes, eliminating the need for Docker or AWS setup
+- **Managed Infrastructure or Self-Hosted**: Builder Hub provides free managed testnet nodes, eliminating the need for Docker or AWS setup - you can also choose to run it yourself.

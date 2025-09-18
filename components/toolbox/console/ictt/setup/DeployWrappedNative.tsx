@@ -11,6 +11,7 @@ import { Container } from "@/components/toolbox/components/Container";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 export default function DeployWrappedNative() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
@@ -20,6 +21,7 @@ export default function DeployWrappedNative() {
     const wrappedNativeTokenAddress = wrappedNativeTokenAddressStore || selectedL1?.wrappedTokenAddress;
 
     const { coreWalletClient, walletEVMAddress } = useWalletStore();
+    const { notify } = useConsoleNotifications();
     const viemChain = useViemChainStore();
     const [isDeploying, setIsDeploying] = useState(false);
     const { walletChainId } = useWalletStore();
@@ -43,15 +45,19 @@ export default function DeployWrappedNative() {
                 transport: http(viemChain.rpcUrls.default.http[0] || "")
             });
 
-            const hash = await coreWalletClient.deployContract({
+            const deployPromise = coreWalletClient.deployContract({
                 abi: WrappedNativeToken.abi as any,
                 bytecode: WrappedNativeToken.bytecode.object as `0x${string}`,
                 args: ["WNT"],
                 chain: viemChain,
                 account: walletEVMAddress as `0x${string}`
             });
+            notify({
+                type: 'deploy',
+                name: 'WrappedNativeToken'
+            }, deployPromise, viemChain ?? undefined);
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: await deployPromise });
 
             if (!receipt.contractAddress) {
                 throw new Error('No contract address in receipt');

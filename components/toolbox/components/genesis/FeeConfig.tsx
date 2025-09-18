@@ -4,6 +4,7 @@ import { Textarea as TextArea } from "../TextArea";
 import { Info } from "lucide-react";
 import { Address } from 'viem';
 import { ValidationMessages } from "./types";
+import { AddConnectedWalletButton } from '@/components/toolbox/components/ConnectWallet/AddConnectedWalletButton';
 
 // Helper function to convert gwei to wei
 const gweiToWei = (gwei: number): number => gwei * 1000000000;
@@ -335,6 +336,13 @@ function FeeConfigBase({
                 rows={2}
                 error={validationMessages.errors.feeManager}
               />
+              <AddConnectedWalletButton
+                onAddAddress={(address) => {
+                  handleFeeManagerAdminsChange([...feeManager.adminAddresses, address as Address]);
+                }}
+                addressSource={feeManager.adminAddresses}
+                buttonText="Add Connected Wallet"
+              />
             </div>
           )}
         </div>
@@ -384,6 +392,13 @@ function FeeConfigBase({
                 helperText="Comma-separated list of addresses that can manage rewards via precompile 0x02...04"
                 rows={2}
                 error={validationMessages.errors.rewardManager}
+              />
+              <AddConnectedWalletButton
+                onAddAddress={(address) => {
+                  handleRewardManagerAdminsChange([...rewardManager.adminAddresses, address as Address]);
+                }}
+                addressSource={rewardManager.adminAddresses}
+                buttonText="Add Connected Wallet"
               />
             </div>
           )}

@@ -11,6 +11,7 @@ import { Container } from "@/components/toolbox/components/Container";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 export const SENDER_C_CHAIN_ADDRESS = "0x05c474824e7d2cc67cf22b456f7cf60c0e3a1289";
 
@@ -22,7 +23,7 @@ export default function DeployICMDemo() {
     const [isTeleporterDeployed, setIsTeleporterDeployed] = useState(false);
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const selectedL1 = useSelectedL1()();
-
+    const { notify } = useConsoleNotifications();
     // Throw critical errors during render
     if (criticalError) {
         throw criticalError;
@@ -53,13 +54,19 @@ export default function DeployICMDemo() {
         setIsDeploying(true);
         setIcmReceiverAddress("");
         try {
-            const hash = await coreWalletClient.deployContract({
+            const deployPromise = coreWalletClient.deployContract({
                 abi: ICMDemoABI.abi as any,
                 bytecode: ICMDemoABI.bytecode.object as `0x${string}`,
                 account: walletEVMAddress as `0x${string}`,
                 chain: viemChain
             });
 
+            notify({
+                type: 'deploy',
+                name: 'ICMDemo'
+            }, deployPromise, viemChain ?? undefined);
+
+            const hash = await deployPromise;
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
             if (!receipt.contractAddress) {

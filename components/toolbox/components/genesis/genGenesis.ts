@@ -29,7 +29,9 @@ type GenerateGenesisArgs = {
     contractDeployerAllowlistConfig: AllowlistPrecompileConfig,
     nativeMinterAllowlistConfig: AllowlistPrecompileConfig,
     poaOwnerAddress: string,
-    preinstallConfig?: PreinstallConfig
+    preinstallConfig?: PreinstallConfig,
+    tokenName?: string,
+    tokenSymbol?: string
 }
 
 function generateAllowListConfig(config: AllowlistPrecompileConfig) {
@@ -57,7 +59,7 @@ function hexTo32Bytes(hex: string) {
     return "0x" + hex.padStart(64, "0");
 }
 
-export function generateGenesis({ evmChainId, tokenAllocations, txAllowlistConfig, contractDeployerAllowlistConfig, nativeMinterAllowlistConfig, poaOwnerAddress, preinstallConfig }: GenerateGenesisArgs) {
+export function generateGenesis({ evmChainId, tokenAllocations, txAllowlistConfig, contractDeployerAllowlistConfig, nativeMinterAllowlistConfig, poaOwnerAddress, preinstallConfig, tokenName, tokenSymbol }: GenerateGenesisArgs) {
     // Convert balances to wei
     const allocations: Record<string, { balance: string, code?: string, storage?: Record<string, string>, nonce?: string }> = {};
     tokenAllocations.forEach((allocation) => {
@@ -139,16 +141,16 @@ export function generateGenesis({ evmChainId, tokenAllocations, txAllowlistConfi
         // [data...][length*2] in a single slot
         // If length > 31 bytes, slot contains [length*2+1] and data is stored in keccak256(slot)
 
-        const tokenName = "Wrapped Native Token";
-        const tokenSymbol = "WNT";
+        const wrappedTokenName = `Wrapped ${tokenName}`;
+        const wrappedTokenSymbol = `W${tokenSymbol}`;
 
-        // Encode name: "Wrapped AVAX" (12 bytes)
-        // Hex: 0x577261707065642041564158 + length*2 (12*2 = 24 = 0x18)
-        const nameHex = "0x" + Buffer.from(tokenName, 'utf8').toString('hex').padEnd(62, '0') + (tokenName.length * 2).toString(16).padStart(2, '0');
+        // Encode name: e.g. "Wrapped AVAX" (dynamic length)
+        // Format: [data][length*2] in hex
+        const nameHex = "0x" + Buffer.from(wrappedTokenName, 'utf8').toString('hex').padEnd(62, '0') + (wrappedTokenName.length * 2).toString(16).padStart(2, '0');
 
-        // Encode symbol: "WAVAX" (5 bytes)  
-        // Hex: 0x5741564158 + length*2 (5*2 = 10 = 0x0a)
-        const symbolHex = "0x" + Buffer.from(tokenSymbol, 'utf8').toString('hex').padEnd(62, '0') + (tokenSymbol.length * 2).toString(16).padStart(2, '0');
+        // Encode symbol: e.g. "WAVAX" (dynamic length)
+        // Format: [data][length*2] in hex
+        const symbolHex = "0x" + Buffer.from(wrappedTokenSymbol, 'utf8').toString('hex').padEnd(62, '0') + (wrappedTokenSymbol.length * 2).toString(16).padStart(2, '0');
 
         allocations[WRAPPED_NATIVE_TOKEN_ADDRESS.slice(2).toLowerCase()] = {
             balance: "0x0",

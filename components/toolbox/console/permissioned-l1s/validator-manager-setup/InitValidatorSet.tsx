@@ -15,11 +15,11 @@ import { Input } from "@/components/toolbox/components/Input";
 import { utils } from '@avalabs/avalanchejs';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Container } from '@/components/toolbox/components/Container';
-import { ResultField } from '@/components/toolbox/components/ResultField';
 import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
 import { useAvaCloudSDK } from "@/components/toolbox/stores/useAvaCloudSDK";
 import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 const cb58ToHex = (cb58: string) => utils.bufferToHex(utils.base58check.decode(cb58));
 const add0x = (hex: string): `0x${string}` => hex.startsWith('0x') ? hex as `0x${string}` : `0x${hex}`;
@@ -41,15 +41,18 @@ export default function InitValidatorSet() {
     const [L1ConversionSignatureError, setL1ConversionSignatureError] = useState<string>("");
     const [isAggregating, setIsAggregating] = useState(false);
 
+    const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
+
     async function aggSigs() {
         if (!coreWalletClient) {
-            setError('Core wallet not found');
+            sendCoreWalletNotSetNotification();
             return;
         }
 
         setL1ConversionSignatureError("");
         setIsAggregating(true);
-        try {
+
+        const aggPromise = (async () => {
             const { message, justification, signingSubnetId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
 
             const { signedMessage } = await aggregateSignature({
@@ -59,9 +62,16 @@ export default function InitValidatorSet() {
                 quorumPercentage: 67,
             });
             setL1ConversionSignature(signedMessage);
-        } catch (error) {
-            console.error("Error aggregating signatures:", error);
-            throw error;
+            return signedMessage;
+        })();
+
+        notify({
+            type: 'local',
+            name: 'Aggregate Signatures'
+        }, aggPromise);
+
+        try {
+            await aggPromise;
         } finally {
             setIsAggregating(false);
         }
@@ -89,18 +99,16 @@ export default function InitValidatorSet() {
             setError('RPC endpoint is required for debug mode');
             return;
         }
-        if (!window.avalanche) {
-            setError('MetaMask (Avalanche wallet) is not installed');
+        if (!coreWalletClient) {
+            sendCoreWalletNotSetNotification();
             return;
         }
 
         setIsInitializing(true);
         setError(null);
-        try {
-            if (!coreWalletClient) throw new Error('Core wallet client not found');
 
+        const initPromise = (async () => {
             const { validators, subnetId, chainId, managerAddress } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
-            // Prepare transaction arguments
             const txArgs = [
                 {
                     subnetID: cb58ToHex(subnetId),
@@ -108,17 +116,12 @@ export default function InitValidatorSet() {
                     validatorManagerAddress: managerAddress as `0x${string}`,
                     initialValidators: validators
                         .map(({ nodeID, weight, signer }: { nodeID: string, weight: number, signer: { publicKey: string } }) => {
-                            // Ensure nodeID and blsPublicKey are properly formatted
-                            // If nodeID is in BinTools format, convert to hex
                             const nodeIDBytes = nodeID.startsWith('0x')
                                 ? nodeID
                                 : add0x(nodeID);
-
-                            // If blsPublicKey is in BinTools format, convert to hex
                             const blsPublicKeyBytes = signer.publicKey.startsWith('0x')
                                 ? signer.publicKey
                                 : add0x(signer.publicKey);
-
                             return {
                                 nodeID: nodeIDBytes,
                                 blsPublicKey: blsPublicKeyBytes,
@@ -126,18 +129,15 @@ export default function InitValidatorSet() {
                             };
                         })
                 },
-                0 // messageIndex parameter
+                0
             ];
 
+            setCollectedData({ ...txArgs[0] as any, L1ConversionSignature });
 
-            setCollectedData({ ...txArgs[0] as any, L1ConversionSignature })
-
-            // Convert signature to bytes and pack into access list
             const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
             const accessList = packWarpIntoAccessList(signatureBytes);
 
-            // FIXME: for whatever reason, viem simulation does not work consistently, so we just send the transaction
-            const hash = await coreWalletClient.writeContract({
+            const initPromise = coreWalletClient.writeContract({
                 address: managerAddress as `0x${string}`,
                 abi: ValidatorManagerABI.abi,
                 functionName: 'initializeValidatorSet',
@@ -147,38 +147,27 @@ export default function InitValidatorSet() {
                 chain: viemChain || undefined,
             });
 
-            // Wait for transaction confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            notify({
+                type: 'call',
+                name: 'Initialize Validator Set'
+            }, initPromise, viemChain ?? undefined);
 
-            if (receipt.status === 'success') {
-                setTxHash(hash);
-            } else {
-                const decodedError = await debugTraceAndDecode(hash, evmChainRpcUrl!);
-                setError(`Transaction failed: ${decodedError}`);
-            }
+            try {
+                const hash = await initPromise;
+                const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-        } catch (error) {
-            console.error('Transaction error:', error);
-            // More detailed error logging
-            if (error instanceof Error) {
-                console.error('Error details:', {
-                    message: error.message,
-                    stack: error.stack,
-                    name: error.name
-                });
-
-                // Parse the error message to be more user-friendly
-                let errorMessage = error.message;
-                if (errorMessage.includes('Cannot read properties of undefined')) {
-                    errorMessage = 'Contract function call failed. This may be due to an invalid argument format or missing required parameters.';
+                if (receipt.status !== 'success') {
+                    const decodedError = await debugTraceAndDecode(hash, evmChainRpcUrl!);
+                    throw new Error(`Transaction failed: ${decodedError}`);
                 }
-                setError(errorMessage);
-            } else {
-                setError('An unknown error occurred');
+
+                return hash;
+            } catch (err) {
+                setError((err as Error).message);
+            } finally {
+                setIsInitializing(false);
             }
-        } finally {
-            setIsInitializing(false);
-        }
+        })();
     };
 
     return (
@@ -248,14 +237,6 @@ export default function InitValidatorSet() {
                         </div>
                     )
                 }
-
-                {txHash && (
-                    <ResultField
-                        label="Transaction Successful"
-                        value={txHash}
-                        showCheck={true}
-                    />
-                )}
             </Container>
         </CheckWalletRequirements>
     );

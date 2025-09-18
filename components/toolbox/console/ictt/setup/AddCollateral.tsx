@@ -17,11 +17,13 @@ import ERC20TokenRemoteABI from "@/contracts/icm-contracts/compiled/ERC20TokenRe
 import { getToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 export default function AddCollateral() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { erc20TokenRemoteAddress, nativeTokenRemoteAddress } = useToolboxStore();
     const { coreWalletClient, walletEVMAddress } = useWalletStore();
+    const { notify } = useConsoleNotifications();
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
     const [sourceChainId, setSourceChainId] = useState<string>("");
@@ -39,7 +41,6 @@ export default function AddCollateral() {
     const [isCheckingStatus, setIsCheckingStatus] = useState(false);
     const [isCollateralized, setIsCollateralized] = useState<boolean | null>(null);
     const [isAutoFilled, setIsAutoFilled] = useState(false);
-
     // Throw critical errors during render
     if (criticalError) {
         throw criticalError;
@@ -225,7 +226,12 @@ export default function AddCollateral() {
                 chain: sourceL1ViemChain,
             });
 
-            const hash = await coreWalletClient.writeContract(request);
+            const writePromise = coreWalletClient.writeContract(request);
+            notify({
+                type: 'call',
+                name: 'Approve Tokens'
+            }, writePromise, sourceL1ViemChain ?? undefined);
+            const hash = await writePromise;
             setLastApprovalTxId(hash);
 
             await publicClient.waitForTransactionReceipt({ hash });
@@ -272,7 +278,12 @@ export default function AddCollateral() {
                 chain: sourceL1ViemChain,
             });
 
-            const hash = await coreWalletClient.writeContract(request);
+            const writePromise = coreWalletClient.writeContract(request);
+            notify({
+                type: 'call',
+                name: 'Add Collateral'
+            }, writePromise, sourceL1ViemChain ?? undefined);
+            const hash = await writePromise;
             setLastAddCollateralTxId(hash);
 
             await publicClient.waitForTransactionReceipt({ hash });

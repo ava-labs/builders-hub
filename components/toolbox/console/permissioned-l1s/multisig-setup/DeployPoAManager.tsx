@@ -16,7 +16,7 @@ import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValida
 import { ValidatorManagerDetails } from "@/components/toolbox/components/ValidatorManagerDetails";
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import SelectSafeWallet, { SafeSelection } from "@/components/toolbox/components/SelectSafeWallet";
-
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
@@ -41,7 +41,7 @@ export default function DeployPoAManager() {
     const [safeError, setSafeError] = useState<string | null>(null);
 
     const viemChain = useViemChainStore();
-
+    const { notify } = useConsoleNotifications();
     const {
         validatorManagerAddress,
         error: validatorManagerError,
@@ -88,12 +88,13 @@ export default function DeployPoAManager() {
 
         setIsDeploying(true);
         setPoaManagerAddress("");
+
         try {
             if (!viemChain) throw new Error("Viem chain not found");
             await coreWalletClient.addChain({ chain: viemChain });
             await coreWalletClient.switchChain({ id: viemChain!.id });
 
-            const hash = await coreWalletClient.deployContract({
+            const deployPromise = coreWalletClient.deployContract({
                 abi: PoAManagerABI.abi as any,
                 bytecode: PoAManagerABI.bytecode.object as `0x${string}`,
                 args: [ownerAddress as `0x${string}`, validatorManagerAddress as `0x${string}`],
@@ -101,6 +102,12 @@ export default function DeployPoAManager() {
                 account: walletEVMAddress as `0x${string}`
             });
 
+            notify({
+                type: 'deploy',
+                name: 'PoAManager'
+            }, deployPromise, viemChain);
+
+            const hash = await deployPromise;
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
             if (!receipt.contractAddress) {

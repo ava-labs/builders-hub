@@ -18,6 +18,7 @@ import { GetRegistrationJustification } from "@/components/toolbox/console/permi
 import { packL1ValidatorRegistration } from "@/components/toolbox/coreViem/utils/convertWarp"
 import { packWarpIntoAccessList } from "@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp"
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore"
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 type ParsedInitiatedRegistration = {
   validationId: string
@@ -31,6 +32,7 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
   const [subnetId, setSubnetId] = useState<string>(useCreateChainStore()((s) => s.subnetId) || "")
   const { publicClient, coreWalletClient, avalancheNetworkID } = useWalletStore()
   const viemChain = useViemChainStore()
+  const { notify } = useConsoleNotifications();
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fromBlock, setFromBlock] = useState<string>("")
@@ -320,18 +322,23 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
         avalancheNetworkID,
         "11111111111111111111111111111111LpoYY"
       )
-      const signature = await aggregateSignature({
+      const signaturePromise = aggregateSignature({
         message: bytesToHex(removeValidatorMessage),
         justification: bytesToHex(justification),
         signingSubnetId: signingSubnetId || subnetId,
         quorumPercentage: 67,
       })
+      notify({
+        type: 'local',
+        name: 'Aggregate Signatures'
+      }, signaturePromise);
+      const signature = await signaturePromise;
       const signedMessage = signature.signedMessage
       console.log("signedMessage", signedMessage)
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signedMessage}`)
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes)
 
-      const hash = await coreWalletClient.writeContract({
+      const writePromise = coreWalletClient.writeContract({
         address: targetContractAddress as `0x${string}`,
         abi: targetAbi,
         functionName: 'completeValidatorRemoval',
@@ -340,7 +347,11 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
         account: coreWalletClient.account,
         chain: viemChain,
       })
-
+      notify({
+        type: 'call',
+        name: 'Complete Validator Removal'
+      }, writePromise, viemChain ?? undefined);
+      const hash = await writePromise;
       setActionState((s) => ({
         ...s,
         [validationId]: {

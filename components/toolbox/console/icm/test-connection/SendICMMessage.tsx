@@ -15,6 +15,7 @@ import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1Lis
 import { useEffect } from "react";
 import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 const predeployedDemos: Record<string, string> = {
     //fuji
@@ -33,7 +34,7 @@ export default function SendICMMessage() {
     const viemChain = useViemChainStore();
     const [isQuerying, setIsQuerying] = useState(false);
     const [lastReceivedMessage, setLastReceivedMessage] = useState<number>();
-
+    const { notify } = useConsoleNotifications();
     // Throw critical errors during render
     if (criticalError) {
         throw criticalError;
@@ -110,11 +111,17 @@ export default function SendICMMessage() {
                 account: coreWalletClient.account,
             });
 
-            const hash = await coreWalletClient.writeContract({
+            const writePromise = coreWalletClient.writeContract({
                 ...request,
                 chain: viemChain,
             });
 
+            notify({
+                type: 'call',
+                name: 'Send ICM Message'
+            }, writePromise, viemChain ?? undefined);
+
+            const hash = await writePromise;
             console.log("Transaction hash:", hash);
             setLastTxId(hash);
 
