@@ -1,0 +1,18 @@
+{
+    "title": "Foundations",
+    "icon": "Building",
+    "root": true,
+    "pages": [
+        "index",
+        "---Legal Foundations---",
+        "...01-legal-foundations",
+        "---Security Fundamentals---",
+        "...01b-security-fundamentals",
+        "---Business Model Canvas---",
+        "...02-business-model-canvas",
+        "---User Personas---",
+        "...03-user-personas",
+        "---Level 1 Completion Certificate---",
+        "...certificate"
+    ]
+}

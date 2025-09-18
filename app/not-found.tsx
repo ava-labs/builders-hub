@@ -65,7 +65,7 @@ export default function NotFound() {
                   variant="outline"
                   className="dark:border-border dark:hover:bg-accent"
                 >
-                  Scold Intern on Twitter
+                  Scold Intern on X
                 </Button>
               </Link>
               <Link href={issueURL} target="_blank">

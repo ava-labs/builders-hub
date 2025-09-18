@@ -54,6 +54,33 @@ export const courseMeta = defineCollections({
   }),
 });
 
+export const codebaseEntrepreneur = defineCollections({
+  type: 'doc',
+  dir: 'content/codebase-entrepreneur',
+  schema: frontmatterSchema.extend({
+    preview: z.string().optional(),
+    index: z.boolean().default(false),
+    updated: z.string().or(z.date()).transform((value, context) => {
+      try {
+        return new Date(value);
+      } catch {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date" });
+        return z.NEVER;
+      }
+    }),
+    authors: z.array(z.string()),
+    comments: z.boolean().default(false),
+  }),
+});
+
+export const codebaseEntrepreneurMeta = defineCollections({
+  type: 'meta',
+  dir: 'content/codebase-entrepreneur',
+  schema: metaSchema.extend({
+    description: z.string().optional(),
+  }),
+});
+
 export const integrations = defineCollections({
   type: 'doc',
   async: true,

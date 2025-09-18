@@ -3360,7 +3360,7 @@ export default function GrantApplicationForm({
                       <FormControl>
                         <Input
                           className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
-                          placeholder="https://twitter.com/yourusername"
+                          placeholder="https://x.com/yourusername"
                           {...field}
                         />
                       </FormControl>
@@ -3668,7 +3668,7 @@ export default function GrantApplicationForm({
                               <FormControl>
                                 <Input
                                   className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
-                                  placeholder="https://twitter.com/username"
+                                  placeholder="https://x.com/username"
                                   {...field}
                                 />
                               </FormControl>
@@ -3937,7 +3937,7 @@ export default function GrantApplicationForm({
                               <FormControl>
                                 <Input
                                   className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100"
-                                  placeholder="https://twitter.com/username"
+                                  placeholder="https://x.com/username"
                                   {...field}
                                 />
                               </FormControl>

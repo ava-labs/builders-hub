@@ -5,7 +5,7 @@ import SocialLoginButton from "./SocialLoginButton";
 import { SocialLoginProps } from "@/types/socialLoginProps";
 
 function SocialLogin({ callbackUrl = "/" }: SocialLoginProps) {
-  async function SignInSocialMedia(provider: "google" | "github" | "twitter") {
+  async function SignInSocialMedia(provider: "google" | "github" | "X") {
     await signIn(provider, { callbackUrl: callbackUrl });
   }
 
@@ -32,8 +32,8 @@ function SocialLogin({ callbackUrl = "/" }: SocialLoginProps) {
 
         <SocialLoginButton
           name="X"
-          image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackaton-platform-images/twitter_X_logo-xyp7skXcigJFOHpmC3ps7MRg0d14m2.svg"
-          onClick={() => SignInSocialMedia("twitter")}
+          image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackaton-platform-images/X_X_logo-xyp7skXcigJFOHpmC3ps7MRg0d14m2.svg"
+          onClick={() => SignInSocialMedia("X")}
         />
       </div>
     </div>

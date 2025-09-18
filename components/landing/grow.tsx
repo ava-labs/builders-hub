@@ -45,9 +45,9 @@ const grow = [
   {
     id: 5,
     label: "Social",
-    title: "<strong>Twitter</strong>.",
+    title: "<strong>X</strong>.",
     description:
-      "Follow the official Avalanche Developers handle on Twitter for latest news and development updates.",
+      "Follow the official Avalanche Developers handle on X for latest news and development updates.",
     icon: Twitter,
     href: "https://x.com/AvaxDevelopers"
   },

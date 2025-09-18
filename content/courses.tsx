@@ -173,7 +173,7 @@ const officialCourses: Course[] = [
     {
         name: "Foundations of a Web3 Venture",
         description: "Secure, compliant and customer-driven growth made simple.",
-        slug: "codebase-entrepreneur-foundations",
+        slug: "foundations-web3-venture",
         icon: <SquareStackIcon />,
         status: "featured",
         duration: "1 hour",
@@ -185,7 +185,7 @@ const officialCourses: Course[] = [
     {
         name: "Go-to-Market Strategist",
         description: "Generate quality leads, craft winning sales messages, and design pricing strategies that drive growth.",
-        slug: "codebase-entrepreneur-go-to-market",
+        slug: "go-to-market",
         icon: <SquareStackIcon />,
         status: "featured",
         duration: "1 hour",
@@ -197,7 +197,7 @@ const officialCourses: Course[] = [
     {
         name: "Web3 Community Architect",
         description: "Build engaged communities, amplifiy growth through media and events, and design impactful token economies.",
-        slug: "codebase-entrepreneur-community",
+        slug: "web3-community-architect",
         icon: <SquareStackIcon />,
         status: "featured",
         duration: "1 hour",
@@ -209,7 +209,7 @@ const officialCourses: Course[] = [
     {
         name: "Fundraising & Finance Pro",
         description: "Master VC communication, secure funding through grants, and craft winning pitches.",
-        slug: "codebase-entrepreneur-fundraising",
+        slug: "fundraising-finance",
         icon: <SquareStackIcon />,
         status: "featured",
         duration: "1 hour",
@@ -261,9 +261,12 @@ const ecosystemCourses: Course[] = [
    }*/
 ];
 
+const codebaseEntrepreneurCourses = officialCourses.filter((course) => course.category === "Codebase");
+
 export default {
-    official: officialCourses.filter((course) => ["normal", "featured"].includes(course.status)),
-    official_featured: officialCourses.filter((course) => course.status === "featured"),
+    official: officialCourses.filter((course) => ["normal", "featured"].includes(course.status) && course.category !== "Codebase"),
+    official_featured: officialCourses.filter((course) => course.status === "featured" && course.category !== "Codebase"),
+    codebaseEntrepreneur: codebaseEntrepreneurCourses,
     ecosystem: ecosystemCourses,
 };
 
