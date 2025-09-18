@@ -41,7 +41,7 @@ function Formlogin({ callbackUrl = "/" }: { callbackUrl?: string }) {
 
     try {
       await axios.post("/api/send-otp", {
-        email: values.email,
+        email: values.email.toLowerCase(),
       });
       setIsVerifying(true);
     } catch (error) {

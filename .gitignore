@@ -131,7 +131,6 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-yarn.lock
 pnpm-lock.yaml
 package-lock.json
 !next-env.d.ts
@@ -165,6 +164,8 @@ content/docs/cross-chain/teleporter/overview.mdx
 content/docs/cross-chain/teleporter/upgradeability.mdx
 content/docs/nodes/chain-configs/c-chain.mdx
 content/docs/nodes/chain-configs/p-chain.mdx
+content/docs/nodes/chain-configs/x-chain.mdx
+content/docs/nodes/chain-configs/subnet-evm.mdx
 content/docs/nodes/configure/avalanche-l1-configs.mdx
 content/docs/nodes/configure/chain-configs/p-chain.mdx
 content/docs/nodes/configure/chain-configs/x-chain.mdx

@@ -1,6 +1,0 @@
-{
-  "avaplatform/avalanchego": "v1.13.5",
-  "avaplatform/subnet-evm_avalanchego": "v0.7.9_v1.13.5",
-  "avaplatform/icm-relayer": "v1.6.6",
-  "ava-labs/icm-contracts": "4d5ab0b6dbc653770cfe9709878c9406eb28b71c"
-}

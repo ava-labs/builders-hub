@@ -1,6 +1,6 @@
 "use client";
 
-import FeeManager from "@/toolbox/src/toolbox/Precompiles/FeeManager";
+import FeeManager from "@/components/toolbox/console/l1-tokenomics/FeeManager";
 
 export default function Page() {
   return (

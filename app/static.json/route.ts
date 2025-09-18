@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { documentation, blog, academy, integration } from '@/lib/source';
-import { type TrieveDocument } from 'trieve-fumadocs-adapter/search/sync';
+import type { DocumentRecord } from 'fumadocs-core/search/algolia';
 
 export const revalidate = false;
 
 export async function GET() {
-  const results: TrieveDocument[] = await Promise.all([
+  const results: DocumentRecord[] = await Promise.all([
     ...documentation.getPages().map(async (page) => {
       const loadedData = await page.data.load()
       return {
@@ -13,6 +13,7 @@ export async function GET() {
         url: page.url,
         _id: page.url,
         structured: loadedData.structuredData,
+        description: page.data.description,
         tag: 'docs'
       }
     }),
@@ -22,6 +23,7 @@ export async function GET() {
         url: page.url,
         _id: page.url,
         structured: page.data.structuredData,
+        description: page.data.description,
         tag: 'academy'
       }
     }),
@@ -32,15 +34,17 @@ export async function GET() {
         url: page.url,
         _id: page.url,
         structured: loadedData.structuredData,
+        description: page.data.description,
         tag: 'integrations'
       }
     }),
-      ...blog.getPages().map((page) => {
+    ...blog.getPages().map((page) => {
       return {
         title: page.data.title,
         url: page.url,
         _id: page.url,
         structured: page.data.structuredData,
+        description: page.data.description,
         tag: 'blog'
       }
     })

@@ -1,6 +1,6 @@
 "use client";
 
-import PrimaryNetworkNodeSetup from "@/toolbox/src/toolbox/Nodes/AvalancheGoDockerPrimaryNetwork";
+import PrimaryNetworkNodeSetup from "@/components/toolbox/console/primary-network/AvalancheGoDockerPrimaryNetwork";
 
 export default function Page() {
   return (

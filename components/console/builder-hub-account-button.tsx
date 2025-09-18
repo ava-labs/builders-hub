@@ -2,7 +2,7 @@
 
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { CircleUserRound, Globe, LogOut, Plus, RefreshCw, RotateCcw, Telescope, User, Wallet } from "lucide-react";
+import { CircleUserRound, LogOut, User } from "lucide-react";
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -53,30 +53,22 @@ export function BuilderHubAccountButton() {
 
     return (isAuthenticated ? (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                    <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0 w-5 h-5 rounded-md overflow-hidden flex items-center justify-start">    
-                            {session?.user?.image ? (
-                                <Image
-                                    src={session.user.image}
-                                    alt="User Avatar"
-                                    width={20}
-                                    height={20}
-                                    className="rounded-md"
-                                />
-                            ) : (
-                                <CircleUserRound className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
-                            )}
-                        </div>
-                        <div className="flex gap-2 items-center">
-                            <span className="text-sm font-medium leading-none">
-                                {session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
-                            </span>
-                        </div>
-                    </div>
-                </Button>
-            </DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+          {session?.user?.image ? (
+            <Image
+              src={session.user.image}
+              alt="User Avatar"
+              width={20}
+              height={20}
+              className="rounded-md"
+            />
+          ) : (
+            <CircleUserRound className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
+          )}
+          <span className="sr-only">Account menu</span>
+        </Button>
+      </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56">
                 <DropdownMenuItem disabled>
                     {session?.user?.email || 'No email available'}

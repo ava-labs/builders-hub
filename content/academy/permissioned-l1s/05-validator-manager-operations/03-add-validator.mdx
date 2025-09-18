@@ -48,6 +48,17 @@ We finally will call the [`completeValidatorRegistration(messageIndex)`](https:/
 
 Anyone can call `completeValidatorRegistration(messageIndex)` with the signed message.
 
+## Validator Registration Expiry
+
+When registering validators, it's important to understand the **expiry field**:
+
+- **Default Expiry**: Validator registrations expire after **24 hours** by default
+- **Completion Required**: If a validator registration is not completed before the expiry time, the registration becomes invalid
+- **Pending State**: Expired registrations remain in the pending registrations list in the Validator Manager contracts
+- **Cleanup Required**: Expired registrations must be manually removed using the [Remove Expired Validator Registration tool](/console/permissioned-l1s/remove-expired-validator-registration)
+
+This ensures that only active, properly configured validators remain in your Subnet's validator set.
+
 ## Appendix: Adding Validator Flow
 
 <Mermaid

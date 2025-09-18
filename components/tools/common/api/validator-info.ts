@@ -1,7 +1,7 @@
 import { Validator, SubnetInfo, L1ValidatorManagerDetails } from './types';
 import { pChainEndpoint } from './consts';
 import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
-import { useWalletStore } from "../../../../toolbox/src/stores/walletStore";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 const { isTestnet } = useWalletStore();
 
 export const avaCloudSDK = new AvaCloudSDK({

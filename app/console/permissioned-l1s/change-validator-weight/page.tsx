@@ -1,6 +1,6 @@
 "use client";
 
-import ChangeWeight from "@/toolbox/src/toolbox/ValidatorManager/ChangeWeight/ChangeWeight";
+import ChangeWeight from "@/components/toolbox/console/permissioned-l1s/ChangeWeight";
 
 export default function Page() {
   return (

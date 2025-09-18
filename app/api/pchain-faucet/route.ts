@@ -6,7 +6,7 @@ import { rateLimit } from '@/lib/rateLimit';
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
 const FAUCET_P_CHAIN_ADDRESS = process.env.FAUCET_P_CHAIN_ADDRESS;
 const NETWORK_API = 'https://api.avax-test.network';
-const FIXED_AMOUNT = 2;
+const FIXED_AMOUNT = 1;
 
 if (!SERVER_PRIVATE_KEY || !FAUCET_P_CHAIN_ADDRESS) {
   console.error('necessary environment variables are not set');

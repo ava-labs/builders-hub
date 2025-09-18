@@ -452,8 +452,8 @@ export default function AvalancheMetrics() {
   }
 
   const CHART_CONFIG = {
-    colors: ["#0ea5e9", "#8b5cf6", "#f97316", "#22c55e", "#ec4899"],
-    maxTopChains: 5,
+    colors: ["#0ea5e9", "#8b5cf6", "#f97316", "#22c55e", "#ec4899", "#f59e0b", "#ef4444", "#06b6d4", "#84cc16", "#a855f7", "#6b7280"],
+    maxTopChains: 10,
   };
 
   const { chartData, topChains } = getChartData();
@@ -654,12 +654,12 @@ export default function AvalancheMetrics() {
                   >
                     <stop
                       offset="5%"
-                      stopColor={CHART_CONFIG.colors[5]}
+                      stopColor={CHART_CONFIG.colors[10]}
                       stopOpacity={0.8}
                     />
                     <stop
                       offset="95%"
-                      stopColor={CHART_CONFIG.colors[5]}
+                      stopColor={CHART_CONFIG.colors[10]}
                       stopOpacity={0.1}
                     />
                   </linearGradient>
@@ -767,7 +767,7 @@ export default function AvalancheMetrics() {
                   type="monotone"
                   dataKey="Others"
                   stackId="1"
-                  stroke={CHART_CONFIG.colors[5]}
+                  stroke={CHART_CONFIG.colors[10]}
                   strokeWidth={2}
                   fill="url(#gradient-others)"
                   fillOpacity={1}
