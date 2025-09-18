@@ -4,6 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
+@import 'fumadocs-twoslash/twoslash.css';
 @import 'fumadocs-openapi/css/preset.css';
 
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
@@ -575,7 +576,22 @@ html body[data-scroll-locked] {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  .py-3\.5 {
+    padding-block: calc(var(--spacing) * 3.5);
+  }
+
+  .line:is(pre *):is(.shiki *):not(.not-fumadocs-codeblock *) {
+    min-height: 1lh;
+    padding-left: calc(var(--spacing)*4);
+    padding-right: calc(var(--spacing)*4);
+  }
+
+  .gap-3\.5 {
+      gap: calc(var(--spacing) * 3.5);
   }
 }
