@@ -1,0 +1,13 @@
+{
+  "title": "ICM Services",
+  "description": "Interchain Messaging and Cross-Chain Services", 
+  "icon": "MessageSquare",
+  "pages": [
+    "---Teleporter---",
+    "teleporter",
+    "---Interchain Messaging---",
+    "interchain-messaging", 
+    "---Signature Aggregator---",
+    "signature-aggregator"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "title": "EVM",
+  "description": "APIs for EVM-compatible chains on Avalanche",
+  "icon": "Blocks",
+  "pages": [
+    "chains",
+    "blocks", 
+    "transactions",
+    "balances",
+    "contracts",
+    "nfts"
+  ]
+}

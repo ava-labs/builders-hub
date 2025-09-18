@@ -1,0 +1,16 @@
+{
+  "title": "Primary Network",
+  "description": "APIs for Avalanche's Primary Network (P-Chain, X-Chain, C-Chain)",
+  "icon": "Network",
+  "pages": [
+    "network-chains-subnet",
+    "validators-delegators",
+    "blocks",
+    "vertices",
+    "transactions",
+    "balances",
+    "utxos",
+    "rewards",
+    "assets"
+  ]
+}
