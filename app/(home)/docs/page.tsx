@@ -65,16 +65,16 @@ function Highlights(): React.ReactElement {
   const highlights = [
     {
       id: 1,
-      title: "Node & Validators",
-      description: "Run a node or validator on the Avalanche Primary Network",
+      title: "Primary Network",
+      description: "Learn how to run a node or validator on the Avalanche Primary Network",
       icon: SquareGanttChart,
-      href: "/docs/nodes/run-a-node/using-docker",
+      href: "/docs/primary-network",
       badge: "Popular",
       badgeColor: "bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 border-red-200 dark:border-red-700/50"
     },
     {
       id: 2,
-      title: "Launch an L1",
+      title: "Layer 1s",
       description: "Launch your own custom blockchain with unique features",
       icon: Blocks,
       href: "/docs/avalanche-l1s",
@@ -152,34 +152,34 @@ function AllCategories(): React.ReactElement {
   const categories = [
     {
       id: 1,
-      title: "Virtual Machines",
-      description: "Customize the EVM or build new VMs from scratch",
+      title: "APIs",
+      description: "Complete API reference for Avalanche",
       icon: MonitorCog,
-      href: "/docs/virtual-machines",
-      badge: "Advanced"
+      href: "/docs/apis",
+      badge: "Reference"
     },
     {
       id: 2,
+      title: "SDKs",
+      description: "Complete SDK reference for Avalanche",
+      icon: MonitorCheck,
+      href: "/docs/sdks",
+      badge: "Reference"
+    },
+    {
+      id: 3,
       title: "Interoperability",
       description: "Connect and transfer assets between L1s",
       icon: Cable,
       href: "/docs/cross-chain",
-      badge: "Feature"
-    },
-    {
-      id: 3,
-      title: "Nodes & Validators",
-      description: "Run nodes and participate in network consensus",
-      icon: MonitorCheck,
-      href: "/docs/nodes",
-      badge: "Infrastructure"
+      badge: "Documentation"
     },
     {
       id: 4,
-      title: "APIs & RPCs",
-      description: "Integrate with Avalanche network APIs",
+      title: "ACPs",
+      description: "Avalanche Community Proposals",
       icon: Webhook,
-      href: "/docs/api-reference/c-chain/api",
+      href: "/docs/acps",
       badge: "Reference"
     },
     {
@@ -292,7 +292,7 @@ function Features(): React.ReactElement {
       title: "Avalanche CLI",
       description: "Command-line interface for local development with L1s",
       icon: Terminal,
-      href: "/docs/tooling/get-avalanche-cli"
+      href: "/docs/sdks/avalanche-cli"
     },
     {
       id: 3,
@@ -315,31 +315,31 @@ function Features(): React.ReactElement {
       id: 1,
       title: "C-Chain API",
       description: "API reference for the Contract Chain",
-      href: "/docs/api-reference/c-chain/api"
+      href: "/docs/apis/c-chain/api"
     },
     {
       id: 2,
       title: "P-Chain API", 
       description: "API reference for the Platform Chain",
-      href: "/docs/api-reference/p-chain/api"
+      href: "/docs/apis/p-chain/api"
     },
     {
       id: 3,
       title: "X-Chain API",
       description: "API reference for the Exchange Chain", 
-      href: "/docs/api-reference/x-chain/api"
+      href: "/docs/apis/x-chain/api"
     },
     {
       id: 4,
       title: "AvalancheGo API",
       description: "API reference for AvalancheGo",
-      href: "/docs/api-reference/admin-api"
+      href: "/docs/apis/admin-api"
     },
     {
       id: 5,
       title: "Subnet-EVM API",
       description: "API reference for Subnet-EVM",
-      href: "/docs/api-reference/subnet-evm-api"
+      href: "/docs/apis/subnet-evm-api"
     },
     {
       id: 6,

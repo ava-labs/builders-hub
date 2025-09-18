@@ -1,0 +1,449 @@
+---
+title: With Multisig Auth
+description: Learn how to create an Avalanche L1 with a multisig authorization.
+---
+
+Avalanche L1 creators can control critical Avalanche L1 operations with a N of M multisig. This multisig must be setup at deployment time and can't be edited afterward. Multisigs can are available on both the Fuji Testnet and Mainnet.
+
+To setup your multisig, you need to know the P-Chain address of each key holder and what you want your signing threshold to be.
+
+<Callout title="Note">
+Avalanche-CLI requires Ledgers for Mainnet deployments. This how-to guide assumes the use of Ledgers for setting up your multisig.
+</Callout>
+
+## Prerequisites
+
+- [`Avalanche-CLI`](https://github.com/ava-labs/avalanche-cli) installed
+- Familiarity with process of [Deploying an Avalanche L1 on Testnet](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-fuji-testnet) and [Deploying a Permissioned Avalanche L1 on Mainnet](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-mainnet)
+- Multiple Ledger devices [configured for Avalanche](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-mainnet#setting-up-your-ledger)
+- an Avalanche L1 configuration ready to deploy to either Fuji Testnet or Mainnet
+
+Getting Started[​](#getting-started "Direct link to heading")
+-------------------------------------------------------------
+
+When issuing the transactions to create the Avalanche L1, you need to sign the TXs with multiple keys from the multisig.
+
+### Specify Network[​](#specify-network "Direct link to heading")
+
+Start the Avalanche L1 deployment with
+
+```bash
+avalanche blockchain deploy testAvalanche L1
+```
+
+First step is to specify `Fuji` or `Mainnet` as the network:
+
+```bash
+Use the arrow keys to navigate: ↓ ↑ → ←
+? Choose a network to deploy on:
+    Local Network
+    Fuji
+  ▸ Mainnet
+```
+
+```bash
+Deploying [testblockchain] to Mainnet
+```
+
+Ledger is automatically recognized as the signature mechanism on `Mainnet`.
+
+After that, the CLI shows the first `Mainnet` Ledger address.
+
+```bash
+Ledger address: P-avax1kdzq569g2c9urm9887cmldlsa3w3jhxe0knfy5
+```
+
+### Set Control Keys[​](#set-control-keys "Direct link to heading")
+
+Next the CLI asks the user to specify the control keys. This is where you setup your multisig.
+
+```bash
+Configure which addresses may make changes to the Avalanche L1.
+These addresses are known as your control keys. You are going to also
+set how many control keys are required to make an Avalanche L1 change (the threshold).
+Use the arrow keys to navigate: ↓ ↑ → ←
+? How would you like to set your control keys?:
+  ▸ Use ledger address
+    Custom list
+```
+
+Select `Custom list` and add every address that you'd like to be a key holder on the multisig.
+
+```bash
+✔ Custom list
+? Enter control keys:
+  ▸ Add
+    Delete
+    Preview
+    More Info
+↓   Done
+```
+
+Use the given menu to add each key, and select `Done` when finished.
+
+The output at this point should look something like:
+
+```bash
+✔ Custom list
+✔ Add
+Enter P-Chain address (Example: P-...): P-avax1wryu62weky9qjlp40cpmnqf6ml2hytnagj5q28
+✔ Add
+Enter P-Chain address (Example: P-...): P-avax1kdzq569g2c9urm9887cmldlsa3w3jhxe0knfy5
+✔ Add
+Enter P-Chain address (Example: P-...): P-avax12gcy0xl0al6gcjrt0395xqlcuq078ml93wl5h8
+✔ Add
+Enter P-Chain address (Example: P-...): P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af
+✔ Add
+Enter P-Chain address (Example: P-...): P-avax1g4eryh40dtcsltmxn9zk925ny07gdq2xyjtf4g
+✔ Done
+Your Avalanche L1's control keys: [P-avax1wryu62weky9qjlp40cpmnqf6ml2hytnagj5q28 P-avax1kdzq569g2c9urm9887cmldlsa3w3jhxe0knfy5 P-avax12gcy0xl0al6gcjrt0395xqlcuq078ml93wl5h8 P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af P-avax1g4eryh40dtcsltmxn9zk925ny07gdq2xyjtf4g]
+```
+
+<Callout title="Note">
+When deploying an Avalanche L1 with Ledger, you must include the Ledger's default address determined in [Specify Network](#specify-network) for the deployment to succeed. You may see an error like
+
+```
+Error: wallet does not contain Avalanche L1 auth keys
+exit status 1
+```
+</Callout>
+
+### Set Threshold[​](#set-threshold "Direct link to heading")
+
+Next, specify the threshold. In your N of M multisig, your threshold is N, and M is the number of control keys you added in the previous step.
+
+```bash
+Use the arrow keys to navigate: ↓ ↑ → ←
+? Select required number of control key signatures to make an Avalanche L1 change:
+  ▸ 1
+    2
+    3
+    4
+    5
+```
+
+### Specify Control Keys to Sign the Chain Creation TX[​](#specify-control-keys-to-sign-the-chain-creation-tx "Direct link to heading")
+
+You now need N of your key holders to sign the Avalanche L1 deployment transaction. You must select which addresses you want to sign the TX.
+
+```bash
+? Choose an Avalanche L1 auth key:
+  ▸ P-avax1wryu62weky9qjlp40cpmnqf6ml2hytnagj5q28
+    P-avax1kdzq569g2c9urm9887cmldlsa3w3jhxe0knfy5
+    P-avax12gcy0xl0al6gcjrt0395xqlcuq078ml93wl5h8
+    P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af
+    P-avax1g4eryh40dtcsltmxn9zk925ny07gdq2xyjtf4g
+```
+
+A successful control key selection looks like:
+
+```bash
+✔ 2
+✔ P-avax1kdzq569g2c9urm9887cmldlsa3w3jhxe0knfy5
+✔ P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af
+Your subnet auth keys for chain creation: [P-avax1kdzq569g2c9urm9887cmldlsa3w3jhxe0knfy5 P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af]
+*** Please sign Avalanche L1 creation hash on the ledger device ***
+```
+
+#### Potential Errors[​](#potential-errors "Direct link to heading")
+
+If the currently connected Ledger address isn't included in your TX signing group, the operation fails with:
+
+```bash
+✔ 2
+✔ P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af
+✔ P-avax1g4eryh40dtcsltmxn9zk925ny07gdq2xyjtf4g
+Your Avalanche L1 auth keys for chain creation: [P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af P-avax1g4eryh40dtcsltmxn9zk925ny07gdq2xyjtf4g]
+Error: wallet does not contain Avalanche L1 auth keys
+exit status 1
+```
+
+This can happen either because the original specified control keys -previous step- don't contain the Ledger address, or because the Ledger address control key wasn't selected in the current step.
+
+If the user has the correct address but doesn't have sufficient balance to pay for the TX, the operation fails with:
+
+```bash
+✔ 2
+✔ P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af
+✔ P-avax1g4eryh40dtcsltmxn9zk925ny07gdq2xyjtf4g
+Your Avalanche L1 auth keys for chain creation: [P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af P-avax1g4eryh40dtcsltmxn9zk925ny07gdq2xyjtf4g]
+*** Please sign Avalanche L1 creation hash on the ledger device ***
+Error: insufficient funds: provided UTXOs need 1000000000 more units of asset "rgNLkDPpANwqg3pHC4o9aGJmf2YU4GgTVUMRKAdnKodihkqgr"
+exit status 1
+```
+
+### Sign Avalanche L1 Deployment TX with the First Address[​](#sign-avalanche-l1-deployment-tx-with-the-first-address "Direct link to heading")
+
+The Avalanche L1 Deployment TX is ready for signing.
+
+```bash
+*** Please sign Avalanche L1 creation hash on the ledger device ***
+```
+
+This activates a `Please review` window on the Ledger. Navigate to the Ledger's `APPROVE` window by using the Ledger's right button, and then authorize the request by pressing both left and right buttons.
+
+```bash
+Avalanche L1 has been created with ID: 2qUKjvPx68Fgc1NMi8w4mtaBt5hStgBzPhsQrS1m7vSub2q9ew. Now creating blockchain...
+*** Please sign blockchain creation hash on the ledger device ***
+```
+
+After successful Avalanche L1 creation, the CLI asks the user to sign the blockchain creation TX.
+
+This activates a `Please review` window on the Ledger. Navigate to the Ledger's `APPROVE` window by using the Ledger's right button, and then authorize the request by pressing both left and right buttons.
+
+On success, the CLI provides Avalanche L1 deploy details. As only one address signed the chain creation TX, the CLI writes a file to disk to save the TX to continue the signing process with another command.
+
+```bash
++--------------------+----------------------------------------------------+
+| DEPLOYMENT RESULTS |                                                    |
++--------------------+----------------------------------------------------+
+| Chain Name         | testblockchain                                         |
++--------------------+----------------------------------------------------+
+| Subnet ID          | 2qUKjvPx68Fgc1NMi8w4mtaBt5hStgBzPhsQrS1m7vSub2q9ew |
++--------------------+----------------------------------------------------+
+| VM ID              | rW1esjm6gy4BtGvxKMpHB2M28MJGFNsqHRY9AmnchdcgeB3ii  |
++--------------------+----------------------------------------------------+
+
+1 of 2 required Blockchain Creation signatures have been signed. Saving TX to disk to enable remaining signing.
+
+Path to export partially signed TX to:
+```
+
+Enter the name of file to write to disk, such as `partiallySigned.txt`. This file shouldn't exist already.
+
+```bash
+Path to export partially signed TX to: partiallySigned.txt
+
+Addresses remaining to sign the tx: P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af
+
+Connect a ledger with one of the remaining addresses or choose a stored key and run the signing command, or send "partiallySigned.txt" to another user for signing.
+
+Signing command: avalanche transaction sign testblockchain --input-tx-filepath partiallySigned.txt
+```
+
+Gather Remaining Signatures and Issue the Avalanche L1 Deployment TX[​](#gather-remaining-signatures-and-issue-the-avalanche-l1-deployment-tx "Direct link to heading")
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+So far, one address has signed the Avalanche L1 deployment TX, but you need N signatures. Your Avalanche L1 has not been fully deployed yet. To get the remaining signatures, you may connect a different Ledger to the same computer you've been working on. Alternatively, you may send the `partiallySigned.txt` file to other users to sign themselves.
+
+The remainder of this section assumes that you are working on a machine with access to both the remaining keys and the `partiallySigned.txt` file.
+
+### Issue the Command to Sign the Chain Creation TX[​](#issue-the-command-to-sign-the-chain-creation-tx "Direct link to heading")
+
+Avalanche-CLI can detect the deployment network automatically. For `Mainnet` TXs, it uses your Ledger automatically. For `Fuji Testnet`, the CLI prompts the user to choose the signing mechanism.
+
+You can start the signing process with the `transaction sign` command:
+
+```bash
+avalanche transaction sign testblockchain --input-tx-filepath partiallySigned.txt
+```
+
+```bash
+Ledger address: P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af
+*** Please sign TX hash on the ledger device ***
+```
+
+Next, the CLI starts a new signing process for the Avalanche L1 deployment TX. If the Ledger isn't the correct one, the following error should appear instead:
+
+```bash
+Ledger address: P-avax1kdzq569g2c9urm9887cmldlsa3w3jhxe0knfy5
+Error: wallet does not contain Avalanche L1 auth keys
+exit status 1
+```
+
+This activates a `Please review` window on the Ledger. Navigate to the Ledger's `APPROVE` window by using the Ledger's right button, and then authorize the request by pressing both left and right buttons.
+
+Repeat this processes until all required parties have signed the TX. You should see a message like this:
+
+```bash
+All 2 required Tx signatures have been signed. Saving TX to disk to enable commit.
+
+Overwriting partiallySigned.txt
+
+Tx is fully signed, and ready to be committed
+
+Commit command: avalanche transaction commit testblockchain --input-tx-filepath partiallySigned.txt
+```
+
+Now, `partiallySigned.txt` contains a fully signed TX.
+
+### Commit the Avalanche L1 Deployment TX[​](#commit-the-avalanche-l1-deployment-tx "Direct link to heading")
+
+To run submit the fully signed TX, run:
+
+```bash
+avalanche transaction commit testblockchain --input-tx-filepath partiallySigned.txt
+```
+
+The CLI recognizes the deployment network automatically and submits the TX appropriately.
+
+```bash
++--------------------+-------------------------------------------------------------------------------------+
+| DEPLOYMENT RESULTS |                                                                                     |
++--------------------+-------------------------------------------------------------------------------------+
+| Chain Name         | testblockchain                                                                          |
++--------------------+-------------------------------------------------------------------------------------+
+| Subnet ID          | 2qUKjvPx68Fgc1NMi8w4mtaBt5hStgBzPhsQrS1m7vSub2q9ew                                  |
++--------------------+-------------------------------------------------------------------------------------+
+| VM ID              | rW1esjm6gy4BtGvxKMpHB2M28MJGFNsqHRY9AmnchdcgeB3ii                                   |
++--------------------+-------------------------------------------------------------------------------------+
+| Blockchain ID      | 2fx9EF61C964cWBu55vcz9b7gH9LFBkPwoj49JTSHA6Soqqzoj                                  |
++--------------------+-------------------------------------------------------------------------------------+
+| RPC URL            | http://127.0.0.1:9650/ext/bc/2fx9EF61C964cWBu55vcz9b7gH9LFBkPwoj49JTSHA6Soqqzoj/rpc |
++--------------------+-------------------------------------------------------------------------------------+
+| P-Chain TXID       | 2fx9EF61C964cWBu55vcz9b7gH9LFBkPwoj49JTSHA6Soqqzoj                                  |
++--------------------+-------------------------------------------------------------------------------------+
+```
+
+Your Avalanche L1 successfully deployed with a multisig.
+
+Add Validators Using the Multisig[​](#add-validators-using-the-multisig "Direct link to heading")
+-------------------------------------------------------------------------------------------------
+
+The `addValidator` command also requires use of the multisig. Before starting, make sure to connect, unlock, and run the Avalanche Ledger app.
+
+```bash
+avalanche blockchain addValidator testblockchain
+```
+
+### Select Network[​](#select-network "Direct link to heading")
+
+First specify the network. Select either `Fuji` or `Mainnet`:
+
+```bash
+Use the arrow keys to navigate: ↓ ↑ → ←
+? Choose a network to add validator to.:
+  ▸ Fuji
+    Mainnet
+```
+
+### Choose Signing Keys[​](#choose-signing-keys "Direct link to heading")
+
+Then, similar to the `deploy` command, the command asks the user to select the N control keys needed to sign the TX.
+
+```bash
+✔ Mainnet
+Use the arrow keys to navigate: ↓ ↑ → ←
+? Choose an Avalanche L1 auth key:
+  ▸ P-avax1wryu62weky9qjlp40cpmnqf6ml2hytnagj5q28
+    P-avax1kdzq569g2c9urm9887cmldlsa3w3jhxe0knfy5
+    P-avax12gcy0xl0al6gcjrt0395xqlcuq078ml93wl5h8
+    P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af
+    P-avax1g4eryh40dtcsltmxn9zk925ny07gdq2xyjtf4g
+```
+
+```bash
+✔ Mainnet
+✔ P-avax1kdzq569g2c9urm9887cmldlsa3w3jhxe0knfy5
+✔ P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af
+Your subnet auth keys for add validator TX creation: [P-avax1kdzq569g2c9urm9887cmldlsa3w3jhxe0knfy5 P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af].
+```
+
+### Finish Assembling the TX[​](#finish-assembling-the-tx "Direct link to heading")
+
+Take a look at [Add a Validator](/docs/tooling/create-deploy-avalanche-l1s/deploy-on-mainnet#add-a-validator) for additional help issuing this transaction.
+
+<Callout title="Note">
+If setting up a multisig, don't select your validator start time to be in one minute. Finishing the signing process takes significantly longer when using a multisig.
+</Callout>
+
+```bash
+Next, we need the NodeID of the validator you want to whitelist.
+
+Check https://build.avax.network/docs/apis/info-api#info-getnodeid for instructions about how to query the NodeID from your node
+(Edit host IP address and port to match your deployment, if needed).
+What is the NodeID of the validator you'd like to whitelist?: NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg
+✔ Default (20)
+When should your validator start validating?
+If your validator is not ready by this time, Avalanche L1 downtime can occur.
+✔ Custom
+When should the validator start validating? Enter a UTC datetime in 'YYYY-MM-DD HH:MM:SS' format: 2022-11-22 23:00:00
+✔ Until primary network validator expires
+NodeID: NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg
+Network: Local Network
+Start time: 2022-11-22 23:00:00
+End time: 2023-11-22 15:57:27
+Weight: 20
+Inputs complete, issuing transaction to add the provided validator information...
+```
+
+```bash
+Ledger address: P-avax1kdzq569g2c9urm9887cmldlsa3w3jhxe0knfy5
+*** Please sign add validator hash on the ledger device ***
+```
+
+After that, the command shows the connected Ledger's address, and asks the user to sign the TX with the Ledger.
+
+```bash
+Partial TX created
+
+1 of 2 required Add Validator signatures have been signed. Saving TX to disk to enable remaining signing.
+
+Path to export partially signed TX to:
+```
+
+Because you've setup a multisig, TX isn't fully signed, and the commands asks a file to write into. Use something like `partialAddValidatorTx.txt`.
+
+```bash
+Path to export partially signed TX to: partialAddValidatorTx.txt
+
+Addresses remaining to sign the tx: P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af
+
+Connect a Ledger with one of the remaining addresses or choose a stored key and run the signing command, or send "partialAddValidatorTx.txt" to another user for signing.
+
+Signing command: avalanche transaction sign testblockchain --input-tx-filepath partialAddValidatorTx.txt
+```
+
+Sign and Commit the Add Validator TX[​](#sign-and-commit-the-add-validator-tx "Direct link to heading")
+-------------------------------------------------------------------------------------------------------
+
+The process is very similar to signing of Avalanche L1 Deployment TX. So far, one address has signed the TX, but you need N signatures. To get the remaining signatures, you may connect a different Ledger to the same computer you've been working on. Alternatively, you may send the `partialAddValidatorTx.txt` file to other users to sign themselves.
+
+The remainder of this section assumes that you are working on a machine with access to both the remaining keys and the `partialAddValidatorTx.txt` file.
+
+### Issue the Command to Sign the Add Validator TX[​](#issue-the-command-to-sign-the-add-validator-tx "Direct link to heading")
+
+Avalanche-CLI can detect the deployment network automatically. For `Mainnet` TXs, it uses your Ledger automatically. For `Fuji Testnet`, the CLI prompts the user to choose the signing mechanism.
+
+```bash
+avalanche transaction sign testblockchain --input-tx-filepath partialAddValidatorTx.txt
+```
+
+```bash
+Ledger address: P-avax1g7nkguzg8yju8cq3ndzc9lql2yg69s9ejqa2af
+*** Please sign TX hash on the ledger device ***
+```
+
+Next, the command is going to start a new signing process for the Add Validator TX.
+
+This activates a `Please review` window on the Ledger. Navigate to the Ledger's `APPROVE` window by using the Ledger's right button, and then authorize the request by pressing both left and right buttons.
+
+Repeat this processes until all required parties have signed the TX. You should see a message like this:
+
+```bash
+All 2 required Tx signatures have been signed. Saving TX to disk to enable commit.
+
+Overwriting partialAddValidatorTx.txt
+
+Tx is fully signed, and ready to be committed
+
+Commit command: avalanche transaction commit testblockchain --input-tx-filepath partialAddValidatorTx.txt
+```
+
+Now, `partialAddValidatorTx.txt` contains a fully signed TX.
+
+### Issue the Command to Commit the add validator TX[​](#issue-the-command-to-commit-the-add-validator-tx "Direct link to heading")
+
+To run submit the fully signed TX, run:
+
+```bash
+avalanche transaction commit testblockchain --input-tx-filepath partialAddValidatorTx.txt
+```
+
+The CLI recognizes the deployment network automatically and submits the TX appropriately.
+
+```bash
+Transaction successful, transaction ID: K7XNSwcmgjYX7BEdtFB3hEwQc6YFKRq9g7hAUPhW4J5bjhEJG
+```
+
+You've successfully added the validator to the Avalanche L1.

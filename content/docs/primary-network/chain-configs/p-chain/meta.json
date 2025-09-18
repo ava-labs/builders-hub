@@ -1,0 +1,12 @@
+{
+    "title": "P-Chain Configurations",
+    "pages": [
+      "p-chain",
+      "genesis",
+      "block-formation-logic",
+      "chain-time-update",
+      "mempool-gossiping",
+      "subnets",
+      "validators-versioning"
+    ]
+  }

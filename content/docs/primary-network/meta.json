@@ -1,0 +1,31 @@
+{
+  "title": "Primary Network",
+  "description": "Avalanche's Primary Network",
+  "icon": "MonitorCheck",
+  "root": true,
+  "pages": [
+    "---Overview---",
+    "index",
+    "avalanche-consensus",
+    "avax-token",
+    "---Run a Node---",
+    "system-requirements",
+    "run-a-node/using-docker",
+    "using-install-script",
+    "run-a-node/using-binary",
+    "run-a-node/from-source",
+    "on-third-party-services",
+    "run-a-node/common-errors",
+    "---Configure a Node---",
+    "configure/configs-flags",
+    "configure/cube-signer",
+    "chain-configs",
+    "---Maintain a Node---",
+    "...maintain",
+    "---Validation & Staking---",
+    "validate/validate-vs-delegate",
+    "validate/how-to-stake",
+    "validate/node-validator",
+    "rewards-formula"
+  ]
+}

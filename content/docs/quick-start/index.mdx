@@ -1,29 +1,66 @@
 ---
-title: Introduction
-description: Learn about Avalanche Protocol and its unique features.
+title: Overview
+description: Avalanche quick start; RPC, explorers, faucets, and popular topics.
 ---
 
-Avalanche is an open-source platform for building decentralized applications in one interoperable, decentralized, and highly scalable ecosystem.
+Welcome to Avalanche. This quick start has the essentials to get you building fast.
 
-Powered by a uniquely powerful [consensus mechanism](/docs/quick-start/avalanche-consensus), Avalanche is the first ecosystem designed to accommodate the scale of global finance, with near-instant transaction finality.
+### Avalanche Mainnet
 
-## Blazingly Fast
-
-Avalanche employs the fastest consensus mechanism of any Layer 1 blockchain. The unique consensus mechanism enables quick finality and low latency: in less than 2 seconds, your transaction is effectively processed and verified.
-
-## Built to Scale
-
-Developers who build on Avalanche can build application-specific blockchains with complex rulesets or build on existing private or public Avalanche L1s in any language.
-
-Avalanche is incredibly energy-efficient and can run easily on consumer-grade hardware. The entire Avalanche network consumes the same amount of energy as 46 US households, equivalent to 0.0005% of the amount of energy consumed by Bitcoin.
-
-Solidity developers can build on Avalanche's implementation of the EVM straight out-of-the box, or build their own custom Virtual Machine (VM) for advanced use cases.
-
-## Advanced Security
-
-Avalanche consensus scales to thousands of concurrent validators without suffering performance degradation making it one of the most secure protocols for internet scaling systems.
-
-Permissionless and permissioned custom blockchains deployed as an Avalanche L1s can include custom rulesets designed to be compliant with legal and jurisdictional considerations.
+| Chain | RPC URL | WebSocket | Chain ID |
+|-------|---------|-----------|----------|
+| C‑Chain | https://api.avax.network/ext/bc/C/rpc | wss://api.avax.network/ext/bc/C/ws | `43114` |
 
 
+<AddToWallet network={{
+  chainId: '0xa86a',
+  chainName: 'Avalanche C-Chain',
+  nativeCurrency: { name: 'Avalanche', symbol: 'AVAX', decimals: 18 },
+  rpcUrls: ['https://api.avax.network/ext/bc/C/rpc'],
+  blockExplorerUrls: ['https://subnets.avax.network/c-chain'],
+  iconUrls: ['https://cryptologos.cc/logos/avalanche-avax-logo.png']
+}} variant="compact" />
 
+### Fuji Testnet
+
+| Chain | RPC URL | WebSocket | Chain ID |
+|-------|---------|-----------|----------|
+| C‑Chain | https://api.avax-test.network/ext/bc/C/rpc | wss://api.avax-test.network/ext/bc/C/ws | `43113` |
+
+
+<AddToWallet network={{
+  chainId: '0xa869',
+  chainName: 'Avalanche Fuji Testnet',
+  nativeCurrency: { name: 'Avalanche', symbol: 'AVAX', decimals: 18 },
+  rpcUrls: ['https://api.avax-test.network/ext/bc/C/rpc'],
+  blockExplorerUrls: ['https://subnets-test.avax.network/c-chain'],
+  iconUrls: ['https://cryptologos.cc/logos/avalanche-avax-logo.png']
+}} variant="compact" />
+
+## Block Explorers
+
+<Cards>
+<Card title="Subnets Explorer" description="Official explorer for Avalanche networks" href="https://subnets.avax.network" />
+<Card title="Avascan" description="Rich analytics for Avalanche networks" href="https://avascan.info" />
+<Card title="SnowTrace" description="Etherscan-style explorer for C‑Chain" href="https://snowtrace.io" />
+<Card title="SnowPeer" description="Community explorer and tools" href="https://snowpeer.io" />
+</Cards>
+
+## Faucet
+
+- [Console Faucet](/console/primary-network/faucet) — request testnet AVAX with a BuilderHub account
+- [Core Wallet Faucet](https://faucet.avax.network/) — get a faucet coupon if you don't have mainnet AVAX
+- [Guild](https://guild.xyz/avalanche) — join and request a faucet coupon if you don't have mainnet AVAX
+
+<Callout title="Note">
+If you already have AVAX on Mainnet, you can use that address to request testnet tokens from the faucet.
+</Callout>
+
+## Popular Topics
+
+<Cards>
+<Card title="API Reference" description="Complete API documentation" href="/docs/apis" />
+<Card title="Cross-Chain Messaging" description="Connect L1s with ICM and ICTT protocols" href="/docs/cross-chain" />
+<Card title="Builder Console" description="Complete set of tools to launch and maintain your L1" href="/console" />
+<Card title="SDK Reference" description="Complete reference for Avalanche SDKs" href="/docs/sdks" />
+</Cards>

@@ -1,0 +1,309 @@
+---
+title: Building from Source
+description: Learn how to build and run an Avalanche L1 node from source code.
+---
+
+Building from source gives you access to the latest features and full control over your L1 node setup. This guide covers building both AvalancheGo and Subnet-EVM from source.
+
+## Prerequisites
+
+- **Go**: Version 1.21.8 or later ([installation guide](https://golang.org/doc/install))
+- **GCC**: For compiling C dependencies
+- **Git**: For cloning repositories
+- **Make**: Build automation tool
+
+### Install Go
+
+<Tabs>
+<Tab title="Linux" value="linux">
+```bash
+# Download and install Go
+wget https://golang.org/dl/go1.21.8.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.21.8.linux-amd64.tar.gz
+
+# Add to PATH
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+source ~/.bashrc
+```
+</Tab>
+
+<Tab title="macOS" value="macos">
+```bash
+# Using Homebrew (recommended)
+brew install go
+
+# Or download from golang.org
+curl -L https://golang.org/dl/go1.21.8.darwin-amd64.tar.gz | sudo tar -C /usr/local -xz
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.zshrc
+source ~/.zshrc
+```
+</Tab>
+</Tabs>
+
+### Verify Installation
+
+```bash
+go version
+gcc --version
+make --version
+```
+
+## Step 1: Build AvalancheGo
+
+### Clone AvalancheGo Repository
+
+```bash
+# Set up Go workspace
+export GOPATH=$HOME/go
+mkdir -p $GOPATH/src/github.com/ava-labs
+
+# Clone AvalancheGo
+cd $GOPATH/src/github.com/ava-labs
+git clone https://github.com/ava-labs/avalanchego.git
+cd avalanchego
+```
+
+### Build AvalancheGo
+
+```bash
+# Build the binary
+./scripts/build.sh
+
+# Verify the build
+./build/avalanchego --help
+```
+
+<Callout title="Build Time">
+The initial build may take 10-20 minutes depending on your system.
+</Callout>
+
+## Step 2: Build Subnet-EVM
+
+### Clone Subnet-EVM Repository
+
+```bash
+cd $GOPATH/src/github.com/ava-labs
+git clone https://github.com/ava-labs/subnet-evm.git
+cd subnet-evm
+```
+
+### Build VM Binary
+
+```bash
+# Build the VM binary
+./scripts/build.sh
+
+# The binary will be in ./build/
+ls build/
+```
+
+## Step 3: Install VM Binary
+
+Copy the VM binary to your AvalancheGo plugins directory with the correct VMID name:
+
+```bash
+# Create plugins directory
+mkdir -p ~/.avalanchego/plugins
+
+# Copy VM binary with VMID as filename
+# Replace [VMID] with the actual VMID of your target L1
+cp build/subnet-evm ~/.avalanchego/plugins/[VMID]
+```
+
+<Callout title="Example">
+For the WAGMI Avalanche L1 on Fuji:
+```bash
+cp build/subnet-evm ~/.avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+```
+</Callout>
+
+## Step 4: Configure L1 Tracking
+
+Create a configuration file to specify which L1s to track:
+
+```bash
+cd ~/.avalanchego
+cat > config.json << EOF
+{
+  "track-subnets": "[SubnetID]",
+  "log-level": "info"
+}
+EOF
+```
+
+### Multiple L1s Configuration
+
+To track multiple L1s:
+
+```bash
+cat > config.json << EOF
+{
+  "track-subnets": "[SubnetID1],[SubnetID2],[SubnetID3]",
+  "log-level": "info"
+}
+EOF
+```
+
+## Step 5: Start the Node
+
+### Run on Fuji Testnet
+
+```bash
+cd $GOPATH/src/github.com/ava-labs/avalanchego
+./build/avalanchego \
+  --config-file ~/.avalanchego/config.json \
+  --network-id=fuji \
+  --http-host=0.0.0.0
+```
+
+### Run on Mainnet
+
+```bash
+cd $GOPATH/src/github.com/ava-labs/avalanchego
+./build/avalanchego \
+  --config-file ~/.avalanchego/config.json \
+  --http-host=0.0.0.0
+```
+
+### Advanced Configuration Options
+
+```bash
+./build/avalanchego \
+  --config-file ~/.avalanchego/config.json \
+  --network-id=fuji \
+  --http-host=0.0.0.0 \
+  --http-port=9650 \
+  --staking-port=9651 \
+  --db-dir=~/.avalanchego/db \
+  --log-level=info \
+  --log-dir=~/.avalanchego/logs
+```
+
+## Step 6: Verify Installation
+
+### Check Node Status
+
+```bash
+curl -X POST --data '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"info.getNodeVersion"
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info
+```
+
+### Check L1 Tracking
+
+```bash
+curl -X POST --data '{
+    "jsonrpc":"2.0",
+    "id"     :1,
+    "method" :"info.isBootstrapped",
+    "params": {
+        "chain":"[ChainID]"
+    }
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info
+```
+
+## Building Custom VMs
+
+If you're working with a custom VM instead of Subnet-EVM:
+
+### Clone Your Custom VM
+
+```bash
+cd $GOPATH/src/github.com/your-org
+git clone https://github.com/your-org/your-custom-vm.git
+cd your-custom-vm
+```
+
+### Build Custom VM
+
+```bash
+# Most VMs follow this pattern
+go build -o build/your-vm ./cmd/your-vm
+
+# Copy to plugins directory with VMID name
+cp build/your-vm ~/.avalanchego/plugins/[YOUR_VM_ID]
+```
+
+## Development Workflow
+
+### Update AvalancheGo
+
+```bash
+cd $GOPATH/src/github.com/ava-labs/avalanchego
+git pull origin master
+./scripts/build.sh
+```
+
+### Update Subnet-EVM
+
+```bash
+cd $GOPATH/src/github.com/ava-labs/subnet-evm
+git pull origin master
+./scripts/build.sh
+cp build/subnet-evm ~/.avalanchego/plugins/[VMID]
+```
+
+### Test Changes
+
+```bash
+# Restart your node to load new binaries
+# Stop with Ctrl+C and restart with your preferred command
+```
+
+## RPC Endpoints
+
+Once bootstrapped, access your L1 through:
+
+| Service | Endpoint |
+|---------|----------|
+| **L1 RPC** | `localhost:9650/ext/bc/[ChainID]/rpc` |
+| **L1 WebSocket** | `ws://localhost:9650/ext/bc/[ChainID]/ws` |
+| **Primary Network** | `localhost:9650/ext/bc/{P,X,C}/rpc` |
+
+## Troubleshooting
+
+### Common Build Issues
+
+**Go Version Too Old:**
+```bash
+go version  # Must be 1.21.8+
+```
+
+**Missing Dependencies:**
+```bash
+# Ubuntu/Debian
+sudo apt update && sudo apt install build-essential
+
+# CentOS/RHEL
+sudo yum groupinstall "Development Tools"
+
+# macOS
+xcode-select --install
+```
+
+**Build Fails:**
+```bash
+# Clean and rebuild
+make clean
+./scripts/build.sh
+```
+
+### Runtime Issues
+
+**VM Not Loading:**
+- Check VMID filename matches exactly
+- Verify VM binary has execute permissions: `chmod +x ~/.avalanchego/plugins/[VMID]`
+
+**L1 Not Syncing:**
+- Verify SubnetID in config.json
+- Check network connectivity
+- Monitor logs for errors
+
+## Next Steps
+
+- [Monitor your node](/docs/nodes/maintain/bootstrapping) performance and logs
+- [Add as validator](/docs/nodes/validate/node-validator) to earn rewards
+- [Customize VM behavior](/docs/avalanche-l1s/virtual-machines) for your use case
+- [Deploy your own L1](/docs/avalanche-l1s/deploy-a-avalanche-l1) network 

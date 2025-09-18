@@ -1,0 +1,30 @@
+{
+  "title": "APIs",
+  "description": "Complete API reference for Avalanche",
+  "icon": "Settings",
+  "root": true,
+  "pages": [
+    "---Primary Network---",
+   "c-chain",
+   "p-chain",
+   "x-chain",
+   "---Node---",
+   "admin-api",
+   "health-api",
+   "index-api",
+   "info-api",
+   "metrics-api",
+   "---Layer 1s---",
+   "subnet-evm-api",
+   "---Glacier---",
+   "[Data API](https://developers.avacloud.io/data-api/overview)",
+   "[Metrics API](https://developers.avacloud.io/metrics-api/overview)",
+   "[Webhooks API](https://developers.avacloud.io/webhooks-api/overview)",
+
+
+   "---Standards---",
+   "standards/avalanche-network-protocol",
+   "standards/cryptographic-primitives",
+   "standards/serialization-primitives"
+  ]
+}

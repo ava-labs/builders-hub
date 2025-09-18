@@ -1,0 +1,33 @@
+{
+    "title": "SDKs",
+    "description": "Complete SDK reference for Avalanche",
+    "icon": "Code",
+    "root": true,
+    "pages": [
+      "---Avalanche SDK Typescript---",
+      "avalanche-sdk-typescript/overview",
+      "avalanche-sdk-typescript/chainkit",
+      "avalanche-sdk-typescript/client",
+      "avalanche-sdk-typescript/interchain",
+      "---Builder Console---",
+      "[C <-> P Bridge](https://build.avax.network/console/primary-network/c-p-bridge)",
+      "[Create Chain](https://build.avax.network/console/layer-1/create)",
+      "[AvalancheGo in Docker](https://build.avax.network/console/layer-1/l1-node-setup)",
+      "[Setup ICM Relayer](https://build.avax.network/console/icm/setup)",
+      "---Avalanche CLI---",
+      "cli/get-avalanche-cli",
+      "cli/create-avalanche-l1",
+      "cli/create-deploy-avalanche-l1s",
+      "cli/maintain",
+      "cli/upgrade",
+      "cli/create-avalanche-nodes",
+      "cli/cross-chain",
+      "cli/transactions",
+      "cli/guides",
+      "---Postman Collection---",
+      "avalanche-postman/add-postman-collection",
+      "avalanche-postman/data-visualization",
+      "avalanche-postman/making-api-calls",
+      "avalanche-postman/variables"
+    ]
+  }

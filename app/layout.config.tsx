@@ -26,6 +26,7 @@ import {
   Ticket,
   Earth,
   ArrowLeftRight,
+  Webhook,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
@@ -157,13 +158,13 @@ export const docsMenu: LinkItemType = {
         className: 'md:row-span-2',
       },
       icon: <Sprout />,
-      text: 'Avalanche Protocol',
-      description: 'Learn about the Avalanche Protocol',
+      text: 'Quick Start',
+      description: 'Get started with Avalanche',
       url: '/docs/quick-start',
     },
     {
       icon: <Logs />,
-      text: 'Avalanche L1s',
+      text: 'Layer 1s',
       description:
         "Build your own sovereign Layer 1 blockchain using Avalanche's battle-tested infrastructure and tooling.",
       url: '/docs/avalanche-l1s',
@@ -172,11 +173,11 @@ export const docsMenu: LinkItemType = {
       },
     },
     {
-      icon: <MonitorCheck />,
-      text: 'Nodes & Validators',
+      icon: <Webhook />,
+      text: 'API Docs',
       description:
-        'Learn about hardware requirements, staking mechanisms, rewards, and best practices for running validator infra on Avalanche.',
-      url: '/docs/nodes',
+        'Complete API reference for Avalanche.',
+      url: '/docs/apis',
       menu: {
         className: 'lg:col-start-2',
       },
