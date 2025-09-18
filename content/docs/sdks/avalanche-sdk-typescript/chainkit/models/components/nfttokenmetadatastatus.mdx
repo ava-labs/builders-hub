@@ -1,0 +1,23 @@
+---
+title: "Nft Token Metadata Status"
+description: "Chainkit SDK documentation for nft token metadata status"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/nfttokenmetadatastatus.md
+---
+
+# NftTokenMetadataStatus
+
+The metadata indexing status of the nft.
+
+## Example Usage
+
+```typescript
+import { NftTokenMetadataStatus } from "@avalanche-sdk/chainkit/models/components";
+
+let value: NftTokenMetadataStatus = "UNREACHABLE_TOKEN_URI";
+```
+
+## Values
+
+```typescript
+"UNKNOWN" | "MISSING_TOKEN" | "INVALID_TOKEN_URI" | "INVALID_TOKEN_URI_SCHEME" | "UNREACHABLE_TOKEN_URI" | "THROTTLED_TOKEN_URI" | "METADATA_CONTENT_TOO_LARGE" | "INVALID_METADATA" | "INVALID_METADATA_JSON" | "INDEXED" | "UNINDEXED"
+```

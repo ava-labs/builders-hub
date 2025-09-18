@@ -7,5 +7,6 @@ icon: Terminal
 ---
 
 Analogous to the transaction allowlist, Avalanche L1s do not implement contract deployer allowlist by default. To enable permissioning, you need to activate the contract deployer allowlist precompile in the genesis. This allows only approved addresses to deploy contracts on your blockchain.
-
-<GenesisBuilder initiallyExpandedSections={['permissions']} />
+<ToolboxMdxWrapper walletMode="c-chain">
+<CreateChain embedMode={true} />
+</ToolboxMdxWrapper>

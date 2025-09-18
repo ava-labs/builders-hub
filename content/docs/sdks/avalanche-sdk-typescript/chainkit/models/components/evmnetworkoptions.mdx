@@ -1,0 +1,27 @@
+---
+title: "EVM Network Options"
+description: "Chainkit SDK documentation for evm network options"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/evmnetworkoptions.md
+---
+
+# EvmNetworkOptions
+
+## Example Usage
+
+```typescript
+import { EvmNetworkOptions } from "@avalanche-sdk/chainkit/models/components";
+
+let value: EvmNetworkOptions = {
+  addresses: [],
+  includeChains: [
+    "43114",
+  ],
+};
+```
+
+## Fields
+
+| Field              | Type               | Required           | Description        | Example            |
+| ------------------ | ------------------ | ------------------ | ------------------ | ------------------ |
+| `addresses`        | *string*[]         | :heavy_check_mark: | N/A                |                    |
+| `includeChains`    | *string*[]         | :heavy_check_mark: | N/A                | [<br/>"43114"<br/>] |

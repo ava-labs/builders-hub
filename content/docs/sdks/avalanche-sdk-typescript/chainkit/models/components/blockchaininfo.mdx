@@ -1,0 +1,26 @@
+---
+title: "Block Chain Info"
+description: "Chainkit SDK documentation for block chain info"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/blockchaininfo.md
+---
+
+# BlockchainInfo
+
+## Example Usage
+
+```typescript
+import { BlockchainInfo } from "@avalanche-sdk/chainkit/models/components";
+
+let value: BlockchainInfo = {
+  chainName: "<value>",
+  vmId: "<id>",
+};
+```
+
+## Fields
+
+| Field                                                                                                                                                                                                                              | Type                                                                                                                                                                                                                               | Required                                                                                                                                                                                                                           | Description                                                                                                                                                                                                                        |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `chainName`                                                                                                                                                                                                                        | *string*                                                                                                                                                                                                                           | :heavy_check_mark:                                                                                                                                                                                                                 | N/A                                                                                                                                                                                                                                |
+| `vmId`                                                                                                                                                                                                                             | *string*                                                                                                                                                                                                                           | :heavy_check_mark:                                                                                                                                                                                                                 | N/A                                                                                                                                                                                                                                |
+| `genesisData`                                                                                                                                                                                                                      | [components.BlockchainInfoGenesisData](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/blockchaininfogenesisdata.md)                                                                                                                                       | :heavy_minus_sign:                                                                                                                                                                                                                 | The genesis data of the blockchain.  Present for CreateChainTx. EVM based chains will return the genesis data as an object. Non-EVM based chains will return the genesis data as an encoded string. The encoding depends on the VM |

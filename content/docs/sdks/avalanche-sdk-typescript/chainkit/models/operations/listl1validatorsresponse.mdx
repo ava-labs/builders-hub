@@ -1,0 +1,50 @@
+---
+title: "Listl1 Validators Response"
+description: "Chainkit SDK documentation for listl1 validators response"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/operations/listl1validatorsresponse.md
+---
+
+# ListL1ValidatorsResponse
+
+## Example Usage
+
+```typescript
+import { ListL1ValidatorsResponse } from "@avalanche-sdk/chainkit/models/operations";
+
+let value: ListL1ValidatorsResponse = {
+  result: {
+    validators: [
+      {
+        validationId: "<id>",
+        validationIdHex: "<value>",
+        nodeId: "<id>",
+        subnetId: "<id>",
+        weight: 5368.44,
+        remainingBalance: 7020.98,
+        creationTimestamp: 5485.65,
+        blsCredentials: {},
+        remainingBalanceOwner: {
+          addresses: [
+            "<value 1>",
+            "<value 2>",
+          ],
+          threshold: 7038.52,
+        },
+        deactivationOwner: {
+          addresses: [
+            "<value 1>",
+          ],
+          threshold: 4642.49,
+        },
+      },
+    ],
+    blockHeight: "<value>",
+  },
+};
+```
+
+## Fields
+
+| Field                                                                                      | Type                                                                                       | Required                                                                                   | Description                                                                                |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `result`                                                                                   | [components.ListL1ValidatorsResponse](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/listl1validatorsresponse.md) | :heavy_check_mark:                                                                         | N/A                                                                                        |

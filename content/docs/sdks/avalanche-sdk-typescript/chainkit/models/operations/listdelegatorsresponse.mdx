@@ -1,0 +1,38 @@
+---
+title: "List Delegators Response"
+description: "Chainkit SDK documentation for list delegators response"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/operations/listdelegatorsresponse.md
+---
+
+# ListDelegatorsResponse
+
+## Example Usage
+
+```typescript
+import { ListDelegatorsResponse } from "@avalanche-sdk/chainkit/models/operations";
+
+let value: ListDelegatorsResponse = {
+  result: {
+    delegators: [
+      {
+        txHash: "<value>",
+        nodeId: "<id>",
+        rewardAddresses: [],
+        amountDelegated: "<value>",
+        delegationFee: "<value>",
+        startTimestamp: 5873.83,
+        endTimestamp: 2262.7,
+        estimatedGrossReward: "<value>",
+        estimatedNetReward: "<value>",
+        delegationStatus: "pending",
+      },
+    ],
+  },
+};
+```
+
+## Fields
+
+| Field                                                                                              | Type                                                                                               | Required                                                                                           | Description                                                                                        |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `result`                                                                                           | [components.ListDelegatorDetailsResponse](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/listdelegatordetailsresponse.md) | :heavy_check_mark:                                                                                 | N/A                                                                                                |

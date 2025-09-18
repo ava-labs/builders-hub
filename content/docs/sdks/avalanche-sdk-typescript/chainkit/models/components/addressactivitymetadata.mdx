@@ -1,0 +1,29 @@
+---
+title: "Addressactivity Metadata"
+description: "Chainkit SDK documentation for addressactivity metadata"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/addressactivitymetadata.md
+---
+
+# AddressActivityMetadata
+
+## Example Usage
+
+```typescript
+import { AddressActivityMetadata } from "@avalanche-sdk/chainkit/models/components";
+
+let value: AddressActivityMetadata = {
+  eventSignatures: [
+    "0x61cbb2a3dee0b6064c2e681aadd61677fb4ef319f0b547508d495626f5a62f64",
+  ],
+  addresses: [
+    "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+  ],
+};
+```
+
+## Fields
+
+| Field                                                                                                                                                          | Type                                                                                                                                                           | Required                                                                                                                                                       | Description                                                                                                                                                    | Example                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `eventSignatures`                                                                                                                                              | *string*[]                                                                                                                                                     | :heavy_minus_sign:                                                                                                                                             | Array of hexadecimal strings of the event signatures.                                                                                                          | [<br/>"0x61cbb2a3dee0b6064c2e681aadd61677fb4ef319f0b547508d495626f5a62f64"<br/>]                                                                               |
+| `addresses`                                                                                                                                                    | *string*[]                                                                                                                                                     | :heavy_check_mark:                                                                                                                                             | Ethereum address(es) for the address_activity event type. The maximum number of 'addresses' you can track depends  on the Data API plan you are subscribed to. | [<br/>"0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E"<br/>]                                                                                                       |

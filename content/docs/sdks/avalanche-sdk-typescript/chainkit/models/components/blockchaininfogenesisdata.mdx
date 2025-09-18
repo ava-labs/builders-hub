@@ -1,0 +1,22 @@
+---
+title: "Blockchaininfogenesisdata"
+description: "Chainkit SDK documentation for blockchaininfogenesisdata"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/blockchaininfogenesisdata.md
+---
+
+# BlockchainInfoGenesisData
+
+The genesis data of the blockchain.  Present for CreateChainTx. EVM based chains will return the genesis data as an object. Non-EVM based chains will return the genesis data as an encoded string. The encoding depends on the VM
+
+## Example Usage
+
+```typescript
+import { BlockchainInfoGenesisData } from "@avalanche-sdk/chainkit/models/components";
+
+let value: BlockchainInfoGenesisData = {};
+```
+
+## Fields
+
+| Field       | Type        | Required    | Description |
+| ----------- | ----------- | ----------- | ----------- |

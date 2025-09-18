@@ -1,0 +1,43 @@
+---
+title: "List Latest Primary Network Blocks Response"
+description: "Chainkit SDK documentation for list latest primary network blocks response"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/operations/listlatestprimarynetworkblocksresponse.md
+---
+
+# ListLatestPrimaryNetworkBlocksResponse
+
+## Example Usage
+
+```typescript
+import { ListLatestPrimaryNetworkBlocksResponse } from "@avalanche-sdk/chainkit/models/operations";
+
+let value: ListLatestPrimaryNetworkBlocksResponse = {
+  result: {
+    blocks: [
+      {
+        blockNumber: "<value>",
+        blockHash: "<value>",
+        parentHash: "<value>",
+        blockTimestamp: 5630.13,
+        blockType: "<value>",
+        txCount: 7319.16,
+        transactions: [
+          "<value 1>",
+          "<value 2>",
+        ],
+        blockSizeBytes: 4652.32,
+      },
+    ],
+    chainInfo: {
+      chainName: "c-chain",
+      network: "mainnet",
+    },
+  },
+};
+```
+
+## Fields
+
+| Field                                                                                                      | Type                                                                                                       | Required                                                                                                   | Description                                                                                                |
+| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `result`                                                                                                   | [components.ListPrimaryNetworkBlocksResponse](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/listprimarynetworkblocksresponse.md) | :heavy_check_mark:                                                                                         | N/A                                                                                                        |

@@ -2,21 +2,24 @@
 
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import { useState } from "react";
-import { Button } from "@/components/toolbox/components/Button";
-import { Input } from "@/components/toolbox/components/Input";
-import { Container } from "@/components/toolbox/components/Container";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import GenesisBuilder from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
-import { Step, Steps } from "fumadocs-ui/components/steps";
-import generateName from 'boring-name-generator'
-import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
-import InputSubnetId from "@/components/toolbox/components/InputSubnetId";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
 import { CheckWalletRequirements } from "@/components/toolbox/components/CheckWalletRequirements";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { useWallet } from "@/components/toolbox/hooks/useWallet";
-
+import generateName from 'boring-name-generator'
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { ValidationMessages } from '@/components/toolbox/components/genesis/types';
+
+// Import UI components
+import {
+    CreateChainHeader,
+    SubnetConfiguration,
+    ChainNameConfiguration,
+    GenesisConfiguration,
+    GenesisJsonViewer,
+    CreateChainButton
+} from './components';
 
 
 const generateRandomName = () => {
@@ -30,7 +33,11 @@ const generateRandomName = () => {
 }
 
 
-export default function CreateChain() {
+interface CreateChainProps {
+    embedMode?: boolean; // true when embedded in MDX, false for console
+}
+
+export default function CreateChain({ embedMode = false }: CreateChainProps) {
     const {
         subnetId,
         setChainID,
@@ -45,9 +52,11 @@ export default function CreateChain() {
 
     const [localGenesisData, setLocalGenesisData] = useState<string>(genesisData);
     const [localChainName, setLocalChainName] = useState<string>(generateRandomName());
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [validationMessages, setValidationMessages] = useState<ValidationMessages>({ errors: {}, warnings: {} });
 
-    const [showVMIdInput, setShowVMIdInput] = useState<boolean>(false);
-    const [vmId, setVmId] = useState<string>(SUBNET_EVM_VM_ID);
+    // Default to standard EVM
+    const vmId = SUBNET_EVM_VM_ID;
 
     const { notify, sendCoreWalletNotSetNotification } = useConsoleNotifications();
 
@@ -111,103 +120,157 @@ export default function CreateChain() {
         }
     }
 
+    if (embedMode) {
+        // MDX Embed Mode - Single Column Layout with Steps
+        return (
+            <CheckWalletRequirements configKey={[
+                WalletRequirementsConfigKey.PChainBalance
+            ]}>
+                <div className="flex flex-col">
+                    <CreateChainHeader />
+                    
+                    <div className="w-full px-4 py-4 space-y-4">
+                        <Steps>
+                            <Step>
+                                <SubnetConfiguration
+                                    subnetId={subnetId}
+                                    isCreatingSubnet={isCreatingSubnet}
+                                    onCreateSubnet={handleCreateSubnet}
+                                    onSubnetIdChange={handleSubnetIdChange}
+                                    embedMode={true}
+                                />
+                            </Step>
+
+                            <Step>
+                                <ChainNameConfiguration
+                                    chainName={localChainName}
+                                    onChainNameChange={setLocalChainName}
+                                    embedMode={true}
+                                />
+                            </Step>
+
+                            <Step>
+                                <GenesisConfiguration
+                                    genesisData={localGenesisData}
+                                    isEditMode={isEditMode}
+                                    onGenesisDataChange={setLocalGenesisData}
+                                    embedMode={true}
+                                    onValidationChange={setValidationMessages}
+                                />
+                            </Step>
+                        </Steps>
+
+                        <GenesisJsonViewer
+                            genesisData={localGenesisData}
+                            chainName={localChainName}
+                            isEditMode={isEditMode}
+                            onEditModeToggle={() => setIsEditMode(!isEditMode)}
+                            onGenesisDataChange={setLocalGenesisData}
+                            embedMode={true}
+                            validationMessages={validationMessages}
+                        />
+                        
+                        <CreateChainButton
+                            subnetId={subnetId}
+                            genesisData={localGenesisData}
+                            isCreating={isCreatingChain}
+                            onClick={handleCreateChain}
+                            embedMode={true}
+                        />
+                    </div>
+                </div>
+            </CheckWalletRequirements>
+        );
+    }
+
+    // Console Mode - Subnet config on top, then two-panel layout
     return (
         <CheckWalletRequirements configKey={[
             WalletRequirementsConfigKey.PChainBalance
         ]}>
-            <Container
-                title="Create Chain"
-                description="Create a subnet and add a new blockchain with custom parameters and genesis data."
-            >
-                <Steps>
-                    <Step>
-                        <h2 className="text-lg font-semibold">Step 1: Create a Subnet</h2>
-                        <p className="text-sm text-gray-500">
-                            Every chain needs to be associated with a Subnet. If you don't have a Subnet, create one here. If you already have a Subnet, skip to the next step.
-                        </p>
-                        <div className="space-y-4">
-                            <Input
-                                label="Subnet Owner"
-                                value={pChainAddress}
-                                disabled={true}
-                                type="text"
-                            />
+            <div className="flex flex-col h-screen">
+                <CreateChainHeader />
 
-                            <Button
-                                onClick={handleCreateSubnet}
-                                loading={isCreatingSubnet}
-                                variant="primary"
-                            >
-                                Create Subnet
-                            </Button>
+                {/* Step 1: Subnet Configuration - Full width at top */}
+                <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-sm font-semibold">
+                            1
                         </div>
-                    </Step>
-                    <Step>
-                        <h2 className="text-lg font-semibold">Step 2: Create a Chain</h2>
-                        <p className="text-sm text-gray-500">
-                            Enter the parameters for your new chain.
-                        </p>
+                        <div>
+                            <h3 className="text-sm font-medium text-zinc-900 dark:text-white">Subnet Configuration</h3>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">Create or select a subnet</p>
+                        </div>
+                    </div>
+                    <SubnetConfiguration
+                        subnetId={subnetId}
+                        isCreatingSubnet={isCreatingSubnet}
+                        onCreateSubnet={handleCreateSubnet}
+                        onSubnetIdChange={handleSubnetIdChange}
+                        embedMode={false}
+                    />
+                </div>
 
-                        <InputSubnetId
-                            id="create-chain-subnet-id"
-                            label="Subnet ID"
-                            value={subnetId}
-                            onChange={handleSubnetIdChange}
-                            validationDelayMs={3000}
-                            hideSuggestions={true}
-                            placeholder="Create a Subnet in Step 1 or enter a SubnetID."
-                        />
+                {/* Two-Panel Layout for Steps 2 & 3 */}
+                <div className="flex flex-1 overflow-hidden">
+                    {/* Left Panel - Chain Name and Genesis Configuration */}
+                    <div className="w-2/5 border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto">
+                        <div className="p-4 space-y-4">
+                            {/* Step 2: Chain Name */}
+                            <div className="border-b border-zinc-100 dark:border-zinc-800 pb-4">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-sm font-semibold">
+                                        2
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-medium text-zinc-900 dark:text-white">Chain Name</h3>
+                                        <p className="text-xs text-zinc-500 dark:text-zinc-400">Name your blockchain</p>
+                                    </div>
+                                </div>
+                                <ChainNameConfiguration
+                                    chainName={localChainName}
+                                    onChainNameChange={setLocalChainName}
+                                    embedMode={false}
+                                />
+                            </div>
 
-                        <Input
-                            label="Chain Name"
-                            value={localChainName}
-                            onChange={setLocalChainName}
-                            placeholder="Enter chain name"
-                        />
+                            {/* Step 3: Genesis Parameters */}
+                            <div>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-sm font-semibold">
+                                        3
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-medium text-zinc-900 dark:text-white">Genesis Configuration</h3>
+                                        <p className="text-xs text-zinc-500 dark:text-zinc-400">Configure blockchain parameters</p>
+                                    </div>
+                                </div>
+                                <GenesisConfiguration
+                                    genesisData={localGenesisData}
+                                    isEditMode={isEditMode}
+                                    onGenesisDataChange={setLocalGenesisData}
+                                    embedMode={false}
+                                    onValidationChange={setValidationMessages}
+                                />
+                            </div>
+                        </div>
+                    </div>
 
-                        <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Virtual Machine</h3>
-                        <p className="text-sm text-gray-500">
-                            Select what Virtual Machine (VM) your chain will use.
-                        </p>
-                        <RadioGroup
-                            value={showVMIdInput ? 'true' : 'false'}
-                            onChange={(value) => {
-                                const shouldShow = value === "true";
-                                setShowVMIdInput(shouldShow);
-                                // Reset to standard EVM when switching to uncustomized
-                                if (!shouldShow) {
-                                    setVmId(SUBNET_EVM_VM_ID);
-                                }
-                            }}
-                            idPrefix={`show-vm-id`}
-                            className="mb-4"
-                            items={[
-                                { value: "false", label: "Uncustomized EVM" },
-                                { value: "true", label: "Customized EVM or alternative VM (Experts only)" }
-                            ]}
-                        />
-                        {showVMIdInput && (
-                            <Input
-                                label="VM ID"
-                                value={vmId}
-                                onChange={setVmId}
-                                placeholder="Enter VM ID"
-                                helperText={`For an L1 with an uncustomized EVM use ${SUBNET_EVM_VM_ID}`}
-                            />
-                        )}
-
-                        <GenesisBuilder genesisData={localGenesisData} setGenesisData={setLocalGenesisData} />
-
-                        <Button
-                            onClick={handleCreateChain}
-                            loading={isCreatingChain}
-                            loadingText="Creating Chain..."
-                        >
-                            Create Chain
-                        </Button>
-                    </Step>
-                </Steps>
-            </Container>
+                    {/* Right Panel - Genesis JSON Preview */}
+                    <GenesisJsonViewer
+                        genesisData={localGenesisData}
+                        chainName={localChainName}
+                        isEditMode={isEditMode}
+                        onEditModeToggle={() => setIsEditMode(!isEditMode)}
+                        onGenesisDataChange={setLocalGenesisData}
+                        embedMode={false}
+                        subnetId={subnetId}
+                        isCreatingChain={isCreatingChain}
+                        onCreateChain={handleCreateChain}
+                        validationMessages={validationMessages}
+                    />
+                </div>
+            </div>
         </CheckWalletRequirements>
     );
 };

@@ -1,0 +1,31 @@
+---
+title: "Network Token"
+description: "Chainkit SDK documentation for network token"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/networktoken.md
+---
+
+# NetworkToken
+
+## Example Usage
+
+```typescript
+import { NetworkToken } from "@avalanche-sdk/chainkit/models/components";
+
+let value: NetworkToken = {
+  name: "Wrapped AVAX",
+  symbol: "WAVAX",
+  decimals: 18,
+  logoUri:
+    "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/fdd6326b7a82c8388e4ee9d4be7062d4/avalanche-avax-logo.svg",
+};
+```
+
+## Fields
+
+| Field                                                                                                                                 | Type                                                                                                                                  | Required                                                                                                                              | Description                                                                                                                           | Example                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                                                                                                                                | *string*                                                                                                                              | :heavy_check_mark:                                                                                                                    | The contract name.                                                                                                                    | Wrapped AVAX                                                                                                                          |
+| `symbol`                                                                                                                              | *string*                                                                                                                              | :heavy_check_mark:                                                                                                                    | The contract symbol.                                                                                                                  | WAVAX                                                                                                                                 |
+| `decimals`                                                                                                                            | *number*                                                                                                                              | :heavy_check_mark:                                                                                                                    | The number of decimals the token uses. For example `6`, means to divide the token amount by `1000000` to get its user representation. | 18                                                                                                                                    |
+| `logoUri`                                                                                                                             | *string*                                                                                                                              | :heavy_minus_sign:                                                                                                                    | The logo uri for the address.                                                                                                         | https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/fdd6326b7a82c8388e4ee9d4be7062d4/avalanche-avax-logo.svg             |
+| `description`                                                                                                                         | *string*                                                                                                                              | :heavy_minus_sign:                                                                                                                    | N/A                                                                                                                                   |                                                                                                                                       |

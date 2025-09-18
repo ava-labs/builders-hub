@@ -1,0 +1,25 @@
+---
+title: "Primarynetworkbalancethresholdfilter"
+description: "Chainkit SDK documentation for primarynetworkbalancethresholdfilter"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/primarynetworkbalancethresholdfilter.md
+---
+
+# PrimaryNetworkBalanceThresholdFilter
+
+## Example Usage
+
+```typescript
+import { PrimaryNetworkBalanceThresholdFilter } from "@avalanche-sdk/chainkit/models/components";
+
+let value: PrimaryNetworkBalanceThresholdFilter = {
+  balanceType: "unlockedStaked",
+  balanceThreshold: "<value>",
+};
+```
+
+## Fields
+
+| Field                                                                        | Type                                                                         | Required                                                                     | Description                                                                  |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `balanceType`                                                                | [components.CommonBalanceType](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/commonbalancetype.md) | :heavy_check_mark:                                                           | Type of balance to monitor                                                   |
+| `balanceThreshold`                                                           | *string*                                                                     | :heavy_check_mark:                                                           | Threshold for balance corresponding to balanceType in nAVAX                  |

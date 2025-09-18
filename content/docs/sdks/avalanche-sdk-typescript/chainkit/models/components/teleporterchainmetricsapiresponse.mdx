@@ -1,0 +1,25 @@
+---
+title: "Teleporterchainmetricsapi Response"
+description: "Chainkit SDK documentation for teleporterchainmetricsapi response"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/teleporterchainmetricsapiresponse.md
+---
+
+# TeleporterChainMetricsApiResponse
+
+## Example Usage
+
+```typescript
+import { TeleporterChainMetricsApiResponse } from "@avalanche-sdk/chainkit/models/components";
+
+let value: TeleporterChainMetricsApiResponse = {
+  result: {
+    value: 7509,
+  },
+};
+```
+
+## Fields
+
+| Field                                                                                  | Type                                                                                   | Required                                                                               | Description                                                                            |
+| -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `result`                                                                               | [components.TeleporterMetricsValue](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/teleportermetricsvalue.md) | :heavy_check_mark:                                                                     | current metrics value for a given teleporter metric.                                   |

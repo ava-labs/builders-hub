@@ -1,0 +1,23 @@
+---
+title: "List Blockchains Globals"
+description: "Chainkit SDK documentation for list blockchains globals"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/operations/listblockchainsglobals.md
+---
+
+# ListBlockchainsGlobals
+
+## Example Usage
+
+```typescript
+import { ListBlockchainsGlobals } from "@avalanche-sdk/chainkit/models/operations";
+
+let value: ListBlockchainsGlobals = {
+  network: "mainnet",
+};
+```
+
+## Fields
+
+| Field                                                                          | Type                                                                           | Required                                                                       | Description                                                                    | Example                                                                        |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| `network`                                                                      | [components.GlobalParamNetwork](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/globalparamnetwork.md) | :heavy_minus_sign:                                                             | A supported network type mainnet or testnet/fuji.                              | mainnet                                                                        |

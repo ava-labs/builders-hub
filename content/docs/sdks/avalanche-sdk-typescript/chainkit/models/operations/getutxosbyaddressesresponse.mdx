@@ -1,0 +1,29 @@
+---
+title: "Getutxos By Addresses Response"
+description: "Chainkit SDK documentation for getutxos by addresses response"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/operations/getutxosbyaddressesresponse.md
+---
+
+# GetUtxosByAddressesResponse
+
+## Example Usage
+
+```typescript
+import { GetUtxosByAddressesResponse } from "@avalanche-sdk/chainkit/models/operations";
+
+let value: GetUtxosByAddressesResponse = {
+  result: {
+    utxos: [],
+    chainInfo: {
+      chainName: "c-chain",
+      network: "mainnet",
+    },
+  },
+};
+```
+
+## Fields
+
+| Field                                        | Type                                         | Required                                     | Description                                  |
+| -------------------------------------------- | -------------------------------------------- | -------------------------------------------- | -------------------------------------------- |
+| `result`                                     | *operations.GetUtxosByAddressesResponseBody* | :heavy_check_mark:                           | N/A                                          |

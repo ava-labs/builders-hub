@@ -1,0 +1,30 @@
+---
+title: "Get Addresses From Webhook Response"
+description: "Chainkit SDK documentation for get addresses from webhook response"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/operations/getaddressesfromwebhookresponse.md
+---
+
+# GetAddressesFromWebhookResponse
+
+## Example Usage
+
+```typescript
+import { GetAddressesFromWebhookResponse } from "@avalanche-sdk/chainkit/models/operations";
+
+let value: GetAddressesFromWebhookResponse = {
+  result: {
+    addresses: [
+      "<value 1>",
+      "<value 2>",
+      "<value 3>",
+    ],
+    totalAddresses: 1227.61,
+  },
+};
+```
+
+## Fields
+
+| Field                                                                                              | Type                                                                                               | Required                                                                                           | Description                                                                                        |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `result`                                                                                           | [components.ListWebhookAddressesResponse](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/listwebhookaddressesresponse.md) | :heavy_check_mark:                                                                                 | N/A                                                                                                |

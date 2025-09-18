@@ -1,0 +1,320 @@
+---
+title: "Overview"
+description: "This page is an overview of the Avalanche SDK Typescript installation."
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/README.md
+---
+
+<div align="center">
+  <h1>Avalanche SDK Typescript</h1>
+  <h3>The official TypeScript SDK suite for building on Avalanche</h3>
+
+  <p align="center">
+      <a href="https://opensource.org/licenses/BSD-3-Clause">
+    <img src="https://img.shields.io/badge/License-BSD%203--Clause-blue.svg" /> alt="License: BSD-3-Clause" />
+  </a>
+    <a href="https://nodejs.org">
+      <img src="https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen" /> alt="Node Version" />
+    </a>
+    <a href="https://www.typescriptlang.org/">
+      <img src="https://img.shields.io/badge/TypeScript-5.0%2B-blue" /> alt="TypeScript" />
+    </a>
+  </p>
+</div>
+
+## Overview
+
+Avalanche SDK TypeScript provides a complete set of tools and libraries for developers to interact with the Avalanche blockchain ecosystem. This monorepo includes multiple specialized SDKs, each designed for specific use cases while maintaining consistency and interoperability.
+
+> **Developer Preview**: This suite of SDKs is currently in beta and is subject to change. Use in production at your own risk.
+
+### Which SDK Should I Use?
+
+| SDK | Description |
+|-----|-------------|
+| `@avalanche-sdk/client` | Direct blockchain interaction - transactions, wallets, RPC calls |
+| `@avalanche-sdk/chainkit` | Complete suite: Data, Metrics and Webhooks API |
+| `@avalanche-sdk/interchain` | Send messages between Avalanche L1s using ICM/Teleporter |
+
+## Package Status
+
+| Package |  Status | npm |
+|---------|--------|-----|
+| `@avalanche-sdk/chainkit` | Alpha | [![npm](https://img.shields.io/npm/v/@avalanche-sdk/chainkit)](https://www.npmjs.com/package/@avalanche-sdk/chainkit) |
+| `@avalanche-sdk/client` | Alpha | [![npm](https://img.shields.io/npm/v/@avalanche-sdk/client)](https://www.npmjs.com/package/@avalanche-sdk/client) |
+| `@avalanche-sdk/interchain` | Alpha | [![npm](https://img.shields.io/npm/v/@avalanche-sdk/interchain)](https://www.npmjs.com/package/@avalanche-sdk/interchain) |
+
+## Available SDKs
+
+### [Client SDK](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/)
+The main Avalanche client SDK for interacting with Avalanche nodes and building blockchain applications.
+
+**Features:**
+- Complete API coverage for P-Chain, X-Chain, and C-Chain
+- Full [viem](https://viem.sh) compatibility - anything you can do with viem works here
+- TypeScript-first design with full type safety
+- Abstractions over the JSON-RPC API to make your life easier
+- Wallet integration and transaction management
+- First-class APIs for interacting with Smart Contracts
+- Retrieve balances and UTXOs for addresses
+- Build, sign, and issue transactions to any chain
+- Perform cross-chain transfers between X, P and C chains
+- Add validators and delegators
+- Create subnets and blockchains, convert subnets to L1s
+
+### [ChainKit SDK](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/)
+Combined SDK with full typed coverage of Avalanche Data (Glacier) and Metrics APIs.
+
+**Features:**
+- Full endpoint coverage for Glacier Data API and Metrics API
+  - Glacier API: https://glacier-api.avax.network/api
+  - Metrics API: https://metrics.avax.network/api
+- Strongly-typed models, pagination helpers, and automatic retries/backoff
+- High-level helpers for transactions, blocks, addresses, tokens, NFTs, and logs
+- Metrics: network health, validator stats, throughput, latency, and block production analytics
+- Webhooks-compatible payload shapes and utilities for signature verification
+- Configurable base URL and API key authentication
+- Request logging and middleware hooks for observability
+
+### [Interchain SDK](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/interchain/)
+SDK for building cross-L1 applications and bridges.
+
+**Features:**
+- Type-safe ICM client for sending cross-chain messages
+- Works seamlessly with wallet clients
+- Built-in support for Avalanche C-Chain and custom subnets
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 20+ 
+- npm, yarn, or pnpm
+- TypeScript 5.0+ (recommended)
+
+### Installation
+
+#### Install SDKs
+```bash
+# Install only what you need
+npm install @avalanche-sdk/client        # Core RPC functionality
+npm install @avalanche-sdk/interchain    # Cross-chain messaging
+npm install @avalanche-sdk/chainkit      # Development tools
+```
+
+### Quick Examples
+
+#### Basic Client Usage
+```typescript
+import { createAvalancheClient } from '@avalanche-sdk/client'
+import { avalanche } from '@avalanche-sdk/client/chains'
+
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "http"
+  }
+})
+
+// Get account balance
+const balance = await client.getBalance({ 
+  address: '0xA0Cf798816D4b9b9866b5330EEa46a18382f251e',
+})
+```
+
+#### ChainKit SDK Usage
+```typescript
+import { Avalanche } from "@avalanche-sdk/chainkit";
+
+const avalanche = new Avalanche({
+  chainId: "43114",
+});
+
+async function run() {
+  // Get the transaction by hash
+  const result = await avalanche.data.evm.transactions.get({
+    txHash: "0x8bf584d7b14b92a32a339872a66b134a70ba3ba7c305823f348db6f860253f45",
+  });
+
+  console.log(result);
+}
+
+run();
+```
+
+#### Cross-Chain Messaging
+```typescript
+import { createICMClient } from '@avalanche-sdk/interchain'
+
+const icmClient = createICMClient({
+  sourceChain: avalanche,
+  destinationChain: customSubnet,
+})
+
+// Send cross-chain message
+await icmClient.sendMessage({
+  message: 'Hello from C-Chain!',
+  destinationAddress: '0x...'
+})
+```
+
+## What You Can Build
+
+### Blockchain Infrastructure
+- Custom RPC endpoints and API gateways
+- Transaction broadcasting services
+- Multi-chain wallet backends
+- Account management systems
+
+### Data Analytics & Monitoring
+- Portfolio tracking applications
+- Transaction history explorers
+- Token balance dashboards
+- Network health monitoring tools
+- Validator performance trackers
+
+### Real-Time Applications
+- Price alert systems
+- Transaction notification services
+- Smart contract event monitors
+- Blockchain activity feeds
+
+### Cross-Chain Communication
+- ICM message relayers
+- Cross-L1 notification systems
+- Interchain data synchronization
+- Multi-chain coordination tools
+
+### Developer Tools
+- Smart contract debugging interfaces
+- Transaction simulation tools
+- Network testing utilities
+- Blockchain data indexers
+
+## Documentation
+
+Each SDK includes comprehensive documentation:
+
+- **[Client SDK Documentation](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/README.md)** - Complete API reference and usage examples
+- **[ChainKit SDK Documentation](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/README.md)** - Development utilities guide
+- **[Interchain SDK Documentation](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/interchain/README.md)** - Cross-chain development guide
+
+## Examples
+
+Each SDK includes practical examples demonstrating common use cases:
+
+- **Client SDK Examples** - [View Examples](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/)
+- **ChainKit SDK Examples** - [View Examples](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/examples/)
+- **Interchain SDK Examples** - [View Examples](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/interchain/examples/)
+
+## Architecture
+
+The Avalanche SDK TypeScript suite is designed with modularity in mind:
+
+```
+avalanche-sdk-typescript/
+├── client/          # Main client SDK
+├── chainkit/        # Development tools
+└── interchain/      # Cross-chain SDK
+```
+
+Each SDK is:
+- **Independent** - Can be used standalone
+- **Modular** - Import only what you need
+- **Type-safe** - Full TypeScript support
+- **Well-documented** - Comprehensive guides and examples
+
+## Performance & Best Practices
+
+### Optimization Tips
+- Use the unified SDK for better tree-shaking when using multiple features
+- Enable request batching for bulk operations
+- Implement proper error handling and retries
+- Cache frequently accessed data
+- Use WebSocket connections for real-time data
+
+### Security Considerations
+- Never expose private keys in client-side code
+- Use environment variables for sensitive data
+- Validate all inputs before blockchain interactions
+- Implement proper access controls
+- Follow [security best practices](https://docs.avax.network/build/references/security)
+
+## Troubleshooting
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| `Module not found` errors | Ensure you're using Node.js 20+ and have installed dependencies |
+| TypeScript errors | Update to TypeScript 5.0+ and check `tsconfig.json` |
+| Connection timeouts | Check network settings and RPC endpoint availability |
+| Transaction failures | Verify gas settings and account balance |
+| Type mismatches | Ensure all SDKs are on compatible versions |
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/CONTRIBUTING.md) for details.
+
+### Quick Start for Contributors
+```bash
+# Clone the repository
+git clone https://github.com/ava-labs/avalanche-sdk-typescript.git
+cd avalanche-sdk-typescript
+
+# Move to the SDK directory you want to work on
+cd client
+
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Build all packages
+npm run build
+```
+
+### Looking for Good First Issues?
+Check out our [good first issues](https://github.com/ava-labs/avalanche-sdk-typescript/labels/good%20first%20issue) to get started!
+
+## Support
+
+### Documentation & Resources
+- <a href="https://build.avax.network/docs/api-reference" target="_blank" rel="noopener noreferrer">API Reference</a>
+- <a href="https://docs.avax.network" target="_blank" rel="noopener noreferrer">Developer Docs</a>
+- <a href="https://www.youtube.com/Avalancheavax" target="_blank" rel="noopener noreferrer">Video Tutorials</a>
+- <a href="./examples">Code Examples</a>
+
+### Community & Help
+- <a href="https://discord.gg/avax" target="_blank" rel="noopener noreferrer">Discord</a> - Get real-time help
+- <a href="https://t.me/+KDajA4iToKY2ZjBk" target="_blank" rel="noopener noreferrer">Telegram</a> - Join discussions
+- <a href="https://x.com/AvaxDevelopers" target="_blank" rel="noopener noreferrer">Twitter</a> - Stay updated
+
+### Issue Tracking
+- [Report a Bug](https://github.com/ava-labs/avalanche-sdk-typescript/issues/new?template=bug_report.md)
+- [Request a Feature](https://github.com/ava-labs/avalanche-sdk-typescript/issues/new?template=feature_request.md)
+- [View All Issues](https://github.com/ava-labs/avalanche-sdk-typescript/issues)
+
+### Direct Support
+- Technical Issues: [GitHub Issues](https://github.com/ava-labs/avalanche-sdk-typescript/issues)
+- Security Issues: security@avalabs.org
+- General Inquiries: data-platform@avalabs.org
+
+## Release Notes
+
+See [CHANGELOG.md](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/CHANGELOG.md) for a detailed version history.
+
+## License
+
+This project is licensed under the BSD 3-Clause License - see the [LICENSE](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/LICENSE) file for details.
+
+---
+
+<div align="center">
+  <h3> Built with ❤️ by the Avalanche Team</h3>
+  
+  [Website](https://www.avax.network/) • 
+  <a href="https://docs.avax.network/" target="_blank" rel="noopener noreferrer">Documentation</a> • 
+  [Blog](https://medium.com/@avaxdevelopers) • 
+  [GitHub](https://github.com/ava-labs)
+</div>

@@ -1,0 +1,26 @@
+---
+title: "Contract Deployment Details"
+description: "Chainkit SDK documentation for contract deployment details"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/contractdeploymentdetails.md
+---
+
+# ContractDeploymentDetails
+
+## Example Usage
+
+```typescript
+import { ContractDeploymentDetails } from "@avalanche-sdk/chainkit/models/components";
+
+let value: ContractDeploymentDetails = {
+  txHash: "<value>",
+  deployerAddress: "<value>",
+};
+```
+
+## Fields
+
+| Field                                                                                                                                                                  | Type                                                                                                                                                                   | Required                                                                                                                                                               | Description                                                                                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `txHash`                                                                                                                                                               | *string*                                                                                                                                                               | :heavy_check_mark:                                                                                                                                                     | N/A                                                                                                                                                                    |
+| `deployerAddress`                                                                                                                                                      | *string*                                                                                                                                                               | :heavy_check_mark:                                                                                                                                                     | The address that initiated the transaction which deployed this contract.                                                                                               |
+| `deployerContractAddress`                                                                                                                                              | *string*                                                                                                                                                               | :heavy_minus_sign:                                                                                                                                                     | The contract address which deployed this contract via smart contract. This field is only populated when the contract was deployed as part of smart contract execution. |

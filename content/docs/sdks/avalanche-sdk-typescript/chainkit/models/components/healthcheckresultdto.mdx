@@ -1,0 +1,36 @@
+---
+title: "Healthcheckresult DTO"
+description: "Chainkit SDK documentation for healthcheckresult dto"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/healthcheckresultdto.md
+---
+
+# HealthCheckResultDto
+
+## Example Usage
+
+```typescript
+import { HealthCheckResultDto } from "@avalanche-sdk/chainkit/models/components";
+
+let value: HealthCheckResultDto = {
+  info: {
+    "database": {
+      status: "up",
+    },
+  },
+  error: {},
+  details: {
+    "database": {
+      status: "up",
+    },
+  },
+};
+```
+
+## Fields
+
+| Field                                                                                                      | Type                                                                                                       | Required                                                                                                   | Description                                                                                                | Example                                                                                                    |
+| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `status`                                                                                                   | [components.HealthCheckResultDtoStatus](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/healthcheckresultdtostatus.md)             | :heavy_minus_sign:                                                                                         | N/A                                                                                                        |                                                                                                            |
+| `info`                                                                                                     | Record&lt;string, [components.HealthIndicatorResultDto](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/healthindicatorresultdto.md)&gt; | :heavy_minus_sign:                                                                                         | N/A                                                                                                        | \{<br/>"database": \{<br/>"status": "up"<br/>\}<br/>\}                                                         |
+| `error`                                                                                                    | Record&lt;string, [components.HealthIndicatorResultDto](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/healthindicatorresultdto.md)&gt; | :heavy_minus_sign:                                                                                         | N/A                                                                                                        | \{\}                                                                                                         |
+| `details`                                                                                                  | Record&lt;string, [components.HealthIndicatorResultDto](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/healthindicatorresultdto.md)&gt; | :heavy_minus_sign:                                                                                         | N/A                                                                                                        | \{<br/>"database": \{<br/>"status": "up"<br/>\}<br/>\}                                                         |

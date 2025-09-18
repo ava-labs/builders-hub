@@ -1,0 +1,27 @@
+---
+title: "Teleporter Message Info"
+description: "Chainkit SDK documentation for teleporter message info"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/teleportermessageinfo.md
+---
+
+# TeleporterMessageInfo
+
+## Example Usage
+
+```typescript
+import { TeleporterMessageInfo } from "@avalanche-sdk/chainkit/models/components";
+
+let value: TeleporterMessageInfo = {
+  teleporterMessageId: "<id>",
+  direction: "DESTINATION_TRANSACTION",
+};
+```
+
+## Fields
+
+| Field                                                                                      | Type                                                                                       | Required                                                                                   | Description                                                                                |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `teleporterMessageId`                                                                      | *string*                                                                                   | :heavy_check_mark:                                                                         | N/A                                                                                        |
+| `direction`                                                                                | [components.TransactionDirectionType](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/transactiondirectiontype.md) | :heavy_check_mark:                                                                         | N/A                                                                                        |
+| `sourceChainId`                                                                            | *string*                                                                                   | :heavy_minus_sign:                                                                         | chain id of the source chain. valid only for destination transactions                      |
+| `destinationChainId`                                                                       | *string*                                                                                   | :heavy_minus_sign:                                                                         | chain id of the destination chain. valid only for source transactions                      |

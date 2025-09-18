@@ -1,0 +1,25 @@
+---
+title: "Metric"
+description: "Chainkit SDK documentation for metric"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/metric.md
+---
+
+# Metric
+
+## Example Usage
+
+```typescript
+import { Metric } from "@avalanche-sdk/chainkit/models/components";
+
+let value: Metric = {
+  timestamp: 8029.57,
+  values: [],
+};
+```
+
+## Fields
+
+| Field                                                                                | Type                                                                                 | Required                                                                             | Description                                                                          |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `timestamp`                                                                          | *number*                                                                             | :heavy_check_mark:                                                                   | The timestamp of the metrics value                                                   |
+| `values`                                                                             | [components.UsageMetricsValueDTO](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/usagemetricsvaluedto.md)[] | :heavy_check_mark:                                                                   | The metrics values for the timestamp                                                 |

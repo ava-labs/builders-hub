@@ -1,0 +1,29 @@
+---
+title: "List Active Primary Network Staking Transactions Response"
+description: "Chainkit SDK documentation for list active primary network staking transactions response"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/operations/listactiveprimarynetworkstakingtransactionsresponse.md
+---
+
+# ListActivePrimaryNetworkStakingTransactionsResponse
+
+## Example Usage
+
+```typescript
+import { ListActivePrimaryNetworkStakingTransactionsResponse } from "@avalanche-sdk/chainkit/models/operations";
+
+let value: ListActivePrimaryNetworkStakingTransactionsResponse = {
+  result: {
+    transactions: [],
+    chainInfo: {
+      chainName: "c-chain",
+      network: "mainnet",
+    },
+  },
+};
+```
+
+## Fields
+
+| Field                                                                                                  | Type                                                                                                   | Required                                                                                               | Description                                                                                            |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `result`                                                                                               | [components.ListPChainTransactionsResponse](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/listpchaintransactionsresponse.md) | :heavy_check_mark:                                                                                     | N/A                                                                                                    |

@@ -1,0 +1,31 @@
+---
+title: "Listl1 Validators Request"
+description: "Chainkit SDK documentation for listl1 validators request"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/operations/listl1validatorsrequest.md
+---
+
+# ListL1ValidatorsRequest
+
+## Example Usage
+
+```typescript
+import { ListL1ValidatorsRequest } from "@avalanche-sdk/chainkit/models/operations";
+
+let value: ListL1ValidatorsRequest = {
+  l1ValidationId: "BsSpTd1SDvdhaoYAuKJvRj1WnoRyu8mAuMZeuz9g7brGj6KhX",
+  nodeId: "NodeID-111111111111111111116DBWJs",
+  subnetId: "11111111111111111111111111111111LpoYY",
+};
+```
+
+## Fields
+
+| Field                                                                                                    | Type                                                                                                     | Required                                                                                                 | Description                                                                                              | Example                                                                                                  |
+| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `pageToken`                                                                                              | *string*                                                                                                 | :heavy_minus_sign:                                                                                       | A page token, received from a previous list call. Provide this to retrieve the subsequent page.          |                                                                                                          |
+| `pageSize`                                                                                               | *number*                                                                                                 | :heavy_minus_sign:                                                                                       | The maximum number of items to return. The minimum page size is 1. The maximum pageSize is 100.          | 10                                                                                                       |
+| `l1ValidationId`                                                                                         | *string*                                                                                                 | :heavy_minus_sign:                                                                                       | The L1 Validator's validation ID to filter by. If not provided, then all L1 Validators will be returned. | BsSpTd1SDvdhaoYAuKJvRj1WnoRyu8mAuMZeuz9g7brGj6KhX                                                        |
+| `includeInactiveL1Validators`                                                                            | *boolean*                                                                                                | :heavy_minus_sign:                                                                                       | N/A                                                                                                      |                                                                                                          |
+| `network`                                                                                                | [components.GlobalParamNetwork](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/globalparamnetwork.md)                           | :heavy_minus_sign:                                                                                       | Either mainnet or testnet/fuji.                                                                          | mainnet                                                                                                  |
+| `nodeId`                                                                                                 | *string*                                                                                                 | :heavy_minus_sign:                                                                                       | A valid node ID in format 'NodeID-HASH'.                                                                 | NodeID-111111111111111111116DBWJs                                                                        |
+| `subnetId`                                                                                               | *any*                                                                                                    | :heavy_minus_sign:                                                                                       | The subnet ID to filter by. If not provided, then all subnets will be returned.                          | 11111111111111111111111111111111LpoYY                                                                    |

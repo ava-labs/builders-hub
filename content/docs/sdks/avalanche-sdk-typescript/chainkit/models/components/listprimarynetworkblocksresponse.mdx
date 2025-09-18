@@ -1,0 +1,29 @@
+---
+title: "List Primary Network Blocks Response"
+description: "Chainkit SDK documentation for list primary network blocks response"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/listprimarynetworkblocksresponse.md
+---
+
+# ListPrimaryNetworkBlocksResponse
+
+## Example Usage
+
+```typescript
+import { ListPrimaryNetworkBlocksResponse } from "@avalanche-sdk/chainkit/models/components";
+
+let value: ListPrimaryNetworkBlocksResponse = {
+  blocks: [],
+  chainInfo: {
+    chainName: "c-chain",
+    network: "mainnet",
+  },
+};
+```
+
+## Fields
+
+| Field                                                                                                                                  | Type                                                                                                                                   | Required                                                                                                                               | Description                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `nextPageToken`                                                                                                                        | *string*                                                                                                                               | :heavy_minus_sign:                                                                                                                     | A token, which can be sent as `pageToken` to retrieve the next page. If this field is omitted or empty, there are no subsequent pages. |
+| `blocks`                                                                                                                               | [components.PrimaryNetworkBlock](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/primarynetworkblock.md)[]                                                     | :heavy_check_mark:                                                                                                                     | N/A                                                                                                                                    |
+| `chainInfo`                                                                                                                            | [components.PrimaryNetworkChainInfo](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/primarynetworkchaininfo.md)                                               | :heavy_check_mark:                                                                                                                     | N/A                                                                                                                                    |

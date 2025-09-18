@@ -1,0 +1,39 @@
+---
+title: "Validatoractivity Metadata"
+description: "Chainkit SDK documentation for validatoractivity metadata"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/validatoractivitymetadata.md
+---
+
+# ValidatorActivityMetadata
+
+## Example Usage
+
+```typescript
+import { ValidatorActivityMetadata } from "@avalanche-sdk/chainkit/models/components";
+
+let value: ValidatorActivityMetadata = {
+  eventSignatures: [
+    "0x61cbb2a3dee0b6064c2e681aadd61677fb4ef319f0b547508d495626f5a62f64",
+  ],
+  keyType: "subnetId",
+  keys: [
+    "<value 1>",
+    "<value 2>",
+  ],
+  subEvents: {
+    validatorActivitySubEvents: [],
+  },
+};
+```
+
+## Fields
+
+| Field                                                                                                                                     | Type                                                                                                                                      | Required                                                                                                                                  | Description                                                                                                                               | Example                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `eventSignatures`                                                                                                                         | *string*[]                                                                                                                                | :heavy_minus_sign:                                                                                                                        | Array of hexadecimal strings of the event signatures.                                                                                     | [<br/>"0x61cbb2a3dee0b6064c2e681aadd61677fb4ef319f0b547508d495626f5a62f64"<br/>]                                                          |
+| `keyType`                                                                                                                                 | [components.ValidatorActivityKeyType](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/validatoractivitykeytype.md)                                                | :heavy_check_mark:                                                                                                                        | The type of key to monitor for the validator activity event type.                                                                         |                                                                                                                                           |
+| `keys`                                                                                                                                    | *string*[]                                                                                                                                | :heavy_check_mark:                                                                                                                        | Array of keys like NodeID or SubnetID corresponding to the keyType being monitored. ValidatorActivity event will only accept a single key |                                                                                                                                           |
+| `subEvents`                                                                                                                               | [components.ValidatorActivitySubEvents](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/validatoractivitysubevents.md)                                            | :heavy_check_mark:                                                                                                                        | Sub-events to monitor                                                                                                                     |                                                                                                                                           |
+| `nodeIds`                                                                                                                                 | *string*[]                                                                                                                                | :heavy_minus_sign:                                                                                                                        | Array of node IDs to filter the events                                                                                                    |                                                                                                                                           |
+| `subnetIds`                                                                                                                               | *string*[]                                                                                                                                | :heavy_minus_sign:                                                                                                                        | Array of subnet IDs to filter the events                                                                                                  |                                                                                                                                           |
+| `l1ValidatorFeeBalanceThreshold`                                                                                                          | *string*                                                                                                                                  | :heavy_minus_sign:                                                                                                                        | L1 validator fee balance threshold in nAVAX                                                                                               |                                                                                                                                           |

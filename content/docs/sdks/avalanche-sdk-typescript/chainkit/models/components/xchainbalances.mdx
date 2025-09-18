@@ -1,0 +1,51 @@
+---
+title: "X Chain Balances"
+description: "Chainkit SDK documentation for x chain balances"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/xchainbalances.md
+---
+
+# XChainBalances
+
+## Example Usage
+
+```typescript
+import { XChainBalances } from "@avalanche-sdk/chainkit/models/components";
+
+let value: XChainBalances = {
+  locked: [],
+  unlocked: [],
+  atomicMemoryUnlocked: [
+    {
+      assetId: "th5aLdWLi32yS9ED6uLGoMMubqHjzMsXhKWwzP6yZTYQKYzof",
+      name: "Avalanche",
+      symbol: "AVAX",
+      denomination: 9,
+      type: "secp256k1",
+      amount: "5001000",
+      utxoCount: 1,
+      sharedWithChainId: "<id>",
+    },
+  ],
+  atomicMemoryLocked: [
+    {
+      assetId: "th5aLdWLi32yS9ED6uLGoMMubqHjzMsXhKWwzP6yZTYQKYzof",
+      name: "Avalanche",
+      symbol: "AVAX",
+      denomination: 9,
+      type: "secp256k1",
+      amount: "5001000",
+      utxoCount: 1,
+      sharedWithChainId: "<id>",
+    },
+  ],
+};
+```
+
+## Fields
+
+| Field                                                                                        | Type                                                                                         | Required                                                                                     | Description                                                                                  |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `locked`                                                                                     | [components.AggregatedAssetAmount](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/aggregatedassetamount.md)[]       | :heavy_check_mark:                                                                           | A list of objects containing X-chain Asset balance information.                              |
+| `unlocked`                                                                                   | [components.AggregatedAssetAmount](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/aggregatedassetamount.md)[]       | :heavy_check_mark:                                                                           | A list of objects containing X-chain Asset balance information.                              |
+| `atomicMemoryUnlocked`                                                                       | [components.XChainSharedAssetBalance](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/xchainsharedassetbalance.md)[] | :heavy_check_mark:                                                                           | N/A                                                                                          |
+| `atomicMemoryLocked`                                                                         | [components.XChainSharedAssetBalance](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/xchainsharedassetbalance.md)[] | :heavy_check_mark:                                                                           | N/A                                                                                          |

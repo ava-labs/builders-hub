@@ -1,0 +1,38 @@
+---
+title: "Getnftholders By Contract Address Response"
+description: "Chainkit SDK documentation for getnftholders by contract address response"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/operations/getnftholdersbycontractaddressresponse.md
+---
+
+# GetNftHoldersByContractAddressResponse
+
+## Example Usage
+
+```typescript
+import { GetNftHoldersByContractAddressResponse } from "@avalanche-sdk/chainkit/models/operations";
+
+let value: GetNftHoldersByContractAddressResponse = {
+  result: {
+    addresses: [
+      {
+        address: "0x1234567890abcdef1234567890abcdef123456789",
+        sortKey: "123",
+      },
+    ],
+    nftCollectionName: [
+      "NFT Project",
+    ],
+    nftSymbol: [
+      "NFTPROJ",
+    ],
+    totalHolders: 10,
+    totalTokens: 10,
+  },
+};
+```
+
+## Fields
+
+| Field                                                                          | Type                                                                           | Required                                                                       | Description                                                                    |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| `result`                                                                       | [components.NftHoldersResponse](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/nftholdersresponse.md) | :heavy_check_mark:                                                             | N/A                                                                            |

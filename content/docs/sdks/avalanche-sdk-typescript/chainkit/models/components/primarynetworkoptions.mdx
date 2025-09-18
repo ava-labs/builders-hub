@@ -1,0 +1,27 @@
+---
+title: "Primary Network Options"
+description: "Chainkit SDK documentation for primary network options"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/primarynetworkoptions.md
+---
+
+# PrimaryNetworkOptions
+
+## Example Usage
+
+```typescript
+import { PrimaryNetworkOptions } from "@avalanche-sdk/chainkit/models/components";
+
+let value: PrimaryNetworkOptions = {
+  includeChains: [
+    "p-chain",
+  ],
+};
+```
+
+## Fields
+
+| Field                                                                | Type                                                                 | Required                                                             | Description                                                          | Example                                                              |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `addresses`                                                          | *string*[]                                                           | :heavy_minus_sign:                                                   | N/A                                                                  |                                                                      |
+| `cChainEvmAddresses`                                                 | *string*[]                                                           | :heavy_minus_sign:                                                   | N/A                                                                  |                                                                      |
+| `includeChains`                                                      | [components.IncludeChain](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/includechain.md)[] | :heavy_check_mark:                                                   | N/A                                                                  | [<br/>"p-chain"<br/>]                                                |

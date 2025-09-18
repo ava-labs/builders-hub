@@ -1,0 +1,45 @@
+---
+title: "Listxchainvertices Response"
+description: "Chainkit SDK documentation for listxchainvertices response"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/listxchainverticesresponse.md
+---
+
+# ListXChainVerticesResponse
+
+## Example Usage
+
+```typescript
+import { ListXChainVerticesResponse } from "@avalanche-sdk/chainkit/models/components";
+
+let value: ListXChainVerticesResponse = {
+  vertices: [
+    {
+      vertexHash: "<value>",
+      parentHashes: [
+        "<value 1>",
+        "<value 2>",
+      ],
+      vertexHeight: 7539.02,
+      vertexIndex: 1786.08,
+      vertexTimestamp: 3626.95,
+      txCount: 7721.81,
+      transactions: [
+        "<value 1>",
+      ],
+      vertexSizeBytes: 3579.84,
+    },
+  ],
+  chainInfo: {
+    chainName: "c-chain",
+    network: "mainnet",
+  },
+};
+```
+
+## Fields
+
+| Field                                                                                                                                  | Type                                                                                                                                   | Required                                                                                                                               | Description                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `nextPageToken`                                                                                                                        | *string*                                                                                                                               | :heavy_minus_sign:                                                                                                                     | A token, which can be sent as `pageToken` to retrieve the next page. If this field is omitted or empty, there are no subsequent pages. |
+| `vertices`                                                                                                                             | [components.XChainVertex](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/xchainvertex.md)[]                                                                   | :heavy_check_mark:                                                                                                                     | N/A                                                                                                                                    |
+| `chainInfo`                                                                                                                            | [components.PrimaryNetworkChainInfo](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/primarynetworkchaininfo.md)                                               | :heavy_check_mark:                                                                                                                     | N/A                                                                                                                                    |

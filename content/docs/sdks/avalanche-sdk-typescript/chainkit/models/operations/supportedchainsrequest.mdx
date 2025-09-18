@@ -1,0 +1,25 @@
+---
+title: "Supported Chains Request"
+description: "Chainkit SDK documentation for supported chains request"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/operations/supportedchainsrequest.md
+---
+
+# SupportedChainsRequest
+
+## Example Usage
+
+```typescript
+import { SupportedChainsRequest } from "@avalanche-sdk/chainkit/models/operations";
+
+let value: SupportedChainsRequest = {
+  network: "mainnet",
+  feature: "nftIndexing",
+};
+```
+
+## Fields
+
+| Field                                                          | Type                                                           | Required                                                       | Description                                                    | Example                                                        |
+| -------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------- |
+| `network`                                                      | [components.Network](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/network.md)       | :heavy_minus_sign:                                             | Either mainnet or testnet/fuji.                                | mainnet                                                        |
+| `feature`                                                      | [components.ApiFeature](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/apifeature.md) | :heavy_minus_sign:                                             | Filter by feature.                                             | nftIndexing                                                    |

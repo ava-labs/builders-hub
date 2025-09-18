@@ -41,7 +41,6 @@ import CrossChainTransfer from "@/components/toolbox/console/primary-network/Cro
 import AvalancheGoDocker from '@/components/toolbox/console/layer-1/AvalancheGoDockerL1';
 import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain"
 import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1"
-import GenesisBuilder from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
 import DeployExampleERC20 from '@/components/toolbox/console/ictt/setup/DeployExampleERC20';
 import DeployTokenHome from '@/components/toolbox/console/ictt/setup/DeployTokenHome';
 import DeployERC20TokenRemote from '@/components/toolbox/console/ictt/setup/DeployERC20TokenRemote';
@@ -56,7 +55,6 @@ export const dynamicParams = false;
 const toolboxComponents = {
   ToolboxMdxWrapper,
   CrossChainTransfer,
-  GenesisBuilder,
   CreateChain,
   AvalancheGoDocker,
   ConvertToL1: ConvertSubnetToL1,

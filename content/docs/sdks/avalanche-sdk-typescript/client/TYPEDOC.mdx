@@ -1,0 +1,686 @@
+---
+title: "Typedoc"
+description: "Client SDK documentation for typedoc"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/client/TYPEDOC.md
+---
+
+A TypeScript SDK for interacting with the Avalanche network through JSON-RPC APIs. This SDK provides a comprehensive set of tools to interact with all Avalanche chains (P-Chain, X-Chain, C-Chain) and various APIs, including wallet functionality for transaction signing and management.
+
+## Installation
+
+```bash
+npm install @avalanche-sdk/client
+# or
+yarn add @avalanche-sdk/client
+# or
+pnpm add @avalanche-sdk/client
+```
+
+## Quick Start
+
+### Avalanche Client Usage
+
+```typescript
+import { createAvalancheClient } from '@avalanche-sdk/client'
+import { avalanche } from '@avalanche-sdk/client/chains'
+
+// Create an Avalanche client
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "http",
+  },
+})
+
+// Access different chain clients
+const pChainClient = client.pChain
+const xChainClient = client.xChain
+const cChainClient = client.cChain
+
+// Access API clients
+const adminClient = client.admin
+const infoClient = client.info
+const healthClient = client.health
+const indexPChainBlockClient = client.indexPChainBlock
+
+// Example: Get the latest block number
+const blockNumber = await pChainClient.getBlockNumber()
+
+// Example: Get base fee
+const baseFee = await client.getBaseFee()
+```
+
+### Wallet Client Usage
+
+```typescript
+import { createAvalancheWalletClient, privateKeyToAvalancheAccount } from '@avalanche-sdk/client'
+import { avalanche } from '@avalanche-sdk/client/chains'
+
+// Create an account from private key
+const account = privateKeyToAvalancheAccount("0x1234567890123456789012345678901234567890123456789012345678901234")
+
+// Get P chain Address and Evm Address
+const evmAddress = account.getEVMAddress()
+const pchainAddress = account.getXPAddress("P", "fuji")
+
+// Create a wallet client
+const walletClient = createAvalancheWalletClient({
+  account,
+  chain: avalanche,
+  transport: {
+    type: "http",
+  },
+})
+
+// Prepare a txn request
+const xChainExportTxnRequest = await walletClient.xChain.prepareExportTxn({
+  exportedOutputs: [
+    {
+      addresses: [account.getXPAddress("X", "fuji")], // X-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz
+      amount: 0.001,
+    },
+  ],
+  destinationChain: "P",
+});
+
+// Send an XP transaction
+const result = await walletClient.sendXPTransaction(xChainExportTxnRequest)
+
+// Sign a message
+const signedMessage = await walletClient.signXPMessage({
+  message: "Hello Avalanche",
+})
+
+// Get account public key
+const pubKey = await walletClient.getAccountPubKey()
+
+// Wait for transaction confirmation
+await walletClient.waitForTxn({
+  txID: "2QouvMUbQ6oy7yQ9tLvL3L8tGQG2QK1wJ1q1wJ1q1wJ1q1wJ1q1wJ1q1wJ1",
+  chainAlias: "X"
+})
+```
+
+### Chain-Specific Wallet Operations
+
+```typescript
+// P-Chain wallet operations
+const pChainWallet = walletClient.pChain
+
+// Prepare add validator transaction
+const validatorTx = await pChainWallet.prepareAddPermissionlessValidatorTxn({
+  nodeId: "NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg",
+  stakeInAvax: 1,
+  end: 1716441600,
+  rewardAddresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+  threshold: 1,
+  publicKey: "0x1234567890123456789012345678901234567890",
+  signature: "0x1234567890123456789012345678901234567890",
+  locktime: 1716441600,
+  delegatorRewardPercentage: 2.5,
+  delegatorRewardAddresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+})
+
+// X-Chain wallet operations
+const xChainWallet = walletClient.xChain
+
+// Prepare base transaction
+const baseTx = await xChainWallet.prepareBaseTxn({
+  outputs: [{
+    addresses: ["X-avax18jma8ppw3nhx5r4ap8clazz0dps7rv5ukulre5"],
+    amount: 1000000000, // 1 AVAX
+  }],
+})
+
+// C-Chain wallet operations
+const cChainWallet = walletClient.cChain
+
+// Prepare export transaction
+const exportTx = await cChainWallet.prepareExportTxn({
+  to: "P-fuji1j2zllfqv4mgg7ytn9m2u2x0q3h3jqkzq8q8q8q8",
+  amount: "1000000000000000000", // 1 AVAX in wei
+  destinationChain: "X"
+})
+```
+
+## Features
+
+- **Multi-Chain Support**: Interact with all Avalanche chains:
+  - P-Chain (Platform Chain)
+  - X-Chain (Exchange Chain)
+  - C-Chain (Contract Chain)
+- **Wallet Functionality**: Complete wallet operations including:
+  - Transaction signing and sending
+  - Message signing
+  - Account management
+  - Chain-specific transaction preparation
+- **API Clients**:
+  - Admin API
+  - Info API
+  - Health API
+  - Index API
+- **TypeScript Support**: Full TypeScript support with type definitions
+- **Modular Design**: Access specific functionality through dedicated clients
+
+## Available Clients
+
+### Chain Clients
+
+- **P-Chain Client**: Platform Chain operations
+- **X-Chain Client**: Exchange Chain operations
+- **C-Chain Client**: Contract Chain operations
+
+### API Clients
+
+- **Admin Client**: Administrative operations
+- **Info Client**: Network information
+- **Health Client**: Health check endpoints
+- **Index Clients**:
+  - Index P-Chain Block
+  - Index C-Chain Block
+  - Index X-Chain Block
+  - Index X-Chain Transaction
+
+### Wallet Clients
+
+- **Avalanche Wallet Client**: General wallet operations
+- **P-Chain Wallet Client**: P-Chain specific wallet operations
+- **X-Chain Wallet Client**: X-Chain specific wallet operations
+- **C-Chain Wallet Client**: C-Chain specific wallet operations
+
+## Configuration
+
+The SDK can be configured with various options:
+
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche, // Chain configuration
+  transport: {
+    type: "<transportType>", // Transport type
+    url: "<url>",
+    config: {
+      // Transport-specific configuration
+    }
+  },
+  apiKey: "", // Optional API key
+  rlToken: "", // Optional rate limit token
+})
+```
+
+### Transport Configuration
+
+The SDK supports multiple transport types for connecting to Avalanche nodes. Each transport type has specific configuration options:
+
+#### HTTP Transport (Recommended)
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "http",
+    url: "https://api.avax.network/ext/bc/C/rpc", // Optional custom RPC URL
+    config: {
+      // HTTP-specific configuration
+      fetchOptions: {
+        headers: {
+          "Custom-Header": "value"
+        },
+      }
+      retryCount: 3,
+      retryDelay: 1000,
+      timeout: 5000
+    }
+  }
+})
+```
+
+**HTTP Transport Features:**
+- **Automatic URL Resolution**: If no URL is provided, uses the chain's default RPC endpoint
+- **Custom Headers**: Support for custom HTTP headers via `fetchOptions.headers`
+- **API Key Support**: Automatically adds `x-glacier-api-key` header when `apiKey` is provided
+- **Rate Limit Support**: Automatically adds `rlToken` header when `rlToken` is provided
+
+#### WebSocket Transport
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "ws",
+    url: "wss://api.avax.network/ext/bc/C/ws", // Optional custom WebSocket URL
+    config: {
+      // WebSocket-specific configuration
+      retryCount: 3,
+      retryDelay: 1000
+    }
+  }
+})
+```
+
+**WebSocket Transport Features:**
+- **Real-time Updates**: Supports WebSocket connections for live data
+- **Automatic Reconnection**: Built-in retry logic with configurable retry count and delay
+- **Event-driven**: Ideal for subscribing to blockchain events and real-time updates
+
+#### Custom Transport
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "custom",
+    provider: window.avalanche, // Custom provider implementation
+    config: {
+      // Custom transport configuration
+    }
+  }
+})
+```
+
+**Custom Transport Features:**
+- **Provider Integration**: Integrate with custom RPC providers or middleware
+- **Flexible Configuration**: Full control over transport behavior
+- **Wallet Support**: Special handling for wallet clients
+
+#### Fallback Transport
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "fallback",
+    transports: [
+      { type: "http", url: "https://primary-rpc.com" },
+      { type: "http", url: "https://backup-rpc.com" }
+    ],
+    config: {
+      // Fallback configuration
+      retryCount: 3,
+      retryDelay: 1000
+    }
+  }
+})
+```
+
+**Fallback Transport Features:**
+- **High Availability**: Automatic failover between multiple RPC endpoints
+
+### Advanced Configuration Examples
+
+#### Custom HTTP Headers and Timeouts
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "http",
+    config: {
+      fetchOptions: {
+        headers: {
+          "X-Custom-Header": "custom-value"
+        },
+      }
+    }
+  }
+})
+```
+
+#### Multiple Fallback Endpoints
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "fallback",
+    transports: [
+      { type: "http", url: "https://api.avax.network/ext/bc/C/rpc" },
+      { type: "http", url: "https://rpc.ankr.com/avalanche" },
+      { type: "http", url: "https://avalanche.public-rpc.com" }
+    ],
+    config: {
+      retryCount: 5,
+      retryDelay: 2000
+    }
+  }
+})
+```
+
+#### WebSocket with Custom Configuration
+```typescript
+const client = createAvalancheClient({
+  chain: avalanche,
+  transport: {
+    type: "ws",
+    config: {
+      retryCount: 5,
+      retryDelay: 2000,
+      maxRetryDelay: 30000
+    }
+  }
+})
+```
+
+### Transport Selection Guidelines
+
+- **HTTP Transport**: Best for most use cases, simple configuration, wide compatibility
+- **WebSocket Transport**: Ideal for real-time applications, event subscriptions, live updates
+- **Custom Transport**: Use when integrating with specific providers or middleware
+- **Fallback Transport**: Recommended for production applications requiring high availability
+
+### Environment Considerations
+
+- **Browser**: HTTP and WebSocket transports are fully supported
+- **Node.js**: All transport types are supported
+- **Mobile**: HTTP transport is recommended for mobile applications
+- **Production**: Consider using fallback transport with multiple RPC endpoints for reliability
+
+## Exported Modules and Utilities
+
+### Main Exports
+
+The SDK exports all viem utilities and types, plus Avalanche-specific functionality:
+
+```typescript
+import { 
+  createAvalancheClient,
+  createAvalancheWalletClient,
+  // All viem exports
+  createClient,
+  createPublicClient,
+  createWalletClient,
+  // ... and many more
+} from '@avalanche-sdk/client'
+```
+
+### Account Management
+
+```typescript
+import { 
+  privateKeyToAvalancheAccount,
+  memonicsToAvalancheAccount,
+  hdKeyToAvalancheAccount,
+  privateKeyToXPAddress,
+  publicKeyToXPAddress,
+  // ... and more
+} from '@avalanche-sdk/client/accounts'
+```
+
+### Chain Configurations
+
+```typescript
+import { 
+  avalanche,
+  avalancheFuji,
+  // ... and more
+} from '@avalanche-sdk/client/chains'
+```
+
+### Methods
+
+Access specific method categories:
+
+```typescript
+// P-Chain methods
+import { /* P-Chain methods */ } from '@avalanche-sdk/client/methods/pChain'
+
+// X-Chain methods  
+import { /* X-Chain methods */ } from '@avalanche-sdk/client/methods/xChain'
+
+// C-Chain methods
+import { /* C-Chain methods */ } from '@avalanche-sdk/client/methods/cChain'
+
+// Wallet methods
+import { /* Wallet methods */ } from '@avalanche-sdk/client/methods/wallet'
+
+// Public methods
+import { /* Public methods */ } from '@avalanche-sdk/client/methods/public'
+
+// Admin methods
+import { /* Admin methods */ } from '@avalanche-sdk/client/methods/admin'
+
+// Info methods
+import { /* Info methods */ } from '@avalanche-sdk/client/methods/info'
+
+// Health methods
+import { /* Health methods */ } from '@avalanche-sdk/client/methods/health'
+
+// Index methods
+import { /* Index methods */ } from '@avalanche-sdk/client/methods/index'
+```
+
+### Utilities
+
+```typescript
+import { 
+  CB58ToHex,
+  hexToCB58,
+  getTxFromBytes,
+  getUnsignedTxFromBytes,
+  getUtxoFromBytes,
+  getUtxosForAddress,
+  // All viem utilities
+  formatEther,
+  parseEther,
+  keccak256,
+  // ... and many more
+} from '@avalanche-sdk/client/utils'
+```
+
+### Additional Modules
+
+```typescript
+// Node utilities
+import { /* Node utilities */ } from '@avalanche-sdk/client/node'
+
+// Nonce management
+import { /* Nonce utilities */ } from '@avalanche-sdk/client/nonce'
+
+// Serializable utilities
+import { /* Serializable utilities */ } from '@avalanche-sdk/client/serializable'
+
+// SIWE (Sign-In with Ethereum)
+import { /* SIWE utilities */ } from '@avalanche-sdk/client/siwe'
+
+// Window utilities
+import { /* Window utilities */ } from '@avalanche-sdk/client/window'
+```
+
+## Available Methods
+
+### P-Chain Methods
+
+- [`getBalance`](https://github.com/functions/methods_pChain.getBalance.html) - Returns the balance of an address on the Platform Chain. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetbalance)
+- [`getBlock`](https://github.com/functions/methods_pChain.getBlock.html) - Gets a block by its ID. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetblock)
+- [`getBlockByHeight`](https://github.com/functions/methods_pChain.getBlockByHeight.html) - Gets a block by its height. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetblockbyheight)
+- [`getBlockchainStatus`](https://github.com/functions/methods_pChain.getBlockchainStatus.html) - Returns the status of a blockchain. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetblockchainstatus)
+- [`getBlockchains`](https://github.com/functions/methods_pChain.getBlockchains.html) - Returns all the blockchains that exist (excluding the P-Chain). [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetblockchains)
+- [`getCurrentSupply`](https://github.com/functions/methods_pChain.getCurrentSupply.html) - Returns the current supply of AVAX in the system. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetcurrentsupply)
+- [`getCurrentValidators`](https://github.com/functions/methods_pChain.getCurrentValidators.html) - Returns the current validators of the given Subnet. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetcurrentvalidators)
+- [`getFeeConfig`](https://github.com/functions/methods_pChain.getFeeConfig.html) - Returns the fee configuration for the P-Chain. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetfeeconfig)
+- [`getFeeState`](https://github.com/functions/methods_pChain.getFeeState.html) - Returns the current fee state of the P-Chain. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetfeestate)
+- [`getHeight`](https://github.com/functions/methods_pChain.getHeight.html) - Returns the height of the most recent block. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetheight)
+- [`getL1Validator`](https://github.com/functions/methods_pChain.getL1Validator.html) - Returns information about an L1 validator. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetl1validator)
+- [`getMinStake`](https://github.com/functions/methods_pChain.getMinStake.html) - Returns the minimum amount of nAVAX required to validate the requested Subnet. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetminstake)
+- [`getProposedHeight`](https://github.com/functions/methods_pChain.getProposedHeight.html) - Returns the proposed height of the most recent block. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetproposedheight)
+- [`getRewardUTXOs`](https://github.com/functions/methods_pChain.getRewardUTXOs.html) - Returns the reward UTXOs for a list of address:utxo_index pairs. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetrewardutxos)
+- [`getStake`](https://github.com/functions/methods_pChain.getStake.html) - Returns the amount of nAVAX staked by a set of addresses. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetstake)
+- [`getStakingAssetID`](https://github.com/functions/methods_pChain.getStakingAssetID.html) - Returns the assetID of the asset used for staking on the requested Subnet. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetstakingassetid)
+- [`getSubnet`](https://github.com/functions/methods_pChain.getSubnet.html) - Returns information about a Subnet. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetsubnet)
+- [`getSubnets`](https://github.com/functions/methods_pChain.getSubnets.html) - Returns all the blockchains that exist (excluding the P-Chain). [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetsubnets)
+- [`getTimestamp`](https://github.com/functions/methods_pChain.getTimestamp.html) - Returns the current timestamp of the P-Chain. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgettimestamp)
+- [`getTotalStake`](https://github.com/functions/methods_pChain.getTotalStake.html) - Returns the total amount staked on the requested Subnet. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgettotalstake)
+- [`getTx`](https://github.com/functions/methods_pChain.getTx.html) - Returns the specified transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgettx)
+- [`getTxStatus`](https://github.com/functions/methods_pChain.getTxStatus.html) - Returns the status of the specified transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgettxstatus)
+- [`getUTXOs`](https://github.com/functions/methods_pChain.getUTXOs.html) - Returns the UTXOs that reference a given address. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetutxos)
+- [`getValidatorsAt`](https://github.com/functions/methods_pChain.getValidatorsAt.html) - Returns the validators and their weights of a Subnet at the specified height. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformgetvalidatorsat)
+- [`issueTx`](https://github.com/functions/methods_pChain.issueTx.html) - Issues a transaction to the Platform Chain. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformissuetx)
+- [`sampleValidators`](https://github.com/functions/methods_pChain.sampleValidators.html) - Samples validators from the specified Subnet. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformsamplevalidators)
+- [`validatedBy`](https://github.com/functions/methods_pChain.validatedBy.html) - Gets the Subnet that validates a given blockchain. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformvalidatedby)
+- [`validates`](https://github.com/functions/methods_pChain.validates.html) - Gets the IDs of the blockchains a Subnet validates. [Docs](https://build.avax.network/docs/api-reference/p-chain/api#platformvalidates)
+
+### X-Chain Methods
+
+- [`buildGenesis`](https://github.com/functions/methods_xChain.buildGenesis.html) - Builds a genesis block for the X-Chain. [Docs](https://build.avax.network/docs/api-reference/x-chain/api#avmbuildgenesis)
+- [`getAllBalances`](https://github.com/functions/methods_xChain.getAllBalances.html) - Returns all balances for a given address. [Docs](https://build.avax.network/docs/api-reference/x-chain/api#avmgetallbalances)
+- [`getAssetDescription`](https://github.com/functions/methods_xChain.getAssetDescription.html) - Returns information about an asset. [Docs](https://build.avax.network/docs/api-reference/x-chain/api#avmgetassetdescription)
+- [`getBalance`](https://github.com/functions/methods_xChain.getBalance.html) - Returns the balance of an asset held by an address. [Docs](https://build.avax.network/docs/api-reference/x-chain/api#avmgetbalance)
+- [`getBlock`](https://github.com/functions/methods_xChain.getBlock.html) - Gets a block by its ID. [Docs](https://build.avax.network/docs/api-reference/x-chain/api#avmgetblock)
+- [`getBlockByHeight`](https://github.com/functions/methods_xChain.getBlockByHeight.html) - Gets a block by its height. [Docs](https://build.avax.network/docs/api-reference/x-chain/api#avmgetblockbyheight)
+- [`getHeight`](https://github.com/functions/methods_xChain.getHeight.html) - Returns the height of the most recent block. [Docs](https://build.avax.network/docs/api-reference/x-chain/api#avmgetheight)
+- [`getTx`](https://github.com/functions/methods_xChain.getTx.html) - Returns the specified transaction. [Docs](https://build.avax.network/docs/api-reference/x-chain/api#avmgettx)
+- [`getTxFee`](https://github.com/functions/methods_xChain.getTxFee.html) - Returns the fee for the specified transaction. [Docs](https://build.avax.network/docs/api-reference/x-chain/api#avmgettxfee)
+- [`getTxStatus`](https://github.com/functions/methods_xChain.getTxStatus.html) - Returns the status of the specified transaction. [Docs](https://build.avax.network/docs/api-reference/x-chain/api#avmgettxstatus)
+- [`getUTXOs`](https://github.com/functions/methods_xChain.getUTXOs.html) - Returns the UTXOs that reference a given address. [Docs](https://build.avax.network/docs/api-reference/x-chain/api#avmgetutxos)
+- [`issueTx`](https://github.com/functions/methods_xChain.issueTx.html) - Issues a transaction to the X-Chain. [Docs](https://build.avax.network/docs/api-reference/x-chain/api#avmissuetx)
+
+### C-Chain Methods
+
+- [`getAtomicTx`](https://github.com/functions/methods_cChain.getAtomicTx.html) - Returns the specified atomic transaction. [Docs](https://build.avax.network/docs/api-reference/c-chain/api#avaxgetatomictx)
+- [`getAtomicTxStatus`](https://github.com/functions/methods_cChain.getAtomicTxStatus.html) - Returns the status of the specified atomic transaction. [Docs](https://build.avax.network/docs/api-reference/c-chain/api#avaxgetatomictxstatus)
+- [`getUTXOs`](https://github.com/functions/methods_cChain.getUTXOs.html) - Returns the UTXOs that reference a given address. [Docs](https://build.avax.network/docs/api-reference/c-chain/api#avaxgetutxos)
+- [`issueTx`](https://github.com/functions/methods_cChain.issueTx.html) - Issues a transaction to the C-Chain. [Docs](https://build.avax.network/docs/api-reference/c-chain/api#avaxissuetx)
+
+### Wallet Methods
+
+- [`getAccountPubKey`](https://github.com/functions/methods_wallet.getAccountPubKey.html) - Get the public key of the current account. [Docs](https://docs.core.app/docs/reference/avalanche_getaccountpubkey)
+- [`send`](https://github.com/functions/methods_wallet.send.html) - Send a transaction using the wallet. [Docs](https://docs.core.app/docs/reference/avalanche_sendtransaction)
+- [`sendXPTransaction`](https://github.com/functions/methods_wallet.sendXPTransaction.html) - Sign and Send a transaction on X-Chain or P-Chain. [Docs](https://docs.core.app/docs/reference/avalanche_sendtransaction)
+- [`signXPMessage`](https://github.com/functions/methods_wallet.signXPMessage.html) - Sign a message on X-Chain or P-Chain. [Docs](https://docs.core.app/docs/reference/avalanche_signmessage)
+- [`signXPTransaction`](https://github.com/functions/methods_wallet.signXPTransaction.html) - Sign a transaction on X-Chain or P-Chain. [Docs](https://docs.core.app/docs/reference/avalanche_signtransaction)
+- [`waitForTxn`](https://github.com/functions/methods_wallet.waitForTxn.html) - Wait for a transaction to be accepted. [Docs](https://docs.core.app/docs/reference/avalanche_sendtransaction)
+
+### P-Chain Wallet Methods
+
+- [`prepareAddPermissionlessDelegatorTx`](https://github.com/functions/methods_wallet_pChain.prepareAddPermissionlessDelegatorTx.html) - Prepare an add permissionless delegator transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-add-permissionless-delegator-tx)
+- [`prepareAddPermissionlessValidatorTxn`](https://github.com/functions/methods_wallet_pChain.prepareAddPermissionlessValidatorTxn.html) - Prepare an add permissionless validator transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-add-permissionless-validator-tx)
+- [`prepareAddSubnetValidatorTxn`](https://github.com/functions/methods_wallet_pChain.prepareAddSubnetValidatorTxn.html) - Prepare an add subnet validator transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-add-validator-tx)
+- [`prepareBaseTxn`](https://github.com/functions/methods_wallet_pChain.prepareBaseTxn.html) - Prepare a base transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-basetx)
+- [`prepareConvertSubnetToL1Txn`](https://github.com/functions/methods_wallet_pChain.prepareConvertSubnetToL1Txn.html) - Prepare a convert subnet to L1 transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-convert-subnet-to-l1-tx)
+- [`prepareCreateChainTxn`](https://github.com/functions/methods_wallet_pChain.prepareCreateChainTxn.html) - Prepare a create chain transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-create-chain-tx)
+- [`prepareCreateSubnetTxn`](https://github.com/functions/methods_wallet_pChain.prepareCreateSubnetTxn.html) - Prepare a create subnet transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-create-subnet-tx)
+- [`prepareDisableL1ValidatorTxn`](https://github.com/functions/methods_wallet_pChain.prepareDisableL1ValidatorTxn.html) - Prepare a disable L1 validator transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-disable-l1-validator-tx)
+- [`prepareExportTxn`](https://github.com/functions/methods_wallet_pChain.prepareExportTxn.html) - Prepare an export transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-export-tx)
+- [`prepareImportTxn`](https://github.com/functions/methods_wallet_pChain.prepareImportTxn.html) - Prepare an import transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-import-tx)
+- [`prepareIncreaseL1ValidatorBalanceTxn`](https://github.com/functions/methods_wallet_pChain.prepareIncreaseL1ValidatorBalanceTxn.html) - Prepare an increase L1 validator balance transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-increase-l1-validator-balance-tx)
+- [`prepareRegisterL1ValidatorTxn`](https://github.com/functions/methods_wallet_pChain.prepareRegisterL1ValidatorTxn.html) - Prepare a register L1 validator transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-register-l1-validator-tx)
+- [`prepareRemoveSubnetValidatorTxn`](https://github.com/functions/methods_wallet_pChain.prepareRemoveSubnetValidatorTxn.html) - Prepare a remove subnet validator transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-remove-validator-tx)
+- [`prepareSetL1ValidatorWeightTxn`](https://github.com/functions/methods_wallet_pChain.prepareSetL1ValidatorWeightTxn.html) - Prepare a set L1 validator weight transaction. [Docs](https://build.avax.network/docs/api-reference/p-chain/txn-format#unsigned-set-l1-validator-weight-tx)
+
+### X-Chain Wallet Methods
+
+- [`prepareBaseTxn`](https://github.com/functions/methods_wallet_xChain.prepareBaseTxn.html) - Prepare a base transaction for the X-Chain. [Docs](https://build.avax.network/docs/api-reference/x-chain/txn-format#unsigned-basetx)
+- [`prepareExportTxn`](https://github.com/functions/methods_wallet_xChain.prepareExportTxn.html) - Prepare an export transaction for the X-Chain. [Docs](https://build.avax.network/docs/api-reference/x-chain/txn-format#unsigned-export-tx)
+- [`prepareImportTxn`](https://github.com/functions/methods_wallet_xChain.prepareImportTxn.html) - Prepare an import transaction for the X-Chain. [Docs](https://build.avax.network/docs/api-reference/x-chain/txn-format#unsigned-import-tx)
+
+### C-Chain Wallet Methods
+
+- [`prepareExportTxn`](https://github.com/functions/methods_wallet_cChain.prepareExportTxn.html) - Prepare an export transaction from C-Chain to another chain. [Docs](https://build.avax.network/docs/api-reference/c-chain/txn-format#exporttx)
+- [`prepareImportTxn`](https://github.com/functions/methods_wallet_cChain.prepareImportTxn.html) - Prepare an import transaction from another chain to C-Chain. [Docs](https://build.avax.network/docs/api-reference/c-chain/txn-format#importtx)
+
+### Public Methods
+
+- [`baseFee`](https://github.com/functions/methods_public.baseFee.html) - Returns the base fee for the next block. [Docs](https://build.avax.network/docs/api-reference/c-chain/api#eth_basefee)
+- [`getChainConfig`](https://github.com/functions/methods_public.getChainConfig.html) - Returns the chain configuration. [Docs](https://build.avax.network/docs/api-reference/subnet-evm-api#eth_getchainconfig)
+- [`maxPriorityFeePerGas`](https://github.com/functions/methods_public.maxPriorityFeePerGas.html) - Returns the maximum priority fee per gas. [Docs](https://build.avax.network/docs/api-reference/c-chain/api#eth_maxpriorityfeepergas)
+- [`feeConfig`](https://github.com/functions/methods_public.feeConfig.html) - Returns the fee configuration for the specified block. [Docs](https://build.avax.network/docs/api-reference/subnet-evm-api#eth_feeconfig)
+- [`getActiveRulesAt`](https://github.com/functions/methods_public.getActiveRulesAt.html) - Returns the active rules at the specified timestamp. [Docs](https://build.avax.network/docs/api-reference/subnet-evm-api#eth_getactiverulesat)
+
+### Admin Methods
+
+- [`alias`](https://github.com/functions/methods_admin.alias.html) - Assign an API endpoint an alias. [Docs](https://build.avax.network/docs/api-reference/admin-api#adminalias)
+- [`aliasChain`](https://github.com/functions/methods_admin.aliasChain.html) - Give a blockchain an alias. [Docs](https://build.avax.network/docs/api-reference/admin-api#adminaliaschain)
+- [`getChainAliases`](https://github.com/functions/methods_admin.getChainAliases.html) - Returns the aliases of the chain. [Docs](https://build.avax.network/docs/api-reference/admin-api#admingetchainaliases)
+- [`getLoggerLevel`](https://github.com/functions/methods_admin.getLoggerLevel.html) - Returns log and display levels of loggers. [Docs](https://build.avax.network/docs/api-reference/admin-api#admingetloggerlevel)
+- [`loadVMs`](https://github.com/functions/methods_admin.loadVMs.html) - Dynamically loads any virtual machines installed on the node as plugins. [Docs](https://build.avax.network/docs/api-reference/admin-api#adminloadvms)
+- [`lockProfile`](https://github.com/functions/methods_admin.lockProfile.html) - Writes a profile of mutex statistics to lock.profile. [Docs](https://build.avax.network/docs/api-reference/admin-api#adminlockprofile)
+- [`memoryProfile`](https://github.com/functions/methods_admin.memoryProfile.html) - Writes a memory profile to mem.profile. [Docs](https://build.avax.network/docs/api-reference/admin-api#adminmemoryprofile)
+- [`setLoggerLevel`](https://github.com/functions/methods_admin.setLoggerLevel.html) - Sets log and display levels of loggers. [Docs](https://build.avax.network/docs/api-reference/admin-api#adminsetloggerlevel)
+- [`startCPUProfiler`](https://github.com/functions/methods_admin.startCPUProfiler.html) - Start profiling the CPU utilization of the node. [Docs](https://build.avax.network/docs/api-reference/admin-api#adminstartcpuprofiler)
+- [`stopCPUProfiler`](https://github.com/functions/methods_admin.stopCPUProfiler.html) - Stop the CPU profile that was previously started. [Docs](https://build.avax.network/docs/api-reference/admin-api#adminstopcpuprofiler)
+
+### Info Methods
+
+- [`acps`](https://github.com/functions/methods_info.acps.html) - Returns peer preferences for Avalanche Community Proposals (ACPs). [Docs](https://build.avax.network/docs/api-reference/info-api#infoacps)
+- [`getBlockchainID`](https://github.com/functions/methods_info.getBlockchainID.html) - Given a blockchain's alias, get its ID. [Docs](https://build.avax.network/docs/api-reference/info-api#infogetblockchainid)
+- [`getNetworkID`](https://github.com/functions/methods_info.getNetworkID.html) - Get the ID of the network this node is participating in. [Docs](https://build.avax.network/docs/api-reference/info-api#infogetnetworkid)
+- [`getNetworkName`](https://github.com/functions/methods_info.getNetworkName.html) - Get the name of the network this node is participating in. [Docs](https://build.avax.network/docs/api-reference/info-api#infogetnetworkname)
+- [`getNodeID`](https://github.com/functions/methods_info.getNodeID.html) - Get the ID, the BLS key, and the proof of possession of this node. [Docs](https://build.avax.network/docs/api-reference/info-api#infogetnodeid)
+- [`getNodeIP`](https://github.com/functions/methods_info.getNodeIP.html) - Get the IP of this node. [Docs](https://build.avax.network/docs/api-reference/info-api#infogetnodeip)
+- [`getNodeVersion`](https://github.com/functions/methods_info.getNodeVersion.html) - Get the version of this node. [Docs](https://build.avax.network/docs/api-reference/info-api#infogetnodeversion)
+- [`getTxFee`](https://github.com/functions/methods_info.getTxFee.html) - Get the transaction fee for the specified transaction type. [Docs](https://build.avax.network/docs/api-reference/info-api#infogettxfee)
+- [`getVMs`](https://github.com/functions/methods_info.getVMs.html) - Get the virtual machines supported by this node. [Docs](https://build.avax.network/docs/api-reference/info-api#infogetvms)
+- [`isBootstrapped`](https://github.com/functions/methods_info.isBootstrapped.html) - Check whether a given chain is done bootstrapping. [Docs](https://build.avax.network/docs/api-reference/info-api#infoisbootstrapped)
+- [`peers`](https://github.com/functions/methods_info.peers.html) - Get a description of peer connections. [Docs](https://build.avax.network/docs/api-reference/info-api#infopeers)
+- [`uptime`](https://github.com/functions/methods_info.uptime.html) - Returns the network's observed uptime of this node. [Docs](https://build.avax.network/docs/api-reference/info-api#infouptime)
+- [`upgrades`](https://github.com/functions/methods_info.upgrades.html) - Returns the upgrade history and configuration of the network. [Docs](https://build.avax.network/docs/api-reference/info-api#infoupgrades)
+
+### Health Methods
+
+- [`health`](https://github.com/functions/methods_health.health.html) - Returns the last set of health check results. [Docs](https://build.avax.network/docs/api-reference/health-api#healthhealth)
+- [`liveness`](https://github.com/functions/methods_health.liveness.html) - Returns healthy once the endpoint is available. [Docs](https://build.avax.network/docs/api-reference/health-api#healthliveness)
+- [`readiness`](https://github.com/functions/methods_health.readiness.html) - Returns healthy once the node has finished initializing. [Docs](https://build.avax.network/docs/api-reference/health-api#healthreadiness)
+
+### Index Methods
+
+- [`getContainerByID`](https://github.com/functions/methods_index.getContainerByID.html) - Get container by ID. [Docs](https://build.avax.network/docs/api-reference/index-api#indexgetcontainerbyid)
+- [`getContainerByIndex`](https://github.com/functions/methods_index.getContainerByIndex.html) - Get container by index. [Docs](https://build.avax.network/docs/api-reference/index-api#indexgetcontainerbyindex)
+- [`getContainerRange`](https://github.com/functions/methods_index.getContainerRange.html) - Get containers by index range. [Docs](https://build.avax.network/docs/api-reference/index-api#indexgetcontainerrange)
+- [`getIndex`](https://github.com/functions/methods_index.getIndex.html) - Get the index of a container. [Docs](https://build.avax.network/docs/api-reference/index-api#indexgetindex)
+- [`getLastAccepted`](https://github.com/functions/methods_index.getLastAccepted.html) - Get the last accepted container. [Docs](https://build.avax.network/docs/api-reference/index-api#indexgetlastaccepted)
+- [`isAccepted`](https://github.com/functions/methods_index.isAccepted.html) - Returns true if the container is in this index. [Docs](https://build.avax.network/docs/api-reference/index-api#indexisaccepted)
+
+## Examples
+
+> **Note:** Make sure to create your own `.env` file by copying the `.env.example` file and updating the values. You'll also need to modify the `config.ts` file to point to your `.env` file path. By default, the examples use the values from `.env.example`, and the test addresses mentioned in the examples as comments (like `0x76Dd3d7b2f635c2547B861e55aE8A374E587742D` and `X-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz`) are derived from the private key values in that file.
+
+Check out the [examples](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples) folder for comprehensive usage examples:
+
+### Basic Examples
+- [`sendAvax.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/sendAvax.ts) - Basic example of sending AVAX using the SDK
+
+### Primary Network Transaction Examples
+The [`prepare-primary-network-txns`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns) folder contains examples for preparing various types of transactions:
+
+#### Cross-Chain Transfer Examples
+- [`transfer-avax-from-x-chain-to-p-chain.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/transfer-avax-from-x-chain-to-p-chain.ts) - Transfer AVAX from X-Chain to P-Chain
+- [`transfer-avax-from-p-chain-to-x-chain.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/transfer-avax-from-p-chain-to-x-chain.ts) - Transfer AVAX from P-Chain to X-Chain
+- [`transfer-avax-from-x-chain-to-c-chain.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/transfer-avax-from-x-chain-to-c-chain.ts) - Transfer AVAX from X-Chain to C-Chain
+- [`transfer-avax-from-c-chain-to-x-chain.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/transfer-avax-from-c-chain-to-x-chain.ts) - Transfer AVAX from C-Chain to X-Chain
+- [`transfer-avax-from-p-chain-to-c-chain.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/transfer-avax-from-p-chain-to-c-chain.ts) - Transfer AVAX from P-Chain to C-Chain
+- [`transfer-avax-from-c-chain-to-p-chain.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/transfer-avax-from-c-chain-to-p-chain.ts) - Transfer AVAX from C-Chain to P-Chain
+
+#### X-Chain Transaction Examples
+- [`exportTx.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/x-chain/exportTx.ts) - Prepare X-Chain export transaction
+- [`importTx.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/x-chain/importTx.ts) - Prepare X-Chain import transaction
+
+#### P-Chain Transaction Examples
+- [`addSubnetValidatorTx.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/p-chain/addSubnetValidatorTx.ts) - Add subnet validator transaction
+- [`baseTx.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/p-chain/baseTx.ts) - Base transaction example
+- [`convertSubnetToL1Tx.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/p-chain/convertSubnetToL1Tx.ts) - Convert subnet to L1 transaction
+- [`createChainTx.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/p-chain/createChainTx.ts) - Create chain transaction
+- [`createSubnetTx.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/p-chain/createSubnetTx.ts) - Create subnet transaction
+- [`exportTx.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/p-chain/exportTx.ts) - Prepare P-Chain export transaction
+- [`importTx.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/p-chain/importTx.ts) - Prepare P-Chain import transaction
+- [`removeSubnetValidatorTx.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/p-chain/removeSubnetValidatorTx.ts) - Remove subnet validator transaction
+
+#### C-Chain Transaction Examples
+- [`exportTx.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/c-chain/exportTx.ts) - Prepare C-Chain export transaction
+- [`importTx.ts`](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/prepare-primary-network-txns/c-chain/importTx.ts) - Prepare C-Chain import transaction
+
+For more detailed information about each example, see the [examples README](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/client/examples/README.md).
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## License
+
+This project is licensed - see the [LICENSE](https://github.com/ava-labs/avalanche-sdk-typescript/blob/LICENSE) file for details.
+
+## Support
+
+If you encounter any issues or have questions, please:
+
+1. Check the [documentation](https://github.com/ava-labs/avalanche-sdk-typescript/tree/main/client#readme)
+2. Open an [issue](https://github.com/ava-labs/avalanche-sdk-typescript/issues)
+3. Join our community channels for help
+
+## Links
+
+- [GitHub Repository](https://github.com/ava-labs/avalanche-sdk-typescript)
+- [Documentation](https://github.com/ava-labs/avalanche-sdk-typescript/tree/main/client#readme)
+- [Issue Tracker](https://github.com/ava-labs/avalanche-sdk-typescript/issues)

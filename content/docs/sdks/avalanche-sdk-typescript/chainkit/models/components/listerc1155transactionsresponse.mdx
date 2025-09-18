@@ -1,0 +1,24 @@
+---
+title: "List Erc1155 Transactions Response"
+description: "Chainkit SDK documentation for list erc1155 transactions response"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/listerc1155transactionsresponse.md
+---
+
+# ListErc1155TransactionsResponse
+
+## Example Usage
+
+```typescript
+import { ListErc1155TransactionsResponse } from "@avalanche-sdk/chainkit/models/components";
+
+let value: ListErc1155TransactionsResponse = {
+  transactions: [],
+};
+```
+
+## Fields
+
+| Field                                                                                                                                  | Type                                                                                                                                   | Required                                                                                                                               | Description                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `nextPageToken`                                                                                                                        | *string*                                                                                                                               | :heavy_minus_sign:                                                                                                                     | A token, which can be sent as `pageToken` to retrieve the next page. If this field is omitted or empty, there are no subsequent pages. |
+| `transactions`                                                                                                                         | [components.Erc1155Transfer](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/erc1155transfer.md)[]                                                             | :heavy_check_mark:                                                                                                                     | N/A                                                                                                                                    |

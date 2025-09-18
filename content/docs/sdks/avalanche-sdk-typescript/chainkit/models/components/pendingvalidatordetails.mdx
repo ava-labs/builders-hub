@@ -1,0 +1,37 @@
+---
+title: "Pending Validator Details"
+description: "Chainkit SDK documentation for pending validator details"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/pendingvalidatordetails.md
+---
+
+# PendingValidatorDetails
+
+## Example Usage
+
+```typescript
+import { PendingValidatorDetails } from "@avalanche-sdk/chainkit/models/components";
+
+let value: PendingValidatorDetails = {
+  txHash: "<value>",
+  nodeId: "<id>",
+  subnetId: "<id>",
+  amountStaked: "<value>",
+  startTimestamp: 9843.29,
+  endTimestamp: 5112.58,
+  validationStatus: "pending",
+};
+```
+
+## Fields
+
+| Field                                                                                                                    | Type                                                                                                                     | Required                                                                                                                 | Description                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `txHash`                                                                                                                 | *string*                                                                                                                 | :heavy_check_mark:                                                                                                       | N/A                                                                                                                      |
+| `nodeId`                                                                                                                 | *string*                                                                                                                 | :heavy_check_mark:                                                                                                       | N/A                                                                                                                      |
+| `subnetId`                                                                                                               | *string*                                                                                                                 | :heavy_check_mark:                                                                                                       | N/A                                                                                                                      |
+| `amountStaked`                                                                                                           | *string*                                                                                                                 | :heavy_check_mark:                                                                                                       | N/A                                                                                                                      |
+| `delegationFee`                                                                                                          | *string*                                                                                                                 | :heavy_minus_sign:                                                                                                       | The percentage of total estimated delegator rewards allocated to validator nodes for supporting delegations.             |
+| `startTimestamp`                                                                                                         | *number*                                                                                                                 | :heavy_check_mark:                                                                                                       | N/A                                                                                                                      |
+| `endTimestamp`                                                                                                           | *number*                                                                                                                 | :heavy_check_mark:                                                                                                       | N/A                                                                                                                      |
+| `blsCredentials`                                                                                                         | [components.BlsCredentials](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/blscredentials.md)                                                   | :heavy_minus_sign:                                                                                                       | Present for AddPermissionlessValidatorTx                                                                                 |
+| `validationStatus`                                                                                                       | [components.PendingValidatorDetailsValidationStatus](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/pendingvalidatordetailsvalidationstatus.md) | :heavy_check_mark:                                                                                                       | N/A                                                                                                                      |

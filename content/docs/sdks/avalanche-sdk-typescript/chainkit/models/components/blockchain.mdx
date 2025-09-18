@@ -1,0 +1,37 @@
+---
+title: "Block Chain"
+description: "Chainkit SDK documentation for block chain"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/blockchain.md
+---
+
+# Blockchain
+
+## Example Usage
+
+```typescript
+import { Blockchain } from "@avalanche-sdk/chainkit/models/components";
+
+let value: Blockchain = {
+  createBlockTimestamp: 9906.3,
+  createBlockNumber: "<value>",
+  blockchainId: "<id>",
+  vmId: "<id>",
+  subnetId: "<id>",
+  blockchainName: "<value>",
+  evmChainId: 43114,
+  genesisData: {},
+};
+```
+
+## Fields
+
+| Field                                                                                                                            | Type                                                                                                                             | Required                                                                                                                         | Description                                                                                                                      | Example                                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `createBlockTimestamp`                                                                                                           | *number*                                                                                                                         | :heavy_check_mark:                                                                                                               | N/A                                                                                                                              |                                                                                                                                  |
+| `createBlockNumber`                                                                                                              | *string*                                                                                                                         | :heavy_check_mark:                                                                                                               | N/A                                                                                                                              |                                                                                                                                  |
+| `blockchainId`                                                                                                                   | *string*                                                                                                                         | :heavy_check_mark:                                                                                                               | N/A                                                                                                                              |                                                                                                                                  |
+| `vmId`                                                                                                                           | *string*                                                                                                                         | :heavy_check_mark:                                                                                                               | N/A                                                                                                                              |                                                                                                                                  |
+| `subnetId`                                                                                                                       | *string*                                                                                                                         | :heavy_check_mark:                                                                                                               | N/A                                                                                                                              |                                                                                                                                  |
+| `blockchainName`                                                                                                                 | *string*                                                                                                                         | :heavy_check_mark:                                                                                                               | N/A                                                                                                                              |                                                                                                                                  |
+| `evmChainId`                                                                                                                     | *number*                                                                                                                         | :heavy_check_mark:                                                                                                               | EVM Chain ID for the EVM-based chains. This field is extracted from genesis data, and may be present for non-EVM chains as well. | 43114                                                                                                                            |
+| `genesisData`                                                                                                                    | [components.BlockchainGenesisData](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/blockchaingenesisdata.md)                                             | :heavy_minus_sign:                                                                                                               | The genesis data of the blockchain.                                                                                              | \{"chainId": 43114\}                                                                                                               |

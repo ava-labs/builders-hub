@@ -1,0 +1,23 @@
+---
+title: "Transactionmethod Type"
+description: "Chainkit SDK documentation for transactionmethod type"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/transactionmethodtype.md
+---
+
+# TransactionMethodType
+
+The contract call type. NATIVE_TRANSFER indicates a transfer of the native token without any smart-contract interaction. CONTRACT_CALL indicates a smart-contract interaction. CONTRACT_CREATION indicates a smart-contract creation.
+
+## Example Usage
+
+```typescript
+import { TransactionMethodType } from "@avalanche-sdk/chainkit/models/components";
+
+let value: TransactionMethodType = "NATIVE_TRANSFER";
+```
+
+## Values
+
+```typescript
+"NATIVE_TRANSFER" | "CONTRACT_CALL" | "CONTRACT_CREATION"
+```

@@ -1,0 +1,34 @@
+---
+title: "List ERC20 Balances Request"
+description: "Chainkit SDK documentation for list erc20 balances request"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/operations/listerc20balancesrequest.md
+---
+
+# ListErc20BalancesRequest
+
+## Example Usage
+
+```typescript
+import { ListErc20BalancesRequest } from "@avalanche-sdk/chainkit/models/operations";
+
+let value: ListErc20BalancesRequest = {
+  blockNumber: "6479329",
+  address: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+  contractAddresses:
+    "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7, 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB",
+  currency: "usd",
+};
+```
+
+## Fields
+
+| Field                                                                                                       | Type                                                                                                        | Required                                                                                                    | Description                                                                                                 | Example                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `blockNumber`                                                                                               | *string*                                                                                                    | :heavy_minus_sign:                                                                                          | The block number, if not defined the block number will be the latest block.                                 | 6479329                                                                                                     |
+| `pageToken`                                                                                                 | *string*                                                                                                    | :heavy_minus_sign:                                                                                          | A page token, received from a previous list call. Provide this to retrieve the subsequent page.             |                                                                                                             |
+| `pageSize`                                                                                                  | *number*                                                                                                    | :heavy_minus_sign:                                                                                          | The maximum number of items to return. The minimum page size is 1. The maximum pageSize is 500.             | 10                                                                                                          |
+| `filterSpamTokens`                                                                                          | *boolean*                                                                                                   | :heavy_minus_sign:                                                                                          | whether to filter out spam tokens from the response. Default is true.                                       |                                                                                                             |
+| `chainId`                                                                                                   | *string*                                                                                                    | :heavy_minus_sign:                                                                                          | A supported evm chain id or blockchain id. Use the `/chains` endpoint to get a list of supported chain ids. | 43114                                                                                                       |
+| `address`                                                                                                   | *string*                                                                                                    | :heavy_check_mark:                                                                                          | A wallet address.                                                                                           | 0x71C7656EC7ab88b098defB751B7401B5f6d8976F                                                                  |
+| `contractAddresses`                                                                                         | *string*                                                                                                    | :heavy_minus_sign:                                                                                          | A comma separated list of contract addresses to filter by.                                                  | 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7, 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB                      |
+| `currency`                                                                                                  | [components.CurrencyCode](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/currencycode.md)                                          | :heavy_minus_sign:                                                                                          | The currency that return values should use. Defaults to USD.                                                | usd                                                                                                         |

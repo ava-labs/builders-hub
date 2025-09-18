@@ -1,0 +1,37 @@
+---
+title: "Validators Details"
+description: "Chainkit SDK documentation for validators details"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/validatorsdetails.md
+---
+
+# ValidatorsDetails
+
+## Example Usage
+
+```typescript
+import { ValidatorsDetails } from "@avalanche-sdk/chainkit/models/components";
+
+let value: ValidatorsDetails = {
+  validatorCount: 4440.38,
+  totalAmountStaked: "<value>",
+  estimatedAnnualStakingReward: "<value>",
+  stakingDistributionByVersion: [
+    {
+      version: "<value>",
+      amountStaked: "<value>",
+      validatorCount: 7680.04,
+    },
+  ],
+  stakingRatio: "<value>",
+};
+```
+
+## Fields
+
+| Field                                                                              | Type                                                                               | Required                                                                           | Description                                                                        |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `validatorCount`                                                                   | *number*                                                                           | :heavy_check_mark:                                                                 | N/A                                                                                |
+| `totalAmountStaked`                                                                | *string*                                                                           | :heavy_check_mark:                                                                 | N/A                                                                                |
+| `estimatedAnnualStakingReward`                                                     | *string*                                                                           | :heavy_check_mark:                                                                 | Total potential rewards from currently active validations and delegations.         |
+| `stakingDistributionByVersion`                                                     | [components.StakingDistribution](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/stakingdistribution.md)[] | :heavy_check_mark:                                                                 | N/A                                                                                |
+| `stakingRatio`                                                                     | *string*                                                                           | :heavy_check_mark:                                                                 | Ratio of total active stake amount to the current supply.                          |

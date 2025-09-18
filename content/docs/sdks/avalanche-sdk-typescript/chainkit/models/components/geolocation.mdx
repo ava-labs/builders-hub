@@ -1,0 +1,33 @@
+---
+title: "Geolocation"
+description: "Chainkit SDK documentation for geolocation"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/components/geolocation.md
+---
+
+# Geolocation
+
+The geographical location of the validator node, if available.
+
+## Example Usage
+
+```typescript
+import { Geolocation } from "@avalanche-sdk/chainkit/models/components";
+
+let value: Geolocation = {
+  city: "Antelope",
+  country: "Oman",
+  countryCode: "NR",
+  latitude: 6205.17,
+  longitude: 1551.06,
+};
+```
+
+## Fields
+
+| Field                                   | Type                                    | Required                                | Description                             |
+| --------------------------------------- | --------------------------------------- | --------------------------------------- | --------------------------------------- |
+| `city`                                  | *string*                                | :heavy_check_mark:                      | The name of the validator node.         |
+| `country`                               | *string*                                | :heavy_check_mark:                      | The city of the validator node.         |
+| `countryCode`                           | *string*                                | :heavy_check_mark:                      | The country code of the validator node. |
+| `latitude`                              | *number*                                | :heavy_check_mark:                      | The latitude of the validator node.     |
+| `longitude`                             | *number*                                | :heavy_check_mark:                      | The longitude of the validator node.    |

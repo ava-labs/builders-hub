@@ -1,0 +1,26 @@
+---
+title: "Get Block By ID Request"
+description: "Chainkit SDK documentation for get block by id request"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/operations/getblockbyidrequest.md
+---
+
+# GetBlockByIdRequest
+
+## Example Usage
+
+```typescript
+import { GetBlockByIdRequest } from "@avalanche-sdk/chainkit/models/operations";
+
+let value: GetBlockByIdRequest = {
+  blockchainId: "p-chain",
+  blockId: "5615di9ytxujackzaXNrVuWQy5y8Yrt8chPCscMr5Ku9YxJ1S",
+};
+```
+
+## Fields
+
+| Field                                                                          | Type                                                                           | Required                                                                       | Description                                                                    | Example                                                                        |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| `blockchainId`                                                                 | [components.BlockchainId](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/blockchainid.md)             | :heavy_check_mark:                                                             | A primary network blockchain id or alias.                                      | p-chain                                                                        |
+| `network`                                                                      | [components.GlobalParamNetwork](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/globalparamnetwork.md) | :heavy_minus_sign:                                                             | Either mainnet or testnet/fuji.                                                | mainnet                                                                        |
+| `blockId`                                                                      | *string*                                                                       | :heavy_check_mark:                                                             | A block identifier which is either a block number or the block hash.           | 5615di9ytxujackzaXNrVuWQy5y8Yrt8chPCscMr5Ku9YxJ1S                              |

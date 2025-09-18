@@ -1,0 +1,34 @@
+---
+title: "List Teleporter Messages Request"
+description: "Chainkit SDK documentation for list teleporter messages request"
+edit_url: https://github.com/ava-labs/avalanche-sdk-typescript/edit/main/chainkit/docs/models/operations/listteleportermessagesrequest.md
+---
+
+# ListTeleporterMessagesRequest
+
+## Example Usage
+
+```typescript
+import { ListTeleporterMessagesRequest } from "@avalanche-sdk/chainkit/models/operations";
+
+let value: ListTeleporterMessagesRequest = {
+  sourceBlockchainId: "2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY",
+  destinationBlockchainId: "yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp",
+  to: "0x664A4Be5Af2cFc824F9C0914CbAc4703396Da2DC",
+  from: "0x321eDA69247566D662178feE695C7026c604Cd94",
+  network: "mainnet",
+};
+```
+
+## Fields
+
+| Field                                                                                                              | Type                                                                                                               | Required                                                                                                           | Description                                                                                                        | Example                                                                                                            |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `pageToken`                                                                                                        | *string*                                                                                                           | :heavy_minus_sign:                                                                                                 | A page token, received from a previous list call. Provide this to retrieve the subsequent page.                    |                                                                                                                    |
+| `pageSize`                                                                                                         | *number*                                                                                                           | :heavy_minus_sign:                                                                                                 | The maximum number of items to return. The minimum page size is 1. The maximum pageSize is 100.                    | 10                                                                                                                 |
+| `sourceBlockchainId`                                                                                               | *string*                                                                                                           | :heavy_minus_sign:                                                                                                 | The base58 encoded blockchain ID or evm chain ID of the source chain that the teleporter message was sent from.    | 2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY                                                                 |
+| `destinationBlockchainId`                                                                                          | *string*                                                                                                           | :heavy_minus_sign:                                                                                                 | The base58 encoded blockchain ID or evm chain ID of the destination chain that the teleporter message was sent to. | yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp                                                                  |
+| `blockchainId`                                                                                                     | *string*                                                                                                           | :heavy_minus_sign:                                                                                                 | The base58 encoded blockchain ID of either source or destination chain that one teleporter message interacts with. |                                                                                                                    |
+| `to`                                                                                                               | *string*                                                                                                           | :heavy_minus_sign:                                                                                                 | The address of the recipient of the teleporter message.                                                            | 0x664A4Be5Af2cFc824F9C0914CbAc4703396Da2DC                                                                         |
+| `from`                                                                                                             | *string*                                                                                                           | :heavy_minus_sign:                                                                                                 | The address of the sender of the teleporter message.                                                               | 0x321eDA69247566D662178feE695C7026c604Cd94                                                                         |
+| `network`                                                                                                          | [components.Network](https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/chainkit/models/components/network.md)                                                           | :heavy_minus_sign:                                                                                                 | Either mainnet or testnet/fuji.                                                                                    | mainnet                                                                                                            |
