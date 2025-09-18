@@ -10,6 +10,15 @@
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
 @plugin 'tailwindcss-animate';
 
+/* fix for OpenAPI response tabs */
+[role="tabpanel"][data-state="inactive"] {
+  display: none !important;
+}
+
+[role="tabpanel"][data-state="active"] {
+  display: block !important;
+}
+
 @media (min-width: 768px) {
   #nd-sidebar > div:first-child {
     padding-top: calc(var(--spacing) * 3.5);
