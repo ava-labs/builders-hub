@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument } from 'pdf-lib';
+import { getServerSession } from 'next-auth';
+import { AuthOptions } from '@/lib/auth/authOptions';
 
 const courseMapping: Record<string, string> = {
   'avalanche-fundamentals': 'Avalanche Fundamentals',
@@ -33,13 +35,20 @@ function getCertificateTemplate(courseId: string): string {
 
 export async function POST(req: NextRequest) {
   let courseId: string = '';
-  let userName: string = '';
 
   try {
-    ({ courseId, userName } = await req.json());
-    if (!courseId || !userName) {
+    // Require auth and derive the user's name from the connected BuilderHub account
+    const session = await getServerSession(AuthOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    ({ courseId } = await req.json());
+    if (!courseId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    const userName = session.user.name || session.user.email || 'BuilderHub User';
 
     const courseName = getCourseName(courseId);
     const templateUrl = getCertificateTemplate(courseId);
@@ -107,7 +116,7 @@ export async function POST(req: NextRequest) {
         error: 'Failed to generate certificate, contact the Avalanche team.',
         details: (error as Error).message,
         courseId,
-        userName: userName || 'undefined',
+        // Name now comes from the authenticated session
       },
       { status: 500 }
     );

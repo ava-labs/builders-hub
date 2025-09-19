@@ -49,7 +49,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   const router = useRouter();
   const [completedQuizzes, setCompletedQuizzes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [userName, setUserName] = useState('');
+  // Name will be derived from the authenticated BuilderHub account on the server
   const [isGenerating, setIsGenerating] = useState(false);
   const [quizzes, setQuizzes] = useState<QuizInfo[]>([]);
   const [totalQuizzes, setTotalQuizzes] = useState(0);
@@ -119,11 +119,6 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   const allQuizzesCompleted = shouldShowCertificate;
 
   const generateCertificate = async () => {
-    if (!userName.trim()) {
-      alert('Please enter your name');
-      return;
-    }
-
     setIsGenerating(true);
     let response: Response | undefined;
 
@@ -135,7 +130,6 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
         },
         body: JSON.stringify({
           courseId,
-          userName,
         }),
       });
 
@@ -268,19 +262,6 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
           <p className="text-center text-gray-600 dark:text-gray-300 mb-8">
             You've completed all quizzes for the {quizData.courses[courseId].title} course. Claim your certificate now!
           </p>
-          <div className="mb-6">
-            <label htmlFor="userName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Enter your full name for the certificate:
-            </label>
-            <input
-              type="text"
-              id="userName"
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="John Doe"
-            />
-          </div>
           <button
             className={cn(
               buttonVariants({ variant: 'default' }),
