@@ -1,7 +1,7 @@
 "use client";
 
 import { Checkbox } from "./Checkbox";
-import { NodeType } from "../console/layer-1/AvalancheGoDockerL1";
+import { NodeType } from "../console/layer-1/L1NodeSetupDocker";
 
 interface ConfigureNodeTypeProps {
     nodeType: NodeType;

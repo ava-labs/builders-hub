@@ -38,7 +38,7 @@ import posthog from 'posthog-js';
 
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper"
 import CrossChainTransfer from "@/components/toolbox/console/primary-network/CrossChainTransfer"
-import AvalancheGoDocker from '@/components/toolbox/console/layer-1/AvalancheGoDockerL1';
+import AvalancheGoDocker from '@/components/toolbox/console/layer-1/L1NodeSetupDocker';
 import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain"
 import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1"
 import GenesisBuilder from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
