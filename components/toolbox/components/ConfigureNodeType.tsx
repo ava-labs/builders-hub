@@ -1,8 +1,7 @@
 "use client";
 
 import { Checkbox } from "./Checkbox";
-
-type NodeType = "validator" | "public-rpc";
+import { NodeType } from "../console/layer-1/AvalancheGoDockerL1";
 
 interface ConfigureNodeTypeProps {
     nodeType: NodeType;
@@ -25,12 +24,31 @@ export const ConfigureNodeType: React.FC<ConfigureNodeTypeProps> = ({
     setPruningEnabled,
     children
 }) => {
+
     return (
         <>
             <h3 className="text-xl font-bold mb-4">Configure Node Type</h3>
             <p className="mb-4">What type of node do you want to run?</p>
 
             <div className="space-y-4">
+
+                <label className="flex items-start space-x-3 cursor-pointer">
+                    <input
+                        type="radio"
+                        name="nodeType"
+                        value="validator-and-public-rpc"
+                        checked={nodeType === "validator-and-public-rpc"}
+                        onChange={() => setNodeType("validator-and-public-rpc")}
+                        className="mt-1"
+                    />
+                    <div>
+                        <div className="font-medium">Combined Validator and Public RPC Node (not suitable for production)</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                            Participates in consensus. RPC endpoint is exposed externally. Not suitable for production settings. RPC and validator should be separated for security reasons.
+                        </div>
+                    </div>
+                </label>
+
                 <label className="flex items-start space-x-3 cursor-pointer">
                     <input
                         type="radio"
@@ -60,7 +78,7 @@ export const ConfigureNodeType: React.FC<ConfigureNodeTypeProps> = ({
                     <div>
                         <div className="font-medium">Public RPC Node</div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
-                            Exposes RPC endpoint publicly via HTTPS. Suitable for production dApps and requires a server.
+                            Exposes RPC endpoint publicly via HTTPS. Suitable for production dApps.
                         </div>
                     </div>
                 </label>
@@ -98,7 +116,7 @@ export const ConfigureNodeType: React.FC<ConfigureNodeTypeProps> = ({
             )}
             
             {/* Port configuration for public RPC node */}
-            {nodeType === 'public-rpc' && (
+            {nodeType === 'public-rpc' || nodeType === 'validator-and-public-rpc' && (
                 <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <h4 className="font-medium mb-2">Required Ports</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">

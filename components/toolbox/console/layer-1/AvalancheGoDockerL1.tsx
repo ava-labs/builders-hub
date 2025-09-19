@@ -20,13 +20,15 @@ import { ConfigureNodeType } from "../../components/ConfigureNodeType";
 import { generateDockerCommand } from "./create/config";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
 
+export type NodeType = "validator" | "public-rpc" | "validator-and-public-rpc";
+
 export default function AvalanchegoDocker() {
     const [chainId, setChainId] = useState("");
     const [subnetId, setSubnetId] = useState("");
     const [subnet, setSubnet] = useState<any>(null);
     const [blockchainInfo, setBlockchainInfo] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [nodeType, setNodeType] = useState<"validator" | "public-rpc">("validator");
+    const [nodeType, setNodeType] = useState<NodeType>("validator-and-public-rpc");
     const [rpcCommand, setRpcCommand] = useState("");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
@@ -38,7 +40,7 @@ export default function AvalanchegoDocker() {
 
     const { avalancheNetworkID } = useWalletStore();
 
-    const isRPC = nodeType === "public-rpc";
+    const isRPC = nodeType === "public-rpc" || nodeType === "validator-and-public-rpc";
 
     useEffect(() => {
         try {
