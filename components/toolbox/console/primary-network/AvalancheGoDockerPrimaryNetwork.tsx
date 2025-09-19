@@ -11,9 +11,10 @@ import { NodeBootstrapCheck } from "@/components/toolbox/components/NodeBootstra
 import { ReverseProxySetup } from "@/components/toolbox/components/ReverseProxySetup";
 import { ConfigureNodeType } from "@/components/toolbox/components/ConfigureNodeType";
 import { C_CHAIN_ID, generateDockerCommand } from "@/components/toolbox/console/layer-1/create/config";
+import { NodeType } from "../layer-1/L1NodeSetupDocker";
 
 export default function AvalancheGoDockerPrimaryNetwork() {
-    const [nodeType, setNodeType] = useState<"validator" | "public-rpc">("validator");
+    const [nodeType, setNodeType] = useState<NodeType>("validator");
     const [rpcCommand, setRpcCommand] = useState("");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
@@ -22,7 +23,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
 
     const { avalancheNetworkID } = useWalletStore();
 
-    const isRPC = nodeType === "public-rpc";
+    const isRPC = nodeType === "public-rpc" || nodeType === "validator-and-public-rpc";
 
     useEffect(() => {
         try {
@@ -116,7 +117,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
                     </Step>
 
                     {/* Conditional steps based on node type */}
-                    {nodeType === "public-rpc" && (
+                    {isRPC && (
                         <Step>
                             <ReverseProxySetup
                                 domain={domain}
@@ -129,7 +130,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
 
 
 
-                    {nodeType === "validator" && (
+                    {nodeType !== "public-rpc" && (
                         <Step>
                             <h3 className="text-xl font-bold">Wait for the Node to Bootstrap</h3>
                             <p>Your node will now bootstrap and sync the Primary Network (P-Chain, X-Chain, and C-Chain). This process can take <strong>several hours to days</strong> depending on your hardware and network connection.</p>
@@ -169,7 +170,7 @@ export default function AvalancheGoDockerPrimaryNetwork() {
                     )}
 
                     {/* Show success message when node is ready for validator mode */}
-                    {nodeIsReady && nodeType === "validator" && (
+                    {nodeIsReady && nodeType !== "public-rpc" && (
                         <Step>
                             <h3 className="text-xl font-bold mb-4">Node Setup Complete</h3>
                             <p>Your AvalancheGo Primary Network node is now fully bootstrapped and ready to be used as a validator node.</p>
