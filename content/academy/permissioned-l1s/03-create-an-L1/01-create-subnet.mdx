@@ -10,7 +10,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Button } from '@/components/ui/button';
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
 import ManagedTestnetNodes from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes";
-import AvalancheGoDocker from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
+import AvalancheGoDockerL1 from "@/components/toolbox/console/layer-1/L1NodeSetupDocker";
 import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
 
 In the [Avalanche Fundamentals course](/academy/avalanche-fundamentals), you learned how to quickly set up an L1 using the [Developer Console](https://build.avax.network/tools/l1-toolbox). This section provides an in depth review of that flow, understanding what comes pre-configured in our genesis, and laying the foundation for what we will need for our Permissioned L1.
@@ -91,7 +91,7 @@ For production environments or extended testing periods, you should use Docker t
 **Docker Setup Guide:**
 
 <ToolboxMdxWrapper walletMode="testnet-mainnet">
-    <AvalancheGoDocker />
+    <AvalancheGoDockerL1 />
 </ToolboxMdxWrapper>
 
 </Step>

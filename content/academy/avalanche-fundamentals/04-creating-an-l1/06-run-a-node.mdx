@@ -7,7 +7,7 @@ icon: Terminal
 ---
 
 import ManagedTestnetNodes from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes";
-import AvalancheGoDocker from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
+import AvalancheGoDockerL1 from "@/components/toolbox/console/layer-1/L1NodeSetupDocker";
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
 
 Now that the P-Chain records are set up, you can start syncing the node with your Subnet.
@@ -34,6 +34,6 @@ Managed nodes automatically shut down after 3 days. For production or extended t
 If you want to test out your production environment, running beyond 3 days, or anything more complex; you should run nodes on your own infrastructure using Docker:
 
 <ToolboxMdxWrapper walletMode="testnet-mainnet">
-    <AvalancheGoDocker />
+    <AvalancheGoDockerL1 />
 </ToolboxMdxWrapper>
 
