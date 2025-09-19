@@ -20,7 +20,7 @@ export function RequirementsPanel({
 
   return (
     <div >
-      <Card className="h-full border border-zinc-700 shadow-none bg-transparent">
+      <Card className="h-full dark:bg-zinc-600 shadow-none ">
         <CardContent className="p-0 h-full flex flex-col">
           <div className="px-6 pt-6 pb-2">
             <h3 className="text-base text-center font-semibold dark:text-white text-gray-900 mb-4">

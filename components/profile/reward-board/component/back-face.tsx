@@ -26,8 +26,6 @@ export function BackFace({
       
       <mesh position={[0, 0, -0.010]}>
         <circleGeometry args={[plateRadius, DISC.segments]} />
-        {/* <meshBasicMaterial color={"#999B9B"} toneMapped={false} 
-        /> */}
           <meshPhysicalMaterial
           roughness={0.7}
           metalness={0.85}

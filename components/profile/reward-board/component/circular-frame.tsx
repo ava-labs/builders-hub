@@ -1,7 +1,7 @@
 export function CircularFrame({ color = "#999B9B" }: { color?: string }) {
     const FRAME = {
-        majorRadius: 0.93, // radio del aro
-        tubeRadius: 0.07, // grosor del aro
+        majorRadius: 0.93, 
+        tubeRadius: 0.07, 
         tubularSegments: 50,
         radialSegments: 20,
       };
