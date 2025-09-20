@@ -28,11 +28,16 @@ export function SetEnabledComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleSetEnabled = async () => {
+    if (!coreWalletClient) {
+      setError('Core wallet not found');
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
     try {
-      const hash = await coreWalletClient!.writeContract({
+      const hash = await (coreWalletClient as any).writeContract({
         address: precompileAddress as `0x${string}`,
         abi: abi,
         functionName: "setEnabled",
@@ -112,7 +117,7 @@ export function SetEnabledComponent({
       </div>
     </Container>
   );
-}
+};
 
 // Component for setting Manager permissions
 export function SetManagerComponent({
@@ -133,11 +138,16 @@ export function SetManagerComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleSetManager = async () => {
+    if (!coreWalletClient) {
+      setError('Core wallet not found');
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
     try {
-      const hash = await coreWalletClient!.writeContract({
+      const hash = await coreWalletClient.writeContract({
         address: precompileAddress as `0x${string}`,
         abi: abi,
         functionName: "setManager",
@@ -238,11 +248,17 @@ export function SetAdminComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleSetAdmin = async () => {
+
+    if (!coreWalletClient) {
+      setError('Core wallet not found');
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
     try {
-      const hash = await coreWalletClient!.writeContract({
+      const hash = await coreWalletClient.writeContract({
         address: precompileAddress as `0x${string}`,
         abi: abi,
         functionName: "setAdmin",
@@ -343,11 +359,17 @@ export function RemoveAllowListComponent({
   const [error, setError] = useState<string | null>(null);
 
   const handleRemove = async () => {
+
+    if (!coreWalletClient) {
+      setError('Core wallet not found');
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
     try {
-      const hash = await coreWalletClient!.writeContract({
+      const hash = await coreWalletClient.writeContract({
         address: precompileAddress as `0x${string}`,
         abi: abi,
         functionName: "setNone",

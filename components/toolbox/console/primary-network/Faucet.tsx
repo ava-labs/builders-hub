@@ -77,11 +77,6 @@ export default function Faucet() {
 
         {/* Token Request Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Dynamic EVM Chain FaucetCards */}
-          {EVMChainsWithBuilderHubFaucet.map((chain: L1ListItem) => (
-            <EVMFaucetCard key={chain.id} chain={chain} />
-          ))}
-
           {/* P-Chain Card */}
           <div className="bg-white/90 dark:bg-zinc-900/70 backdrop-blur-sm border border-zinc-200/70 dark:border-zinc-700/70 shadow-md rounded-xl p-6 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center gap-4 mb-6">
@@ -118,6 +113,11 @@ export default function Faucet() {
               Request P-Chain Tokens
             </PChainFaucetButton>
           </div>
+
+          {/* Dynamic EVM Chain FaucetCards - C-Chain and other EVM chains */}
+          {EVMChainsWithBuilderHubFaucet.map((chain: L1ListItem) => (
+            <EVMFaucetCard key={chain.id} chain={chain} />
+          ))}
         </div>
 
         {/* Info Section */}

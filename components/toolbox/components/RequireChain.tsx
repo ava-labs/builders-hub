@@ -14,6 +14,11 @@ export function RequireChain({ children, chain }: { children: React.ReactNode, c
     }
 
     async function switchToChain() {
+        if (!coreWalletClient) {
+            setCriticalError(new Error('Core wallet not found'));
+            return;
+        }
+
         try {
             setIsSwitching(true);
             await coreWalletClient.addChain({ chain: chain });

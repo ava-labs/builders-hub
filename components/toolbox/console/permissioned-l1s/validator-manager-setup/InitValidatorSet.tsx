@@ -42,6 +42,11 @@ export default function InitValidatorSet() {
     const [isAggregating, setIsAggregating] = useState(false);
 
     async function aggSigs() {
+        if (!coreWalletClient) {
+            setError('Core wallet not found');
+            return;
+        }
+
         setL1ConversionSignatureError("");
         setIsAggregating(true);
         try {
@@ -141,15 +146,6 @@ export default function InitValidatorSet() {
                 gas: BigInt(2_000_000),
                 chain: viemChain || undefined,
             });
-
-            // console.log("Simulated transaction:", sim);
-            // setSimulationWentThrough(true);
-
-            // console.log("sim", JSON.stringify(sim, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2));
-
-
-            // Send transaction
-            // const hash = await coreWalletClient.writeContract(sim.request);
 
             // Wait for transaction confirmation
             const receipt = await publicClient.waitForTransactionReceipt({ hash });

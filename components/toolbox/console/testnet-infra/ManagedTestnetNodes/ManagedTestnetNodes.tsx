@@ -4,8 +4,6 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
 import { Container } from "@/components/toolbox/components/Container";
 import { Button } from "@/components/toolbox/components/Button";
-import { AddChainModal } from "@/components/toolbox/components/ConnectWallet/AddChainModal";
-import { useL1ListStore } from "@/components/toolbox/stores/l1ListStore";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -30,7 +28,6 @@ import NodesList from "./NodesList";
 
 export default function ManagedTestnetNodes() {
     const { avalancheNetworkID, isTestnet } = useWalletStore();
-    const { addL1 } = useL1ListStore()();
 
     // Shared state
     const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
@@ -40,7 +37,6 @@ export default function ManagedTestnetNodes() {
 
     // Create node state
     const [registrationResponse, setRegistrationResponse] = useState<RegisterSubnetResponse | null>(null);
-    const [connectWalletModalNodeId, setConnectWalletModalNodeId] = useState<string | null>(null);
 
     // Manage nodes state
     const [nodes, setNodes] = useState<NodeRegistration[]>([]);
@@ -50,7 +46,6 @@ export default function ManagedTestnetNodes() {
 
     // Show create form state
     const [showCreateForm, setShowCreateForm] = useState(false);
-
 
     const handleLogin = () => {
         window.location.href = "/login";
@@ -287,32 +282,12 @@ export default function ManagedTestnetNodes() {
                         nodesError={nodesError}
                         onRefresh={fetchNodes}
                         onShowCreateForm={() => setShowCreateForm(true)}
-                        onConnectWallet={setConnectWalletModalNodeId}
                         onDeleteNode={handleDeleteNode}
                         deletingNodes={deletingNodes}
                     />
                 </div>
             </Container>
 
-            {/* Connect Wallet Modal */}
-            {connectWalletModalNodeId && (() => {
-                const selectedNode = nodes.find(n => n.id === connectWalletModalNodeId);
-                return selectedNode ? (
-                    <AddChainModal
-                        onClose={() => setConnectWalletModalNodeId(null)}
-                        onAddChain={(chain) => {
-                            addL1(chain);
-                            setAlertDialogTitle("Wallet Connected!");
-                            setAlertDialogMessage(`Successfully connected to ${chain.name}. The network has been added to your wallet.`);
-                            setIsLoginError(false);
-                            setIsAlertDialogOpen(true);
-                            setConnectWalletModalNodeId(null);
-                        }}
-                        allowLookup={false}
-                        fixedRPCUrl={selectedNode.rpc_url}
-                    />
-                ) : null;
-            })()}
         </>
     );
 }

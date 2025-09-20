@@ -89,6 +89,11 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     setErrorState(null);
     setTxSuccess(null);
 
+    if (!coreWalletClient) {
+      setErrorState("Core wallet not found");
+      return;
+    }
+
     if (!validateInputs()) {
       return;
     }

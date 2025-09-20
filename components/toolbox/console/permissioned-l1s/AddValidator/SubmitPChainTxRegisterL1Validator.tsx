@@ -139,6 +139,11 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     setErrorState(null);
     setTxSuccess(null);
 
+    if (!coreWalletClient) {
+      setErrorState("Core wallet not found");
+      return;
+    }
+
     // Validate required inputs
     const evmTxValidation = !evmTxHashState.trim() ? "EVM transaction hash is required" : null;
 
