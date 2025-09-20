@@ -7,11 +7,11 @@ export async function SetWinner(
   isWinner: boolean,
   awardedBy: string
 ) {
+
   const project = await prisma.project.update({
     where: { id: project_id },
     data: { is_winner: isWinner },
   });
-
   const body = {
     projectId: project_id,
     userId: "",
@@ -26,7 +26,9 @@ export async function SetWinner(
     user_id: "",
     badges: [],
   };
+
   if (isWinner===true) {
+
     badge = await badgeAssignmentService.assignBadge(body, awardedBy);
   }
 

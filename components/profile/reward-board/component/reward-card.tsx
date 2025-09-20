@@ -63,7 +63,7 @@ export const RewardCard = ({
           hideCloseButton={true}
           onOpenAutoFocus={(e) => e.preventDefault()} 
           onCloseAutoFocus={(e) => e.preventDefault()}  
-          className="max-w-lg w-[92vw] bg-transparent shadow-none border-none  p-0 flex flex-col items-center gap-6"
+          className="max-w-lg w-[360px]  bg-transparent shadow-none border-none  p-0 flex flex-col items-center gap-6"
           style={{ filter: "none", WebkitFilter: "none" }}
         >
           <div style={{ width: "100%", height: 360 }}>

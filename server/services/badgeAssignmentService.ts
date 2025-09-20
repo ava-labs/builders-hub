@@ -1,16 +1,14 @@
 import { AssignBadgeBody, AssignBadgeResult, BadgeCategory } from "./badge";
-import { 
-  BadgeAssignmentContext, 
-  BadgeStrategyFactory, 
-  
-} from "./badgeStrategy";
+import { BadgeAssignmentContext, BadgeStrategyFactory } from "./badgeStrategy";
 
 export class BadgeAssignmentService {
   private context: BadgeAssignmentContext;
 
   constructor() {
     // Initialize with a default strategy (will be changed dynamically)
-    this.context = new BadgeAssignmentContext(BadgeStrategyFactory.createStrategy(BadgeCategory.academy));
+    this.context = new BadgeAssignmentContext(
+      BadgeStrategyFactory.createStrategy(BadgeCategory.academy)
+    );
   }
 
   /**
@@ -19,17 +17,19 @@ export class BadgeAssignmentService {
    * @param awardedBy - User who is awarding the badge (optional)
    * @returns Assignment result
    */
-  async assignBadge(body: AssignBadgeBody, awardedBy?: string): Promise<AssignBadgeResult> {
+  async assignBadge(
+    body: AssignBadgeBody,
+    awardedBy?: string
+  ): Promise<AssignBadgeResult> {
     try {
-  
-
       // Determine the badge category
       const category = this.determineBadgeCategory(body);
-    
+
       if (category === null) {
         return {
           success: false,
-          message: "Unable to determine badge category. Please provide courseId, hackathonId, or projectId",
+          message:
+            "Unable to determine badge category. Please provide courseId, hackathonId, or projectId",
           badge_id: "",
           user_id: body.userId,
           badges: [],
@@ -42,12 +42,13 @@ export class BadgeAssignmentService {
 
       // Execute the assignment using the selected strategy
       return await this.context.assignBadge(body, awardedBy);
-
     } catch (error) {
       console.error("Error in BadgeAssignmentService:", error);
       return {
         success: false,
-        message: `Error assigning badge: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Error assigning badge: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
         badge_id: "",
         user_id: body.userId,
         badges: [],
@@ -62,21 +63,25 @@ export class BadgeAssignmentService {
    * @param awardedBy - User who is awarding the badge (optional)
    * @returns Assignment result
    */
-  async assignBadgeWithCategory(body: AssignBadgeBody, category: BadgeCategory, awardedBy?: string): Promise<AssignBadgeResult> {
+  async assignBadgeWithCategory(
+    body: AssignBadgeBody,
+    category: BadgeCategory,
+    awardedBy?: string
+  ): Promise<AssignBadgeResult> {
     try {
-     
       // Create the specific strategy
       const strategy = BadgeStrategyFactory.createStrategy(category);
       this.context.setStrategy(strategy);
 
       // Execute the assignment
       return await this.context.assignBadge(body, awardedBy);
-
     } catch (error) {
       console.error("Error in BadgeAssignmentService with category:", error);
       return {
         success: false,
-        message: `Error assigning badge: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Error assigning badge: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
         badge_id: "",
         user_id: body.userId,
         badges: [],
@@ -100,11 +105,10 @@ export class BadgeAssignmentService {
     if (body.courseId) {
       return BadgeCategory.academy;
     }
-    
+
     if (body.projectId) {
       return BadgeCategory.project;
     }
-
 
     return BadgeCategory.requirement;
   }
@@ -114,7 +118,9 @@ export class BadgeAssignmentService {
    * @returns Array of available categories
    */
   getAvailableCategories(): BadgeCategory[] {
-    return Object.values(BadgeCategory).filter(value => typeof value === 'number') as BadgeCategory[];
+    return Object.values(BadgeCategory).filter(
+      (value) => typeof value === "number"
+    ) as BadgeCategory[];
   }
 
   /**
@@ -123,13 +129,16 @@ export class BadgeAssignmentService {
    * @param category - Category to validate
    * @returns true if the body is valid for the category
    */
-  validateBodyForCategory(body: AssignBadgeBody, category: BadgeCategory): boolean {
+  validateBodyForCategory(
+    body: AssignBadgeBody,
+    category: BadgeCategory
+  ): boolean {
     switch (category) {
       case BadgeCategory.academy:
         return !!(body.userId && body.courseId);
       case BadgeCategory.project:
         return !!(body.userId && body.projectId);
-    
+
       default:
         return false;
     }
@@ -164,7 +173,7 @@ export class BadgeAssignmentService {
    * @param userRole - User's role
    * @returns true if user has required role
    */
-  hasRequiredRole(body: AssignBadgeBody, roles:string[]): boolean {
+  hasRequiredRole(body: AssignBadgeBody, roles: string[]): boolean {
     const requiredRole = this.getRequiredRoleForAssignment(body);
     if (!requiredRole) {
       return true; // No role required

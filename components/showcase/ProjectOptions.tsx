@@ -18,29 +18,59 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "../ui/alert-dialog";
+import axios from "axios";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "../ui/toaster";
+import { AssignBadge } from "./assign-badge";
 
 export const ProjectOptions = ({
   project,
   confirmOpen,
   setConfirmOpen,
+  isAssignBadgeOpen,
+  setIsAssignBadgeOpen,
 }: Props & {
   confirmOpen: boolean;
   setConfirmOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isAssignBadgeOpen: boolean;
+  setIsAssignBadgeOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  const handleSetWinner = (e: React.MouseEvent) => {
+  const { toast } = useToast();
+  const handleSetWinner = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log("Set Winner clicked for project:", project.id);
+    const response = await axios.put(`/api/project/set-winner`, {
+      project_id: project.id,
+      isWinner: true,
+    });
+
+    if (response.data.success) {
+      toast({
+        title: "Project winner set successfully",
+        description: "The project has been marked as the winner",
+        duration: 3000,
+      });
+    } else {
+      toast({
+        title: "Failed to set project winner",
+        description: "Unable to mark project as winner. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
     setConfirmOpen(false);
   };
 
   const handleAssignBadge = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
+   
+    setIsAssignBadgeOpen(true);
   };
 
   return (
     <>
+      <Toaster />
       <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
         <DropdownMenuTrigger asChild>
           <Button
@@ -75,9 +105,10 @@ export const ProjectOptions = ({
           </DropdownMenuItem>
 
           <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault();
+            onClick={(e) => {
               e.stopPropagation();
+            }}
+            onSelect={(e) => {
               setIsDropdownOpen(false);
               handleAssignBadge(e as any);
             }}
@@ -102,7 +133,7 @@ export const ProjectOptions = ({
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
-                e.stopPropagation(); // no navega el Card
+                e.stopPropagation();
                 handleSetWinner(e);
               }}
             >
@@ -111,6 +142,11 @@ export const ProjectOptions = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AssignBadge
+        isOpen={isAssignBadgeOpen}
+        onOpenChange={setIsAssignBadgeOpen}
+        project={project}
+      />
     </>
   );
 };

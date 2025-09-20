@@ -4,16 +4,30 @@ import {
   AssignBadgeResult,
   BadgeData,
   getBadgesByHackathonId,
+  getBadgesByIds,
   validateBadge,
 } from "./badge";
-import { Badge, BadgeAwardStatus, ProjectBadge, Requirement, UserBadge } from "@/types/badge";
+import {
+  Badge,
+  BadgeAwardStatus,
+  ProjectBadge,
+  Requirement,
+  UserBadge,
+} from "@/types/badge";
 
-
-export async function assignBadgeProject (
+export async function assignBadgeProject(
   body: AssignBadgeBody,
   awarded_by: string
-): Promise<AssignBadgeResult>  {
-  const badgesHackathon = await getBadgesByHackathonId(body.hackathonId!);
+): Promise<AssignBadgeResult> {
+  let badgesHackathon: Badge[] = [];
+  let isValidateRequirements = true;
+  if (body.badgesId && body.badgesId.length > 0) {
+    isValidateRequirements = false;
+    const badges = await getBadgesByIds(body.badgesId!);
+    badgesHackathon = badges;
+  } else {
+    badgesHackathon = await getBadgesByHackathonId(body.hackathonId!);
+  }
 
   let badgeToReturn: AssignBadgeResult = {
     success: false,
@@ -22,12 +36,11 @@ export async function assignBadgeProject (
     user_id: "",
     badges: [],
   };
-  
+
   if (!badgesHackathon) {
     return badgeToReturn;
   }
 
-  //bring the project and the confirmed members of the project
   const userProject = await prisma.project.findUnique({
     where: {
       id: body.projectId,
@@ -41,57 +54,56 @@ export async function assignBadgeProject (
       members: {
         where: {
           status: "Confirmed",
+          user_id: {
+            not: null,
+          },
         },
       },
     },
   });
 
-  
   if (!userProject) {
     return badgeToReturn;
   }
-  
+
   const userProjectMembers = userProject.members;
 
-  // Usar transacción para garantizar consistencia
   try {
     const result = await prisma.$transaction(async (tx) => {
       const awardedBadges: BadgeData[] = [];
-      
-      for (const badge of badgesHackathon) {
-        // Asignar badges a cada miembro del proyecto
-        for (const member of userProjectMembers) {
 
+      for (const badge of badgesHackathon) {
+        for (const member of userProjectMembers) {
           const modifiedBody: AssignBadgeBody = {
             ...body,
             userId: member.user_id!,
           };
-          
+
           const userBadgeResult = await awardBadgeUserWithTransaction(
-            modifiedBody, 
-            awarded_by, 
-            badge, 
-            tx
+            modifiedBody,
+            awarded_by,
+            badge,
+            tx,
+            isValidateRequirements
           );
-          
+
           if (userBadgeResult.success && userBadgeResult.badges) {
             awardedBadges.push(...userBadgeResult.badges);
           }
         }
-        
-        // Asignar badge al proyecto
+
         const projectBadgeResult = await awardBadgeProjectWithTransaction(
-          body, 
-          awarded_by, 
-          badge, 
+          body,
+          awarded_by,
+          badge,
           tx
         );
-        
+
         if (projectBadgeResult.success && projectBadgeResult.badges) {
           awardedBadges.push(...projectBadgeResult.badges);
         }
       }
-      
+
       return {
         success: true,
         message: "Badges assigned successfully",
@@ -100,16 +112,16 @@ export async function assignBadgeProject (
         badges: awardedBadges,
       };
     });
-    
+
     return result;
-    
   } catch (error) {
     console.error("Error in transaction:", error);
-    
-    // Rollback automático en caso de error
+
     return {
       success: false,
-      message: `Transaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      message: `Transaction failed: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
       badge_id: "",
       user_id: "",
       badges: [],
@@ -121,11 +133,12 @@ async function awardBadgeUserWithTransaction(
   body: AssignBadgeBody,
   awarded_by: string,
   badge: Badge,
-  tx: any
+  tx: any,
+  validateRequirements: boolean = true
 ): Promise<AssignBadgeResult> {
   try {
     const isBadgeAlreadyAwarded = await validateBadge(badge.id, body.userId);
-    
+
     if (isBadgeAlreadyAwarded) {
       return {
         success: false,
@@ -146,39 +159,53 @@ async function awardBadgeUserWithTransaction(
       },
     });
 
-    const completedRequirements =
-      (existingUserBadge?.evidence as Requirement[]) || [];
-    const currentRequirement = badgeRequirements?.find(
-      (req: any) => req.hackathon === body.hackathonId
-    );
-    
-    if (
-      currentRequirement &&
-      !completedRequirements.some((req: any) => req.id == currentRequirement.id)
-    ) {
-      completedRequirements.push(currentRequirement);
-    }
-
-    const allRequirementsCompleted = badgeRequirements?.every((req: any) =>
-      completedRequirements.some((completed: any) => completed.id == req.id)
-    );
-
-    const someRequirementsCompleted = completedRequirements.length > 0;
+    let completedRequirements: Requirement[] = [];
     let badgeStatus = BadgeAwardStatus.pending;
     let awardedBadges: BadgeData[] = [];
-    
-    if (allRequirementsCompleted) {
+
+    if (!validateRequirements) {
+      completedRequirements = badgeRequirements || [];
       badgeStatus = BadgeAwardStatus.approved;
       awardedBadges.push({
         name: badge.name,
         image_path: badge.image_path as string,
-        completed_requirement: currentRequirement!,
+        completed_requirement: badgeRequirements?.[0] || ({} as Requirement),
       });
-    } else if (someRequirementsCompleted) {
-      badgeStatus = BadgeAwardStatus.pending;
+    } else {
+      completedRequirements =
+        (existingUserBadge?.evidence as Requirement[]) || [];
+      const currentRequirement = badgeRequirements?.find(
+        (req: any) => req.hackathon === body.hackathonId
+      );
+
+      if (
+        currentRequirement &&
+        !completedRequirements.some(
+          (req: any) => req.id == currentRequirement.id
+        )
+      ) {
+        completedRequirements.push(currentRequirement);
+      }
+
+      const allRequirementsCompleted = badgeRequirements?.every((req: any) =>
+        completedRequirements.some((completed: any) => completed.id == req.id)
+      );
+
+      const someRequirementsCompleted = completedRequirements.length > 0;
+
+      if (allRequirementsCompleted) {
+        badgeStatus = BadgeAwardStatus.approved;
+        awardedBadges.push({
+          name: badge.name,
+          image_path: badge.image_path as string,
+          completed_requirement: currentRequirement!,
+        });
+      } else if (someRequirementsCompleted) {
+        badgeStatus = BadgeAwardStatus.pending;
+      }
     }
 
-    if (someRequirementsCompleted) {
+    if (completedRequirements.length > 0 || !validateRequirements) {
       await tx.userBadge.upsert({
         where: {
           user_id_badge_id: {
@@ -204,7 +231,6 @@ async function awardBadgeUserWithTransaction(
           awarded_by: awarded_by,
           status: badgeStatus,
           requirements_version: 1,
-          
           evidence: completedRequirements,
         },
       });
@@ -244,7 +270,7 @@ async function awardBadgeProjectWithTransaction(
     const currentRequirement = badge.requirements?.find(
       (req: any) => req.hackathon_id === body.hackathonId
     );
-    
+
     if (
       currentRequirement &&
       !completedRequirements.some((req: any) => req.id == currentRequirement.id)
@@ -259,7 +285,7 @@ async function awardBadgeProjectWithTransaction(
     const someRequirementsCompleted = completedRequirements.length > 0;
     let badgeStatus = BadgeAwardStatus.pending;
     let awardedBadges: BadgeData[] = [];
-    
+
     if (allRequirementsCompleted) {
       badgeStatus = BadgeAwardStatus.approved;
       awardedBadges.push({
@@ -296,7 +322,7 @@ async function awardBadgeProjectWithTransaction(
         awarded_by: awarded_by,
         status: badgeStatus,
         requirements_version: 1,
-       
+
         evidence: completedRequirements,
       },
     });
@@ -314,7 +340,9 @@ async function awardBadgeProjectWithTransaction(
   }
 }
 
-export async function getProjectBadges(projectId: string): Promise<ProjectBadge[]> {
+export async function getProjectBadges(
+  projectId: string
+): Promise<ProjectBadge[]> {
   const projectBadges = await prisma.projectBadge.findMany({
     where: {
       project_id: projectId,
@@ -332,8 +360,9 @@ export async function getProjectBadges(projectId: string): Promise<ProjectBadge[
   return badges as unknown as ProjectBadge[];
 }
 
-export async function getUserBadgesByProjectId(projectId: string): Promise<UserBadge[]> {
-  
+export async function getUserBadgesByProjectId(
+  projectId: string
+): Promise<UserBadge[]> {
   const project = await prisma.project.findUnique({
     where: {
       id: projectId,
@@ -355,7 +384,6 @@ export async function getUserBadgesByProjectId(projectId: string): Promise<UserB
           .map((member) => member.user_id)
           .filter((id): id is string => id !== null && id !== undefined),
       },
-
     },
     include: {
       badge: true,

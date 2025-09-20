@@ -23,8 +23,10 @@ export function ProjectCard({ project }: Props) {
   const router = useRouter();
   const eventInfo = `${project.hackathon?.title ?? ""}`;
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [isAssignBadgeOpen, setIsAssignBadgeOpen] = useState(false);
+  
   const handleCardClick = (e: React.MouseEvent) => {
-    if (confirmOpen) return;
+    if (confirmOpen || isAssignBadgeOpen) return;
     const isInteractive = (e.target as HTMLElement).closest(
       '[data-interactive="true"]'
     );
@@ -47,6 +49,8 @@ export function ProjectCard({ project }: Props) {
               project={project}
               confirmOpen={confirmOpen}
               setConfirmOpen={setConfirmOpen}
+              isAssignBadgeOpen={isAssignBadgeOpen}
+              setIsAssignBadgeOpen={setIsAssignBadgeOpen}
             />
           </div>
           {project.prizes?.length > 0 && (
