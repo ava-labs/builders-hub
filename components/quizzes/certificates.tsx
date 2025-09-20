@@ -7,8 +7,7 @@ import quizDataImport from '@/components/quizzes/quizData.json';
 import Quiz from '@/components/quizzes/quiz';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Linkedin, Twitter, Award, Share2 } from 'lucide-react';
-import { AwardBadgeWrapper } from './components/awardBadgeWrapper';
-
+import { AwardBadgeWrapper } from '@/components/quizzes/components/awardBadgeWrapper';	
 interface CertificatePageProps {
   courseId: string;
 }
@@ -94,10 +93,8 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
     }
   }, [quizzes]);
 
-
   useEffect(() => {
     if (totalQuizzes > 0 && correctlyAnsweredQuizzes === totalQuizzes) {
-
       setShouldShowCertificate(true);
 
       setTimeout(() => {
@@ -224,7 +221,6 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       })}
 
       {allQuizzesCompleted && (
-
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
           <AwardBadgeWrapper courseId={courseId} isCompleted={allQuizzesCompleted} />
           <div className="flex items-center justify-center mb-6">
@@ -286,6 +282,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
           </div>
         </div>
       )}
+      
       {!allQuizzesCompleted && (
         <div className="mt-12 bg-muted rounded-lg shadow-lg p-8">
           <Share2 className="w-8 h-8 mx-auto mb-2 text-yellow-500" />

@@ -21,6 +21,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { JoinTeamDialog } from "./JoinTeamDialog";
 import { ProjectMemberWarningDialog } from "./ProjectMemberWarningDialog";
 import InvalidInvitationComponent from "./InvalidInvitationDialog";
+import Modal from "@/components/ui/Modal";
 
 export default function GeneralSecureComponent({
   searchParams,
@@ -132,7 +133,7 @@ export default function GeneralSecureComponent({
     
       dispatch({ type: "SET_PROJECT_ID", payload: project.id || "" });
     }
-  }, [project, isEditing, setFormData, dispatch]); // ✅ 'dispatch' es estable
+  }, [project, isEditing, setFormData, dispatch]); 
 
   const handleStepChange = (newStep: number) => {
     if (newStep >= 1 && newStep <= 3) {
@@ -335,7 +336,6 @@ export default function GeneralSecureComponent({
           dispatch({ type: "SET_OPEN_INVALID_INVITATION", payload: open })
         }
       />
-
       {error && (
         <div className="mt-4">
           <Alert variant="destructive">
