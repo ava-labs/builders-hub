@@ -1,0 +1,14 @@
+{
+  "title": "Metrics API",
+  "icon": "TrendingUp",
+  "root": true,
+  "pages": [
+    "index",
+    "---Health Check---",
+    "health-check",
+    "---EVM---",
+    "evm",
+    "---Chain Metrics---",
+    "chain-metrics"
+  ]
+}
